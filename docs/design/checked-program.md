@@ -1358,6 +1358,21 @@ atomic enforcement obligations, not observed counts or permission to truncate.
 The bound of the generated typed empty constant remains a separate fixed fact;
 it is not replaced by the selected bound for matched child arrays.
 
+`prepare_nest_value_envelope` uses that same selection's policy owner to prepare
+two byte scopes: emitted child-array values after aggregation, and all retained
+top-level array/object fields after parent attachment. The latter includes
+sibling collections; it does not include row wrappers or count inner containers
+again. Each repeated parent copy contributes its own logical bytes. The retained
+field-index readers avoid copying field names before a consumer budgets its work.
+
+Static depth traverses the declared child-array contract, including the generated
+array and object, even with no input rows. It counts array/object type containers;
+the `values`-specific vector-depth rule is not applied to `nest`. The iterative
+walk and field inventory share a preparation work budget, separate from the
+selected Host depth ceiling. This preparation neither measures actual bytes nor
+replaces the separate overflow-safe total-expansion check. Only a complete
+envelope binding can discharge `ResolveNestedEnvelope`.
+
 ## Identity boundaries
 
 [Local contract closure](local-contract-closure.md) separates the selected

@@ -474,6 +474,10 @@ pub fn nearest_resource_at(NearestCheck, Int) -> NearestResource?
 
 pub fn nearest_resource_count(NearestCheck) -> Int
 
+pub fn nest_attachment_field_at(NestValueEnvelope, Int) -> @relation_schema.Field?
+
+pub fn nest_attachment_field_count(NestValueEnvelope) -> Int
+
 pub fn nest_item_candidate_at(NestItemLimit, Int) -> @capacity_graph_preflight.TargetMembership?
 
 pub fn nest_item_candidate_count(NestItemLimit) -> Int
@@ -671,6 +675,8 @@ pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[Cap
 pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
+
+pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
 
 pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
@@ -2168,6 +2174,24 @@ pub struct NestItemLimit {
   work : Int
   // private fields
 }
+
+pub struct NestValueEnvelope {
+  items : NestItemLimit
+  byte_ceiling : @capacity_policy.Ceiling
+  depth_ceiling : @capacity_policy.Ceiling
+  payload_type : @value_contract.Contract
+  type_depth : Int
+  work : Int
+  // private fields
+}
+
+pub(all) enum NestValueIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOwner
+  MissingCeiling
+  DepthExceeded
+} derive(Eq, @debug.Debug)
 
 pub struct NumericSlot {
   requirement_index : Int
