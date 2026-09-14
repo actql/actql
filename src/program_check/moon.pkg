@@ -1,5 +1,9 @@
 supported_targets = "+js+wasm+native"
 
+import {
+  "actql/actql/parameter_references" @parameter_refs,
+} for "test"
+
 formatter(
   ignore: [
     "numeric_profile.generated_wbtest.mbt",
