@@ -63,7 +63,9 @@ export function releaseFixedCompute(result) {
 // Trusted resident bridge only. Every SQL fragment and the checked receiver
 // mapping come from the MoonBit adapter, not application callbacks. The
 // environment is borrowed: task settlement does not close the shared DB.
-// validate finishes Host guards/receiving before committing the resident result.
+// validate finishes receiving before committing the resident table. The common
+// MoonBit completion boundary still validates demand, guards and retention before
+// publishing success; a later failure leaves only owned cleanup responsibility.
 export async function runResidentFixedCompute(
   environment, port, resident, limits, consume, validate, signal, accounting,
 ) {
