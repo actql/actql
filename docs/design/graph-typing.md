@@ -340,6 +340,18 @@ hop-bounded selection, tie-breaking and canonical output order remain explicit
 execution obligations. Guard binding, profile and resource resolution remain
 separate. Static acceptance is not weighted-search execution support.
 
+`ShortestExecution` retains the exact checked operation, primary Graph, and the
+source/target Relation roles independently, even when both roles share a target.
+Graph admission, endpoint membership and all-edge weight validation precede path
+evaluation. Weight validation is not restricted to visited edges. The other
+bindings preserve bounded simple-path selection, the specified binary64 fold and
+overrange state, selected-overrange atomic rejection, canonical tie-breaks and
+output ordering. A nonselected overrange path does not independently reject the
+operation. Output-phase obligations are gates on publication, not permission to
+delay hop-bound enforcement until after an unconstrained search. These bindings
+use the retained selection mode and weight field; they do not execute a search,
+resolve resources or turn candidate feasibility into completed evidence.
+
 ## Bounded reach checking
 
 `check_reach` requires a typed explicit start, direction and positive finite

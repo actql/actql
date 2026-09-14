@@ -24,6 +24,7 @@ pub(all) enum OperationExecutionCheck {
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   ReachExecution(ReachCheck)
+  ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -137,6 +138,16 @@ pub fn operation_execution_phase(
     | ReachLimits(_)
     | TraversalOutputGuard(_)
     | GraphResources(_) => BeforeOperationOutput
+    ShortestExecution(v) =>
+      match v.rule {
+        AdmitShortestInput | RequireEndpoints | ValidateAllWeights =>
+          BeforeOperationInputUse
+        FoldCostsWithOverrange
+        | RejectSelectedOverrange
+        | SelectSimpleBoundedPaths
+        | ApplyPathTieBreaks
+        | OrderOutputRows => BeforeOperationOutput
+      }
     ReachExecution(v) =>
       match v.rule {
         AdmitInputGraph | RequireStartMembership => BeforeOperationInputUse
@@ -276,6 +287,7 @@ pub fn operation_execution_failure(
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
     | ReachExecution(_)
+    | ShortestExecution(_)
     | GraphProjection(_)
     | GraphExecution(_)
     | GraphProjectionOutput(_)
