@@ -27,6 +27,7 @@ fn checked_direct_program_fixture(
   top_k_step? : String = "",
   watermark_body? : String = "",
   nest_guard? : String? = None,
+  temporal_step? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -36,7 +37,19 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if nest_guard is Some(guard_text) {
+    if temporal_step != "" {
+      text
+      .replace(
+        old="\"inputs\":{\"remote\":",
+        new="\"inputs\":{\"right\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"id\":2,\"tenant\":null},\"minimum_classification\":\"confidential\"},\"remote\":",
+      )
+      .replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"from\":\"remote\",\"distinct\":[\"id\"]},{\"top_k\":{\"k\":1,\"by\":[{\"id\":\"asc\"}]},\"as\":\"left_rows\"},{\"from\":\"right\",\"distinct\":[\"id\"]},{\"top_k\":{\"k\":1,\"by\":[{\"id\":\"asc\"}]},\"as\":\"right_rows\"}," +
+          temporal_step +
+          ",",
+      )
+    } else if nest_guard is Some(guard_text) {
       text
       .replace(
         old="\"inputs\":{\"remote\":",
@@ -299,8 +312,15 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let sources = if join_kind != "" && join_capacity {
-    local_join_capacity_fixture(environment, 1, 2)
+  let sources = if (join_kind != "" || temporal_step != "") && join_capacity {
+    if temporal_step != "" {
+      local_join_capacity_fixture(environment, 1, 4, proofs=[
+        temporal_policy_top_k_claim(1),
+        temporal_policy_top_k_claim(3),
+      ])
+    } else {
+      local_join_capacity_fixture(environment, 1, 2)
+    }
   } else {
     sources
   }
@@ -321,8 +341,14 @@ fn checked_direct_program_fixture(
         [
           @context.CapacityMaterial::{
             sources,
-            consumers: if join_kind != "" && join_capacity {
-              [@capacity.Join(step=2, output=0)]
+            consumers: if (join_kind != "" || temporal_step != "") &&
+              join_capacity {
+              [
+                @capacity.Join(
+                  step=if temporal_step != "" { 4 } else { 2 },
+                  output=0,
+                ),
+              ]
             } else {
               []
             },
@@ -331,9 +357,17 @@ fn checked_direct_program_fixture(
       ]
     },
     { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    {
+      rela: true,
+      sga: false,
+      tea: temporal_step != "",
+      calendar: false,
+      text_rank: false,
+    },
     source_limits_fixture(
-      if join_kind != "" ||
+      if temporal_step != "" {
+        6
+      } else if join_kind != "" ||
         mix_generated ||
         mix_local ||
         pivot_body != "" ||
@@ -343,7 +377,8 @@ fn checked_direct_program_fixture(
         unnest_body != "" ||
         top_k_step != "" ||
         watermark_body != "" ||
-        nest_guard is Some(_) {
+        nest_guard is Some(_) ||
+        temporal_step != "" {
         4
       } else {
         2

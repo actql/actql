@@ -295,6 +295,10 @@ pub fn publication_policy_source_at(PublicationSourcePolicy, Int) -> SourceExecu
 
 pub fn publication_policy_source_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_temporal_join_at(PublicationSourcePolicy, Int) -> PublicationPolicyTemporalJoin?
+
+pub fn publication_policy_temporal_join_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_top_k_at(PublicationSourcePolicy, Int) -> PublicationPolicyTopK?
 
 pub fn publication_policy_top_k_count(PublicationSourcePolicy) -> Int
@@ -765,6 +769,12 @@ pub struct PublicationPolicySlice {
   operation : @relation_typing.CheckedOperation
   count : @relation_typing.CountValue
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyTemporalJoin {
+  step : Int
+  operation : @pipeline_typing.CheckedOperation
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyTopK {

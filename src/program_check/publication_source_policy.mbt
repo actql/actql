@@ -27,6 +27,29 @@ pub struct PublicationSourcePolicy {
   priv top_ks : Array[PublicationPolicyTopK]
   priv watermarks : Array[PublicationPolicyWatermark]
   priv nests : Array[PublicationPolicyNest]
+  priv temporal_joins : Array[PublicationPolicyTemporalJoin]
+}
+
+///|
+pub struct PublicationPolicyTemporalJoin {
+  step : Int
+  operation : @pipeline.CheckedOperation
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_temporal_join_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.temporal_joins.length()
+}
+
+///|
+pub fn publication_policy_temporal_join_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyTemporalJoin? {
+  value.temporal_joins.get(index)
 }
 
 ///|
@@ -479,6 +502,7 @@ fn prepare_publication_source_policy(
   let top_ks : Array[PublicationPolicyTopK] = []
   let watermarks : Array[PublicationPolicyWatermark] = []
   let nests : Array[PublicationPolicyNest] = []
+  let temporal_joins : Array[PublicationPolicyTemporalJoin] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -721,6 +745,28 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.IntervalJoin(checked=operation, ..) => {
+            identity_charge(budget, 1)
+            let missing = @join.interval_output_guard(operation) is Some(_)
+            temporal_joins.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            2
+          }
+          @pipeline.AsOfJoin(..) => {
+            identity_charge(budget, 1)
+            temporal_joins.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            // Tolerance is a literal or bound value, not a policy attestation.
+            unknown = true
+            2
+          }
           @pipeline.Append(..)
           | @pipeline.Set(..)
           | @pipeline.Join(..)
@@ -886,6 +932,7 @@ fn prepare_publication_source_policy(
     top_ks,
     watermarks,
     nests,
+    temporal_joins,
   }
   |> Some
 }

@@ -541,6 +541,14 @@ item guard without value-policy attestation retains unknown provenance. The
 retained nest is shared with attachment admission, dependency propagation and
 nested-limit construction; policy transfer does not replace any of those checks.
 
+Interval and as-of policy transfer follows both input edges, including the right
+side of semi/anti selection or a left-only output projection. It retains the exact
+checked temporal operation. Authored interval guards and as-of tolerance values
+without admitted provenance contribute unknown classification. Key and time-field
+references inherit input provenance. Search-product proofs, selected output limits,
+matching validation and as-of tie resolution remain separate required checks;
+an acquisition resource ceiling is not substituted for a search operand proof.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

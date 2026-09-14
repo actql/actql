@@ -8,6 +8,7 @@ formatter(
 )
 
 import {
+  "actql/actql/relation_join" @join,
   "actql/actql/relation_nest" @nest,
   "actql/actql/capacity_sequence_limit" @sequence,
   "actql/actql/capacity_derivation" @derivation,
@@ -44,7 +45,6 @@ import {
   "actql/actql/source_request_slots" @slots,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/relation_join" @join,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
