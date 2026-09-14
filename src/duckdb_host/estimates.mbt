@@ -342,6 +342,7 @@ fn rebuild_dispatch_estimates(
       }
     }
     if host.resident is Some(resident) &&
+      host.resident_rejections[task - 1] is None &&
       host.native_rejections[task - 1] is None {
       let lines = match
         dispatch_estimate_lines(

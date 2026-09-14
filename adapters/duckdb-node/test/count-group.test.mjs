@@ -11,7 +11,7 @@ test('owned MoonBit group SQL preserves NULL counts and UTF16 key order in DuckD
   const { stdout } = await promisify(execFile)('moon', [
     'test', '--target', 'js', 'src/query_integration/duckdb_count_group_wbtest.mbt',
   ], { cwd: root, maxBuffer: 2 * 1024 * 1024 });
-  assert.match(stdout, /Total tests: 3, passed: 3, failed: 0/);
+  assert.match(stdout, /Total tests: 4, passed: 4, failed: 0/);
   const fixtures = stdout.split('\n').filter(line => line.startsWith('ACTQL_COUNT_GROUP '))
     .map(line => JSON.parse(line.slice('ACTQL_COUNT_GROUP '.length)));
   assert.deepEqual(fixtures.map(f => f.name), ['number', 'text']);

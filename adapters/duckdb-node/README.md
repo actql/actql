@@ -146,6 +146,12 @@ would discard every row. The request snapshots the handle array, not the rows.
 Local, fresh-import DuckDB and resident DuckDB support the checked binary
 inner-join profile. Both input ports retain independent guards and exact
 producer ownership, including when they share the same backing table.
+Schemas whose names collide under ASCII case folding (such as `K` and `k`)
+remain legal in ActQL. DuckDB table imports and resident outputs exclude these
+schemas before selection, because the current physical representation preserves
+logical names. Fresh output transport can return them without materialization;
+group keys are explicitly qualified input references, not output-alias lookups.
+Local can consume these outputs. There is no automatic retry after failure.
 Native candidates reject a selected common fragment until exact fragment
 accounting is supported; they do not reinterpret it as Local-only.
 This preparation is not itself a proof that all value/root guards have run.

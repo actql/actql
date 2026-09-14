@@ -179,6 +179,10 @@ pub fn strategy_fixture_close_output(StrategyFixture, Int) -> Unit
 
 pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyComputeHostConfiguration
 
+pub fn strategy_fixture_consume(StrategyFixture, Int, String) -> String
+
+pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @duckdb_host.StrategyHostDispatch
+
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch

@@ -17,6 +17,14 @@ pub fn prepare_resident_query(
   if max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
+  match
+    check_resident_output_static(
+      fixed_query_owner(query),
+      fixed_query_target(query),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let input_tables = match query {
     FilterSelect(query) => [query.table]
     CountGroup(query) => [query.table]
@@ -49,6 +57,23 @@ pub fn prepare_resident_query(
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)
   }
+}
+
+///|
+/// Resident tables use logical column names. Reject lossy CTAS name folding
+/// before selection; fresh result transport does not materialize these names.
+pub fn check_resident_output_static(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+) -> Result[Unit, NativeQueryIssue] {
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  guard @pipeline.schema_at(pipeline, target) is Some(schema) else {
+    return Err(UnsupportedShape)
+  }
+  if !physical_column_names_unique(schema) {
+    return Err(UnsupportedField)
+  }
+  Ok(())
 }
 
 ///|

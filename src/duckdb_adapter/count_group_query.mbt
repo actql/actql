@@ -74,11 +74,12 @@ pub fn compile_fixed_count_group(
           sql_text(sql, "CAST(COUNT(")
           match count.field {
             None => sql_text(sql, "*")
-            Some(field) => sql_identifier(sql, @schema.reference_name(field))
+            Some(field) =>
+              group_input_identifier(sql, @schema.reference_name(field))
           }
           sql_text(sql, ") AS DOUBLE)")
         }
-        None => sql_identifier(sql, name)
+        None => group_input_identifier(sql, name)
       }
       sql_text(sql, " AS ")
       sql_identifier(sql, name)
@@ -87,6 +88,7 @@ pub fn compile_fixed_count_group(
     sql_identifier(sql, database_schema)
     sql_text(sql, ".")
     sql_identifier(sql, table)
+    sql_text(sql, " AS __actql_source")
     let keys = @lower.count_group_key_count(group)
     if keys > 0 {
       sql_text(sql, " GROUP BY ")
@@ -94,7 +96,7 @@ pub fn compile_fixed_count_group(
         if i > 0 {
           sql_text(sql, ", ")
         }
-        sql_identifier(
+        group_input_identifier(
           sql,
           @schema.reference_name(@lower.count_group_key_at(group, i).unwrap()),
         )
@@ -115,7 +117,7 @@ pub fn compile_fixed_count_group(
         if contract.shape is @contract.Text(_) {
           emit_utf16_order_key(sql, @schema.reference_name(field))
         } else {
-          sql_identifier(sql, @schema.reference_name(field))
+          group_input_identifier(sql, @schema.reference_name(field))
         }
         sql_text(sql, " ASC NULLS FIRST")
       }
@@ -133,12 +135,21 @@ pub fn compile_fixed_count_group(
 /// The helper list is physical scratch, never an output field or logical key.
 fn emit_utf16_order_key(sql : SqlText, field : String) -> Unit raise SqlFailure {
   sql_text(sql, "flatten(list_transform(list_transform(range(1, length(")
-  sql_identifier(sql, field)
+  group_input_identifier(sql, field)
   sql_text(sql, ") + 1), lambda __actql_i: unicode(substr(")
-  sql_identifier(sql, field)
+  group_input_identifier(sql, field)
   sql_text(
     sql, ", __actql_i, 1))), lambda __actql_cp: CASE WHEN __actql_cp > 65535 THEN [55296 + ((__actql_cp - 65536) // 1024), 56320 + ((__actql_cp - 65536) % 1024)] ELSE [__actql_cp] END))",
   )
+}
+
+///|
+fn group_input_identifier(
+  sql : SqlText,
+  field : String,
+) -> Unit raise SqlFailure {
+  sql_text(sql, "__actql_source.")
+  sql_identifier(sql, field)
 }
 
 ///|

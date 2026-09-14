@@ -44,6 +44,8 @@ pub fn cancel_physical_result(PhysicalResult) -> Unit
 
 pub fn check_fixed_compute_static(@lowering_relation.BoundPrepared, Array[String], NativeQueryLimits) -> Result[Unit, NativeQueryIssue]
 
+pub fn check_resident_output_static(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Unit, NativeQueryIssue]
+
 pub fn compile_fixed_count_group(@lowering_relation.BoundPrepared, String, String, NativeQueryLimits) -> Result[NativeCountGroup, NativeQueryIssue]
 
 pub fn compile_fixed_inner_join(@lowering_relation.BoundPrepared, String, Array[String], NativeQueryLimits) -> Result[NativeInnerJoin, NativeQueryIssue]

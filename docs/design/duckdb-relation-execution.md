@@ -736,6 +736,17 @@ canonical group order rather than first encounter. For text keys the SQL
 sorts lists of UTF16 code units, including surrogate pairs, instead of relying
 on DuckDB's default binary VARCHAR order. These helper lists are physical
 scratch, not new logical fields. Their cost and retention are not free.
+All grouping, count-field and ordering references are qualified through the
+input table alias, including the UTF16 helper. Output aliases cannot capture
+grouping-key references through DuckDB's case-insensitive identifier lookup.
+
+The current table representation retains logical field names. ASCII-case
+collisions remain legal ActQL schemas, but cannot be imported into DuckDB tables
+or materialized as resident outputs without a physical-name mapping. These
+realizations are excluded before cost selection; the resident compiler also
+rejects them at its low-level boundary. Fresh output transport may retain such
+names without CTAS, and Local remains eligible. No execution-failure retry or
+logical schema renaming substitutes for this static check.
 DuckDB documents its [binary collation](https://duckdb.org/docs/current/sql/expressions/collations)
 and [positional LIST comparison](https://duckdb.org/docs/current/sql/data_types/list);
 the adapter is responsible for the ActQL-specific code-unit transformation.

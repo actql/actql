@@ -3,9 +3,10 @@ fn count_group_owner(
   typ : @value_contract.Contract,
   by : String,
   counts : String,
+  name? : String = "k",
 ) -> @lower.BoundPrepared {
   let schema = @schema.from_fields(
-    [(@schema.Unqualified("k"), typ)],
+    [(@schema.Unqualified(name), typ)],
     max_fields=1,
     max_name_bytes=1,
   ).unwrap()
@@ -52,7 +53,7 @@ test "fixed count SQL uses owned checked keys and exact count without a fabricat
     native_compile_limits(),
   ).unwrap()
   assert_true(physical_equal(@duckdb.fixed_count_group_owner(compiled), owner))
-  let expected = "SELECT \"k\" AS \"k\", CAST(COUNT(*) AS DOUBLE) AS \"n\", CAST(COUNT(\"k\") AS DOUBLE) AS \"p\" FROM \"main\".\"fixed\" GROUP BY \"k\", \"k\" ORDER BY \"k\" ASC NULLS FIRST, \"k\" ASC NULLS FIRST"
+  let expected = "SELECT __actql_source.\"k\" AS \"k\", CAST(COUNT(*) AS DOUBLE) AS \"n\", CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"p\" FROM \"main\".\"fixed\" AS __actql_source GROUP BY __actql_source.\"k\", __actql_source.\"k\" ORDER BY __actql_source.\"k\" ASC NULLS FIRST, __actql_source.\"k\" ASC NULLS FIRST"
   assert_eq(@duckdb.fixed_count_group_sql(compiled), expected)
   assert_true(
     @duckdb.compile_fixed_count_group(owner, "main", "fixed", {
@@ -94,7 +95,7 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
   ).unwrap()
   assert_eq(
     @duckdb.fixed_count_group_sql(compiled),
-    "SELECT CAST(COUNT(\"k\") AS DOUBLE) AS \"n\" FROM \"main\".\"fixed\"",
+    "SELECT CAST(COUNT(__actql_source.\"k\") AS DOUBLE) AS \"n\" FROM \"main\".\"fixed\" AS __actql_source",
   )
   let unsupported = count_group_owner(
     @value_contract.primitive(@value_contract.NumberType, nullable=true),
@@ -146,5 +147,39 @@ test "emit owned group SQL for real DuckDB conformance without deriving expected
     @encode.string_value(writer, @duckdb.fixed_query_sql(query))
     @encode.end_object(writer)
     println("ACTQL_COUNT_GROUP " + @encode.finish(writer))
+  }
+}
+
+///|
+test "case-distinct aggregate aliases are fresh eligible but not resident names" {
+  for (key, aggregate) in [("K", "k"), ("k", "K")] {
+    let owner = count_group_owner(
+      @value_contract.primitive(@value_contract.NumberType, nullable=true),
+      "[\"" + key + "\"]",
+      "{\"" + aggregate + "\":{\"fn\":\"count\"}}",
+      name=key,
+    )
+    let query = @duckdb.compile_fixed_query(
+      owner,
+      "main",
+      "fixed",
+      native_compile_limits(),
+    ).unwrap()
+    assert_true(
+      @duckdb.check_fixed_compute_static(
+        owner,
+        ["fixed"],
+        native_compile_limits(),
+      )
+      is Ok(_),
+    )
+    assert_true(
+      @duckdb.check_resident_output_static(owner, Step(0))
+      is Err(UnsupportedField),
+    )
+    assert_true(
+      @duckdb.prepare_resident_query(query, "result", 10000)
+      is Err(UnsupportedField),
+    )
   }
 }

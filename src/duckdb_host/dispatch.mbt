@@ -22,6 +22,7 @@ struct StrategyHostDispatch {
   native_registration : @planning.CapabilityRegistration
   generated : Array[@execution.GeneratedSequence]
   native_rejections : Array[String?]
+  resident_rejections : Array[String?]
   limits : TaskDispatchLimits
   mut pending : TaskDispatch?
   mut estimates : DispatchEstimates?
@@ -83,6 +84,7 @@ pub fn configure_strategy_dispatch(
     return Err(InvalidConfiguration)
   }
   let native_rejections : Array[String?] = []
+  let resident_rejections : Array[String?] = []
   for index, item in generated {
     if !physical_equal(
         @execution.generated_sequence_owner(item),
@@ -118,6 +120,18 @@ pub fn configure_strategy_dispatch(
         }
       },
     )
+    let owner = @execution.generated_sequence_owner(item)
+    let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+    resident_rejections.push(
+      match
+        @duckdb.check_resident_output_static(
+          owner,
+          Step(@pipeline.step_count(pipeline) - 1),
+        ) {
+        Ok(_) => None
+        Err(_) => Some("unsupported_resident_output_names")
+      },
+    )
   }
   Ok({
     run,
@@ -126,6 +140,7 @@ pub fn configure_strategy_dispatch(
     native_registration,
     generated: generated.copy(),
     native_rejections,
+    resident_rejections,
     limits,
     pending: None,
     estimates: None,
@@ -222,6 +237,10 @@ pub fn prepare_next_dispatch(
     DispatchWork::Local(choice, candidate)
   } else if physical_equal(registration, host.native_registration) {
     if host.native_rejections[task - 1] is Some(_) {
+      return Err(ForeignSelection)
+    }
+    if @strategy.strategy_resident_profile(revision, task) is Some(_) &&
+      host.resident_rejections[task - 1] is Some(_) {
       return Err(ForeignSelection)
     }
     let prepared = if @strategy.captured_task_join_output_limit(host.run, task)
@@ -352,6 +371,13 @@ pub fn dispatch_excluded_realizations(
           reason,
         ),
       )
+    }
+  }
+  if host.resident is Some(_) {
+    for index, reason in host.resident_rejections {
+      if reason is Some(reason) {
+        excluded.push((index + 1, "duckdb-resident", reason))
+      }
     }
   }
   excluded

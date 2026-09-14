@@ -491,6 +491,57 @@ pub fn strategy_fixture_next(f : StrategyFixture) -> Int {
 }
 
 ///|
+#export_name("strategyFixtureConsume")
+pub fn strategy_fixture_consume(
+  f : StrategyFixture,
+  task : Int,
+  steps : String,
+) -> String {
+  guard f.run is Some(run) &&
+    @strategy.captured_task_target(run, task) is Some(target) &&
+    @strategy.captured_task_output(run, task, target) is Some(output) &&
+    @strategy.graph_task_owner(f.graph, task) is Some(owner) else {
+    return "null"
+  }
+  let consumer = issued_fixture_consumer(owner, target~, steps~)
+  let generated = fixture_generated(
+    consumer,
+    f.registry_json,
+    f.values_json,
+    f.fragment_json,
+    false,
+  ) catch {
+    _ => return "null"
+  }
+  guard @execution.bind_completed_input(consumer, 0, owner, output) is Ok(input) else {
+    return "null"
+  }
+  guard @execution.execute_generated_sequence(
+      generated,
+      [],
+      issued_execution_limits(100),
+      produced=[input],
+    )
+    is Ok(completed) else {
+    return "null"
+  }
+  guard @execution.completed_output(completed, Step(0)) is Some(result) else {
+    return "null"
+  }
+  match
+    @execution.identify_completed_rows(result, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }) {
+    Ok(identity) => @execution.row_wire_cid(identity)
+    Err(_) => "null"
+  }
+}
+
+///|
 #export_name("strategyFixtureCanBind")
 pub fn strategy_fixture_can_bind(f : StrategyFixture, task : Int) -> Bool {
   guard f.run is Some(run) &&

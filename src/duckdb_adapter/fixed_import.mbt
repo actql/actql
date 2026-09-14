@@ -47,6 +47,9 @@ fn compile_fixed_import_schema(
   if count == 0 {
     return Err(UnsupportedShape)
   }
+  if !physical_column_names_unique(schema) {
+    return Err(UnsupportedField)
+  }
   let create = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
     sql_text(
@@ -100,6 +103,30 @@ fn compile_fixed_import_schema(
     TextLimit => Err(Limit)
     BadIdentifier => Err(InvalidIdentifier)
   }
+}
+
+///|
+// DuckDB identifiers fold ASCII case even when quoted. Logical ActQL names do
+// not. Do not let CREATE TABLE reject or CTAS silently rename these fields.
+fn physical_column_names_unique(schema : @schema.Schema) -> Bool {
+  let names : Map[String, Bool] = Map([])
+  for i in 0..<@schema.field_count(schema) {
+    let name = @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
+    let folded = StringBuilder()
+    for char in name {
+      if char >= 'A' && char <= 'Z' {
+        folded.write_string(char.to_string().to_lower())
+      } else {
+        folded.write_char(char)
+      }
+    }
+    let key = folded.to_string()
+    if names.contains(key) {
+      return false
+    }
+    names[key] = true
+  }
+  true
 }
 
 ///|
