@@ -352,6 +352,16 @@ delay hop-bound enforcement until after an unconstrained search. These bindings
 use the retained selection mode and weight field; they do not execute a search,
 resolve resources or turn candidate feasibility into completed evidence.
 
+The shared traversal capacity ledger also accepts shortest-path operations.
+Its separate `shortest_path:checked-step:n:paths` and
+`shortest_path:checked-step:n` subjects bind search-path and output-row limits
+to the exact operation. The `actql.bound.shortest-path` law can contribute to
+the row limit, not the search-path limit. A bound `ShortestOutputRows` author
+guard tightens only output rows; its original occurrence and Parameter owner
+are retained. Missing applications and unbound guards are rejected rather than
+interpreted as unlimited execution. These process-local associations are not
+persistent Unit subjects or a completed Program compilation boundary.
+
 ## Bounded reach checking
 
 `check_reach` requires a typed explicit start, direction and positive finite

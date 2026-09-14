@@ -1,15 +1,21 @@
 ///|
 fn traversal_checked_fixture(
   emission : String,
+  shortest? : Bool = false,
   guard_text? : String = "",
   parameters? : @parameter.Declarations? = None,
   bindings? : @parameter.BoundValues? = None,
 ) -> (@pipeline.CheckedPipeline, @step_bounds.TraversalLimits) raise {
   let pipeline = @pipeline.check_carriers(
     asof_test_cursor(
-      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"dst\":2}]},\"as\":\"seed\"},{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"seed\",\"source\":\"id\",\"target\":\"dst\",\"fields\":[]}},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"" +
-      emission +
-      "\"" +
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"dst\":2}]},\"as\":\"seed\"},{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"seed\",\"source\":\"id\",\"target\":\"dst\",\"fields\":[]}},\"as\":\"g\"}," +
+      (if shortest {
+        "{\"shortest_path\":{\"source\":1,\"target\":1,\"direction\":\"out\",\"max_hops\":3"
+      } else {
+        "{\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"" +
+        emission +
+        "\""
+      }) +
       guard_text +
       "}}]",
     ),
@@ -53,7 +59,9 @@ fn traversal_checked_fixture(
     let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
       text +
       "],\"effective_max\":7,\"enforcement\":\"engine_atomic\""
-    let tail = ",\"subject_ref\":\"traverse:checked-step:2" +
+    let tail = ",\"subject_ref\":\"" +
+      (if shortest { "shortest_path" } else { "traverse" }) +
+      ":checked-step:2" +
       suffix +
       "\",\"unit\":\"" +
       unit +

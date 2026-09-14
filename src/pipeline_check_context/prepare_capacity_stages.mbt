@@ -149,6 +149,12 @@ pub fn prepare_local_stage_contexts(
           @graph.traverse_output_guard(operation) is Some(_) {
           needs_guards = true
         }
+        if request is @capacity.Traversal(step~, ..) &&
+          @pipeline.step_at(pipeline, step) is Some(checked) &&
+          checked.operation is @pipeline.Shortest(checked=operation, ..) &&
+          @graph.shortest_output_guard(operation) is Some(_) {
+          needs_guards = true
+        }
       }
       let guards = if needs_guards {
         let occurrences = match

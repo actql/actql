@@ -59,14 +59,23 @@ pub fn check_traversal_limits(
   guard @pipeline.step_at(pipeline, step) is Some(checked) else {
     return Err(InvalidStep)
   }
-  let (operation_name, authored_guard, output_law) = match checked.operation {
+  let (operation_name, authored_guard, output_law, guard_scope) = match
+    checked.operation {
     @pipeline.Traverse(checked=op, ..) =>
       (
         "traverse",
         @graph.traverse_output_guard(op),
         Some("actql.bound.traverse-nodes"),
+        Some(@pipeline.TraverseOutputRows),
       )
-    @pipeline.Reach(_) => ("reach", None, None)
+    @pipeline.Reach(_) => ("reach", None, None, None)
+    @pipeline.Shortest(checked=op, ..) =>
+      (
+        "shortest_path",
+        @graph.shortest_output_guard(op),
+        Some("actql.bound.shortest-path"),
+        Some(@pipeline.ShortestOutputRows),
+      )
     _ => return Err(WrongOperation)
   }
   if guards is None && authored_guard is Some(_) {
@@ -99,8 +108,7 @@ pub fn check_traversal_limits(
     work += end - first
     for index in first..<end {
       let occurrence = @pipeline.author_guard_at(occurrences, index).unwrap()
-      if @pipeline.author_guard_scope(occurrence) ==
-        @pipeline.TraverseOutputRows {
+      if Some(@pipeline.author_guard_scope(occurrence)) == guard_scope {
         output_guard = Some(index)
       }
     }

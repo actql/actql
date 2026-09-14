@@ -93,7 +93,8 @@ pub fn check_traversal_applications(
   }
   for i in 0..<n {
     let required = match @pipeline.step_at(pipeline, i).unwrap().operation {
-      @pipeline.Traverse(..) | @pipeline.Reach(_) => true
+      @pipeline.Traverse(..) | @pipeline.Reach(_) | @pipeline.Shortest(..) =>
+        true
       _ => false
     }
     if required && entries[i] is None {
