@@ -662,6 +662,12 @@ weight. Authored weights and support thresholds contribute unproven value
 provenance. The retained operation owns these options and its independent exact
 arithmetic, support, materialization and sample-resource execution requirements.
 
+Reach retains its Graph input policy and exact checked operation; the authored
+start identity and depth contribute unproven value provenance. Its independently
+selected search-path and output-row limits retain their operation owner and Unit
+subjects. Publication policy is neither a traversal bound nor evidence that the
+start identity exists or that exploration has executed successfully.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

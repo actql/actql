@@ -41,6 +41,7 @@ fn checked_direct_program_fixture(
   graph_right? : Bool = false,
   graph_resources? : Bool = true,
   graph_components? : Bool = false,
+  graph_traversal? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -415,7 +416,12 @@ fn checked_direct_program_fixture(
     max_nodes: 0,
     max_depth: 0,
   }).unwrap()
-  let sources = if graph_components {
+  let sources = if graph_traversal != "" {
+    local_traversal_capacity_fixture(
+      environment,
+      operation_name=graph_traversal,
+    )
+  } else if graph_components {
     local_components_capacity_fixture(environment, 1)
   } else if vector_steps != "" {
     local_join_capacity_fixture(environment, 1000, 1)
@@ -458,7 +464,9 @@ fn checked_direct_program_fixture(
         [
           @context.CapacityMaterial::{
             sources,
-            consumers: if graph_components {
+            consumers: if graph_traversal != "" {
+              [@capacity.Traversal(step=3, paths=0, output=1)]
+            } else if graph_components {
               [@capacity.Components(step=3, nodes=0, output=1)]
             } else if vector_steps != "" {
               [@capacity.Join(step=1, output=0)]

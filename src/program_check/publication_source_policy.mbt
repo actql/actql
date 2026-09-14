@@ -769,6 +769,17 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Reach(_) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            // The explicit start identity and depth are authored values.
+            unknown = true
+            1
+          }
           @pipeline.GraphMean(operation) => {
             identity_charge(budget, 1)
             carrier_steps.push({
