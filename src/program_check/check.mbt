@@ -116,6 +116,7 @@ fn check_supported_source(
               | "nearest"
               | "pool_vectors"
               | "merge_rankings"
+              | "text_rank"
               | "node_rows"
               | "edge_rows"
               | "values" => ()
@@ -148,6 +149,7 @@ pub fn check(
   max_depth~ : Int,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  text_rank? : @environment.SelectedTextRankProfile? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -170,6 +172,7 @@ pub fn check(
     budget,
     numeric_profile~,
     calendar~,
+    text_rank~,
   )
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
     error => raise Units(error)

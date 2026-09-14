@@ -50,6 +50,8 @@ fn local_construction_fixture(
   graph_input_limit? : Int? = None,
   calendar? : Bool = false,
   calendar_material? : Bool = true,
+  text_rank? : Bool = false,
+  text_rank_material? : Bool = true,
   text_policy? : Bool = false,
   generated_proofs? : Array[@wire.ProgramProofClaim] = [],
   generated_proof_stage? : Int = 1,
@@ -214,6 +216,13 @@ fn local_construction_fixture(
     })
     .join(",") +
     ",\"version\":\"actql-capacity-host-policy/0.1\"}" +
+    (if text_rank {
+      ",\"text_rank\":{\"profile_bytes_cid\":\"" +
+      text_profile_fixture_cid() +
+      "\",\"version\":\"actql-text-rank-selection/0.1\"}"
+    } else {
+      ""
+    }) +
     (if text_policy {
       ",\"text_time_evaluation\":{\"max_input_codepoints\":1000,\"max_input_utf8_bytes\":1000,\"max_output_bytes\":1000,\"max_pattern_bytes\":1000,\"max_replacements\":1000,\"version\":\"actql-text-time-host-policy/0.1\"}"
     } else {
@@ -268,6 +277,23 @@ fn local_construction_fixture(
           max_depth: 8,
           max_zones: 1,
           max_transitions: 0,
+        },
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
+  let selected_text_rank = if text_rank && text_rank_material {
+    Some(
+      @environment.admit_text_rank_profile(
+        @environment.read_text_rank_selection(environment, 1000).unwrap(),
+        @utf8.encode(text_profile_fixture()),
+        text_profile_blobs(),
+        {
+          max_profile_bytes: 10000,
+          max_dependency_bytes: 1000,
+          max_nodes: 1000,
+          max_depth: 20,
         },
       ).unwrap(),
     )
@@ -417,7 +443,7 @@ fn local_construction_fixture(
       supplied,
       materials,
       { text_time, veca, },
-      { rela: true, sga, tea, calendar, text_rank: false, },
+      { rela: true, sga, tea, calendar, text_rank, },
       source_limits_fixture(
         stage_count +
         extra_step_budget +
@@ -429,6 +455,7 @@ fn local_construction_fixture(
       max_depth=budget.depth,
       numeric_profile~,
       calendar=selected_calendar,
+      text_rank=selected_text_rank,
     )
     checked_results.push(value)
     return (
@@ -452,12 +479,13 @@ fn local_construction_fixture(
     },
     materials,
     { text_time, veca, },
-    { rela: true, sga, tea, calendar, text_rank: false, },
+    { rela: true, sga, tea, calendar, text_rank, },
     source_limits_fixture(
       stage_count + (if generated_rows is Some(_) { 1 } else { 0 }),
     ),
     budget,
     calendar=selected_calendar,
+    text_rank=selected_text_rank,
   )
 }
 

@@ -21,6 +21,7 @@ fn construct_local(
   budget : IdentityBudget,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  text_rank? : @environment.SelectedTextRankProfile? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -133,6 +134,7 @@ fn construct_local(
     remaining,
     numeric_profile~,
     calendar~,
+    text_rank~,
   ) catch {
     e => raise Closure(e)
   }

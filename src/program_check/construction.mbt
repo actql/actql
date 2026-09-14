@@ -29,6 +29,7 @@ fn prepare_owned_closure(
   budget : IdentityBudget,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  text_rank? : @environment.SelectedTextRankProfile? = None,
 ) -> (
   @context.StageRequirementClosure,
   @context.ProgramIncomingGates,
@@ -51,6 +52,7 @@ fn prepare_owned_closure(
         max_resolutions: ceiling - prefix,
       },
       calendar~,
+      text_rank~,
     ) {
     Ok(v) => v
     Err(e) => raise Operations(e)

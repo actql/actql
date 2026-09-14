@@ -1,6 +1,11 @@
 supported_targets = "+js+wasm+native"
 
-formatter(ignore: [ "numeric_profile.generated_wbtest.mbt" ])
+formatter(
+  ignore: [
+    "numeric_profile.generated_wbtest.mbt",
+    "text_profile.generated_wbtest.mbt",
+  ],
+)
 
 import {
   "actql/actql/capacity_sequence_limit" @sequence,
@@ -32,6 +37,7 @@ import {
 
 import {
   "actql/actql/binding_declarations" @bindings,
+  "actql/actql/text_rank_profile" @lexical,
   "actql/actql/graph_typing" @graph,
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/source_request_slots" @slots,

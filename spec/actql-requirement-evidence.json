@@ -5426,6 +5426,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/text-rank.resource-binding",
+      "statement_sha256": "8e5243371e055ad2214881a96851a934d184a0796399cfd674ce300e32a6d0fb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-rank",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/text-rank.resource-scope",
+      "statement_sha256": "17c427ae3fcb46c4e610acfb48e09affdc1d6f2e16fe8a931854ae968fd02217",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "text-rank",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/text-rank.semantic-artifact",
       "statement_sha256": "a58ae6188d76b034f7bf2ab0d6bfe0fe36072a1fb33bed62d2295ead9cbeb368",
       "status": "pending",

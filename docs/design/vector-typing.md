@@ -505,8 +505,16 @@ corpus statistics, pinned arithmetic, canonical term folding, zero-score handlin
 output order and fresh ranks remain explicit output checks. Profile selections
 are indexed once under the shared preparation budget rather than searched for
 each obligation. Equal profile CIDs do not substitute for selected Environment
-ownership. Tokenizer/text ceilings and statistics/scoring/output resource contracts
-are separate requirements, not discharged by these semantic bindings.
+ownership. Resource bindings separately expose per-token UTF-8 bytes, per-text
+token count and normalized UTF-8 bytes, normalization work, input admission,
+corpus statistics, scoring, output ordering, byte traffic and retained state.
+The selected Host output ceiling is retained without replacing tighter logical
+limits. The scope clarification makes the formerly unspecified token/text
+meter units explicit; it does not change tokenizer or BM25 semantics.
+Selecting an executable implementation still requires actual finite meter
+contracts, not just naming these scopes. The formal checker accepts an admitted
+lexical artifact from the same Environment and retains it through requirement
+closure and semantic dependency selection; it never supplies a default profile.
 
 Both text-rank checker entry points accept an optional admitted profile, and all
 pipeline checker entry points forward the selected `text_rank_profile`. The

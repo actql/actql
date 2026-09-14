@@ -1007,6 +1007,10 @@ pub fn text_bounds_patterns(TextBoundsChecks) -> PatternChecks
 
 pub fn text_bounds_usage(TextBoundsChecks) -> TextBoundsUsage
 
+pub fn text_rank_resource_at(TextRankCheck, Int) -> TextRankResource?
+
+pub fn text_rank_resource_count(TextRankCheck) -> Int
+
 pub fn timestamp_pattern_ast(TimestampPatternResolution) -> @timestamp_pattern.Pattern
 
 pub fn timestamp_pattern_at(TimestampPatternChecks, Int) -> TimestampPatternResolution?
@@ -3282,7 +3286,21 @@ pub struct TextRankCheck {
   selection : OperationLexicalResolution
   rule : @relation_evidence.TextRankObligation
   policy : @capacity_policy.Policy
+  host_output_rows : @capacity_policy.Ceiling?
 }
+
+pub(all) enum TextRankResource {
+  TokenUtf8Bytes
+  TokensPerText
+  NormalizedTextUtf8Bytes
+  NormalizationWork
+  InputAdmissionWork
+  CorpusStatisticsWork
+  CandidateScoringWork
+  OutputOrderingWork
+  ValueAndTemporaryBytes
+  RetainedLexicalState
+} derive(Eq, @debug.Debug)
 
 type TimestampPatternChecks
 

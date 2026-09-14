@@ -131,6 +131,7 @@ def moonbit_files():
         ROOT / "src/pipeline_typing/text_profile.generated_test.mbt": pipeline_test,
         ROOT / "src/check_environment/text_profile.generated_test.mbt": pipeline_test.replace("@text_rank_profile", "@lexical"),
         ROOT / "src/pipeline_check_context/text_profile.generated_test.mbt": pipeline_test.replace("@text_rank_profile", "@lexical"),
+        ROOT / "src/program_check/text_profile.generated_wbtest.mbt": pipeline_test.replace("@text_rank_profile", "@lexical"),
     }
 
 

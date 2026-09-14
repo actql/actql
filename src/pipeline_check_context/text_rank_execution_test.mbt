@@ -28,7 +28,10 @@ test "text ranking bindings retain selected lexical artifacts and producer input
             ResolveTokenizerAndNormalizedTextCeilings
             | ResolveStatisticsScoringAndOutputResources
           ) {
-          assert_true(operation_resolution_at(index, i) is Some(Unresolved))
+          assert_true(
+            operation_resolution_at(index, i)
+            is Some(Execution(TextRankExecution(_))),
+          )
           resources += 1
         }
         guard operation_resolution_at(index, i)
@@ -36,6 +39,41 @@ test "text ranking bindings retain selected lexical artifacts and producer input
           continue
         }
         executions += 1
+        let expected : Array[TextRankResource] = match check.rule {
+          ResolveTokenizerAndNormalizedTextCeilings =>
+            [
+              TokenUtf8Bytes,
+              TokensPerText,
+              NormalizedTextUtf8Bytes,
+              NormalizationWork,
+            ]
+          ResolveStatisticsScoringAndOutputResources =>
+            [
+              InputAdmissionWork,
+              CorpusStatisticsWork,
+              CandidateScoringWork,
+              OutputOrderingWork,
+              ValueAndTemporaryBytes,
+              RetainedLexicalState,
+            ]
+          _ => []
+        }
+        assert_eq(text_rank_resource_count(check), expected.length())
+        for j in 0..<expected.length() {
+          assert_eq(text_rank_resource_at(check, j), Some(expected[j]))
+        }
+        assert_true(text_rank_resource_at(check, -1) is None)
+        assert_true(text_rank_resource_at(check, expected.length()) is None)
+        if check.rule is ResolveStatisticsScoringAndOutputResources {
+          assert_true(
+            physical_equal(
+              @policy.ceiling_policy(check.host_output_rows.unwrap()),
+              check.policy,
+            ),
+          )
+        } else {
+          assert_true(check.host_output_rows is None)
+        }
         assert_true(physical_equal(check.site, site))
         assert_true(physical_equal(check.selection.selected, selected))
         assert_true(physical_equal(check.selection.operation, check.operation))
@@ -63,7 +101,9 @@ test "text ranking bindings retain selected lexical artifacts and producer input
         let input_phase = match check.rule {
           ValidateCompleteTextInputs
           | ValidateGlobalStringIdentities(_)
-          | NormalizeAndTokenizeWithPinnedUnicode => true
+          | NormalizeAndTokenizeWithPinnedUnicode
+          | ResolveTokenizerAndNormalizedTextCeilings
+          | ResolveStatisticsScoringAndOutputResources => true
           _ => false
         }
         assert_eq(
@@ -79,7 +119,7 @@ test "text ranking bindings retain selected lexical artifacts and producer input
           RejectOperationOutput,
         )
       }
-      assert_eq(executions, 33)
+      assert_eq(executions, 39)
       assert_eq(resources, 6)
       let foreign = lexical_artifact(lexical_cells(lexical_host(), true))
       assert_true(

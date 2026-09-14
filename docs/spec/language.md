@@ -6546,6 +6546,28 @@ Tokenization, corpus statistics, candidate scoring, work and bytes have
 separate resolved ceilings; k alone does not bound scoring work. The profile
 pins tokenizer tables, the complete numerical law and conformance vectors.
 
+<!-- requirement-block: text-rank.resource-binding -->
+Before input use, an executable lexical realization MUST select finite
+per-token UTF-8 byte, per-text token-count and per-text normalized UTF-8 byte
+ceilings, normalization-work limits, and separate input-admission,
+corpus-statistics, candidate-scoring, output-ordering, value/temporary-byte and
+retained-state contracts. Repeated tokens count with multiplicity before query
+term deduplication. Every meter specifies quantity, unit, scope, aggregation,
+ceiling and failure behavior. The Host Relation-output ceiling and every other
+applicable selected logical limit remain enforced independently of k.
+
+<!-- requirement-block: text-rank.resource-scope -->
+Work and byte-traffic meters MUST accumulate across the whole operation without
+resetting per corpus document, query or term. Per-token and per-text ceilings
+retain their declared scopes; peak state includes simultaneously live corpus,
+query, statistics, result and temporary state. Actual immutable sharing is not
+an imaginary copy. Empty corpus, empty tokenized queries and zero output scores
+do not waive the other input's admission or selected resource contracts.
+Incomplete validation, cancellation or any exceeded limit prevents partial
+ranking publication. Byte integrity of the selected lexical artifact does not
+prove execution-meter conformance or permit substituting an unpinned tokenizer
+or logarithm implementation.
+
 <!-- requirement-block: text-rank.semantic-artifact text-rank.unicode-input-pins text-rank.artifact-admission -->
 The selected lexical profile MUST be exact canonical JSON with closed top-level
 shape `{version: "actql-text-rank-profile/0.1", unicode_version: "16.0.0",
