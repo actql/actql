@@ -10,6 +10,8 @@ pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)
   Compute(@planning.DuckDBComputeIssue)
+  Strategy(@strategy.RunIssue)
+  CapturedSource(@planning.CapturedSourceIssue)
   ComputeParameter(@duckdb.ValueIssue)
   Transport(@duckdb.TransportColumnIssue)
   Descriptor(@duckdb.ValueIssue)
@@ -278,6 +280,34 @@ pub fn native_host_document(
   @encode.document_text(
     @planning.duckdb_native_observation_document(observation),
   )
+}
+
+///|
+#export_name("nativeHostCapturedSource")
+pub fn native_host_captured_source(
+  run : NativeNodeRun,
+  observation : @planning.DuckDBNativeObservation,
+) -> @planning.CapturedInputSource raise NodeHostFailure {
+  let limits = run.limits
+  let retained = match
+    @host.native_host_output(
+      run.host,
+      observation,
+      limits.output_rows,
+      limits.retention,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Host(issue)
+  }
+  match
+    @planning.native_captured_source(
+      retained,
+      limits.output_entries,
+      limits.output_name_bytes,
+    ) {
+    Ok(source) => source
+    Err(issue) => raise CapturedSource(issue)
+  }
 }
 
 ///|

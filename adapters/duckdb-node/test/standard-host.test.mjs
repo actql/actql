@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runBroadHostQuery, runFixedHostCompute } from '../host.mjs';
+import { runNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -131,6 +131,77 @@ test('standard native and broad Node Hosts own verification through real capture
           configure(limited), limits), { code: 'MoonBitHostFailure' });
         close(limited);
       }
+      if (kind === 'valid') await exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits);
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits) {
+  const stage = (id, producer, filter) => ({ id, inputs: { x: { result: { stage: producer, result: 'r' } } },
+    steps: [{ filter }, { select: ['id'], as: 'out' }],
+    results: { r: { from: 'out', fields: ['id'] } } });
+  const program = JSON.stringify({ version: 'actql/0.1', id: 'p',
+    params: { minimum: { type: 'number', nullable: false } },
+    stages: [{ id: 'a', inputs: { remote: { connector: 'crm/main', resource: 'r' } },
+      steps: [{ filter: 'id > $minimum', as: 'filtered' }, { select: ['id'], as: 'captured' }],
+      results: { r: { from: 'captured', fields: ['id'] } } },
+    stage('compute_a', 'a', 'id > 2'), stage('compute_b', 'a', 'id > 0'), stage('compute_c', 'compute_a', 'id < 9')],
+    results: { b: { from: { stage: 'compute_b', result: 'r' } }, c: { from: { stage: 'compute_c', result: 'r' } } } });
+  async function replaceRows(sql) {
+    const db = await DuckDBInstance.create(path);
+    const connection = await db.connect();
+    try { await connection.run('DELETE FROM records'); await connection.run(sql); }
+    finally { connection.closeSync(); db.closeSync(); }
+  }
+  for (const layout of [[true, true, true], [true, false, true], [false, true, false]]) {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    const held = [];
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      // A and B must consume one immutable observation, not read this mutation.
+      await replaceRows('INSERT INTO records VALUES (99,99)');
+      for (let task = 1; task <= 3; task++) {
+        if (task === 3) capture.close();
+        if (layout[task - 1]) {
+          const setup = fixture.strategyFixtureCompute(f, task);
+          const completed = await runStrategyHostCompute(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+          held.push([task, completed]);
+          // Each task really imports into a fresh DB, including DuckDB A -> C.
+          assert.equal(completed.importedRows, task === 3 ? 2 : 3);
+        } else assert.equal(fixture.strategyFixtureLocal(f, task), true);
+        assert.equal(fixture.strategyFixtureCid(f, task), hash(task === 2
+          ? [{ id: 3 }, { id: 2 }, { id: 3 }] : [{ id: 3 }, { id: 3 }]));
+      }
+      held.find(([task]) => task === 1)?.[1].close();
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      assert.equal(fixture.strategyFixtureCanBind(f, 3), true);
+      const last = held.find(([task]) => task === 3)?.[1];
+      if (last) {
+        last.close();
+        assert.equal(fixture.strategyFixtureCanBind(f, 3), false);
+      }
+    } finally {
+      capture.close();
+      for (const [, result] of held) result.close();
+    }
+  }
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  const cancelledFixture = fixture.strategyFixtureCreate(...args, program);
+  const captured = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(cancelledFixture), suppliedLimits);
+  let first;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(cancelledFixture, captured.source()), true);
+    first = await runStrategyHostCompute(fixture.strategyFixtureCompute(cancelledFixture, 1), suppliedLimits,
+      { maxRows: 100, maxCells: 1000 });
+    const cancellation = new AbortController();
+    cancellation.abort();
+    await assert.rejects(runStrategyHostCompute(fixture.strategyFixtureCompute(cancelledFixture, 2), suppliedLimits,
+      { maxRows: 100, maxCells: 1000 }, cancellation.signal));
+    assert.equal(fixture.strategyFixtureNext(cancelledFixture), -1);
+    assert.equal(fixture.strategyFixtureCid(cancelledFixture, 1), hash([{ id: 3 }, { id: 3 }]));
+    assert.equal(fixture.strategyFixtureCid(cancelledFixture, 2), 'null');
+    assert.equal(fixture.strategyFixtureCid(cancelledFixture, 3), 'null');
+  } finally { captured.close(); first?.close(); }
+}

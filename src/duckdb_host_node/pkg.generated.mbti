@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
 
@@ -59,6 +60,8 @@ pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool) -> String raise No
 
 pub fn compute_host_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
 pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure
@@ -66,6 +69,8 @@ pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFail
 pub fn native_host_attempt(NativeNodeRun) -> @query_planning.DuckDBNativeAttempt
 
 pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NodeHostFailure
+
+pub fn native_host_captured_source(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @query_planning.CapturedInputSource raise NodeHostFailure
 
 pub fn native_host_close(NativeNodeRun) -> Unit
 
@@ -90,6 +95,8 @@ pub(all) suberror NodeHostFailure {
   Host(@duckdb_host.NativeHostIssue)
   Broad(@duckdb_host.BroadHostIssue)
   Compute(@query_planning.DuckDBComputeIssue)
+  Strategy(@physical_strategy.RunIssue)
+  CapturedSource(@query_planning.CapturedSourceIssue)
   ComputeParameter(@duckdb_adapter.ValueIssue)
   Transport(@duckdb_adapter.TransportColumnIssue)
   Descriptor(@duckdb_adapter.ValueIssue)

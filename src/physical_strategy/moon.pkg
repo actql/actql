@@ -11,4 +11,5 @@ import {
   "actql/actql/query_planning" @planning,
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/duckdb_adapter" @duckdb,
 }

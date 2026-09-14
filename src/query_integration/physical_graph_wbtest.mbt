@@ -168,10 +168,7 @@ test "captured checked DAG runs shared X A B C in checked control order" {
   captured_graph_local(run, 3).unwrap()
   assert_true(@strategy.next_captured_task(run) is None)
   for (task, expected) in [(1, [3.0]), (2, [3.0, 2.0]), (3, [3.0])] {
-    let output = @execution.completed_output(
-      @strategy.captured_task_result(run, task).unwrap(),
-      Step(1),
-    ).unwrap()
+    let output = @strategy.captured_task_output(run, task, Step(1)).unwrap()
     assert_eq(@execution.completed_row_count(output), expected.length())
     for i, value in expected {
       assert_true(
@@ -196,12 +193,9 @@ test "captured DAG cancellation stops new branches but keeps independent complet
   @strategy.stop_captured_dag(run)
   assert_true(@strategy.captured_task_input(run, 2, 100, 10000) is Err(Stopped))
   assert_true(@strategy.next_captured_task(run) is None)
-  let output = @execution.completed_output(
-    @strategy.captured_task_result(run, 1).unwrap(),
-    Step(1),
-  ).unwrap()
+  let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
   assert_eq(@execution.completed_row_count(output), 1)
-  assert_true(@strategy.captured_task_result(run, 2) is None)
+  assert_true(@strategy.captured_task_output(run, 2, Step(1)) is None)
 }
 
 ///|
@@ -217,8 +211,8 @@ test "captured DAG latches execution failure without revoking previous task succ
   )
   assert_true(@strategy.next_captured_task(run) is None)
   assert_true(@strategy.captured_task_input(run, 3, 100, 10000) is Err(Stopped))
-  assert_true(@strategy.captured_task_result(run, 1) is Some(_))
-  assert_true(@strategy.captured_task_result(run, 2) is None)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
+  assert_true(@strategy.captured_task_output(run, 2, Step(1)) is None)
   assert_true(@strategy.captured_dag_failure(run) is Some((2, Compute(_))))
   @strategy.stop_captured_dag(run)
   assert_true(@strategy.captured_dag_failure(run) is Some((2, Compute(_))))

@@ -158,6 +158,22 @@ pub fn receipt_identities(@duckdb_adapter.NativeReceiving) -> String
 
 pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
 
+pub fn strategy_fixture_acquisition(StrategyFixture) -> @duckdb_host.NativeHostConfiguration
+
+pub fn strategy_fixture_can_bind(StrategyFixture, Int) -> Bool
+
+pub fn strategy_fixture_cid(StrategyFixture, Int) -> String
+
+pub fn strategy_fixture_compute(StrategyFixture, Int) -> @duckdb_host.StrategyComputeHostConfiguration
+
+pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
+
+pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
+
+pub fn strategy_fixture_next(StrategyFixture) -> Int
+
+pub fn strategy_fixture_open(StrategyFixture, @query_planning.CapturedInputSource) -> Bool
+
 pub fn typed_fixed_create(String, String, String, String, String) -> OwnedFixedFixture
 
 // Errors
@@ -170,6 +186,8 @@ type IssuedBroadFixture
 type IssuedNativeFixture
 
 type OwnedFixedFixture
+
+type StrategyFixture
 
 // Type aliases
 

@@ -2,6 +2,7 @@
 package "actql/actql/physical_strategy"
 
 import {
+  "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/pipeline_check_context",
@@ -16,11 +17,13 @@ pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
-pub fn captured_task_result(CapturedDAG, Int) -> @execution_relation.CompletedSequence?
+pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
 
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
@@ -63,6 +66,8 @@ pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, Ledge
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
+pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -151,6 +156,7 @@ pub(all) enum RunIssue {
   Binding(@execution_relation.ProducerBindingIssue)
   Read(@execution_relation.ProducerReadIssue)
   Compute(@query_planning.FixedComputeIssue)
+  DuckDB(@query_planning.DuckDBComputeIssue)
 }
 
 // Type aliases

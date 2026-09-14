@@ -40,3 +40,50 @@ pub fn configured_compute_transport(
 ) -> @duckdb.TransportColumnLimits {
   setup.transport
 }
+
+///|
+struct StrategyComputeHostConfiguration {
+  graph : @strategy.CapturedDAG
+  task : Int
+  compute : ComputeHostConfiguration
+}
+
+///|
+pub fn configure_strategy_compute_host(
+  graph : @strategy.CapturedDAG,
+  task : Int,
+  compute : ComputeHostConfiguration,
+) -> StrategyComputeHostConfiguration {
+  { graph, task, compute, }
+}
+
+///|
+pub fn start_configured_strategy_compute_host(
+  setup : StrategyComputeHostConfiguration,
+  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] {
+  let c = setup.compute
+  @strategy.start_captured_duckdb_task(
+    setup.graph,
+    setup.task,
+    c.choice,
+    c.prepared,
+    c.generated,
+    c.limits,
+    verify,
+  )
+}
+
+///|
+pub fn configured_strategy_compute_graph(
+  setup : StrategyComputeHostConfiguration,
+) -> (@strategy.CapturedDAG, Int) {
+  (setup.graph, setup.task)
+}
+
+///|
+pub fn configured_strategy_compute_transport(
+  setup : StrategyComputeHostConfiguration,
+) -> @duckdb.TransportColumnLimits {
+  setup.compute.transport
+}

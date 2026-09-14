@@ -11,4 +11,5 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
+  "actql/actql/physical_strategy" @strategy,
 }

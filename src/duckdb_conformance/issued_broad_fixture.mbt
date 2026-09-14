@@ -16,11 +16,13 @@ struct IssuedBroadFixture {
 fn issued_fixture_checked(
   environment_json : String,
   environment_cid : String,
+  source_override? : String? = None,
+  visits? : Array[Int] = [1],
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
   let program = @syntax.parse(
-    source,
+    source_override.unwrap_or(source),
     {
       source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
       tree: {
@@ -64,7 +66,7 @@ fn issued_fixture_checked(
     program,
     environment,
     Some(cursor("{\"minimum\":1}")),
-    [[{ sources, consumers: [], }]],
+    visits.map(count => Array::makei(count, _ => { sources, consumers: [], })),
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     fixture_query_limits(10),
@@ -125,8 +127,12 @@ fn issued_fixture_preparation(
   values_json : String,
   fragment_json : String,
   output_rows : Int,
+  checked_override? : @program_check.CheckedProgram? = None,
 ) -> (@planning.DuckDBQueryPreparation, @lower.BoundPrepared) raise {
-  let checked = issued_fixture_checked(environment_json, environment_cid)
+  let checked = match checked_override {
+    Some(checked) => checked
+    None => issued_fixture_checked(environment_json, environment_cid)
+  }
   let identity = @program_check.source_identity(checked)
   let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
   let acquisition = @acquisition.derive_query_acquisition(requests, 0, 1000000).unwrap()

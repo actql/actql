@@ -7,4 +7,5 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,
+  "actql/actql/physical_strategy" @strategy,
 }

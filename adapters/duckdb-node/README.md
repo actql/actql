@@ -443,6 +443,20 @@ This independence also applies to successful DuckDB fixed Compute: after
 the still-open Compute result. Closing that result itself blocks new consumers.
 Upstream closure before Compute completion still prevents successful publication.
 
+For the internal checked-DAG increment, a native capture also exposes `source()`.
+This returns an opaque `CapturedInputSource` with the exact acquisition and live
+observation ownership; it is not a portable CID-based replay handle. Bind it to
+the same checked graph using `physical_strategy.open_captured_dag`.
+Prepare a selected task's `ComputeHostConfiguration`, wrap it with
+`duckdb_host.configure_strategy_compute_host`, and execute through
+`runStrategyHostCompute` in `host.mjs`. The standard Host retains verifier wiring;
+task completion is recorded by the DAG's exact attempt, not a caller-supplied
+output. Every DuckDB task uses its own temporary database and imports its fixed
+input, including consecutive DuckDB tasks. No resident sharing is implied.
+This execution increment is not yet the whole-strategy cost selector or integrated
+Host physical-budget runner. Internal task outputs do not authorize partial
+publication of a failed Program.
+
 The broad Host invokes `complete_duckdb_broad_capture` only after actual source
 settlement. That operation validates exact issuer/attempt and transport ownership,
 then runs Local residual, common guards, retention, record emission and capture.

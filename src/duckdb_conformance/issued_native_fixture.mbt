@@ -24,10 +24,35 @@ pub fn issued_native_create(
   output_rows : Int,
   verify : (@planning.DuckDBNativeAttempt) -> Bool,
 ) -> IssuedNativeFixture {
+  issued_native_create_impl(
+    environment_json, environment_cid, registry_json, values_json, fragment_json,
+    query_json, evidence_json, two_receipt_json, output_rows, verify,
+  )
+}
+
+///|
+fn issued_native_create_impl(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  output_rows : Int,
+  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  checked_override? : @program_check.CheckedProgram? = None,
+) -> IssuedNativeFixture {
   try {
     let (preparation, owner) = issued_fixture_preparation(
-      environment_json, environment_cid, registry_json, values_json, fragment_json,
+      environment_json,
+      environment_cid,
+      registry_json,
+      values_json,
+      fragment_json,
       output_rows,
+      checked_override~,
     )
     let requirement = @planning.duckdb_query_requirement(preparation)
     let registry = @planning.prepare_capability_registry(

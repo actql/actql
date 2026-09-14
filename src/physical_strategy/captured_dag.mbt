@@ -4,8 +4,9 @@
 struct CapturedDAG {
   graph : CheckedDAG
   source : @planning.CapturedInputSource
-  completed : Array[@execution.CompletedSequence?]
+  completed : Array[TaskCompletion?]
   inputs : Array[@execution.ProducerRead?]
+  mut running : (Int, @planning.DuckDBComputeAttempt)?
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
 }
@@ -22,6 +23,13 @@ pub(all) enum RunIssue {
   Binding(@execution.ProducerBindingIssue)
   Read(@execution.ProducerReadIssue)
   Compute(@planning.FixedComputeIssue)
+  DuckDB(@planning.DuckDBComputeIssue)
+}
+
+///|
+priv enum TaskCompletion {
+  Local(@execution.CompletedSequence)
+  DuckDB(@execution.CompletedOutput)
 }
 
 ///|
@@ -76,6 +84,7 @@ pub fn open_captured_dag(
     inputs: Array::make(count, None),
     stopped: false,
     failure: None,
+    running: None,
   })
 }
 
@@ -86,7 +95,7 @@ fn task_done(run : CapturedDAG, index : Int) -> Bool {
 
 ///|
 pub fn next_captured_task(run : CapturedDAG) -> Int? {
-  if run.stopped {
+  if run.stopped || run.running is Some(_) {
     return None
   }
   for index in 1..<run.graph.owners.length() {
@@ -152,8 +161,7 @@ pub fn captured_task_input(
       }
     }
   } else {
-    let completed = run.completed[edge.producer].unwrap()
-    guard @execution.completed_output(completed, edge.target) is Some(output) else {
+    guard captured_task_output(run, edge.producer, edge.target) is Some(output) else {
       fail_captured_task(run, task, MissingOutput)
       return Err(MissingOutput)
     }
@@ -218,7 +226,7 @@ pub fn execute_captured_local_task(
       measurement~,
     ) {
     Ok(completed) => {
-      run.completed[task] = Some(completed)
+      run.completed[task] = Some(Local(completed))
       run.inputs[task] = None
       Ok(())
     }
@@ -231,11 +239,21 @@ pub fn execute_captured_local_task(
 
 ///|
 /// Internal completed calculation only, not authority to publish a failed Program.
-pub fn captured_task_result(
+pub fn captured_task_output(
   run : CapturedDAG,
   task : Int,
-) -> @execution.CompletedSequence? {
-  run.completed.get(task).bind(value => value)
+  target : @pipeline.Target,
+) -> @execution.CompletedOutput? {
+  match run.completed.get(task).bind(value => value) {
+    Some(Local(completed)) => @execution.completed_output(completed, target)
+    Some(DuckDB(output)) =>
+      if target == @pipeline.Step(1) {
+        Some(output)
+      } else {
+        None
+      }
+    None => None
+  }
 }
 
 ///|
@@ -243,6 +261,10 @@ pub fn captured_task_result(
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
+  if run.running is Some((_, attempt)) {
+    // Revocation is not DB-stop acknowledgement. The Host still owns cleanup.
+    @planning.abort_duckdb_compute_attempt(attempt)
+  }
   for index in 0..<run.inputs.length() {
     run.inputs[index] = None
   }

@@ -25,9 +25,13 @@ callers cannot inject arbitrary completed outputs as task success. A candidate
 must refer to the exact ProducerRead prepared for that task, not equal rows.
 
 The captured-input serial runner is an incremental internal implementation.
-Its Local task path does not yet provide the integrated DuckDB execution,
-whole-strategy comparison, physical-ledger enforcement or asynchronous cleanup
-described below. Those mechanisms must be connected before it is presented as
+Local and DuckDB task completions share an opaque output boundary. DuckDB start
+retains the exact attempt and blocks further task starts until verified completion.
+The standard Node Host supplies its transport verifier and records success through
+that same owned attempt; unrelated completed outputs are not accepted. Revocation
+of in-flight material is separate from native DB-stop acknowledgement.
+Whole-strategy comparison, physical-ledger enforcement and asynchronous cleanup
+described below must be connected before this is presented as
 the complete physical strategy Host. Checked topology validation alone is not
 validation of all runtime Stage obligations or a Program success issuer.
 

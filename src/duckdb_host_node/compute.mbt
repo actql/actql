@@ -2,6 +2,7 @@
 struct ComputeNodeRun {
   attempt : @planning.DuckDBComputeAttempt
   transport : @duckdb.TransportColumnLimits
+  strategy : (@strategy.CapturedDAG, Int)?
 }
 
 ///|
@@ -12,8 +13,29 @@ pub fn compute_host_open(
 ) -> ComputeNodeRun raise NodeHostFailure {
   match @host.start_configured_compute_host(setup, verify) {
     Ok(attempt) =>
-      { attempt, transport: @host.configured_compute_transport(setup), }
+      {
+        attempt,
+        transport: @host.configured_compute_transport(setup),
+        strategy: None,
+      }
     Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
+#export_name("computeStrategyHostOpen")
+pub fn compute_strategy_host_open(
+  setup : @host.StrategyComputeHostConfiguration,
+  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+) -> ComputeNodeRun raise NodeHostFailure {
+  match @host.start_configured_strategy_compute_host(setup, verify) {
+    Ok(attempt) =>
+      {
+        attempt,
+        transport: @host.configured_strategy_compute_transport(setup),
+        strategy: Some(@host.configured_strategy_compute_graph(setup)),
+      }
+    Err(issue) => raise Strategy(issue)
   }
 }
 
@@ -136,6 +158,16 @@ pub fn compute_host_finish(run : ComputeNodeRun) -> Unit raise NodeHostFailure {
 pub fn compute_host_complete(
   run : ComputeNodeRun,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
+  if run.strategy is Some((graph, task)) {
+    match @strategy.complete_captured_duckdb_task(graph, run.attempt) {
+      Err(issue) => raise Strategy(issue)
+      Ok(_) => ()
+    }
+    guard @strategy.captured_task_output(graph, task, Step(1)) is Some(output) else {
+      raise InvalidCommand
+    }
+    return output
+  }
   match @planning.complete_duckdb_compute_attempt(run.attempt) {
     Ok(value) => value
     Err(issue) => raise Compute(issue)
@@ -145,6 +177,9 @@ pub fn compute_host_complete(
 ///|
 #export_name("computeHostAbort")
 pub fn compute_host_abort(run : ComputeNodeRun) -> Unit {
+  if run.strategy is Some((graph, _)) {
+    @strategy.stop_captured_dag(graph)
+  }
   @planning.abort_duckdb_compute_attempt(run.attempt)
 }
 

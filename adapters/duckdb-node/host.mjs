@@ -13,10 +13,21 @@ const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 // No source grant or connection enters Compute. The fixed product runtime
 // supplies the selected SQL and exact owned input; verifier wiring stays here.
 export async function runFixedHostCompute(setup, limits, importLimits, signal) {
+  return runHostCompute(setup, limits, importLimits, signal, false);
+}
+
+// Same trusted transport wiring, with completion owned by the checked DAG.
+export async function runStrategyHostCompute(setup, limits, importLimits, signal) {
+  return runHostCompute(setup, limits, importLimits, signal, true);
+}
+
+async function runHostCompute(setup, limits, importLimits, signal, strategy) {
   const moon = await loadRuntime();
   let result, port, consume, attempt;
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
-  const run = checked(moon.computeHostOpen(setup, verify));
+  const run = checked(strategy
+    ? moon.computeStrategyHostOpen(setup, verify)
+    : moon.computeHostOpen(setup, verify));
   attempt = moon.computeHostAttempt(run);
   let began = false;
   const begin = fields => {
@@ -99,8 +110,10 @@ function rows(value) {
 // preparation, not serialized Program JSON and not a source-file authorization.
 export async function runNativeHostQuery(grant, setup, limits, signal) {
   const moon = await loadRuntime();
+  let capturedRun;
   const captured = await runNativeQuery(grant, verify => {
     const run = checked(moon.nativeHostOpen(setup, randomUUID(), verify));
+    capturedRun = run;
     const attempt = moon.nativeHostAttempt(run);
     let view;
     const owns = current => {
@@ -145,6 +158,7 @@ export async function runNativeHostQuery(grant, setup, limits, signal) {
     observation: captured.observation,
     document: () => moon.nativeHostDocument(captured.observation),
     output: () => captured.bindInput(),
+    source: () => checked(moon.nativeHostCapturedSource(capturedRun, captured.observation)),
     close: () => captured.close(),
   });
 }
