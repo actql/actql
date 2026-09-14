@@ -291,6 +291,10 @@ pub fn publication_policy_source_at(PublicationSourcePolicy, Int) -> SourceExecu
 
 pub fn publication_policy_source_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_top_k_at(PublicationSourcePolicy, Int) -> PublicationPolicyTopK?
+
+pub fn publication_policy_top_k_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_unnest_at(PublicationSourcePolicy, Int) -> PublicationPolicyUnnest?
 
 pub fn publication_policy_unnest_count(PublicationSourcePolicy) -> Int
@@ -747,6 +751,12 @@ pub struct PublicationPolicySlice {
   operation : @relation_typing.CheckedOperation
   count : @relation_typing.CountValue
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyTopK {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  count : @relation_typing.CountValue
 }
 
 pub struct PublicationPolicyUnnest {

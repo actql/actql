@@ -24,6 +24,7 @@ fn checked_direct_program_fixture(
   json_pick_path? : String = "",
   unnest_body? : String = "",
   array_expression? : String = "[id]",
+  top_k_step? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -104,6 +105,19 @@ fn checked_direct_program_fixture(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
+    } else if top_k_step != "" {
+      let ranked = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"distinct\":[\"id\"]}," + top_k_step + ",",
+      )
+      if top_k_step.contains("$param") {
+        ranked.replace(
+          old="\"stages\":",
+          new="\"params\":{\"count\":{\"type\":\"number\",\"default\":2}},\"stages\":",
+        )
+      } else {
+        ranked
+      }
     } else if unnest_body != "" {
       text.replace(
         old="\"steps\":[",
@@ -294,7 +308,8 @@ fn checked_direct_program_fixture(
         analytic_body != "" ||
         lag_body != "" ||
         json_pick_path != "" ||
-        unnest_body != "" {
+        unnest_body != "" ||
+        top_k_step != "" {
         4
       } else {
         2

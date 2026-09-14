@@ -520,6 +520,13 @@ the same operation as both occurrence emission and output-envelope enforcement.
 Hiding generated fields does not remove these checks or the input policy, and
 an array item bound is not treated as proof of the total number of output rows.
 
+Top-k publication transfer retains the exact global or partitioned operation
+and its selection count. Literal and Parameter counts without policy attestation
+retain unknown provenance, alongside the input policy. Indexed operation readers
+preserve repeated partition keys without copying their arrays. This shared policy
+transfer does not merge the operations' order strategies, partition requirements,
+tie behavior or execution checks, and does not extend sort's acceptance rules.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

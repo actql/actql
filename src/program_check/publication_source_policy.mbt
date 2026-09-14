@@ -24,6 +24,27 @@ pub struct PublicationSourcePolicy {
   priv unpivots : Array[PublicationPolicyUnpivot]
   priv json_picks : Array[PublicationPolicyJsonPick]
   priv unnests : Array[PublicationPolicyUnnest]
+  priv top_ks : Array[PublicationPolicyTopK]
+}
+
+///|
+pub struct PublicationPolicyTopK {
+  step : Int
+  operation : @relation.CheckedOperation
+  count : @relation.CountValue
+}
+
+///|
+pub fn publication_policy_top_k_count(value : PublicationSourcePolicy) -> Int {
+  value.top_ks.length()
+}
+
+///|
+pub fn publication_policy_top_k_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyTopK? {
+  value.top_ks.get(index)
 }
 
 ///|
@@ -411,6 +432,7 @@ fn prepare_publication_source_policy(
   let unpivots : Array[PublicationPolicyUnpivot] = []
   let json_picks : Array[PublicationPolicyJsonPick] = []
   let unnests : Array[PublicationPolicyUnnest] = []
+  let top_ks : Array[PublicationPolicyTopK] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -431,6 +453,16 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              TopK | TopKBy => {
+                identity_charge(budget, 1)
+                guard @relation.top_k_count(operation) is Some(count) else {
+                  raise ForeignOwner
+                }
+                // Selection counts lack an admitted value classification.
+                // Keep the exact operation to distinguish global/partitioned k.
+                top_ks.push({ step: index, operation, count, })
+                unknown = true
+              }
               Unnest => {
                 identity_charge(budget, 1)
                 guard @relation.reshape(operation) is Some(Unnest(..)) else {
@@ -790,6 +822,7 @@ fn prepare_publication_source_policy(
     unpivots,
     json_picks,
     unnests,
+    top_ks,
   }
   |> Some
 }
