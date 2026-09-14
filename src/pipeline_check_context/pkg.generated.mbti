@@ -31,6 +31,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_key_obligation",
+  "actql/actql/relation_nest",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
@@ -2131,6 +2132,20 @@ pub(all) enum NearestResource {
   RetainedSearchState
 } derive(Eq, @debug.Debug)
 
+pub struct NestExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  parent : @pipeline_typing.Target
+  child : @pipeline_typing.Target
+  operation : @relation_nest.CheckedNest
+  rule : NestExecutionRule
+}
+
+pub(all) enum NestExecutionRule {
+  AdmitAttachedValues
+  PreserveNestedDependencies
+} derive(Eq, @debug.Debug)
+
 pub struct NumericSlot {
   requirement_index : Int
   site : OperationRequirementSite
@@ -2195,6 +2210,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)

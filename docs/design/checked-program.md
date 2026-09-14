@@ -1321,6 +1321,27 @@ key retains uniqueness admission, and a resolved capacity retains its quantity,
 target and enforcement obligation. Neither becomes unconditional proof merely
 because its static arithmetic or CID matches.
 
+### Nested child arrays
+
+`NestExecutionCheck` retains the exact parent and child targets, checked payload
+projection and repeated correlation pairs. `AdmitAttachedValues` requires the
+closed, typed child arrays to be checked before any downstream consumer, even
+one that would discard the new field. Missing groups produce typed empty arrays;
+all-null child objects, duplicate parent rows and child multiplicity are not
+rewritten as absence or deduplicated. Required input failures remain failures.
+
+`PreserveNestedDependencies` carries both operands' policy and completeness
+dependencies through payload, membership, correlation, ordering and counts.
+An empty child array asserts absence only within the supplied child Relation,
+not completeness of its history. Both execution rules reject the operation's
+output atomically on failure; neither is a successful observation.
+
+Child order, per-array item limits and recursive byte/depth envelopes are
+separate resolutions. Creating these execution bindings cannot resolve missing
+order evidence, choose a Host-only replacement for a tighter bound or defer a
+statically excessive depth to runtime. The formal constructor must close those
+requirements independently before accepting a Program containing `nest`.
+
 ## Identity boundaries
 
 [Local contract closure](local-contract-closure.md) separates the selected

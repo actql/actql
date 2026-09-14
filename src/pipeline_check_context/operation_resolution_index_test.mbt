@@ -138,6 +138,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(NestExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(RowAssertion(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
