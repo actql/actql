@@ -11,6 +11,7 @@ pub struct DedupeTopTieCheck {
 
 ///|
 pub(all) enum OperationExecutionCheck {
+  GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)
@@ -69,6 +70,15 @@ pub fn operation_execution_phase(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckPhase {
   match v {
+    GraphDiffExecution(v) =>
+      match v.rule {
+        AdmitCommonSnapshots | RequireDeltaResources => BeforeOperationInputUse
+        EmitVersion
+        | EmitContractIdentity
+        | BindSnapshotIdentities
+        | EmitCompleteRecords
+        | OrderUniqueActions => BeforeOperationOutput
+      }
     GraphEqualityExecution(v) =>
       match v.rule {
         AdmitOperands | RequireComparisonResources => BeforeOperationInputUse
@@ -186,7 +196,8 @@ pub fn operation_execution_failure(
   v : OperationExecutionCheck,
 ) -> ExecutionCheckFailure {
   match v {
-    GraphEqualityExecution(_)
+    GraphDiffExecution(_)
+    | GraphEqualityExecution(_)
     | GraphResources(_)
     | ComponentsLimits(_)
     | GraphProjection(_)

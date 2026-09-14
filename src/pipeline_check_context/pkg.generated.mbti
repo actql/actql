@@ -275,6 +275,10 @@ pub fn graph_comparison_resource_at(GraphEqualityCheck, Int) -> GraphComparisonR
 
 pub fn graph_comparison_resource_count(GraphEqualityCheck) -> Int
 
+pub fn graph_delta_resource_at(GraphDiffCheck, Int) -> GraphDeltaResource?
+
+pub fn graph_delta_resource_count(GraphDiffCheck) -> Int
+
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
 pub fn group_array_limit_candidate_at(GroupArrayLimit, Int) -> @capacity_graph_preflight.TargetMembership?
@@ -1460,6 +1464,35 @@ pub(all) enum GraphConstructionRule {
   EnforceConstructionEnvelope
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphDeltaResource {
+  GraphNodes
+  GraphEdges
+  ActionRecords
+  ValueAndTemporaryBytes
+  Work
+  RetainedState
+} derive(Eq, @debug.Debug)
+
+pub struct GraphDiffCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  base : @pipeline_typing.Target
+  target : @pipeline_typing.Target
+  operation : @graph_typing.CheckedDiff
+  rule : GraphDiffRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphDiffRule {
+  EmitVersion
+  AdmitCommonSnapshots
+  EmitContractIdentity
+  BindSnapshotIdentities
+  EmitCompleteRecords
+  OrderUniqueActions
+  RequireDeltaResources
+} derive(Eq, @debug.Debug)
+
 pub struct GraphEqualityCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1958,6 +1991,7 @@ pub(all) enum OperationDisposition {
 }
 
 pub(all) enum OperationExecutionCheck {
+  GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphResources(GraphResourcesCheck)
   ComponentsLimits(ComponentsLimitsCheck)

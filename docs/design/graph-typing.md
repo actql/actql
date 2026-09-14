@@ -398,6 +398,21 @@ The remaining depth bounds this traversal independently. Runtime emits the store
 CID rather than selecting or inferring another contract from Delta payloads.
 Apply integration remains separate, as do all outstanding snapshot obligations.
 
+`GraphDiffCheck` binds each Delta obligation to the original base/target input
+occurrences and the stored `CheckedDiff`; readers use its retained common Graph
+contract rather than reconstructing it from payloads. Snapshot admission precedes
+input use. Version, contract identity, runtime snapshot identities, complete
+records and ordered unique actions gate output. Even a self-diff retains both
+operand roles and all checks; an empty action list is not a static shortcut.
+
+The resource reader lists Graph-node, Graph-edge, action-record, value/temporary
+byte, work and retained-state scopes. Runnable realization requires enforceable
+finite limits for these scopes before input use, under the retained policy and
+producer prerequisites. A one-row Delta is not a one-record or bounded-byte
+payload; updates retain both before and after values. Static closure binds these
+requirements but neither selects an unprovided backend budget nor claims actual
+counts. Failed admission, generation or resource enforcement exposes no Delta.
+
 ## Delta application checking
 
 `check_apply` accepts the closed `{with, field}` body, a typed base Graph, a

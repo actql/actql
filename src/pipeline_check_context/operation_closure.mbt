@@ -55,6 +55,7 @@ pub fn close_program_operations(
         // Exhaustive over typed execution bindings. A new variant must provide
         // its owned subject here instead of defaulting to a runtime permission.
         let site = match check {
+          GraphDiffExecution(v) => v.site
           GraphEqualityExecution(v) => v.site
           GraphResources(v) => v.site
           ComponentsLimits(v) => v.site

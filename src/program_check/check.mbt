@@ -96,6 +96,7 @@ fn check_supported_source(
               | "components"
               | "graph_bounds"
               | "graphs_equal"
+              | "graph_diff"
               | "node_rows"
               | "edge_rows"
               | "values" => ()
