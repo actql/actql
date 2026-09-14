@@ -43,6 +43,17 @@ conditions must also match. Existing-only policy excludes new provision rather
 than silently authorizing it. Candidate enumeration performs neither I/O nor
 capacity reservation.
 
+The standard Host validates and freezes all transport settings before reserving
+an environment. Rejected settings consume no provision attempt or reservation.
+Cleanup distinguishes a request never sent to the provider from started work
+whose result is unknown; absence of a returned handle is not proof of cleanup.
+
+Outstanding cleanup of an already allocated environment contributes equally to
+every remaining candidate, including all-Local placement. It persists while
+cleanup is pending and disappears only after settlement. A proposed new
+environment adds its own preparation and cleanup; an existing one does not
+repeat preparation. An unknown cleanup estimate remains unknown.
+
 An estimate, a Host reservation, a provider-confirmed allocation and a usable
 binding are distinct states. Provision failure, a mismatched returned profile
 or an uncertain response must not permit dependent Compute dispatch. They leave
@@ -80,6 +91,14 @@ Tables are retained through their last planned use. There is no automatic LRU
 or pressure eviction. Plans that cannot reserve the required capacity are
 infeasible. Reselection may retire tables that are no longer needed, without
 discarding in-flight borrowers or unconfirmed cleanup obligations.
+
+The most recent unstarted table preparation can be cancelled atomically: its
+table slot, suballocation and unused name are reclaimed, but planning work is
+not refunded. The standard Host uses this operation if import preflight or
+transfer reservation fails. Once transfer admission succeeds, cancellation of
+preparation is forbidden; import failure stops new work and requires confirmed
+cleanup. Exact handle checks reject cancelled preparations even if a name is
+later reused.
 
 ## Transactions and completion
 

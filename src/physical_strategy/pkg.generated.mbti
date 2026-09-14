@@ -23,6 +23,8 @@ pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Resu
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, Int) -> Result[ResidentRead, RunIssue]
 
+pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, LedgerIssue]
+
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
 pub fn captured_dag_generation(CapturedDAG) -> Int

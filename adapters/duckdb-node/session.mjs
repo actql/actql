@@ -22,7 +22,9 @@ export async function authorizeLocalDatabase(path) {
   return grant;
 }
 
-function validateLimits(limits) {
+// Pure validation shared with Host admission, before reservations or native I/O.
+export function validateLimits(limits) {
+  limits = { ...limits };
   if (limits.cancelWaitMs !== undefined &&
       (!Number.isSafeInteger(limits.cancelWaitMs) || limits.cancelWaitMs < 0 || limits.cancelWaitMs > 2147483647)) {
     throw new DuckDBTransportError('InvalidLimits');

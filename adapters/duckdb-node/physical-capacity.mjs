@@ -1,4 +1,4 @@
-import { DuckDBTransportError } from './session.mjs';
+import { DuckDBTransportError, validateLimits } from './session.mjs';
 
 // Host capacity policy for the bounded parameter/chunk representation. These
 // allowances are not measured V8 heap bytes or an OS memory-limit guarantee.
@@ -6,11 +6,7 @@ import { DuckDBTransportError } from './session.mjs';
 // serialization representations, plus bounded cell/column container capacity.
 // A smaller future policy requires separate implementation/measurement evidence.
 export function computePhysicalCapacity(limits) {
-  for (const name of ['memoryBytes', 'maxTransportBytes', 'maxCells', 'maxColumns', 'maxParameters', 'maxSqlBytes']) {
-    if (!Number.isSafeInteger(limits[name]) || limits[name] < (name === 'memoryBytes' ? 1 : 0)) {
-      throw new DuckDBTransportError('InvalidLimits');
-    }
-  }
+  limits = validateLimits(limits);
   const framing = BigInt(limits.maxTransportBytes) * 8n;
   const containers = (BigInt(limits.maxCells) + BigInt(limits.maxColumns) + BigInt(limits.maxParameters)) * 256n;
   const sql = BigInt(limits.maxSqlBytes) * 4n;

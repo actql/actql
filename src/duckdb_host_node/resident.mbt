@@ -127,6 +127,18 @@ pub fn resident_table_at(
 }
 
 ///|
+#export_name("residentTableCancel")
+pub fn resident_table_cancel(
+  run : @strategy.CapturedDAG,
+  table : @strategy.ResidentTable,
+) -> Unit raise NodeHostFailure {
+  match @strategy.cancel_resident_table_preparation(run, table) {
+    Ok(_) => ()
+    Err(issue) => raise Physical(issue)
+  }
+}
+
+///|
 #export_name("residentHasTable")
 pub fn resident_has_table(
   run : @strategy.CapturedDAG,

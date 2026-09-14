@@ -124,9 +124,19 @@ fn compose_resident_choices(
       profile = Some(actual)
     }
   }
+  // An existing environment's outstanding cleanup belongs to every candidate,
+  // including all-Local plans and plans made while cleanup is still pending.
+  let outstanding_cleanup = match run.resident_environment {
+    Some(env) if !env.settled => env.profile.map(value => value.cleanup_ms)
+    _ => None
+  }
   guard profile is Some(profile) else {
     return Ok({
-      duration: @cost.Complete(0L),
+      duration: match outstanding_cleanup {
+        Some(Some(value)) => @cost.Complete(value)
+        Some(None) => @cost.Unknown
+        None => @cost.Complete(0L)
+      },
       transfer: 0L,
       execution: 0L,
       database: 0L,
@@ -156,10 +166,13 @@ fn compose_resident_choices(
     held = env.capacity.allocated
   }
   let lines = []
+  if outstanding_cleanup is Some(cleanup) {
+    lines.push(cleanup)
+  }
   if !live {
     lines.push(profile.preparation_ms)
+    lines.push(profile.cleanup_ms)
   }
-  lines.push(profile.cleanup_ms)
   let mut transfer = 0L
   let mut scratch = 0L
   let mut attempts = if live { 0 } else { 1 }

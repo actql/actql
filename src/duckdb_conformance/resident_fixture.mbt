@@ -3,12 +3,30 @@
 pub fn strategy_fixture_resident_dispatch(
   f : StrategyFixture,
 ) -> @dbhost.StrategyHostDispatch {
+  resident_dispatch_fixture(f, 1L, 100L, 100L)
+}
+
+///|
+#export_name("strategyFixtureResidentCleanupDispatch")
+pub fn strategy_fixture_resident_cleanup_dispatch(
+  f : StrategyFixture,
+) -> @dbhost.StrategyHostDispatch {
+  resident_dispatch_fixture(f, 100L, 1000L, 10L)
+}
+
+///|
+fn resident_dispatch_fixture(
+  f : StrategyFixture,
+  cleanup : Int64,
+  first_local : Int64,
+  remaining_local : Int64,
+) -> @dbhost.StrategyHostDispatch {
   let host = strategy_fixture_dispatch(f)
-  let profiles = Array::make(3, @dbhost.DispatchEstimateProfile::{
+  let profiles = Array::makei(3, i => @dbhost.DispatchEstimateProfile::{
     local_rates: [
       {
         work_slots: [0, 1, 2, 3, 4],
-        fixed_ms: Some(100L),
+        fixed_ms: Some(if i == 0 { first_local } else { remaining_local }),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
       },
@@ -38,7 +56,7 @@ pub fn strategy_fixture_resident_dispatch(
     f.run.unwrap(),
     134217728L,
     Some(1L),
-    Some(1L),
+    Some(cleanup),
     Array::make(4, @strategy.ResidentImportEstimate::{
       milliseconds: Some(1L),
       transfer_bytes: 100000L,

@@ -216,6 +216,22 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       '--parameters', parameters, '--native-ms', '5',
     ], { cwd: root, maxBuffer: 1000000 });
     assert.equal(JSON.parse(cli.stdout).status, 'host-tasks-completed');
+    const residentCli = await promisify(execFile)(process.execPath, [
+      'adapters/duckdb-node/examples/physical-strategy.mjs', '--database', path,
+      '--environment', environment, '--environment-cid', args[1], '--program', programFile,
+      '--parameters', parameters, '--native-ms', '20', '--resident',
+    ], { cwd: root, maxBuffer: 1000000 });
+    const residentReport = JSON.parse(residentCli.stdout);
+    assert.equal(residentReport.status, 'host-tasks-completed');
+    assert.deepEqual(residentReport.completed.map(item => item.realization),
+      ['duckdb-resident', 'duckdb-resident', 'duckdb-resident']);
+    const exampleGuide = await readFile(join(root, 'adapters/duckdb-node/examples/README.md'), 'utf8');
+    assert.match(exampleGuide, /## Resident candidates/);
+    assert.match(exampleGuide, /`--resident` defaults to false/);
+    assert.match(exampleGuide, /--native-ms 20 --resident/);
+    assert.match(exampleGuide, /does not force every task/);
+    assert.match(exampleGuide, /500000 cumulative transfer bytes/);
+    assert.doesNotMatch(exampleGuide, /no resident DuckDB\s+sharing/);
     await assert.rejects(runExample({ database: path, environment,
       environmentCid: 'sha256:' + '0'.repeat(64), program: programFile,
       parameters, nativeMilliseconds: '5' }));
@@ -497,14 +513,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       const dispatch = fixture.strategyFixtureResidentDispatch(f);
       const firstTask = checked(hostRuntime.strategyHostNext(dispatch));
       const beforeProvision = fixture.strategyFixtureUsage(f, 3);
+      for (const invalid of [{ threads: 0 }, { maxRows: -1 }, { cancelWaitMs: -1 },
+        { cancelWaitMs: 2147483648 }]) {
+        await assert.rejects(openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1,
+          { ...suppliedLimits, ...invalid }), error => {
+          assert.equal(error.code, 'InvalidLimits');
+          assert.equal(error.cleanupPending, undefined);
+          return true;
+        });
+        for (const counter of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, counter), 0n);
+        assert.equal(fixture.strategyFixtureUsage(f, 3), beforeProvision);
+        assert.equal(fixture.strategyFixtureNext(f), 1);
+      }
       await assert.rejects(openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1,
         { ...suppliedLimits, memoryBytes: suppliedLimits.memoryBytes / 2 }));
       assert.equal(fixture.strategyFixtureUsage(f, 3), beforeProvision);
       assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
       environment = await openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1, suppliedLimits);
       const mapping = { maxEntries: 1000, maxNameBytes: 10000 };
+      const importAttempts = fixture.strategyFixtureUsage(f, 3);
+      // More corrections than the table-name/holding bound must not consume it.
+      for (let retry = 0; retry < 40; retry++) {
+        await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
+          { ...suppliedLimits, maxRows: 2 }, mapping), { code: 'InvalidImportLimits' });
+        assert.equal(environment.hasTable(0), false);
+        assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts);
+        assert.equal(fixture.strategyFixtureUsage(f, 2), BigInt(suppliedLimits.memoryBytes));
+      }
+      // Valid transport settings, but beyond the selected import reservation.
+      await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
+        { ...suppliedLimits, maxTransportBytes: 100001 }, mapping));
+      assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts);
       const imported = await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
       assert.equal(imported.importedRows, 3);
+      assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts + 1n);
+      await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
+        suppliedLimits, mapping));
+      assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts + 1n);
       await replaceRows('INSERT INTO records VALUES (99,99)');
       for (let task = 1; task <= 3; task++) {
         const table = environment.table(task === 3 ? 1 : 0);
@@ -655,13 +700,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       capture.close();
     }
   }
-  {
+  for (const expensiveCleanup of [false, true]) {
     const selectedFixture = fixture.strategyFixtureCreate(...args, program);
     const selectedCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(selectedFixture), suppliedLimits);
     let result;
     try {
       assert.equal(fixture.strategyFixtureOpen(selectedFixture, selectedCapture.source()), true);
-      const setup = fixture.strategyFixtureResidentDispatch(selectedFixture);
+      const setup = expensiveCleanup
+        ? fixture.strategyFixtureResidentCleanupDispatch(selectedFixture)
+        : fixture.strategyFixtureResidentDispatch(selectedFixture);
       result = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
       assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
       assert.equal(result.cleanupPending(), false);

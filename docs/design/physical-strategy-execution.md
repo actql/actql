@@ -264,6 +264,9 @@ they can be corrected without fabricated resource progress. An accepted search
 immediately revokes the previous dispatch permission. Failure cannot restore it
 or repeat the accepted search in an unchanged execution/resource state. Selection
 history and spent planning work remain intact.
+This includes arithmetic `Overflow` during accepted enumeration. Sending only
+corrected cost estimates in the same state does not reopen search or old
+dispatch. This rejection is not by itself a stop of the entire Run.
 Each remaining Compute needs one attempt and one holding record in this profile;
 already consumed records are included in feasibility and revision-state checks,
 even if their byte reservations have since been released.

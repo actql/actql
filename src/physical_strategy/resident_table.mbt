@@ -112,6 +112,38 @@ fn owns_resident_table(run : CapturedDAG, table : ResidentTable) -> Bool {
 }
 
 ///|
+/// Cancel the most recent, unstarted table preparation. No native resource or
+/// import reservation may exist. Reclaim its slot, quota and unused SQL name
+/// together; stale handles stay invalid by exact ownership. Planning work stays
+/// spent. Once begin_resident_transfer succeeds, use abort and confirmed cleanup.
+pub fn cancel_resident_table_preparation(
+  run : CapturedDAG,
+  table : ResidentTable,
+) -> Result[Unit, LedgerIssue] {
+  let env = table.environment
+  if !owns_resident_table(run, table) {
+    return Err(ForeignOwner)
+  }
+  guard env.allocations.last() is Some(last) else { return Err(InvalidCharge) }
+  if table.import_started ||
+    table.committed ||
+    table.allocation.retiring ||
+    !physical_equal(last, table.allocation) {
+    return Err(InvalidCharge)
+  }
+  retire_resident_capacity(table.allocation)
+  match release_resident_capacity(table.allocation) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      env.tables[table.producer] = None
+      env.allocations.pop() |> ignore
+      env.next_table -= 1
+      Ok(())
+    }
+  }
+}
+
+///|
 pub fn resident_table_import(table : ResidentTable) -> @duckdb.ResidentImport {
   table.imported
 }

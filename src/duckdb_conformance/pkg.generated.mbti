@@ -197,6 +197,8 @@ pub fn strategy_fixture_placement(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 
+pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG

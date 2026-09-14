@@ -140,6 +140,8 @@ pub fn resident_return(@physical_strategy.ResidentRead) -> Unit raise NodeHostFa
 
 pub fn resident_table_at(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int) -> @physical_strategy.ResidentTable raise NodeHostFailure
 
+pub fn resident_table_cancel(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTable) -> Unit raise NodeHostFailure
+
 pub fn resident_table_prepare(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> @physical_strategy.ResidentTable raise NodeHostFailure
 
 pub fn resident_transfer_abort(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure

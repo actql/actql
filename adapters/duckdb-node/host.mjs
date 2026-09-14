@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
-import { DuckDBTransportError, provisionComputeDatabase } from './session.mjs';
+import { DuckDBTransportError, provisionComputeDatabase, validateLimits } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
 import { checked } from './runtime-result.mjs';
 
@@ -17,23 +17,30 @@ const residentEnvironments = new WeakMap();
 // selected capacity. No existing file or source connection can be attached.
 export async function openResidentStrategyEnvironment(graph, task, limits) {
   const moon = await loadRuntime();
-  limits = Object.freeze({ ...limits });
+  limits = validateLimits(limits);
   const capacity = computePhysicalCapacity(limits);
   const env = checked(moon.residentBegin(graph, task, capacity.databaseBytes));
   let database;
+  let started = false;
   let released = false;
   const cleanupStatus = () => Object.freeze({ pending: !released });
   const cleanup = async () => {
     if (!released) {
       checked(moon.residentClose(graph, env, false));
       if (database) await database.close();
+      else if (!started) {
+        // No provider work was sent. An absent returned handle alone is not
+        // sufficient: started-but-unknown provision must keep its reservation.
+        checked(moon.residentClose(graph, env, true));
+        released = true;
+      }
     }
     return cleanupStatus();
   };
   const cleanupHandle = Object.freeze({ status: cleanupStatus, retry: cleanup });
   try {
     database = await provisionComputeDatabase(limits, Object.freeze({
-      started() {},
+      started() { started = true; },
       settled(confirmed) {
         if (released) return;
         checked(moon.residentClose(graph, env, confirmed));
@@ -75,18 +82,28 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   const owned = residentEnvironments.get(environment);
   if (!owned || !owned.database.status().live) throw new DuckDBTransportError('SessionClosed');
   const moon = await loadRuntime();
-  limits = Object.freeze({ ...limits });
+  limits = validateLimits(limits);
+  if (limits.memoryBytes !== owned.database.memoryBytes || limits.threads !== owned.database.threads) {
+    throw new DuckDBTransportError('EnvironmentMismatch');
+  }
   const capacity = computePhysicalCapacity(limits);
   const table = checked(moon.residentTablePrepare(owned.graph, owned.env, producer,
     BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
-  const count = rows(moon.residentImportCount(table, false));
-  const columns = rows(moon.residentImportCount(table, true));
-  if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
-      columns === 0 || count > Math.floor(limits.maxCells / columns)) {
-    throw new DuckDBTransportError('InvalidImportLimits');
+  let count, columns, transfer;
+  try {
+    count = rows(moon.residentImportCount(table, false));
+    columns = rows(moon.residentImportCount(table, true));
+    if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
+        columns === 0 || count > Math.floor(limits.maxCells / columns)) {
+      throw new DuckDBTransportError('InvalidImportLimits');
+    }
+    transfer = checked(moon.residentTransferBegin(owned.graph, table,
+      capacity.transferBytes, capacity.scratchBytes));
+  } catch (error) {
+    // Synchronous preparation only: no import attempt or native work exists.
+    checked(moon.residentTableCancel(owned.graph, table));
+    throw error;
   }
-  const transfer = checked(moon.residentTransferBegin(owned.graph, table,
-    capacity.transferBytes, capacity.scratchBytes));
   let started = false;
   try {
     const result = await owned.database.run(limits, async session => {

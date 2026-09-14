@@ -95,6 +95,37 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.prepare_resident_table(run, env, 0, 79L, 1000, 10000, 10000)
     is Err(Physical(InvalidCharge)),
   )
+  // Unstarted preparations are reversible, including an actual ledger refusal.
+  // More than the holding/name bound: names and table quota must not leak.
+  let planned = @strategy.ledger_usage(ledger).planning_work
+  let blocker = @strategy.reserve_attempt(ledger, 300000L, 0L, 0L).unwrap()
+  let attempts_before_corrections = @strategy.ledger_usage(ledger).attempts
+  let mut stale = None
+  for _ in 0..<20 {
+    let pending = @strategy.prepare_resident_table(
+      run, env, 0, 80L, 1000, 10000, 10000,
+    ).unwrap()
+    assert_true(
+      @strategy.cancel_resident_table_preparation(foreign, pending)
+      is Err(ForeignOwner),
+    )
+    assert_true(
+      @strategy.begin_resident_transfer(run, pending, 20L, 100L)
+      is Err(Physical(TransferLimit)),
+    )
+    @strategy.cancel_resident_table_preparation(run, pending).unwrap()
+    assert_true(
+      @strategy.cancel_resident_table_preparation(run, pending)
+      is Err(ForeignOwner),
+    )
+    stale = Some(pending)
+  }
+  assert_eq(
+    @strategy.ledger_usage(ledger).attempts,
+    attempts_before_corrections,
+  )
+  assert_true(@strategy.ledger_usage(ledger).planning_work > planned)
+  @strategy.settle_reservation(ledger, blocker).unwrap()
   let table = @strategy.prepare_resident_table(
     run, env, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
@@ -113,6 +144,14 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   assert_eq(@strategy.ledger_usage(ledger).attempts, attempts)
   let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
+  assert_true(
+    @strategy.cancel_resident_table_preparation(run, table)
+    is Err(InvalidCharge),
+  )
+  assert_true(
+    @strategy.begin_resident_transfer(run, stale.unwrap(), 20L, 100L)
+    is Err(ForeignCandidate),
+  )
   assert_eq(@strategy.next_captured_task(run), None)
   assert_true(
     @strategy.complete_resident_transfer(run, transfer) is Err(NotReady),
@@ -167,7 +206,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes,
   )
-  assert_eq(@strategy.ledger_usage(ledger).attempts, before.attempts + 2)
+  assert_eq(@strategy.ledger_usage(ledger).attempts, before.attempts + 3)
   // Correction is possible after genuine environment loss, with the history
   // and planning work intact. There is no implicit retry of a started task.
   assert_true(

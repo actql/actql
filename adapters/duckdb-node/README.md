@@ -516,7 +516,9 @@ settlement. Output capacity is reserved before that removal. Table allowances
 are Host admission policy, not measurements of DuckDB allocator bytes or a claim
 that its configured memory limit bounds total process RSS.
 
-The standard low-level resident operations in `host.mjs` are
+Application users normally call `runCapturedStrategy` or the documented example.
+The following operations are a trusted Host-implementer protocol, not a sequence
+of commands accepted from Program inputs. The low-level resident operations in `host.mjs` are
 `openResidentStrategyEnvironment`, `importResidentStrategyInput` and
 `runResidentStrategyHostCompute`. They retain trusted verifier wiring and cannot
 attach arbitrary DB connections. Environment `status()` reports live/pending
@@ -524,6 +526,15 @@ state; `close()` invalidates DB reuse without revoking independent Host results.
 After copy loss, only unstarted work can be selected again from live fixed Host
 inputs, under the existing search and cumulative resource limits. Failed or
 started tasks are not automatically retried.
+
+Transport settings are validated and frozen before environment reservation.
+Invalid settings do not spend an attempt. Import preflight or reservation
+rejection cancels only the most recent unstarted table preparation, reclaiming
+its slot, quota and unused name while preserving spent planning work. Corrected
+limits can then be submitted on the same environment. After import admission,
+failure stops the graph and does not enable this preparation rollback.
+Host implementers must distinguish work never sent from provision or cleanup
+whose completion is unknown. No returned DB handle is not a cleanup proof.
 
 The strategy result's `cleanupPending()` and asynchronous `cleanup()` retain
 unconfirmed resource recovery after failure. `close()` releases output handles;
@@ -537,6 +548,9 @@ currently authorized dispatch. Resident task entries include their shared
 profile's preparation/cleanup estimates and import envelopes; repeated profile
 descriptions are not additional charges. The whole-strategy assessment contains
 the composed cost, while the ledger reports actual accumulated usage.
+Outstanding environment cleanup is included even when all remaining choices are
+Local. A live environment does not repeat setup; settled cleanup is no longer
+charged, and unknown cleanup remains unknown in every affected candidate.
 
 For native acquisition charged to the same graph ledger, use
 `runStrategyNativeHostQuery(grant, ownedConfiguration, ledger, transportLimits, signal)`.
