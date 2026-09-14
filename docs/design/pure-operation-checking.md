@@ -50,8 +50,9 @@ The [Calendar boundary](calendar-checking.md) admits source options and binds
 validated transition tables to selected byte/release pins with exact zone lookup.
 Its real selected-zone release fixture is pinned and reproducible. Calendar
 operation/pipeline checking requires that admitted profile. Independent boundary
-vectors are fixed and checked against a separate table-inversion oracle; general
-logical-order and resolved resource proof propagation remain unfinished.
+vectors are fixed and checked against a separate table-inversion oracle.
+Logical-order and resolved resource proofs belong to the shared pipeline and
+capacity boundaries; admitting a Calendar profile alone establishes neither.
 
 Use a typed Carrier sum with Relation, Graph, Events and Vectors variants, not a
 Carrier string attached to an otherwise untyped object. Retain recursive value
