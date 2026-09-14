@@ -769,6 +769,18 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.GraphMean(operation) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            // Every sample participates, including zero-weight samples.
+            // Weights and support thresholds are authored values, not attestations.
+            unknown = true
+            @graph.mean_sample_count(@graph.mean_options(operation))
+          }
           @pipeline.GraphEquality(..)
           | @pipeline.GraphDiff(..)
           | @pipeline.GraphApply(..)

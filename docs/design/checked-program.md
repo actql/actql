@@ -655,6 +655,13 @@ and generated identity fields do not add authored data values. Policy transfer
 retains exact checked-operation ownership and does not discharge comparison,
 Delta compatibility, merge, endpoint or resource enforcement requirements.
 
+Graph means retain their declared sample occurrences without an implicit current
+input. Repeated samples keep their positions and weights; zero-weight samples
+remain validation and policy dependencies even though they contribute no numeric
+weight. Authored weights and support thresholds contribute unproven value
+provenance. The retained operation owns these options and its independent exact
+arithmetic, support, materialization and sample-resource execution requirements.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
