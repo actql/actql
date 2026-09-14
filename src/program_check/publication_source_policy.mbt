@@ -23,6 +23,26 @@ pub struct PublicationSourcePolicy {
   priv lags : Array[PublicationPolicyLag]
   priv unpivots : Array[PublicationPolicyUnpivot]
   priv json_picks : Array[PublicationPolicyJsonPick]
+  priv unnests : Array[PublicationPolicyUnnest]
+}
+
+///|
+pub struct PublicationPolicyUnnest {
+  step : Int
+  operation : @relation.CheckedOperation
+}
+
+///|
+pub fn publication_policy_unnest_count(value : PublicationSourcePolicy) -> Int {
+  value.unnests.length()
+}
+
+///|
+pub fn publication_policy_unnest_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyUnnest? {
+  value.unnests.get(index)
 }
 
 ///|
@@ -390,6 +410,7 @@ fn prepare_publication_source_policy(
   let lags : Array[PublicationPolicyLag] = []
   let unpivots : Array[PublicationPolicyUnpivot] = []
   let json_picks : Array[PublicationPolicyJsonPick] = []
+  let unnests : Array[PublicationPolicyUnnest] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -410,6 +431,15 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Unnest => {
+                identity_charge(budget, 1)
+                guard @relation.reshape(operation) is Some(Unnest(..)) else {
+                  raise ForeignOwner
+                }
+                // Elements, positions and outer placeholders derive from the
+                // input array. Retain its policy without inventing provenance.
+                unnests.push({ step: index, operation, })
+              }
               JsonPick => {
                 identity_charge(budget, 1)
                 guard @relation.json_pick_source(operation) is Some(_) &&
@@ -759,6 +789,7 @@ fn prepare_publication_source_policy(
     lags,
     unpivots,
     json_picks,
+    unnests,
   }
   |> Some
 }

@@ -512,6 +512,14 @@ unknown contribution. The shape-validation execution check remains attached to
 the same operation even if the picked output is hidden by the final projection.
 This transfer neither supplies missing shape evidence nor inspects opaque values.
 
+Unnest transfer retains the exact checked expansion and its input policy.
+Elements, positional indexes and outer placeholders derive from the input array;
+structural output names and the outer-mode flag do not provide classification
+attestations or remove upstream unknown provenance. Indexed policy readers retain
+the same operation as both occurrence emission and output-envelope enforcement.
+Hiding generated fields does not remove these checks or the input policy, and
+an array item bound is not treated as proof of the total number of output rows.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
