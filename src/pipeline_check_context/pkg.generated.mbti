@@ -287,6 +287,10 @@ pub fn graph_match_resource_at(GraphMatchCheck, Int) -> GraphComparisonResource?
 
 pub fn graph_match_resource_count(GraphMatchCheck) -> Int
 
+pub fn graph_mean_resource_at(GraphMeanCheck, Int) -> GraphMeanResource?
+
+pub fn graph_mean_resource_count(GraphMeanCheck) -> Int
+
 pub fn graph_mean_sample_at(GraphMeanCheck, Int) -> (@pipeline_typing.InputOccurrence, Double)?
 
 pub fn graph_mean_sample_count(GraphMeanCheck) -> Int
@@ -1602,6 +1606,13 @@ pub struct GraphMeanCheck {
   policy : @capacity_policy.Policy
 }
 
+pub(all) enum GraphMeanResource {
+  SampleWork
+  ExactArithmeticWork
+  ValueAndTemporaryBytes
+  RetainedMeanState
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphMeanRule {
   AdmitMeanSamples
   CompareMeanSupport
@@ -1612,6 +1623,7 @@ pub(all) enum GraphMeanRule {
   ValidateMeanFiniteResults
   OrderMeanIdentities
   PreserveMeanDependencies
+  RequireMeanResources
 } derive(Eq, @debug.Debug)
 
 pub struct GraphProjectionCheck {

@@ -153,7 +153,7 @@ pub fn operation_execution_phase(
       }
     GraphMeanExecution(v) =>
       match v.rule {
-        AdmitMeanSamples => BeforeOperationInputUse
+        AdmitMeanSamples | RequireMeanResources => BeforeOperationInputUse
         CompareMeanSupport
         | CloseMeanEndpoints
         | CheckMeanLabels

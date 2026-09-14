@@ -4920,6 +4920,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-mean.resource-binding",
+      "statement_sha256": "96a2c9e95b05e2d0537d989258fd685eea5d649137e30c11d7ed5242c8d5ade9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-mean",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-mean.resource-scope",
+      "statement_sha256": "c6f5527ddc7d58350f0be1850d2a9a9be229a730ef866c1db7aa6dc880df6c9e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-mean",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/vector-operations.future-ann-access-must-be-a-separately-named-search-index-like-source",
       "statement_sha256": "36324d6f892d37a24f1730f0dd7cab1548fe0665748d918b5bccdba790e22c51",
       "status": "pending",

@@ -9,6 +9,15 @@ pub(all) enum GraphMeanRule {
   ValidateMeanFiniteResults
   OrderMeanIdentities
   PreserveMeanDependencies
+  RequireMeanResources
+} derive(Eq, Debug)
+
+///|
+pub(all) enum GraphMeanResource {
+  SampleWork
+  ExactArithmeticWork
+  ValueAndTemporaryBytes
+  RetainedMeanState
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +27,33 @@ pub struct GraphMeanCheck {
   operation : @graph.CheckedMean
   rule : GraphMeanRule
   policy : @policy.Policy
+}
+
+///|
+/// Resource contracts cover the whole sample list, not a fresh budget per sample.
+pub fn graph_mean_resource_count(check : GraphMeanCheck) -> Int {
+  if check.rule == RequireMeanResources {
+    4
+  } else {
+    0
+  }
+}
+
+///|
+pub fn graph_mean_resource_at(
+  check : GraphMeanCheck,
+  index : Int,
+) -> GraphMeanResource? {
+  if check.rule != RequireMeanResources {
+    return None
+  }
+  match index {
+    0 => Some(SampleWork)
+    1 => Some(ExactArithmeticWork)
+    2 => Some(ValueAndTemporaryBytes)
+    3 => Some(RetainedMeanState)
+    _ => None
+  }
 }
 
 ///|
@@ -58,7 +94,8 @@ fn graph_mean_execution_check(
     RejectNonfiniteMeanResults => ValidateMeanFiniteResults
     CanonicalMeanIdentityOrder => OrderMeanIdentities
     PreserveMeanObservationAndPolicy => PreserveMeanDependencies
-    ResolveMeanResources | ResolveMeanProfile => return Ok(None)
+    ResolveMeanResources => RequireMeanResources
+    ResolveMeanProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.GraphMean(operation) &&

@@ -5932,6 +5932,26 @@ exact arithmetic and materialization have resolved ceilings. Mean preserves
 observation scope and policy and grants no master-data authority. Structural
 subtraction from this output is not automatically a statistical deviation.
 
+<!-- requirement-block: graph-mean.resource-binding -->
+An executable realization MUST bind finite enforceable sample-work,
+exact-arithmetic-work, value/temporary-byte and retained-state contracts before
+using mean inputs. Each selected meter specifies its quantity, unit, aggregation,
+ceiling and failure behavior; a node/edge count bound does not substitute for
+work or storage bounds. Exact arithmetic includes the storage growth of rational
+accumulators, not only their object count. Physical realization choices may use
+different resource contracts without changing the exact mean semantics or
+waiving applicable logical limits and producer obligations.
+
+<!-- requirement-block: graph-mean.resource-scope -->
+The realization MUST enforce each selected meter over the entire mean operation,
+without resetting cumulative budgets per sample, identity or property. Cumulative
+work and byte traffic include all actual uses; peak storage counts simultaneously
+live inputs, accumulators, output and temporary storage. Repeated samples remain
+distinct semantic contributions; immutable sharing need not be charged as a copy
+that did not occur. Empty graphs and zero-weight samples do not waive admission
+or resource enforcement. Failure, cancellation or incomplete validation prevents
+publication of a partial mean result.
+
 <a id="vector-operations"></a>
 
 ### Vector operations (VecA)

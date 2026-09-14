@@ -27,6 +27,7 @@ test "mean bindings retain positional samples policies and exact pending semanti
     ValidateMeanFiniteResults,
     OrderMeanIdentities,
     PreserveMeanDependencies,
+    RequireMeanResources,
   ]
   for missing in ["exclude", "zero"] {
     for nulls in ["exclude", "zero", "fail"] {
@@ -73,8 +74,13 @@ test "mean bindings retain positional samples policies and exact pending semanti
             obligations: group,
             requirement: @pipeline.operation_obligations_at(group, index).unwrap(),
           }
-          let result = graph_mean_execution_check(site, policy)
-          if index >= 9 {
+          let result = direct_execution_candidate(
+            site,
+            policy,
+            Ok(None),
+            Ok(None),
+          )
+          if index == 10 {
             assert_true(result is Ok(None))
             continue
           }
@@ -82,6 +88,29 @@ test "mean bindings retain positional samples policies and exact pending semanti
             fail("missing mean semantic binding")
           }
           assert_eq(check.rule, expected[index])
+          assert_eq(
+            graph_mean_resource_count(check),
+            if index == 9 {
+              4
+            } else {
+              0
+            },
+          )
+          assert_true(graph_mean_resource_at(check, -1) is None)
+          assert_true(graph_mean_resource_at(check, 4) is None)
+          if index == 9 {
+            let resources : Array[GraphMeanResource] = [
+              SampleWork,
+              ExactArithmeticWork,
+              ValueAndTemporaryBytes,
+              RetainedMeanState,
+            ]
+            for i in 0..<resources.length() {
+              assert_eq(graph_mean_resource_at(check, i), Some(resources[i]))
+            }
+          } else {
+            assert_true(graph_mean_resource_at(check, 0) is None)
+          }
           assert_true(physical_equal(check.site, site))
           assert_true(physical_equal(check.step, step))
           assert_true(physical_equal(check.policy, policy))
@@ -140,7 +169,7 @@ test "mean bindings retain positional samples policies and exact pending semanti
           }
           assert_eq(
             operation_execution_phase(GraphMeanExecution(check)),
-            if index == 0 {
+            if index == 0 || index == 9 {
               BeforeOperationInputUse
             } else {
               BeforeOperationOutput

@@ -1,0 +1,16 @@
+{
+  "description": "Independent selected meter traces, not estimated backend instruction costs or execution attestations. Every peak includes all simultaneous state; rational state is measured in bytes.",
+  "meters": ["sample_work", "exact_work", "value_bytes", "temporary_bytes", "retained_bytes"],
+  "aggregation": ["sum", "sum", "sum", "peak", "peak"],
+  "cases": [
+    {"name":"empty-graphs-admitted","trace":[[1,0,0,0,0],[1,0,0,0,0]],"limits":[2,0,0,0,0],"usage":[2,0,0,0,0],"complete":true,"accept":true},
+    {"name":"zero-weight-admission-counts","trace":[[2,0,8,4,0],[2,3,8,4,12]],"limits":[4,3,16,4,12],"usage":[4,3,16,4,12],"complete":true,"accept":true},
+    {"name":"zero-weight-admission-work-exceeds","trace":[[2,0,8,4,0],[2,3,8,4,12]],"limits":[3,3,16,4,12],"usage":[4,3,16,4,12],"complete":true,"accept":false},
+    {"name":"repeated-samples-share-one-exact-budget","trace":[[2,3,8,4,12],[2,3,8,4,20]],"limits":[4,6,16,4,20],"usage":[4,6,16,4,20],"complete":true,"accept":true},
+    {"name":"no-exact-budget-reset","trace":[[2,3,8,4,12],[2,3,8,4,20]],"limits":[4,5,16,4,20],"usage":[4,6,16,4,20],"complete":true,"accept":false},
+    {"name":"byte-traffic-is-cumulative","trace":[[2,3,8,4,12],[2,3,8,4,20]],"limits":[4,6,15,4,20],"usage":[4,6,16,4,20],"complete":true,"accept":false},
+    {"name":"temporary-peak","trace":[[2,3,8,4,12],[2,3,8,5,20]],"limits":[4,6,16,4,20],"usage":[4,6,16,5,20],"complete":true,"accept":false},
+    {"name":"one-accumulator-still-grows-in-bytes","trace":[[2,3,8,4,12],[2,3,8,4,20]],"limits":[4,6,16,4,19],"usage":[4,6,16,4,20],"complete":true,"accept":false},
+    {"name":"incomplete-validation-cannot-publish","trace":[[2,0,8,4,0]],"limits":[4,6,16,4,20],"usage":[2,0,8,4,0],"complete":false,"accept":false}
+  ]
+}

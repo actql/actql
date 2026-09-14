@@ -157,6 +157,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"graft_graph\":{}}]", true),
       ("[{\"union_graphs\":{}}]", true),
       ("[{\"subtract_graphs\":{}}]", true),
+      ("[{\"mean_graphs\":{}}]", true),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

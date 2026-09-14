@@ -108,6 +108,7 @@ fn check_supported_source(
               | "graft_graph"
               | "union_graphs"
               | "subtract_graphs"
+              | "mean_graphs"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

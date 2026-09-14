@@ -501,8 +501,16 @@ targets and zero weights remain distinct positions. Property readers likewise
 return retained strategies rather than rebuilding maps. Input admission precedes
 sample use; support, endpoint closure, label agreement, property policies, final
 rounding, finite results, identity order and observation/policy dependencies are
-separate checks before output publication. Resource and profile requirements are
-not discharged by these semantic bindings.
+separate checks before output publication. The resource binding retains the same
+operation and selected policy, with separate sample-work, exact-arithmetic-work,
+value/temporary-byte and retained-state requirements. A realization must supply
+finite enforceable meters before input use. Sample repetition is not eliminated;
+actual immutable sharing is not charged as a fictional copy. Cumulative work and
+traffic and peak simultaneously live storage have different aggregation rules.
+The exact accumulator's storage is bounded in bytes, not merely by counting one
+accumulator object. These are future execution checks, not admitted backend
+resource contracts or evidence that the numerical evaluator has run. Profile
+selection remains a separate static check.
 
 ## Structural graph composition
 
