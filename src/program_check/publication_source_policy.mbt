@@ -769,6 +769,87 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Traverse(selector~, checked=operation) => {
+            identity_charge(budget, 1)
+            let start = @graph.traverse_start(operation)
+            let mut missing = !@graph.traverse_patterned(operation) ||
+              @graph.selector_id_count(start) > 0 ||
+              @graph.traverse_output_guard(operation) is Some(_)
+            if @graph.selector_predicate(start) is Some(predicate) {
+              if publication_expression_unknown(
+                  @graph.predicate_expression(predicate),
+                  budget,
+                ) {
+                missing = true
+              }
+            }
+            for hop in 0..<@graph.traverse_hop_count(operation) {
+              identity_charge(budget, 1)
+              let hop = @graph.traverse_hop_at(operation, hop).unwrap()
+              if @graph.hop_type_count(hop).unwrap_or(0) > 0 {
+                missing = true
+              }
+              for entity in [@graph.Nodes, @graph.Edges] {
+                identity_charge(budget, 1)
+                if @graph.hop_predicate(hop, entity) is Some(predicate) {
+                  if publication_expression_unknown(
+                      @graph.predicate_expression(predicate),
+                      budget,
+                    ) {
+                    missing = true
+                  }
+                }
+              }
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            if selector is Some(_) {
+              2
+            } else {
+              1
+            }
+          }
+          @pipeline.Shortest(
+            source_selector~,
+            target_selector~,
+            checked=operation
+          ) => {
+            identity_charge(budget, 1)
+            for side in 0..<2 {
+              identity_charge(budget, 1)
+              if @graph.shortest_endpoint(
+                  operation,
+                  if side == 0 {
+                    Left
+                  } else {
+                    Right
+                  },
+                )
+                is @graph.Selected(selector) {
+                if @graph.selector_predicate(selector) is Some(predicate) {
+                  let _ = publication_expression_unknown(
+                    @graph.predicate_expression(predicate),
+                    budget,
+                  )
+                }
+              }
+            }
+            // The explicit hop bound contributes authored value provenance;
+            // endpoint predicates still consume their complete traversal budget.
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
+            1 +
+            (if source_selector is Some(_) { 1 } else { 0 }) +
+            (if target_selector is Some(_) { 1 } else { 0 })
+          }
           @pipeline.Reach(_) => {
             identity_charge(budget, 1)
             carrier_steps.push({

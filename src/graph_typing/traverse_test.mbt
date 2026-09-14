@@ -49,8 +49,10 @@ test "traversal checks homogeneous and patterned forms under shared budgets" {
       assert_eq(@graph_typing.traverse_bounds(c), (0.0, 3.0))
       let hop = @graph_typing.traverse_hop_at(c, 0).unwrap()
       assert_eq(@graph_typing.hop_types(hop), Some(["owns", "owns"]))
+      assert_eq(@graph_typing.hop_type_count(hop), Some(2))
       let copy = @graph_typing.hop_types(hop).unwrap()
       copy.clear()
+      assert_eq(@graph_typing.hop_type_count(hop), Some(2))
       assert_eq(@graph_typing.hop_types(hop).unwrap().length(), 2)
       assert_true(
         indexed_obligation_copy(

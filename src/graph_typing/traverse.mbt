@@ -322,6 +322,11 @@ pub fn hop_types(h : TraversalHop) -> Array[String]? {
 }
 
 ///|
+pub fn hop_type_count(h : TraversalHop) -> Int? {
+  h.types.map(xs => xs.length())
+}
+
+///|
 pub fn hop_predicate(
   h : TraversalHop,
   entity : EntityKind,

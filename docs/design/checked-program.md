@@ -668,6 +668,15 @@ selected search-path and output-row limits retain their operation owner and Unit
 subjects. Publication policy is neither a traversal bound nor evidence that the
 start identity exists or that exploration has executed successfully.
 
+Traverse and shortest-path retain each selector Relation separately from the
+Graph, including repeated endpoint dependencies. Selector and hop predicates are
+fully charged against shared preparation work even after an unproven value has
+been found. Traverse's fixed hop structure and field-only predicates do not
+invent authored data values; explicit bounds, identities, edge types and guards
+do. Shortest-path retains its explicit hop bound and both endpoint predicates.
+Search/output limit ownership, path selection and atomic failure requirements
+remain independent of this policy transfer.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
