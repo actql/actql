@@ -200,7 +200,8 @@ pub fn operation_execution_phase(
         | ValidateContiguousInputRanks
         | AuthenticateRankingScores
         | AdmitRankingScoreRanges
-        | ValidateRankingTieAgreement => BeforeOperationInputUse
+        | ValidateRankingTieAgreement
+        | RequireRankingResources => BeforeOperationInputUse
         ApplyRankingWindow
         | EvaluateRankingScores
         | OrderFusedRankings

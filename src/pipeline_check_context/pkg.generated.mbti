@@ -789,6 +789,10 @@ pub fn ranking_execution_input_at(RankingCheck, Int) -> (@pipeline_typing.InputO
 
 pub fn ranking_execution_input_count(RankingCheck) -> Int
 
+pub fn ranking_resource_at(RankingCheck, Int) -> RankingResource?
+
+pub fn ranking_resource_count(RankingCheck) -> Int
+
 pub fn reconciled_local_at(ReconciledContexts, Int) -> @stage_local_inputs.ReconciledAttachment?
 
 pub fn reconciled_snapshots(ReconciledContexts) -> @stage_local_inputs.ProgramEnvironmentInputs
@@ -2753,7 +2757,16 @@ pub struct RankingCheck {
   operation : @relation_evidence.CheckedRanking
   rule : RankingRule
   policy : @capacity_policy.Policy
+  host_output_rows : @capacity_policy.Ceiling?
 }
+
+pub(all) enum RankingResource {
+  InputAdmissionWork
+  FusionWork
+  OrderingWork
+  ValueAndTemporaryBytes
+  RetainedRankingState
+} derive(Eq, @debug.Debug)
 
 pub(all) enum RankingRule {
   AdmitCompleteRankings
@@ -2766,6 +2779,7 @@ pub(all) enum RankingRule {
   EvaluateRankingScores
   OrderFusedRankings
   AssignFusedRanks
+  RequireRankingResources
 } derive(Eq, @debug.Debug)
 
 pub struct RankingScoreEnvelope {

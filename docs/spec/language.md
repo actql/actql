@@ -6454,6 +6454,25 @@ groups use canonical key order. The input list, weights, rank_window and
 law identity belong to the canonical Plan; bounds cover admitted input rows,
 fusion work and output separately. Optimization preserves the declared fold.
 
+<!-- requirement-block: merge-rankings.resource-binding -->
+Before consuming ranking inputs, the selected execution contract MUST bind
+finite limits for complete-input admission work, fusion work, ordering work,
+value and temporary bytes, and retained ranking state, with explicit measured
+quantities, units, aggregation rules and atomic failure behavior. Positive k
+and rank_window are not substitutes for these limits. The Host Relation output
+ceiling and all applicable selected logical limits remain enforced separately;
+a Host ceiling does not replace a tighter Program bound.
+
+<!-- requirement-block: merge-rankings.resource-scope -->
+Resource enforcement MUST cover the entire fusion operation, not reset per
+input occurrence, query group or candidate. Repeated references preserve their
+semantic contributions; actual shared storage is counted according to its
+selected meter rather than as imaginary duplicate allocations. Work and byte
+traffic accumulate, while peak-state scopes include simultaneously live state.
+Zero weights and rank_window exclusions do not waive complete-input validation,
+and empty rankings do not excuse validation of other inputs. Exceeding any
+selected limit rejects the operation output without publishing a partial ranking.
+
 Every merge_rankings policy emits rank as the one-based position within each
 query after final tie-breaking and top-k. The output rank field is fixed and
 fresh: by/candidate fields cannot collide with rank or score. RRF consumes the

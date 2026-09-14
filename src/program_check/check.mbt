@@ -115,6 +115,7 @@ fn check_supported_source(
               | "vectors"
               | "nearest"
               | "pool_vectors"
+              | "merge_rankings"
               | "node_rows"
               | "edge_rows"
               | "values" => ()

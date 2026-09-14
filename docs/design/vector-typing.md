@@ -340,6 +340,14 @@ These bindings are future execution obligations, not successful observations.
 Static output-score-envelope derivation, profile selection and resource selection
 are separate requirements and are not discharged by a semantic execution binding.
 
+Ranking resource bindings expose whole-operation admission, fusion, ordering,
+byte and retained-state scopes together with the selected policy's Relation
+output ceiling. The ceiling is not a substitute for tighter Program bounds.
+Input repetition and zero weights remain visible to the selected meters and
+validation obligations. Neither top-k nor rank_window bounds the cost of
+admitting complete inputs. Missing executable meter contracts remain a lowering
+failure, not an implicit unlimited budget.
+
 Pipeline fusion keeps the current ranking first and each authored with occurrence
 after it, with separate `Sample(index)` edges even for repeated targets. Options
 are admitted once; reference resolution and typed fusion debit the remaining

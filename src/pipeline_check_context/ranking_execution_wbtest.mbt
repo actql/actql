@@ -82,8 +82,7 @@ test "ranking execution binds ordered occurrences and keeps static envelope work
       let result = direct_execution_candidate(site, policy, Ok(None), Ok(None))
       if site.requirement
         is @pipeline.RankingRequirement(
-          ResolveRankingResources
-          | ResolveRankingProfile
+          ResolveRankingProfile
           | DeriveOutputScoreEnvelope
         ) {
         assert_true(result is Ok(None))
@@ -138,6 +137,26 @@ test "ranking execution binds ordered occurrences and keeps static envelope work
       assert_true(physical_equal(check.step, step))
       assert_true(physical_equal(check.operation, operation))
       assert_true(physical_equal(check.policy, policy))
+      if check.rule == RequireRankingResources {
+        assert_eq(ranking_resource_count(check), 5)
+        assert_eq(ranking_resource_at(check, 0), Some(InputAdmissionWork))
+        assert_eq(ranking_resource_at(check, 1), Some(FusionWork))
+        assert_eq(ranking_resource_at(check, 2), Some(OrderingWork))
+        assert_eq(ranking_resource_at(check, 3), Some(ValueAndTemporaryBytes))
+        assert_eq(ranking_resource_at(check, 4), Some(RetainedRankingState))
+        assert_true(ranking_resource_at(check, -1) is None)
+        assert_true(ranking_resource_at(check, 5) is None)
+        assert_true(
+          physical_equal(
+            @policy.ceiling_policy(check.host_output_rows.unwrap()),
+            policy,
+          ),
+        )
+      } else {
+        assert_eq(ranking_resource_count(check), 0)
+        assert_true(ranking_resource_at(check, 0) is None)
+        assert_true(check.host_output_rows is None)
+      }
       let count = if rrf { 3 } else { 2 }
       assert_eq(ranking_execution_input_count(check), count)
       for i in 0..<count {
@@ -160,7 +179,8 @@ test "ranking execution binds ordered occurrences and keeps static envelope work
         | ValidateContiguousInputRanks
         | AuthenticateRankingScores
         | AdmitRankingScoreRanges
-        | ValidateRankingTieAgreement => true
+        | ValidateRankingTieAgreement
+        | RequireRankingResources => true
         ApplyRankingWindow
         | EvaluateRankingScores
         | OrderFusedRankings
@@ -191,7 +211,7 @@ test "ranking execution binds ordered occurrences and keeps static envelope work
         is Err(ForeignOccurrence(0)),
       )
     }
-    assert_eq(bound, if rrf { 7 } else { 8 })
-    assert_eq(unresolved, 3)
+    assert_eq(bound, if rrf { 8 } else { 9 })
+    assert_eq(unresolved, 2)
   }
 }

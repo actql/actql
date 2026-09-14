@@ -164,6 +164,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"vectors\":{}}]", true),
       ("[{\"nearest\":{}}]", true),
       ("[{\"pool_vectors\":{}}]", true),
+      ("[{\"merge_rankings\":{}}]", true),
       ("[null]", false),
     ] {
     let budget = IdentityBudget::{

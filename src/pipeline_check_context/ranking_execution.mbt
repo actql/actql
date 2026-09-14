@@ -10,6 +10,7 @@ pub(all) enum RankingRule {
   EvaluateRankingScores
   OrderFusedRankings
   AssignFusedRanks
+  RequireRankingResources
 } derive(Eq, Debug)
 
 ///|
@@ -19,6 +20,41 @@ pub struct RankingCheck {
   operation : @vector.CheckedRanking
   rule : RankingRule
   policy : @policy.Policy
+  host_output_rows : @policy.Ceiling?
+}
+
+///|
+pub(all) enum RankingResource {
+  InputAdmissionWork
+  FusionWork
+  OrderingWork
+  ValueAndTemporaryBytes
+  RetainedRankingState
+} derive(Eq, Debug)
+
+///|
+pub fn ranking_resource_count(check : RankingCheck) -> Int {
+  if check.rule == RequireRankingResources {
+    5
+  } else {
+    0
+  }
+}
+
+///|
+pub fn ranking_resource_at(
+  check : RankingCheck,
+  index : Int,
+) -> RankingResource? {
+  guard check.rule == RequireRankingResources else { return None }
+  match index {
+    0 => Some(InputAdmissionWork)
+    1 => Some(FusionWork)
+    2 => Some(OrderingWork)
+    3 => Some(ValueAndTemporaryBytes)
+    4 => Some(RetainedRankingState)
+    _ => None
+  }
 }
 
 ///|
@@ -59,9 +95,8 @@ fn ranking_execution_check(
     EvaluateRankingPolicyWithFiniteIntermediates => EvaluateRankingScores
     OrderRankingByScoreAndSemanticIdentity => OrderFusedRankings
     AssignFusedContiguousRanks => AssignFusedRanks
-    ResolveRankingResources
-    | ResolveRankingProfile
-    | DeriveOutputScoreEnvelope => return Ok(None)
+    ResolveRankingResources => RequireRankingResources
+    ResolveRankingProfile | DeriveOutputScoreEnvelope => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.Ranking(operation) &&
@@ -76,5 +111,24 @@ fn ranking_execution_check(
     first.target == input else {
     return Err(ForeignOccurrence(site.step))
   }
-  Ok(Some(RankingExecution({ site, step, operation, rule, policy, })))
+  let host_output_rows = if rule == RequireRankingResources {
+    guard @policy.ceiling(policy, "max_relation_output_rows") is Some(limit) else {
+      return Ok(None)
+    }
+    Some(limit)
+  } else {
+    None
+  }
+  Ok(
+    Some(
+      RankingExecution({
+        site,
+        step,
+        operation,
+        rule,
+        policy,
+        host_output_rows,
+      }),
+    ),
+  )
 }

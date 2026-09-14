@@ -5382,6 +5382,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/merge-rankings.resource-binding",
+      "statement_sha256": "8bafd71d24f0b4b2be5773232d683fddf021006f02d1114b90ce81cc2f3aa0d6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "merge-rankings",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/merge-rankings.resource-scope",
+      "statement_sha256": "ef3160a6d9c1e2e09efa5c1eb0c89f07cca442dc8407590071699c126e1a1de0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "merge-rankings",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/merge-rankings.the-compiler-must-not-invent-a-threshold-or-silently-change",
       "statement_sha256": "c46c05f0f82a36c878efe918a5f8c625829aeba456bc7c3427c7d53641e8ec97",
       "status": "pending",
