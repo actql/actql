@@ -37,14 +37,15 @@ pub(all) struct ValuesPublicationLimits {
 fn values_recursive_limit(
   recursive : ValuesRecursiveAdmission,
   limits : @wire.LimitLimits,
+  meter? : ValuesMetadataBudget? = None,
 ) -> Result[@wire.LimitClaim?, ValuesPublicationIssue] {
   if recursive.selected_fields == 0 {
     return Ok(None)
   }
   let host = match
     @host.create(recursive.byte_ceiling, {
-      max_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
+      max_bytes: values_metadata_bytes(meter, limits),
+      max_nodes: values_metadata_nodes(meter, limits),
       max_depth: limits.max_depth,
     }) {
     Ok(v) => v
@@ -62,6 +63,7 @@ fn values_recursive_limit(
     }
   }
   try {
+    reserve_values_metadata(meter, limits, out => @host.emit(host, out))
     let out = writer(false)
     @host.emit(host, out)
     let witness = match
@@ -118,6 +120,9 @@ fn values_recursive_limit(
       @encode.string_value(out, "actql-resolved-limit/0.1")
       @encode.end_object(out)
     }
+    reserve_values_metadata(meter, limits, out => {
+      emit(Some(values_metadata_cid), out)
+    })
     let hash = writer(true)
     emit(None, hash)
     let cid = "sha256:" + @encode.finish_hash(hash)
@@ -141,12 +146,15 @@ fn values_recursive_limit(
 ///|
 /// Resolve every values resource occurrence in this exact index atomically.
 /// Payload bytes/nodes and traversal work are shared across operations and both
-/// measurement passes. Metadata ceilings apply per bounded artifact pass, with
-/// max_values bounding the number of such constructions. No successful execution
+/// measurement passes. Metadata is accounted once per complete artifact (embedded
+/// copies included), separately from payload usage; its nodes also consume work.
+/// total_limits, when supplied, bounds payload plus metadata across all visits.
+/// Per-artifact caps remain independent. No successful execution
 /// or backend support is claimed by the returned future-check bindings.
 pub fn resolve_program_values_resources(
   index : ProgramOperationResolutionIndex,
   limits : ValuesPublicationLimits,
+  total_limits? : @wire.Limits? = None,
 ) -> Result[ProgramOperationResolutionIndex, ValuesPublicationIssue] {
   if limits.max_work < 0 ||
     limits.max_values < 0 ||
@@ -170,6 +178,32 @@ pub fn resolve_program_values_resources(
   }
   let mut bytes = limits.max_payload_bytes - index.values_bytes
   let mut nodes = limits.max_payload_nodes - index.values_nodes
+  let total = total_limits.unwrap_or({
+    max_bytes: 2147483647,
+    max_nodes: 2147483647,
+    max_depth: limits.max_depth,
+  })
+  if total.max_bytes < 0 || total.max_nodes < 0 || total.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  if index.values_bytes > total.max_bytes ||
+    index.values_nodes > total.max_nodes ||
+    index.values_metadata_bytes > total.max_bytes - index.values_bytes ||
+    index.values_metadata_nodes > total.max_nodes - index.values_nodes {
+    return Err(BudgetExceeded)
+  }
+  let meter : ValuesMetadataBudget = {
+    bytes: total.max_bytes - index.values_bytes - index.values_metadata_bytes,
+    nodes: (total.max_nodes - index.values_nodes - index.values_metadata_nodes).min(
+      limits.max_work - work,
+    ),
+    used_bytes: 0,
+    used_nodes: 0,
+  }
+  let metadata : @wire.LimitLimits = {
+    ..limits.metadata,
+    max_depth: limits.metadata.max_depth.min(total.max_depth),
+  }
   let mut remaining = limits.max_values
   let states = index.states.copy()
   let mut unresolved = index.unresolved
@@ -186,16 +220,19 @@ pub fn resolve_program_values_resources(
     }
     remaining -= 1
     work += 1
+    meter.nodes = meter.nodes.min(limits.max_work - work)
+    let metadata_before = meter.used_nodes
     let wire = match
-      resolve_values_wire_limit(
+      resolve_values_wire_limit_metered(
         cells,
         i,
         {
-          max_bytes: bytes,
-          max_nodes: nodes.min(limits.max_work - work),
-          max_depth: limits.max_depth,
+          max_bytes: bytes.min(meter.bytes),
+          max_nodes: nodes.min(meter.nodes),
+          max_depth: limits.max_depth.min(total.max_depth),
         },
-        limits.metadata,
+        metadata,
+        Some(meter),
       ) {
       Ok(v) => v
       Err(e) => return Err(Wire(i, e))
@@ -206,7 +243,8 @@ pub fn resolve_program_values_resources(
     bytes -= wire.bound.bytes
     nodes -= wire.bound.nodes
     work += wire.bound.nodes
-    let rows = match resolve_values_row_limit(wire, limits.metadata) {
+    let rows = match
+      resolve_values_row_limit_metered(wire, metadata, Some(meter)) {
       Ok(v) => v
       Err(e) => return Err(Rows(i, e))
     }
@@ -219,9 +257,9 @@ pub fn resolve_program_values_resources(
     let recursive = match
       check_values_recursive_resources(
         rows,
-        nodes.min(limits.max_work - work),
-        bytes,
-        limits.max_depth,
+        nodes.min(meter.nodes),
+        bytes.min(meter.bytes),
+        limits.max_depth.min(total.max_depth),
       ) {
       Ok(v) => v
       Err(e) => return Err(Recursive(i, e))
@@ -229,11 +267,14 @@ pub fn resolve_program_values_resources(
     bytes -= recursive.bytes
     nodes -= recursive.work
     work += recursive.work
+    meter.bytes -= recursive.bytes
+    meter.nodes -= recursive.work
     let recursive_limit = match
-      values_recursive_limit(recursive, limits.metadata) {
+      values_recursive_limit(recursive, metadata, meter=Some(meter)) {
       Ok(v) => v
       Err(e) => return Err(e)
     }
+    work += meter.used_nodes - metadata_before
     states[i] = Execution(
       ValuesPublication({ site, recursive, recursive_limit, }),
     )
@@ -247,5 +288,7 @@ pub fn resolve_program_values_resources(
     work,
     values_bytes: limits.max_payload_bytes - bytes,
     values_nodes: limits.max_payload_nodes - nodes,
+    values_metadata_bytes: index.values_metadata_bytes + meter.used_bytes,
+    values_metadata_nodes: index.values_metadata_nodes + meter.used_nodes,
   })
 }

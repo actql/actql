@@ -89,6 +89,23 @@ pub fn resolve_values_wire_limit(
   payload : @wire.Limits,
   metadata : @wire.LimitLimits,
 ) -> Result[ValuesWireLimit, ValuesWireResolutionIssue] {
+  resolve_values_wire_limit_metered(
+    cells,
+    requirement_index,
+    payload,
+    metadata,
+    None,
+  )
+}
+
+///|
+fn resolve_values_wire_limit_metered(
+  cells : ProgramOperationCells,
+  requirement_index : Int,
+  payload : @wire.Limits,
+  metadata : @wire.LimitLimits,
+  meter : ValuesMetadataBudget?,
+) -> Result[ValuesWireLimit, ValuesWireResolutionIssue] {
   if metadata.max_bytes < 0 ||
     metadata.max_nodes < 0 ||
     metadata.max_depth < 0 ||
@@ -109,6 +126,13 @@ pub fn resolve_values_wire_limit(
     Ok(v) => v
     Err(e) => return Err(Measurement(e))
   }
+  if meter is Some(meter) {
+    if bytes > meter.bytes || nodes > meter.nodes {
+      return Err(Encoding(@encode.OutputLimit))
+    }
+    meter.bytes -= bytes
+    meter.nodes -= nodes
+  }
   // The measurement validates the exact resource occurrence before indexing.
   let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
   let site = requirements.entries[requirement_index]
@@ -125,12 +149,24 @@ pub fn resolve_values_wire_limit(
     @encode.hashing_writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
   }
   try {
+    reserve_values_metadata(meter, metadata, out => {
+      emit_values_measurement_proof(subject, bytes, out)
+    })
     let hash = hasher()
     emit_values_measurement_proof(subject, bytes, hash)
     let proof_cid = "sha256:" + @encode.finish_hash(hash)
     let proof_out = writer()
     emit_values_measurement_proof(subject, bytes, proof_out)
     let proof_bytes = @wire_utf8.encode(@encode.finish(proof_out))
+    reserve_values_metadata(meter, metadata, out => {
+      emit_values_measurement_witness(
+        subject,
+        bytes,
+        proof_cid,
+        Some(values_metadata_cid),
+        out,
+      )
+    })
     let hash = hasher()
     emit_values_measurement_witness(subject, bytes, proof_cid, None, hash)
     let witness_cid = "sha256:" + @encode.finish_hash(hash)
@@ -166,7 +202,7 @@ pub fn resolve_values_wire_limit(
       nodes,
       depth,
     }
-    match create_values_wire_limit(bound, metadata) {
+    match create_values_wire_limit_metered(bound, metadata, meter) {
       Ok(v) => Ok(v)
       Err(e) => Err(Limit(e))
     }

@@ -157,9 +157,20 @@ Operation closure accepts these as future checks, not enforcement receipts.
 The resolver copies its resolution index only after reserving traversal work;
 all occurrences share payload byte/node ceilings. Failure at any occurrence
 leaves the original index unchanged and exposes no partially resolved result.
-Aggregate measurement usage is readable for enclosing construction budgets.
-Metadata has per-artifact pass ceilings and the number of values constructions
-is separately capped. These are bounded preparation scopes, not a heap ceiling
+Payload measurement and generated metadata usage have separate readers.
+Metadata preparation reserves the canonical bytes and value nodes of each complete
+proof, witness and resolved-limit artifact, including nested copies inside limits.
+Each artifact is charged once per construction occurrence; its bounded hashing,
+encoding and admission reuse that reservation. CID fields have fixed-width ASCII
+placeholders during preflight measurement. Host witness hashing is bounded by the
+remaining allowance, then its complete wire is reserved before emission/admission.
+This is an artifact-preparation accounting scope, not an exact count of hash input
+bytes, decoder passes or CPU instructions. Metadata nodes also consume shared work.
+Per-artifact caps remain in force. `total_limits` additionally bounds the combined
+payload and metadata across all visits; the formal constructor always supplies it
+and subtracts the separate returned usages once before subsequent preparation.
+Scalar and empty values still generate metadata, including for unused operations.
+The number of values constructions is separately capped. These are bounded preparation scopes, not a heap ceiling
 or an implicit claim of backend compatibility or complete Program identity.
 
 ## Registry and backend capability

@@ -593,6 +593,8 @@ pub fn operation_resolution_requirements(ProgramOperationResolutionIndex) -> Pro
 
 pub fn operation_resolution_unresolved_count(ProgramOperationResolutionIndex) -> Int
 
+pub fn operation_resolution_values_metadata_usage(ProgramOperationResolutionIndex) -> (Int, Int)
+
 pub fn operation_resolution_values_usage(ProgramOperationResolutionIndex) -> (Int, Int)
 
 pub fn operation_resolution_work(ProgramOperationResolutionIndex) -> Int
@@ -801,7 +803,7 @@ pub fn regex_pattern_usage(RegexPatternChecks) -> RegexPatternUsage
 
 pub fn resolve_program_operations(ProgramSourceIdentity, OperationResolutionLimits, text_rank? : @check_environment.SelectedTextRankProfile?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[ProgramOperationResolutionIndex, ProgramOperationResolutionIssue]
 
-pub fn resolve_program_values_resources(ProgramOperationResolutionIndex, ValuesPublicationLimits) -> Result[ProgramOperationResolutionIndex, ValuesPublicationIssue]
+pub fn resolve_program_values_resources(ProgramOperationResolutionIndex, ValuesPublicationLimits, total_limits? : @capacity_witness.Limits?) -> Result[ProgramOperationResolutionIndex, ValuesPublicationIssue]
 
 pub fn resolve_values_row_limit(ValuesWireLimit, @capacity_witness.LimitLimits) -> Result[ValuesRowLimit, ValuesRowLimitIssue]
 

@@ -56,19 +56,27 @@ fn prepare_owned_closure(
     Err(e) => raise Operations(e)
   }
   let values_resolutions = match
-    @context.resolve_program_values_resources(initial_resolutions, {
-      max_work: ceiling,
-      max_values: ceiling - prefix,
-      max_payload_bytes: budget.bytes,
-      max_payload_nodes: budget.nodes,
-      max_depth: budget.depth,
-      metadata: {
+    @context.resolve_program_values_resources(
+      initial_resolutions,
+      {
+        max_work: ceiling,
+        max_values: ceiling - prefix,
+        max_payload_bytes: budget.bytes,
+        max_payload_nodes: budget.nodes,
+        max_depth: budget.depth,
+        metadata: {
+          max_bytes: budget.bytes,
+          max_nodes: budget.nodes,
+          max_depth: budget.depth,
+          max_candidates: 2,
+        },
+      },
+      total_limits=Some({
         max_bytes: budget.bytes,
         max_nodes: budget.nodes,
         max_depth: budget.depth,
-        max_candidates: 2,
-      },
-    }) {
+      }),
+    ) {
     Ok(v) => v
     Err(e) => raise Values(e)
   }
@@ -211,6 +219,11 @@ fn prepare_owned_closure(
   let (values_bytes, values_nodes) = @context.operation_resolution_values_usage(
     resolutions,
   )
+  let (metadata_bytes, metadata_nodes) = @context.operation_resolution_values_metadata_usage(
+    resolutions,
+  )
+  let values_bytes = values_bytes + metadata_bytes
+  let values_nodes = values_nodes + metadata_nodes
   let incoming = match
     @context.collect_program_incoming(identity, {
       max_work: prefix + (ceiling - resolution_work),

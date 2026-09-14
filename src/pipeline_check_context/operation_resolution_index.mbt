@@ -40,6 +40,8 @@ struct ProgramOperationResolutionIndex {
   work : Int
   values_bytes : Int
   values_nodes : Int
+  values_metadata_bytes : Int
+  values_metadata_nodes : Int
 }
 
 ///|
@@ -371,6 +373,8 @@ pub fn index_program_operation_resolutions(
     work,
     values_bytes: 0,
     values_nodes: 0,
+    values_metadata_bytes: 0,
+    values_metadata_nodes: 0,
   })
 }
 
@@ -421,4 +425,13 @@ pub fn operation_resolution_values_usage(
   v : ProgramOperationResolutionIndex,
 ) -> (Int, Int) {
   (v.values_bytes, v.values_nodes)
+}
+
+///|
+/// Complete generated metadata artifacts, separate from values payload passes.
+/// Their nodes are already included in operation_resolution_work.
+pub fn operation_resolution_values_metadata_usage(
+  v : ProgramOperationResolutionIndex,
+) -> (Int, Int) {
+  (v.values_metadata_bytes, v.values_metadata_nodes)
 }

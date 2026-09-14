@@ -26,6 +26,15 @@ pub fn resolve_values_row_limit(
   wire : ValuesWireLimit,
   limits : @wire.LimitLimits,
 ) -> Result[ValuesRowLimit, ValuesRowLimitIssue] {
+  resolve_values_row_limit_metered(wire, limits, None)
+}
+
+///|
+fn resolve_values_row_limit_metered(
+  wire : ValuesWireLimit,
+  limits : @wire.LimitLimits,
+  meter : ValuesMetadataBudget?,
+) -> Result[ValuesRowLimit, ValuesRowLimitIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
@@ -65,6 +74,15 @@ pub fn resolve_values_row_limit(
     }
   }
   try {
+    reserve_values_metadata(meter, limits, out => {
+      emit_values_measurement_proof(
+        subject,
+        count,
+        out,
+        law="actql.bound.values",
+        unit="rows",
+      )
+    })
     let hash = writer(true)
     emit_values_measurement_proof(
       subject,
@@ -83,6 +101,17 @@ pub fn resolve_values_row_limit(
       unit="rows",
     )
     let proof_bytes = @wire_utf8.encode(@encode.finish(out))
+    reserve_values_metadata(meter, limits, out => {
+      emit_values_measurement_witness(
+        subject,
+        count,
+        proof_cid,
+        Some(values_metadata_cid),
+        out,
+        law="actql.bound.values",
+        unit="rows",
+      )
+    })
     let hash = writer(true)
     emit_values_measurement_witness(
       subject,
@@ -119,13 +148,14 @@ pub fn resolve_values_row_limit(
     }
     let host = match
       @host.create(ceiling, {
-        max_bytes: limits.max_bytes,
-        max_nodes: limits.max_nodes,
+        max_bytes: values_metadata_bytes(meter, limits),
+        max_nodes: values_metadata_nodes(meter, limits),
         max_depth: limits.max_depth,
       }) {
       Ok(v) => v
       Err(e) => return Err(Host(e))
     }
+    reserve_values_metadata(meter, limits, out => @host.emit(host, out))
     let out = writer(false)
     @host.emit(host, out)
     let host_wire = match
@@ -189,6 +219,9 @@ pub fn resolve_values_row_limit(
       @encode.string_value(out, "actql-resolved-limit/0.1")
       @encode.end_object(out)
     }
+    reserve_values_metadata(meter, limits, out => {
+      emit_limit(Some(values_metadata_cid), out)
+    })
     let hash = writer(true)
     emit_limit(None, hash)
     let cid = "sha256:" + @encode.finish_hash(hash)

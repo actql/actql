@@ -59,6 +59,15 @@ pub fn create_values_wire_limit(
   bound : ValuesWireBound,
   limits : @wire.LimitLimits,
 ) -> Result[ValuesWireLimit, ValuesWireLimitIssue] {
+  create_values_wire_limit_metered(bound, limits, None)
+}
+
+///|
+fn create_values_wire_limit_metered(
+  bound : ValuesWireBound,
+  limits : @wire.LimitLimits,
+  meter : ValuesMetadataBudget?,
+) -> Result[ValuesWireLimit, ValuesWireLimitIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
@@ -81,6 +90,9 @@ pub fn create_values_wire_limit(
     Err(e) => return Err(Arithmetic(e))
   }
   try {
+    reserve_values_metadata(meter, limits, out => {
+      emit_values_wire_limit(bound, subject, Some(values_metadata_cid), out)
+    })
     let hash = @encode.hashing_writer(
       limits.max_bytes,
       limits.max_nodes,
