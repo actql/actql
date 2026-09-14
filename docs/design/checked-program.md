@@ -647,6 +647,14 @@ empty selected subgraph does not discard their policies. The checked operation
 retains selector ownership while graph induction, membership, materialization
 resources and observation-scope preservation remain execution requirements.
 
+Graph equality, difference, Delta application and structural combinations retain
+both operand policies even when only one operand supplies retained output records.
+List union retains every ordered input occurrence, including repetitions, while
+shared producers are visited once. Structural strategies, canonical Delta tags
+and generated identity fields do not add authored data values. Policy transfer
+retains exact checked-operation ownership and does not discharge comparison,
+Delta compatibility, merge, endpoint or resource enforcement requirements.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
