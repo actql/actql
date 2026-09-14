@@ -38,6 +38,36 @@ pub fn pivot_index(value : CheckedPivot) -> Array[KeyField] {
 }
 
 ///|
+pub fn pivot_index_count(value : CheckedPivot) -> Int {
+  value.index.length()
+}
+
+///|
+pub fn pivot_index_at(value : CheckedPivot, index : Int) -> KeyField? {
+  value.index.get(index)
+}
+
+///|
+pub fn pivot_value_count(value : CheckedPivot) -> Int {
+  value.values.length()
+}
+
+///|
+pub fn pivot_value_at(value : CheckedPivot, index : Int) -> String? {
+  value.values.get(index)
+}
+
+///|
+pub fn pivot_column_count(value : CheckedPivot) -> Int {
+  value.columns.length()
+}
+
+///|
+pub fn pivot_column_at(value : CheckedPivot, index : Int) -> String? {
+  value.columns.get(index)
+}
+
+///|
 pub fn pivot_column(value : CheckedPivot) -> KeyField {
   value.column
 }

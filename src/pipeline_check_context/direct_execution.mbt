@@ -24,6 +24,10 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
+  match pivot_execution_check(site) {
+    Ok(None) => ()
+    other => return other
+  }
   match nest_execution_check(site) {
     Ok(None) => ()
     other => return other

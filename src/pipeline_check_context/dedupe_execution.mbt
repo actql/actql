@@ -63,6 +63,7 @@ pub(all) enum OperationExecutionCheck {
   LagExecution(LagExecutionCheck)
   TopKExecution(TopKExecutionCheck)
   GroupExecution(GroupExecutionCheck)
+  PivotExecution(PivotExecutionCheck)
   RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)
@@ -353,6 +354,7 @@ pub fn operation_execution_phase(
     LagExecution(_) => BeforeOperationOutput
     TopKExecution(_) => BeforeOperationOutput
     GroupExecution(_) => BeforeOperationOutput
+    PivotExecution(_) => BeforeOperationOutput
     RowAssertion(_) => BeforeOperationOutput
     DedupeTopTie(_) => BeforeOperationOutput
     ValuesPublication(_) => BeforeOperationOutput
@@ -442,6 +444,7 @@ pub fn operation_execution_failure(
     LagExecution(_) => RejectOperationOutput
     TopKExecution(_) => RejectOperationOutput
     GroupExecution(_) => RejectOperationOutput
+    PivotExecution(_) => RejectOperationOutput
     RowAssertion(_) => RejectOperationOutput
     DedupeTopTie(_) => RejectOperationOutput
     ValuesPublication(_) => RejectOperationOutput

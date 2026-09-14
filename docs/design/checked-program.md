@@ -1321,6 +1321,29 @@ key retains uniqueness admission, and a resolved capacity retains its quantity,
 target and enforcement obligation. Neither becomes unconditional proof merely
 because its static arithmetic or CID matches.
 
+### Pivot execution obligations
+
+Pivot partitioning, bucket evaluation and result-contract validation are three
+typed operation-output checks on the same checked pivot and primary input edge.
+They do not synthesize ordinary authored group calls for the generated columns.
+Partitioning retains index occurrence order and duplicates while producing each
+index field once. Null and undeclared column values contribute to no generated
+bucket but still establish their index group. Empty axes preserve the specified
+global-group and first-occurrence cases rather than removing the operation.
+
+Evaluation applies the selected function to non-null bucket values. Count's
+empty result is zero; the other functions produce null for an empty bucket.
+Fill is applied only to null and remains validated even with no generated
+columns. Result validation uses the exact retained result contract, including
+decimal precision/scale and the fill-adjusted nullability, before consumers.
+These checks preserve failure atomicity and do not claim successful evaluation.
+
+Indexed readers retain the authored values sequence separately from canonical
+generated-column order and avoid copying either axis before preparation limits
+are checked. First's input-order proof, bound fills and binary64 sum/avg numeric
+observations remain separate owned resolutions. Binding these three execution
+rules cannot close an unresolved numeric capture or establish stable order.
+
 ### Nested child arrays
 
 `NestExecutionCheck` retains the exact parent and child targets, checked payload

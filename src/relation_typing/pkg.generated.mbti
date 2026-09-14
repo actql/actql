@@ -143,6 +143,10 @@ pub fn pivot(CheckedOperation) -> CheckedPivot?
 
 pub fn pivot_column(CheckedPivot) -> KeyField
 
+pub fn pivot_column_at(CheckedPivot, Int) -> String?
+
+pub fn pivot_column_count(CheckedPivot) -> Int
+
 pub fn pivot_columns(CheckedPivot) -> Array[String]
 
 pub fn pivot_fill(CheckedPivot) -> PivotFill?
@@ -151,11 +155,19 @@ pub fn pivot_function(CheckedPivot) -> AggregateFunction
 
 pub fn pivot_index(CheckedPivot) -> Array[KeyField]
 
+pub fn pivot_index_at(CheckedPivot, Int) -> KeyField?
+
+pub fn pivot_index_count(CheckedPivot) -> Int
+
 pub fn pivot_result(CheckedPivot) -> @value_contract.Contract
 
 pub fn pivot_uses_first_occurrence(CheckedOperation) -> Bool
 
 pub fn pivot_value(CheckedPivot) -> KeyField
+
+pub fn pivot_value_at(CheckedPivot, Int) -> String?
+
+pub fn pivot_value_count(CheckedPivot) -> Int
 
 pub fn pivot_values(CheckedPivot) -> Array[String]
 

@@ -22,9 +22,36 @@ test "pivot keeps source value order separate from canonical generated columns" 
   assert_eq(@relation_typing.pivot_values(p), ["z", "a", "😀", "\u{e000}"])
   assert_eq(@relation_typing.pivot_columns(p), ["a", "z", "😀", "\u{e000}"])
   assert_eq(@relation_typing.pivot_index(p).length(), 2)
+  assert_eq(@relation_typing.pivot_index_count(p), 2)
+  assert_true(
+    physical_equal(
+      @relation_typing.pivot_index_at(p, 0).unwrap(),
+      @relation_typing.pivot_index_at(p, 0).unwrap(),
+    ),
+  )
+  assert_eq(
+    @relation_typing.pivot_index_at(p, 0).unwrap().field,
+    @relation_typing.pivot_index_at(p, 1).unwrap().field,
+  )
+  for invalid in [-1, 2147483647] {
+    assert_true(@relation_typing.pivot_index_at(p, invalid) is None)
+    assert_eq(@relation_typing.pivot_value_at(p, invalid), None)
+    assert_eq(@relation_typing.pivot_column_at(p, invalid), None)
+  }
+  for i in 0..<@relation_typing.pivot_value_count(p) {
+    assert_eq(
+      @relation_typing.pivot_value_at(p, i),
+      Some(@relation_typing.pivot_values(p)[i]),
+    )
+    assert_eq(
+      @relation_typing.pivot_column_at(p, i),
+      Some(@relation_typing.pivot_columns(p)[i]),
+    )
+  }
   let columns = @relation_typing.pivot_columns(p)
   columns.clear()
   assert_eq(@relation_typing.pivot_columns(p).length(), 4)
+  assert_eq(@relation_typing.pivot_column_count(p), 4)
   assert_eq(@schema.field_count(@relation_typing.output_schema(v)), 5)
   assert_true(field(output_row(v), "a").nullable)
   assert_true(

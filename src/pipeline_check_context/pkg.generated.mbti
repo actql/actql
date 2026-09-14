@@ -2332,6 +2332,7 @@ pub(all) enum OperationExecutionCheck {
   LagExecution(LagExecutionCheck)
   TopKExecution(TopKExecutionCheck)
   GroupExecution(GroupExecutionCheck)
+  PivotExecution(PivotExecutionCheck)
   RowAssertion(RowAssertionCheck)
   DedupeTopTie(DedupeTopTieCheck)
   ValuesPublication(ValuesPublicationCheck)
@@ -2592,6 +2593,21 @@ pub(all) struct PatternUsage {
 } derive(Eq, @debug.Debug)
 
 type PipelineContext
+
+pub struct PivotExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @relation_typing.CheckedOperation
+  pivot : @relation_typing.CheckedPivot
+  rule : PivotExecutionRule
+}
+
+pub enum PivotExecutionRule {
+  PartitionPivot
+  EvaluatePivot
+  ValidatePivotResult
+}
 
 pub struct PoolCheck {
   site : OperationRequirementSite

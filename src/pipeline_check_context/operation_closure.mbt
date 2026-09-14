@@ -107,6 +107,7 @@ pub fn close_program_operations(
           LagExecution(v) => v.site
           TopKExecution(v) => v.site
           GroupExecution(v) => v.site
+          PivotExecution(v) => v.site
           RowAssertion(v) => v.site
           DedupeTopTie(v) => v.site
           ValuesPublication(v) => v.site
