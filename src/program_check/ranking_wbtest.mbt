@@ -1,4 +1,41 @@
 ///|
+test "formal score fusion cannot authenticate computed scores from authored options" {
+  for policy in ["\"max\"", "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"] {
+    for empty in [false, true] {
+      let programs : Array[CheckedProgram] = []
+      let rejected = try {
+        ignore(
+          local_construction_fixture(
+            { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+            through_check=true,
+            checked_results=programs,
+            veca=true,
+            generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
+            producer_suffix=",{\"merge_rankings\":{\"with\":\"derived\",\"by\":[],\"candidate\":\"id\",\"score\":\"value\",\"score_policy\":" +
+              policy +
+              ",\"score_contract\":{\"domain\":\"relevance\",\"normalization\":\"normalized\",\"range\":[0,10]},\"k\":2}},{\"select\":[\"id\",{\"value\":\"score\"}],\"as\":\"projected\"}",
+            producer_result_from="projected",
+            extra_step_budget=2,
+          ),
+        )
+        false
+      } catch {
+        Source(
+          SourceView(
+            Program(
+              Program(Pipeline(0, { kind: Vector(MissingScoreContract), .. }))
+            )
+          )
+        ) => true
+        error => raise error
+      }
+      assert_true(rejected)
+      assert_eq(programs.length(), 0)
+    }
+  }
+}
+
+///|
 test "formal RRF retains producer checks repeated inputs and static score envelopes across imports" {
   for empty in [false, true] {
     for
