@@ -849,6 +849,18 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Nearest(..) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            // The authored per-query k is a value, not a policy attestation.
+            // Both candidate and query edges remain contributing occurrences.
+            unknown = true
+            2
+          }
           @pipeline.AsOfJoin(..) => {
             identity_charge(budget, 1)
             temporal_joins.push({

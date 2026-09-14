@@ -33,6 +33,8 @@ fn checked_direct_program_fixture(
   sequence_body? : String = "",
   sequence_events? : Bool = false,
   vector_steps? : String = "",
+  vector_projection? : Bool = true,
+  vector_step_limit? : Int = 8,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -47,7 +49,7 @@ fn checked_direct_program_fixture(
         old="\"steps\":[",
         new="\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}},\"rows\":[{\"id\":1,\"embedding\":[1,2]}]},\"as\":\"embeddings\"},{\"from\":\"remote\",\"join\":{\"with\":\"embeddings\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{\"id\":\"left.id\",\"embedding\":\"right.embedding\"}}}," +
           vector_steps +
-          ",{\"vectors\":true},",
+          (if vector_projection { ",{\"vectors\":true}," } else { "," }),
       )
       if vector_steps.contains("$param") {
         vector_text.replace(
@@ -443,7 +445,7 @@ fn checked_direct_program_fixture(
     },
     source_limits_fixture(
       if vector_steps != "" {
-        8
+        vector_step_limit
       } else if temporal_step != "" || window_steps != "" || sequence_body != "" {
         6
       } else if join_kind != "" ||

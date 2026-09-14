@@ -589,6 +589,15 @@ global uniqueness, member ordering, quantization, fold arithmetic, counts and
 resource obligations remain attached to that same operation; policy transfer
 does not establish any of them.
 
+Nearest publication retains candidate and query input occurrences separately,
+including when both name one producer. Both sides contribute policy even if
+the published projection hides one identity or a side has no matching rows.
+The Carrier-step reader retains the exact checked nearest operation, while the
+edge reader preserves its two roles and targets. The authored per-query k lacks
+an implicit policy attestation. Input admission, dimensional compatibility,
+exact scoring, rank assignment and selected resources remain owned requirements,
+not consequences of the output count or policy transfer.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
