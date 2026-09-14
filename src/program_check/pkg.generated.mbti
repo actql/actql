@@ -237,6 +237,10 @@ pub fn publication_policy_analytic_at(PublicationSourcePolicy, Int) -> Publicati
 
 pub fn publication_policy_analytic_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_carrier_step_at(PublicationSourcePolicy, Int) -> PublicationPolicyCarrierStep?
+
+pub fn publication_policy_carrier_step_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_classification(PublicationSourcePolicy) -> @check_environment.DataClassification
 
 pub fn publication_policy_copy_at(PublicationSourcePolicy, Int) -> PublicationPolicyCopies?
@@ -696,6 +700,12 @@ pub struct PublicationPolicyAnalytic {
   step : Int
   operation : @relation_typing.CheckedOperation
   analytic : @relation_typing.CheckedAnalytic
+  unknown_provenance : Bool
+}
+
+pub struct PublicationPolicyCarrierStep {
+  step : Int
+  operation : @pipeline_typing.CheckedOperation
   unknown_provenance : Bool
 }
 

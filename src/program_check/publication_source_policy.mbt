@@ -28,6 +28,29 @@ pub struct PublicationSourcePolicy {
   priv watermarks : Array[PublicationPolicyWatermark]
   priv nests : Array[PublicationPolicyNest]
   priv temporal_joins : Array[PublicationPolicyTemporalJoin]
+  priv carrier_steps : Array[PublicationPolicyCarrierStep]
+}
+
+///|
+pub struct PublicationPolicyCarrierStep {
+  step : Int
+  operation : @pipeline.CheckedOperation
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_carrier_step_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.carrier_steps.length()
+}
+
+///|
+pub fn publication_policy_carrier_step_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyCarrierStep? {
+  value.carrier_steps.get(index)
 }
 
 ///|
@@ -503,6 +526,7 @@ fn prepare_publication_source_policy(
   let watermarks : Array[PublicationPolicyWatermark] = []
   let nests : Array[PublicationPolicyNest] = []
   let temporal_joins : Array[PublicationPolicyTemporalJoin] = []
+  let carrier_steps : Array[PublicationPolicyCarrierStep] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -745,6 +769,29 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             2
           }
+          @pipeline.Event(operation) => {
+            identity_charge(budget, 1)
+            let missing = match @event.options(operation) {
+              ToEvents | Dedupe(_) => false
+              Watermark(_, _) | Session(_) => true
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            1
+          }
+          @pipeline.Projection(_) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: false,
+            })
+            1
+          }
           @pipeline.IntervalJoin(checked=operation, ..) => {
             identity_charge(budget, 1)
             let missing = @join.interval_output_guard(operation) is Some(_)
@@ -933,6 +980,7 @@ fn prepare_publication_source_policy(
     watermarks,
     nests,
     temporal_joins,
+    carrier_steps,
   }
   |> Some
 }

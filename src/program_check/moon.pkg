@@ -8,6 +8,7 @@ formatter(
 )
 
 import {
+  "actql/actql/event_typing" @event,
   "actql/actql/relation_join" @join,
   "actql/actql/relation_nest" @nest,
   "actql/actql/capacity_sequence_limit" @sequence,

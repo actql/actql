@@ -28,6 +28,7 @@ fn checked_direct_program_fixture(
   watermark_body? : String = "",
   nest_guard? : String? = None,
   temporal_step? : String = "",
+  event_kind? : String = "",
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -37,7 +38,25 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if temporal_step != "" {
+    if event_kind != "" {
+      let middle = match event_kind {
+        "bridge" => ""
+        "mark" | "drop" =>
+          "{\"watermark_events\":{\"watermark_ms\":10,\"policy\":\"" +
+          event_kind +
+          "\"}},"
+        "dedupe" =>
+          "{\"dedupe_events\":{\"by\":[\"id\",\"id\"],\"order_by\":[{\"extra\":\"asc\"}]}},"
+        "session" => "{\"session\":{\"by\":[],\"gap\":1}},"
+        _ => abort("unknown Event fixture")
+      }
+      text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"to_events\":{\"id\":\"id\",\"time\":\"extra\"}}," +
+          middle +
+          "{\"events\":true},",
+      )
+    } else if temporal_step != "" {
       text
       .replace(
         old="\"inputs\":{\"remote\":",
@@ -360,7 +379,7 @@ fn checked_direct_program_fixture(
     {
       rela: true,
       sga: false,
-      tea: temporal_step != "",
+      tea: temporal_step != "" || event_kind != "",
       calendar: false,
       text_rank: false,
     },
@@ -378,7 +397,8 @@ fn checked_direct_program_fixture(
         top_k_step != "" ||
         watermark_body != "" ||
         nest_guard is Some(_) ||
-        temporal_step != "" {
+        temporal_step != "" ||
+        event_kind != "" {
         4
       } else {
         2

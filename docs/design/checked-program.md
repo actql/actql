@@ -549,6 +549,15 @@ references inherit input provenance. Search-product proofs, selected output limi
 matching validation and as-of tie resolution remain separate required checks;
 an acquisition resource ceiling is not substituted for a search operand proof.
 
+Events conversion and explicit Carrier-to-Relation projection retain input policy
+through the exact checked operations. Event deduplication keeps its input's value
+provenance, while watermark thresholds and session gaps without value attestations
+retain unknown provenance. The indexed Carrier-step reader exposes the retained
+operations instead of reconstructing role contracts or projection schemas.
+Event admission, ID uniqueness, clock conversion, resource envelopes and session
+checks remain separate obligations on those same owned operations. Projection
+does not create missing field evidence or authorize backend execution.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
