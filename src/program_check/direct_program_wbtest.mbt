@@ -17,6 +17,8 @@ fn checked_direct_program_fixture(
   derive_body? : String = "",
   assertion_body? : String = "",
   group_body? : String = "",
+  pivot_body? : String = "",
+  numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
     #|{"version":"actql/0.1","id":"direct","stages":[{"id":"s","inputs":{"remote":{"connector":"crm/main","resource":"r","request":{"id":1,"tenant":null}}},"steps":[{"distinct":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
@@ -96,6 +98,21 @@ fn checked_direct_program_fixture(
         old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
         new="},{\"id\":\"consumer\",\"inputs\":{\"imported\":{\"result\":{\"stage\":\"s\",\"result\":\"out\"}}},\"steps\":[],\"results\":{\"out\":{\"from\":\"imported\",\"fields\":[\"id\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}}",
       )
+    } else if pivot_body != "" {
+      let pivoted = text.replace(
+        old="\"steps\":[",
+        new="\"steps\":[{\"derive\":{\"category\":\"to_string(id)\"}},{\"pivot\":" +
+          pivot_body +
+          "},",
+      )
+      if pivot_body.contains("\"$param\":\"threshold\"") {
+        pivoted.replace(
+          old="\"stages\":",
+          new="\"params\":{\"threshold\":{\"type\":\"number\",\"default\":0}},\"stages\":",
+        )
+      } else {
+        pivoted
+      }
     } else if group_body != "" {
       text.replace(
         old="\"steps\":[",
@@ -223,7 +240,7 @@ fn checked_direct_program_fixture(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     source_limits_fixture(
-      if join_kind != "" || mix_generated || mix_local {
+      if join_kind != "" || mix_generated || mix_local || pivot_body != "" {
         4
       } else {
         2
@@ -233,6 +250,7 @@ fn checked_direct_program_fixture(
     max_bytes=10000000,
     max_nodes=1000000,
     max_depth=100,
+    numeric_profile~,
   )
 }
 

@@ -6218,6 +6218,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/external-joins.pivot-policy-provenance",
+      "statement_sha256": "212b85597e401def140c4c44029d993422353d9bf51fe20af36ee48e3ddcbad4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "external-joins",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must",
       "statement_sha256": "4c65cc88d1d002e62e35baa9da6255da4086ca939ac28cc78de0e2acafd44d1a",
       "status": "pending",

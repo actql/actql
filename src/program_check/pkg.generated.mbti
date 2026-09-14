@@ -263,6 +263,10 @@ pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipel
 
 pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
 
+pub fn publication_policy_pivot_at(PublicationSourcePolicy, Int) -> PublicationPolicyPivot?
+
+pub fn publication_policy_pivot_count(PublicationSourcePolicy) -> Int
+
 pub fn publication_policy_predicate_at(PublicationSourcePolicy, Int) -> PublicationPolicyPredicate?
 
 pub fn publication_policy_predicate_count(PublicationSourcePolicy) -> Int
@@ -683,6 +687,13 @@ pub struct PublicationPolicyGroup {
 pub struct PublicationPolicyImport {
   input : Int
   publication : PublicationExecution
+}
+
+pub struct PublicationPolicyPivot {
+  step : Int
+  operation : @relation_typing.CheckedOperation
+  pivot : @relation_typing.CheckedPivot
+  unknown_provenance : Bool
 }
 
 pub struct PublicationPolicyPredicate {

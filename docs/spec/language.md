@@ -7151,6 +7151,19 @@ Schema admission checks shape; reference authority, exact contribution selection
 array ordering, response-to-source correspondence and classification calculation
 require semantic verification before the policy can be used.
 
+<!-- requirement-block: external-joins.pivot-policy-provenance -->
+Static publication policy analysis for `pivot` MUST retain its input policy
+provenance, the exact authored bucket-value sequence and any authored fill with
+their value provenance. Bucket strings are comparison values as well as generated
+column names; their role is different from index-field references or the aggregate
+function's name. Missing admitted provenance for bucket or fill values remains
+unknown, without discarding known input-policy references. An empty bucket list
+does not invent a contributing selector, but it does not waive an authored fill's
+validation or provenance. Null or undeclared input column values still contribute
+index groups, so their input policy is not removed merely because they contribute
+to no generated bucket. This fixes pivot's static contribution boundary; it does
+not grant publication or egress authority or change the effective-policy preimage.
+
 <!-- requirement-block: external-joins.when-the-sourceview-contract-admits-response-projection-the-compiler-must -->
 When the SourceView contract admits response projection, the compiler MUST bind
 the observed response field set as the union of right-side fields published by

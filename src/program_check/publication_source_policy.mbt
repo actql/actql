@@ -18,6 +18,28 @@ pub struct PublicationSourcePolicy {
   priv copies : Array[PublicationPolicyCopies]
   priv derivations : Array[PublicationPolicyDerivation]
   priv groups : Array[PublicationPolicyGroup]
+  priv pivots : Array[PublicationPolicyPivot]
+}
+
+///|
+pub struct PublicationPolicyPivot {
+  step : Int
+  operation : @relation.CheckedOperation
+  pivot : @relation.CheckedPivot
+  unknown_provenance : Bool
+}
+
+///|
+pub fn publication_policy_pivot_count(value : PublicationSourcePolicy) -> Int {
+  value.pivots.length()
+}
+
+///|
+pub fn publication_policy_pivot_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyPivot? {
+  value.pivots.get(index)
 }
 
 ///|
@@ -253,6 +275,7 @@ fn prepare_publication_source_policy(
   let copies : Array[PublicationPolicyCopies] = []
   let derivations : Array[PublicationPolicyDerivation] = []
   let groups : Array[PublicationPolicyGroup] = []
+  let pivots : Array[PublicationPolicyPivot] = []
   let mut unknown = false
   while pending.pop() is Some(target) {
     identity_charge(budget, 1)
@@ -273,6 +296,24 @@ fn prepare_publication_source_policy(
           @pipeline.Unary(operation) => {
             match @relation.operation(operation) {
               Select | Rename | Drop | Sort | Distinct | DedupeRows => ()
+              Pivot => {
+                guard @relation.pivot(operation) is Some(pivot) else {
+                  raise ForeignOwner
+                }
+                // Declared bucket values are data comparisons as well as output
+                // names. Authorship and typed fill admission are not policy
+                // attestations. Retain their exact owner without copying axes.
+                let missing = @relation.pivot_value_count(pivot) > 0 ||
+                  @relation.pivot_fill(pivot) is Some(_)
+                identity_charge(budget, 1)
+                pivots.push({
+                  step: index,
+                  operation,
+                  pivot,
+                  unknown_provenance: missing,
+                })
+                unknown = unknown || missing
+              }
               Group => {
                 guard @relation.group(operation) is Some(group) else {
                   raise ForeignOwner
@@ -536,6 +577,7 @@ fn prepare_publication_source_policy(
     copies,
     derivations,
     groups,
+    pivots,
   }
   |> Some
 }

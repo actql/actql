@@ -471,6 +471,15 @@ values. This transfer does not resolve or strengthen order, infer a capacity
 bound, or grant publication permission: the existing operation/order/capacity
 closures must still succeed. Both control positions consume preparation work.
 
+Pivot transfer keeps an indexed `PublicationPolicyPivot` with the exact checked
+operation and pivot. Its input policy remains present because even unmatched
+or null column values can establish index groups. Authored bucket comparisons
+and fill retain unknown provenance when they lack a policy attestation; an empty
+bucket sequence adds no selector contribution, but authored fill is still retained.
+The ordered values, canonical generated columns and fill are read from the owned
+pivot without copying or rescanning them during policy preparation. This policy
+transfer does not discharge reduction, stable-order or numeric capture checks.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.
