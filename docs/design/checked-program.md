@@ -677,6 +677,15 @@ do. Shortest-path retains its explicit hop bound and both endpoint predicates.
 Search/output limit ownership, path selection and atomic failure requirements
 remain independent of this policy transfer.
 
+Time and calendar series retain generator ownership with no implicit current
+input; their range and step values contribute unproven value provenance.
+Calendar bucketing retains its Relation input and checked calendar interpretation
+without treating the pinned timezone/unit vocabulary as new business data.
+Selected calendar artifacts and runtime boundary/resource checks remain owned by
+the corresponding operation. Combining generated rows with a SourceView retains
+both dependencies, including empty generated ranges. The policy operation match
+is exhaustive so a new checked operation cannot silently become unsupported.
+
 Result imports retain the producer's completed publication through
 `publication_policy_import_count/at`, including the consumer input coordinate.
 `imported_publication` is a convenience only for exactly one import.

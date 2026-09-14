@@ -42,6 +42,8 @@ fn checked_direct_program_fixture(
   graph_resources? : Bool = true,
   graph_components? : Bool = false,
   graph_traversal? : String = "",
+  series_steps? : String = "",
+  calendar_series? : Bool = false,
   numeric_profile? : @numeric.Profile? = None,
 ) -> CheckedProgram raise {
   let original_text =
@@ -51,7 +53,9 @@ fn checked_direct_program_fixture(
     new="\"" + input_name + "\"",
   )
   let program = @syntax.parse(
-    if graph_steps != "" {
+    if series_steps != "" {
+      text.replace(old="\"steps\":[", new="\"steps\":[" + series_steps + ",")
+    } else if graph_steps != "" {
       let graph_text = text.replace(
         old="\"steps\":[",
         new="\"steps\":[" + graph_steps + ",",
@@ -379,6 +383,7 @@ fn checked_direct_program_fixture(
       graph_steps != "",
     text_rank=lexical_steps != "",
     graph=graph_steps != "" && graph_resources,
+    calendar=calendar_series,
   )
   let lexical = if lexical_steps != "" && lexical_material {
     Some(
@@ -497,20 +502,24 @@ fn checked_direct_program_fixture(
       rela: true,
       sga: graph_steps != "",
       tea: temporal_step != "" ||
+      series_steps != "" ||
       event_kind != "" ||
       window_steps != "" ||
       sequence_body != "",
-      calendar: false,
+      calendar: calendar_series,
       text_rank: lexical_steps != "",
     },
     source_limits_fixture(
-      if vector_steps != "" {
+      if series_steps != "" {
+        7
+      } else if vector_steps != "" {
         vector_step_limit
       } else if temporal_step != "" ||
         window_steps != "" ||
         sequence_body != "" ||
         lexical_steps != "" ||
-        graph_steps != "" {
+        graph_steps != "" ||
+        series_steps != "" {
         6
       } else if join_kind != "" ||
         mix_generated ||
@@ -537,6 +546,11 @@ fn checked_direct_program_fixture(
     max_depth=100,
     numeric_profile~,
     text_rank=lexical,
+    calendar=if calendar_series {
+      Some(calendar_policy_fixture(environment))
+    } else {
+      None
+    },
   )
 }
 

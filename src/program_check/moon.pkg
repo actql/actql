@@ -8,6 +8,7 @@ formatter(
 )
 
 import {
+  "actql/actql/calendar_typing" @calendar,
   "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
   "actql/actql/event_typing" @event,

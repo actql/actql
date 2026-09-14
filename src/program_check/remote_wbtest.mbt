@@ -98,6 +98,7 @@ fn remote_environment_fixture(
   nest? : Bool = false,
   text_rank? : Bool = false,
   graph? : Bool = false,
+  calendar? : Bool = false,
 ) -> @environment.WireEnvironment raise {
   let original = keyed_sourceview_environment()
   let writer = @encode.writer(1000000, 100000, 100)
@@ -114,6 +115,14 @@ fn remote_environment_fixture(
         profile[1:profile.length() - 1].to_owned() +
         ",",
     )
+  let body = if calendar {
+    body.replace(
+      old="\"capacity\":",
+      new="\"calendar\":{\"conversion_law\":\"actql-calendar-boundaries/0.1\",\"table_bytes_cid\":\"sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca\",\"tzdb_version\":\"test-fixture\",\"version\":\"actql-calendar-selection/0.1\"},\"capacity\":",
+    )
+  } else {
+    body
+  }
   let body = if text_rank {
     body.replace(
       old="},\"mapping_contracts\":",

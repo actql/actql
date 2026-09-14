@@ -538,11 +538,26 @@ fn prepare_publication_source_policy(
         visited_steps[index] = true
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let expected = match step.operation {
-          @pipeline.Values(_) => {
+          @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
             identity_charge(budget, 1)
             generators.push({ step: index, operation: step.operation, })
             unknown = true
             0
+          }
+          @pipeline.Calendar(operation) => {
+            identity_charge(budget, 1)
+            if @calendar.input(operation) is Some(_) {
+              carrier_steps.push({
+                step: index,
+                operation: step.operation,
+                unknown_provenance: false,
+              })
+              1
+            } else {
+              generators.push({ step: index, operation: step.operation, })
+              unknown = true
+              0
+            }
           }
           @pipeline.Unary(operation) | @pipeline.WindowGroup(operation) => {
             match @relation.operation(operation) {
@@ -1092,7 +1107,6 @@ fn prepare_publication_source_policy(
           | @pipeline.Set(..)
           | @pipeline.Join(..)
           | @pipeline.CrossJoin(..) => 2
-          _ => return None
         }
         guard @pipeline.input_occurrence_count(step) == expected else {
           raise ForeignOwner
