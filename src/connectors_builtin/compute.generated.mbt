@@ -18,8 +18,8 @@ pub fn[E] assemble_compute_contributions(
   )? = None,
   with_reference_compute? : (
     @binding4.NumericComputeContribution,
-    (@binding6.RunIssue) -> E,
-    (@binding6.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
   )? = None,
 ) -> Result[
   @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]],
@@ -96,8 +96,8 @@ struct ConfiguredComputeModules[E] {
   )?
   installed_reference_compute : (
     @binding4.NumericComputeContribution,
-    (@binding6.RunIssue) -> E,
-    (@binding6.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
   )?
   contributions : @connector.CapabilityImplementations[
     @host.ComputeContribution[Unit, E],
@@ -127,8 +127,8 @@ pub fn[E] configure_compute_modules(
   with_reference_compute? : (
     @connector.CapabilityRegistration,
     @binding4.NumericComputeConfiguration,
-    (@binding6.RunIssue) -> E,
-    (@binding6.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
   )? = None,
 ) -> Result[ConfiguredComputeModules[E], E] {
   let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
@@ -229,6 +229,24 @@ pub fn[E] configured_reference_compute_module(
 }
 
 ///|
+/// Composition keys only; not capability IDs, resource bindings or dispatch authority.
+pub fn[E] configured_compute_module_keys(
+  value : ConfiguredComputeModules[E],
+) -> Array[String] {
+  let keys = []
+  if value.installed_duckdb is Some(_) {
+    keys.push("duckdb")
+  }
+  if value.installed_local is Some(_) {
+    keys.push("local")
+  }
+  if value.installed_reference_compute is Some(_) {
+    keys.push("reference_compute")
+  }
+  keys
+}
+
+///|
 pub(all) enum ConfiguredDispatchIssue[E] {
   MissingImplementation
   Implementation(E)
@@ -275,14 +293,11 @@ pub fn[C, E] dispatch_reference_compute(
   value : ConfiguredComputeModules[E],
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
-) -> Result[
-  (@binding5.NumericAttempt, @binding6.TaskExecution),
-  ConfiguredDispatchIssue[E],
-] {
+) -> Result[Unit, ConfiguredDispatchIssue[E]] {
   match value.installed_reference_compute {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding4.start_numeric_contribution(installed, host, task).map_err(issue => {
+      @binding4.execute_numeric_contribution(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
   }

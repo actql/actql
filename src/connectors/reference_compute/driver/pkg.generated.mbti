@@ -15,6 +15,8 @@ pub fn configure_numeric_compute(@physical_host.DispatchDriver, @connector_sdk.C
 
 pub fn estimate_numeric_dispatch_offer(NumericDispatchModule, Int, Int64?, Int) -> Result[@physical_strategy.TaskOffer?, @physical_strategy.RunIssue]
 
+pub fn[C, E] execute_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, @physical_strategy.RunIssue]
+
 pub fn[E] numeric_compute_contribution(NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
 
 pub fn numeric_contribution_registration(NumericComputeContribution) -> @connector_sdk.CapabilityRegistration
@@ -24,10 +26,6 @@ pub fn prepare_numeric_contribution(NumericDispatchModule, Int64?, Int) -> Resul
 pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]
 
 pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
-
-pub fn[C, E] start_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), @physical_strategy.RunIssue]
-
-pub fn[C, E] start_numeric_dispatch(NumericDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), @physical_strategy.RunIssue]
 
 // Errors
 

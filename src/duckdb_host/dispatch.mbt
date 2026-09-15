@@ -261,6 +261,12 @@ pub fn dispatch_run(host : StrategyHostDispatch) -> @strategy.CapturedDAG {
 }
 
 ///|
+/// The actual configured subset, not every implementation present in the build.
+pub fn dispatch_module_keys(host : StrategyHostDispatch) -> Array[String] {
+  @builtin.configured_compute_module_keys(host.modules)
+}
+
+///|
 pub fn stop_strategy_dispatch(host : StrategyHostDispatch) -> Unit {
   @host_driver.stop_dispatch_driver(host.driver)
 }

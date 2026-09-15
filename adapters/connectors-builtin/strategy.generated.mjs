@@ -3,8 +3,14 @@ import {duckdbStrategyContribution as contribution0} from '../duckdb-node/strate
 import {localStrategyContribution as contribution1} from '../local-node/strategy-bundle.mjs';
 
 export function installStrategyContributions(moon, setup, checked, options) {
-  return Object.freeze([
-    contribution0(moon, setup, checked, options),
-    contribution1(moon, setup, checked, options),
+  const factories = new Map([
+    ['duckdb', contribution0],
+    ['local', contribution1],
   ]);
+  const keys = moon.strategyHostModules(setup);
+  if (!Array.isArray(keys) || new Set(keys).size !== keys.length ||
+      keys.some(key => !factories.has(key))) {
+    throw new Error('Configured module has no unique Node implementation');
+  }
+  return Object.freeze(keys.map(key => factories.get(key)(moon, setup, checked, options)));
 }

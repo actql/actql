@@ -3,7 +3,6 @@ package "actql/actql/connectors_builtin"
 
 import {
   "actql/actql/connector_sdk",
-  "actql/actql/connectors/reference_compute",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
@@ -15,6 +14,8 @@ pub fn[E] configure_compute_modules(@physical_host.DispatchDriver, @connector_sd
 
 pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]]
 
+pub fn[E] configured_compute_module_keys(ConfiguredComputeModules[E]) -> Array[String]
+
 pub fn[E] configured_duckdb_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/duckdb/driver.DuckDBDispatchModule?
 
 pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/local/driver.LocalDispatchModule?
@@ -25,7 +26,7 @@ pub fn[C, E] dispatch_duckdb(ConfiguredComputeModules[E], @physical_host.Dispatc
 
 pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
-pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), ConfiguredDispatchIssue[E]]
+pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
 pub fn duckdb_estimate_work_slots() -> Int
 

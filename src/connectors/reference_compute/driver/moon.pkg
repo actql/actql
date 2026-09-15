@@ -1,7 +1,6 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/physical_resources" @resources,
   "actql/actql/connectors/reference_compute" @numeric,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host,

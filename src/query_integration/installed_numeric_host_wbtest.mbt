@@ -58,6 +58,11 @@ test "independent numeric and Local bundles use the same installed Host without 
               ),
             ),
           ).unwrap()
+          assert_eq(@builtin.configured_compute_module_keys(configured), [
+            "reference_compute",
+          ]) catch {
+            _ => abort("configured subset included an absent implementation")
+          }
           let implementation = @builtin.configured_reference_compute_module(
             configured,
           ).unwrap()
@@ -78,24 +83,16 @@ test "independent numeric and Local bundles use the same installed Host without 
             ) catch {
               _ => abort("absent implementation changed ledger")
             }
-            let (attempt, execution) = @builtin.dispatch_reference_compute(
-              configured, host, task,
-            ).unwrap()
             if cancel {
-              @strategy.close_task_execution(run, execution)
-              assert_true(
-                @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
-                0L,
-              ) catch {
-                _ => abort("reservation released before settlement")
-              }
-              @strategy.settle_task_execution(run, execution, true).unwrap()
-              Err(@strategy.RunIssue::Stopped)
-            } else {
-              @reference_compute.execute_numeric_attempt(attempt).unwrap()
-              @strategy.settle_task_execution(run, execution, true).unwrap()
-              @strategy.complete_task_execution(run, execution)
+              // Host cancellation is an input stimulus. Concrete attempt,
+              // settlement and publication are owned by the installed module.
+              // Post-start cancellation order is covered by reference_execution.
+              @host_driver.stop_dispatch_driver(driver)
             }
+            @builtin.dispatch_reference_compute(configured, host, task).map_err(_ => {
+                @strategy.RunIssue::Stopped
+              },
+            )
           }
         }),
       },

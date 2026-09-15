@@ -3,14 +3,20 @@ package "actql/actql/physical_host"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
 
 // Values
+pub fn charge_compute_author_planning(ComputeAuthorContext, Int) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn check_dispatch_idle(DispatchDriver) -> Result[Unit, DispatchIssue]
 
 pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], C, Int, TaskEstimateQuantities, Int, Int) -> Result[Array[@physical_strategy.TaskOffer], InstalledOfferIssue[E]]
+
+pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.GeneratedSequence?
 
 pub fn[C, E] compute_host_dispatch(ComputeHost[C, E]) -> DispatchHost[C, E]
 
@@ -32,6 +38,8 @@ pub fn dispatch_ticket_task(DispatchTicket) -> Int
 
 pub fn dispatch_work_registration(DispatchWork) -> @connector_sdk.CapabilityRegistration
 
+pub fn[C, E, T] execute_compute_author_work(ComputeAuthorContext, DispatchHost[C, E], PreparedTaskDispatch, DispatchChannel[@connector_sdk.PreparedExecution[T, @physical_strategy.RunIssue, @physical_strategy.TaskPublication]], (T) -> Result[Unit, @physical_strategy.RunIssue]) -> Result[Unit, @physical_strategy.RunIssue]
+
 pub fn[E] open_adaptive_dispatch(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[(Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[AdaptiveDispatch[E], AdaptiveEstimateIssue[E]]
 
 pub fn[C, E] open_compute_host(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[ComputeContribution[C, E]], @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ComputeHost[C, E], ComputeHostIssue[E]]
@@ -41,6 +49,8 @@ pub fn[T] open_dispatch_channel(DispatchDriver, @connector_sdk.CapabilityRegistr
 pub fn open_dispatch_driver(@physical_strategy.CapturedDAG) -> DispatchDriver
 
 pub fn[C, E] open_dispatch_host(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]], @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[DispatchHost[C, E], DispatchIssue]
+
+pub fn prepare_compute_author_context(DispatchDriver, Array[@execution_relation.GeneratedSequence]) -> Result[ComputeAuthorContext, @connector_sdk.FixedComputeIssue]
 
 pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[@connector_sdk.FixedComputeRequest, DispatchIssue]
 
@@ -57,6 +67,8 @@ pub fn prepared_task_index(PreparedTaskDispatch) -> Int
 pub fn prepared_task_registration(PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration
 
 pub fn prepared_task_revision(PreparedTaskDispatch) -> @physical_strategy.StrategyRevision
+
+pub fn propose_compute_author_work(ComputeAuthorContext, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn[E] refresh_adaptive_dispatch(AdaptiveDispatch[E]) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
@@ -84,6 +96,8 @@ pub(all) enum AdaptiveEstimateIssue[E] {
   Search(@physical_strategy.SearchIssue)
   Implementation(E)
 }
+
+type ComputeAuthorContext
 
 pub(all) struct ComputeContribution[C, E] {
   exclusions : (Int) -> Array[(Int, String, String)]?

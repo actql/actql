@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import test from 'node:test';
+import './connector-node-bundles.test.mjs';
 
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
+
+test('basic reference author uses checked context and common completion operations', () => {
+  assert.ok(!imports('connectors/reference_compute/driver').includes('physical_resources'));
+  const driver = readFileSync('src/connectors/reference_compute/driver/dispatch.mbt', 'utf8');
+  assert.match(driver, /ComputeAuthorContext/);
+  assert.match(driver, /execute_compute_author_work/);
+  assert.doesNotMatch(driver, /CapturedDAG|TaskExecution|captured_dag_ledger|graph_task_owner|start_captured_execution|settle_task_execution|complete_task_execution/);
+  const integration = readFileSync('src/query_integration/installed_numeric_host_wbtest.mbt', 'utf8');
+  assert.doesNotMatch(integration, /execute_numeric_attempt|settle_task_execution|complete_task_execution/);
+  const api = readFileSync('src/connectors_builtin/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /NumericAttempt|TaskExecution/);
+});
 
 test('standard preparation and proposals project the same fixed Compute contributions', () => {
   const setup = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
@@ -295,6 +308,7 @@ test('common cleanup selects allocations but does not compile physical removal S
 
 test('prepared dispatch ownership has one common state machine and no connector payload', () => {
   assert.deepEqual(imports('physical_host'), [
+    'physical_cost', // neutral work lines for the bounded author context
     'execution_relation', // completed row counts, never provider payloads
     'physical_strategy', 'physical_resources', 'connector_sdk',
     'lowering_relation', 'pipeline_typing',

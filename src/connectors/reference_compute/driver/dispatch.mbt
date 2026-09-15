@@ -7,7 +7,7 @@ priv suberror ReferenceDispatchFailure {
 
 ///|
 struct NumericDispatchModule {
-  run : @strategy.CapturedDAG
+  context : @host.ComputeAuthorContext
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
   channel : @host.DispatchChannel[
@@ -17,7 +17,6 @@ struct NumericDispatchModule {
       @strategy.TaskPublication,
     ],
   ]
-  sequences : Array[@execution.GeneratedSequence]
   limits : @numeric.NumericExecutionLimits
   expressions : @lower.ExpressionLimits
 }
@@ -33,16 +32,9 @@ pub fn prepare_numeric_dispatch_module(
   limits : @numeric.NumericExecutionLimits,
   expressions : @lower.ExpressionLimits,
 ) -> Result[NumericDispatchModule, @numeric.PlanIssue] {
-  let run = @host.dispatch_driver_run(driver)
-  let graph = @strategy.captured_dag_graph(run)
-  if sequences.length() != @strategy.graph_task_count(graph) - 1 {
-    return Err(Unsupported)
-  }
-  for index, sequence in sequences {
-    if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
-      physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
-      return Err(Unsupported)
-    }
+  let context = match @host.prepare_compute_author_context(driver, sequences) {
+    Ok(value) => value
+    Err(_) => return Err(Unsupported)
   }
   match @numeric.numeric_execution_capacity(limits) {
     Ok(_) => ()
@@ -53,15 +45,7 @@ pub fn prepare_numeric_dispatch_module(
     Ok(value) => value
     Err(_) => return Err(Unsupported)
   }
-  Ok({
-    run,
-    registry,
-    registration,
-    channel,
-    sequences: sequences.copy(),
-    limits,
-    expressions,
-  })
+  Ok({ context, registry, registration, channel, limits, expressions, })
 }
 
 ///|
@@ -71,7 +55,7 @@ pub fn prepare_numeric_dispatch(
   revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
 ) -> Result[@host.DispatchWork, @strategy.RunIssue] {
-  guard installed.sequences.get(task - 1) is Some(sequence) else {
+  guard @host.compute_author_sequence(installed.context, task) is Some(sequence) else {
     return Err(numeric_dispatch_issue(Unsupported))
   }
   let candidate = match
@@ -141,14 +125,10 @@ pub fn estimate_numeric_dispatch_offer(
   if max_work < 1 {
     return Err(numeric_dispatch_issue(Limit))
   }
-  guard installed.sequences.get(task - 1) is Some(sequence) else {
+  guard @host.compute_author_sequence(installed.context, task) is Some(sequence) else {
     return Err(numeric_dispatch_issue(Unsupported))
   }
-  match
-    @resources.charge_planning(
-      @strategy.captured_dag_ledger(installed.run),
-      max_work,
-    ) {
+  match @host.charge_compute_author_planning(installed.context, max_work) {
     Ok(_) => ()
     Err(issue) => return Err(@strategy.RunIssue::Physical(issue))
   }
@@ -175,8 +155,8 @@ pub fn estimate_numeric_dispatch_offer(
     Err(issue) => return Err(numeric_dispatch_issue(issue))
   }
   match
-    @strategy.prepare_task_offer(
-      installed.run,
+    @host.propose_compute_author_work(
+      installed.context,
       task,
       installed.registration,
       1,
@@ -204,27 +184,18 @@ fn numeric_dispatch_issue(issue : @numeric.PlanIssue) -> @strategy.RunIssue {
 }
 
 ///|
-pub fn[C, E] start_numeric_dispatch(
+fn[C, E] execute_numeric_dispatch(
   installed : NumericDispatchModule,
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
-) -> Result[
-  (@numeric.NumericAttempt, @strategy.TaskExecution),
-  @strategy.RunIssue,
-] {
-  let prepared = match
-    @host.take_installed_task(host, task, installed.channel) {
-    Ok(value) => value
-    Err(issue) =>
-      return Err(
-        @strategy.RunIssue::Implementation(
-          ReferenceDispatchFailure::Dispatch(issue),
-        ),
-      )
-  }
-  @strategy.start_captured_execution(
-    installed.run,
-    @host.prepared_task_index(task),
-    prepared,
+) -> Result[Unit, @strategy.RunIssue] {
+  @host.execute_compute_author_work(
+    installed.context,
+    host,
+    task,
+    installed.channel,
+    attempt => {
+      @numeric.execute_numeric_attempt(attempt).map_err(numeric_dispatch_issue)
+    },
   )
 }

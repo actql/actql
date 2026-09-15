@@ -7,6 +7,5 @@ import {
   "actql/actql/connectors/duckdb/driver" @binding2,
   "actql/actql/connectors/local/driver" @binding3,
   "actql/actql/connectors/reference_compute/driver" @binding4,
-  "actql/actql/connectors/reference_compute" @binding5,
-  "actql/actql/physical_strategy" @binding6,
+  "actql/actql/physical_strategy" @binding5,
 }

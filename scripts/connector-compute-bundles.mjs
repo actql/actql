@@ -104,6 +104,10 @@ function configurationAssembly(entries, alias, typed, resultType) {
   const stored = entries.map(({name}) => `    installed_${name},\n`).join('');
   const getters = entries.map(({name, manifest: m}) =>
     `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}.map(value => value.0)\n}\n`).join('');
+  const installedKeys = '\n///|\n/// Composition keys only; not capability IDs, resource bindings or dispatch authority.\n' +
+    'pub fn[E] configured_compute_module_keys(value : ConfiguredComputeModules[E]) -> Array[String] {\n  let keys = []\n' +
+    entries.map(({name}) => `  if value.installed_${name} is Some(_) { keys.push("${name}") }\n`).join('') +
+    '  keys\n}\n';
   const dispatches = entries.map(({name, manifest: m}) =>
     `\n///|\n/// Invoke the configured implementation; the connector verifies the exact dispatch ownership.\n` +
     `pub fn[C, E] dispatch_${name}(value : ConfiguredComputeModules[E], host : @host.DispatchHost[C, E], task : @host.PreparedTaskDispatch) -> Result[${resultType(m.dispatch_result)}, ConfiguredDispatchIssue[E]] {\n` +
@@ -127,7 +131,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
     '  Ok({\n' + stored + '    contributions,\n  })\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
-    getters + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias);
+    getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias);
 }
 
 function estimateAssembly(entries, alias) {

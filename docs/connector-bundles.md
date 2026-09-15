@@ -101,7 +101,32 @@ the responsibility of the owning connector and explicit Host setup.
 Local, DuckDB and the independent numeric reference implementation provide typed
 declarations. The reference implementation supplies Compute only; it does not
 need an Acquisition implementation. Its conformance path selects numeric work
-and Local work through the same shared Host, including cancellation and settlement.
+and Local work through the same shared Host. Its generated execution entry returns
+only success or failure; callers do not drive numeric attempts or publish results.
+
+### Basic in-process Compute authors
+
+`physical_host.prepare_compute_author_context` checks generated sequences against
+the exact checked task owners and retains an immutable handle collection.
+`compute_author_sequence` exposes a task's owned sequence, not mutable DAG state.
+`charge_compute_author_planning` and `propose_compute_author_work` charge the
+existing cumulative ledger and construct offers for that same run. A basic
+implementation need not traverse the DAG or import the resource ledger package.
+
+The independent numeric driver uses this context and
+`execute_compute_author_work`. The connector supplies its typed preparation and
+in-process calculation; the common operation consumes the exact dispatch channel,
+reserves the selected capacity, verifies owned completion evidence and attaches
+result holding atomically. Returning success from calculation does not constitute
+completion evidence. Failure closes the exact execution without discarding
+independent completed outputs or consumed work.
+
+This operation is restricted to synchronous, in-process work: return from the
+calculation confirms no external work remains. It is not an adapter for a pending
+Promise, native job or cancellation request. Asynchronous implementations keep
+the explicit stopped/settled protocol and pending cleanup responsibility. The
+context is implemented below composition, without importing planner or strategy
+types back into `connector_sdk`. Resource-reuse author APIs remain separate.
 
 To verify extension without modifying the common implementation, run:
 
@@ -115,8 +140,9 @@ without the numeric connector or integration package. It checks that baseline,
 adds the independent connector and reused integration fixtures, regenerates only
 the composition root, and runs the numeric Host test on JS/Wasm/native. File
 digests reject changes outside the connector, generated composition and
-integration directories. The test exercises both normal execution and cancellation
-with settlement through the shared Host. The isolated sources, per-phase logs and
+integration directories. The test exercises normal execution and cancellation
+before dispatch; separate prepared-execution tests retain post-start cancellation
+and settlement order checks. The isolated sources, per-phase logs and
 machine-readable change inventory are retained at the printed temporary path.
 This is an implementation-addition check, not proof of a new provider's semantic
 conformance or an unimplemented transport capability.
@@ -132,8 +158,12 @@ checks and the isolated addition/build tests provide separate evidence.
 
 Node execution contributions are separately declared by connector-owned
 `node-bundle.json` files and generated with `connector-node-bundles.mjs`.
-`adapters/connectors-builtin/strategy.generated.mjs` supplies the enabled transport
-factories to the common serial Node driver. A typed Compute declaration does not
+`adapters/connectors-builtin/strategy.generated.mjs` obtains the actual configured
+module keys from the owned MoonBit setup. It validates the whole subset before
+calling any factory; omitted factories, their settings and finalizers are never
+used. These generated composition keys do not replace exact capability
+registrations or resource bindings. Unknown and duplicate keys are rejected.
+A typed Compute declaration does not
 by itself implement Node I/O. The standard Node application currently configures
 Local and DuckDB; the numeric reference path exercises the portable common Host.
 

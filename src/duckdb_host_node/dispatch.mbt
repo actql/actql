@@ -18,6 +18,14 @@ pub fn strategy_host_next(
 }
 
 ///|
+#export_name("strategyHostModules")
+pub fn strategy_host_modules(
+  host : @host.StrategyHostDispatch,
+) -> Array[String] {
+  @host.dispatch_module_keys(host)
+}
+
+///|
 #export_name("strategyHostTask")
 pub fn strategy_host_task(task : @host.TaskDispatch) -> Int {
   @host.dispatch_task(task)

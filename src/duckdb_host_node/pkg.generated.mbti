@@ -26,6 +26,8 @@ pub fn strategy_host_finished(@duckdb_host.StrategyHostDispatch) -> Bool
 
 pub fn strategy_host_local_registration(@duckdb_host.StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
+pub fn strategy_host_modules(@duckdb_host.StrategyHostDispatch) -> Array[String]
+
 pub fn strategy_host_next(@duckdb_host.StrategyHostDispatch) -> @duckdb_host.TaskDispatch? raise NodeHostFailure
 
 pub fn strategy_host_output(@duckdb_host.StrategyHostDispatch, Int) -> @execution_relation.CompletedOutput?
