@@ -26,14 +26,7 @@ struct StrategyHostDispatch {
   native_channel : @host_driver.DispatchChannel[
     StrategyComputeHostConfiguration,
   ]
-  implementations : @connector.CapabilityImplementations[
-    (
-      StrategyHostDispatch,
-      Int,
-      @strategy.StrategyRevision,
-      @connector.FixedComputeRequest,
-    ) -> Result[@host_driver.DispatchWork, DispatchIssue],
-  ]
+  installation : @host_driver.DispatchHost[StrategyHostDispatch, DispatchIssue]
   generated : Array[@execution.GeneratedSequence]
   native_rejections : Array[String?]
   resident_rejections : Array[String?]
@@ -45,8 +38,7 @@ struct StrategyHostDispatch {
 ///|
 struct TaskDispatch {
   owner : StrategyHostDispatch
-  ticket : @host_driver.DispatchTicket
-  work : @host_driver.DispatchWork
+  prepared : @host_driver.PreparedTaskDispatch
 }
 
 ///|
@@ -153,6 +145,17 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(issue) => return Err(dispatch_driver_issue(issue))
   }
+  let installation = match
+    @host_driver.open_dispatch_host(
+      driver,
+      implementations,
+      limits.capacity,
+      limits.input_entries,
+      limits.input_name_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(dispatch_driver_issue(issue))
+  }
   Ok({
     run,
     driver,
@@ -162,7 +165,7 @@ pub fn configure_strategy_dispatch(
     native_registration,
     local_channel,
     native_channel,
-    implementations,
+    installation,
     generated: generated.copy(),
     native_rejections,
     resident_rejections,
@@ -182,31 +185,19 @@ pub fn prepare_next_dispatch(
     Err(issue) => return Err(dispatch_driver_issue(issue))
     Ok(_) => ()
   }
-  guard @strategy.next_captured_task(host.run) is Some(task) else {
+  guard @strategy.next_captured_task(host.run) is Some(_) else {
     return Ok(None)
   }
   match refresh_dispatch_estimates(host) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard @strategy.captured_dag_strategy(host.run) is Some(revision) else {
-    return Err(NoStrategy)
-  }
-  match
-    @host_driver.prepare_installed_dispatch(
-      host.driver,
-      host.implementations,
-      host,
-      task,
-      revision,
-      host.limits.capacity,
-      host.limits.input_entries,
-      host.limits.input_name_bytes,
-    ) {
+  match @host_driver.prepare_next_installed_task(host.installation, host) {
+    Err(NoStrategy) => Err(NoStrategy)
     Err(Dispatch(issue)) => Err(dispatch_driver_issue(issue))
     Err(MissingImplementation) => Err(ForeignSelection)
     Err(Implementation(issue)) => Err(issue)
-    Ok((ticket, work)) => Ok(Some({ owner: host, ticket, work, }))
+    Ok(prepared) => Ok(prepared.map(prepared => { owner: host, prepared, }))
   }
 }
 
@@ -251,18 +242,17 @@ pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
   let compute = match
-    @host_driver.take_dispatch_work(
+    @host_driver.take_installed_task(
+      dispatch.owner.installation,
+      dispatch.prepared,
       dispatch.owner.local_channel,
-      dispatch.owner.driver,
-      dispatch.ticket,
-      dispatch.work,
     ) {
     Err(issue) => return Err(dispatch_driver_issue(issue))
     Ok(value) => value
   }
   @strategy.execute_captured_synchronous_task(
     dispatch.owner.run,
-    @host_driver.dispatch_ticket_task(dispatch.ticket),
+    @host_driver.prepared_task_index(dispatch.prepared),
     compute,
   ).map_err(issue => Run(issue))
 }
@@ -271,17 +261,16 @@ pub fn execute_synchronous_dispatch(
 pub fn take_native_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[StrategyComputeHostConfiguration, DispatchIssue] {
-  @host_driver.take_dispatch_work(
+  @host_driver.take_installed_task(
+    dispatch.owner.installation,
+    dispatch.prepared,
     dispatch.owner.native_channel,
-    dispatch.owner.driver,
-    dispatch.ticket,
-    dispatch.work,
   ).map_err(dispatch_driver_issue)
 }
 
 ///|
 pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
-  @host_driver.dispatch_ticket_task(dispatch.ticket)
+  @host_driver.prepared_task_index(dispatch.prepared)
 }
 
 ///|
@@ -289,7 +278,7 @@ pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
 pub fn dispatch_registration(
   dispatch : TaskDispatch,
 ) -> @connector.CapabilityRegistration? {
-  Some(@host_driver.dispatch_work_registration(dispatch.work))
+  Some(@host_driver.prepared_task_registration(dispatch.prepared))
 }
 
 ///|
@@ -309,8 +298,8 @@ pub fn dispatch_duckdb_registration(
 ///|
 pub fn dispatch_is_resident(dispatch : TaskDispatch) -> Bool {
   @strategy.strategy_resident_profile(
-    @host_driver.dispatch_ticket_revision(dispatch.ticket),
-    @host_driver.dispatch_ticket_task(dispatch.ticket),
+    @host_driver.prepared_task_revision(dispatch.prepared),
+    @host_driver.prepared_task_index(dispatch.prepared),
   )
   is Some(_)
 }

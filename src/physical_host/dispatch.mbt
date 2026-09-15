@@ -33,6 +33,11 @@ pub fn open_dispatch_driver(run : @strategy.CapturedDAG) -> DispatchDriver {
 }
 
 ///|
+pub fn dispatch_driver_run(driver : DispatchDriver) -> @strategy.CapturedDAG {
+  driver.owner.run
+}
+
+///|
 pub fn dispatch_driver_pending(driver : DispatchDriver) -> Bool {
   driver.pending is Some(_)
 }

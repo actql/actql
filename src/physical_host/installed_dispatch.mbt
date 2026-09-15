@@ -1,5 +1,6 @@
 ///|
 pub(all) enum InstalledDispatchIssue[E] {
+  NoStrategy
   Dispatch(DispatchIssue)
   MissingImplementation
   Implementation(E)

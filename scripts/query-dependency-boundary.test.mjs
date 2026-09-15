@@ -200,21 +200,25 @@ test('prepared dispatch ownership has one common state machine and no connector 
     'lowering_relation', 'pipeline_typing',
   ]);
   const api = readFileSync('src/physical_host/pkg.generated.mbti', 'utf8');
-  for (const handle of ['DispatchDriver', 'DispatchTicket', 'DispatchWork']) {
+  for (const handle of ['DispatchDriver', 'DispatchTicket', 'DispatchWork', 'PreparedTaskDispatch']) {
     assert.match(api, new RegExp(`^type ${handle}$`, 'm'));
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`));
   }
   assert.doesNotMatch(api, /DuckDB|Native|SQL|connectors\//);
   const bridge = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(bridge, /mut (?:pending|consumed)\s*:/);
-  assert.match(bridge, /@host_driver\.take_dispatch_work\(/);
+  assert.match(bridge, /@host_driver\.take_installed_task\(/);
   assert.doesNotMatch(bridge, /enum DispatchWork|work is (?:Native|Synchronous)/);
   const channel = readFileSync('src/physical_host/dispatch_channel.mbt', 'utf8');
   assert.match(channel, /consume_dispatch_ticket\(driver, ticket\)/);
   assert.match(channel, /physical_equal\(expected, work\)/);
   assert.match(channel, /physical_equal\(channel.owner, driver.owner\)/);
   assert.doesNotMatch(channel, /DuckDB|Native|SQL|Any|unsafe|@local_connector/);
-  assert.match(bridge, /@host_driver\.prepare_installed_dispatch\(/);
+  assert.match(bridge, /@host_driver\.prepare_next_installed_task\(/);
+  const host = readFileSync('src/physical_host/installed_host.mbt', 'utf8');
+  assert.match(host, /prepare_installed_dispatch\(/);
+  assert.match(host, /physical_equal\(host.owner, task.owner\)/);
+  assert.doesNotMatch(host, /DuckDB|Native|SQL|@local_connector|@reference_compute/);
   const installed = readFileSync('src/physical_host/installed_dispatch.mbt', 'utf8');
   assert.match(installed, /prepare_dispatch_inputs\(/);
   assert.match(installed, /capability_implementation\(/);

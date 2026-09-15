@@ -354,6 +354,14 @@ array rather than borrowing mutable caller slots. The next-dispatch operation
 recovers the installed preparation entry by exact registration, never by name or
 registration position. Local and DuckDB preparation entries retain their own
 compiler and binding rules; a lookup is not permission to start or complete work.
+The common `physical_host.DispatchHost` fixes the preparation installation and
+input-capacity policy. It selects the next checked-ready task from the current
+strategy, binds actual completed inputs, and issues `PreparedTaskDispatch` only
+after rechecking the returned work token. Standard transport preparation and
+independent Compute implementations use this same operation. A task handle also
+belongs to the exact Host installation: sharing a driver or registry does not
+permit a second installation to recover its payload. Miswired preparation from
+a different run stops the driver rather than leaving its new ticket usable.
 Preparation payloads stay in typed, implementation-specific `DispatchChannel[T]`
 slots. The common `DispatchWork` token contains only the exact driver owner,
 registration, task and revision, not a closed backend variant. Recovering a

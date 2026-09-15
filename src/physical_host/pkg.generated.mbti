@@ -13,6 +13,8 @@ pub fn consume_dispatch_ticket(DispatchDriver, DispatchTicket) -> Result[Unit, D
 
 pub fn dispatch_driver_pending(DispatchDriver) -> Bool
 
+pub fn dispatch_driver_run(DispatchDriver) -> @physical_strategy.CapturedDAG
+
 pub fn dispatch_ticket_revision(DispatchTicket) -> @physical_strategy.StrategyRevision
 
 pub fn dispatch_ticket_task(DispatchTicket) -> Int
@@ -23,11 +25,21 @@ pub fn[T] open_dispatch_channel(DispatchDriver, @connector_sdk.CapabilityRegistr
 
 pub fn open_dispatch_driver(@physical_strategy.CapturedDAG) -> DispatchDriver
 
+pub fn[C, E] open_dispatch_host(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]], @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[DispatchHost[C, E], DispatchIssue]
+
 pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[@connector_sdk.FixedComputeRequest, DispatchIssue]
 
 pub fn prepare_dispatch_ticket(DispatchDriver, Int, @physical_strategy.StrategyRevision) -> Result[DispatchTicket, DispatchIssue]
 
 pub fn[C, W, E] prepare_installed_dispatch(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[W, E]], C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[(DispatchTicket, W), InstalledDispatchIssue[E]]
+
+pub fn[C, E] prepare_next_installed_task(DispatchHost[C, E], C) -> Result[PreparedTaskDispatch?, InstalledDispatchIssue[E]]
+
+pub fn prepared_task_index(PreparedTaskDispatch) -> Int
+
+pub fn prepared_task_registration(PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration
+
+pub fn prepared_task_revision(PreparedTaskDispatch) -> @physical_strategy.StrategyRevision
 
 pub fn[T] stage_dispatch_work(DispatchChannel[T], Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest, T) -> Result[DispatchWork, DispatchIssue]
 
@@ -35,12 +47,16 @@ pub fn stop_dispatch_driver(DispatchDriver) -> Unit
 
 pub fn[T] take_dispatch_work(DispatchChannel[T], DispatchDriver, DispatchTicket, DispatchWork) -> Result[T, DispatchIssue]
 
+pub fn[C, E, T] take_installed_task(DispatchHost[C, E], PreparedTaskDispatch, DispatchChannel[T]) -> Result[T, DispatchIssue]
+
 // Errors
 
 // Types and methods
 type DispatchChannel[T]
 
 type DispatchDriver
+
+type DispatchHost[C, E]
 
 pub(all) enum DispatchIssue {
   PendingTask
@@ -54,10 +70,13 @@ type DispatchTicket
 type DispatchWork
 
 pub(all) enum InstalledDispatchIssue[E] {
+  NoStrategy
   Dispatch(DispatchIssue)
   MissingImplementation
   Implementation(E)
 }
+
+type PreparedTaskDispatch
 
 // Type aliases
 
