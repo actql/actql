@@ -31,7 +31,7 @@ pub fn bind_broad_host_input(BroadHostRun, @query_planning.DuckDBBroadObservatio
 
 pub fn bind_native_host_input(NativeHostRun, @query_planning.DuckDBNativeObservation, @lowering_relation.BoundPrepared, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[@execution_relation.BoundProducerInput, NativeHostIssue]
 
-pub fn borrow_configured_resident_inputs(StrategyComputeHostConfiguration, @physical_strategy.ResidentEnvironment, Array[@physical_strategy.ResidentTable], Int, Int, Int) -> Result[@driver.DuckDBResidentInputs, @physical_strategy.RunIssue]
+pub fn borrow_configured_resident_inputs(StrategyComputeHostConfiguration, @driver.DuckDBResidentStore, Array[@physical_strategy.ResidentTable], Int, Int, Int) -> Result[@driver.DuckDBResidentInputs, @physical_strategy.RunIssue]
 
 pub fn broad_host_attempt(BroadHostRun) -> @query_planning.DuckDBBroadAttempt
 

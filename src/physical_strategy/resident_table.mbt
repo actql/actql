@@ -3,7 +3,6 @@
 struct ResidentTable {
   environment : ResidentEnvironment
   producer : Int
-  imported : @duckdb.ResidentImport
   storage : @execution.ProducerStorage
   allocation : @resources.SharedAllocation
   mut committed : Bool
@@ -28,7 +27,7 @@ pub fn prepare_resident_storage(
   max_entries : Int,
   max_name_bytes : Int,
   prepare : (@execution.ProducerStorage, Int) -> Result[
-    @duckdb.ResidentImport,
+    @execution.ProducerStorage,
     RunIssue,
   ],
 ) -> Result[ResidentTable, RunIssue] {
@@ -82,7 +81,7 @@ pub fn prepare_resident_storage(
     Ok(_) => ()
   }
   let ordinal = env.next_table
-  let imported = match prepare(storage, ordinal) {
+  let prepared_storage = match prepare(storage, ordinal) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -92,7 +91,8 @@ pub fn prepare_resident_storage(
     !resident_environment_available(run, env) ||
     env.next_table != ordinal ||
     env.tables[producer] is Some(_) ||
-    !@duckdb.resident_import_matches_storage(imported, storage) {
+    !physical_equal(prepared_storage, storage) ||
+    !@execution.producer_storage_available(storage) {
     return Err(ForeignCandidate)
   }
   let allocation = match
@@ -103,7 +103,6 @@ pub fn prepare_resident_storage(
   let table = {
     environment: env,
     producer,
-    imported,
     storage,
     allocation,
     committed: false,
@@ -155,8 +154,20 @@ pub fn cancel_resident_table_preparation(
 }
 
 ///|
-pub fn resident_table_import(table : ResidentTable) -> @duckdb.ResidentImport {
-  table.imported
+pub fn resident_table_storage(
+  table : ResidentTable,
+) -> @execution.ProducerStorage {
+  table.storage
+}
+
+///|
+pub fn resident_table_producer(table : ResidentTable) -> Int {
+  table.producer
+}
+
+///|
+pub fn resident_table_environment(table : ResidentTable) -> ResidentEnvironment {
+  table.environment
 }
 
 ///|

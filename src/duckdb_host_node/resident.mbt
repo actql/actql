@@ -4,9 +4,9 @@ pub fn resident_begin(
   run : @strategy.CapturedDAG,
   task : Int,
   bytes : Int64,
-) -> @strategy.ResidentEnvironment raise NodeHostFailure {
+) -> @duckdb_driver.DuckDBResidentStore raise NodeHostFailure {
   match @strategy.begin_resident_environment(run, task, bytes) {
-    Ok(value) => value
+    Ok(value) => @duckdb_driver.prepare_resident_store(value)
     Err(issue) => raise Strategy(issue)
   }
 }
@@ -15,10 +15,15 @@ pub fn resident_begin(
 #export_name("residentConfirm")
 pub fn resident_confirm(
   run : @strategy.CapturedDAG,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   bytes : Int64,
 ) -> Unit raise NodeHostFailure {
-  match @strategy.confirm_resident_environment(run, env, bytes) {
+  match
+    @strategy.confirm_resident_environment(
+      run,
+      @duckdb_driver.resident_store_environment(env),
+      bytes,
+    ) {
     Ok(_) => ()
     Err(issue) => raise Strategy(issue)
   }
@@ -28,18 +33,12 @@ pub fn resident_confirm(
 #export_name("residentClose")
 pub fn resident_close(
   run : @strategy.CapturedDAG,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   settled : Bool,
 ) -> Unit raise NodeHostFailure {
-  match @strategy.close_resident_environment(run, env) {
+  match @duckdb_driver.close_resident_store(run, env, settled) {
     Ok(_) => ()
     Err(issue) => raise Physical(issue)
-  }
-  if settled {
-    match @strategy.settle_resident_environment(run, env) {
-      Ok(_) => ()
-      Err(issue) => raise Physical(issue)
-    }
   }
 }
 
@@ -47,15 +46,20 @@ pub fn resident_close(
 #export_name("residentBorrowSetup")
 pub fn resident_borrow_setup(
   setup : @host.StrategyComputeHostConfiguration,
-  env : @strategy.ResidentEnvironment,
-  tables : Array[@strategy.ResidentTable],
+  env : @duckdb_driver.DuckDBResidentStore,
+  tables : Array[@duckdb_driver.DuckDBResidentTable],
   entries : Int,
   names : Int,
   sql : Int,
 ) -> @duckdb_driver.DuckDBResidentInputs raise NodeHostFailure {
   match
     @host.borrow_configured_resident_inputs(
-      setup, env, tables, entries, names, sql,
+      setup,
+      env,
+      tables.map(@duckdb_driver.resident_table_handle),
+      entries,
+      names,
+      sql,
     ) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
@@ -87,18 +91,18 @@ pub fn resident_cancel_inputs(
 #export_name("residentTablePrepare")
 pub fn resident_table_prepare(
   run : @strategy.CapturedDAG,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   producer : Int,
   bytes : Int64,
   entries : Int,
   names : Int,
   sql : Int,
-) -> @strategy.ResidentTable raise NodeHostFailure {
+) -> @duckdb_driver.DuckDBResidentTable raise NodeHostFailure {
   match
     @duckdb_driver.prepare_resident_table(
       run, env, producer, bytes, entries, names, sql,
     ) {
-    Ok(value) => value
+    Ok(value) => @duckdb_driver.bind_resident_table(env, value).unwrap()
     Err(issue) => raise Strategy(issue)
   }
 }
@@ -107,22 +111,31 @@ pub fn resident_table_prepare(
 #export_name("residentTableAt")
 pub fn resident_table_at(
   run : @strategy.CapturedDAG,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   producer : Int,
-) -> @strategy.ResidentTable raise NodeHostFailure {
-  guard @strategy.resident_table_at(run, env, producer) is Some(table) else {
+) -> @duckdb_driver.DuckDBResidentTable raise NodeHostFailure {
+  guard @strategy.resident_table_at(
+      run,
+      @duckdb_driver.resident_store_environment(env),
+      producer,
+    )
+    is Some(table) else {
     raise InvalidCommand
   }
-  table
+  @duckdb_driver.bind_resident_table(env, table).unwrap()
 }
 
 ///|
 #export_name("residentTableCancel")
 pub fn resident_table_cancel(
   run : @strategy.CapturedDAG,
-  table : @strategy.ResidentTable,
+  table : @duckdb_driver.DuckDBResidentTable,
 ) -> Unit raise NodeHostFailure {
-  match @strategy.cancel_resident_table_preparation(run, table) {
+  match
+    @strategy.cancel_resident_table_preparation(
+      run,
+      @duckdb_driver.resident_table_handle(table),
+    ) {
     Ok(_) => ()
     Err(issue) => raise Physical(issue)
   }
@@ -132,21 +145,32 @@ pub fn resident_table_cancel(
 #export_name("residentHasTable")
 pub fn resident_has_table(
   run : @strategy.CapturedDAG,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   producer : Int,
 ) -> Bool {
-  @strategy.resident_table_at(run, env, producer) is Some(_)
+  @strategy.resident_table_at(
+    run,
+    @duckdb_driver.resident_store_environment(env),
+    producer,
+  )
+  is Some(_)
 }
 
 ///|
 #export_name("residentTransferBegin")
 pub fn resident_transfer_begin(
   run : @strategy.CapturedDAG,
-  table : @strategy.ResidentTable,
+  table : @duckdb_driver.DuckDBResidentTable,
   bytes : Int64,
   scratch : Int64,
 ) -> @strategy.ResidentTransfer raise NodeHostFailure {
-  match @strategy.begin_resident_transfer(run, table, bytes, scratch) {
+  match
+    @strategy.begin_resident_transfer(
+      run,
+      @duckdb_driver.resident_table_handle(table),
+      bytes,
+      scratch,
+    ) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
@@ -205,10 +229,12 @@ pub fn resident_transfer_abort(
 ///|
 #export_name("residentImportSql")
 pub fn resident_import_sql(
-  table : @strategy.ResidentTable,
+  table : @duckdb_driver.DuckDBResidentTable,
   insert : Bool,
-) -> String {
-  let imported = @strategy.resident_table_import(table)
+) -> String raise NodeHostFailure {
+  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
+    raise InvalidCommand
+  }
   if insert {
     @duckdb.resident_import_insert_sql(imported)
   } else {
@@ -219,10 +245,12 @@ pub fn resident_import_sql(
 ///|
 #export_name("residentImportCount")
 pub fn resident_import_count(
-  table : @strategy.ResidentTable,
+  table : @duckdb_driver.DuckDBResidentTable,
   columns : Bool,
-) -> Int {
-  let imported = @strategy.resident_table_import(table)
+) -> Int raise NodeHostFailure {
+  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
+    raise InvalidCommand
+  }
   if columns {
     @duckdb.resident_import_column_count(imported)
   } else {
@@ -233,18 +261,16 @@ pub fn resident_import_count(
 ///|
 #export_name("residentImportParameter")
 pub fn resident_import_parameter(
-  table : @strategy.ResidentTable,
+  table : @duckdb_driver.DuckDBResidentTable,
   row : Int,
   column : Int,
   bytes : Int,
   nodes : Int,
 ) -> String raise NodeHostFailure {
-  let value = match
-    @duckdb.resident_import_parameter(
-      @strategy.resident_table_import(table),
-      row,
-      column,
-    ) {
+  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
+    raise InvalidCommand
+  }
+  let value = match @duckdb.resident_import_parameter(imported, row, column) {
     Ok(value) => value
     Err(issue) => raise ComputeParameter(issue)
   }

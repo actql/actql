@@ -4,16 +4,17 @@
 /// allocates retention only after successful preparation against that storage.
 pub fn prepare_resident_table(
   run : @strategy.CapturedDAG,
-  environment : @strategy.ResidentEnvironment,
+  store : DuckDBResidentStore,
   producer : Int,
   bytes : Int64,
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
 ) -> Result[@strategy.ResidentTable, @strategy.RunIssue] {
+  let imported : Ref[@duckdb.ResidentImport?] = Ref(None)
   @strategy.prepare_resident_storage(
     run,
-    environment,
+    store.environment,
     producer,
     bytes,
     max_entries,
@@ -24,7 +25,15 @@ pub fn prepare_resident_table(
         "resident_" + ordinal.to_string(),
         max_entries,
         max_sql_bytes,
-      ).map_err(issue => preparation_failure(issue))
+      )
+      .map(value => {
+        imported.val = Some(value)
+        @duckdb.resident_import_storage(value)
+      })
+      .map_err(issue => preparation_failure(issue))
     },
-  )
+  ).map(table => {
+    store.imports.set(producer, imported.val.unwrap())
+    table
+  })
 }

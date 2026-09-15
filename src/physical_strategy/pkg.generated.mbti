@@ -3,7 +3,6 @@ package "actql/actql/physical_strategy"
 
 import {
   "actql/actql/connector_sdk",
-  "actql/actql/connectors/duckdb/adapter",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -101,13 +100,13 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
-pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@adapter.ResidentImport, RunIssue]) -> Result[ResidentExecution, RunIssue]
+pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentExecution, RunIssue]
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @connector_sdk.FixedComputeCandidate, Int, Int, Int, (Int, ResidentTable, @execution_relation.ProducerRead, Int) -> Result[Int, RunIssue]) -> Result[ResidentInputs, RunIssue]
 
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
-pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@adapter.ResidentImport, RunIssue]) -> Result[ResidentTable, RunIssue]
+pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
@@ -125,7 +124,11 @@ pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.Prod
 
 pub fn resident_table_at(CapturedDAG, ResidentEnvironment, Int) -> ResidentTable?
 
-pub fn resident_table_import(ResidentTable) -> @adapter.ResidentImport
+pub fn resident_table_environment(ResidentTable) -> ResidentEnvironment
+
+pub fn resident_table_producer(ResidentTable) -> Int
+
+pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStorage
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 

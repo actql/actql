@@ -1,6 +1,7 @@
 ///|
 pub fn borrow_resident_table(
   run : @strategy.CapturedDAG,
+  store : DuckDBResidentStore,
   table : @strategy.ResidentTable,
   task : Int,
   max_entries : Int,
@@ -16,7 +17,9 @@ pub fn borrow_resident_table(
     max_entries,
     max_name_bytes,
     fn(table, input) {
-      let imported = @strategy.resident_table_import(table)
+      guard resident_store_import(store, table) is Some(imported) else {
+        return Err(ForeignCandidate)
+      }
       @compute.prepare_duckdb_resident_read(
         imported, input, view_name, max_entries, max_sql_bytes,
       )
@@ -29,6 +32,7 @@ pub fn borrow_resident_table(
 
 ///|
 struct DuckDBResidentInputs {
+  store : DuckDBResidentStore
   leases : @strategy.ResidentInputs
   plans : Array[@compute.DuckDBResidentRead]
 }
@@ -50,7 +54,7 @@ pub fn cancel_resident_inputs(
 ///|
 pub fn prepare_resident_inputs(
   run : @strategy.CapturedDAG,
-  environment : @strategy.ResidentEnvironment,
+  store : DuckDBResidentStore,
   task : Int,
   tables : Array[@strategy.ResidentTable],
   choice : @connector.FixedComputeChoice,
@@ -66,7 +70,7 @@ pub fn prepare_resident_inputs(
   let plans = []
   @strategy.prepare_resident_inputs(
     run,
-    environment,
+    store.environment,
     task,
     tables,
     @connector.prepared_compute_candidate(prepared),
@@ -74,7 +78,9 @@ pub fn prepare_resident_inputs(
     max_name_bytes,
     max_sql_bytes,
     fn(port, table, input, remaining) {
-      let imported = @strategy.resident_table_import(table)
+      guard resident_store_import(store, table) is Some(imported) else {
+        return Err(ForeignCandidate)
+      }
       guard @duckdb.fixed_compute_import(compute, port) is Some(fixed) &&
         physical_equal(@duckdb.fixed_import_input(fixed), input) else {
         return Err(ForeignCandidate)
@@ -100,5 +106,5 @@ pub fn prepare_resident_inputs(
       plans.push(plan)
       Ok(bytes)
     },
-  ).map(leases => { leases, plans, })
+  ).map(leases => { store, leases, plans, })
 }

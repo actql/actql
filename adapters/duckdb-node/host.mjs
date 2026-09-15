@@ -91,8 +91,8 @@ export async function importResidentStrategyInput(environment, producer, tableBy
     BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
   let count, columns, transfer;
   try {
-    count = rows(moon.residentImportCount(table, false));
-    columns = rows(moon.residentImportCount(table, true));
+    count = rows(checked(moon.residentImportCount(table, false)));
+    columns = rows(checked(moon.residentImportCount(table, true)));
     if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
         columns === 0 || count > Math.floor(limits.maxCells / columns)) {
       throw new DuckDBTransportError('InvalidImportLimits');
@@ -108,8 +108,8 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   try {
     const result = await owned.database.run(limits, async session => {
       const discard = () => {};
-      await session.command(moon.residentImportSql(table, false), [], discard);
-      const sql = moon.residentImportSql(table, true);
+      await session.command(checked(moon.residentImportSql(table, false)), [], discard);
+      const sql = checked(moon.residentImportSql(table, true));
       for (let row = 0; row < count; row++) {
         const parameters = [];
         for (let column = 0; column < columns; column++) {

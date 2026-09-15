@@ -108,7 +108,7 @@ pub fn configured_strategy_compute_transport(
 ///|
 pub fn borrow_configured_resident_inputs(
   setup : StrategyComputeHostConfiguration,
-  env : @strategy.ResidentEnvironment,
+  env : @duckdb_driver.DuckDBResidentStore,
   tables : Array[@strategy.ResidentTable],
   max_entries : Int,
   max_name_bytes : Int,

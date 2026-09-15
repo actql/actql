@@ -3,7 +3,7 @@ priv struct ResidentPendingOutput {
   environment : ResidentEnvironment
   allocation : @resources.SharedAllocation
   bind_output : (@execution.CompletedOutput) -> Result[
-    @duckdb.ResidentImport,
+    @execution.ProducerStorage,
     RunIssue,
   ]
   mut committed : Bool
@@ -17,7 +17,7 @@ fn prepare_resident_output(
   env : ResidentEnvironment,
   bytes : Int64,
   prepare : (Int) -> Result[
-    (@execution.CompletedOutput) -> Result[@duckdb.ResidentImport, RunIssue],
+    (@execution.CompletedOutput) -> Result[@execution.ProducerStorage, RunIssue],
     RunIssue,
   ],
 ) -> Result[ResidentPendingOutput, RunIssue] {
@@ -170,18 +170,16 @@ fn publish_resident_output(
   guard claim_task_publication(run, task, publication) is Some(output) else {
     return Err(ForeignCandidate)
   }
-  let imported = match (pending.bind_output)(output) {
+  let storage = match (pending.bind_output)(output) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let storage = @duckdb.resident_import_storage(imported)
   if !@execution.producer_storage_matches_output(storage, output) {
     return Err(ForeignCandidate)
   }
   pending.environment.tables[task] = Some({
     environment: pending.environment,
     producer: task,
-    imported,
     storage,
     allocation: pending.allocation,
     committed: true,

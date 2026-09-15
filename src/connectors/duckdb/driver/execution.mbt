@@ -5,6 +5,7 @@ struct CapturedDuckDBTask {
   execution : @strategy.TaskExecution
   cleanup_sql_bytes : Int
   output_plan : Ref[@compute.DuckDBResidentOutput?]
+  store : DuckDBResidentStore?
 }
 
 ///|
@@ -45,6 +46,7 @@ pub fn start_captured_duckdb_task(
     return Err(Physical(InvalidLimits))
   }
   let output_plan : Ref[@compute.DuckDBResidentOutput?] = Ref(None)
+  let store = resident.map(inputs => inputs.store)
   let resident = match resident {
     None => None
     Some(inputs) =>
@@ -78,7 +80,10 @@ pub fn start_captured_duckdb_task(
           },
           fn(plan, output) {
             match @compute.bind_duckdb_resident_output(plan, output) {
-              Ok(value) => Ok(value)
+              Ok(value) => {
+                inputs.store.imports.set(task, value)
+                Ok(@duckdb.resident_import_storage(value))
+              }
               Err(Read(issue)) => Err(Read(issue))
               Err(Preparation(issue)) => Err(preparation_failure(issue))
             }
@@ -143,6 +148,7 @@ pub fn start_captured_duckdb_task(
         execution,
         cleanup_sql_bytes: transport.max_bytes,
         output_plan,
+        store,
       })
   }
 }
@@ -166,13 +172,13 @@ pub fn captured_duckdb_cleanup_sql(
   task : CapturedDuckDBTask,
 ) -> Result[Array[String], @strategy.RunIssue] {
   @strategy.prepare_captured_cleanup(run, task.execution, fn(tables) {
+    guard task.store is Some(store) else { return Err(ForeignCandidate) }
     let statements = []
     for table in tables {
-      match
-        @duckdb.resident_import_drop_sql(
-          @strategy.resident_table_import(table),
-          task.cleanup_sql_bytes,
-        ) {
+      guard resident_store_import(store, table) is Some(imported) else {
+        return Err(ForeignCandidate)
+      }
+      match @duckdb.resident_import_drop_sql(imported, task.cleanup_sql_bytes) {
         Ok(sql) => statements.push(sql)
         Err(issue) => return Err(preparation_failure(issue))
       }

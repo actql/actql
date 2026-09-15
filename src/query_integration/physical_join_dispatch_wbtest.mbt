@@ -90,28 +90,33 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     let env = if resident {
       let env = @strategy.begin_resident_environment(run, 3, 20000000L).unwrap()
       @strategy.confirm_resident_environment(run, env, 20000000L).unwrap()
+      let store = @duckdb_driver.prepare_resident_store(env)
       let inventory = @dbhost.dispatch_resident_inputs(host, 3).unwrap()
       assert_eq(inventory.length(), 2)
       assert_eq(inventory[0].0, 1)
       assert_eq(inventory[1].0, if self_join { 1 } else { 2 })
       for producer in (if self_join { [1] } else { [1, 2] }) {
         let table = @duckdb_driver.prepare_resident_table(
-          run, env, producer, 80L, 1000, 10000, 10000,
+          run, store, producer, 80L, 1000, 10000, 10000,
         ).unwrap()
         let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
         @strategy.charge_resident_transfer(run, transfer, 12L).unwrap()
         @strategy.settle_resident_transfer(run, transfer, true).unwrap()
         @strategy.complete_resident_transfer(run, transfer).unwrap()
       }
-      Some(env)
+      Some(store)
     } else {
       None
     }
     let resident_inputs = env.map(env => {
-      let left = @strategy.resident_table_at(run, env, 1).unwrap()
+      let left = @strategy.resident_table_at(
+        run,
+        @duckdb_driver.resident_store_environment(env),
+        1,
+      ).unwrap()
       let right = @strategy.resident_table_at(
         run,
-        env,
+        @duckdb_driver.resident_store_environment(env),
         if self_join {
           1
         } else {
@@ -217,8 +222,14 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       @strategy.stop_captured_dag(run)
       @strategy.close_captured_task_output(run, 1)
       @strategy.close_captured_task_output(run, 2)
-      @strategy.close_resident_environment(run, env.unwrap()).unwrap()
-      @strategy.settle_resident_environment(run, env.unwrap()).unwrap()
+      @strategy.close_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env.unwrap()),
+      ).unwrap()
+      @strategy.settle_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env.unwrap()),
+      ).unwrap()
       assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
       continue
     }
@@ -248,7 +259,14 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         )
         is Err(NotReady),
       )
-      assert_true(@strategy.resident_table_at(run, env.unwrap(), 1) is Some(_))
+      assert_true(
+        @strategy.resident_table_at(
+          run,
+          @duckdb_driver.resident_store_environment(env.unwrap()),
+          1,
+        )
+        is Some(_),
+      )
       let after = @resources.ledger_usage(ledger)
       assert_eq(after.attempts, before.attempts)
       assert_eq(after.held_bytes, before.held_bytes)
@@ -269,9 +287,16 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         run,
         @duckdb_driver.captured_duckdb_execution(attempt),
       )
-      @strategy.close_resident_environment(run, env).unwrap()
+      @strategy.close_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env),
+      ).unwrap()
       assert_true(
-        @strategy.settle_resident_environment(run, env) is Err(InvalidCharge),
+        @strategy.settle_resident_environment(
+          run,
+          @duckdb_driver.resident_store_environment(env),
+        )
+        is Err(InvalidCharge),
       )
       let ledger = @strategy.captured_dag_ledger(run)
       let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
@@ -298,7 +323,10 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         @duckdb_driver.captured_duckdb_execution(attempt),
         true,
       ).unwrap()
-      @strategy.settle_resident_environment(run, env).unwrap()
+      @strategy.settle_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env),
+      ).unwrap()
       @strategy.close_captured_task_output(run, 1)
       @strategy.close_captured_task_output(run, 2)
       let usage = @resources.ledger_usage(ledger)
@@ -373,9 +401,15 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     assert_true(@strategy.captured_task_output(run, 4, Step(0)) is Some(_))
     @strategy.close_captured_task_output(run, 4)
     if env is Some(env) {
-      @strategy.close_resident_environment(run, env).unwrap()
+      @strategy.close_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env),
+      ).unwrap()
       // Also proves rejected partial sets and both claimed ports were returned.
-      @strategy.settle_resident_environment(run, env).unwrap()
+      @strategy.settle_resident_environment(
+        run,
+        @duckdb_driver.resident_store_environment(env),
+      ).unwrap()
     }
     let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
     assert_eq(usage.held_bytes, 0L)

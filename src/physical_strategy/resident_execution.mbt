@@ -7,7 +7,7 @@ struct ResidentExecution {
   candidate : @connector.FixedComputeCandidate
   inputs : ResidentInputs
   prepare_output : (Int) -> Result[
-    (@execution.CompletedOutput) -> Result[@duckdb.ResidentImport, RunIssue],
+    (@execution.CompletedOutput) -> Result[@execution.ProducerStorage, RunIssue],
     RunIssue,
   ]
   retention : Int64
@@ -26,7 +26,7 @@ pub fn[T, P] prepare_resident_execution(
   scratch : Int64,
   prepare_output : (Int) -> Result[T, RunIssue],
   bind_output : (T, @execution.CompletedOutput) -> Result[
-    @duckdb.ResidentImport,
+    @execution.ProducerStorage,
     RunIssue,
   ],
 ) -> Result[ResidentExecution, RunIssue] {

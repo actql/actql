@@ -79,6 +79,7 @@ test "resident provision freezes dispatch and search until binding or close" {
   let ledger = @strategy.captured_dag_ledger(run)
   let before = @resources.ledger_usage(ledger)
   let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
+  let store = @duckdb_driver.prepare_resident_store(env)
   assert_eq(@strategy.next_captured_task(run), None)
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(Busy),
@@ -96,7 +97,9 @@ test "resident provision freezes dispatch and search until binding or close" {
   assert_true(@strategy.resident_environment_available(run, env))
   assert_eq(@strategy.next_captured_task(run), Some(1))
   assert_true(
-    @duckdb_driver.prepare_resident_table(run, env, 0, 79L, 1000, 10000, 10000)
+    @duckdb_driver.prepare_resident_table(
+      run, store, 0, 79L, 1000, 10000, 10000,
+    )
     is Err(Physical(InvalidCharge)),
   )
   // Unstarted preparations are reversible, including an actual ledger refusal.
@@ -126,7 +129,7 @@ test "resident provision freezes dispatch and search until binding or close" {
       _storage,
       _ordinal,
     ) {
-      Ok(rejected.val.unwrap())
+      Ok(@duckdb.resident_import_storage(rejected.val.unwrap()))
     })
     is Err(ForeignCandidate),
   )
@@ -144,7 +147,7 @@ test "resident provision freezes dispatch and search until binding or close" {
   let mut stale = None
   for _ in 0..<20 {
     let pending = @duckdb_driver.prepare_resident_table(
-      run, env, 0, 80L, 1000, 10000, 10000,
+      run, store, 0, 80L, 1000, 10000, 10000,
     ).unwrap()
     assert_true(
       @strategy.cancel_resident_table_preparation(foreign, pending)
@@ -168,10 +171,16 @@ test "resident provision freezes dispatch and search until binding or close" {
   assert_true(@resources.ledger_usage(ledger).planning_work > planned)
   @resources.settle_reservation(ledger, blocker).unwrap()
   let table = @duckdb_driver.prepare_resident_table(
-    run, env, 0, 80L, 1000, 10000, 10000,
+    run, store, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
+  assert_true(@duckdb_driver.resident_store_import(store, table) is Some(_))
+  let other_store = @duckdb_driver.prepare_resident_store(env)
+  assert_true(@duckdb_driver.resident_store_import(other_store, table) is None)
+  let transport_table = @duckdb_driver.bind_resident_table(store, table).unwrap()
   assert_true(
-    @duckdb_driver.borrow_resident_table(run, table, 1, 1000, 10000, 10000)
+    @duckdb_driver.borrow_resident_table(
+      run, store, table, 1, 1000, 10000, 10000,
+    )
     is Err(ForeignCandidate),
   )
   let attempts = @resources.ledger_usage(ledger).attempts
@@ -217,7 +226,7 @@ test "resident provision freezes dispatch and search until binding or close" {
       table,
       input,
     ) {
-      let imported = @strategy.resident_table_import(table)
+      let imported = @duckdb_driver.resident_store_import(store, table).unwrap()
       let plan = @duckdb_compute.prepare_duckdb_resident_read(
         rejected.val.unwrap(),
         input,
@@ -234,10 +243,10 @@ test "resident provision freezes dispatch and search until binding or close" {
     is Err(ForeignCandidate),
   )
   let read = @duckdb_driver.borrow_resident_table(
-    run, table, 1, 1000, 10000, 10000,
+    run, store, table, 1, 1000, 10000, 10000,
   ).unwrap()
   let another = @duckdb_driver.borrow_resident_table(
-    run, table, 1, 1000, 10000, 10000,
+    run, store, table, 1, 1000, 10000, 10000,
   ).unwrap()
   let input = @strategy.captured_task_input(run, 1, 1000, 10000).unwrap()
   assert_true(@strategy.resident_read_matches(run, read, input))
@@ -258,14 +267,16 @@ test "resident provision freezes dispatch and search until binding or close" {
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes + 1000L,
   )
-  @strategy.close_resident_environment(run, env).unwrap()
+  @duckdb_driver.close_resident_store(run, store, false).unwrap()
+  assert_true(@duckdb_driver.resident_table_import(transport_table) is Some(_))
   assert_false(@strategy.resident_environment_available(run, env))
   assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes + 1000L,
   )
-  @strategy.settle_resident_environment(run, env).unwrap()
+  @duckdb_driver.close_resident_store(run, store, true).unwrap()
+  assert_true(@duckdb_driver.resident_table_import(transport_table) is None)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes,
@@ -335,9 +346,10 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
     is Selected(_),
   )
   let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
+  let store = @duckdb_driver.prepare_resident_store(env)
   @strategy.confirm_resident_environment(run, env, 1000L).unwrap()
   let table = @duckdb_driver.prepare_resident_table(
-    run, env, 0, 80L, 1000, 10000, 10000,
+    run, store, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
   let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
   @strategy.charge_resident_transfer(run, transfer, 12L).unwrap()

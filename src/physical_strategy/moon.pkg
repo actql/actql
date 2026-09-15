@@ -18,7 +18,6 @@ import {
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/capacity_witness" @witness,
   "actql/actql/capacity_derivation" @derivation,
-  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,
 }

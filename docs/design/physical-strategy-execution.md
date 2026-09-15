@@ -246,6 +246,18 @@ shared capacity; a rejected preparation cannot leave a table registration or
 consume a table ordinal. Reusing equal-content storage from another preparation
 is not accepted as the owned input.
 
+The common table retains only `ProducerStorage`, its environment generation,
+producer position and shared allocation. `physical_strategy` does not import the
+DuckDB adapter or expose its import type. A connector-owned `DuckDBResidentStore`
+keeps physical import preparations separately, indexed by checked producer
+position and verified against exact environment and storage references. Equal
+content, another store, or a replaced preparation cannot recover a physical plan.
+There is at most one current preparation per producer position; corrected
+unstarted preparations replace that entry rather than growing an attempt list.
+The Node transport pairs a common table with its exact store in an opaque handle.
+Closing an environment keeps these preparations available for cleanup; they are
+discarded only after common resource settlement succeeds, not on cancellation.
+
 Resident receiver view preparation likewise belongs to the DuckDB driver. Its
 trusted preparation checks exact import and ProducerRead affinity and measures
 the actual plan bytes. `DuckDBResidentInputs` holds concrete plans and the common
@@ -278,6 +290,10 @@ construction limits in a connector-owned opaque plan. The shared output lifecycl
 retains its allocation, commit state and pending input cleanup, and checks exact
 task/input completion before binding the completed storage to that plan. The plan
 alone is not completion evidence or authority to publish a reusable copy.
+The binder returns the exact completed `ProducerStorage` to the common boundary;
+physical SQL and import metadata stay in the owning connector store. Common
+publication checks the storage/output association and atomically installs the
+retained table only after the existing completion and commit conditions succeed.
 The same boundary applies to receiver views: common borrowing retains the owned
 input lease, while the connector retains its read plan and obtains its SQL. A bounded
 measurement of that plan charges the existing cumulative preparation allowance;
