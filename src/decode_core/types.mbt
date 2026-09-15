@@ -43,7 +43,18 @@ pub(all) enum Presence[T] {
 struct Cursor {
   tree : Array[OwnedNode]
   index : Int
+  usage : AdmissionUsage
 }
+
+///|
+/// Measurements of the entire immutable tree produced by one admission.
+/// Strings include field names. Depth counts containers, not scalar leaves.
+pub(all) struct AdmissionUsage {
+  nodes : Int
+  depth : Int
+  largest_string_bytes : Int
+  total_string_bytes : Int
+} derive(Eq, Debug)
 
 ///|
 struct ObjectView {

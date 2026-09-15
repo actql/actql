@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn admission_usage(Cursor) -> AdmissionUsage
+
 pub fn admit(@source_value.Node, Limits) -> Result[Cursor, Issue]
 
 pub fn array_length(Cursor) -> Int?
@@ -59,6 +61,13 @@ pub fn view(Cursor) -> ValueView
 // Errors
 
 // Types and methods
+pub(all) struct AdmissionUsage {
+  nodes : Int
+  depth : Int
+  largest_string_bytes : Int
+  total_string_bytes : Int
+} derive(Eq, @debug.Debug)
+
 type Cursor
 
 pub(all) struct Issue {

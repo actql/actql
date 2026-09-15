@@ -31,6 +31,7 @@ pub struct Program {
   priv stages : Array[Stage]
   priv exports : Array[(String, String, String)]
   priv body : @wire.Cursor
+  priv source_usage : @source.ParseUsage
 }
 
 ///|
@@ -123,7 +124,11 @@ fn metadata(view : @wire.ObjectView) -> Unit raise Abort {
 
 ///|
 /// Inspect normalized, owned source. This is not a semantic checker.
-fn decode(root : @wire.Cursor, max_stages : Int) -> Program raise Abort {
+fn decode(
+  root : @wire.Cursor,
+  max_stages : Int,
+  source_usage : @source.ParseUsage,
+) -> Program raise Abort {
   let view = object(root, [
     "version", "id", "meta", "params", "bindings", "stages", "results",
   ])
@@ -262,7 +267,7 @@ fn decode(root : @wire.Cursor, max_stages : Int) -> Program raise Abort {
     }
     (key, producer, result)
   })
-  { id, stages, exports, body: root, }
+  { id, stages, exports, body: root, source_usage, }
 }
 
 ///|

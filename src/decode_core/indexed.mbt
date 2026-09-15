@@ -11,8 +11,7 @@ pub fn array_length(cursor : Cursor) -> Int? {
 /// Wrong container kinds and out-of-range indices return None; null is a cursor.
 pub fn element_at(cursor : Cursor, position : Int) -> Cursor? {
   match cursor.tree[cursor.index].value {
-    ArrayValue(items) =>
-      items.get(position).map(index => { tree: cursor.tree, index, })
+    ArrayValue(items) => items.get(position).map(index => { ..cursor, index, })
     _ => None
   }
 }
@@ -32,7 +31,7 @@ pub fn field_at(cursor : Cursor, position : Int) -> (String, Cursor)? {
     ObjectValue(fields) =>
       fields
       .get(position)
-      .map(field => (field.key, { tree: cursor.tree, index: field.index, }))
+      .map(field => (field.key, { ..cursor, index: field.index, }))
     _ => None
   }
 }

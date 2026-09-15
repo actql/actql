@@ -10,6 +10,13 @@ pub fn cursor_span(cursor : Cursor) -> @span.Span {
 }
 
 ///|
+/// O(1) measurements of this cursor's entire admitted tree, even for a child
+/// cursor. These are retained sizes, not work performed by this read.
+pub fn admission_usage(cursor : Cursor) -> AdmissionUsage {
+  cursor.usage
+}
+
+///|
 /// The source key span of an object child, absent for roots and array elements.
 /// This reads the owned edge directly without rebuilding the containing map.
 pub fn cursor_key_span(cursor : Cursor) -> @span.Span? {
@@ -79,7 +86,7 @@ pub fn closed_object(
 
 ///|
 pub fn lookup(object : ObjectView, name : String) -> Cursor? {
-  object.fields.get(name).map(index => { tree: object.cursor.tree, index, })
+  object.fields.get(name).map(index => { ..object.cursor, index, })
 }
 
 ///|
@@ -123,7 +130,7 @@ pub fn required(object : ObjectView, name : String) -> Result[Cursor, Issue] {
 ///|
 pub fn elements(cursor : Cursor) -> Result[Array[Cursor], Issue] {
   match cursor.tree[cursor.index].value {
-    ArrayValue(items) => Ok(items.map(index => { tree: cursor.tree, index, }))
+    ArrayValue(items) => Ok(items.map(index => { ..cursor, index, }))
     _ => Err(issue(cursor, WrongType))
   }
 }
@@ -144,8 +151,7 @@ pub fn view(cursor : Cursor) -> ValueView {
     Bool(value) => BoolValue(value)
     Number(value) => NumberValue(value)
     Text(value) => TextValue(value)
-    ArrayValue(items) =>
-      ArrayValue(items.map(index => { tree: cursor.tree, index, }))
+    ArrayValue(items) => ArrayValue(items.map(index => { ..cursor, index, }))
     ObjectValue(_) => ObjectValue(open_object(cursor).unwrap())
   }
 }

@@ -16,6 +16,7 @@ priv struct Parser {
   mut line : Int
   mut column : Int
   mut nodes : Int
+  mut deepest : Int
 }
 
 ///|
@@ -43,6 +44,7 @@ fn Parser::make(
     line: 1,
     column: 1,
     nodes: 0,
+    deepest: 0,
   }
 }
 

@@ -71,6 +71,8 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
   let tree : Array[OwnedNode] = []
   let work : Array[Work] = [Visit(root, -1, Root, 0)]
   let mut remaining_text = limits.max_total_string_bytes
+  let mut deepest = 0
+  let mut largest_string = 0
   while work.length() > 0 {
     let task = work.pop().unwrap()
     match task {
@@ -87,6 +89,7 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
           return Err(at(tree, parent, edge, node.span, BudgetExceeded))
         }
         let depth = parent_depth + (if is_container { 1 } else { 0 })
+        deepest = Int::max(deepest, depth)
         let remaining_nodes = limits.max_nodes - tree.length() - 1
         let value : OwnedValue = match node.value {
           @source.Null => Null
@@ -94,7 +97,10 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
           @source.Number(value) => Number(value)
           @source.String(value) => {
             match text_charge(value, limits, remaining_text) {
-              Ok(size) => remaining_text = remaining_text - size
+              Ok(size) => {
+                remaining_text -= size
+                largest_string = Int::max(largest_string, size)
+              }
               Err(kind) => return Err(at(tree, parent, edge, node.span, kind))
             }
             Text(value)
@@ -141,7 +147,10 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
           let field = fields[next]
           let edge = Field(field.key, field.key_span)
           match text_charge(field.key, limits, remaining_text) {
-            Ok(size) => remaining_text = remaining_text - size
+            Ok(size) => {
+              remaining_text -= size
+              largest_string = Int::max(largest_string, size)
+            }
             Err(kind) =>
               return Err(at(tree, parent, edge, field.key_span, kind))
           }
@@ -153,5 +162,14 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
         }
     }
   }
-  Ok({ tree, index: 0, })
+  Ok({
+    tree,
+    index: 0,
+    usage: {
+      nodes: tree.length(),
+      depth: deepest,
+      largest_string_bytes: largest_string,
+      total_string_bytes: limits.max_total_string_bytes - remaining_text,
+    },
+  })
 }

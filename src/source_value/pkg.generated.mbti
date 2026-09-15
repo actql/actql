@@ -11,9 +11,17 @@ pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, Pa
 
 pub fn parse_json_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
+pub fn parse_json_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
 pub fn parse_yaml(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
 pub fn parse_yaml_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
+
+pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
 // Errors
 
@@ -76,6 +84,17 @@ pub(all) enum ParseLocation {
   Utf16Offset(Int)
   Unavailable
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ParseUsage {
+  input_bytes : Int
+  nodes : Int
+  depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParsedSource {
+  node : Node
+  usage : ParseUsage
+}
 
 pub(all) enum PathSegment {
   Key(String)

@@ -29,6 +29,8 @@ pub fn parse_bytes(Bytes, Limits, format? : Format, source_path? : String) -> Re
 
 pub fn program_body(Program) -> @decode_core.Cursor
 
+pub fn program_usage(Program) -> ProgramUsage
+
 pub fn result_names(Stage) -> Array[String]
 
 pub fn stage_body(Stage) -> @decode_core.Cursor
@@ -36,6 +38,8 @@ pub fn stage_body(Stage) -> @decode_core.Cursor
 pub fn stage_count(Program) -> Int
 
 pub fn stages(Program) -> Array[Stage]
+
+pub fn validate_reuse(Program, Limits) -> Result[Unit, SyntaxError]
 
 // Errors
 
@@ -68,6 +72,23 @@ pub struct Program {
   // private fields
 }
 
+pub(all) struct ProgramUsage {
+  source : @source_value.ParseUsage
+  tree : @decode_core.AdmissionUsage
+  stages : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RetentionLimit {
+  InputBytes
+  SourceNodes
+  SourceDepth
+  TreeNodes
+  TreeDepth
+  StringBytes
+  TotalStringBytes
+  Stages
+} derive(Eq, @debug.Debug)
+
 pub struct Stage {
   id : String
   predecessor : Predecessor
@@ -95,6 +116,7 @@ pub(all) enum SyntaxError {
   Parse(@source_value.ParseError)
   Alternatives(json~ : @source_value.ParseError, yaml~ : @source_value.ParseError)
   Decode(@decode_core.Issue)
+  RetentionLimit(RetentionLimit, source_path~ : String)
   Structure(StructuralIssue, path~ : Array[@source_value.PathSegment], span~ : @source_span.Span)
 } derive(Eq, @debug.Debug)
 

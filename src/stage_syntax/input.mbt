@@ -35,6 +35,7 @@ pub(all) enum SyntaxError {
   Parse(@source.ParseError)
   Alternatives(json~ : @source.ParseError, yaml~ : @source.ParseError)
   Decode(@wire.Issue)
+  RetentionLimit(RetentionLimit, source_path~ : String)
   Structure(
     StructuralIssue,
     path~ : Array[@source.PathSegment],
@@ -90,9 +91,9 @@ fn retry_yaml(issue : @source.ParseIssue) -> Bool {
 
 ///|
 fn read_source(
-  read : (Format) -> Result[@source.Node, @source.ParseError],
+  read : (Format) -> Result[@source.ParsedSource, @source.ParseError],
   format : Format,
-) -> Result[@source.Node, SyntaxError] {
+) -> Result[@source.ParsedSource, SyntaxError] {
   if format != Auto {
     return read(format).map_err(error => Parse(error))
   }
@@ -121,14 +122,14 @@ fn read_source(
 
 ///|
 fn admit_program(
-  node : @source.Node,
+  parsed : @source.ParsedSource,
   limits : Limits,
 ) -> Result[Program, SyntaxError] {
-  let root = match @wire.admit(node, limits.tree) {
+  let root = match @wire.admit(parsed.node, limits.tree) {
     Ok(root) => root
     Err(issue) => return Err(Decode(issue))
   }
-  Ok(decode(root, limits.max_stages)) catch {
+  Ok(decode(root, limits.max_stages, parsed.usage)) catch {
     Abort(error) => Err(error)
   }
 }
@@ -148,9 +149,9 @@ pub fn parse(
   let node = read_source(
     format => {
       if format == Yaml {
-        @source.parse_yaml(source, limits.source, source_path~)
+        @source.parse_yaml_measured(source, limits.source, source_path~)
       } else {
-        @source.parse_json(source, limits.source, source_path~)
+        @source.parse_json_measured(source, limits.source, source_path~)
       }
     },
     format,
@@ -175,9 +176,9 @@ pub fn parse_bytes(
   let node = read_source(
     format => {
       if format == Yaml {
-        @source.parse_yaml_bytes(source, limits.source, source_path~)
+        @source.parse_yaml_bytes_measured(source, limits.source, source_path~)
       } else {
-        @source.parse_json_bytes(source, limits.source, source_path~)
+        @source.parse_json_bytes_measured(source, limits.source, source_path~)
       }
     },
     format,

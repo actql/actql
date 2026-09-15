@@ -33,6 +33,23 @@ pub(all) struct ParseLimits {
 } derive(Eq, Debug)
 
 ///|
+/// Successful parser measurements, before any consumer's tree admission.
+/// Input bytes include BOM, whitespace and comments; depth counts containers.
+pub(all) struct ParseUsage {
+  input_bytes : Int
+  nodes : Int
+  depth : Int
+} derive(Eq, Debug)
+
+///|
+/// Editable syntax plus measurements of the original parse. Editing the Node
+/// does not update these measurements or make it admitted consumer input.
+pub(all) struct ParsedSource {
+  node : Node
+  usage : ParseUsage
+}
+
+///|
 pub(all) enum PathSegment {
   Key(String)
   Index(Int)

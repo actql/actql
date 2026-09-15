@@ -41,6 +41,7 @@ fn Parser::document(self : Parser) -> Node raise ParseAbort {
           if frames.length() >= self.limits.max_depth {
             self.fail(DepthLimit, self.path)
           }
+          self.deepest = Int::max(self.deepest, frames.length() + 1)
           let container = if self.peek() == Some(0x5b) {
             ArrayItems([])
           } else {

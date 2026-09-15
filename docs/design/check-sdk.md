@@ -17,6 +17,22 @@ but retained document size, structure and depth must still satisfy the limits
 of the current call. Source locations survive both paths. File and URL readers
 belong to Host conveniences, not to Core checking.
 
+The reusable Program owns measurements from its original parse and immutable
+tree admission. Raw input bytes include a BOM, trailing whitespace and YAML
+comments; a root span is not a substitute for document size. Parser node/depth
+measurements and admitted-tree node/depth/text measurements remain distinct.
+Admitted text bytes include field names, with both a largest-string limit and
+an aggregate string limit. These measurements describe retained input, not
+CPU work repeated by reading them. A child cursor's admission measurements
+describe its whole owned tree, not the child subtree.
+
+Reuse checks each current retention limit without reparsing, rebuilding the
+tree or repeating structural stage validation. An exceeded retention dimension
+is a diagnostic, not an external evidence request. It retains the source name
+without fabricating a source span for an aggregate size failure. Semantic
+checking and its current environment, bindings and compile budget still apply;
+successful retention validation alone does not construct a CheckedProgram.
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.

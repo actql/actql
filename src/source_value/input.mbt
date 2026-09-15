@@ -22,11 +22,25 @@ fn parse_admitted(
   source_path : String,
   limits : ParseLimits,
   yaml : Bool,
-) -> Result[Node, ParseError] {
+) -> Result[ParsedSource, ParseError] {
   let parser = Parser::make(source, source_path, limits)
-  Ok(if yaml { parser.yaml_document() } else { parser.document() }) catch {
-    ParseAbort(error) => Err(error)
+  let node = try {
+    if yaml {
+      parser.yaml_document()
+    } else {
+      parser.document()
+    }
+  } catch {
+    ParseAbort(error) => return Err(error)
   }
+  Ok({
+    node,
+    usage: {
+      input_bytes: parser.byte_offset,
+      nodes: parser.nodes,
+      depth: parser.deepest,
+    },
+  })
 }
 
 ///|
@@ -36,7 +50,7 @@ fn parse_text_input(
   limits : ParseLimits,
   source_path : String,
   yaml : Bool,
-) -> Result[Node, ParseError] {
+) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
@@ -57,7 +71,7 @@ fn parse_bytes_input(
   limits : ParseLimits,
   source_path : String,
   yaml : Bool,
-) -> Result[Node, ParseError] {
+) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
@@ -84,7 +98,7 @@ pub fn parse_json(
   limits : ParseLimits,
   source_path? : String = "<memory>",
 ) -> Result[Node, ParseError] {
-  parse_text_input(source, limits, source_path, false)
+  parse_text_input(source, limits, source_path, false).map(parsed => parsed.node)
 }
 
 ///|
@@ -94,7 +108,9 @@ pub fn parse_json_bytes(
   limits : ParseLimits,
   source_path? : String = "<memory>",
 ) -> Result[Node, ParseError] {
-  parse_bytes_input(source, limits, source_path, false)
+  parse_bytes_input(source, limits, source_path, false).map(parsed => {
+    parsed.node
+  })
 }
 
 ///|
@@ -105,7 +121,7 @@ pub fn parse_yaml(
   limits : ParseLimits,
   source_path? : String = "<memory>",
 ) -> Result[Node, ParseError] {
-  parse_text_input(source, limits, source_path, true)
+  parse_text_input(source, limits, source_path, true).map(parsed => parsed.node)
 }
 
 ///|
@@ -114,5 +130,41 @@ pub fn parse_yaml_bytes(
   limits : ParseLimits,
   source_path? : String = "<memory>",
 ) -> Result[Node, ParseError] {
+  parse_bytes_input(source, limits, source_path, true).map(parsed => parsed.node)
+}
+
+///|
+pub fn parse_json_measured(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_text_input(source, limits, source_path, false)
+}
+
+///|
+pub fn parse_yaml_measured(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_text_input(source, limits, source_path, true)
+}
+
+///|
+pub fn parse_json_bytes_measured(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_bytes_input(source, limits, source_path, false)
+}
+
+///|
+pub fn parse_yaml_bytes_measured(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
   parse_bytes_input(source, limits, source_path, true)
 }
