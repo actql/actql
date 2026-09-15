@@ -28,6 +28,8 @@ pub enum ProgramIdentityIssue {
 ///|
 struct ProgramSourceIdentity {
   sources : ProgramSourceChecks
+  requests : SourceRequestContexts
+  reconciled : ReconciledContexts
   contexts : StageContexts
   definition : @program_refs.ProgramDefinition
   definition_cid : String
@@ -188,7 +190,9 @@ pub fn identify_program_sources(
   nodes += parameter_hash.2
   Ok({
     sources,
-    contexts: sources.operations.preparation.profiles.context.selected.context.wired.stages,
+    requests: sources.operations.preparation.requests,
+    reconciled: sources.operations.preparation.selected.context,
+    contexts: sources.operations.preparation.selected.context.wired.stages,
     definition,
     definition_cid: "sha256:" + definition_hash.0,
     parameter_values_cid: "sha256:" + parameter_hash.0,
@@ -247,10 +251,7 @@ pub fn program_identity_stage_requests(
   v : ProgramSourceIdentity,
   stage_index : Int,
 ) -> @sourceviews.PipelineRequests? {
-  source_request_stage(
-    v.sources.operations.preparation.sources.capacity.context.rows.requests,
-    stage_index,
-  )
+  source_request_stage(v.requests, stage_index)
 }
 
 ///|

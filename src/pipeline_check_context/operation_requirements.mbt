@@ -47,7 +47,7 @@ pub fn collect_program_operation_requirements(
   work += 1
   let profile_checks = expressions.identity.sources.operations
   let preparation = profile_checks.preparation
-  let capacity = preparation.profiles.context.selected.capacity
+  let capacity = preparation.selected.capacity
   let stages = expressions.identity.contexts
   let entries : Array[OperationRequirementSite] = []
   for stage in 0..<stages.contexts.length() {

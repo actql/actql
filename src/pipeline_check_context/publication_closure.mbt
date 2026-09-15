@@ -45,7 +45,7 @@ pub fn close_program_publications(
   if max_work < 0 || max_requirements < 0 {
     return Err(InvalidLimits)
   }
-  let stages = owner.incoming.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.incoming.identity.contexts
   let wiring = owner.incoming.wiring
   if owner.work >= max_work ||
     stages.contexts.length() > max_work - owner.work - 1 {

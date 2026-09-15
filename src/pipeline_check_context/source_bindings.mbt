@@ -29,7 +29,7 @@ pub fn collect_source_bindings(
     return Err(BudgetExceeded)
   }
   work += 1
-  let requests = preparation.sources.capacity.context.rows.requests
+  let requests = preparation.requests
   let stages = []
   let mut count = 0
   for i in 0..<requests.stages.length() {

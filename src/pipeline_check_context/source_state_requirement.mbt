@@ -61,7 +61,7 @@ pub fn prepare_source_state_requirement(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let requests = identity.sources.operations.preparation.sources.capacity.context.rows.requests
+  let requests = identity.requests
   guard requests.stages.get(stage) is Some(selected) else {
     return Err(InvalidOccurrence)
   }

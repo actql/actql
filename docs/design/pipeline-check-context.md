@@ -49,6 +49,14 @@ closure through read-only accessors. The constructor does not retain caller
 arrays. Errors preserve the originating order/binding/capacity diagnosis,
 including the failing producer. A late failure exposes no partial context.
 
+Program preparation retains its exact source-request and selected-policy
+contexts after checking their common owner. Program source identity retains
+those source requests and the reconciled input context directly. Source contract,
+incoming, and publication consumers use these immutable dependencies rather than
+recovering them through expression-profile or capacity preparation history.
+Retaining a dependency does not reconstruct it, discharge an obligation, or
+replace the exact-owner checks when independently prepared branches are joined.
+
 ## Cumulative limits
 
 Step and Result caps are passed to whole-closure order resolution. Work and

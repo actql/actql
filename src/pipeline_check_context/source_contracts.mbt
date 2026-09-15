@@ -81,7 +81,7 @@ pub fn bind_program_source_contracts(
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
+  let context = identity.requests.inputs
   if !physical_equal(context, requirements.context) {
     return Err(ForeignContext)
   }
@@ -203,7 +203,7 @@ pub fn program_source_contract_body_at(
   if kind != "carrier_facts" && kind != "pushdown" {
     return source_contract_body_at(v.requirements, stage, input, reference)
   }
-  let requests = v.identity.sources.operations.preparation.sources.capacity.context.rows.requests
+  let requests = v.identity.requests
   if kind == "pushdown" {
     guard requests.pushdowns is Some(pushdowns) else {
       return Err(@environment.MissingBodyAdmission)

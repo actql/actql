@@ -50,7 +50,7 @@ pub fn prepare_program_source_identity(
     Err(e) => return Err(Bindings(e))
   }
   let extra = bindings.work - preparation.usage.work
-  let stages = preparation.sources.capacity.context.rows.requests.contexts
+  let stages = preparation.requests.contexts
   let references = match
     prepare_program_references(
       operations,

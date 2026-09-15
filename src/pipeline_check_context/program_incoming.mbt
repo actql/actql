@@ -115,7 +115,7 @@ pub fn collect_program_incoming(
     limits.max_requirements < 0 {
     return Err(InvalidLimits)
   }
-  let wired = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs.wired
+  let wired = identity.requests.inputs.wired
   let wiring = wired.wiring
   let source = @stage_results.wiring_source(wiring)
   let source_owner = @stages.operations_source(

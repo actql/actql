@@ -85,7 +85,7 @@ pub fn link_resolved_program_incoming(
     return Err(BudgetExceeded)
   }
   let (local_inputs, local_work) = collect_local_input_requirements(
-    identity.sources.operations.preparation.profiles.context.selected.context,
+    identity.reconciled,
     limits.max_work - extra - 1 - resolutions.work,
   ) catch {
     Stop(issue) => return Err(issue)

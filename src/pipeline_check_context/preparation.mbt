@@ -22,6 +22,8 @@ pub(all) enum PreparationIssue {
 ///|
 /// Owned assembly, not a lowering-ready Program or an execution permit.
 struct ProgramPreparation {
+  requests : SourceRequestContexts
+  selected : SelectedPolicyContext
   sources : SourceProducerContext
   expressions : TextBoundsChecks
   profiles : ExpressionProfileChecks
@@ -74,6 +76,8 @@ pub fn assemble_preparation(
     return Err(BudgetExceeded)
   }
   Ok({
+    requests,
+    selected,
     sources,
     expressions,
     profiles,

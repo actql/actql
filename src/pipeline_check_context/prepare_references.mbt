@@ -27,7 +27,7 @@ pub fn prepare_program_references(
     reference_limits.max_work < 0 {
     return Err(InvalidLimits)
   }
-  let requests = operations.preparation.sources.capacity.context.rows.requests
+  let requests = operations.preparation.requests
   let stages = requests.contexts
   let collected = @stages.bound_operations(stages.operations)
   let source = @stages.operations_source(collected)

@@ -40,7 +40,7 @@ pub fn check_operation_profiles(
     return Err(BudgetExceeded)
   }
   work += 1
-  let stages = preparation.profiles.context.selected.context.wired.stages
+  let stages = preparation.selected.context.wired.stages
   let mut count = 0
   for stage in 0..<stages.contexts.length() {
     if work == max_work {

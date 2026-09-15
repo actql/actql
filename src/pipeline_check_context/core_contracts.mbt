@@ -279,7 +279,7 @@ pub fn collect_core_contracts(
   if limits.max_work == 0 {
     return Err(BudgetExceeded)
   }
-  let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
+  let context = identity.requests.inputs
   // Only the remaining Program work may be spent on the source branch.
   // Reserve the owner join before the branch can allocate its inventory.
   let source_work_limit = limits.max_work - 1

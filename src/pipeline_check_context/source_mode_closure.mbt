@@ -45,7 +45,7 @@ pub fn close_program_source_modes(
   if max_work < 0 || max_checks < 0 {
     return Err(InvalidLimits)
   }
-  let requests = owner.incoming.identity.sources.operations.preparation.sources.capacity.context.rows.requests
+  let requests = owner.incoming.identity.requests
   let mut work = owner.work
   if work >= max_work {
     return Err(BudgetExceeded)
