@@ -778,6 +778,7 @@ pub enum InputRequestKind {
   TextRankProfileArtifact(@check_environment.TextRankSelection)
   HostCalendarSelection
   CalendarProfileArtifact(@check_environment.CalendarSelection)
+  NumericReductionProfile(@decode_core.Cursor)
 }
 
 type InputRequests

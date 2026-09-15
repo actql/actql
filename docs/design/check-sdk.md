@@ -133,6 +133,18 @@ rejections, not supplementation requests. Topology preparation without Calendar
 operations does not itself require table material; the complete Program's
 profile attachment checks remain a separate boundary.
 
+`NumericReductionProfile` identifies the authored aggregate that needs an
+admitted numeric reduction profile. It is emitted only for a retained numeric
+aggregate obligation in a supported group, window-group, analytic or pivot
+operation when the checking environment has no profile. Its source and path
+refer to that Program occurrence, not to an invented Host policy property.
+The caller admits the profile in `spec/contracts/actql-numeric-reduction.json`
+with `numeric_reduction.admit` and supplies it through `checking_environment`
+before rechecking. Admission verifies the pinned profile and dependencies;
+neither the request nor profile admission selects a future observation, grants
+execution permission or discharges runtime checks. Other unresolved operations,
+and unresolved operations despite an already supplied profile, remain rejections.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

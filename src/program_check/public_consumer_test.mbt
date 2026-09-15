@@ -59,6 +59,7 @@ fn public_input_fixture(
   lexical_profile? : Bool = false,
   calendar_selection? : (String, String)? = None,
   calendar_profile? : Bool = false,
+  numeric_profile? : @numeric.Profile? = None,
   temporal_join_step? : Int? = None,
 ) -> (
   String,
@@ -230,6 +231,7 @@ fn public_input_fixture(
         calendar: calendar_profile,
         text_rank: lexical_profile,
       },
+      numeric_profile~,
     ),
     if temporal_join_step is Some(step) {
       [

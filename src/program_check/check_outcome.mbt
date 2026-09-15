@@ -34,6 +34,7 @@ priv enum RequestInventory {
   TextRankArtifact(@environment.TextRankSelection)
   CalendarSelection
   CalendarArtifact(@environment.CalendarSelection)
+  NumericProfile(@decode.Cursor)
 }
 
 ///|
@@ -45,6 +46,7 @@ pub enum InputRequestKind {
   TextRankProfileArtifact(@environment.TextRankSelection)
   HostCalendarSelection
   CalendarProfileArtifact(@environment.CalendarSelection)
+  NumericReductionProfile(@decode.Cursor)
 }
 
 ///|
@@ -63,7 +65,8 @@ pub fn input_request_count(value : InputRequests) -> Int {
     | TextRankSelection
     | TextRankArtifact(_)
     | CalendarSelection
-    | CalendarArtifact(_) => 1
+    | CalendarArtifact(_)
+    | NumericProfile(_) => 1
   }
 }
 
@@ -115,6 +118,12 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       CalendarProfileArtifact(selection)
     }
+    NumericProfile(source) => {
+      if index != 0 {
+        return None
+      }
+      NumericReductionProfile(source)
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
@@ -135,6 +144,7 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     HostCalendarSelection => [Key("host_policy_profile"), Key("calendar")]
     CalendarProfileArtifact(_) =>
       [Key("host_policy_profile"), Key("calendar"), Key("table_bytes_cid")]
+    NumericReductionProfile(source) => @decode.cursor_path(source)
   }
 }
 
@@ -151,6 +161,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
       Some(@environment.text_rank_selection_source(selection))
     CalendarProfileArtifact(selection) =>
       Some(@environment.calendar_selection_source(selection))
+    NumericReductionProfile(source) => Some(source)
   }
 }
 
@@ -191,6 +202,30 @@ fn checking_outcome(
           CalendarArtifact(selection)
         Source(SourceView(Program(MissingCalendarSelection(_, _)))) =>
           CalendarSelection
+        Closure(UnresolvedOperation(site)) if environment.numeric is None => {
+          guard site.requirement is @pipeline.RelationRequirement(pending) &&
+            pending.kind is @relation.NumericAggregateObservation &&
+            @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
+            return rejected(error)
+          }
+          let supported = match step.operation {
+            @pipeline.WindowGroup(_) => true
+            @pipeline.Unary(operation) =>
+              @relation.group(operation) is Some(_) ||
+              @relation.analytic(operation) is Some(_) ||
+              @relation.pivot(operation) is Some(_)
+            _ => false
+          }
+          guard supported &&
+            @pipeline.operation_obligation_source_at(
+              site.obligations,
+              site.index,
+            )
+            is Some(source) else {
+            return rejected(error)
+          }
+          NumericProfile(source)
+        }
         _ => return rejected(error)
       }
       NeedsInputs({

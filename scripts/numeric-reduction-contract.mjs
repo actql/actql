@@ -52,6 +52,7 @@ for (const [file, text] of [
   ['src/numeric_reduction/fixture.generated_test.mbt', fixture],
   ['src/program_check/numeric_profile.generated_wbtest.mbt', `// Independent pinned profile input.\n///|\nfn numeric_profile_fixture() -> @numeric.Profile {\n  let bytes = @utf8.encode(${JSON.stringify(canonical(profile))})\n  @numeric.admit(bytes, ${JSON.stringify(cid(profile))}, bytes.length()).unwrap()\n}\n`],
   ['src/pipeline_check_context/numeric_profile.generated_test.mbt', `// Generated independent profile input.\n///|\nfn numeric_profile_fixture() -> @numeric.Profile {\n  let bytes = @utf8.encode(${JSON.stringify(canonical(profile))})\n  @numeric.admit(bytes, ${JSON.stringify(cid(profile))}, bytes.length()).unwrap()\n}\n`],
+  ['src/program_check/numeric_profile.generated_test.mbt', `// Independent pinned profile input.\n///|\nfn numeric_profile_fixture() -> @numeric.Profile {\n  let bytes = @utf8.encode(${JSON.stringify(canonical(profile))})\n  @numeric.admit(bytes, ${JSON.stringify(cid(profile))}, bytes.length()).unwrap()\n}\n`],
 ]) {
   if (process.argv.includes('--write')) writeFileSync(file, text);
   assert.equal(readFileSync(file, 'utf8'), text, `stale numeric profile fixture: ${file}`);
