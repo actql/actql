@@ -58,12 +58,20 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
     const count = core.count(setup);
     for (let step = 1; step < count; step++) {
       signal?.throwIfAborted();
-      for (const entry of installed.values()) await entry.beforeNext?.();
+      for (const entry of installed.values()) {
+        signal?.throwIfAborted();
+        await entry.beforeNext?.();
+        // Even an absent callback yields to the caller. Cancellation during
+        // preparation must not authorize another callback or a fresh attempt.
+        signal?.throwIfAborted();
+      }
+      signal?.throwIfAborted();
       const task = core.next(setup);
       if (task == null) break;
       const index = core.task(task);
       const entry = installed.get(core.registration(task));
       if (!entry) throw new StrategyHostError('MissingStrategyImplementation');
+      signal?.throwIfAborted();
       const result = await entry.run(task, signal);
       if (result?.close) outputs.push(result);
       // A callback's resolved Promise is not a completion proof. The core must

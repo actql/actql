@@ -27,6 +27,34 @@ function fixture(registrations) {
   return {setup, core, complete, stopped: () => stopped, closed: () => closed};
 }
 
+test('cancellation after preparation or task selection stops normal work but finalizes all entries', async () => {
+  for (const phase of ['preparation','dispatch']) {
+    const registration = {}, f = fixture([registration]);
+    const abort = new AbortController();
+    let resumes, preparations = 0, executions = 0, finishes = 0;
+    const wait = new Promise(resolve => { resumes = resolve; });
+    if (phase === 'dispatch') {
+      const next = f.core.next;
+      f.core.next = () => { abort.abort(); return next(); };
+    }
+    const entries = [registration,{}].map((registration,index) => ({
+      registration,
+      async beforeNext() { preparations++; if (phase === 'preparation' && index === 0) await wait; },
+      run() { executions++; }, finish() { finishes++; },
+    }));
+    const pending = runInstalledStrategy(f.setup,f.core,entries,abort.signal);
+    if (phase === 'preparation') { abort.abort(); resumes(); }
+    const result = await pending;
+    assert.equal(result.status,'host-tasks-failed');
+    assert.equal(executions,0);
+    assert.equal(preparations,phase === 'preparation' ? 1 : 2);
+    assert.equal(finishes,2);
+    assert.equal(f.stopped(),1);
+    result.close();
+    assert.equal(await result.cleanup(),true);
+  }
+});
+
 test('opaque registrations choose installed execution without a backend classification', async () => {
   const a = {}, b = {}, c = {};
   const f = fixture([a, c, b]);

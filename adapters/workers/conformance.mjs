@@ -3,6 +3,40 @@ import {instantiate} from '../../_build/workers/modules/fixture.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {bindWorkersHost} from './host.mjs';
 import {runAsyncCase} from './async-conformance.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {withScopedStrategy} from './invocation.mjs';
+import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';
+
+// Exercise actual Local admission with cancellation at Host await boundaries.
+export async function cancellationCase(waiting = false) {
+  const moon = instantiate(0);
+  const scenario = checked(moon.prepareWorkersScenario(['{"id":3}'],false,100,'id > 2'));
+  const setup = moon.workersScenarioHost(scenario), host = bindWorkersHost(moon);
+  const abort = new AbortController();
+  const before = host.usage(setup);
+  let consumed = 0, prepared = 0, finished = 0, resume;
+  const consume = () => { consumed++; };
+  let pending;
+  if (waiting) {
+    const wait = new Promise(resolve => { resume = resolve; });
+    const entries = installStrategyContributions(moon,setup,checked,{});
+    const first = entries[0];
+    pending = withScopedStrategy(setup,runtimeCore(moon),[
+      {...first, beforeNext: async () => { prepared++; await wait; },
+        finish: async () => { finished++; await first.finish?.(); }},
+      {registration:{}, beforeNext: () => { prepared++; },
+        run: () => { throw new Error('Unexpected dispatch'); }, finish: () => { finished++; }},
+    ],consume,abort.signal);
+  } else pending = host.withCapturedStrategy(setup,consume,abort.signal);
+  abort.abort('cancel before dispatch');
+  resume?.();
+  let failed = false, cleanupPending = false;
+  try { await pending; } catch (error) {
+    failed = true;
+    cleanupPending = !!error.cleanupHandle?.status().pending;
+  } finally { moon.closeWorkersScenario(scenario); }
+  return {before,after:host.usage(setup),consumed,prepared,finished,failed,cleanupPending};
+}
 
 export async function runCase({rows, nullable = false, maxRows = 100, cancel = false, hashSeed = 0, consumeFailure = false, computeFilter = 'id > 2'}) {
   const fixture = instantiate(hashSeed);
@@ -43,6 +77,10 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
 export default {
   async fetch(request) {
     const input = await request.json();
+    if (input.action === 'cancel-before-dispatch') {
+      const value = await cancellationCase(input.waiting);
+      return new Response(JSON.stringify(value,(_,item) => typeof item === 'bigint' ? String(item) : item));
+    }
     if (input.action === 'invalid-program') {
       return Response.json(checked(instantiate(0).workersRejectInvalidProgram()));
     }
