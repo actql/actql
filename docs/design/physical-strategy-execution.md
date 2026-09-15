@@ -614,3 +614,17 @@ This connector completion is not a DAG success notification. The common driver
 must still enforce selected-attempt ownership, reservation and holding attachment
 before publishing task success. Raw selected positions or admitted rows carry no
 completion authority.
+
+The reference implementation contributes a Compute-only bundle. Its installed
+entry binds an opaque numeric plan to the exact common request and registration;
+the common cost selector does not inspect that payload. Requests selecting a
+common fragment are rejected because this specialization does not implement that
+fragment's logical work/live-value metering. Common rows/value guards still apply.
+
+Execution preparation declares bounded allocation-unit capacity from the selected
+kernel and measurement limits. It borrows fixed input storage and charges no
+transport for that in-process access. The common driver reserves capacity before
+creating the attempt. Kernel execution is one-shot; cancellation or confirmed
+settlement prevents a subsequent start. Completion and holding attachment remain
+common-driver operations, and cancellation alone does not settle its reservation.
+Allocation-unit capacity is not a claim about target-runtime heap size or RSS.

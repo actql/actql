@@ -21,6 +21,7 @@ pub(all) enum PlanIssue {
   RootWorkLimit(Int, Int)
   RootMeasurement(Int, Int, @encode.EncodeFailure)
   Completion(@execution.TrustedOutputIssue)
+  Candidate(@connector.FixedComputeIssue)
 }
 
 ///|
