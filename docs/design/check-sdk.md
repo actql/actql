@@ -170,6 +170,16 @@ existing rules. A join output ceiling, publication ceiling or physical budget
 is not an input-row proof. Overflow, foreign evidence, invalid occurrences and
 compilation exhaustion remain rejections; no partial CheckedProgram is returned.
 
+`KeyedAcquisitionInputRows` points to the authored join whose left input lacks
+an applicable positive row bound for keyed acquisition. It is produced only
+after bounded candidate selection, retaining the original join cursor instead
+of recovering it from preparation indices in the SDK. Existing zero upper
+bounds are not silently promoted to positive candidates. A newly supplied
+bound must pass the ordinary Program, target and owner checks on rechecking;
+alternatively a changed Program can obtain a bound from existing derivation
+rules. Host output ceilings do not prove the left input bound. This requirement
+does not authorize acquisition or establish a completed source observation.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

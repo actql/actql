@@ -3326,7 +3326,7 @@ pub enum SourceRowsIssue {
   Stage(Int, @sourceview_resolution.KeyedRowsIssue)
   InvalidVisit(Int, Int)
   InvalidClaim(Int, Int)
-  MissingPositiveBound(Int, Int)
+  MissingPositiveBound(Int, Int, @decode_core.Cursor)
   Target(Int, Int, @capacity_program_step.TargetRowsIssue)
 }
 

@@ -781,6 +781,7 @@ pub enum InputRequestKind {
   NumericReductionProfile(@decode_core.Cursor)
   AggregateStringByteLimit(@decode_core.Cursor)
   TemporalSearchInputRows(@decode_core.Cursor, SearchInputSide)
+  KeyedAcquisitionInputRows(@decode_core.Cursor)
 }
 
 type InputRequests

@@ -99,7 +99,12 @@ fn select_source_acquisition_rows(
         }
       }
       guard best is Some(selected) else {
-        return Err(Rows(MissingPositiveBound(stage, index)))
+        let join = @sourceviews.keyed_join_at(joins, index).unwrap()
+        let step = @pipeline.step_at(
+          pipeline,
+          @sourceviews.keyed_join_step(join),
+        ).unwrap()
+        return Err(Rows(MissingPositiveBound(stage, index, step.source)))
       }
       selected_rows[key] = selected
       rows.push(@capacity.target_membership_rows(selected))

@@ -37,6 +37,7 @@ priv enum RequestInventory {
   NumericProfile(@decode.Cursor)
   AggregateStringLimit(@decode.Cursor)
   SearchRows(@decode.Cursor, Bool, Bool)
+  KeyedRows(@decode.Cursor)
 }
 
 ///|
@@ -57,6 +58,7 @@ pub enum InputRequestKind {
   NumericReductionProfile(@decode.Cursor)
   AggregateStringByteLimit(@decode.Cursor)
   TemporalSearchInputRows(@decode.Cursor, SearchInputSide)
+  KeyedAcquisitionInputRows(@decode.Cursor)
 }
 
 ///|
@@ -79,7 +81,8 @@ pub fn input_request_count(value : InputRequests) -> Int {
     | CalendarSelection
     | CalendarArtifact(_)
     | NumericProfile(_)
-    | AggregateStringLimit(_) => 1
+    | AggregateStringLimit(_)
+    | KeyedRows(_) => 1
   }
 }
 
@@ -143,6 +146,12 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       AggregateStringByteLimit(source)
     }
+    KeyedRows(source) => {
+      if index != 0 {
+        return None
+      }
+      KeyedAcquisitionInputRows(source)
+    }
     SearchRows(source, left, right) => {
       let side = if index == 0 && left {
         Left
@@ -176,6 +185,7 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     NumericReductionProfile(source) => @decode.cursor_path(source)
     AggregateStringByteLimit(source) => @decode.cursor_path(source)
     TemporalSearchInputRows(source, _) => @decode.cursor_path(source)
+    KeyedAcquisitionInputRows(source) => @decode.cursor_path(source)
   }
 }
 
@@ -195,6 +205,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
     NumericReductionProfile(source) => Some(source)
     AggregateStringByteLimit(source) => Some(source)
     TemporalSearchInputRows(source, _) => Some(source)
+    KeyedAcquisitionInputRows(source) => Some(source)
   }
 }
 
@@ -222,6 +233,8 @@ fn checking_outcome(
         Source(SourceView(Binding(NeedsBindings(missing)))) =>
           Parameters(missing)
         Source(SourceView(Context(Policy(MissingCapacity)))) => CapacityPolicy
+        Source(Requests(Rows(MissingPositiveBound(_, _, source)))) =>
+          KeyedRows(source)
         Source(Checks(Patterns(Timestamp(MissingPolicy(_)))))
         | Source(Checks(Patterns(Regex(MissingPolicy(_)))))
         | Source(Checks(TextBounds(MissingPolicy(_)))) => TextTimePolicy

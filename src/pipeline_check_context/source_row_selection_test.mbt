@@ -57,6 +57,6 @@ test "automatic keyed source selection does not substitute a Host ceiling for a 
       max_bindings=100,
       max_slots=1000,
     )
-    is Err(Rows(MissingPositiveBound(0, 0))),
+    is Err(Rows(MissingPositiveBound(0, 0, _))),
   )
 }
