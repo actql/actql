@@ -32,7 +32,7 @@ pub fn bind_source_producers(
   if work > max_work {
     return Err(BudgetExceeded)
   }
-  let stages = capacity.context.policy.context.wired.stages
+  let stages = capacity.contexts
   let memberships = []
   for i in 0..<locations.length() {
     if work >= max_work {

@@ -8,6 +8,7 @@ pub enum SourceCapacityIssue {
 ///|
 struct SourceCapacityContext {
   context : SourcePolicyContext
+  contexts : StageContexts
   stages : Array[@sourceviews.LookupBounds]
   work : Int
 }
@@ -42,7 +43,7 @@ pub fn check_source_capacity(
     work += @sourceviews.lookup_bounds_work(result)
     stages.push(result)
   }
-  Ok({ context, stages, work, })
+  Ok({ context, contexts: context.rows.requests.contexts, stages, work, })
 }
 
 ///|

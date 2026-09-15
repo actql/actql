@@ -228,6 +228,14 @@ wrappers to recover that information. Phase-specific checked types still record
 what was validated; retaining a narrow shared reference does not make an earlier
 phase a later successful one.
 
+Expression validation retains the exact Stage contexts used to collect its
+sites, so site readers retrieve bindings without following selected-policy
+preparation wrappers. Source capacity retains those same owned contexts after
+the source-policy join. Operation resolution retains admitted cells directly;
+values resource validation does not depend on Calendar or lexical wrapper layout.
+These references preserve the existing owners without reconstruction or lookup
+caches, and do not alter the accounting of the checks that use them.
+
 Operation resolution phases retain the same immutable requirement inventory
 directly. That inventory retains its Stage contexts, selected capacity environment
 and checker-profile evidence. Scalar, frame, fill, range, query, cell and profile

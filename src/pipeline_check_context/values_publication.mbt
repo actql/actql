@@ -207,7 +207,7 @@ pub fn resolve_program_values_resources(
   let mut remaining = limits.max_values
   let states = index.states.copy()
   let mut unresolved = index.unresolved
-  let cells = index.profiles.calendar.lexical.cells
+  let cells = index.cells
   for i in 0..<count {
     let site = index.requirements.entries[i]
     guard site.requirement
@@ -292,6 +292,7 @@ pub fn resolve_program_values_resources(
   }
   Ok({
     profiles: index.profiles,
+    cells: index.cells,
     requirements: index.requirements,
     states,
     unresolved,

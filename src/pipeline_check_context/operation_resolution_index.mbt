@@ -35,6 +35,7 @@ pub(all) enum OperationResolutionIndexIssue {
 ///|
 struct ProgramOperationResolutionIndex {
   profiles : ProgramOperationProfileLinks
+  cells : ProgramOperationCells
   requirements : ProgramOperationRequirements
   states : Array[OperationResolutionState]
   unresolved : Int
@@ -411,6 +412,7 @@ pub fn index_program_operation_resolutions(
   }
   Ok({
     profiles,
+    cells,
     requirements,
     states,
     unresolved,

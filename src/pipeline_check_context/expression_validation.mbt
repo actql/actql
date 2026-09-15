@@ -17,6 +17,7 @@ pub(all) enum ExpressionValidationIssue {
 ///|
 struct ExpressionValidationContext {
   selected : SelectedPolicyContext
+  stages : StageContexts
   text_time : @environment.TextTime?
   sites : Array[(Int, Int)]
   usage : SelectedPolicyUsage
@@ -97,6 +98,7 @@ pub fn prepare_expression_validation(
   }
   Ok({
     selected,
+    stages,
     text_time,
     sites,
     usage: { ..before, work, text_bytes: text, policy_nodes: nodes, },
@@ -154,10 +156,7 @@ pub fn validation_site_location(v : ExpressionValidationSite) -> (Int, Int) {
 pub fn validation_site_requirement(
   v : ExpressionValidationSite,
 ) -> ExpressionRequirement {
-  expression_requirement_at(
-    v.owner.selected.context.wired.stages.contexts[v.stage].context,
-    v.index,
-  ).unwrap()
+  expression_requirement_at(v.owner.stages.contexts[v.stage].context, v.index).unwrap()
 }
 
 ///|
@@ -165,5 +164,5 @@ pub fn validation_site_parameters(
   v : ExpressionValidationSite,
 ) -> ParameterVisit {
   let requirement = validation_site_requirement(v)
-  v.owner.selected.context.wired.stages.contexts[v.stage].visits[requirement.visit]
+  v.owner.stages.contexts[v.stage].visits[requirement.visit]
 }
