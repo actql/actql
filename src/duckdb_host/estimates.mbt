@@ -14,7 +14,7 @@ pub fn configure_dispatch_estimates(
   profiles : Array[DispatchEstimateProfile],
   limits : @strategy.SearchLimits,
 ) -> Result[Unit, DispatchIssue] {
-  if host.estimates is Some(_) ||
+  if @host_driver.compute_host_has_estimates(host.runtime) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
     profiles.length() !=
     @strategy.graph_task_count(@strategy.captured_dag_graph(host.run)) - 1 ||
@@ -108,25 +108,14 @@ pub fn configure_dispatch_estimates(
     Ok(value) => value
     Err(issue) => return Err(duckdb_estimate_issue(issue))
   }
-  let implementations = match
-    @connector.project_capability_implementations(
-      host.contributions,
-      entry => entry.propose,
-      limits.max_offers,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidConfiguration)
-  }
-  let policy = match
-    @host_driver.open_adaptive_dispatch(
-      host.driver,
-      host.registry,
-      implementations,
+  match
+    @host_driver.configure_compute_host_estimates(
+      host.runtime,
       profiles.map(profile => profile.output_rows_per_mille),
       limits,
       limits.max_work - work,
     ) {
-    Ok(value) => value
+    Ok(_) => ()
     Err(issue) => return Err(adaptive_estimate_issue(issue))
   }
   match
@@ -151,7 +140,6 @@ pub fn configure_dispatch_estimates(
       return Err(duckdb_estimate_issue(issue))
     }
   }
-  host.estimates = Some(policy)
   Ok(())
 }
 
@@ -183,8 +171,7 @@ fn adaptive_estimate_issue(
 pub fn refresh_dispatch_estimates(
   host : StrategyHostDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  guard host.estimates is Some(policy) else { return Ok(()) }
-  @host_driver.refresh_adaptive_dispatch(policy).map_err(
+  @host_driver.refresh_compute_host(host.runtime).map_err(
     adaptive_estimate_issue,
   )
 }

@@ -147,36 +147,27 @@ test "independent numeric and Local bundles use the same installed Host without 
       with_local=local_entry,
       with_reference_compute=numeric_entry,
     ).unwrap()
-    let preparations = @connector.project_capability_implementations(
-      contributions,
-      entry => entry.prepare,
-      2,
-    ).unwrap()
-    let host = @host_driver.open_dispatch_host(
+    let runtime = @host_driver.open_compute_host(
       driver,
-      preparations,
+      registry,
+      contributions,
       limits.capacity,
       100,
       10000,
-    ).unwrap()
-    let offer_installation = @connector.project_capability_implementations(
-      contributions,
-      entry => entry.propose,
       2,
     ).unwrap()
-    let policy = @host_driver.open_adaptive_dispatch(
-      driver,
-      registry,
-      offer_installation,
+    let host = @host_driver.compute_host_dispatch(runtime)
+    @host_driver.configure_compute_host_estimates(
+      runtime,
       [Some(1000), Some(1000), Some(1000)],
       { max_offers: 5, max_strategies: 4, max_work: 1000, max_revisions: 3, },
       0,
     ).unwrap()
-    @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+    @host_driver.refresh_compute_host(runtime).unwrap()
     let after_selection = @resources.ledger_usage(
       @strategy.captured_dag_ledger(run),
     )
-    @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+    @host_driver.refresh_compute_host(runtime).unwrap()
     assert_eq(
       @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
       after_selection,
@@ -193,7 +184,7 @@ test "independent numeric and Local bundles use the same installed Host without 
       )
     }
     let mut dispatched = 0
-    while @host_driver.prepare_next_installed_task(host, ()).unwrap()
+    while @host_driver.prepare_next_compute_task(runtime, ()).unwrap()
           is Some(task) {
       let implementation = @connector.capability_implementation(
         entries,
@@ -201,7 +192,7 @@ test "independent numeric and Local bundles use the same installed Host without 
       ).unwrap()
       dispatched += 1
       match implementation(host, task) {
-        Ok(_) => @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+        Ok(_) => @host_driver.refresh_compute_host(runtime).unwrap()
         Err(_) => {
           @host_driver.stop_dispatch_driver(driver)
           break

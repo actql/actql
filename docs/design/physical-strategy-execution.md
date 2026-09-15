@@ -751,6 +751,16 @@ a failed refresh stays failed, stops the associated driver and never reopens the
 previous selection. Completed results and cleanup obligations are retained. Both
 standard composition and independent Compute bundles use this common policy.
 
+`physical_host.ComputeHost` binds that optional policy to one fixed contribution
+installation and one dispatch owner. Its internal projections preserve the same
+registration set for proposals and preparation. Registry ownership is checked
+even for an empty implementation set. Policy installation is one-time; next-task
+preparation checks pending work and refreshes before retrieving an implementation.
+Failed refresh cannot reach preparation or reopen an old dispatch. Connector
+execution consumes the existing opaque dispatch owner, not a mutable Host context.
+The standard application retains connector configuration only, not another copy
+of the adaptive installation or failure state.
+
 Compute bundles supply their pure preparation and proposal callbacks together as
 `physical_host.ComputeContribution`. SDK projection derives each entrypoint set
 from the same immutable installation without accepting replacement registrations.

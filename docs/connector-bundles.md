@@ -34,10 +34,20 @@ registrations and a closed registry, snapshots the installation and orders it by
 the Host's registration order. Connector directory order does not become a new
 tie-breaking policy. There is no append or replacement operation.
 
-Project `.prepare` from the resulting installation for `open_dispatch_host`, and
-`.propose` for `open_adaptive_dispatch`. The projections retain the exact same
-registrations. Execution still consumes the connector's typed dispatch channel;
+Pass the assembled installation to `physical_host.open_compute_host` with the
+exact Host registry, fixed-input capacity and bounded inspection limits.
+`configure_compute_host_estimates` installs its optional adaptive policy once;
+`prepare_next_compute_task` refreshes that policy before preparing a checked-ready
+task. The Host internally projects preparation and proposal from the same fixed
+installation. A foreign registry is rejected even for an empty installation.
+Manual fixed strategy selection can use the same Host without an adaptive policy.
+
+Execution still consumes the connector's typed dispatch channel through the opaque
+`compute_host_dispatch` handle;
 a diagnostic projection cannot supply a successful result or bypass reservation.
+The lower-level `DispatchHost` and `AdaptiveDispatch` interfaces remain available
+for implementation-level composition; the standard path uses their shared
+`ComputeHost` owner rather than keeping a second copy of adaptive state.
 Configured module construction, source authorization and provider settings remain
 the responsibility of the owning connector and explicit Host setup.
 

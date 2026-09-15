@@ -8,6 +8,15 @@ struct CapabilityImplementations[T] {
 }
 
 ///|
+/// Exact owned registry, including for an empty installation. Reading this
+/// handle does not restore its liveness or add implementations.
+pub fn[T] capability_implementations_registry(
+  installed : CapabilityImplementations[T],
+) -> CapabilityRegistry {
+  installed.registry
+}
+
+///|
 pub(all) enum CapabilityInstallationIssue {
   InvalidLimits
   EntryLimit

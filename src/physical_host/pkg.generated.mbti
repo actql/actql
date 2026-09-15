@@ -12,6 +12,12 @@ pub fn check_dispatch_idle(DispatchDriver) -> Result[Unit, DispatchIssue]
 
 pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], C, Int, TaskEstimateQuantities, Int, Int) -> Result[Array[@physical_strategy.TaskOffer], InstalledOfferIssue[E]]
 
+pub fn[C, E] compute_host_dispatch(ComputeHost[C, E]) -> DispatchHost[C, E]
+
+pub fn[C, E] compute_host_has_estimates(ComputeHost[C, E]) -> Bool
+
+pub fn[C, E] configure_compute_host_estimates(ComputeHost[C, E], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
 pub fn consume_dispatch_ticket(DispatchDriver, DispatchTicket) -> Result[Unit, DispatchIssue]
 
 pub fn dispatch_driver_pending(DispatchDriver) -> Bool
@@ -26,6 +32,8 @@ pub fn dispatch_work_registration(DispatchWork) -> @connector_sdk.CapabilityRegi
 
 pub fn[E] open_adaptive_dispatch(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[(Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[AdaptiveDispatch[E], AdaptiveEstimateIssue[E]]
 
+pub fn[C, E] open_compute_host(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[ComputeContribution[C, E]], @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ComputeHost[C, E], ComputeHostIssue[E]]
+
 pub fn[T] open_dispatch_channel(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration) -> Result[DispatchChannel[T], DispatchIssue]
 
 pub fn open_dispatch_driver(@physical_strategy.CapturedDAG) -> DispatchDriver
@@ -38,6 +46,8 @@ pub fn prepare_dispatch_ticket(DispatchDriver, Int, @physical_strategy.StrategyR
 
 pub fn[C, W, E] prepare_installed_dispatch(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[W, E]], C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[(DispatchTicket, W), InstalledDispatchIssue[E]]
 
+pub fn[C, E] prepare_next_compute_task(ComputeHost[C, E], C) -> Result[PreparedTaskDispatch?, ComputeHostIssue[E]]
+
 pub fn[C, E] prepare_next_installed_task(DispatchHost[C, E], C) -> Result[PreparedTaskDispatch?, InstalledDispatchIssue[E]]
 
 pub fn prepared_task_index(PreparedTaskDispatch) -> Int
@@ -47,6 +57,8 @@ pub fn prepared_task_registration(PreparedTaskDispatch) -> @connector_sdk.Capabi
 pub fn prepared_task_revision(PreparedTaskDispatch) -> @physical_strategy.StrategyRevision
 
 pub fn[E] refresh_adaptive_dispatch(AdaptiveDispatch[E]) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
+pub fn[C, E] refresh_compute_host(ComputeHost[C, E]) -> Result[Unit, AdaptiveEstimateIssue[E]]
 
 pub fn[T] stage_dispatch_work(DispatchChannel[T], Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest, T) -> Result[DispatchWork, DispatchIssue]
 
@@ -74,6 +86,15 @@ pub(all) enum AdaptiveEstimateIssue[E] {
 pub(all) struct ComputeContribution[C, E] {
   prepare : (C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]
   propose : (Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]
+}
+
+type ComputeHost[C, E]
+
+pub(all) enum ComputeHostIssue[E] {
+  ForeignInstallation
+  Installation(@connector_sdk.CapabilityInstallationIssue)
+  Dispatch(InstalledDispatchIssue[E])
+  Estimate(AdaptiveEstimateIssue[E])
 }
 
 type DispatchChannel[T]

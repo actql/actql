@@ -18,17 +18,12 @@ pub(all) struct TaskDispatchLimits {
 struct StrategyHostDispatch {
   run : @strategy.CapturedDAG
   driver : @host_driver.DispatchDriver
-  registry : @connector.CapabilityRegistry
   local_registration : @connector.CapabilityRegistration
   local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
   native_module : @duckdb_driver.DuckDBDispatchModule
-  contributions : @connector.CapabilityImplementations[
-    @host_driver.ComputeContribution[Unit, DispatchIssue],
-  ]
-  installation : @host_driver.DispatchHost[Unit, DispatchIssue]
+  runtime : @host_driver.ComputeHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
-  mut estimates : @host_driver.AdaptiveDispatch[DispatchIssue]?
 }
 
 ///|
@@ -120,38 +115,28 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
   }
-  let implementations = match
-    @connector.project_capability_implementations(
-      contributions,
-      entry => entry.prepare,
-      2,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidConfiguration)
-  }
-  let installation = match
-    @host_driver.open_dispatch_host(
+  let runtime = match
+    @host_driver.open_compute_host(
       driver,
-      implementations,
+      registry,
+      contributions,
       limits.capacity,
       limits.input_entries,
       limits.input_name_bytes,
+      2,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(dispatch_driver_issue(issue))
+    Err(issue) => return Err(compute_host_issue(issue))
   }
   Ok({
     run,
     driver,
-    registry,
     local_registration,
     local_module,
     native_registration,
     native_module,
-    contributions,
-    installation,
+    runtime,
     limits,
-    estimates: None,
   })
 }
 
@@ -161,20 +146,24 @@ pub fn configure_strategy_dispatch(
 pub fn prepare_next_dispatch(
   host : StrategyHostDispatch,
 ) -> Result[TaskDispatch?, DispatchIssue] {
-  match @host_driver.check_dispatch_idle(host.driver) {
-    Err(issue) => return Err(dispatch_driver_issue(issue))
-    Ok(_) => ()
-  }
-  match refresh_dispatch_estimates(host) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  match @host_driver.prepare_next_installed_task(host.installation, ()) {
-    Err(NoStrategy) => Err(NoStrategy)
-    Err(Dispatch(issue)) => Err(dispatch_driver_issue(issue))
-    Err(MissingImplementation) => Err(ForeignSelection)
-    Err(Implementation(issue)) => Err(issue)
+  match @host_driver.prepare_next_compute_task(host.runtime, ()) {
+    Err(issue) => Err(compute_host_issue(issue))
     Ok(prepared) => Ok(prepared.map(prepared => { owner: host, prepared, }))
+  }
+}
+
+///|
+fn compute_host_issue(
+  issue : @host_driver.ComputeHostIssue[DispatchIssue],
+) -> DispatchIssue {
+  match issue {
+    ForeignInstallation => InvalidConfiguration
+    Installation(_) => InvalidConfiguration
+    Estimate(issue) => adaptive_estimate_issue(issue)
+    Dispatch(NoStrategy) => NoStrategy
+    Dispatch(Dispatch(issue)) => dispatch_driver_issue(issue)
+    Dispatch(MissingImplementation) => ForeignSelection
+    Dispatch(Implementation(issue)) => issue
   }
 }
 
@@ -201,7 +190,7 @@ pub fn execute_synchronous_dispatch(
 ) -> Result[Unit, DispatchIssue] {
   @local_driver.execute_local_dispatch(
     dispatch.owner.local_module,
-    dispatch.owner.installation,
+    @host_driver.compute_host_dispatch(dispatch.owner.runtime),
     dispatch.prepared,
   ).map_err(local_dispatch_issue)
 }
@@ -212,7 +201,7 @@ pub fn take_native_dispatch(
 ) -> Result[@duckdb_driver.StrategyComputeHostConfiguration, DispatchIssue] {
   @duckdb_driver.take_duckdb_dispatch(
     dispatch.owner.native_module,
-    dispatch.owner.installation,
+    @host_driver.compute_host_dispatch(dispatch.owner.runtime),
     dispatch.prepared,
   ).map_err(duckdb_dispatch_issue)
 }

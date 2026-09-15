@@ -8,7 +8,7 @@ const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)]
 test('standard preparation and proposals project the same fixed Compute contributions', () => {
   const setup = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   const estimates = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
-  assert.match(setup, /ComputeContribution/);
+  assert.match(setup, /ComputeHost\[Unit, DispatchIssue\]/);
   assert.match(setup, /@builtin\.assemble_compute_contributions\(/);
   assert.doesNotMatch(setup, /install_capability_implementations\(/);
   const assembly = readFileSync('src/connectors_builtin/compute.generated.mbt', 'utf8');
@@ -18,8 +18,12 @@ test('standard preparation and proposals project the same fixed Compute contribu
   assert.match(assembly, /registry_order=true/);
   assert.doesNotMatch(setup, /prepare:\s*fn|propose:\s*fn|"duckdb-resident"/);
   assert.doesNotMatch(setup, /@duckdb_driver\.duckdb_dispatch_rejection\(/);
-  assert.match(setup, /project_capability_implementations\([\s\S]*?entry => entry\.prepare/);
-  assert.match(estimates, /project_capability_implementations\([\s\S]*?host\.contributions[\s\S]*?entry => entry\.propose/);
+  const runtime = readFileSync('src/physical_host/compute_host.mbt', 'utf8');
+  assert.match(runtime, /project_capability_implementations\([\s\S]*?entry => entry\.prepare/);
+  assert.match(runtime, /project_capability_implementations\([\s\S]*?host\.contributions[\s\S]*?entry => entry\.propose/);
+  assert.doesNotMatch(runtime, /DuckDB|duckdb|LocalDispatch|connectors\//);
+  assert.doesNotMatch(setup, /mut estimates|contributions\s*:/);
+  assert.match(setup, /@host_driver\.prepare_next_compute_task\(/);
   assert.doesNotMatch(estimates, /install_capability_implementations\(/);
   const contract = readFileSync('src/physical_host/contribution.mbt', 'utf8');
   assert.doesNotMatch(contract, /Local|DuckDB|SQL|Session|connectors\//);
@@ -56,8 +60,8 @@ test('linear cost schedules are neutral and implementations own their work inven
   const adaptive = readFileSync('src/physical_host/adaptive_dispatch.mbt', 'utf8');
   assert.match(adaptive, /output_rows_per_mille\s*:\s*Array\[Int\?\]/);
   assert.doesNotMatch(adaptive, /DuckDB|duckdb|LocalDispatch|local_driver|native_module/);
-  assert.match(composition, /@host_driver\.open_adaptive_dispatch\(/);
-  assert.match(composition, /@host_driver\.refresh_adaptive_dispatch\(/);
+  assert.match(composition, /@host_driver\.configure_compute_host_estimates\(/);
+  assert.match(composition, /@host_driver\.refresh_compute_host\(/);
   assert.doesNotMatch(composition, /fn rebuild_dispatch_estimates|mut seen/);
 });
 
@@ -275,7 +279,8 @@ test('prepared dispatch ownership has one common state machine and no connector 
   assert.match(channel, /physical_equal\(expected, work\)/);
   assert.match(channel, /physical_equal\(channel.owner, driver.owner\)/);
   assert.doesNotMatch(channel, /DuckDB|Native|SQL|Any|unsafe|@local_connector/);
-  assert.match(bridge, /@host_driver\.prepare_next_installed_task\(/);
+  assert.match(bridge, /@host_driver\.prepare_next_compute_task\(/);
+  assert.match(readFileSync('src/physical_host/compute_host.mbt', 'utf8'), /prepare_next_installed_task\(host\.dispatch, context\)/);
   const host = readFileSync('src/physical_host/installed_host.mbt', 'utf8');
   assert.match(host, /prepare_installed_dispatch\(/);
   assert.match(host, /physical_equal\(host.owner, task.owner\)/);
@@ -302,7 +307,7 @@ test('Local installed preparation owns candidate construction and bounded sequen
   assert.match(source, /@builtin\.assemble_compute_contributions\(/);
   assert.match(readFileSync('src/connectors/local/driver/contribution.mbt', 'utf8'), /prepare_local_dispatch\(installed, task, revision, request\)/);
   assert.doesNotMatch(source, /local_fixed_compute_candidate\(|choose_fixed_compute_candidate\(|prepare_local_compute_execution\(/);
-  assert.match(source, /DispatchHost\[Unit, DispatchIssue\]/);
+  assert.match(source, /ComputeHost\[Unit, DispatchIssue\]/);
   const driver = readFileSync('src/connectors/local/driver/dispatch.mbt', 'utf8');
   assert.match(driver, /@local\.prepare_local_module_compute\(/);
   assert.match(driver, /@host\.take_installed_task\(/);
