@@ -143,7 +143,7 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
     e,
     query_capture_limits(),
   ).unwrap()
-  let issuer = @planning.prepare_mock_query_issuer(
+  let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "oracle-process", 100,
   ).unwrap()
   let owner = @query.query_sequence_owner(sequence)
@@ -168,23 +168,23 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
   for (source, selected, before, after) in cases {
     let rows = input_cursor(source)
     let inputs = Array::makei(before, i => @decode.element_at(rows, i).unwrap())
-    for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
-      let attempt = @planning.prepare_issued_mock_query_attempt(
+    for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
+      let attempt = @mock.prepare_issued_mock_query_attempt(
         issuer,
         strategy_for(sequence, route),
         inputs,
         before,
       ).unwrap()
-      let ids = @planning.mock_query_attempt_identity(attempt).unwrap()
+      let ids = @mock.mock_query_attempt_identity(attempt).unwrap()
       let (expected, expected_records) = query_observation_oracle(
         requirement,
         ids,
-        if route == @planning.NativeQuery {
+        if route == @mock.NativeQuery {
           selected
         } else {
           source
         },
-        if route == @planning.NativeQuery {
+        if route == @mock.NativeQuery {
           after
         } else {
           before
@@ -193,29 +193,29 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
         selected,
         after,
       )
-      @planning.execute_mock_query(
+      @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
       ).unwrap()
       |> ignore
-      @planning.retain_mock_query(attempt, {
+      @mock.retain_mock_query(attempt, {
         received_wire_bytes: 100000,
         retained_wire_bytes: 100000,
         measurement: row_wire_limits(),
       }).unwrap()
       |> ignore
-      let records = @planning.issue_mock_query_records(
+      let records = @mock.issue_mock_query_records(
         attempt,
         query_material_limits(),
       ).unwrap()
       for i in 0..<3 {
         assert_eq(
-          @planning.mock_query_record_at(records, i).unwrap().1,
+          @mock.mock_query_record_at(records, i).unwrap().1,
           expected_records[i],
         )
       }
-      let observation = @planning.capture_mock_query(
+      let observation = @mock.capture_mock_query(
         issuer,
         attempt,
         records,
@@ -223,15 +223,15 @@ fn query_observation_oracle_cases(nullable : Bool) -> Unit raise {
       ).unwrap()
       assert_eq(
         @encode.document_text(
-          @planning.mock_query_observation_document(observation),
+          @mock.mock_query_observation_document(observation),
         ),
         expected,
       )
       assert_eq(
-        @planning.mock_query_observation_cid(observation),
+        @mock.mock_query_observation_cid(observation),
         query_material_expected(expected),
       )
-      let input = @planning.bind_captured_query_input(
+      let input = @mock.bind_captured_query_input(
         issuer, attempt, observation, receiver, 0, owner,
       ).unwrap()
       let consumer = @execution.prepare_local_compute_attempt(

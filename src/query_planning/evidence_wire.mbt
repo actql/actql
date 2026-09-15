@@ -1,6 +1,6 @@
 ///|
 /// Shared canonical record codec. Serialization is not issuance authority.
-priv enum QueryRecordRole {
+pub(all) enum QueryRecordRole {
   SourceValidation
   Filter
   Select
@@ -16,7 +16,7 @@ priv struct QueryActualAccess {
 }
 
 ///|
-priv struct QueryOutputIdentity {
+pub(all) struct QueryOutputIdentity {
   contract_cid : String
   rows_cid : String
   row_count : Int
@@ -66,7 +66,7 @@ fn emit_query_access(
 }
 
 ///|
-fn emit_query_output(
+pub fn emit_query_output(
   output : QueryOutputIdentity,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
@@ -81,7 +81,7 @@ fn emit_query_output(
 }
 
 ///|
-fn emit_query_snapshot(
+pub fn emit_query_snapshot(
   snapshot : (String, String)?,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {

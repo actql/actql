@@ -16,7 +16,7 @@ pub(all) enum QueryRetentionIssue {
 }
 
 ///|
-priv struct MeasuredQueryRows {
+pub struct MeasuredQueryRows {
   scan : @execution.RowWireIdentity
   output : @execution.RowWireIdentity
   received_bytes : Int
@@ -27,7 +27,7 @@ priv struct MeasuredQueryRows {
 ///|
 /// Shared accounting only. The caller owns the input/output provenance and
 /// one-shot lifecycle. No scan re-admission, expression replay or row copying.
-fn measure_query_retention(
+pub fn measure_query_retention(
   source : @execution.CapturedRows,
   completed : @execution.CompletedOutput,
   received_is_scan : Bool,

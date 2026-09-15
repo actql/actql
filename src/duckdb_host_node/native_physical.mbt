@@ -10,7 +10,7 @@ priv struct NativePhysical {
   mut holding : @resources.Holding?
   mut dag : @strategy.CapturedDAG?
   mut source : @query.CapturedInputSource?
-  mut observation : @planning.DuckDBNativeObservation?
+  mut observation : @duckdb_query.DuckDBNativeObservation?
 }
 
 ///|
@@ -35,7 +35,7 @@ pub fn native_strategy_host_open(
   setup : @host.NativeHostConfiguration,
   ledger : @resources.Ledger,
   nonce : String,
-  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
   transfer : Int64,
   execution : Int64,
 ) -> NativeNodeRun raise NodeHostFailure {
@@ -129,7 +129,7 @@ pub fn native_host_physical_settle(
 pub fn native_host_open_dag(
   run : NativeNodeRun,
   graph : @strategy.CheckedDAG,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
 ) -> @strategy.CapturedDAG raise NodeHostFailure {
   guard run.physical is Some(p) &&
     !p.closed &&

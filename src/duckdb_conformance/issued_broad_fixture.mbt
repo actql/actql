@@ -3,13 +3,13 @@
 // fabricated records, source permission or arbitrary Plan constructor.
 struct IssuedBroadFixture {
   configuration : @dbhost.BroadHostConfiguration
-  issuer : @planning.DuckDBQueryIssuer
-  attempt : @planning.DuckDBBroadAttempt
+  issuer : @duckdb_query.DuckDBQueryIssuer
+  attempt : @duckdb_query.DuckDBBroadAttempt
   requirement : @planning.QueryRequirement
   scan : @duckdb.BroadScan
   owner : @lower.BoundPrepared
   consumer : @execution.GeneratedSequence
-  mut observation : @planning.DuckDBBroadObservation?
+  mut observation : @duckdb_query.DuckDBBroadObservation?
 }
 
 ///|
@@ -147,7 +147,7 @@ fn issued_fixture_preparation(
   fragment_json : String,
   output_rows : Int,
   checked_override? : @program_check.CheckedProgram? = None,
-) -> (@planning.DuckDBQueryPreparation, @lower.BoundPrepared) raise {
+) -> (@duckdb_query.DuckDBQueryPreparation, @lower.BoundPrepared) raise {
   let checked = match checked_override {
     Some(checked) => checked
     None => issued_fixture_checked(environment_json, environment_cid)
@@ -189,7 +189,7 @@ fn issued_fixture_preparation(
     { max_rows: output_rows, max_value_bytes: 100, },
     material,
   ).unwrap()
-  let preparation = @planning.prepare_duckdb_query(
+  let preparation = @duckdb_query.prepare_duckdb_query(
     requirement,
     "main",
     "records",
@@ -220,20 +220,20 @@ pub fn issued_broad_create(
   query_json : String,
   evidence_json : String,
   output_rows : Int,
-  verify : (@planning.DuckDBBroadAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBBroadAttempt) -> Bool,
 ) -> IssuedBroadFixture {
   try {
     let (preparation, owner) = issued_fixture_preparation(
       environment_json, environment_cid, registry_json, values_json, fragment_json,
       output_rows,
     )
-    let requirement = @planning.duckdb_query_requirement(preparation)
+    let requirement = @duckdb_query.duckdb_query_requirement(preparation)
     let registry = @connector.prepare_capability_registry(
       [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
       1,
       6,
     ).unwrap()
-    let candidate = @planning.duckdb_broad_candidate(
+    let candidate = @duckdb_query.duckdb_broad_candidate(
       @connector.capability_registration_at(registry, 0).unwrap(),
       preparation,
       [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
@@ -255,10 +255,10 @@ pub fn issued_broad_create(
       fixture_contract(evidence_json),
       { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
     ).unwrap()
-    let issuer = @planning.prepare_duckdb_query_issuer(
+    let issuer = @duckdb_query.prepare_duckdb_query_issuer(
       evidence, requirement, "real-node-fixture", 100, verify,
     ).unwrap()
-    let attempt = @planning.prepare_issued_duckdb_broad_attempt(
+    let attempt = @duckdb_query.prepare_issued_duckdb_broad_attempt(
       issuer, choice, candidate,
     ).unwrap()
     let consumer_owner = issued_fixture_consumer(owner)
@@ -298,7 +298,7 @@ pub fn issued_broad_create(
       issuer,
       attempt,
       requirement,
-      scan: @planning.duckdb_query_broad_scan(preparation),
+      scan: @duckdb_query.duckdb_query_broad_scan(preparation),
       owner,
       consumer,
       observation: None,
@@ -312,7 +312,7 @@ pub fn issued_broad_create(
 #export_name("issuedBroadAttempt")
 pub fn issued_broad_attempt(
   value : IssuedBroadFixture,
-) -> @planning.DuckDBBroadAttempt {
+) -> @duckdb_query.DuckDBBroadAttempt {
   value.attempt
 }
 
@@ -352,7 +352,7 @@ pub fn issued_broad_metadata(
   names : String,
   data : String,
 ) -> Bool {
-  @planning.admit_duckdb_broad_metadata(
+  @duckdb_query.admit_duckdb_broad_metadata(
     value.attempt,
     rows,
     fields(names),
@@ -364,7 +364,7 @@ pub fn issued_broad_metadata(
 ///|
 #export_name("issuedBroadBegin")
 pub fn issued_broad_begin(value : IssuedBroadFixture, names : String) -> Bool {
-  @planning.begin_duckdb_broad_receipt(
+  @duckdb_query.begin_duckdb_broad_receipt(
     value.attempt,
     fields(names),
     { max_rows: 100, max_cells: 1000, max_nodes: 1000, max_text_bytes: 10000, },
@@ -386,14 +386,14 @@ pub fn issued_broad_accept(
   rows : Int,
   data : String,
 ) -> Bool {
-  @planning.accept_duckdb_broad_chunk(value.attempt, rows, columns(data))
+  @duckdb_query.accept_duckdb_broad_chunk(value.attempt, rows, columns(data))
   is Ok(_)
 }
 
 ///|
 #export_name("issuedBroadFinish")
 pub fn issued_broad_finish(value : IssuedBroadFixture) -> Bool {
-  @planning.finish_duckdb_broad_receipt(value.attempt) is Ok(_)
+  @duckdb_query.finish_duckdb_broad_receipt(value.attempt) is Ok(_)
 }
 
 ///|
@@ -424,7 +424,7 @@ pub fn issued_broad_complete(
   value : IssuedBroadFixture,
   artifact_bytes : Int,
 ) -> Bool {
-  guard @planning.complete_duckdb_broad_capture(
+  guard @duckdb_query.complete_duckdb_broad_capture(
       value.issuer,
       value.attempt,
       issued_broad_completion_limits(artifact_bytes),
@@ -439,7 +439,7 @@ pub fn issued_broad_complete(
 ///|
 fn issued_broad_completion_limits(
   artifact_bytes : Int,
-) -> @planning.DuckDBBroadCompletionLimits {
+) -> @duckdb_query.DuckDBBroadCompletionLimits {
   {
     execution: issued_execution_limits(100),
     guards: {
@@ -521,7 +521,7 @@ pub fn issued_broad_consume_input(
 #export_name("issuedBroadObservation")
 pub fn issued_broad_observation(
   value : IssuedBroadFixture,
-) -> @planning.DuckDBBroadObservation {
+) -> @duckdb_query.DuckDBBroadObservation {
   value.observation.unwrap()
 }
 
@@ -531,7 +531,7 @@ pub fn issued_broad_document(value : IssuedBroadFixture) -> String {
   match value.observation {
     Some(observation) =>
       @encode.document_text(
-        @planning.duckdb_broad_observation_document(observation),
+        @duckdb_query.duckdb_broad_observation_document(observation),
       )
     None => "null"
   }
@@ -541,10 +541,10 @@ pub fn issued_broad_document(value : IssuedBroadFixture) -> String {
 #export_name("issuedBroadBind")
 pub fn issued_broad_bind(
   value : IssuedBroadFixture,
-  observation : @planning.DuckDBBroadObservation,
+  observation : @duckdb_query.DuckDBBroadObservation,
   rows : Int,
 ) -> String {
-  guard @planning.bind_captured_duckdb_broad_input(
+  guard @duckdb_query.bind_captured_duckdb_broad_input(
       value.issuer,
       value.attempt,
       observation,
@@ -581,13 +581,13 @@ pub fn issued_broad_bind(
 ///|
 #export_name("issuedBroadAbort")
 pub fn issued_broad_abort(value : IssuedBroadFixture) -> Unit {
-  @planning.abort_duckdb_broad_attempt(value.attempt)
+  @duckdb_query.abort_duckdb_broad_attempt(value.attempt)
 }
 
 ///|
 #export_name("issuedBroadClose")
 pub fn issued_broad_close(value : IssuedBroadFixture) -> Unit {
-  @planning.close_duckdb_query_issuer(value.issuer)
+  @duckdb_query.close_duckdb_query_issuer(value.issuer)
 }
 
 ///|
@@ -599,7 +599,9 @@ pub fn issued_broad_requirement(value : IssuedBroadFixture) -> String {
 ///|
 #export_name("issuedBroadIds")
 pub fn issued_broad_ids(value : IssuedBroadFixture) -> String {
-  let (issuer, attempt) = @planning.duckdb_broad_attempt_identity(value.attempt).unwrap()
+  let (issuer, attempt) = @duckdb_query.duckdb_broad_attempt_identity(
+    value.attempt,
+  ).unwrap()
   try {
     let writer = @encode.writer(1000, 10, 2)
     @encode.begin_array(writer)

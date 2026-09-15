@@ -82,7 +82,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(@dbhost.dispatch_task(dispatch), task)
       @dbhost.execute_synchronous_dispatch(dispatch).unwrap()
     }
-    @planning.close_mock_query_issuer(issuer)
+    @mock.close_mock_query_issuer(issuer)
     let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
     assert_true(@dbhost.dispatch_is_native(dispatch))
     assert_eq(@dbhost.dispatch_task(dispatch), 3)

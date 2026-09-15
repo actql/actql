@@ -16,7 +16,9 @@ pub fn complete_duckdb_native_output(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[@execution.CompletedOutput, @execution.TrustedOutputIssue] {
-  let query = output.attempt.preparation.requirement.material.owner
+  let query = @planning.query_material_owner(
+    @planning.query_requirement_material(output.attempt.preparation.requirement),
+  )
   let port = match
     @execution.prepare_trusted_output_port(
       @query.query_generated_sequence(query),

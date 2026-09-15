@@ -2,11 +2,7 @@
 fn query_amount_setup(
   nullable : Bool,
   ceiling? : Int = 100,
-) -> (
-  @query.QuerySequence,
-  @planning.QueryRequirement,
-  @planning.MockQueryIssuer,
-) raise {
+) -> (@query.QuerySequence, @planning.QueryRequirement, @mock.MockQueryIssuer) raise {
   let checked = query_checked_program_fixture(
     catalog=Some(
       if nullable {
@@ -29,7 +25,7 @@ fn query_amount_setup(
     e,
     query_capture_limits(),
   ).unwrap()
-  let issuer = @planning.prepare_mock_query_issuer(
+  let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "amount-oracle", 100,
   ).unwrap()
   (sequence, requirement, issuer)
@@ -56,8 +52,8 @@ test "unused amount changes broad access but not native receipt or consumer outp
     "[{\"amount\":10,\"id\":3},{\"amount\":null,\"id\":1},{\"amount\":20,\"id\":3},{\"amount\":30,\"id\":2}]",
     "[{\"amount\":11,\"id\":3},{\"amount\":null,\"id\":1},{\"amount\":20,\"id\":3},{\"amount\":30,\"id\":2}]",
   ]
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
-    let native = route == @planning.NativeQuery
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
+    let native = route == @mock.NativeQuery
     let received_fields = if native {
       "[\"id\"]"
     } else {
@@ -66,7 +62,7 @@ test "unused amount changes broad access but not native receipt or consumer outp
     let mut prior_scope : String? = None
     for source in sources {
       let rows = input_cursor(source)
-      let attempt = @planning.prepare_issued_mock_query_attempt(
+      let attempt = @mock.prepare_issued_mock_query_attempt(
         issuer,
         strategy_for(sequence, route),
         Array::makei(4, i => @decode.element_at(rows, i).unwrap()),
@@ -76,7 +72,7 @@ test "unused amount changes broad access but not native receipt or consumer outp
       // columns, never the emitted access record or computed result.
       let (expected, cids) = query_observation_oracle(
         requirement,
-        @planning.mock_query_attempt_identity(attempt).unwrap(),
+        @mock.mock_query_attempt_identity(attempt).unwrap(),
         if native {
           selected
         } else {
@@ -91,40 +87,37 @@ test "unused amount changes broad access but not native receipt or consumer outp
         selected,
         3,
       )
-      @planning.execute_mock_query(
+      @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
       ).unwrap()
       |> ignore
-      @planning.retain_mock_query(attempt, {
+      @mock.retain_mock_query(attempt, {
         received_wire_bytes: 100000,
         retained_wire_bytes: 100000,
         measurement: row_wire_limits(),
       }).unwrap()
       |> ignore
-      let records = @planning.issue_mock_query_records(
+      let records = @mock.issue_mock_query_records(
         attempt,
         query_material_limits(),
       ).unwrap()
       for i in 0..<3 {
-        assert_eq(
-          @planning.mock_query_record_at(records, i).unwrap().1,
-          cids[i],
-        )
+        assert_eq(@mock.mock_query_record_at(records, i).unwrap().1, cids[i])
       }
-      let observation = @planning.capture_mock_query(
+      let observation = @mock.capture_mock_query(
         issuer,
         attempt,
         records,
         query_capture_limits(),
       ).unwrap()
       let text = @encode.document_text(
-        @planning.mock_query_observation_document(observation),
+        @mock.mock_query_observation_document(observation),
       )
       assert_eq(text, expected)
       assert_eq(
-        @planning.mock_query_observation_cid(observation),
+        @mock.mock_query_observation_cid(observation),
         query_material_expected(expected),
       )
       assert_eq(
@@ -140,7 +133,7 @@ test "unused amount changes broad access but not native receipt or consumer outp
         assert_eq(prior == scope, native)
       }
       prior_scope = Some(scope)
-      let input = @planning.bind_captured_query_input(
+      let input = @mock.bind_captured_query_input(
         issuer, attempt, observation, receiver, 0, owner,
       ).unwrap()
       let consumer = @execution.prepare_local_compute_attempt(
@@ -175,14 +168,14 @@ test "filtered-out unused amount still requires type nullability and value guard
       (false, "{\"amount\":123456,\"id\":0}", true),
     ] {
     let (sequence, _, issuer) = query_amount_setup(nullable, ceiling=5)
-    for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
-      let attempt = @planning.prepare_issued_mock_query_attempt(
+    for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
+      let attempt = @mock.prepare_issued_mock_query_attempt(
         issuer,
         strategy_for(sequence, route),
         [input_cursor(source)],
         1,
       ).unwrap()
-      let result = @planning.execute_mock_query(
+      let result = @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
@@ -193,17 +186,17 @@ test "filtered-out unused amount still requires type nullability and value guard
         assert_true(result is Err(Local(ReceiptAdmission(_))))
       }
       assert_true(
-        @planning.retain_mock_query(attempt, query_retention_limits())
+        @mock.retain_mock_query(attempt, query_retention_limits())
         is Err(NotAwaitingCapture),
       )
       assert_true(
-        @planning.issue_mock_query_records(attempt, query_material_limits())
+        @mock.issue_mock_query_records(attempt, query_material_limits())
         is Err(NotRetained),
       )
       // No issued record handle exists, so capture cannot be called for this
       // failed task. Execution is one-shot and never retries as the other route.
       assert_true(
-        @planning.execute_mock_query(attempt, mock_strategy_limits())
+        @mock.execute_mock_query(attempt, mock_strategy_limits())
         is Err(AlreadyStarted),
       )
     }

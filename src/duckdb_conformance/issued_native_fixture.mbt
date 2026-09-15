@@ -3,11 +3,11 @@
 struct IssuedNativeFixture {
   host : @dbhost.NativeHostRun
   configuration : @dbhost.NativeHostConfiguration
-  attempt : @planning.DuckDBNativeAttempt
+  attempt : @duckdb_query.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   requirement : @planning.QueryRequirement
   consumer : @execution.GeneratedSequence
-  mut observation : @planning.DuckDBNativeObservation?
+  mut observation : @duckdb_query.DuckDBNativeObservation?
 }
 
 ///|
@@ -22,7 +22,7 @@ pub fn issued_native_create(
   evidence_json : String,
   two_receipt_json : String,
   output_rows : Int,
-  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> IssuedNativeFixture {
   issued_native_create_impl(
     environment_json, environment_cid, registry_json, values_json, fragment_json,
@@ -41,7 +41,7 @@ fn issued_native_create_impl(
   evidence_json : String,
   two_receipt_json : String,
   output_rows : Int,
-  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
   checked_override? : @program_check.CheckedProgram? = None,
 ) -> IssuedNativeFixture {
   try {
@@ -54,13 +54,13 @@ fn issued_native_create_impl(
       output_rows,
       checked_override~,
     )
-    let requirement = @planning.duckdb_query_requirement(preparation)
+    let requirement = @duckdb_query.duckdb_query_requirement(preparation)
     let registry = @connector.prepare_capability_registry(
       [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
       1,
       6,
     ).unwrap()
-    let candidate = @planning.duckdb_native_candidate(
+    let candidate = @duckdb_query.duckdb_native_candidate(
       @connector.capability_registration_at(registry, 0).unwrap(),
       preparation,
       [
@@ -175,8 +175,8 @@ fn issued_native_create_impl(
         fragment_json,
         false,
       ),
-      scan: @planning.duckdb_native_preparation_scan(
-        @planning.duckdb_native_attempt_preparation(attempt),
+      scan: @duckdb_query.duckdb_native_preparation_scan(
+        @duckdb_query.duckdb_native_attempt_preparation(attempt),
       ),
       observation: None,
     }
@@ -239,7 +239,7 @@ pub fn issued_native_consume_output(
 #export_name("issuedNativeBind")
 pub fn issued_native_bind(
   value : IssuedNativeFixture,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
   rows : Int,
 ) -> String {
   guard @dbhost.bind_native_host_input(
@@ -294,7 +294,7 @@ fn issued_native_measure_limits() -> @execution.FixedInputGuardMeasureLimits {
 #export_name("issuedNativeAttempt")
 pub fn issued_native_attempt(
   value : IssuedNativeFixture,
-) -> @planning.DuckDBNativeAttempt {
+) -> @duckdb_query.DuckDBNativeAttempt {
   value.attempt
 }
 
@@ -410,7 +410,7 @@ pub fn issued_native_complete(
 #export_name("issuedNativeObservation")
 pub fn issued_native_observation(
   value : IssuedNativeFixture,
-) -> @planning.DuckDBNativeObservation {
+) -> @duckdb_query.DuckDBNativeObservation {
   value.observation.unwrap()
 }
 
@@ -420,7 +420,7 @@ pub fn issued_native_document(value : IssuedNativeFixture) -> String {
   match value.observation {
     Some(observation) =>
       @encode.document_text(
-        @planning.duckdb_native_observation_document(observation),
+        @duckdb_query.duckdb_native_observation_document(observation),
       )
     None => "null"
   }
@@ -450,7 +450,7 @@ pub fn issued_native_materialize(
     is Ok(output) else {
     return "null"
   }
-  guard @planning.duckdb_native_output_rows(output) is Ok(rows) else {
+  guard @duckdb_query.duckdb_native_output_rows(output) is Ok(rows) else {
     return "null"
   }
   try {
@@ -499,7 +499,7 @@ pub fn issued_native_requirement(value : IssuedNativeFixture) -> String {
 ///|
 #export_name("issuedNativeIds")
 pub fn issued_native_ids(value : IssuedNativeFixture) -> String {
-  let (issuer, attempt, view) = @planning.duckdb_native_attempt_identity(
+  let (issuer, attempt, view) = @duckdb_query.duckdb_native_attempt_identity(
     value.attempt,
   ).unwrap()
   [issuer, attempt, view].to_json().stringify()

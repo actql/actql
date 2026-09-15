@@ -2,6 +2,7 @@
 package "actql/actql/duckdb_conformance"
 
 import {
+  "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/duckdb_host",
   "actql/actql/execution_query",
@@ -9,7 +10,6 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
-  "actql/actql/query_planning",
 }
 
 // Values
@@ -51,11 +51,11 @@ pub fn issued_broad_abort(IssuedBroadFixture) -> Unit
 
 pub fn issued_broad_accept(IssuedBroadFixture, Int, String) -> Bool
 
-pub fn issued_broad_attempt(IssuedBroadFixture) -> @query_planning.DuckDBBroadAttempt
+pub fn issued_broad_attempt(IssuedBroadFixture) -> @acquisition.DuckDBBroadAttempt
 
 pub fn issued_broad_begin(IssuedBroadFixture, String) -> Bool
 
-pub fn issued_broad_bind(IssuedBroadFixture, @query_planning.DuckDBBroadObservation, Int) -> String
+pub fn issued_broad_bind(IssuedBroadFixture, @acquisition.DuckDBBroadObservation, Int) -> String
 
 pub fn issued_broad_close(IssuedBroadFixture) -> Unit
 
@@ -67,7 +67,7 @@ pub fn issued_broad_consume_input(IssuedBroadFixture, @execution_relation.BoundP
 
 pub fn issued_broad_consumer(IssuedBroadFixture) -> @lowering_relation.BoundPrepared
 
-pub fn issued_broad_create(String, String, String, String, String, String, String, Int, (@query_planning.DuckDBBroadAttempt) -> Bool) -> IssuedBroadFixture
+pub fn issued_broad_create(String, String, String, String, String, String, String, Int, (@acquisition.DuckDBBroadAttempt) -> Bool) -> IssuedBroadFixture
 
 pub fn issued_broad_document(IssuedBroadFixture) -> String
 
@@ -77,7 +77,7 @@ pub fn issued_broad_ids(IssuedBroadFixture) -> String
 
 pub fn issued_broad_metadata(IssuedBroadFixture, Int, String, String) -> Bool
 
-pub fn issued_broad_observation(IssuedBroadFixture) -> @query_planning.DuckDBBroadObservation
+pub fn issued_broad_observation(IssuedBroadFixture) -> @acquisition.DuckDBBroadObservation
 
 pub fn issued_broad_parameter(IssuedBroadFixture, Int) -> String
 
@@ -89,11 +89,11 @@ pub fn issued_native_abort(IssuedNativeFixture) -> Unit
 
 pub fn issued_native_accept(IssuedNativeFixture, Int, String) -> Bool
 
-pub fn issued_native_attempt(IssuedNativeFixture) -> @query_planning.DuckDBNativeAttempt
+pub fn issued_native_attempt(IssuedNativeFixture) -> @acquisition.DuckDBNativeAttempt
 
 pub fn issued_native_begin(IssuedNativeFixture, Bool, String) -> Bool
 
-pub fn issued_native_bind(IssuedNativeFixture, @query_planning.DuckDBNativeObservation, Int) -> String
+pub fn issued_native_bind(IssuedNativeFixture, @acquisition.DuckDBNativeObservation, Int) -> String
 
 pub fn issued_native_close(IssuedNativeFixture) -> Unit
 
@@ -103,7 +103,7 @@ pub fn issued_native_configuration(IssuedNativeFixture) -> @duckdb_host.NativeHo
 
 pub fn issued_native_consume_output(IssuedNativeFixture, @execution_relation.CompletedOutput, Int) -> String
 
-pub fn issued_native_create(String, String, String, String, String, String, String, String, Int, (@query_planning.DuckDBNativeAttempt) -> Bool) -> IssuedNativeFixture
+pub fn issued_native_create(String, String, String, String, String, String, String, String, Int, (@acquisition.DuckDBNativeAttempt) -> Bool) -> IssuedNativeFixture
 
 pub fn issued_native_document(IssuedNativeFixture) -> String
 
@@ -115,7 +115,7 @@ pub fn issued_native_materialize(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_metadata(IssuedNativeFixture, Int, String, String) -> Bool
 
-pub fn issued_native_observation(IssuedNativeFixture) -> @query_planning.DuckDBNativeObservation
+pub fn issued_native_observation(IssuedNativeFixture) -> @acquisition.DuckDBNativeObservation
 
 pub fn issued_native_parameter(IssuedNativeFixture, Int) -> String
 

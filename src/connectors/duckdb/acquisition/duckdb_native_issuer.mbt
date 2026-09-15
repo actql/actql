@@ -2,16 +2,16 @@
 /// Host-local two-receipt authority. The trusted transport verifier must bind
 /// both actual SQL receipts to this exact attempt and one settled read view.
 struct DuckDBNativeIssuer {
-  _contract : QueryTwoReceiptContract
-  requirement : QueryRequirement
+  _contract : @planning.QueryTwoReceiptContract
+  requirement : @planning.QueryRequirement
   name : String
-  attempts : IssuerCounter
+  attempts : @planning.IssuerCounter
   mut live : Bool
   mut transport_matches : (DuckDBNativeAttempt) -> Bool
 }
 
 ///|
-let duckdb_native_issuer_serial : IssuerCounter = { next: 0, }
+let duckdb_native_issuer_serial : @planning.IssuerCounter = @planning.issuer_counter()
 
 ///|
 priv struct DuckDBNativeAuthority {
@@ -37,8 +37,8 @@ struct DuckDBNativeRecords {
 
 ///|
 pub fn prepare_duckdb_native_issuer(
-  contract : QueryTwoReceiptContract,
-  requirement : QueryRequirement,
+  contract : @planning.QueryTwoReceiptContract,
+  requirement : @planning.QueryRequirement,
   process_nonce : String,
   max_nonce_chars : Int,
   transport_matches : (DuckDBNativeAttempt) -> Bool,
@@ -49,14 +49,15 @@ pub fn prepare_duckdb_native_issuer(
   if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
     return Err(IdentifierLimit)
   }
-  guard reserve_issuer_number(duckdb_native_issuer_serial) is Some(serial) else {
+  guard @planning.reserve_issuer_number(duckdb_native_issuer_serial)
+    is Some(serial) else {
     return Err(IdentifierExhausted)
   }
   Ok({
     _contract: contract,
     requirement,
     name: process_nonce + "/duckdb-native-issuer/" + serial.to_string(),
-    attempts: { next: 0, },
+    attempts: @planning.issuer_counter(),
     live: true,
     transport_matches,
   })
@@ -65,8 +66,8 @@ pub fn prepare_duckdb_native_issuer(
 ///|
 pub fn prepare_issued_duckdb_native_attempt(
   issuer : DuckDBNativeIssuer,
-  choice : AcquisitionChoice,
-  candidate : PreparedAcquisition[DuckDBNativePreparation],
+  choice : @planning.AcquisitionChoice,
+  candidate : @planning.PreparedAcquisition[DuckDBNativePreparation],
   physical : @duckdb.PhysicalResultLimits,
   max_metadata_work : Int,
   measurement : @execution.FixedInputGuardMeasureLimits,
@@ -74,7 +75,8 @@ pub fn prepare_issued_duckdb_native_attempt(
   if !issuer.live {
     return Err(IssuerClosed)
   }
-  guard acquisition_choice_payload(choice, candidate) is Some(preparation) else {
+  guard @planning.acquisition_choice_payload(choice, candidate)
+    is Some(preparation) else {
     return Err(NotSelected)
   }
   if !physical_equal(issuer.requirement, preparation.requirement) {
@@ -87,7 +89,7 @@ pub fn prepare_issued_duckdb_native_attempt(
     Ok(value) => value
     Err(issue) => return Err(NativeAttempt(issue))
   }
-  guard reserve_issuer_number(issuer.attempts) is Some(serial) else {
+  guard @planning.reserve_issuer_number(issuer.attempts) is Some(serial) else {
     abort_duckdb_native_attempt(attempt)
     return Err(IdentifierExhausted)
   }
@@ -121,7 +123,7 @@ pub fn duckdb_native_attempt_identity(
 pub fn issue_duckdb_native_records(
   attempt : DuckDBNativeAttempt,
   max_retained_wire_bytes : Int,
-  limits : QueryMaterialLimits,
+  limits : @planning.QueryMaterialLimits,
 ) -> Result[DuckDBNativeRecords, DuckDBEvidenceIssue] {
   guard attempt.authority is Some(authority) else {
     return Err(UnauthorizedAttempt)

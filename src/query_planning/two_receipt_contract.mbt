@@ -12,6 +12,13 @@ struct QueryTwoReceiptContract {
 let query_two_receipt_cid : String = "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8"
 
 ///|
+pub fn query_two_receipt_contract_cid(
+  _value : QueryTwoReceiptContract,
+) -> String {
+  query_two_receipt_cid
+}
+
+///|
 pub fn admit_query_two_receipt_contract(
   dependencies : QueryEvidenceContracts,
   body : @identity.CanonicalValue,

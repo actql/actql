@@ -28,13 +28,21 @@ pub enum AcquisitionSelection {
 }
 
 ///|
-fn[T] bind_acquisition_candidate(
+pub fn[T] bind_acquisition_candidate(
   registration : @connector.CapabilityRegistration,
   requirement : QueryRequirement,
   payload : T,
   duration : @cost.DurationEstimate,
   quantities : @connector.QueryQuantities,
 ) -> Result[PreparedAcquisition[T], QueryPlanningIssue] {
+  if duration is @cost.Complete(value) && value < 0L {
+    return Err(NegativeQuantity)
+  }
+  if !@connector.valid_quantity(quantities.transfer_bytes) ||
+    !@connector.valid_quantity(quantities.retained_bytes) ||
+    !@connector.valid_quantity(quantities.money_units) {
+    return Err(NegativeQuantity)
+  }
   if !@connector.capability_registration_available(registration) {
     return Err(CapabilityClosed)
   }

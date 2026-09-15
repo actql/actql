@@ -28,8 +28,10 @@ test('standard native and broad Node Hosts own verification through real capture
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
   const publicApi = await readFile(join(root, 'src/query_planning/pkg.generated.mbti'), 'utf8');
-  assert.doesNotMatch(publicApi, /pub fn duckdb_broad_attempt_output\(/);
-  assert.match(publicApi, /pub fn duckdb_broad_attempt_row_count\(/);
+  assert.doesNotMatch(publicApi, /DuckDB|MockQuery|duckdb_broad_attempt/);
+  const connectorApi = await readFile(join(root, 'src/connectors/duckdb/acquisition/pkg.generated.mbti'), 'utf8');
+  assert.doesNotMatch(connectorApi, /pub fn duckdb_broad_attempt_output\(/);
+  assert.match(connectorApi, /pub fn duckdb_broad_attempt_row_count\(/);
   // Caller-controlled transport options cannot install semantic verification,
   // replacement SQL or another MoonBit runtime into either standard entry.
   const forbidden = () => assert.fail('standard Host used caller replacement');

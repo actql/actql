@@ -66,16 +66,16 @@ test "broad pre-capture diagnostics carry no consumer handle and disappear on ab
   let f = broad_issuer_fixture()
   let attempt = broad_issued_attempt(f)
   broad_issued_run(f, attempt)
-  assert_eq(@planning.duckdb_broad_attempt_row_count(attempt), Some(2))
-  let records = @planning.issue_duckdb_broad_records(
+  assert_eq(@duckdb_query.duckdb_broad_attempt_row_count(attempt), Some(2))
+  let records = @duckdb_query.issue_duckdb_broad_records(
     attempt,
     query_material_limits(),
   ).unwrap()
-  assert_eq(@planning.duckdb_broad_attempt_row_count(attempt), Some(2))
-  @planning.abort_duckdb_broad_attempt(attempt)
-  assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
+  assert_eq(@duckdb_query.duckdb_broad_attempt_row_count(attempt), Some(2))
+  @duckdb_query.abort_duckdb_broad_attempt(attempt)
+  assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
   assert_true(
-    @planning.capture_duckdb_broad_query(
+    @duckdb_query.capture_duckdb_broad_query(
       f.issuer,
       attempt,
       records,
@@ -96,11 +96,11 @@ test "captured broad bindings retain issuer and exact transport liveness" {
     let f = broad_issuer_fixture()
     let attempt = broad_issued_attempt(f)
     broad_issued_run(f, attempt)
-    let records = @planning.issue_duckdb_broad_records(
+    let records = @duckdb_query.issue_duckdb_broad_records(
       attempt,
       query_material_limits(),
     ).unwrap()
-    let observation = @planning.capture_duckdb_broad_query(
+    let observation = @duckdb_query.capture_duckdb_broad_query(
       f.issuer,
       attempt,
       records,
@@ -108,7 +108,11 @@ test "captured broad bindings retain issuer and exact transport liveness" {
     ).unwrap()
     let owner = @query.query_sequence_owner(f.sequence)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
-    let shared = @planning.broad_captured_source(f.issuer, attempt, observation).unwrap()
+    let shared = @duckdb_query.broad_captured_source(
+      f.issuer,
+      attempt,
+      observation,
+    ).unwrap()
     assert_eq(@query.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
@@ -120,7 +124,7 @@ test "captured broad bindings retain issuer and exact transport liveness" {
       },
       fn() {
         if close_issuer {
-          @planning.close_duckdb_query_issuer(f.issuer)
+          @duckdb_query.close_duckdb_query_issuer(f.issuer)
         } else {
           f.transport.clear()
         }
@@ -134,27 +138,27 @@ test "captured broad bindings retain issuer and exact transport liveness" {
 test "captured mock bindings retain issuer liveness for both realizations" {
   for
     (strategy, before_binding) in [
-      (@planning.NativeQuery, true),
-      (@planning.NativeQuery, false),
-      (@planning.BroadWithResidual, true),
-      (@planning.BroadWithResidual, false),
+      (@mock.NativeQuery, true),
+      (@mock.NativeQuery, false),
+      (@mock.BroadWithResidual, true),
+      (@mock.BroadWithResidual, false),
     ] {
     let (issuer, sequence) = query_issuer_fixture()
     let owner = @query.query_sequence_owner(sequence)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
     let attempt = query_issuer_attempt(issuer, sequence, strategy)
     query_issuer_run(attempt)
-    let records = @planning.issue_mock_query_records(
+    let records = @mock.issue_mock_query_records(
       attempt,
       query_material_limits(),
     ).unwrap()
-    let observation = @planning.capture_mock_query(
+    let observation = @mock.capture_mock_query(
       issuer,
       attempt,
       records,
       query_capture_limits(),
     ).unwrap()
-    let shared = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
+    let shared = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
     assert_eq(@query.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
@@ -164,7 +168,7 @@ test "captured mock bindings retain issuer liveness for both realizations" {
           Err(_) => None
         }
       },
-      fn() { @planning.close_mock_query_issuer(issuer) },
+      fn() { @mock.close_mock_query_issuer(issuer) },
       before_binding~,
     )
   }
@@ -182,21 +186,21 @@ test "captured native bindings obey the same issuer and transport lifetime cases
     let attempt = native_issued_attempt(f)
     native_attempt_receive_fixture(attempt)
     f.transport.push(attempt)
-    let observation = @planning.complete_duckdb_native_capture(
+    let observation = @duckdb_query.complete_duckdb_native_capture(
       f.issuer,
       attempt,
       native_completion_limits(),
     ).unwrap()
-    let material = @planning.materialize_duckdb_native_output(
+    let material = @duckdb_query.materialize_duckdb_native_output(
       f.issuer,
       attempt,
       observation,
       100,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
     ).unwrap()
-    let shared = @planning.native_captured_source(material, 100, 10000).unwrap()
+    let shared = @duckdb_query.native_captured_source(material, 100, 10000).unwrap()
     let owner = @execution.admitted_output_owner(
-      @planning.duckdb_native_output_rows(material).unwrap(),
+      @duckdb_query.duckdb_native_output_rows(material).unwrap(),
     )
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
     assert_capture_input_lifetime(
@@ -209,7 +213,7 @@ test "captured native bindings obey the same issuer and transport lifetime cases
       },
       fn() {
         if close_issuer {
-          @planning.close_duckdb_native_issuer(f.issuer)
+          @duckdb_query.close_duckdb_native_issuer(f.issuer)
         } else {
           f.transport.clear()
         }

@@ -2,19 +2,19 @@
 /// Trusted Host-owned orchestration. No fixed Program, catalog or test exports
 /// belong here. The Node assembly supplies only its private transport verifier.
 struct NativeHostRun {
-  issuer : @planning.DuckDBNativeIssuer
-  attempt : @planning.DuckDBNativeAttempt
+  issuer : @duckdb_query.DuckDBNativeIssuer
+  attempt : @duckdb_query.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   mut port : @duckdb.NativeReceiptPort?
-  mut observation : @planning.DuckDBNativeObservation?
+  mut observation : @duckdb_query.DuckDBNativeObservation?
   mut closed : Bool
 }
 
 ///|
 pub(all) enum NativeHostIssue {
   InvalidState
-  Evidence(@planning.DuckDBEvidenceIssue)
-  Attempt(@planning.DuckDBNativeAttemptIssue)
+  Evidence(@duckdb_query.DuckDBEvidenceIssue)
+  Attempt(@duckdb_query.DuckDBNativeAttemptIssue)
   Completion(@execution.TrustedOutputIssue)
   Binding(@execution.ProducerBindingIssue)
 }
@@ -26,36 +26,38 @@ pub fn start_native_host(
   contract : @planning.QueryTwoReceiptContract,
   requirement : @planning.QueryRequirement,
   choice : @planning.AcquisitionChoice,
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBNativePreparation],
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBNativePreparation,
+  ],
   nonce : String,
   max_nonce_chars : Int,
   physical : @duckdb.PhysicalResultLimits,
   metadata_work : Int,
   measurement : @execution.FixedInputGuardMeasureLimits,
-  verify_transport : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify_transport : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> Result[NativeHostRun, NativeHostIssue] {
   let issuer = match
-    @planning.prepare_duckdb_native_issuer(
+    @duckdb_query.prepare_duckdb_native_issuer(
       contract, requirement, nonce, max_nonce_chars, verify_transport,
     ) {
     Ok(issuer) => issuer
     Err(issue) => return Err(Evidence(issue))
   }
   let attempt = match
-    @planning.prepare_issued_duckdb_native_attempt(
+    @duckdb_query.prepare_issued_duckdb_native_attempt(
       issuer, choice, candidate, physical, metadata_work, measurement,
     ) {
     Ok(attempt) => attempt
     Err(issue) => {
-      @planning.close_duckdb_native_issuer(issuer)
+      @duckdb_query.close_duckdb_native_issuer(issuer)
       return Err(Evidence(issue))
     }
   }
   Ok({
     issuer,
     attempt,
-    scan: @planning.duckdb_native_preparation_scan(
-      @planning.duckdb_native_attempt_preparation(attempt),
+    scan: @duckdb_query.duckdb_native_preparation_scan(
+      @duckdb_query.duckdb_native_attempt_preparation(attempt),
     ),
     port: None,
     observation: None,
@@ -66,7 +68,7 @@ pub fn start_native_host(
 ///|
 pub fn native_host_attempt(
   run : NativeHostRun,
-) -> @planning.DuckDBNativeAttempt {
+) -> @duckdb_query.DuckDBNativeAttempt {
   run.attempt
 }
 
@@ -78,7 +80,7 @@ pub fn native_host_scan(run : NativeHostRun) -> @duckdb.NativeScan {
 ///|
 pub fn abort_native_host(run : NativeHostRun) -> Unit {
   if run.observation is None {
-    @planning.abort_duckdb_native_attempt(run.attempt)
+    @duckdb_query.abort_duckdb_native_attempt(run.attempt)
   }
   run.port = None
 }
@@ -89,7 +91,7 @@ pub fn close_native_host(run : NativeHostRun) -> Unit {
     return
   }
   abort_native_host(run)
-  @planning.close_duckdb_native_issuer(run.issuer)
+  @duckdb_query.close_duckdb_native_issuer(run.issuer)
   run.closed = true
 }
 
@@ -108,7 +110,7 @@ pub fn native_host_metadata(
   if !can_receive(run) {
     return Err(InvalidState)
   }
-  @planning.admit_duckdb_native_metadata(run.attempt, rows, fields, columns).map_err(issue => {
+  @duckdb_query.admit_duckdb_native_metadata(run.attempt, rows, fields, columns).map_err(issue => {
       Attempt(issue)
     },
   )
@@ -127,7 +129,7 @@ pub fn begin_native_host_receipt(
     abort_native_host(run)
     return Err(InvalidState)
   }
-  match @planning.begin_duckdb_native_receipt(run.attempt, role, fields) {
+  match @duckdb_query.begin_duckdb_native_receipt(run.attempt, role, fields) {
     Ok(port) => {
       run.port = Some(port)
       Ok(())
@@ -149,7 +151,7 @@ pub fn accept_native_host_chunk(
     abort_native_host(run)
     return Err(InvalidState)
   }
-  @planning.accept_duckdb_native_chunk(run.attempt, port, rows, columns).map_err(issue => {
+  @duckdb_query.accept_duckdb_native_chunk(run.attempt, port, rows, columns).map_err(issue => {
       Attempt(issue)
     },
   )
@@ -167,7 +169,7 @@ pub fn finish_native_host_receipt(
     return Err(InvalidState)
   }
   run.port = None
-  @planning.finish_duckdb_native_receipt(run.attempt, port).map_err(issue => {
+  @duckdb_query.finish_duckdb_native_receipt(run.attempt, port).map_err(issue => {
     Attempt(issue)
   })
 }
@@ -175,13 +177,17 @@ pub fn finish_native_host_receipt(
 ///|
 pub fn complete_native_host(
   run : NativeHostRun,
-  limits : @planning.DuckDBNativeCompletionLimits,
-) -> Result[@planning.DuckDBNativeObservation, NativeHostIssue] {
+  limits : @duckdb_query.DuckDBNativeCompletionLimits,
+) -> Result[@duckdb_query.DuckDBNativeObservation, NativeHostIssue] {
   if run.closed {
     return Err(InvalidState)
   }
   match
-    @planning.complete_duckdb_native_capture(run.issuer, run.attempt, limits) {
+    @duckdb_query.complete_duckdb_native_capture(
+      run.issuer,
+      run.attempt,
+      limits,
+    ) {
     Ok(observation) => {
       run.observation = Some(observation)
       Ok(observation)
@@ -193,10 +199,10 @@ pub fn complete_native_host(
 ///|
 pub fn verify_native_host(
   run : NativeHostRun,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
 ) -> Bool {
   !run.closed &&
-  @planning.verify_duckdb_native_observation(
+  @duckdb_query.verify_duckdb_native_observation(
     run.issuer,
     run.attempt,
     observation,
@@ -207,14 +213,14 @@ pub fn verify_native_host(
 ///|
 pub fn native_host_output(
   run : NativeHostRun,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
   max_rows : Int,
   retention : @execution.ValueLimits,
-) -> Result[@planning.DuckDBNativeOutput, NativeHostIssue] {
+) -> Result[@duckdb_query.DuckDBNativeOutput, NativeHostIssue] {
   if run.closed {
     return Err(InvalidState)
   }
-  @planning.materialize_duckdb_native_output(
+  @duckdb_query.materialize_duckdb_native_output(
     run.issuer,
     run.attempt,
     observation,
@@ -226,7 +232,7 @@ pub fn native_host_output(
 ///|
 pub fn bind_native_host_input(
   run : NativeHostRun,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
   receiver : @lower.BoundPrepared,
   input_index : Int,
   max_rows : Int,
@@ -240,7 +246,7 @@ pub fn bind_native_host_input(
     Err(issue) => return Err(issue)
   }
   let completed = match
-    @planning.complete_duckdb_native_output(
+    @duckdb_query.complete_duckdb_native_output(
       retained, max_entries, max_name_bytes,
     ) {
     Ok(value) => value

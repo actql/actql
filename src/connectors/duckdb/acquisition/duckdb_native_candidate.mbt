@@ -37,7 +37,7 @@ pub fn duckdb_native_work_at(index : Int) -> DuckDBNativeWork? {
 /// Exact compiled realization, not a discharged source-validation obligation.
 /// It does not select the Local residual's fragment contract.
 struct DuckDBNativePreparation {
-  requirement : QueryRequirement
+  requirement : @planning.QueryRequirement
   scan : @duckdb.NativeScan
   root : @duckdb.NativeRootGuard
 }
@@ -45,7 +45,7 @@ struct DuckDBNativePreparation {
 ///|
 pub(all) enum DuckDBNativeCandidateIssue {
   Unsupported(DuckDBNativeIssue)
-  Planning(QueryPlanningIssue)
+  Planning(@planning.QueryPlanningIssue)
 }
 
 ///|
@@ -56,7 +56,7 @@ pub fn duckdb_native_candidate(
   quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[
-  PreparedAcquisition[DuckDBNativePreparation],
+  @planning.PreparedAcquisition[DuckDBNativePreparation],
   DuckDBNativeCandidateIssue,
 ] {
   let (scan, root) = match prepared.native {
@@ -72,7 +72,7 @@ pub fn duckdb_native_candidate(
     Ok(duration) => duration
     Err(issue) => return Err(Planning(Cost(issue)))
   }
-  bind_acquisition_candidate(
+  @planning.bind_acquisition_candidate(
     registration,
     prepared.requirement,
     { requirement: prepared.requirement, scan, root, },

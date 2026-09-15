@@ -35,7 +35,10 @@ pub fn duckdb_broad_candidate(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : @connector.QueryQuantities,
   max_entries : Int,
-) -> Result[PreparedAcquisition[DuckDBQueryPreparation], QueryPlanningIssue] {
+) -> Result[
+  @planning.PreparedAcquisition[DuckDBQueryPreparation],
+  @planning.QueryPlanningIssue,
+] {
   if !@connector.valid_quantity(quantities.transfer_bytes) ||
     !@connector.valid_quantity(quantities.retained_bytes) ||
     !@connector.valid_quantity(quantities.money_units) {
@@ -44,7 +47,7 @@ pub fn duckdb_broad_candidate(
   match @cost.assess_serial(8, estimates, max_entries) {
     Err(issue) => Err(Cost(issue))
     Ok(duration) =>
-      bind_acquisition_candidate(
+      @planning.bind_acquisition_candidate(
         registration,
         prepared.requirement,
         prepared,

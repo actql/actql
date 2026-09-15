@@ -23,7 +23,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     { max_rows: 10, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let prepared = @planning.prepare_duckdb_query(
+  let prepared = @duckdb_query.prepare_duckdb_query(
     requirement,
     "main",
     "records",
@@ -35,18 +35,40 @@ test "common acquisition comparison preserves provider binding and unknown costs
     retained_bytes: None,
     money_units: None,
   }
-  let mock_offer = @planning.offer_mock_query(
+  let mock_offer = @mock.offer_mock_query(
     sequence,
-    @planning.BroadWithResidual,
+    @mock.BroadWithResidual,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6], milliseconds: Some(20L), }],
     quantities,
     100,
   ).unwrap()
-  let mock_binding = @planning.mock_acquisition_candidate(
+  // The public connector construction boundary cannot bypass cost/quantity
+  // validation or fabricate a selected payload. It grants no execution rights.
+  assert_true(
+    @planning.bind_acquisition_candidate(
+      mock_registration,
+      requirement,
+      (),
+      @cost.Complete(-1L),
+      quantities,
+    )
+    is Err(NegativeQuantity),
+  )
+  assert_true(
+    @planning.bind_acquisition_candidate(
+      mock_registration,
+      requirement,
+      (),
+      @cost.Unknown,
+      { ..quantities, retained_bytes: Some(-1L), },
+    )
+    is Err(NegativeQuantity),
+  )
+  let mock_binding = @mock.mock_acquisition_candidate(
     mock_registration, requirement, mock_offer,
   ).unwrap()
   let mock = @planning.prepared_acquisition_candidate(mock_binding)
-  let broad_binding = @planning.duckdb_broad_candidate(
+  let broad_binding = @duckdb_query.duckdb_broad_candidate(
     duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
@@ -54,7 +76,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     100,
   ).unwrap()
   let broad = @planning.prepared_acquisition_candidate(broad_binding)
-  let unknown_binding = @planning.duckdb_broad_candidate(
+  let unknown_binding = @duckdb_query.duckdb_broad_candidate(
     duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6], milliseconds: Some(1L), }],
@@ -74,7 +96,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     is Ok(Deferred),
   )
   assert_true(
-    @planning.duckdb_broad_candidate(
+    @duckdb_query.duckdb_broad_candidate(
       duckdb_registration,
       prepared,
       [
@@ -118,7 +140,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
       max_rows=3,
       run_limits().input_values,
     ).unwrap()
-    let (completed, _) = @planning.execute_duckdb_broad_residual(
+    let (completed, _) = @duckdb_query.execute_duckdb_broad_residual(
       selected,
       input,
       compute_test_limits(),
@@ -129,7 +151,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
     assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
   }
-  let equal_binding = @planning.duckdb_broad_candidate(
+  let equal_binding = @duckdb_query.duckdb_broad_candidate(
     duckdb_registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(20L), }],
@@ -170,7 +192,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
   )
   let local_registration = @connector.capability_registration_at(registry, 2).unwrap()
   assert_true(
-    @planning.mock_acquisition_candidate(
+    @mock.mock_acquisition_candidate(
       local_registration, requirement, mock_offer,
     )
     is Err(AcquisitionUnsupported),
@@ -205,11 +227,11 @@ test "common acquisition comparison preserves provider binding and unknown costs
     is Proposed(mock_choice) else {
     abort("expected mock tie choice")
   }
-  let strategy = @planning.mock_acquisition_strategy(mock_choice, mock_binding).unwrap()
+  let strategy = @mock.mock_acquisition_strategy(mock_choice, mock_binding).unwrap()
   assert_true(
     @planning.acquisition_choice_payload(mock_choice, equal_binding) is None,
   )
-  let attempt = @planning.prepare_requirement_mock_query_attempt(
+  let attempt = @mock.prepare_requirement_mock_query_attempt(
     requirement,
     strategy,
     [
@@ -219,20 +241,18 @@ test "common acquisition comparison preserves provider binding and unknown costs
     ],
     3,
   ).unwrap()
-  let computed = @planning.execute_mock_query(
+  let computed = @mock.execute_mock_query(
     attempt,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
-  assert_eq(@planning.mock_query_output_rows(computed), 2)
+  assert_eq(@mock.mock_query_output_rows(computed), 2)
   @connector.close_capability_registry(registry)
   assert_true(
     @planning.acquisition_choice_payload(choice, equal_binding) is None,
   )
   assert_true(
-    @planning.mock_acquisition_candidate(
-      mock_registration, requirement, mock_offer,
-    )
+    @mock.mock_acquisition_candidate(mock_registration, requirement, mock_offer)
     is Err(CapabilityClosed),
   )
   assert_true(

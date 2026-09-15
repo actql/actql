@@ -3,7 +3,7 @@
 /// No external provider is read, and offer/selection never performs this work.
 struct MockQueryAttempt {
   mut state : MockQueryState
-  requirement : QueryRequirement?
+  requirement : @planning.QueryRequirement?
   authority : MockAttemptAuthority?
 }
 
@@ -84,12 +84,17 @@ pub fn prepare_mock_query_attempt(
 /// Bind the canonical requirement before starting an attempt. This does not
 /// authorize an issuer; execution still produces only unpublished computation.
 pub fn prepare_requirement_mock_query_attempt(
-  requirement : QueryRequirement,
+  requirement : @planning.QueryRequirement,
   strategy : QueryStrategy,
   source : Array[@decode.Cursor],
   max_entries : Int,
 ) -> Result[MockQueryAttempt, MockQueryIssue] {
-  if !physical_equal(requirement.material.owner, strategy.offer.owner) {
+  if !physical_equal(
+      @planning.query_material_owner(
+        @planning.query_requirement_material(requirement),
+      ),
+      strategy.offer.owner,
+    ) {
     return Err(ForeignRequirement)
   }
   if max_entries < 0 {
@@ -127,7 +132,7 @@ fn compute_mock_query(
   strategy : QueryStrategy,
   source : Array[@decode.Cursor],
   limits : MockQueryLimits,
-  guards : (QueryLogicalGuards, @query.QueryGuardMeasureLimits)?,
+  guards : (@planning.QueryLogicalGuards, @query.QueryGuardMeasureLimits)?,
 ) -> Result[MockQueryComputation, MockQueryIssue] {
   if limits.source_rows < 0 ||
     limits.received_rows < 0 ||
@@ -136,8 +141,8 @@ fn compute_mock_query(
   }
   let query = @query.query_sequence_requirement(strategy.offer.owner)
   guard @pipeline.schema_at(
-      @acquisition.query_acquisition_pipeline(query),
-      @acquisition.query_acquisition_input(query),
+      @sourcequery.query_acquisition_pipeline(query),
+      @sourcequery.query_acquisition_input(query),
     )
     is Some(schema) else {
     return Err(MissingCaptureOutput)
@@ -192,7 +197,7 @@ fn compute_mock_query(
   }
   guard @execution.completed_output(
       completed,
-      @acquisition.query_acquisition_capture(query),
+      @sourcequery.query_acquisition_capture(query),
     )
     is Some(output) else {
     return Err(MissingCaptureOutput)
@@ -236,7 +241,7 @@ pub fn execute_mock_query(
       }
       let guards = match (attempt.requirement, guard_measure) {
         (Some(requirement), Some(physical)) =>
-          Some((requirement.guards, physical))
+          Some((@planning.query_requirement_guards(requirement), physical))
         (Some(_), None) => return Err(GuardLimitsRequired)
         (None, _) => None
       }

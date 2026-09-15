@@ -18,7 +18,7 @@ pub fn capture_mock_query(
   issuer : MockQueryIssuer,
   attempt : MockQueryAttempt,
   records : MockQueryRecords,
-  limits : QueryEvidenceLimits,
+  limits : @planning.QueryEvidenceLimits,
 ) -> Result[MockQueryObservation, MockEvidenceIssue] {
   match verify_mock_query_records(issuer, attempt, records) {
     Err(issue) => return Err(issue)
@@ -30,47 +30,22 @@ pub fn capture_mock_query(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if records.bytes > limits.max_bytes || records.nodes > limits.max_nodes {
-    let issue = MockEvidenceIssue::Encoding(@encode.OutputLimit)
-    attempt.state = Failed(Evidence(issue))
-    return Err(issue)
-  }
-  let budget : QueryMaterialBudget = {
-    work: 0,
-    bytes: limits.max_bytes - records.bytes,
-    nodes: limits.max_nodes - records.nodes,
-    depth: limits.max_depth,
-  }
-  try {
-    let material = records.retention._requirement.material
-    let request_cid = material_hash(budget, writer => {
-      @encode.emit_document(writer, material.request)
-    })
-    if request_cid != material.request_cid {
-      attempt.state = Failed(Evidence(ForeignRecords))
-      return Err(ForeignRecords)
+  match @planning.build_query_observation_artifact(records.artifacts, limits) {
+    Ok((document, cid, bytes, nodes)) => {
+      let value : MockQueryObservation = {
+        records,
+        document,
+        cid,
+        bytes,
+        nodes,
+      }
+      attempt.state = Captured(value)
+      Ok(value)
     }
-    let (document, cid) = query_record_document(budget, writer => {
-      emit_query_observation(
-        records.retention._requirement,
-        records._payload,
-        records.cids,
-        writer,
-      )
-    })
-    let value : MockQueryObservation = {
-      records,
-      document,
-      cid,
-      bytes: limits.max_bytes - budget.bytes,
-      nodes: limits.max_nodes - budget.nodes,
-    }
-    attempt.state = Captured(value)
-    Ok(value)
-  } catch {
-    issue => {
-      attempt.state = Failed(Evidence(Encoding(issue)))
-      Err(Encoding(issue))
+    Err(issue) => {
+      let issue = mock_artifact_issue(issue)
+      attempt.state = Failed(Evidence(issue))
+      Err(issue)
     }
   }
 }

@@ -8,7 +8,7 @@ priv enum QueryRecordBuildIssue {
 }
 
 ///|
-fn query_record_document(
+pub fn query_record_document(
   budget : QueryMaterialBudget,
   emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
 ) -> (@encode.EncodedDocument, String) raise @encode.EncodeFailure {
@@ -101,7 +101,7 @@ fn query_record_payload(
 }
 
 ///|
-fn query_scan_scope(
+pub fn query_scan_scope(
   requirement : QueryRequirement,
   budget : QueryMaterialBudget,
 ) -> String raise @encode.EncodeFailure {

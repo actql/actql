@@ -13,7 +13,7 @@ pub fn capture_duckdb_broad_query(
   issuer : DuckDBQueryIssuer,
   attempt : DuckDBBroadAttempt,
   records : DuckDBBroadRecords,
-  limits : QueryEvidenceLimits,
+  limits : @planning.QueryEvidenceLimits,
 ) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue] {
   match verify_duckdb_broad_records(issuer, attempt, records) {
     Err(issue) => return Err(issue)
@@ -25,42 +25,21 @@ pub fn capture_duckdb_broad_query(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if records.bytes > limits.max_bytes || records.nodes > limits.max_nodes {
-    abort_duckdb_broad_attempt(attempt)
-    return Err(Encoding(@encode.OutputLimit))
-  }
-  let budget : QueryMaterialBudget = {
-    work: 0,
-    bytes: limits.max_bytes - records.bytes,
-    nodes: limits.max_nodes - records.nodes,
-    depth: limits.max_depth,
-  }
-  try {
-    let requirement = records.retention.preparation.requirement
-    let material = requirement.material
-    let request_cid = material_hash(budget, writer => {
-      @encode.emit_document(writer, material.request)
-    })
-    if request_cid != material.request_cid {
-      abort_duckdb_broad_attempt(attempt)
-      return Err(ForeignRecords)
+  match @planning.build_query_observation_artifact(records.artifacts, limits) {
+    Ok((document, cid, bytes, nodes)) => {
+      let observation : DuckDBBroadObservation = {
+        records,
+        document,
+        cid,
+        bytes,
+        nodes,
+      }
+      attempt.state = Captured(observation)
+      Ok(observation)
     }
-    let (document, cid) = query_record_document(budget, writer => {
-      emit_query_observation(requirement, records.payload, records.cids, writer)
-    })
-    let observation : DuckDBBroadObservation = {
-      records,
-      document,
-      cid,
-      bytes: limits.max_bytes - budget.bytes,
-      nodes: limits.max_nodes - budget.nodes,
-    }
-    attempt.state = Captured(observation)
-    Ok(observation)
-  } catch {
-    issue => {
+    Err(issue) => {
       abort_duckdb_broad_attempt(attempt)
-      Err(Encoding(issue))
+      Err(duckdb_artifact_issue(issue))
     }
   }
 }

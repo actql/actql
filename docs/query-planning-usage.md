@@ -1,8 +1,10 @@
 # Query strategy experiment
 
-The source-checkout `query_planning` package compares and computes the two initial
-mock query realizations. It issues process-local mock records, captures a complete
-observation and binds its immutable output to a checked local consumer. It does
+The source-checkout `query_planning` package owns canonical requirement material
+and common acquisition candidate comparison. `connectors/mock/acquisition` offers
+and computes the two initial mock query realizations, issues process-local mock
+records, captures a complete observation and binds its immutable output to a
+checked local consumer. This mock implementation does
 not dispatch a real Connector, publicly publish a Result or construct a runnable
 Program/Plan. Real DuckDB adapter wiring is documented in the
 [Node adapter guide](../adapters/duckdb-node/README.md), separately from the mock
@@ -48,9 +50,20 @@ reports `NotComputed` before execution and retains typed failures afterward.
 `cancel_mock_query` can withdraw an unstarted or awaiting-capture attempt. Use a
 new attempt for a retry; it does not implicitly reread or choose another route.
 
-Query adapter functions and types below belong to `execution_query`; candidate,
-attempt and capture functions belong to `query_planning`. The engine's former
-query API locations are removed rather than retained as forwarding wrappers.
+Query adapter functions and types below belong to `execution_query`. Mock offers,
+attempts and capture belong to `connectors/mock/acquisition`; their DuckDB
+counterparts belong to `connectors/duckdb/acquisition`. Shared requirements,
+`PreparedAcquisition[T]` and `choose_acquisition_candidate` remain in
+`query_planning`. Import each owning package explicitly; former concrete exports
+from `query_planning` are removed, not retained as forwarding wrappers.
+
+The shared artifact builders only serialize and measure canonical material.
+`QueryRecordArtifacts` and `QueryMaterialBudget` do not grant issuance or capture
+authority. The connector must still verify its exact live attempt, retained
+scan/output and issued-set handle. Artifact arrays and mutable budgets are not
+exposed: bounded operations consume the ledger, and capture includes the prior
+record usage. `execution_query.CapturedInputSource` remains the common handoff
+after the connector's trusted capture verification.
 
 For integrations needing full-scan material after computation,
 `admit_query_receipt` returns an immutable, preparation-owned `QueryReceipt` and

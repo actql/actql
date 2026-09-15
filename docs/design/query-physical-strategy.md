@@ -3,8 +3,9 @@
 `query_planning` consumes `execution_query`'s owned local query preparation described by
 [query residual execution](query-residual-execution.md). It neither derives a
 canonical acquisition nor introduces a semantic Run, Invocation, approval or
-commit scope. Its `QueryStrategy` is a Host-private proposal for the same query.
-It is not a public Connector SPI or runnable Plan.
+commit scope. Its `AcquisitionChoice` is a Host-private proposal for the same
+query, not a public Connector SPI or runnable Plan. The mock's `QueryStrategy`
+and fixed two-realization inventory belong to `connectors/mock/acquisition`.
 
 `connector_sdk` owns bounded capability registrations, fixed-input requests,
 selected consumer capacities and typed candidate/payload bindings. It depends
@@ -44,6 +45,17 @@ current checked-ready selection before issuing a single-use dispatch ticket.
 Preparation must not initiate I/O. A ticket is neither a reservation nor a
 completion proof; the common execution admission and publication boundaries
 remain required.
+
+Acquisition execution, attempts, retention, issuer verification and capture are
+owned by `connectors/mock/acquisition` and `connectors/duckdb/acquisition`.
+`query_planning` has no concrete connector dependency; it owns shared requirement
+and canonical artifact construction plus candidate comparison. Artifact material
+is not live evidence: bounded builders neither issue records nor construct
+consumer input. Connector issuers associate the material with exact live attempts
+and retained values, then install verified capture through `execution_query`.
+The serialization budget is opaque and spend-only; record arrays are private,
+and observation construction includes previously consumed record bytes/nodes.
+No wire or CID rule depends on the implementing package.
 
 The Local realization is owned by `connectors/local`; DuckDB Compute candidate,
 receiving and completion state is owned by `connectors/duckdb/compute`. The latter

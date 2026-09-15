@@ -1,16 +1,18 @@
 ///|
 priv struct NativeIssuerFixture {
-  issuer : @planning.DuckDBNativeIssuer
+  issuer : @duckdb_query.DuckDBNativeIssuer
   requirement : @planning.QueryRequirement
   choice : @planning.AcquisitionChoice
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBNativePreparation]
-  transport : Array[@planning.DuckDBNativeAttempt]
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBNativePreparation,
+  ]
+  transport : Array[@duckdb_query.DuckDBNativeAttempt]
 }
 
 ///|
 fn native_issuer_fixture() -> NativeIssuerFixture raise {
   let (registry, requirement, prepared) = native_candidate_fixture()
-  let candidate = @planning.duckdb_native_candidate(
+  let candidate = @duckdb_query.duckdb_native_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     prepared,
     [
@@ -45,8 +47,8 @@ fn native_issuer_fixture() -> NativeIssuerFixture raise {
   ).unwrap()
   // Portable Host double only. Real Node must bind both receipts, one exact
   // grant/port/read view and successful session settlement instead of this set.
-  let transport : Array[@planning.DuckDBNativeAttempt] = []
-  let issuer = @planning.prepare_duckdb_native_issuer(
+  let transport : Array[@duckdb_query.DuckDBNativeAttempt] = []
+  let issuer = @duckdb_query.prepare_duckdb_native_issuer(
     contract,
     requirement,
     "portable-native",
@@ -59,8 +61,8 @@ fn native_issuer_fixture() -> NativeIssuerFixture raise {
 ///|
 fn native_issued_attempt(
   f : NativeIssuerFixture,
-) -> @planning.DuckDBNativeAttempt {
-  @planning.prepare_issued_duckdb_native_attempt(
+) -> @duckdb_query.DuckDBNativeAttempt {
+  @duckdb_query.prepare_issued_duckdb_native_attempt(
     f.issuer,
     f.choice,
     f.candidate,
@@ -73,11 +75,11 @@ fn native_issued_attempt(
 ///|
 fn native_issued_run(
   f : NativeIssuerFixture,
-  attempt : @planning.DuckDBNativeAttempt,
+  attempt : @duckdb_query.DuckDBNativeAttempt,
 ) -> Unit {
   native_attempt_receive_fixture(attempt)
-  @planning.settle_duckdb_native_transport(attempt).unwrap()
-  @planning.measure_duckdb_native_attempt(
+  @duckdb_query.settle_duckdb_native_transport(attempt).unwrap()
+  @duckdb_query.measure_duckdb_native_attempt(
     attempt,
     native_demand_physical(),
     native_attempt_wire(),
@@ -157,7 +159,7 @@ test "native artifact accounting spans both receipts three records and capture a
     native_issued_run(f, attempt)
     let (receipts, records, observation) = native_observation_oracle(
       f.requirement,
-      @planning.duckdb_native_attempt_identity(attempt).unwrap(),
+      @duckdb_query.duckdb_native_attempt_identity(attempt).unwrap(),
     )
     guard @json.parse(
         @encode.document_text(
@@ -187,12 +189,12 @@ test "native artifact accounting spans both receipts three records and capture a
         nodes += 2 * native_oracle_nodes(text)
       }
     }
-    let issued = @planning.issue_duckdb_native_records(
+    let issued = @duckdb_query.issue_duckdb_native_records(
       attempt,
       47,
       query_material_limits(),
     ).unwrap()
-    let captured = @planning.capture_duckdb_native_query(
+    let captured = @duckdb_query.capture_duckdb_native_query(
       f.issuer,
       attempt,
       issued,
@@ -204,13 +206,13 @@ test "native artifact accounting spans both receipts three records and capture a
     )
     if shortage == 0 {
       assert_eq(
-        @planning.duckdb_native_observation_usage(captured.unwrap()),
+        @duckdb_query.duckdb_native_observation_usage(captured.unwrap()),
         (bytes, nodes),
       )
     } else {
       assert_true(captured is Err(Encoding(OutputLimit)))
       assert_true(
-        @planning.verify_duckdb_native_records(f.issuer, attempt, issued)
+        @duckdb_query.verify_duckdb_native_records(f.issuer, attempt, issued)
         is Err(ForeignRecords),
       )
     }
@@ -336,17 +338,17 @@ test "native Host-local two-receipt issuance and capture match an independent ob
   let f = native_issuer_fixture()
   let attempt = native_issued_attempt(f)
   native_issued_run(f, attempt)
-  let records = @planning.issue_duckdb_native_records(
+  let records = @duckdb_query.issue_duckdb_native_records(
     attempt,
     47,
     query_material_limits(),
   ).unwrap()
   let (expected_receipts, expected_records, expected_observation) = native_observation_oracle(
     f.requirement,
-    @planning.duckdb_native_attempt_identity(attempt).unwrap(),
+    @duckdb_query.duckdb_native_attempt_identity(attempt).unwrap(),
   )
   for i in 0..<2 {
-    let (document, cid) = @planning.duckdb_native_receipt_at(records, i).unwrap()
+    let (document, cid) = @duckdb_query.duckdb_native_receipt_at(records, i).unwrap()
     assert_eq(cid, query_material_expected(expected_receipts[i]))
     assert_eq(
       @json.parse(@encode.document_text(document)),
@@ -354,7 +356,7 @@ test "native Host-local two-receipt issuance and capture match an independent ob
     )
   }
   for i in 0..<3 {
-    let (document, cid) = @planning.duckdb_native_record_at(records, i).unwrap()
+    let (document, cid) = @duckdb_query.duckdb_native_record_at(records, i).unwrap()
     assert_eq(cid, query_material_expected(expected_records[i]))
     assert_eq(
       @json.parse(@encode.document_text(document)),
@@ -362,29 +364,33 @@ test "native Host-local two-receipt issuance and capture match an independent ob
     )
   }
   assert_true(
-    @planning.issue_duckdb_native_records(attempt, 47, query_material_limits())
+    @duckdb_query.issue_duckdb_native_records(
+      attempt,
+      47,
+      query_material_limits(),
+    )
     is Err(NotRetained),
   )
-  let observation = @planning.capture_duckdb_native_query(
+  let observation = @duckdb_query.capture_duckdb_native_query(
     f.issuer,
     attempt,
     records,
     query_capture_limits(),
   ).unwrap()
   assert_eq(
-    @planning.duckdb_native_observation_cid(observation),
+    @duckdb_query.duckdb_native_observation_cid(observation),
     query_material_expected(expected_observation),
   )
   assert_eq(
     @json.parse(
       @encode.document_text(
-        @planning.duckdb_native_observation_document(observation),
+        @duckdb_query.duckdb_native_observation_document(observation),
       ),
     ),
     @json.parse(expected_observation),
   )
   assert_true(
-    @planning.capture_duckdb_native_query(
+    @duckdb_query.capture_duckdb_native_query(
       f.issuer,
       attempt,
       records,
@@ -392,16 +398,20 @@ test "native Host-local two-receipt issuance and capture match an independent ob
     )
     is Err(AlreadyCaptured),
   )
-  @planning.abort_duckdb_native_attempt(attempt)
-  @planning.verify_duckdb_native_observation(f.issuer, attempt, observation).unwrap()
+  @duckdb_query.abort_duckdb_native_attempt(attempt)
+  @duckdb_query.verify_duckdb_native_observation(f.issuer, attempt, observation).unwrap()
   f.transport.clear()
   assert_true(
-    @planning.verify_duckdb_native_observation(f.issuer, attempt, observation)
+    @duckdb_query.verify_duckdb_native_observation(
+      f.issuer,
+      attempt,
+      observation,
+    )
     is Err(UnverifiedTransport),
   )
-  @planning.close_duckdb_native_issuer(f.issuer)
+  @duckdb_query.close_duckdb_native_issuer(f.issuer)
   assert_true(
-    @planning.verify_duckdb_native_records(f.issuer, attempt, records)
+    @duckdb_query.verify_duckdb_native_records(f.issuer, attempt, records)
     is Err(IssuerClosed),
   )
 }
@@ -411,23 +421,31 @@ test "native records reject unissued unverified cancelled foreign and incomplete
   let f = native_issuer_fixture()
   let unissued = native_selected_attempt()
   assert_true(
-    @planning.issue_duckdb_native_records(unissued, 47, query_material_limits())
+    @duckdb_query.issue_duckdb_native_records(
+      unissued,
+      47,
+      query_material_limits(),
+    )
     is Err(UnauthorizedAttempt),
   )
   let early = native_issued_attempt(f)
   assert_true(
-    @planning.issue_duckdb_native_records(early, 47, query_material_limits())
+    @duckdb_query.issue_duckdb_native_records(
+      early,
+      47,
+      query_material_limits(),
+    )
     is Err(NotRetained),
   )
-  @planning.abort_duckdb_native_attempt(early)
+  @duckdb_query.abort_duckdb_native_attempt(early)
   assert_true(
-    @planning.settle_duckdb_native_transport(early) is Err(InvalidState),
+    @duckdb_query.settle_duckdb_native_transport(early) is Err(InvalidState),
   )
   let unverified = native_issued_attempt(f)
   native_issued_run(f, unverified)
   f.transport.clear()
   assert_true(
-    @planning.issue_duckdb_native_records(
+    @duckdb_query.issue_duckdb_native_records(
       unverified,
       47,
       query_material_limits(),
@@ -436,7 +454,7 @@ test "native records reject unissued unverified cancelled foreign and incomplete
   )
   f.transport.push(unverified)
   assert_true(
-    @planning.issue_duckdb_native_records(
+    @duckdb_query.issue_duckdb_native_records(
       unverified,
       47,
       query_material_limits(),
@@ -446,40 +464,48 @@ test "native records reject unissued unverified cancelled foreign and incomplete
   let short = native_issued_attempt(f)
   native_issued_run(f, short)
   assert_true(
-    @planning.issue_duckdb_native_records(short, 46, query_material_limits())
+    @duckdb_query.issue_duckdb_native_records(
+      short,
+      46,
+      query_material_limits(),
+    )
     is Err(Encoding(OutputLimit)),
   )
   assert_true(
-    @planning.issue_duckdb_native_records(short, 47, query_material_limits())
+    @duckdb_query.issue_duckdb_native_records(
+      short,
+      47,
+      query_material_limits(),
+    )
     is Err(NotRetained),
   )
   let good = native_issued_attempt(f)
   native_issued_run(f, good)
-  let records = @planning.issue_duckdb_native_records(
+  let records = @duckdb_query.issue_duckdb_native_records(
     good,
     47,
     query_material_limits(),
   ).unwrap()
   let foreign = native_issuer_fixture()
   assert_true(
-    @planning.verify_duckdb_native_records(foreign.issuer, good, records)
+    @duckdb_query.verify_duckdb_native_records(foreign.issuer, good, records)
     is Err(UnauthorizedAttempt),
   )
   let another = native_issued_attempt(f)
   native_issued_run(f, another)
   assert_true(
-    @planning.verify_duckdb_native_records(f.issuer, another, records)
+    @duckdb_query.verify_duckdb_native_records(f.issuer, another, records)
     is Err(UnauthorizedAttempt),
   )
   assert_true(
-    @planning.capture_duckdb_native_query(f.issuer, good, records, {
+    @duckdb_query.capture_duckdb_native_query(f.issuer, good, records, {
       ..query_capture_limits(),
       max_bytes: 0,
     })
     is Err(Encoding(OutputLimit)),
   )
   assert_true(
-    @planning.capture_duckdb_native_query(
+    @duckdb_query.capture_duckdb_native_query(
       f.issuer,
       good,
       records,

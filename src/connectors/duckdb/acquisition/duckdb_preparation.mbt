@@ -2,7 +2,7 @@
 /// Provider preparation for one exact canonical requirement. Location is supplied
 /// by trusted Host binding; it neither changes that requirement nor grants I/O.
 struct DuckDBQueryPreparation {
-  requirement : QueryRequirement
+  requirement : @planning.QueryRequirement
   broad : @duckdb.BroadScan
   native : Result[
     (@duckdb.NativeScan, @duckdb.NativeRootGuard),
@@ -18,13 +18,17 @@ pub(all) enum DuckDBNativeIssue {
 
 ///|
 pub fn prepare_duckdb_query(
-  requirement : QueryRequirement,
+  requirement : @planning.QueryRequirement,
   database_schema : String,
   table : String,
   max_columns : Int,
   limits : @duckdb.NativeQueryLimits,
 ) -> Result[DuckDBQueryPreparation, @duckdb.NativeQueryIssue] {
-  let owner = @query.query_sequence_owner(requirement.material.owner)
+  let owner = @query.query_sequence_owner(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
   let broad = match
     @duckdb.prepare_broad_scan(
       owner,
@@ -44,7 +48,7 @@ pub fn prepare_duckdb_query(
       match
         @duckdb.prepare_native_root_guard(
           query,
-          requirement.guards.max_value_bytes,
+          @planning.query_requirement_guards(requirement).max_value_bytes,
         ) {
         Err(issue) => Err(RootGuard(issue))
         Ok(witness) =>
@@ -65,7 +69,7 @@ pub fn prepare_duckdb_query(
 ///|
 pub fn duckdb_query_requirement(
   value : DuckDBQueryPreparation,
-) -> QueryRequirement {
+) -> @planning.QueryRequirement {
   value.requirement
 }
 
@@ -102,7 +106,9 @@ pub fn execute_duckdb_broad_residual(
   (@execution.CompletedSequence, (Int, Int, Int)),
   @query.QueryGuardIssue,
 ] {
-  let sequence = value.requirement.material.owner
+  let sequence = @planning.query_material_owner(
+    @planning.query_requirement_material(value.requirement),
+  )
   let receipt = match @query.bind_query_receipt(sequence, input) {
     Ok(receipt) => receipt
     Err(issue) => return Err(Execution(issue))
@@ -111,8 +117,8 @@ pub fn execute_duckdb_broad_residual(
     sequence,
     receipt,
     limits,
-    max_output_rows=value.requirement.guards.max_rows,
-    max_value_bytes=value.requirement.guards.max_value_bytes,
+    max_output_rows=@planning.query_requirement_guards(value.requirement).max_rows,
+    max_value_bytes=@planning.query_requirement_guards(value.requirement).max_value_bytes,
     measurement,
   )
 }

@@ -73,7 +73,7 @@ fn captured_graph_fixture(
   count? : Bool = false,
   join? : Bool = false,
   self_join? : Bool = false,
-) -> (@strategy.CapturedDAG, @planning.MockQueryIssuer) raise {
+) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     dag=true,
     dag_count=count,
@@ -96,22 +96,19 @@ fn captured_graph_fixture(
     evidence_body,
     query_capture_limits(),
   ).unwrap()
-  let issuer = @planning.prepare_mock_query_issuer(
+  let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "dag-test", 100,
   ).unwrap()
-  let attempt = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
   query_issuer_run(attempt)
-  let records = @planning.issue_mock_query_records(
-    attempt,
-    query_material_limits(),
-  ).unwrap()
-  let observation = @planning.capture_mock_query(
+  let records = @mock.issue_mock_query_records(attempt, query_material_limits()).unwrap()
+  let observation = @mock.capture_mock_query(
     issuer,
     attempt,
     records,
     query_capture_limits(),
   ).unwrap()
-  let source = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
+  let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
   let ledger = @resources.create_ledger({
     planning_work: 10000,
     attempts: 10,
@@ -210,7 +207,7 @@ test "captured checked DAG runs shared X A B C in checked control order" {
   assert_eq(@strategy.next_captured_task(run), Some(2))
   captured_graph_local(run, 2).unwrap()
   // C consumes completed A, not the now closed original acquisition.
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   captured_graph_local(run, 3).unwrap()
   assert_true(@strategy.next_captured_task(run) is None)
   for (task, expected) in [(1, [3.0]), (2, [3.0, 2.0]), (3, [3.0])] {
@@ -241,7 +238,7 @@ test "captured count DAG binds its exact single step port and survives source cl
   assert_eq(@execution.completed_row_count(counted), 1)
   assert_true(@execution.completed_cell(counted, 0, 0) is Some(Number(2)))
   captured_graph_local(run, 2).unwrap()
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   captured_graph_local(run, 3).unwrap()
   let downstream = @strategy.captured_task_output(run, 3, Step(1)).unwrap()
   assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(2)))
@@ -255,7 +252,7 @@ test "captured DAG cancellation stops new branches but keeps independent complet
   let (run, issuer) = captured_graph_fixture()
   captured_graph_local(run, 1).unwrap()
   let pending = @strategy.captured_task_input(run, 2, 100, 10000).unwrap()
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_false(@execution.producer_read_available(pending))
   assert_true(
     @strategy.captured_task_input(run, 2, 100, 10000)

@@ -51,6 +51,25 @@ test('common DAG and Host have no transitive concrete connector dependency', () 
   }
 });
 
+test('query comparison and canonical material have no concrete acquisition dependency', () => {
+  for (const dependency of dependencies('query_planning')) {
+    assert.doesNotMatch(dependency, /^(?:connectors\/|duckdb_)/);
+  }
+  const api = readFileSync('src/query_planning/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /DuckDB|MockQuery|QueryRealization|connectors\//);
+  assert.match(api, /^type QueryRecordArtifacts$/m);
+  assert.match(api, /^type QueryMaterialBudget$/m);
+  for (const name of ['mock', 'duckdb']) {
+    const owner = `connectors/${name}/acquisition`;
+    assert.ok(imports(owner).includes('query_planning'));
+    assert.ok(existsSync(`src/${owner}/captured_source.mbt`));
+  }
+  for (const file of ['mock_issuer.mbt', 'duckdb_native_issuer.mbt',
+    'duckdb_broad_attempt.mbt', 'captured_source.mbt', 'query.mbt']) {
+    assert.ok(!existsSync(`src/query_planning/${file}`), file);
+  }
+});
+
 test('physical resource ledger is independent of strategy and connector implementations', () => {
   assert.deepEqual(imports('physical_resources'), []);
   assert.ok(imports('physical_strategy').includes('physical_resources'));

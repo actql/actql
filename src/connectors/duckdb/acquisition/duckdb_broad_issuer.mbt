@@ -3,16 +3,16 @@
 /// verifies exact grant/port/read-view/settled transport ownership outside this
 /// package. It must never accept a CID, path, SQL-success bool or JSON as proof.
 struct DuckDBQueryIssuer {
-  _contracts : QueryEvidenceContracts
-  requirement : QueryRequirement
+  _contracts : @planning.QueryEvidenceContracts
+  requirement : @planning.QueryRequirement
   name : String
   mut transport_matches : (DuckDBBroadAttempt) -> Bool
-  attempts : IssuerCounter
+  attempts : @planning.IssuerCounter
   mut live : Bool
 }
 
 ///|
-let duckdb_issuer_serial : IssuerCounter = { next: 0, }
+let duckdb_issuer_serial : @planning.IssuerCounter = @planning.issuer_counter()
 
 ///|
 priv struct DuckDBBroadAuthority {
@@ -45,8 +45,8 @@ pub(all) enum DuckDBEvidenceIssue {
 
 ///|
 pub fn prepare_duckdb_query_issuer(
-  contracts : QueryEvidenceContracts,
-  requirement : QueryRequirement,
+  contracts : @planning.QueryEvidenceContracts,
+  requirement : @planning.QueryRequirement,
   process_nonce : String,
   max_nonce_chars : Int,
   transport_matches : (DuckDBBroadAttempt) -> Bool,
@@ -57,7 +57,7 @@ pub fn prepare_duckdb_query_issuer(
   if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
     return Err(IdentifierLimit)
   }
-  guard reserve_issuer_number(duckdb_issuer_serial) is Some(serial) else {
+  guard @planning.reserve_issuer_number(duckdb_issuer_serial) is Some(serial) else {
     return Err(IdentifierExhausted)
   }
   Ok({
@@ -65,7 +65,7 @@ pub fn prepare_duckdb_query_issuer(
     requirement,
     name: process_nonce + "/duckdb-issuer/" + serial.to_string(),
     transport_matches,
-    attempts: { next: 0, },
+    attempts: @planning.issuer_counter(),
     live: true,
   })
 }
@@ -75,19 +75,20 @@ pub fn prepare_duckdb_query_issuer(
 /// authority to an already executed unissued attempt.
 pub fn prepare_issued_duckdb_broad_attempt(
   issuer : DuckDBQueryIssuer,
-  choice : AcquisitionChoice,
-  prepared : PreparedAcquisition[DuckDBQueryPreparation],
+  choice : @planning.AcquisitionChoice,
+  prepared : @planning.PreparedAcquisition[DuckDBQueryPreparation],
 ) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue] {
   if !issuer.live {
     return Err(IssuerClosed)
   }
-  guard acquisition_choice_payload(choice, prepared) is Some(preparation) else {
+  guard @planning.acquisition_choice_payload(choice, prepared)
+    is Some(preparation) else {
     return Err(NotSelected)
   }
   if !physical_equal(issuer.requirement, preparation.requirement) {
     return Err(UnauthorizedAttempt)
   }
-  guard reserve_issuer_number(issuer.attempts) is Some(number) else {
+  guard @planning.reserve_issuer_number(issuer.attempts) is Some(number) else {
     return Err(IdentifierExhausted)
   }
   let attempt = prepare_duckdb_broad_attempt(preparation)
@@ -111,18 +112,14 @@ pub fn duckdb_broad_attempt_identity(
 struct DuckDBBroadRecords {
   authority : DuckDBBroadAuthority
   retention : DuckDBBroadRetention
-  payload : QueryRecordPayload
-  documents : Array[@encode.EncodedDocument]
-  cids : Array[String]
-  bytes : Int
-  nodes : Int
+  artifacts : @planning.QueryRecordArtifacts
 }
 
 ///|
 fn build_duckdb_broad_records(
   authority : DuckDBBroadAuthority,
   retained : DuckDBBroadRetention,
-  limits : QueryMaterialLimits,
+  limits : @planning.QueryMaterialLimits,
 ) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue] {
   if limits.max_work < 0 ||
     limits.max_fields < 0 ||
@@ -131,75 +128,36 @@ fn build_duckdb_broad_records(
     limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let budget : QueryMaterialBudget = {
-    work: limits.max_work,
-    bytes: limits.max_bytes,
-    nodes: limits.max_nodes,
-    depth: limits.max_depth,
-  }
   let requirement = retained.preparation.requirement
-  let query = @query.query_sequence_requirement(requirement.material.owner)
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
   guard @pipeline.schema_at(
-      @acquisition.query_acquisition_pipeline(query),
-      @acquisition.query_acquisition_input(query),
+      @sourcequery.query_acquisition_pipeline(query),
+      @sourcequery.query_acquisition_input(query),
     )
     is Some(schema) else {
     return Err(InvalidRetainedLayout)
   }
-  let payload = match
-    query_record_payload(
-      requirement,
-      retained.measured.scan,
-      retained.measured.output,
-      schema,
-      limits,
-      budget,
-    ) {
-    Ok(value) => value
-    Err(issue) =>
-      return Err(
-        match issue {
-          InvalidRetainedLayout => InvalidRetainedLayout
-          FieldLimit => FieldLimit
-          WorkLimit => WorkLimit
-          Encoding(issue) => Encoding(issue)
-        },
-      )
-  }
-  let documents = []
-  let cids = []
-  try {
-    for role in [SourceValidation, Filter, Select] {
-      let (document, cid) = query_record_document(budget, writer => {
-        emit_query_record(
-          payload,
-          authority.issuer.name,
-          authority.number,
-          role,
-          writer,
-        )
-      })
-      documents.push(document)
-      cids.push(cid)
-    }
-    Ok({
-      authority,
-      retention: retained,
-      payload,
-      documents,
-      cids,
-      bytes: limits.max_bytes - budget.bytes,
-      nodes: limits.max_nodes - budget.nodes,
-    })
-  } catch {
-    issue => Err(Encoding(issue))
-  }
+  @planning.build_query_record_artifacts(
+    requirement,
+    retained.measured.scan,
+    retained.measured.output,
+    schema,
+    authority.issuer.name,
+    authority.number,
+    limits,
+  )
+  .map(artifacts => { authority, retention: retained, artifacts, })
+  .map_err(duckdb_artifact_issue)
 }
 
 ///|
 pub fn issue_duckdb_broad_records(
   attempt : DuckDBBroadAttempt,
-  limits : QueryMaterialLimits,
+  limits : @planning.QueryMaterialLimits,
 ) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue] {
   guard attempt.authority is Some(authority) else {
     return Err(UnauthorizedAttempt)
@@ -271,9 +229,19 @@ pub fn duckdb_broad_record_at(
   records : DuckDBBroadRecords,
   index : Int,
 ) -> (@encode.EncodedDocument, String)? {
-  guard records.documents.get(index) is Some(document) &&
-    records.cids.get(index) is Some(cid) else {
-    return None
+  @planning.query_record_artifact_at(records.artifacts, index)
+}
+
+///|
+fn duckdb_artifact_issue(
+  issue : @planning.QueryArtifactIssue,
+) -> DuckDBEvidenceIssue {
+  match issue {
+    InvalidLimits => InvalidLimits
+    InvalidRetainedLayout => InvalidRetainedLayout
+    FieldLimit => FieldLimit
+    WorkLimit => WorkLimit
+    ForeignMaterial => ForeignRecords
+    Encoding(issue) => Encoding(issue)
   }
-  Some((document, cid))
 }

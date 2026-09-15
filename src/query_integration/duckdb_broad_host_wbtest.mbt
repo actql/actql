@@ -1,5 +1,5 @@
 ///|
-fn broad_host_completion_limits() -> @planning.DuckDBBroadCompletionLimits {
+fn broad_host_completion_limits() -> @duckdb_query.DuckDBBroadCompletionLimits {
   {
     execution: compute_test_limits(),
     guards: query_guard_physical(),
@@ -28,17 +28,17 @@ test "broad capture orchestration preserves exact authority, independent wire an
   f.transport.push(attempt)
   let limits = broad_host_completion_limits()
   assert_true(
-    @planning.complete_duckdb_broad_capture(foreign.issuer, attempt, limits)
+    @duckdb_query.complete_duckdb_broad_capture(foreign.issuer, attempt, limits)
     is Err(UnauthorizedAttempt),
   )
-  let observation = @planning.complete_duckdb_broad_capture(
+  let observation = @duckdb_query.complete_duckdb_broad_capture(
     f.issuer,
     attempt,
     limits,
   ).unwrap()
   let (expected, _) = query_observation_oracle(
     f.requirement,
-    @planning.duckdb_broad_attempt_identity(attempt).unwrap(),
+    @duckdb_query.duckdb_broad_attempt_identity(attempt).unwrap(),
     "[{\"id\":3},{\"id\":1},{\"id\":2}]",
     3,
     "[\"id\"]",
@@ -47,18 +47,18 @@ test "broad capture orchestration preserves exact authority, independent wire an
   )
   assert_eq(
     @encode.document_text(
-      @planning.duckdb_broad_observation_document(observation),
+      @duckdb_query.duckdb_broad_observation_document(observation),
     ),
     expected,
   )
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, attempt, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, attempt, limits)
     is Err(AlreadyCaptured),
   )
   let owner = @query.query_sequence_owner(f.sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   assert_true(
-    @planning.bind_captured_duckdb_broad_input(
+    @duckdb_query.bind_captured_duckdb_broad_input(
       f.issuer,
       attempt,
       observation,
@@ -68,9 +68,9 @@ test "broad capture orchestration preserves exact authority, independent wire an
     )
     is Ok(_),
   )
-  @planning.close_duckdb_query_issuer(f.issuer)
+  @duckdb_query.close_duckdb_query_issuer(f.issuer)
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, attempt, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, attempt, limits)
     is Err(IssuerClosed),
   )
 }
@@ -82,32 +82,32 @@ test "broad capture orchestration fails closed for incomplete transport and exha
   broad_attempt_receive(early)
   let limits = broad_host_completion_limits()
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, early, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, early, limits)
     is Err(UnverifiedTransport),
   )
   f.transport.push(early)
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, early, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, early, limits)
     is Err(BroadAttempt(InvalidState)),
   )
   let exhausted = broad_issued_attempt(f)
   broad_attempt_receive(exhausted)
   f.transport.push(exhausted)
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, exhausted, {
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, exhausted, {
       ..limits,
       capture: { ..limits.capture, max_bytes: 0, },
     })
     is Err(Encoding(_)),
   )
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, exhausted, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, exhausted, limits)
     is Err(BroadAttempt(InvalidState)),
   )
   let unfinished = broad_issued_attempt(f)
   f.transport.push(unfinished) // transport alone never completes the row lifecycle
   assert_true(
-    @planning.complete_duckdb_broad_capture(f.issuer, unfinished, limits)
+    @duckdb_query.complete_duckdb_broad_capture(f.issuer, unfinished, limits)
     is Err(BroadAttempt(InvalidState)),
   )
 }
@@ -140,7 +140,7 @@ test "configured broad Host uses owned consumer binding with no acquisition data
       },
     },
   )
-  @planning.close_duckdb_query_issuer(f.issuer)
+  @duckdb_query.close_duckdb_query_issuer(f.issuer)
   let run = @dbhost.start_configured_broad_host(
     configuration,
     "configured-broad",

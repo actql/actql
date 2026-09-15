@@ -19,7 +19,7 @@ test "checked two port DAG joins completed branches then counts in a separate Co
     )
     captured_graph_local(run, 1).unwrap()
     captured_graph_local(run, 2).unwrap()
-    @planning.close_mock_query_issuer(issuer)
+    @mock.close_mock_query_issuer(issuer)
     assert_true(
       @strategy.captured_task_input(run, 3, 100, 10000, input_index=2)
       is Err(NotReady),

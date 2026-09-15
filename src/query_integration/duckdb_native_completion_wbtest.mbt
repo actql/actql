@@ -1,5 +1,5 @@
 ///|
-fn native_completion_limits() -> @planning.DuckDBNativeCompletionLimits {
+fn native_completion_limits() -> @duckdb_query.DuckDBNativeCompletionLimits {
   {
     demand: native_demand_physical(),
     receipts: native_attempt_wire(),
@@ -19,7 +19,7 @@ test "native Host completion owns sequencing without replacing the live verifier
   f.transport.push(attempt)
   let other = native_issuer_fixture()
   assert_true(
-    @planning.complete_duckdb_native_capture(
+    @duckdb_query.complete_duckdb_native_capture(
       other.issuer,
       attempt,
       native_completion_limits(),
@@ -27,21 +27,21 @@ test "native Host completion owns sequencing without replacing the live verifier
     is Err(UnauthorizedAttempt),
   )
   // A foreign caller cannot poison the rightful attempt.
-  let observation = @planning.complete_duckdb_native_capture(
+  let observation = @duckdb_query.complete_duckdb_native_capture(
     f.issuer,
     attempt,
     native_completion_limits(),
   ).unwrap()
   let (_, _, expected) = native_observation_oracle(
     f.requirement,
-    @planning.duckdb_native_attempt_identity(attempt).unwrap(),
+    @duckdb_query.duckdb_native_attempt_identity(attempt).unwrap(),
   )
   assert_eq(
-    @planning.duckdb_native_observation_cid(observation),
+    @duckdb_query.duckdb_native_observation_cid(observation),
     query_material_expected(expected),
   )
   assert_true(
-    @planning.complete_duckdb_native_capture(
+    @duckdb_query.complete_duckdb_native_capture(
       f.issuer,
       attempt,
       native_completion_limits(),
@@ -49,18 +49,26 @@ test "native Host completion owns sequencing without replacing the live verifier
     is Err(AlreadyCaptured),
   )
   assert_true(
-    @planning.verify_duckdb_native_observation(f.issuer, attempt, observation)
+    @duckdb_query.verify_duckdb_native_observation(
+      f.issuer,
+      attempt,
+      observation,
+    )
     is Ok(_),
   )
   f.transport.clear()
   assert_true(
-    @planning.verify_duckdb_native_observation(f.issuer, attempt, observation)
+    @duckdb_query.verify_duckdb_native_observation(
+      f.issuer,
+      attempt,
+      observation,
+    )
     is Err(UnverifiedTransport),
   )
   let unverified = native_issued_attempt(f)
   native_attempt_receive_fixture(unverified)
   assert_true(
-    @planning.complete_duckdb_native_capture(
+    @duckdb_query.complete_duckdb_native_capture(
       f.issuer,
       unverified,
       native_completion_limits(),
@@ -69,7 +77,7 @@ test "native Host completion owns sequencing without replacing the live verifier
   )
   f.transport.push(unverified)
   assert_true(
-    @planning.complete_duckdb_native_capture(
+    @duckdb_query.complete_duckdb_native_capture(
       f.issuer,
       unverified,
       native_completion_limits(),
@@ -80,7 +88,7 @@ test "native Host completion owns sequencing without replacing the live verifier
   let unfinished = native_issued_attempt(f)
   f.transport.push(unfinished)
   assert_true(
-    @planning.complete_duckdb_native_capture(
+    @duckdb_query.complete_duckdb_native_capture(
       f.issuer,
       unfinished,
       native_completion_limits(),
@@ -106,11 +114,11 @@ test "native Host completion retains stage-specific limits and makes every faile
     native_attempt_receive_fixture(attempt)
     f.transport.push(attempt)
     assert_true(
-      @planning.complete_duckdb_native_capture(f.issuer, attempt, changed)
+      @duckdb_query.complete_duckdb_native_capture(f.issuer, attempt, changed)
       is Err(_),
     )
     assert_true(
-      @planning.complete_duckdb_native_capture(f.issuer, attempt, limits)
+      @duckdb_query.complete_duckdb_native_capture(f.issuer, attempt, limits)
       is Err(NativeAttempt(InvalidState)),
     )
     // Fresh budgets need a fresh execution, not resurrection of failed state.
@@ -118,7 +126,8 @@ test "native Host completion retains stage-specific limits and makes every faile
     native_attempt_receive_fixture(retry)
     f.transport.push(retry)
     assert_true(
-      @planning.complete_duckdb_native_capture(f.issuer, retry, limits) is Ok(_),
+      @duckdb_query.complete_duckdb_native_capture(f.issuer, retry, limits)
+      is Ok(_),
     )
   }
 }

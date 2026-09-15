@@ -38,18 +38,6 @@ struct QueryOffer {
 }
 
 ///|
-pub(all) enum QueryPlanningIssue {
-  InvalidLimits
-  PlanningLimit
-  NegativeQuantity
-  ForeignQuery(Int)
-  ForeignCapability(Int)
-  AcquisitionUnsupported
-  CapabilityClosed
-  Cost(@cost.CostIssue)
-}
-
-///|
 /// A proposed PhysicalStrategy, still subject to current runtime admission.
 /// No Connector is dispatched and no semantic identity is generated here.
 struct QueryStrategy {
@@ -99,7 +87,7 @@ pub fn offer_mock_query(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : @connector.QueryQuantities,
   max_entries : Int,
-) -> Result[QueryOffer, QueryPlanningIssue] {
+) -> Result[QueryOffer, @planning.QueryPlanningIssue] {
   if max_entries < 0 {
     return Err(InvalidLimits)
   }
@@ -123,7 +111,7 @@ pub fn choose_query_strategy(
   offers : Array[QueryOffer],
   host_priority : Array[Int]?,
   max_entries : Int,
-) -> Result[QuerySelection, QueryPlanningIssue] {
+) -> Result[QuerySelection, @planning.QueryPlanningIssue] {
   if max_entries < 0 {
     return Err(InvalidLimits)
   }
@@ -197,7 +185,7 @@ pub fn query_strategy_task_at(_v : QueryStrategy, index : Int) -> QueryTask? {
 
 ///|
 pub fn query_strategy_pending_count(v : QueryStrategy) -> Int {
-  @acquisition.query_acquisition_requirement_count(
+  @sourcequery.query_acquisition_requirement_count(
     @query.query_sequence_requirement(v.offer.owner),
   )
 }
@@ -206,8 +194,8 @@ pub fn query_strategy_pending_count(v : QueryStrategy) -> Int {
 pub fn query_strategy_pending_at(
   v : QueryStrategy,
   index : Int,
-) -> @acquisition.QueryAcquisitionRequirement? {
-  @acquisition.query_acquisition_requirement_at(
+) -> @sourcequery.QueryAcquisitionRequirement? {
+  @sourcequery.query_acquisition_requirement_at(
     @query.query_sequence_requirement(v.offer.owner),
     index,
   )

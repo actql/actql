@@ -347,54 +347,50 @@ test "both mock realizations enforce their exact requirement before capture" {
     query_material_limits(),
   ).unwrap()
   let rows = [input_cursor("{\"id\":3}"), input_cursor("{\"id\":2}")]
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     let strategy = strategy_for(sequence, route)
-    let attempt = @planning.prepare_requirement_mock_query_attempt(
+    let attempt = @mock.prepare_requirement_mock_query_attempt(
       requirement, strategy, rows, 2,
     ).unwrap()
     assert_true(
-      @planning.execute_mock_query(attempt, mock_strategy_limits())
+      @mock.execute_mock_query(attempt, mock_strategy_limits())
       is Err(GuardLimitsRequired),
     )
-    assert_true(@planning.mock_query_computation(attempt) is Err(NotComputed))
+    assert_true(@mock.mock_query_computation(attempt) is Err(NotComputed))
     assert_true(
-      @planning.execute_mock_query(
+      @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
       )
       is Err(Guard(OutputRows)),
     )
+    assert_true(@mock.mock_query_computation(attempt) is Err(Guard(OutputRows)))
     assert_true(
-      @planning.mock_query_computation(attempt) is Err(Guard(OutputRows)),
-    )
-    assert_true(
-      @planning.execute_mock_query(
+      @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
       )
       is Err(AlreadyStarted),
     )
-    let next = @planning.prepare_requirement_mock_query_attempt(
+    let next = @mock.prepare_requirement_mock_query_attempt(
       requirement,
       strategy,
       [rows[0]],
       1,
     ).unwrap()
-    let result = @planning.execute_mock_query(
+    let result = @mock.execute_mock_query(
       next,
       mock_strategy_limits(),
       guard_measure=Some(query_guard_physical()),
     ).unwrap()
-    assert_eq(@planning.mock_query_output_rows(result), 1)
-    assert_true(@planning.cancel_mock_query(next))
+    assert_eq(@mock.mock_query_output_rows(result), 1)
+    assert_true(@mock.cancel_mock_query(next))
   }
-  let foreign = strategy_for(strategy_test_owner(), @planning.NativeQuery)
+  let foreign = strategy_for(strategy_test_owner(), @mock.NativeQuery)
   assert_true(
-    @planning.prepare_requirement_mock_query_attempt(
-      requirement, foreign, rows, 2,
-    )
+    @mock.prepare_requirement_mock_query_attempt(requirement, foreign, rows, 2)
     is Err(ForeignRequirement),
   )
 }

@@ -5,7 +5,7 @@ fn native_candidate_fixture(
 ) -> (
   @connector.CapabilityRegistry,
   @planning.QueryRequirement,
-  @planning.DuckDBQueryPreparation,
+  @duckdb_query.DuckDBQueryPreparation,
 ) raise {
   let checked = query_checked_program_fixture()
   let requirement = @planning.prepare_query_requirement(
@@ -25,7 +25,7 @@ fn native_candidate_fixture(
   (
     registry,
     requirement,
-    @planning.prepare_duckdb_query(
+    @duckdb_query.prepare_duckdb_query(
       requirement,
       "main",
       "records",
@@ -38,9 +38,9 @@ fn native_candidate_fixture(
 ///|
 fn native_selected_attempt(
   rows? : Int = 2,
-) -> @planning.DuckDBNativeAttempt raise {
+) -> @duckdb_query.DuckDBNativeAttempt raise {
   let (registry, requirement, prepared) = native_candidate_fixture(rows~)
-  let candidate = @planning.duckdb_native_candidate(
+  let candidate = @duckdb_query.duckdb_native_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     prepared,
     [
@@ -62,7 +62,7 @@ fn native_selected_attempt(
     is Proposed(choice) else {
     abort("fixture selection")
   }
-  @planning.prepare_duckdb_native_attempt(
+  @duckdb_query.prepare_duckdb_native_attempt(
     choice,
     candidate,
     { max_rows: 5, max_cells: 5, max_nodes: 5, max_text_bytes: 0, },
@@ -73,9 +73,9 @@ fn native_selected_attempt(
 
 ///|
 fn native_attempt_receive_fixture(
-  attempt : @planning.DuckDBNativeAttempt,
+  attempt : @duckdb_query.DuckDBNativeAttempt,
 ) -> Unit {
-  @planning.admit_duckdb_native_metadata(
+  @duckdb_query.admit_duckdb_native_metadata(
     attempt,
     1,
     [("table_type", @duckdb.Varchar)],
@@ -90,13 +90,13 @@ fn native_attempt_receive_fixture(
       ),
       (@duckdb.NativeResult, 2, "[\"4008000000000000\",\"4000000000000000\"]"),
     ] {
-    let port = @planning.begin_duckdb_native_receipt(attempt, role, [
+    let port = @duckdb_query.begin_duckdb_native_receipt(attempt, role, [
       ("id", @duckdb.Float64),
     ]).unwrap()
-    @planning.accept_duckdb_native_chunk(attempt, port, rows, [
+    @duckdb_query.accept_duckdb_native_chunk(attempt, port, rows, [
       input_cursor(cells),
     ]).unwrap()
-    @planning.finish_duckdb_native_receipt(attempt, port).unwrap()
+    @duckdb_query.finish_duckdb_native_receipt(attempt, port).unwrap()
   }
 }
 
@@ -114,19 +114,19 @@ fn native_attempt_wire() -> @execution.RowWireLimits {
 ///|
 test "native selected attempt keeps common output guard and exact receipt owner" {
   let limited = native_selected_attempt(rows=1)
-  @planning.admit_duckdb_native_metadata(
+  @duckdb_query.admit_duckdb_native_metadata(
     limited,
     1,
     [("table_type", @duckdb.Varchar)],
     [input_cursor("[\"BASE TABLE\"]")],
   ).unwrap()
-  let scan = @planning.begin_duckdb_native_receipt(
+  let scan = @duckdb_query.begin_duckdb_native_receipt(
     limited,
     @duckdb.ValidationScan,
     [("id", @duckdb.Float64)],
   ).unwrap()
   assert_true(
-    @planning.accept_duckdb_native_chunk(limited, scan, 3, [
+    @duckdb_query.accept_duckdb_native_chunk(limited, scan, 3, [
       input_cursor(
         "[\"4008000000000000\",\"3ff0000000000\",\"4000000000000000\"]",
       ),
@@ -135,64 +135,67 @@ test "native selected attempt keeps common output guard and exact receipt owner"
   )
   // A malformed physical scalar is terminal, including on a row filtered out.
   assert_true(
-    @planning.finish_duckdb_native_receipt(limited, scan) is Err(InvalidState),
+    @duckdb_query.finish_duckdb_native_receipt(limited, scan)
+    is Err(InvalidState),
   )
   let limited = native_selected_attempt(rows=1)
-  @planning.admit_duckdb_native_metadata(
+  @duckdb_query.admit_duckdb_native_metadata(
     limited,
     1,
     [("table_type", @duckdb.Varchar)],
     [input_cursor("[\"BASE TABLE\"]")],
   ).unwrap()
-  let scan = @planning.begin_duckdb_native_receipt(
+  let scan = @duckdb_query.begin_duckdb_native_receipt(
     limited,
     @duckdb.ValidationScan,
     [("id", @duckdb.Float64)],
   ).unwrap()
-  @planning.accept_duckdb_native_chunk(limited, scan, 3, [
+  @duckdb_query.accept_duckdb_native_chunk(limited, scan, 3, [
     input_cursor(
       "[\"4008000000000000\",\"3ff0000000000000\",\"4000000000000000\"]",
     ),
   ]).unwrap()
-  @planning.finish_duckdb_native_receipt(limited, scan).unwrap()
-  let output = @planning.begin_duckdb_native_receipt(
+  @duckdb_query.finish_duckdb_native_receipt(limited, scan).unwrap()
+  let output = @duckdb_query.begin_duckdb_native_receipt(
     limited,
     @duckdb.NativeResult,
     [("id", @duckdb.Float64)],
   ).unwrap()
-  @planning.accept_duckdb_native_chunk(limited, output, 2, [
+  @duckdb_query.accept_duckdb_native_chunk(limited, output, 2, [
     input_cursor("[\"4008000000000000\",\"4000000000000000\"]"),
   ]).unwrap()
   assert_true(
-    @planning.finish_duckdb_native_receipt(limited, output)
+    @duckdb_query.finish_duckdb_native_receipt(limited, output)
     is Err(Receiving(Guard(NativeResult, _, _, _))),
   )
   assert_true(
-    @planning.settle_duckdb_native_transport(limited) is Err(InvalidState),
+    @duckdb_query.settle_duckdb_native_transport(limited) is Err(InvalidState),
   )
   let first = native_selected_attempt()
   let second = native_selected_attempt()
   for attempt in [first, second] {
-    @planning.admit_duckdb_native_metadata(
+    @duckdb_query.admit_duckdb_native_metadata(
       attempt,
       1,
       [("table_type", @duckdb.Varchar)],
       [input_cursor("[\"BASE TABLE\"]")],
     ).unwrap()
   }
-  let port = @planning.begin_duckdb_native_receipt(
+  let port = @duckdb_query.begin_duckdb_native_receipt(
     first,
     @duckdb.ValidationScan,
     [("id", @duckdb.Float64)],
   ).unwrap()
   assert_true(
-    @planning.accept_duckdb_native_chunk(second, port, 0, [input_cursor("[]")])
+    @duckdb_query.accept_duckdb_native_chunk(second, port, 0, [
+      input_cursor("[]"),
+    ])
     is Err(Receiving(ForeignReceipt)),
   )
-  @planning.accept_duckdb_native_chunk(first, port, 0, [input_cursor("[]")]).unwrap()
-  @planning.finish_duckdb_native_receipt(first, port).unwrap()
+  @duckdb_query.accept_duckdb_native_chunk(first, port, 0, [input_cursor("[]")]).unwrap()
+  @duckdb_query.finish_duckdb_native_receipt(first, port).unwrap()
   assert_true(
-    @planning.begin_duckdb_native_receipt(second, @duckdb.ValidationScan, [
+    @duckdb_query.begin_duckdb_native_receipt(second, @duckdb.ValidationScan, [
       ("id", @duckdb.Float64),
     ])
     is Err(InvalidState),
@@ -208,7 +211,7 @@ test "native and broad candidates share comparison without dropping either recei
     retained_bytes: None,
     money_units: None,
   }
-  let native = @planning.duckdb_native_candidate(
+  let native = @duckdb_query.duckdb_native_candidate(
     registration,
     prepared,
     [
@@ -220,7 +223,7 @@ test "native and broad candidates share comparison without dropping either recei
     quantities,
     100,
   ).unwrap()
-  let broad = @planning.duckdb_broad_candidate(
+  let broad = @duckdb_query.duckdb_broad_candidate(
     registration,
     prepared,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(20L), }],
@@ -250,7 +253,7 @@ test "native and broad candidates share comparison without dropping either recei
     }
     assert_true(@planning.acquisition_choice_payload(choice, native) is Some(_))
     assert_true(@planning.acquisition_choice_payload(choice, broad) is None)
-    let other = @planning.duckdb_native_candidate(
+    let other = @duckdb_query.duckdb_native_candidate(
       registration,
       prepared,
       [
@@ -263,7 +266,7 @@ test "native and broad candidates share comparison without dropping either recei
       100,
     ).unwrap()
     assert_true(
-      @planning.prepare_duckdb_native_attempt(
+      @duckdb_query.prepare_duckdb_native_attempt(
         choice,
         other,
         { max_rows: 5, max_cells: 5, max_nodes: 5, max_text_bytes: 0, },
@@ -280,7 +283,7 @@ test "native and broad candidates share comparison without dropping either recei
         slots.push(i)
       }
     }
-    let unknown = @planning.duckdb_native_candidate(
+    let unknown = @duckdb_query.duckdb_native_candidate(
       registration,
       prepared,
       [{ work_slots: slots, milliseconds: Some(1L), }],
@@ -302,7 +305,7 @@ test "native and broad candidates share comparison without dropping either recei
     )
   }
   assert_true(
-    @planning.duckdb_native_candidate(
+    @duckdb_query.duckdb_native_candidate(
       registration,
       prepared,
       [
@@ -319,7 +322,7 @@ test "native and broad candidates share comparison without dropping either recei
   )
   let (tiny_registry, _, tiny) = native_candidate_fixture(ceiling=4)
   assert_true(
-    @planning.duckdb_native_candidate(
+    @duckdb_query.duckdb_native_candidate(
       @connector.capability_registration_at(tiny_registry, 0).unwrap(),
       tiny,
       [],
@@ -328,49 +331,55 @@ test "native and broad candidates share comparison without dropping either recei
     )
     is Err(Unsupported(RootGuard(UnsupportedCeiling))),
   )
-  assert_true(@planning.duckdb_native_work_at(2) is Some(ValidationTransfer))
-  assert_true(@planning.duckdb_native_work_at(5) is Some(NativeTransfer))
-  assert_true(@planning.duckdb_native_work_at(11) is None)
+  assert_true(
+    @duckdb_query.duckdb_native_work_at(2) is Some(ValidationTransfer),
+  )
+  assert_true(@duckdb_query.duckdb_native_work_at(5) is Some(NativeTransfer))
+  assert_true(@duckdb_query.duckdb_native_work_at(11) is None)
 }
 
 ///|
 test "selected native attempt measures exact receipts only after settlement and cancellation is terminal" {
   let attempt = native_selected_attempt()
   native_attempt_receive_fixture(attempt)
-  @planning.settle_duckdb_native_transport(attempt).unwrap()
-  let measured = @planning.measure_duckdb_native_attempt(
+  @duckdb_query.settle_duckdb_native_transport(attempt).unwrap()
+  let measured = @duckdb_query.measure_duckdb_native_attempt(
     attempt,
     native_demand_physical(),
     native_attempt_wire(),
     5,
     47,
   ).unwrap()
-  assert_true(@planning.duckdb_native_measurement_matches(measured, attempt))
-  let demand = @planning.duckdb_native_measured_demand(measured)
+  assert_true(
+    @duckdb_query.duckdb_native_measurement_matches(measured, attempt),
+  )
+  let demand = @duckdb_query.duckdb_native_measured_demand(measured)
   assert_eq(
     (demand.rows, demand.true_rows, demand.false_rows, demand.null_rows),
     (3, 2, 1, 0),
   )
-  let (_, scan_bytes, scan_nodes, scan_rows) = @planning.duckdb_native_measured_receipt(
+  let (_, scan_bytes, scan_nodes, scan_rows) = @duckdb_query.duckdb_native_measured_receipt(
     measured,
     @duckdb.ValidationScan,
   )
-  let (_, output_bytes, output_nodes, output_rows) = @planning.duckdb_native_measured_receipt(
+  let (_, output_bytes, output_nodes, output_rows) = @duckdb_query.duckdb_native_measured_receipt(
     measured,
     @duckdb.NativeResult,
   )
   assert_eq((scan_bytes, scan_nodes, scan_rows), (28, 7, 3))
   assert_eq((output_bytes, output_nodes, output_rows), (19, 5, 2))
   assert_false(
-    @planning.duckdb_native_measurement_matches(
+    @duckdb_query.duckdb_native_measurement_matches(
       measured,
       native_selected_attempt(),
     ),
   )
-  @planning.abort_duckdb_native_attempt(attempt)
-  assert_false(@planning.duckdb_native_measurement_matches(measured, attempt))
+  @duckdb_query.abort_duckdb_native_attempt(attempt)
+  assert_false(
+    @duckdb_query.duckdb_native_measurement_matches(measured, attempt),
+  )
   assert_true(
-    @planning.settle_duckdb_native_transport(attempt) is Err(InvalidState),
+    @duckdb_query.settle_duckdb_native_transport(attempt) is Err(InvalidState),
   )
   for received in [false, true] {
     let early = native_selected_attempt()
@@ -378,7 +387,7 @@ test "selected native attempt measures exact receipts only after settlement and 
       native_attempt_receive_fixture(early)
     }
     assert_true(
-      @planning.measure_duckdb_native_attempt(
+      @duckdb_query.measure_duckdb_native_attempt(
         early,
         native_demand_physical(),
         native_attempt_wire(),
@@ -388,7 +397,7 @@ test "selected native attempt measures exact receipts only after settlement and 
       is Err(InvalidState),
     )
     assert_true(
-      @planning.settle_duckdb_native_transport(early) is Err(InvalidState),
+      @duckdb_query.settle_duckdb_native_transport(early) is Err(InvalidState),
     )
   }
 }
@@ -405,10 +414,10 @@ test "native attempt measurement exhaustion cannot be retried as a successful at
     ] {
     let attempt = native_selected_attempt()
     native_attempt_receive_fixture(attempt)
-    @planning.settle_duckdb_native_transport(attempt).unwrap()
+    @duckdb_query.settle_duckdb_native_transport(attempt).unwrap()
     let wire = { ..native_attempt_wire(), max_nodes: nodes, max_bytes: bytes, }
     assert_true(
-      @planning.measure_duckdb_native_attempt(
+      @duckdb_query.measure_duckdb_native_attempt(
         attempt,
         native_demand_physical(),
         wire,
@@ -418,7 +427,7 @@ test "native attempt measurement exhaustion cannot be retried as a successful at
       is Err(Receipts(_)),
     )
     assert_true(
-      @planning.measure_duckdb_native_attempt(
+      @duckdb_query.measure_duckdb_native_attempt(
         attempt,
         native_demand_physical(),
         native_attempt_wire(),
@@ -430,9 +439,9 @@ test "native attempt measurement exhaustion cannot be retried as a successful at
   }
   let attempt = native_selected_attempt()
   native_attempt_receive_fixture(attempt)
-  @planning.settle_duckdb_native_transport(attempt).unwrap()
+  @duckdb_query.settle_duckdb_native_transport(attempt).unwrap()
   assert_true(
-    @planning.measure_duckdb_native_attempt(
+    @duckdb_query.measure_duckdb_native_attempt(
       attempt,
       { ..native_demand_physical(), max_work: 3, },
       native_attempt_wire(),

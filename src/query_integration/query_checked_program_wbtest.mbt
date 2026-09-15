@@ -204,25 +204,25 @@ test "public CheckedProgram feeds both query strategies capture and checked cons
     evidence_body,
     query_capture_limits(),
   ).unwrap()
-  let issuer = @planning.prepare_mock_query_issuer(
+  let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "checked-program-test", 100,
   ).unwrap()
   let owner = @query.query_sequence_owner(sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     let attempt = query_issuer_attempt(issuer, sequence, route)
     query_issuer_run(attempt)
-    let records = @planning.issue_mock_query_records(
+    let records = @mock.issue_mock_query_records(
       attempt,
       query_material_limits(),
     ).unwrap()
-    let observation = @planning.capture_mock_query(
+    let observation = @mock.capture_mock_query(
       issuer,
       attempt,
       records,
       query_capture_limits(),
     ).unwrap()
-    let input = @planning.bind_captured_query_input(
+    let input = @mock.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
     let consumer = @execution.prepare_local_compute_attempt(

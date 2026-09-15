@@ -1,5 +1,5 @@
 // Build the actual common dependency closure in an isolated source tree. No
-// connector implementation, query_planning, Node bridge or generated bundle is
+// connector implementation, Node bridge or generated bundle is
 // copied. This complements import/API gates; it is not a whole-repository test.
 import {cpSync, mkdtempSync, mkdirSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -8,14 +8,14 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const roots = ['connector_sdk', 'physical_host', 'physical_strategy'];
+const roots = ['connector_sdk', 'query_planning', 'physical_host', 'physical_strategy'];
 const packages = new Set();
 const pending = [...roots];
 while (pending.length) {
   const name = pending.pop();
   if (packages.has(name)) continue;
   if (!/^[a-z0-9_]+(?:\/[a-z0-9_]+)*$/.test(name) ||
-      /^(?:connectors\/|duckdb_|query_planning$)/.test(name)) {
+      /^(?:connectors\/|duckdb_)/.test(name)) {
     throw new Error(`Concrete or invalid common dependency: ${name}`);
   }
   packages.add(name);

@@ -1,5 +1,5 @@
 ///|
-fn query_issuer_fixture() -> (@planning.MockQueryIssuer, @query.QuerySequence) raise {
+fn query_issuer_fixture() -> (@mock.MockQueryIssuer, @query.QuerySequence) raise {
   let (program, sequence) = query_program_fixture()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -13,7 +13,7 @@ fn query_issuer_fixture() -> (@planning.MockQueryIssuer, @query.QuerySequence) r
     evidence_body,
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
   ).unwrap()
-  let issuer = @planning.prepare_mock_query_issuer(
+  let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "test-process", 100,
   ).unwrap()
   (issuer, sequence)
@@ -21,11 +21,11 @@ fn query_issuer_fixture() -> (@planning.MockQueryIssuer, @query.QuerySequence) r
 
 ///|
 fn query_issuer_attempt(
-  issuer : @planning.MockQueryIssuer,
+  issuer : @mock.MockQueryIssuer,
   sequence : @query.QuerySequence,
-  route : @planning.QueryRealization,
-) -> @planning.MockQueryAttempt {
-  @planning.prepare_issued_mock_query_attempt(
+  route : @mock.QueryRealization,
+) -> @mock.MockQueryAttempt {
+  @mock.prepare_issued_mock_query_attempt(
     issuer,
     strategy_for(sequence, route),
     [
@@ -38,52 +38,47 @@ fn query_issuer_attempt(
 }
 
 ///|
-fn query_issuer_run(attempt : @planning.MockQueryAttempt) -> Unit {
-  @planning.execute_mock_query(
+fn query_issuer_run(attempt : @mock.MockQueryAttempt) -> Unit {
+  @mock.execute_mock_query(
     attempt,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
   |> ignore
-  @planning.retain_mock_query(attempt, query_retention_limits()).unwrap()
-  |> ignore
+  @mock.retain_mock_query(attempt, query_retention_limits()).unwrap() |> ignore
 }
 
 ///|
 test "mock evidence requires prebound issuer and all guards and retention" {
   let (issuer, sequence) = query_issuer_fixture()
-  let attempt = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
   assert_true(
-    @planning.issue_mock_query_records(attempt, query_material_limits())
+    @mock.issue_mock_query_records(attempt, query_material_limits())
     is Err(NotRetained),
   )
-  @planning.execute_mock_query(
+  @mock.execute_mock_query(
     attempt,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
   |> ignore
   assert_true(
-    @planning.issue_mock_query_records(attempt, query_material_limits())
+    @mock.issue_mock_query_records(attempt, query_material_limits())
     is Err(NotRetained),
   )
-  @planning.retain_mock_query(attempt, query_retention_limits()).unwrap()
-  |> ignore
-  let records = @planning.issue_mock_query_records(
-    attempt,
-    query_material_limits(),
-  ).unwrap()
+  @mock.retain_mock_query(attempt, query_retention_limits()).unwrap() |> ignore
+  let records = @mock.issue_mock_query_records(attempt, query_material_limits()).unwrap()
   assert_true(
-    @planning.verify_mock_query_records(issuer, attempt, records) is Ok(_),
+    @mock.verify_mock_query_records(issuer, attempt, records) is Ok(_),
   )
   assert_true(
-    @planning.issue_mock_query_records(attempt, query_material_limits())
+    @mock.issue_mock_query_records(attempt, query_material_limits())
     is Err(NotRetained),
   )
-  assert_true(@planning.mock_query_record_at(records, -1) is None)
-  assert_true(@planning.mock_query_record_at(records, 3) is None)
+  assert_true(@mock.mock_query_record_at(records, -1) is None)
+  assert_true(@mock.mock_query_record_at(records, 3) is None)
   for (i, role) in [(0, "source_validation"), (1, "filter"), (2, "select")] {
-    let (document, cid) = @planning.mock_query_record_at(records, i).unwrap()
+    let (document, cid) = @mock.mock_query_record_at(records, i).unwrap()
     let text = @encode.document_text(document)
     assert_true(text.contains("\"role\":\"" + role + "\""))
     assert_true(text.contains("\"snapshot\":null"))
@@ -109,11 +104,10 @@ test "mock evidence requires prebound issuer and all guards and retention" {
     assert_eq(query_material_expected(text), cid)
   }
   // A separately held computation or retention cannot add provenance afterward.
-  let unissued = query_retention_attempt(@planning.NativeQuery)
-  @planning.retain_mock_query(unissued, query_retention_limits()).unwrap()
-  |> ignore
+  let unissued = query_retention_attempt(@mock.NativeQuery)
+  @mock.retain_mock_query(unissued, query_retention_limits()).unwrap() |> ignore
   assert_true(
-    @planning.issue_mock_query_records(unissued, query_material_limits())
+    @mock.issue_mock_query_records(unissued, query_material_limits())
     is Err(UnauthorizedAttempt),
   )
 }
@@ -121,37 +115,27 @@ test "mock evidence requires prebound issuer and all guards and retention" {
 ///|
 test "mock issued records keep attempt and actual access distinct" {
   let (issuer, sequence) = query_issuer_fixture()
-  let native = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
-  let broad = query_issuer_attempt(
-    issuer,
-    sequence,
-    @planning.BroadWithResidual,
-  )
+  let native = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
+  let broad = query_issuer_attempt(issuer, sequence, @mock.BroadWithResidual)
   query_issuer_run(native)
   query_issuer_run(broad)
-  let first = @planning.issue_mock_query_records(
-    native,
-    query_material_limits(),
-  ).unwrap()
-  let second = @planning.issue_mock_query_records(
-    broad,
-    query_material_limits(),
-  ).unwrap()
+  let first = @mock.issue_mock_query_records(native, query_material_limits()).unwrap()
+  let second = @mock.issue_mock_query_records(broad, query_material_limits()).unwrap()
   assert_true(
-    @planning.verify_mock_query_records(issuer, native, second)
+    @mock.verify_mock_query_records(issuer, native, second)
     is Err(UnauthorizedAttempt),
   )
   assert_true(
-    @planning.verify_mock_query_records(issuer, broad, first)
+    @mock.verify_mock_query_records(issuer, broad, first)
     is Err(UnauthorizedAttempt),
   )
   let (other, _) = query_issuer_fixture()
   assert_true(
-    @planning.verify_mock_query_records(other, native, first)
+    @mock.verify_mock_query_records(other, native, first)
     is Err(UnauthorizedAttempt),
   )
-  let (first_doc, first_cid) = @planning.mock_query_record_at(first, 0).unwrap()
-  let (second_doc, second_cid) = @planning.mock_query_record_at(second, 0).unwrap()
+  let (first_doc, first_cid) = @mock.mock_query_record_at(first, 0).unwrap()
+  let (second_doc, second_cid) = @mock.mock_query_record_at(second, 0).unwrap()
   assert_true(first_cid != second_cid)
   assert_true(@encode.document_text(first_doc).contains("\"attempt\":\"0\""))
   assert_true(@encode.document_text(second_doc).contains("\"attempt\":\"1\""))
@@ -159,23 +143,20 @@ test "mock issued records keep attempt and actual access distinct" {
     @encode.document_text(second_doc).contains("\"received_bytes\":28"),
   )
   assert_true(@encode.document_text(second_doc).contains("\"received_rows\":3"))
-  assert_true(@planning.cancel_mock_query(native))
+  assert_true(@mock.cancel_mock_query(native))
   assert_true(
-    @planning.verify_mock_query_records(issuer, native, first)
+    @mock.verify_mock_query_records(issuer, native, first)
     is Err(ForeignRecords),
   )
+  assert_true(@mock.verify_mock_query_records(issuer, broad, second) is Ok(_))
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
-    @planning.verify_mock_query_records(issuer, broad, second) is Ok(_),
-  )
-  @planning.close_mock_query_issuer(issuer)
-  assert_true(
-    @planning.verify_mock_query_records(issuer, broad, second)
-    is Err(IssuerClosed),
+    @mock.verify_mock_query_records(issuer, broad, second) is Err(IssuerClosed),
   )
   assert_true(
-    @planning.prepare_issued_mock_query_attempt(
+    @mock.prepare_issued_mock_query_attempt(
       issuer,
-      strategy_for(sequence, @planning.NativeQuery),
+      strategy_for(sequence, @mock.NativeQuery),
       [],
       0,
     )
@@ -186,17 +167,17 @@ test "mock issued records keep attempt and actual access distinct" {
 ///|
 test "mock evidence issuance is atomic under serialization limits" {
   let (issuer, sequence) = query_issuer_fixture()
-  let reference = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  let reference = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
   query_issuer_run(reference)
-  let baseline = @planning.issue_mock_query_records(
+  let baseline = @mock.issue_mock_query_records(
     reference,
     query_material_limits(),
   ).unwrap()
-  let (bytes, nodes) = @planning.mock_query_record_usage(baseline)
+  let (bytes, nodes) = @mock.mock_query_record_usage(baseline)
   for short in [false, true] {
-    let attempt = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+    let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
     query_issuer_run(attempt)
-    let result = @planning.issue_mock_query_records(attempt, {
+    let result = @mock.issue_mock_query_records(attempt, {
       ..query_material_limits(),
       max_bytes: bytes - (if short { 1 } else { 0 }),
       max_nodes: nodes,
@@ -204,10 +185,10 @@ test "mock evidence issuance is atomic under serialization limits" {
     if short {
       assert_true(result is Err(Encoding(_)))
       assert_true(
-        @planning.mock_query_computation(attempt) is Err(Evidence(Encoding(_))),
+        @mock.mock_query_computation(attempt) is Err(Evidence(Encoding(_))),
       )
       assert_true(
-        @planning.issue_mock_query_records(attempt, query_material_limits())
+        @mock.issue_mock_query_records(attempt, query_material_limits())
         is Err(NotRetained),
       )
     } else {
@@ -219,28 +200,28 @@ test "mock evidence issuance is atomic under serialization limits" {
 ///|
 test "closed issuer stops pending dispatch and failed retention emits no records" {
   let (issuer, sequence) = query_issuer_fixture()
-  let failed = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
-  @planning.execute_mock_query(
+  let failed = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
+  @mock.execute_mock_query(
     failed,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
   |> ignore
   assert_true(
-    @planning.retain_mock_query(failed, {
+    @mock.retain_mock_query(failed, {
       ..query_retention_limits(),
       retained_wire_bytes: 0,
     })
     is Err(RetainedBytes),
   )
   assert_true(
-    @planning.issue_mock_query_records(failed, query_material_limits())
+    @mock.issue_mock_query_records(failed, query_material_limits())
     is Err(NotRetained),
   )
-  let pending = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
-  @planning.close_mock_query_issuer(issuer)
+  let pending = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
-    @planning.execute_mock_query(
+    @mock.execute_mock_query(
       pending,
       mock_strategy_limits(),
       guard_measure=Some(query_guard_physical()),

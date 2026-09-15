@@ -4,19 +4,20 @@ struct DuckDBBroadRetention {
   preparation : DuckDBQueryPreparation
   completion : DuckDBBroadCompletion
   output : @execution.CompletedOutput
-  measured : MeasuredQueryRows
+  measured : @planning.MeasuredQueryRows
 }
 
 ///|
 pub fn retain_duckdb_broad_attempt(
   attempt : DuckDBBroadAttempt,
-  limits : QueryRetentionLimits,
+  limits : @planning.QueryRetentionLimits,
 ) -> Result[DuckDBBroadRetention, DuckDBBroadAttemptIssue] {
   guard attempt.state is Completed(completion) else {
     return fail_duckdb_broad_attempt(attempt, InvalidState)
   }
   let output = duckdb_broad_attempt_output(attempt).unwrap()
-  match measure_query_retention(completion._scan, output, true, limits) {
+  match
+    @planning.measure_query_retention(completion._scan, output, true, limits) {
     Err(issue) => fail_duckdb_broad_attempt(attempt, Retention(issue))
     Ok(measured) => {
       let retained = {

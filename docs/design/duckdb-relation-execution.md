@@ -39,7 +39,7 @@ distribution decision for the final Local Host.
 
 ### Canonical requirement binding
 
-`query_planning.prepare_duckdb_query` retains the exact `QueryRequirement` and
+`connectors/duckdb/acquisition.prepare_duckdb_query` retains the exact `QueryRequirement` and
 derives provider scan/native preparations from its owned query sequence. SQL
 generation and comparison rules remain in `connectors/duckdb/adapter`; this connection
 does not rederive a canonical acquisition or grant access to a database path.
@@ -244,7 +244,7 @@ Digest strings remain diagnostic data, not portable evidence or capture permits.
 
 ## Source and fixed-input isolation
 
-`duckdb_host` owns reusable native Host orchestration above `query_planning` and
+`duckdb_host` owns reusable native Host orchestration above `connectors/duckdb/acquisition` and
 the DuckDB adapter. It accepts existing owned requirements, selected candidates,
 admitted evidence contracts and explicit resource limits. It does not construct a
 fixed Program/catalog, import conformance code, or derive another semantic Plan.

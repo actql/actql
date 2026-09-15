@@ -173,7 +173,7 @@ pub fn prepare_application(
     { max_rows: 100, max_value_bytes: 1000, },
     material,
   ).unwrap()
-  let preparation = @planning.prepare_duckdb_query(
+  let preparation = @duckdb_query.prepare_duckdb_query(
     requirement,
     database_schema,
     table,
@@ -188,7 +188,7 @@ pub fn prepare_application(
     2,
     100,
   ).unwrap()
-  let candidate = @planning.duckdb_native_candidate(
+  let candidate = @duckdb_query.duckdb_native_candidate(
     @connector.capability_registration_at(registry, 1).unwrap(),
     preparation,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], milliseconds: None, }],

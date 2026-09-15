@@ -1,5 +1,5 @@
 ///|
-fn query_retention_limits() -> @planning.MockRetentionLimits {
+fn query_retention_limits() -> @mock.MockRetentionLimits {
   {
     received_wire_bytes: 28,
     retained_wire_bytes: 47,
@@ -15,8 +15,8 @@ fn query_retention_limits() -> @planning.MockRetentionLimits {
 
 ///|
 fn query_retention_attempt(
-  route : @planning.QueryRealization,
-) -> @planning.MockQueryAttempt raise {
+  route : @mock.QueryRealization,
+) -> @mock.MockQueryAttempt raise {
   let (program, sequence) = query_program_fixture()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -24,7 +24,7 @@ fn query_retention_attempt(
     { max_rows: 10, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let attempt = @planning.prepare_requirement_mock_query_attempt(
+  let attempt = @mock.prepare_requirement_mock_query_attempt(
     requirement,
     strategy_for(sequence, route),
     [
@@ -34,7 +34,7 @@ fn query_retention_attempt(
     ],
     3,
   ).unwrap()
-  @planning.execute_mock_query(
+  @mock.execute_mock_query(
     attempt,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
@@ -46,19 +46,16 @@ fn query_retention_attempt(
 ///|
 test "mock capture retention counts full scan even for native receipt" {
   let mut prior : (String, String)? = None
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     let attempt = query_retention_attempt(route)
-    let retained = @planning.retain_mock_query(
-      attempt,
-      query_retention_limits(),
-    ).unwrap()
+    let retained = @mock.retain_mock_query(attempt, query_retention_limits()).unwrap()
     // Independent wire lengths: scan array 28 bytes / 7 nodes; selected array
     // 19 bytes / 5 nodes. Both are retained, only receipt differs by route.
     assert_eq(
-      @planning.mock_retention_usage(retained),
-      (if route == @planning.NativeQuery { 19 } else { 28 }, 47, 12),
+      @mock.mock_retention_usage(retained),
+      (if route == @mock.NativeQuery { 19 } else { 28 }, 47, 12),
     )
-    let cids = @planning.mock_retention_row_cids(retained)
+    let cids = @mock.mock_retention_row_cids(retained)
     assert_eq(
       cids.0,
       "sha256:77e98e23cd26d76b7d4549460e2d627af92fbdabe8de4cb20c0106d26470d26d",
@@ -72,15 +69,15 @@ test "mock capture retention counts full scan even for native receipt" {
     }
     prior = Some(cids)
     assert_true(
-      @planning.retain_mock_query(attempt, query_retention_limits())
+      @mock.retain_mock_query(attempt, query_retention_limits())
       is Err(NotAwaitingCapture),
     )
-    assert_true(@planning.cancel_mock_query(attempt))
+    assert_true(@mock.cancel_mock_query(attempt))
     // Retained handles may keep data alive, but do not restore task authority.
-    assert_eq(@planning.mock_retention_usage(retained).1, 47)
-    assert_true(@planning.mock_query_computation(attempt) is Err(Cancelled))
+    assert_eq(@mock.mock_retention_usage(retained).1, 47)
+    assert_true(@mock.mock_query_computation(attempt) is Err(Cancelled))
     assert_true(
-      @planning.retain_mock_query(attempt, query_retention_limits())
+      @mock.retain_mock_query(attempt, query_retention_limits())
       is Err(NotAwaitingCapture),
     )
   }
@@ -88,32 +85,29 @@ test "mock capture retention counts full scan even for native receipt" {
 
 ///|
 test "mock retention byte and traversal frontiers fail the owning attempt" {
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     let limits = query_retention_limits()
-    let receipt = if route == @planning.NativeQuery { 19 } else { 28 }
+    let receipt = if route == @mock.NativeQuery { 19 } else { 28 }
     let exact = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(exact, {
-        ..limits,
-        received_wire_bytes: receipt,
-      })
+      @mock.retain_mock_query(exact, { ..limits, received_wire_bytes: receipt, })
       is Ok(_),
     )
     let short_receipt = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(short_receipt, {
+      @mock.retain_mock_query(short_receipt, {
         ..limits,
         received_wire_bytes: receipt - 1,
       })
       is Err(ReceiptBytes),
     )
     assert_true(
-      @planning.mock_query_computation(short_receipt)
+      @mock.mock_query_computation(short_receipt)
       is Err(Retention(ReceiptBytes)),
     )
     let short_retained = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(short_retained, {
+      @mock.retain_mock_query(short_retained, {
         ..limits,
         retained_wire_bytes: 46,
       })
@@ -121,7 +115,7 @@ test "mock retention byte and traversal frontiers fail the owning attempt" {
     )
     let short_bytes = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(short_bytes, {
+      @mock.retain_mock_query(short_bytes, {
         ..limits,
         measurement: { ..limits.measurement, max_bytes: 46, },
       })
@@ -129,7 +123,7 @@ test "mock retention byte and traversal frontiers fail the owning attempt" {
     )
     let short_nodes = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(short_nodes, {
+      @mock.retain_mock_query(short_nodes, {
         ..limits,
         measurement: { ..limits.measurement, max_nodes: 11, },
       })
@@ -141,7 +135,7 @@ test "mock retention byte and traversal frontiers fail the owning attempt" {
 ///|
 test "exhausted retention is not invalid configuration and cannot issue evidence" {
   let (issuer, sequence) = query_issuer_fixture()
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     for
       (nodes, bytes, success) in [
         (7, 47, false),
@@ -151,13 +145,13 @@ test "exhausted retention is not invalid configuration and cannot issue evidence
         (12, 46, false),
       ] {
       let attempt = query_issuer_attempt(issuer, sequence, route)
-      @planning.execute_mock_query(
+      @mock.execute_mock_query(
         attempt,
         mock_strategy_limits(),
         guard_measure=Some(query_guard_physical()),
       ).unwrap()
       |> ignore
-      let result = @planning.retain_mock_query(attempt, {
+      let result = @mock.retain_mock_query(attempt, {
         ..query_retention_limits(),
         measurement: {
           ..query_retention_limits().measurement,
@@ -167,12 +161,12 @@ test "exhausted retention is not invalid configuration and cannot issue evidence
       })
       if success {
         assert_true(result is Ok(_))
-        let records = @planning.issue_mock_query_records(
+        let records = @mock.issue_mock_query_records(
           attempt,
           query_material_limits(),
         ).unwrap()
         assert_true(
-          @planning.capture_mock_query(
+          @mock.capture_mock_query(
             issuer,
             attempt,
             records,
@@ -185,27 +179,27 @@ test "exhausted retention is not invalid configuration and cannot issue evidence
           result is Err(OutputIdentity(Encoding(@encode.OutputLimit))),
         )
         assert_true(
-          @planning.mock_query_computation(attempt)
+          @mock.mock_query_computation(attempt)
           is Err(Retention(OutputIdentity(Encoding(@encode.OutputLimit)))),
         )
         assert_true(
-          @planning.issue_mock_query_records(attempt, query_material_limits())
+          @mock.issue_mock_query_records(attempt, query_material_limits())
           is Err(NotRetained),
         )
       }
     }
     let invalid = query_retention_attempt(route)
     assert_true(
-      @planning.retain_mock_query(invalid, {
+      @mock.retain_mock_query(invalid, {
         ..query_retention_limits(),
         measurement: { ..query_retention_limits().measurement, max_nodes: 0, },
       })
       is Err(ScanIdentity(InvalidLimits)),
     )
   }
-  let broad = query_retention_attempt(@planning.BroadWithResidual)
+  let broad = query_retention_attempt(@mock.BroadWithResidual)
   assert_true(
-    @planning.retain_mock_query(broad, {
+    @mock.retain_mock_query(broad, {
       ..query_retention_limits(),
       received_wire_bytes: 27,
       measurement: { ..query_retention_limits().measurement, max_nodes: 7, },
@@ -217,25 +211,24 @@ test "exhausted retention is not invalid configuration and cannot issue evidence
 ///|
 test "unbound or cancelled mock computation cannot establish retention" {
   let owner = strategy_test_owner()
-  let attempt = @planning.prepare_mock_query_attempt(
-    strategy_for(owner, @planning.NativeQuery),
+  let attempt = @mock.prepare_mock_query_attempt(
+    strategy_for(owner, @mock.NativeQuery),
     [],
     0,
   ).unwrap()
   assert_true(
-    @planning.retain_mock_query(attempt, query_retention_limits())
+    @mock.retain_mock_query(attempt, query_retention_limits())
     is Err(NotAwaitingCapture),
   )
-  @planning.execute_mock_query(attempt, mock_strategy_limits()).unwrap()
-  |> ignore
+  @mock.execute_mock_query(attempt, mock_strategy_limits()).unwrap() |> ignore
   assert_true(
-    @planning.retain_mock_query(attempt, query_retention_limits())
+    @mock.retain_mock_query(attempt, query_retention_limits())
     is Err(RequirementRequired),
   )
-  let bound = query_retention_attempt(@planning.NativeQuery)
-  assert_true(@planning.cancel_mock_query(bound))
+  let bound = query_retention_attempt(@mock.NativeQuery)
+  assert_true(@mock.cancel_mock_query(bound))
   assert_true(
-    @planning.retain_mock_query(bound, query_retention_limits())
+    @mock.retain_mock_query(bound, query_retention_limits())
     is Err(NotAwaitingCapture),
   )
 }

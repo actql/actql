@@ -93,7 +93,7 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
         let attempts : Array[@duckdb_driver.CapturedDuckDBTask] = []
         for (task, native) in [(1, a), (2, b), (3, c)] {
           if task == 3 {
-            @planning.close_mock_query_issuer(issuer)
+            @mock.close_mock_query_issuer(issuer)
           }
           if native {
             let transport : FixedComputeTestTransport = { settled: None, }
@@ -176,7 +176,7 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     }
     transport.settled = Some(@duckdb_driver.captured_duckdb_attempt(attempt))
     if mode == 2 {
-      @planning.close_mock_query_issuer(issuer)
+      @mock.close_mock_query_issuer(issuer)
     }
     if mode == 3 {
       @strategy.stop_captured_dag(run)

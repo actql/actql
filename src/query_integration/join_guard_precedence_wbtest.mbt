@@ -13,24 +13,24 @@ test "common input value guard precedes join cardinality in both realizations" {
     100000,
     10000,
   ).unwrap()
-  let acquisition_attempt = @planning.prepare_issued_mock_query_attempt(
+  let acquisition_attempt = @mock.prepare_issued_mock_query_attempt(
     issuer,
-    strategy_for(acquisition, @planning.BroadWithResidual),
+    strategy_for(acquisition, @mock.BroadWithResidual),
     [input_cursor("{\"id\":3}"), input_cursor("{\"id\":3}")],
     2,
   ).unwrap()
   query_issuer_run(acquisition_attempt)
-  let records = @planning.issue_mock_query_records(
+  let records = @mock.issue_mock_query_records(
     acquisition_attempt,
     query_material_limits(),
   ).unwrap()
-  let observation = @planning.capture_mock_query(
+  let observation = @mock.capture_mock_query(
     issuer,
     acquisition_attempt,
     records,
     query_capture_limits(),
   ).unwrap()
-  let binding = @planning.bind_captured_query_input(
+  let binding = @mock.bind_captured_query_input(
     issuer, acquisition_attempt, observation, receiver, 0, owner,
   ).unwrap()
   let inputs = [
@@ -126,6 +126,6 @@ test "common input value guard precedes join cardinality in both realizations" {
       )
     }
   }
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_false(@duckdb.fixed_join_inputs_available(imported))
 }

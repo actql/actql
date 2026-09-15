@@ -12,7 +12,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     { max_rows: 2, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let prepared = @planning.prepare_duckdb_query(
+  let prepared = @duckdb_query.prepare_duckdb_query(
     requirement,
     "main",
     "records",
@@ -20,9 +20,14 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     native_compile_limits(),
   ).unwrap()
   assert_true(
-    physical_equal(@planning.duckdb_query_requirement(prepared), requirement),
+    physical_equal(
+      @duckdb_query.duckdb_query_requirement(prepared),
+      requirement,
+    ),
   )
-  let (native, witness) = @planning.duckdb_query_native_preparation(prepared).unwrap()
+  let (native, witness) = @duckdb_query.duckdb_query_native_preparation(
+    prepared,
+  ).unwrap()
   assert_true(
     @duckdb.native_root_guard_matches(
       witness,
@@ -30,7 +35,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
       100,
     ),
   )
-  let broad = @planning.duckdb_query_broad_scan(prepared)
+  let broad = @duckdb_query.duckdb_query_broad_scan(prepared)
   let table = @duckdb.admit_broad_table(
     broad,
     1,
@@ -62,7 +67,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     { max_rows: 1, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let limited = @planning.prepare_duckdb_query(
+  let limited = @duckdb_query.prepare_duckdb_query(
     too_few,
     "main",
     "records",
@@ -70,7 +75,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     native_compile_limits(),
   ).unwrap()
   assert_true(
-    @planning.execute_duckdb_broad_residual(
+    @duckdb_query.execute_duckdb_broad_residual(
       limited,
       input,
       compute_test_limits(),
@@ -78,7 +83,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     )
     is Err(OutputRows),
   )
-  let (completed, _) = @planning.execute_duckdb_broad_residual(
+  let (completed, _) = @duckdb_query.execute_duckdb_broad_residual(
     prepared,
     input,
     compute_test_limits(),
@@ -94,7 +99,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     { max_rows: 2, max_value_bytes: 4, },
     query_material_limits(),
   ).unwrap()
-  let tiny = @planning.prepare_duckdb_query(
+  let tiny = @duckdb_query.prepare_duckdb_query(
     tiny,
     "main",
     "records",
@@ -102,7 +107,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     native_compile_limits(),
   ).unwrap()
   assert_true(
-    @planning.duckdb_query_native_preparation(tiny)
+    @duckdb_query.duckdb_query_native_preparation(tiny)
     is Err(RootGuard(UnsupportedCeiling)),
   )
   let other = query_checked_program_fixture()
@@ -115,7 +120,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     { max_rows: 2, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let foreign = @planning.prepare_duckdb_query(
+  let foreign = @duckdb_query.prepare_duckdb_query(
     other_requirement,
     "main",
     "records",
@@ -123,7 +128,7 @@ test "DuckDB preparations retain canonical requirement and enforce its residual 
     native_compile_limits(),
   ).unwrap()
   assert_true(
-    @planning.execute_duckdb_broad_residual(
+    @duckdb_query.execute_duckdb_broad_residual(
       foreign,
       input,
       compute_test_limits(),

@@ -4,7 +4,7 @@ pub(all) enum DuckDBBroadAttemptIssue {
   Metadata(@duckdb.SourceTableIssue)
   Receiving(@duckdb.BroadReceivingIssue)
   Residual(@query.QueryGuardIssue)
-  Retention(QueryRetentionIssue)
+  Retention(@planning.QueryRetentionIssue)
 }
 
 ///|
@@ -191,9 +191,11 @@ fn duckdb_broad_attempt_output(
   }
   @execution.completed_output(
     completed.sequence,
-    @acquisition.query_acquisition_capture(
+    @sourcequery.query_acquisition_capture(
       @query.query_sequence_requirement(
-        attempt.preparation.requirement.material.owner,
+        @planning.query_material_owner(
+          @planning.query_requirement_material(attempt.preparation.requirement),
+        ),
       ),
     ),
   )

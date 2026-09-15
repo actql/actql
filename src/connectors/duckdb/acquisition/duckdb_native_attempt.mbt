@@ -37,19 +37,20 @@ struct DuckDBNativeMeasurement {
 
 ///|
 pub fn prepare_duckdb_native_attempt(
-  choice : AcquisitionChoice,
-  candidate : PreparedAcquisition[DuckDBNativePreparation],
+  choice : @planning.AcquisitionChoice,
+  candidate : @planning.PreparedAcquisition[DuckDBNativePreparation],
   physical : @duckdb.PhysicalResultLimits,
   max_metadata_work : Int,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[DuckDBNativeAttempt, DuckDBNativeAttemptIssue] {
-  guard acquisition_choice_payload(choice, candidate) is Some(preparation) else {
+  guard @planning.acquisition_choice_payload(choice, candidate)
+    is Some(preparation) else {
     return Err(ForeignChoice)
   }
   if !@duckdb.native_root_guard_matches(
       preparation.root,
       @duckdb.native_scan_query(preparation.scan),
-      preparation.requirement.guards.max_value_bytes,
+      @planning.query_requirement_guards(preparation.requirement).max_value_bytes,
     ) {
     return Err(InvalidState)
   }
@@ -58,8 +59,12 @@ pub fn prepare_duckdb_native_attempt(
     physical,
     max_metadata_work,
     {
-      max_value_bytes: preparation.requirement.guards.max_value_bytes,
-      max_output_rows: preparation.requirement.guards.max_rows,
+      max_value_bytes: @planning.query_requirement_guards(
+        preparation.requirement,
+      ).max_value_bytes,
+      max_output_rows: @planning.query_requirement_guards(
+        preparation.requirement,
+      ).max_rows,
     },
     measurement,
   )

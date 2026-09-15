@@ -15,28 +15,21 @@ fn duckdb_captured_input_lifetime(
     owner,
     "[{\"filter\":\"" + filter + "\"},{\"select\":[\"id\"]}]",
   )
-  let attempt = query_issuer_attempt(
-    issuer,
-    sequence,
-    @planning.BroadWithResidual,
-  )
+  let attempt = query_issuer_attempt(issuer, sequence, @mock.BroadWithResidual)
   query_issuer_run(attempt)
-  let records = @planning.issue_mock_query_records(
-    attempt,
-    query_material_limits(),
-  ).unwrap()
-  let observation = @planning.capture_mock_query(
+  let records = @mock.issue_mock_query_records(attempt, query_material_limits()).unwrap()
+  let observation = @mock.capture_mock_query(
     issuer,
     attempt,
     records,
     query_capture_limits(),
   ).unwrap()
-  let bound = @planning.bind_captured_query_input(
+  let bound = @mock.bind_captured_query_input(
     issuer, attempt, observation, receiver, 0, owner,
   ).unwrap()
   (
     @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap(),
-    fn() { @planning.close_mock_query_issuer(issuer) },
+    fn() { @mock.close_mock_query_issuer(issuer) },
   )
 }
 

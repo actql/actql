@@ -4,7 +4,7 @@ test "native captured output converts without replay and preserves success acros
   let attempt = native_issued_attempt(f)
   native_attempt_receive_fixture(attempt)
   f.transport.push(attempt)
-  let observation = @planning.complete_duckdb_native_capture(
+  let observation = @duckdb_query.complete_duckdb_native_capture(
     f.issuer,
     attempt,
     native_completion_limits(),
@@ -25,7 +25,7 @@ test "native captured output converts without replay and preserves success acros
       { ..exact, max_depth: 1, },
     ] {
     assert_true(
-      @planning.materialize_duckdb_native_output(
+      @duckdb_query.materialize_duckdb_native_output(
         f.issuer,
         attempt,
         observation,
@@ -35,12 +35,16 @@ test "native captured output converts without replay and preserves success acros
       is Err(NativeOutput(Retention(CaptureLimit))),
     )
     assert_true(
-      @planning.verify_duckdb_native_observation(f.issuer, attempt, observation)
+      @duckdb_query.verify_duckdb_native_observation(
+        f.issuer,
+        attempt,
+        observation,
+      )
       is Ok(_),
     )
   }
   assert_true(
-    @planning.materialize_duckdb_native_output(
+    @duckdb_query.materialize_duckdb_native_output(
       f.issuer,
       attempt,
       observation,
@@ -49,21 +53,21 @@ test "native captured output converts without replay and preserves success acros
     )
     is Err(NativeOutput(Retention(CaptureLimit))),
   )
-  let output = @planning.materialize_duckdb_native_output(
+  let output = @duckdb_query.materialize_duckdb_native_output(
     f.issuer,
     attempt,
     observation,
     2,
     exact,
   ).unwrap()
-  let rows = @planning.duckdb_native_output_rows(output).unwrap()
+  let rows = @duckdb_query.duckdb_native_output_rows(output).unwrap()
   assert_true(
     physical_equal(
       @execution.admitted_output_owner(rows),
       @duckdb.native_query_owner(
         @duckdb.native_scan_query(
-          @planning.duckdb_native_preparation_scan(
-            @planning.duckdb_native_attempt_preparation(attempt),
+          @duckdb_query.duckdb_native_preparation_scan(
+            @duckdb_query.duckdb_native_attempt_preparation(attempt),
           ),
         ),
       ),
@@ -83,7 +87,9 @@ test "native captured output converts without replay and preserves success acros
     work: 8,
   })
   let other = native_issuer_fixture()
-  let completed = @planning.complete_duckdb_native_output(output, 100, 10000).unwrap()
+  let completed = @duckdb_query.complete_duckdb_native_output(
+    output, 100, 10000,
+  ).unwrap()
   let owner = @execution.admitted_output_owner(rows)
   let generated = @query.query_generated_sequence(
     @planning.query_material_owner(
@@ -91,13 +97,13 @@ test "native captured output converts without replay and preserves success acros
     ),
   )
   assert_true(
-    @planning.complete_duckdb_native_output(output, 0, 10000) is Err(Limit),
+    @duckdb_query.complete_duckdb_native_output(output, 0, 10000) is Err(Limit),
   )
   assert_true(
-    @planning.complete_duckdb_native_output(output, 100, 0) is Err(Limit),
+    @duckdb_query.complete_duckdb_native_output(output, 100, 0) is Err(Limit),
   )
   assert_true(
-    @planning.complete_duckdb_native_output(output, -1, 10000)
+    @duckdb_query.complete_duckdb_native_output(output, -1, 10000)
     is Err(InvalidLimits),
   )
   let unavailable = @execution.prepare_trusted_output_port(
@@ -151,7 +157,7 @@ test "native captured output converts without replay and preserves success acros
   assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(3)))
   assert_true(@execution.completed_cell(downstream, 1, 0) is Some(Number(2)))
   assert_true(
-    @planning.materialize_duckdb_native_output(
+    @duckdb_query.materialize_duckdb_native_output(
       other.issuer,
       attempt,
       observation,
@@ -190,7 +196,7 @@ test "native captured output converts without replay and preserves success acros
   @duckdb.receive_fixed_compute_chunk(receiving, 1, [
     input_cursor("[\"4008000000000000\"]"),
   ]).unwrap()
-  @planning.close_duckdb_native_issuer(f.issuer)
+  @duckdb_query.close_duckdb_native_issuer(f.issuer)
   assert_false(@execution.producer_read_available(compute_input))
   assert_true(
     @duckdb.finish_fixed_compute_receiving(receiving) is Err(InputUnavailable),
@@ -229,9 +235,11 @@ test "native captured output converts without replay and preserves success acros
     })
     is Err(InputUnavailable),
   )
-  assert_true(@planning.duckdb_native_output_rows(output) is Err(IssuerClosed))
   assert_true(
-    @planning.complete_duckdb_native_output(output, 100, 10000)
+    @duckdb_query.duckdb_native_output_rows(output) is Err(IssuerClosed),
+  )
+  assert_true(
+    @duckdb_query.complete_duckdb_native_output(output, 100, 10000)
     is Err(Unverified),
   )
   assert_true(

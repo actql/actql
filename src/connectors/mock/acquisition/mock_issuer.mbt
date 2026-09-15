@@ -3,15 +3,15 @@
 /// process nonce; this module allocates issuer and attempt suffixes itself.
 /// This is not a real provider authorization or a portable evidence authority.
 struct MockQueryIssuer {
-  _contracts : QueryEvidenceContracts
-  requirement : QueryRequirement
+  _contracts : @planning.QueryEvidenceContracts
+  requirement : @planning.QueryRequirement
   name : String
-  attempts : IssuerCounter
+  attempts : @planning.IssuerCounter
   mut live : Bool
 }
 
 ///|
-let mock_issuer_serial : IssuerCounter = { next: 0, }
+let mock_issuer_serial : @planning.IssuerCounter = @planning.issuer_counter()
 
 ///|
 priv struct MockAttemptAuthority {
@@ -40,8 +40,8 @@ pub(all) enum MockEvidenceIssue {
 
 ///|
 pub fn prepare_mock_query_issuer(
-  contracts : QueryEvidenceContracts,
-  requirement : QueryRequirement,
+  contracts : @planning.QueryEvidenceContracts,
+  requirement : @planning.QueryRequirement,
   process_nonce : String,
   max_nonce_chars : Int,
 ) -> Result[MockQueryIssuer, MockEvidenceIssue] {
@@ -51,14 +51,14 @@ pub fn prepare_mock_query_issuer(
   if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
     return Err(IdentifierLimit)
   }
-  guard reserve_issuer_number(mock_issuer_serial) is Some(serial) else {
+  guard @planning.reserve_issuer_number(mock_issuer_serial) is Some(serial) else {
     return Err(IdentifierExhausted)
   }
   Ok({
     _contracts: contracts,
     requirement,
     name: process_nonce + "/mock-issuer/" + serial.to_string(),
-    attempts: { next: 0, },
+    attempts: @planning.issuer_counter(),
     live: true,
   })
 }
@@ -75,7 +75,7 @@ pub fn prepare_issued_mock_query_attempt(
   if !issuer.live {
     return Err(IssuerClosed)
   }
-  guard reserve_issuer_number(issuer.attempts) is Some(number) else {
+  guard @planning.reserve_issuer_number(issuer.attempts) is Some(number) else {
     return Err(IdentifierExhausted)
   }
   let prepared = match
@@ -112,36 +112,57 @@ pub fn mock_query_attempt_identity(
 struct MockQueryRecords {
   authority : MockAttemptAuthority
   retention : MockQueryRetention
-  _payload : QueryRecordPayload
-  documents : Array[@encode.EncodedDocument]
-  cids : Array[String]
-  bytes : Int
-  nodes : Int
+  artifacts : @planning.QueryRecordArtifacts
 }
 
 ///|
-fn mock_record_payload(
+fn mock_artifact_issue(
+  issue : @planning.QueryArtifactIssue,
+) -> MockEvidenceIssue {
+  match issue {
+    InvalidLimits => InvalidLimits
+    InvalidRetainedLayout => InvalidRetainedLayout
+    FieldLimit => FieldLimit
+    WorkLimit => WorkLimit
+    ForeignMaterial => ForeignRecords
+    Encoding(issue) => Encoding(issue)
+  }
+}
+
+///|
+fn build_mock_records(
+  authority : MockAttemptAuthority,
   retained : MockQueryRetention,
-  limits : QueryMaterialLimits,
-  budget : QueryMaterialBudget,
-) -> Result[QueryRecordPayload, MockEvidenceIssue] {
+  limits : @planning.QueryMaterialLimits,
+) -> Result[MockQueryRecords, MockEvidenceIssue] {
+  // Validate before looking up the schema, preserving prior failure precedence.
+  if limits.max_work < 0 ||
+    limits.max_fields < 0 ||
+    limits.max_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
   let requirement = retained._requirement
-  let computation = retained.computation
-  let query = @query.query_sequence_requirement(requirement.material.owner)
-  let native = computation.strategy.offer.realization == NativeQuery
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+  )
+  let native = retained.computation.strategy.offer.realization == NativeQuery
   let target = if native {
-    @acquisition.query_acquisition_capture(query)
+    @sourcequery.query_acquisition_capture(query)
   } else {
-    @acquisition.query_acquisition_input(query)
+    @sourcequery.query_acquisition_input(query)
   }
   guard @pipeline.schema_at(
-      @acquisition.query_acquisition_pipeline(query),
+      @sourcequery.query_acquisition_pipeline(query),
       target,
     )
     is Some(schema) else {
     return Err(InvalidRetainedLayout)
   }
-  query_record_payload(
+  @planning.build_query_record_artifacts(
     requirement,
     if native {
       retained.output
@@ -150,75 +171,18 @@ fn mock_record_payload(
     },
     retained.output,
     schema,
+    authority.issuer.name,
+    authority.number,
     limits,
-    budget,
-  ).map_err(issue => {
-    match issue {
-      InvalidRetainedLayout => InvalidRetainedLayout
-      FieldLimit => FieldLimit
-      WorkLimit => WorkLimit
-      Encoding(issue) => Encoding(issue)
-    }
-  })
-}
-
-///|
-fn build_mock_records(
-  authority : MockAttemptAuthority,
-  retained : MockQueryRetention,
-  limits : QueryMaterialLimits,
-) -> Result[MockQueryRecords, MockEvidenceIssue] {
-  if limits.max_work < 0 ||
-    limits.max_fields < 0 ||
-    limits.max_bytes < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_depth < 0 {
-    return Err(InvalidLimits)
-  }
-  let budget : QueryMaterialBudget = {
-    work: limits.max_work,
-    bytes: limits.max_bytes,
-    nodes: limits.max_nodes,
-    depth: limits.max_depth,
-  }
-  let payload = match mock_record_payload(retained, limits, budget) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let documents : Array[@encode.EncodedDocument] = []
-  let cids : Array[String] = []
-  try {
-    for role in [SourceValidation, Filter, Select] {
-      let (document, cid) = query_record_document(budget, writer => {
-        emit_query_record(
-          payload,
-          authority.issuer.name,
-          authority.number,
-          role,
-          writer,
-        )
-      })
-      documents.push(document)
-      cids.push(cid)
-    }
-    Ok({
-      authority,
-      retention: retained,
-      _payload: payload,
-      documents,
-      cids,
-      bytes: limits.max_bytes - budget.bytes,
-      nodes: limits.max_nodes - budget.nodes,
-    })
-  } catch {
-    issue => Err(Encoding(issue))
-  }
+  )
+  .map(artifacts => { authority, retention: retained, artifacts, })
+  .map_err(mock_artifact_issue)
 }
 
 ///|
 pub fn issue_mock_query_records(
   attempt : MockQueryAttempt,
-  limits : QueryMaterialLimits,
+  limits : @planning.QueryMaterialLimits,
 ) -> Result[MockQueryRecords, MockEvidenceIssue] {
   guard attempt.authority is Some(authority) else {
     return Err(UnauthorizedAttempt)
@@ -285,14 +249,10 @@ pub fn mock_query_record_at(
   records : MockQueryRecords,
   index : Int,
 ) -> (@encode.EncodedDocument, String)? {
-  guard records.documents.get(index) is Some(document) &&
-    records.cids.get(index) is Some(cid) else {
-    return None
-  }
-  Some((document, cid))
+  @planning.query_record_artifact_at(records.artifacts, index)
 }
 
 ///|
 pub fn mock_query_record_usage(records : MockQueryRecords) -> (Int, Int) {
-  (records.bytes, records.nodes)
+  @planning.query_record_artifact_usage(records.artifacts)
 }

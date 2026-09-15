@@ -14,7 +14,7 @@ pub fn capture_duckdb_native_query(
   issuer : DuckDBNativeIssuer,
   attempt : DuckDBNativeAttempt,
   records : DuckDBNativeRecords,
-  limits : QueryEvidenceLimits,
+  limits : @planning.QueryEvidenceLimits,
 ) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue] {
   match verify_duckdb_native_records(issuer, attempt, records) {
     Ok(_) => ()
@@ -30,30 +30,30 @@ pub fn capture_duckdb_native_query(
     abort_duckdb_native_attempt(attempt)
     return Err(Encoding(@encode.OutputLimit))
   }
-  let budget : QueryMaterialBudget = {
-    work: 0,
-    bytes: limits.max_bytes - records.bytes,
-    nodes: limits.max_nodes - records.nodes,
-    depth: limits.max_depth,
+  guard @planning.query_artifact_budget(
+      0,
+      limits.max_bytes - records.bytes,
+      limits.max_nodes - records.nodes,
+      limits.max_depth,
+    )
+    is Some(budget) else {
+    return Err(InvalidLimits)
   }
   try {
     let requirement = issuer.requirement
-    let request_cid = material_hash(budget, writer => {
-      @encode.emit_document(writer, requirement.material.request)
-    })
-    if request_cid != requirement.material.request_cid {
+    if !@planning.query_artifact_request_matches(budget, requirement) {
       abort_duckdb_native_attempt(attempt)
       return Err(ForeignRecords)
     }
-    let (document, cid) = query_record_document(budget, writer => {
+    let (document, cid) = @planning.query_record_document(budget, writer => {
       emit_native_observation(records, writer)
     })
     let observation : DuckDBNativeObservation = {
       records,
       document,
       cid,
-      bytes: limits.max_bytes - budget.bytes,
-      nodes: limits.max_nodes - budget.nodes,
+      bytes: limits.max_bytes - @planning.query_artifact_remaining(budget).1,
+      nodes: limits.max_nodes - @planning.query_artifact_remaining(budget).2,
     }
     attempt.state = Captured(observation)
     Ok(observation)

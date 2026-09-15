@@ -22,7 +22,7 @@ pub(all) enum MockRetentionIssue {
 /// Immutable capture material with actual full-scan provenance. No issuer
 /// record or consumer permission can be reconstructed from these CIDs alone.
 struct MockQueryRetention {
-  _requirement : QueryRequirement
+  _requirement : @planning.QueryRequirement
   computation : MockQueryComputation
   scan : @execution.RowWireIdentity
   output : @execution.RowWireIdentity
@@ -33,12 +33,12 @@ struct MockQueryRetention {
 
 ///|
 fn retain_mock_computation(
-  requirement : QueryRequirement,
+  requirement : @planning.QueryRequirement,
   computation : MockQueryComputation,
   limits : MockRetentionLimits,
 ) -> Result[MockQueryRetention, MockRetentionIssue] {
   let measured = match
-    measure_query_retention(
+    @planning.measure_query_retention(
       @query.query_receipt_rows(computation._scan),
       computation.output,
       computation.strategy.offer.realization == BroadWithResidual,

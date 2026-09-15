@@ -196,7 +196,7 @@ test "independent numeric kernel uses checked shape and exact fixed input withou
     compute_test_limits(),
     produced=[bound],
   ).unwrap()
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   // A pending completion cannot seal after upstream revocation. A successful
   // independent result can still supply a new consumer until its own close.
   assert_true(

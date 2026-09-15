@@ -10,38 +10,33 @@ test "native and residual captures feed the ordinary completed-input consumer" {
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let generated = compute_test_sequence(receiver)
   let mut prior : String? = None
-  for route in [@planning.NativeQuery, @planning.BroadWithResidual] {
+  for route in [@mock.NativeQuery, @mock.BroadWithResidual] {
     // Reverse costs for the same canonical requirement; both concrete routes
     // must traverse comparison, dispatch, capture and receiving admission.
     let offers = [
       strategy_offer(
         sequence,
-        @planning.NativeQuery,
-        Array::make(
-          6,
-          Some(if route == @planning.NativeQuery { 1L } else { 10L }),
-        ),
+        @mock.NativeQuery,
+        Array::make(6, Some(if route == @mock.NativeQuery { 1L } else { 10L })),
       ),
       strategy_offer(
         sequence,
-        @planning.BroadWithResidual,
+        @mock.BroadWithResidual,
         Array::make(
           7,
-          Some(if route == @planning.BroadWithResidual { 1L } else { 10L }),
+          Some(if route == @mock.BroadWithResidual { 1L } else { 10L }),
         ),
       ),
     ]
-    guard @planning.choose_query_strategy(sequence, offers, None, 4).unwrap()
-      is @planning.Proposed(strategy) else {
+    guard @mock.choose_query_strategy(sequence, offers, None, 4).unwrap()
+      is Proposed(strategy) else {
       abort("complete cost fixture")
     }
     assert_eq(
-      @planning.query_offer_realization(
-        @planning.query_strategy_offer(strategy),
-      ),
+      @mock.query_offer_realization(@mock.query_strategy_offer(strategy)),
       route,
     )
-    let attempt = @planning.prepare_issued_mock_query_attempt(
+    let attempt = @mock.prepare_issued_mock_query_attempt(
       issuer,
       strategy,
       [
@@ -52,33 +47,28 @@ test "native and residual captures feed the ordinary completed-input consumer" {
       3,
     ).unwrap()
     query_issuer_run(attempt)
-    let records = @planning.issue_mock_query_records(
+    let records = @mock.issue_mock_query_records(
       attempt,
       query_material_limits(),
     ).unwrap()
-    let observation = @planning.capture_mock_query(
+    let observation = @mock.capture_mock_query(
       issuer,
       attempt,
       records,
       query_capture_limits(),
     ).unwrap()
-    assert_false(@planning.cancel_mock_query(attempt))
+    assert_false(@mock.cancel_mock_query(attempt))
     assert_true(
-      @planning.capture_mock_query(
-        issuer,
-        attempt,
-        records,
-        query_capture_limits(),
-      )
+      @mock.capture_mock_query(issuer, attempt, records, query_capture_limits())
       is Err(AlreadyCaptured),
     )
-    let cid = @planning.mock_query_observation_cid(observation)
+    let cid = @mock.mock_query_observation_cid(observation)
     if prior is Some(previous) {
       assert_true(previous != cid)
     }
     prior = Some(cid)
     let text = @encode.document_text(
-      @planning.mock_query_observation_document(observation),
+      @mock.mock_query_observation_document(observation),
     )
     assert_eq(query_material_expected(text), cid)
     assert_true(text.contains("\"version\":\"actql-query-observation/0.1\""))
@@ -92,10 +82,10 @@ test "native and residual captures feed the ordinary completed-input consumer" {
         (1, "filter_evidence_cid"),
         (2, "select_evidence_cid"),
       ] {
-      let (_, record) = @planning.mock_query_record_at(records, index).unwrap()
+      let (_, record) = @mock.mock_query_record_at(records, index).unwrap()
       assert_true(text.contains("\"" + field + "\":\"" + record + "\""))
     }
-    let bound = @planning.bind_captured_query_input(
+    let bound = @mock.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
     let failure = @execution.prepare_local_compute_attempt(
@@ -114,7 +104,7 @@ test "native and residual captures feed the ordinary completed-input consumer" {
     assert_true(@execution.local_compute_result(failure) is Err(Execution(_)))
     // A consumer failure does not invalidate the completed observation or cause
     // a replacement read. Rebind and run with a fresh receiving budget.
-    let again = @planning.bind_captured_query_input(
+    let again = @mock.bind_captured_query_input(
       issuer, attempt, observation, receiver, 0, owner,
     ).unwrap()
     let success = @execution.prepare_local_compute_attempt(
@@ -127,7 +117,7 @@ test "native and residual captures feed the ordinary completed-input consumer" {
     assert_eq(@execution.completed_row_count(output), 2)
     assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
     assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
-    assert_eq(@planning.mock_query_observation_cid(observation), cid)
+    assert_eq(@mock.mock_query_observation_cid(observation), cid)
   }
 }
 
@@ -135,34 +125,26 @@ test "native and residual captures feed the ordinary completed-input consumer" {
 test "capture binds exact attempt target and Parameter owner before consumer admission" {
   let (issuer, sequence) = query_issuer_fixture()
   let owner = @query.query_sequence_owner(sequence)
-  let first = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
-  let second = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  let first = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
+  let second = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
   query_issuer_run(first)
   query_issuer_run(second)
-  let records = @planning.issue_mock_query_records(
-    first,
-    query_material_limits(),
-  ).unwrap()
-  let other_records = @planning.issue_mock_query_records(
+  let records = @mock.issue_mock_query_records(first, query_material_limits()).unwrap()
+  let other_records = @mock.issue_mock_query_records(
     second,
     query_material_limits(),
   ).unwrap()
   assert_true(
-    @planning.capture_mock_query(
-      issuer,
-      second,
-      records,
-      query_capture_limits(),
-    )
+    @mock.capture_mock_query(issuer, second, records, query_capture_limits())
     is Err(UnauthorizedAttempt),
   )
-  let observed = @planning.capture_mock_query(
+  let observed = @mock.capture_mock_query(
     issuer,
     first,
     records,
     query_capture_limits(),
   ).unwrap()
-  let other = @planning.capture_mock_query(
+  let other = @mock.capture_mock_query(
     issuer,
     second,
     other_records,
@@ -170,9 +152,7 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
   ).unwrap()
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   assert_true(
-    @planning.bind_captured_query_input(
-      issuer, first, other, receiver, 0, owner,
-    )
+    @mock.bind_captured_query_input(issuer, first, other, receiver, 0, owner)
     is Err(UnauthorizedAttempt),
   )
   let wrong_target = typed_receiver(
@@ -181,7 +161,7 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
     target=Step(0),
   )
   assert_true(
-    @planning.bind_captured_query_input(
+    @mock.bind_captured_query_input(
       issuer, first, observed, wrong_target, 0, owner,
     )
     is Err(Consumer(ProducerTargetMismatch)),
@@ -189,7 +169,7 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
   let (_, foreign_sequence) = query_program_fixture(supplied="{\"minimum\":2}")
   let foreign_owner = @query.query_sequence_owner(foreign_sequence)
   assert_true(
-    @planning.bind_captured_query_input(
+    @mock.bind_captured_query_input(
       issuer, first, observed, receiver, 0, foreign_owner,
     )
     is Err(Consumer(ProducerOwnerMismatch)),
@@ -211,16 +191,14 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
     max_name_bytes=100,
   ).unwrap()
   assert_true(
-    @planning.bind_captured_query_input(
+    @mock.bind_captured_query_input(
       issuer, first, observed, receiver, 0, rebound,
     )
     is Err(Consumer(ProducerBindingMismatch)),
   )
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
-    @planning.bind_captured_query_input(
-      issuer, first, observed, receiver, 0, owner,
-    )
+    @mock.bind_captured_query_input(issuer, first, observed, receiver, 0, owner)
     is Err(IssuerClosed),
   )
 }
@@ -228,28 +206,28 @@ test "capture binds exact attempt target and Parameter owner before consumer adm
 ///|
 test "capture shares artifact budget with records and never publishes partial success" {
   let (issuer, sequence) = query_issuer_fixture()
-  let baseline = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+  let baseline = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
   query_issuer_run(baseline)
-  let records = @planning.issue_mock_query_records(
+  let records = @mock.issue_mock_query_records(
     baseline,
     query_material_limits(),
   ).unwrap()
-  let observation = @planning.capture_mock_query(
+  let observation = @mock.capture_mock_query(
     issuer,
     baseline,
     records,
     query_capture_limits(),
   ).unwrap()
-  let (bytes, nodes) = @planning.mock_query_observation_usage(observation)
-  assert_true(bytes > @planning.mock_query_record_usage(records).0)
+  let (bytes, nodes) = @mock.mock_query_observation_usage(observation)
+  assert_true(bytes > @mock.mock_query_record_usage(records).0)
   for short in [false, true] {
-    let attempt = query_issuer_attempt(issuer, sequence, @planning.NativeQuery)
+    let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
     query_issuer_run(attempt)
-    let issued = @planning.issue_mock_query_records(
+    let issued = @mock.issue_mock_query_records(
       attempt,
       query_material_limits(),
     ).unwrap()
-    let result = @planning.capture_mock_query(issuer, attempt, issued, {
+    let result = @mock.capture_mock_query(issuer, attempt, issued, {
       max_bytes: bytes - (if short { 1 } else { 0 }),
       max_nodes: nodes,
       max_depth: 100,
@@ -257,10 +235,10 @@ test "capture shares artifact budget with records and never publishes partial su
     if short {
       assert_true(result is Err(Encoding(_)))
       assert_true(
-        @planning.mock_query_computation(attempt) is Err(Evidence(Encoding(_))),
+        @mock.mock_query_computation(attempt) is Err(Evidence(Encoding(_))),
       )
       assert_true(
-        @planning.verify_mock_query_records(issuer, attempt, issued)
+        @mock.verify_mock_query_records(issuer, attempt, issued)
         is Err(ForeignRecords),
       )
     } else {

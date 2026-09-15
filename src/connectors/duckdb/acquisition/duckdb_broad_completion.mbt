@@ -4,9 +4,9 @@
 pub(all) struct DuckDBBroadCompletionLimits {
   execution : @execution.SequenceExecutionLimits
   guards : @query.QueryGuardMeasureLimits
-  retention : QueryRetentionLimits
-  records : QueryMaterialLimits
-  capture : QueryEvidenceLimits
+  retention : @planning.QueryRetentionLimits
+  records : @planning.QueryMaterialLimits
+  capture : @planning.QueryEvidenceLimits
 }
 
 ///|

@@ -3,7 +3,7 @@ pub(all) struct BroadHostLimits {
   physical : @duckdb.PhysicalResultLimits
   metadata_work : Int
   retention : @execution.ValueLimits
-  completion : @planning.DuckDBBroadCompletionLimits
+  completion : @duckdb_query.DuckDBBroadCompletionLimits
   transport : @duckdb.TransportColumnLimits
 }
 
@@ -12,15 +12,17 @@ struct BroadHostConfiguration {
   contracts : @planning.QueryEvidenceContracts
   requirement : @planning.QueryRequirement
   choice : @planning.AcquisitionChoice
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBQueryPreparation]
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBQueryPreparation,
+  ]
   limits : BroadHostLimits
 }
 
 ///|
 struct BroadHostRun {
   configuration : BroadHostConfiguration
-  issuer : @planning.DuckDBQueryIssuer
-  attempt : @planning.DuckDBBroadAttempt
+  issuer : @duckdb_query.DuckDBQueryIssuer
+  attempt : @duckdb_query.DuckDBBroadAttempt
   scan : @duckdb.BroadScan
   mut closed : Bool
 }
@@ -28,8 +30,8 @@ struct BroadHostRun {
 ///|
 pub(all) enum BroadHostIssue {
   InvalidState
-  Evidence(@planning.DuckDBEvidenceIssue)
-  Attempt(@planning.DuckDBBroadAttemptIssue)
+  Evidence(@duckdb_query.DuckDBEvidenceIssue)
+  Attempt(@duckdb_query.DuckDBBroadAttemptIssue)
 }
 
 ///|
@@ -38,7 +40,9 @@ pub fn configure_broad_host(
   contracts : @planning.QueryEvidenceContracts,
   requirement : @planning.QueryRequirement,
   choice : @planning.AcquisitionChoice,
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBQueryPreparation],
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBQueryPreparation,
+  ],
   limits : BroadHostLimits,
 ) -> BroadHostConfiguration {
   { contracts, requirement, choice, candidate, limits, }
@@ -56,10 +60,10 @@ pub fn configured_broad_host_limits(
 pub fn start_configured_broad_host(
   configuration : BroadHostConfiguration,
   nonce : String,
-  verify : (@planning.DuckDBBroadAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBBroadAttempt) -> Bool,
 ) -> Result[BroadHostRun, BroadHostIssue] {
   let issuer = match
-    @planning.prepare_duckdb_query_issuer(
+    @duckdb_query.prepare_duckdb_query_issuer(
       configuration.contracts,
       configuration.requirement,
       nonce,
@@ -70,14 +74,14 @@ pub fn start_configured_broad_host(
     Err(issue) => return Err(Evidence(issue))
   }
   let attempt = match
-    @planning.prepare_issued_duckdb_broad_attempt(
+    @duckdb_query.prepare_issued_duckdb_broad_attempt(
       issuer,
       configuration.choice,
       configuration.candidate,
     ) {
     Ok(value) => value
     Err(issue) => {
-      @planning.close_duckdb_query_issuer(issuer)
+      @duckdb_query.close_duckdb_query_issuer(issuer)
       return Err(Evidence(issue))
     }
   }
@@ -90,13 +94,15 @@ pub fn start_configured_broad_host(
     configuration,
     issuer,
     attempt,
-    scan: @planning.duckdb_query_broad_scan(preparation),
+    scan: @duckdb_query.duckdb_query_broad_scan(preparation),
     closed: false,
   })
 }
 
 ///|
-pub fn broad_host_attempt(run : BroadHostRun) -> @planning.DuckDBBroadAttempt {
+pub fn broad_host_attempt(
+  run : BroadHostRun,
+) -> @duckdb_query.DuckDBBroadAttempt {
   run.attempt
 }
 
@@ -115,7 +121,7 @@ pub fn broad_host_metadata(
   if run.closed {
     return Err(InvalidState)
   }
-  @planning.admit_duckdb_broad_metadata(run.attempt, rows, fields, columns).map_err(issue => {
+  @duckdb_query.admit_duckdb_broad_metadata(run.attempt, rows, fields, columns).map_err(issue => {
       Attempt(issue)
     },
   )
@@ -130,7 +136,7 @@ pub fn begin_broad_host_receipt(
     return Err(InvalidState)
   }
   let limits = run.configuration.limits
-  @planning.begin_duckdb_broad_receipt(
+  @duckdb_query.begin_duckdb_broad_receipt(
     run.attempt,
     fields,
     limits.physical,
@@ -148,7 +154,7 @@ pub fn accept_broad_host_chunk(
   if run.closed {
     return Err(InvalidState)
   }
-  @planning.accept_duckdb_broad_chunk(run.attempt, rows, columns).map_err(issue => {
+  @duckdb_query.accept_duckdb_broad_chunk(run.attempt, rows, columns).map_err(issue => {
     Attempt(issue)
   })
 }
@@ -160,7 +166,7 @@ pub fn finish_broad_host_receipt(
   if run.closed {
     return Err(InvalidState)
   }
-  @planning.finish_duckdb_broad_receipt(run.attempt).map_err(issue => {
+  @duckdb_query.finish_duckdb_broad_receipt(run.attempt).map_err(issue => {
     Attempt(issue)
   })
 }
@@ -168,11 +174,11 @@ pub fn finish_broad_host_receipt(
 ///|
 pub fn complete_broad_host(
   run : BroadHostRun,
-) -> Result[@planning.DuckDBBroadObservation, BroadHostIssue] {
+) -> Result[@duckdb_query.DuckDBBroadObservation, BroadHostIssue] {
   if run.closed {
     return Err(InvalidState)
   }
-  @planning.complete_duckdb_broad_capture(
+  @duckdb_query.complete_duckdb_broad_capture(
     run.issuer,
     run.attempt,
     run.configuration.limits.completion,
@@ -182,7 +188,7 @@ pub fn complete_broad_host(
 ///|
 pub fn bind_broad_host_input(
   run : BroadHostRun,
-  observation : @planning.DuckDBBroadObservation,
+  observation : @duckdb_query.DuckDBBroadObservation,
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> Result[@execution.BoundProducerInput, BroadHostIssue] {
@@ -194,7 +200,7 @@ pub fn bind_broad_host_input(
       @planning.query_requirement_material(run.configuration.requirement),
     ),
   )
-  @planning.bind_captured_duckdb_broad_input(
+  @duckdb_query.bind_captured_duckdb_broad_input(
     run.issuer,
     run.attempt,
     observation,
@@ -206,14 +212,14 @@ pub fn bind_broad_host_input(
 
 ///|
 pub fn abort_broad_host(run : BroadHostRun) -> Unit {
-  @planning.abort_duckdb_broad_attempt(run.attempt)
+  @duckdb_query.abort_duckdb_broad_attempt(run.attempt)
 }
 
 ///|
 pub fn close_broad_host(run : BroadHostRun) -> Unit {
   if !run.closed {
     abort_broad_host(run)
-    @planning.close_duckdb_query_issuer(run.issuer)
+    @duckdb_query.close_duckdb_query_issuer(run.issuer)
     run.closed = true
   }
 }

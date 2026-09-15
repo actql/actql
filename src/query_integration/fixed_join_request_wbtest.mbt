@@ -47,21 +47,18 @@ test "fixed join request binds both captured ports through registered Local sele
   let attempt = query_issuer_attempt(
     issuer,
     acquisition,
-    @planning.BroadWithResidual,
+    @mock.BroadWithResidual,
   )
   query_issuer_run(attempt)
-  let records = @planning.issue_mock_query_records(
-    attempt,
-    query_material_limits(),
-  ).unwrap()
-  let observation = @planning.capture_mock_query(
+  let records = @mock.issue_mock_query_records(attempt, query_material_limits()).unwrap()
+  let observation = @mock.capture_mock_query(
     issuer,
     attempt,
     records,
     query_capture_limits(),
   ).unwrap()
   let inputs = [0, 1].map(index => {
-    let bound = @planning.bind_captured_query_input(
+    let bound = @mock.bind_captured_query_input(
       issuer, attempt, observation, receiver, index, source_owner,
     ).unwrap()
     @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap()
@@ -95,18 +92,18 @@ test "fixed join request binds both captured ports through registered Local sele
     })
     is Err(CommonInputRows),
   )
-  let short_attempt = @planning.prepare_issued_mock_query_attempt(
+  let short_attempt = @mock.prepare_issued_mock_query_attempt(
     issuer,
-    strategy_for(acquisition, @planning.BroadWithResidual),
+    strategy_for(acquisition, @mock.BroadWithResidual),
     [input_cursor("{\"id\":3}")],
     1,
   ).unwrap()
   query_issuer_run(short_attempt)
-  let short_records = @planning.issue_mock_query_records(
+  let short_records = @mock.issue_mock_query_records(
     short_attempt,
     query_material_limits(),
   ).unwrap()
-  let short_observation = @planning.capture_mock_query(
+  let short_observation = @mock.capture_mock_query(
     issuer,
     short_attempt,
     short_records,
@@ -114,7 +111,7 @@ test "fixed join request binds both captured ports through registered Local sele
   ).unwrap()
   let short = @execution.prepare_producer_read(
     receiver,
-    @planning.bind_captured_query_input(
+    @mock.bind_captured_query_input(
       issuer, short_attempt, short_observation, receiver, 0, source_owner,
     ).unwrap(),
     100,
@@ -131,7 +128,7 @@ test "fixed join request binds both captured ports through registered Local sele
   let foreign_owner = typed_receiver(source_owner, "[{\"select\":[\"id\"]}]")
   let foreign = @execution.prepare_producer_read(
     foreign_owner,
-    @planning.bind_captured_query_input(
+    @mock.bind_captured_query_input(
       issuer, attempt, observation, foreign_owner, 0, source_owner,
     ).unwrap(),
     100,
@@ -419,7 +416,7 @@ test "fixed join request binds both captured ports through registered Local sele
       )
     }
   }
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
     @duckdb_compute.finish_duckdb_compute_result(unfinished)
     is Err(Receiving(InputUnavailable)),

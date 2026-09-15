@@ -5,7 +5,7 @@ pub(all) struct NativeHostLimits {
   physical : @duckdb.PhysicalResultLimits
   metadata_work : Int
   measurement : @execution.FixedInputGuardMeasureLimits
-  completion : @planning.DuckDBNativeCompletionLimits
+  completion : @duckdb_query.DuckDBNativeCompletionLimits
   retention : @execution.ValueLimits
   output_rows : Int
   output_entries : Int
@@ -18,7 +18,9 @@ struct NativeHostConfiguration {
   contract : @planning.QueryTwoReceiptContract
   requirement : @planning.QueryRequirement
   choice : @planning.AcquisitionChoice
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBNativePreparation]
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBNativePreparation,
+  ]
   limits : NativeHostLimits
 }
 
@@ -29,7 +31,9 @@ pub fn configure_native_host(
   contract : @planning.QueryTwoReceiptContract,
   requirement : @planning.QueryRequirement,
   choice : @planning.AcquisitionChoice,
-  candidate : @planning.PreparedAcquisition[@planning.DuckDBNativePreparation],
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBNativePreparation,
+  ],
   limits : NativeHostLimits,
 ) -> NativeHostConfiguration {
   { contract, requirement, choice, candidate, limits, }
@@ -46,7 +50,7 @@ pub fn configured_native_host_limits(
 pub fn start_configured_native_host(
   value : NativeHostConfiguration,
   nonce : String,
-  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> Result[NativeHostRun, NativeHostIssue] {
   start_native_host(
     value.contract,

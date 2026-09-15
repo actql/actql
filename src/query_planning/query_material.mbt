@@ -36,7 +36,7 @@ pub(all) enum QueryMaterialIssue {
 }
 
 ///|
-priv struct QueryMaterialBudget {
+struct QueryMaterialBudget {
   mut work : Int
   mut bytes : Int
   mut nodes : Int

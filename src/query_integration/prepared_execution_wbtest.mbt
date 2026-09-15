@@ -133,7 +133,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(@connector.prepared_execution_available(prepared))
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
     @strategy.start_captured_execution(run, 1, prepared)
     is Err(Compute(InputUnavailable)),

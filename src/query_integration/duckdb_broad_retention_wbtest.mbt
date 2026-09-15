@@ -1,9 +1,9 @@
 ///|
-fn completed_broad_attempt() -> @planning.DuckDBBroadAttempt raise {
+fn completed_broad_attempt() -> @duckdb_query.DuckDBBroadAttempt raise {
   let attempt = broad_attempt_fixture()
   broad_attempt_receive(attempt)
-  @planning.settle_duckdb_broad_transport(attempt).unwrap()
-  @planning.execute_duckdb_broad_attempt(attempt, compute_test_limits(), {
+  @duckdb_query.settle_duckdb_broad_transport(attempt).unwrap()
+  @duckdb_query.execute_duckdb_broad_attempt(attempt, compute_test_limits(), {
     max_work: 10000,
     max_bytes: 10000,
     max_nodes: 10000,
@@ -27,23 +27,30 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
   }
   for nodes in [0, 7, 11, 12] {
     let attempt = completed_broad_attempt()
-    let result = @planning.retain_duckdb_broad_attempt(attempt, {
+    let result = @duckdb_query.retain_duckdb_broad_attempt(attempt, {
       ..exact,
       measurement: { ..exact.measurement, max_nodes: nodes, },
     })
     if nodes == 12 {
       let retained = result.unwrap()
-      assert_eq(@planning.duckdb_broad_retention_usage(retained), (28, 47, 12))
-      assert_true(@planning.duckdb_broad_retention_matches(retained, attempt))
+      assert_eq(
+        @duckdb_query.duckdb_broad_retention_usage(retained),
+        (28, 47, 12),
+      )
+      assert_true(
+        @duckdb_query.duckdb_broad_retention_matches(retained, attempt),
+      )
       assert_false(
-        @planning.duckdb_broad_retention_matches(
+        @duckdb_query.duckdb_broad_retention_matches(
           retained,
           completed_broad_attempt(),
         ),
       )
-      @planning.abort_duckdb_broad_attempt(attempt)
-      assert_false(@planning.duckdb_broad_retention_matches(retained, attempt))
-      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
+      @duckdb_query.abort_duckdb_broad_attempt(attempt)
+      assert_false(
+        @duckdb_query.duckdb_broad_retention_matches(retained, attempt),
+      )
+      assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
     } else {
       if nodes == 0 {
         assert_true(result is Err(Retention(ScanIdentity(InvalidLimits))))
@@ -52,16 +59,16 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
           result is Err(Retention(OutputIdentity(Encoding(OutputLimit)))),
         )
       }
-      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
+      assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
       assert_true(
-        @planning.retain_duckdb_broad_attempt(attempt, exact)
+        @duckdb_query.retain_duckdb_broad_attempt(attempt, exact)
         is Err(InvalidState),
       )
     }
   }
   for bytes in [28, 46, 47] {
     let attempt = completed_broad_attempt()
-    let result = @planning.retain_duckdb_broad_attempt(attempt, {
+    let result = @duckdb_query.retain_duckdb_broad_attempt(attempt, {
       ..exact,
       measurement: { ..exact.measurement, max_bytes: bytes, },
     })
@@ -71,12 +78,12 @@ test "DuckDB broad retention shares exact receipt and output measurement boundar
       assert_true(
         result is Err(Retention(OutputIdentity(Encoding(OutputLimit)))),
       )
-      assert_true(@planning.duckdb_broad_attempt_row_count(attempt) is None)
+      assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
     }
   }
   let too_small = completed_broad_attempt()
   assert_true(
-    @planning.retain_duckdb_broad_attempt(too_small, {
+    @duckdb_query.retain_duckdb_broad_attempt(too_small, {
       ..exact,
       received_wire_bytes: 27,
       measurement: { ..exact.measurement, max_nodes: 7, },

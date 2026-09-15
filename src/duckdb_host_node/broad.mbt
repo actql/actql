@@ -9,7 +9,7 @@ struct BroadNodeRun {
 pub fn broad_host_open(
   setup : @host.BroadHostConfiguration,
   nonce : String,
-  verify : (@planning.DuckDBBroadAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBBroadAttempt) -> Bool,
 ) -> BroadNodeRun raise NodeHostFailure {
   match @host.start_configured_broad_host(setup, nonce, verify) {
     Ok(host) => { host, limits: @host.configured_broad_host_limits(setup), }
@@ -19,7 +19,9 @@ pub fn broad_host_open(
 
 ///|
 #export_name("broadHostAttempt")
-pub fn broad_host_attempt(run : BroadNodeRun) -> @planning.DuckDBBroadAttempt {
+pub fn broad_host_attempt(
+  run : BroadNodeRun,
+) -> @duckdb_query.DuckDBBroadAttempt {
   @host.broad_host_attempt(run.host)
 }
 
@@ -125,7 +127,7 @@ pub fn broad_host_finish(run : BroadNodeRun) -> Unit raise NodeHostFailure {
 #export_name("broadHostComplete")
 pub fn broad_host_complete(
   run : BroadNodeRun,
-) -> @planning.DuckDBBroadObservation raise NodeHostFailure {
+) -> @duckdb_query.DuckDBBroadObservation raise NodeHostFailure {
   match @host.complete_broad_host(run.host) {
     Ok(value) => value
     Err(issue) => raise Broad(issue)
@@ -136,7 +138,7 @@ pub fn broad_host_complete(
 #export_name("broadHostBind")
 pub fn broad_host_bind(
   run : BroadNodeRun,
-  observation : @planning.DuckDBBroadObservation,
+  observation : @duckdb_query.DuckDBBroadObservation,
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> @execution.BoundProducerInput raise NodeHostFailure {
@@ -150,10 +152,10 @@ pub fn broad_host_bind(
 ///|
 #export_name("broadHostDocument")
 pub fn broad_host_document(
-  observation : @planning.DuckDBBroadObservation,
+  observation : @duckdb_query.DuckDBBroadObservation,
 ) -> String {
   @encode.document_text(
-    @planning.duckdb_broad_observation_document(observation),
+    @duckdb_query.duckdb_broad_observation_document(observation),
   )
 }
 

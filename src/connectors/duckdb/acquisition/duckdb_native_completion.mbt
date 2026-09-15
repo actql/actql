@@ -7,8 +7,8 @@ pub(all) struct DuckDBNativeCompletionLimits {
   max_received_rows : Int
   max_received_bytes : Int
   max_retained_wire_bytes : Int
-  records : QueryMaterialLimits
-  capture : QueryEvidenceLimits
+  records : @planning.QueryMaterialLimits
+  capture : @planning.QueryEvidenceLimits
 }
 
 ///|

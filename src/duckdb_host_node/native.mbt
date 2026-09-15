@@ -29,7 +29,7 @@ pub(all) suberror NodeHostFailure {
 pub fn native_host_open(
   setup : @host.NativeHostConfiguration,
   nonce : String,
-  verify : (@planning.DuckDBNativeAttempt) -> Bool,
+  verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> NativeNodeRun raise NodeHostFailure {
   match @host.start_configured_native_host(setup, nonce, verify) {
     Ok(host) =>
@@ -46,7 +46,7 @@ pub fn native_host_open(
 #export_name("nativeHostAttempt")
 pub fn native_host_attempt(
   run : NativeNodeRun,
-) -> @planning.DuckDBNativeAttempt {
+) -> @duckdb_query.DuckDBNativeAttempt {
   @host.native_host_attempt(run.host)
 }
 
@@ -245,7 +245,7 @@ pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NodeHostFailure {
 #export_name("nativeHostComplete")
 pub fn native_host_complete(
   run : NativeNodeRun,
-) -> @planning.DuckDBNativeObservation raise NodeHostFailure {
+) -> @duckdb_query.DuckDBNativeObservation raise NodeHostFailure {
   if run.physical is Some(p) {
     if p.closed || !p.settled || p.holding is Some(_) {
       raise Physical(InvalidCharge)
@@ -279,7 +279,7 @@ pub fn native_host_complete(
 #export_name("nativeHostOutput")
 pub fn native_host_output(
   run : NativeNodeRun,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
   // Accounted acquisitions hand off through their one owned DAG root, not an
   // untracked parallel export which could outlive that allocation's port.
@@ -298,7 +298,7 @@ pub fn native_host_output(
     Err(issue) => raise Host(issue)
   }
   match
-    @planning.complete_duckdb_native_output(
+    @duckdb_query.complete_duckdb_native_output(
       retained,
       limits.output_entries,
       limits.output_name_bytes,
@@ -311,10 +311,10 @@ pub fn native_host_output(
 ///|
 #export_name("nativeHostDocument")
 pub fn native_host_document(
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
 ) -> String {
   @encode.document_text(
-    @planning.duckdb_native_observation_document(observation),
+    @duckdb_query.duckdb_native_observation_document(observation),
   )
 }
 
@@ -322,7 +322,7 @@ pub fn native_host_document(
 #export_name("nativeHostCapturedSource")
 pub fn native_host_captured_source(
   run : NativeNodeRun,
-  observation : @planning.DuckDBNativeObservation,
+  observation : @duckdb_query.DuckDBNativeObservation,
 ) -> @query.CapturedInputSource raise NodeHostFailure {
   if run.physical is Some(p) && (p.completed || p.closed) {
     raise Physical(InvalidCharge)
@@ -339,7 +339,7 @@ pub fn native_host_captured_source(
     Err(issue) => raise Host(issue)
   }
   match
-    @planning.native_captured_source(
+    @duckdb_query.native_captured_source(
       retained,
       limits.output_entries,
       limits.output_name_bytes,

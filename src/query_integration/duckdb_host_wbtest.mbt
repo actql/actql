@@ -1,7 +1,7 @@
 ///|
 fn host_native_fixture() -> (
   @dbhost.NativeHostRun,
-  Array[@planning.DuckDBNativeAttempt],
+  Array[@duckdb_query.DuckDBNativeAttempt],
 ) raise {
   let f = native_issuer_fixture()
   let (query, evidence) = query_evidence_test_bodies()
@@ -15,8 +15,8 @@ fn host_native_fixture() -> (
     query_two_receipt_test_body(),
     query_capture_limits(),
   ).unwrap()
-  @planning.close_duckdb_native_issuer(f.issuer)
-  let transport : Array[@planning.DuckDBNativeAttempt] = []
+  @duckdb_query.close_duckdb_native_issuer(f.issuer)
+  let transport : Array[@duckdb_query.DuckDBNativeAttempt] = []
   let run = @dbhost.start_native_host(
     contract,
     f.requirement,

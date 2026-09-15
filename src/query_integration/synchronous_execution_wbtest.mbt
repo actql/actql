@@ -129,7 +129,7 @@ test "synchronous start rejects input revoked after preparation without invoking
       Err(MissingOutput)
     },
   ).unwrap()
-  @planning.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(issuer)
   assert_true(
     @strategy.execute_captured_synchronous_task(run, 1, compute)
     is Err(Compute(InputUnavailable)),

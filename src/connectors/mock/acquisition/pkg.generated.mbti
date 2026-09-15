@@ -1,0 +1,211 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/mock/acquisition"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/decode_core",
+  "actql/actql/encode_core",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
+  "actql/actql/query_planning",
+  "actql/actql/sourceview_resolution",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
+
+pub fn cancel_mock_query(MockQueryAttempt) -> Bool
+
+pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, @query_planning.QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
+
+pub fn choose_query_strategy(@execution_query.QuerySequence, Array[QueryOffer], Array[Int]?, Int) -> Result[QuerySelection, @query_planning.QueryPlanningIssue]
+
+pub fn close_mock_query_issuer(MockQueryIssuer) -> Unit
+
+pub fn execute_mock_query(MockQueryAttempt, MockQueryLimits, guard_measure? : @execution_query.QueryGuardMeasureLimits?) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn issue_mock_query_records(MockQueryAttempt, @query_planning.QueryMaterialLimits) -> Result[MockQueryRecords, MockEvidenceIssue]
+
+pub fn mock_acquisition_candidate(@connector_sdk.CapabilityRegistration, @query_planning.QueryRequirement, QueryOffer) -> Result[@query_planning.PreparedAcquisition[QueryOffer], @query_planning.QueryPlanningIssue]
+
+pub fn mock_acquisition_strategy(@query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[QueryOffer]) -> QueryStrategy?
+
+pub fn mock_captured_source(MockQueryIssuer, MockQueryAttempt, MockQueryObservation) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn mock_query_attempt_identity(MockQueryAttempt) -> (String, String)?
+
+pub fn mock_query_computation(MockQueryAttempt) -> Result[MockQueryComputation, MockQueryIssue]
+
+pub fn mock_query_observation_cid(MockQueryObservation) -> String
+
+pub fn mock_query_observation_document(MockQueryObservation) -> @encode_core.EncodedDocument
+
+pub fn mock_query_observation_usage(MockQueryObservation) -> (Int, Int)
+
+pub fn mock_query_output_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_received_columns(MockQueryComputation) -> Int
+
+pub fn mock_query_received_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_record_at(MockQueryRecords, Int) -> (@encode_core.EncodedDocument, String)?
+
+pub fn mock_query_record_usage(MockQueryRecords) -> (Int, Int)
+
+pub fn mock_query_source_rows(MockQueryComputation) -> Int
+
+pub fn mock_query_strategy(MockQueryComputation) -> QueryStrategy
+
+pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
+
+pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
+
+pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[QueryOffer, @query_planning.QueryPlanningIssue]
+
+pub fn prepare_issued_mock_query_attempt(MockQueryIssuer, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockEvidenceIssue]
+
+pub fn prepare_mock_query_attempt(QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
+
+pub fn prepare_mock_query_issuer(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, String, Int) -> Result[MockQueryIssuer, MockEvidenceIssue]
+
+pub fn prepare_requirement_mock_query_attempt(@query_planning.QueryRequirement, QueryStrategy, Array[@decode_core.Cursor], Int) -> Result[MockQueryAttempt, MockQueryIssue]
+
+pub fn query_offer_duration(QueryOffer) -> @physical_cost.DurationEstimate
+
+pub fn query_offer_quantities(QueryOffer) -> @connector_sdk.QueryQuantities
+
+pub fn query_offer_realization(QueryOffer) -> QueryRealization
+
+pub fn query_strategy_choice(QueryStrategy) -> @physical_cost.CostChoice
+
+pub fn query_strategy_offer(QueryStrategy) -> QueryOffer
+
+pub fn query_strategy_owner(QueryStrategy) -> @execution_query.QuerySequence
+
+pub fn query_strategy_pending_at(QueryStrategy, Int) -> @sourceview_resolution.QueryAcquisitionRequirement?
+
+pub fn query_strategy_pending_count(QueryStrategy) -> Int
+
+pub fn query_strategy_task_at(QueryStrategy, Int) -> QueryTask?
+
+pub fn query_strategy_task_count(QueryStrategy) -> Int
+
+pub fn query_work_at(QueryRealization, Int) -> QueryWork?
+
+pub fn query_work_count(QueryRealization) -> Int
+
+pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]
+
+pub fn verify_mock_query_records(MockQueryIssuer, MockQueryAttempt, MockQueryRecords) -> Result[Unit, MockEvidenceIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum MockEvidenceIssue {
+  InvalidLimits
+  IdentifierLimit
+  IssuerClosed
+  IdentifierExhausted
+  Attempt(MockQueryIssue)
+  UnauthorizedAttempt
+  NotRetained
+  InvalidRetainedLayout
+  FieldLimit
+  WorkLimit
+  Encoding(@encode_core.EncodeFailure)
+  ForeignRecords
+  AlreadyCaptured
+  ForeignObservation
+  Consumer(@execution_relation.ProducerBindingIssue)
+}
+
+type MockQueryAttempt
+
+type MockQueryComputation
+
+pub(all) enum MockQueryIssue {
+  InvalidLimits
+  PreparationLimit
+  ReceiptRowsLimit
+  ReceiptCellsLimit
+  Local(@execution_query.QuerySequenceIssue)
+  MissingCaptureOutput
+  AlreadyStarted
+  NotComputed
+  Cancelled
+  ForeignRequirement
+  GuardLimitsRequired
+  Guard(@execution_query.QueryGuardIssue)
+  Retention(MockRetentionIssue)
+  Evidence(MockEvidenceIssue)
+}
+
+type MockQueryIssuer
+
+pub(all) struct MockQueryLimits {
+  source_rows : Int
+  received_rows : Int
+  received_cells : Int
+  source_admission : @execution_relation.ValueLimits
+  computation : @execution_relation.SequenceExecutionLimits
+}
+
+type MockQueryObservation
+
+type MockQueryRecords
+
+type MockQueryRetention
+
+pub(all) enum MockRetentionIssue {
+  InvalidLimits
+  RequirementRequired
+  NotAwaitingCapture
+  ScanIdentity(@execution_relation.RowWireIssue)
+  OutputIdentity(@execution_relation.RowWireIssue)
+  ReceiptBytes
+  RetainedBytes
+}
+
+pub(all) struct MockRetentionLimits {
+  received_wire_bytes : Int
+  retained_wire_bytes : Int
+  measurement : @execution_relation.RowWireLimits
+}
+
+type QueryOffer
+
+pub(all) enum QueryRealization {
+  NativeQuery
+  BroadWithResidual
+} derive(Eq, @debug.Debug)
+
+pub enum QuerySelection {
+  Proposed(QueryStrategy)
+  Deferred
+  NoCandidates
+}
+
+type QueryStrategy
+
+pub(all) enum QueryTask {
+  RealizeQuery
+  CaptureObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum QueryWork {
+  SourceQuery
+  SourceScan
+  CompletedReceiptTransfer
+  ReceiptConversion
+  LocalResidual
+  ObservationCapture
+  OutputRetention
+  Cleanup
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
