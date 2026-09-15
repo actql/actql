@@ -64,6 +64,19 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
+The `physical_host` prepared-dispatch state owns pending tickets independently
+of connector payloads. Each ticket belongs to one exact driver, run, checked-ready
+task and selected revision. Consuming it is one-shot; a stale revision, another
+driver or a stopped run cannot use it. Invalidating a ticket does not erase search
+history, completed results or physical resource usage. Tickets authorize only
+the dispatch transition, not resource creation or successful task completion;
+common task admission remains mandatory. Connector bridges do not keep a second
+pending/consumed state machine.
+The same common Host layer prepares fixed-input requests from checked graph
+owners and receiving ports. It charges planning work and obtains exact completed
+predecessor bindings without consulting a connector's generated sequence, SQL or
+payload. Selected common consumer capacity is carried into the resulting request.
+
 Synchronous no-I/O Compute is supplied through the connector SDK's opaque
 `SynchronousCompute`. A trusted installed connector binds the exact selected
 candidate, typed private payload, physical capacity, join ceiling where needed,
@@ -74,6 +87,9 @@ and checks current input availability before calling the connector. Local owns
 its generated-sequence limits and execution; the common synchronous driver does
 not import Local or interpret its payload. Returned data must be an engine-owned
 `CompletedOutput`, not a success Bool, row array or caller-supplied CID.
+The installed preparation entry supplies this handle before dispatch is staged;
+the Host's synchronous execution operation does not interpret Local limits or
+construct a generated-sequence executor.
 
 This is trusted connector-author wiring, not a callback accepted from a Program
 or an ordinary Host execution request. It cannot sandbox an arbitrary plugin in

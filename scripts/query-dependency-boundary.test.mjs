@@ -91,6 +91,30 @@ test('common synchronous dispatch has no Local connector or generated-sequence e
   assert.doesNotMatch(sdk, /(?:struct|enum) SynchronousCompute\b/);
 });
 
+test('prepared dispatch ownership has one common state machine and no connector payload', () => {
+  assert.deepEqual(imports('physical_host'), [
+    'physical_strategy', 'physical_resources', 'connector_sdk',
+    'lowering_relation', 'pipeline_typing',
+  ]);
+  const api = readFileSync('src/physical_host/pkg.generated.mbti', 'utf8');
+  for (const handle of ['DispatchDriver', 'DispatchTicket']) {
+    assert.match(api, new RegExp(`^type ${handle}$`, 'm'));
+    assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`));
+  }
+  assert.doesNotMatch(api, /DuckDB|Native|SQL|connectors\//);
+  const bridge = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
+  assert.doesNotMatch(bridge, /mut (?:pending|consumed)\s*:/);
+  assert.match(bridge, /@host_driver\.consume_dispatch_ticket\(/);
+  assert.match(bridge, /@host_driver\.prepare_dispatch_inputs\(/);
+  const inputs = readFileSync('src/physical_host/inputs.mbt', 'utf8');
+  assert.doesNotMatch(inputs, /GeneratedSequence|@duckdb|@local_connector/);
+  const synchronous = bridge.match(/pub fn execute_synchronous_dispatch\([\s\S]*?\n\}/)?.[0];
+  assert.ok(synchronous);
+  assert.doesNotMatch(synchronous, /@local_connector|local_execution|\.guards/);
+  const bridgeApi = readFileSync('src/duckdb_host/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(bridgeApi, /pub fn execute_local_dispatch\b/);
+});
+
 test('concrete Compute capacity formula is owned and exported by its connector', () => {
   const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');

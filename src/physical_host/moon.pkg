@@ -1,0 +1,9 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+}

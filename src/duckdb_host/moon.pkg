@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/physical_host" @host_driver,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/local" @local_connector,
   "actql/actql/connector_sdk" @connector,

@@ -58,7 +58,7 @@ pub fn configure_resident_dispatch(
   rates : Array[Array[DispatchRate]],
 ) -> Result[Unit, DispatchIssue] {
   if host.resident is Some(_) ||
-    host.pending is Some(_) ||
+    @host_driver.dispatch_driver_pending(host.driver) ||
     @strategy.strategy_history_count(host.run) != 0 ||
     rates.length() != host.generated.length() ||
     !@strategy.resident_profile_matches(host.run, profile) ||

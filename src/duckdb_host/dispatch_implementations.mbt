@@ -37,7 +37,21 @@ fn prepare_local_dispatch_work(
     Ok(_) => return Err(ForeignSelection)
     Err(issue) => return Err(Candidate(issue))
   }
-  Ok(DispatchWork::Local(choice, candidate))
+  match
+    @local_connector.prepare_local_compute_execution(
+      choice,
+      candidate,
+      host.limits.local_execution,
+      host.limits.guards,
+      join_output_ceiling=@strategy.captured_task_join_output_limit(
+        host.run,
+        task,
+      ).map(limit => (0, limit)),
+    ) {
+    Ok(compute) => Ok(DispatchWork::Synchronous(compute))
+    Err(InvalidLimits) => Err(Run(Physical(InvalidLimits)))
+    Err(issue) => Err(Run(Compute(issue)))
+  }
 }
 
 ///|

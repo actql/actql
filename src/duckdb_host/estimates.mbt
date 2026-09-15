@@ -36,7 +36,7 @@ pub fn configure_dispatch_estimates(
   limits : @strategy.SearchLimits,
 ) -> Result[Unit, DispatchIssue] {
   if host.estimates is Some(_) ||
-    host.pending is Some(_) ||
+    @host_driver.dispatch_driver_pending(host.driver) ||
     profiles.length() != host.generated.length() ||
     limits.max_work < 0 ||
     profiles.length() > limits.max_offers / 2 ||

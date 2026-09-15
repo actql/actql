@@ -62,7 +62,7 @@ test "enumeration Overflow revokes dispatch and cannot be retried by correcting 
   assert_true(
     @strategy.revise_strategy(run, excessive, registry, None) is Err(Overflow),
   )
-  assert_true(@dbhost.execute_local_dispatch(old) is Err(StaleTask))
+  assert_true(@dbhost.execute_synchronous_dispatch(old) is Err(StaleTask))
   assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
   let spent = @resources.ledger_usage(ledger)
   assert_true(
@@ -103,7 +103,7 @@ test "accepted search failure revokes old and new dispatch without resetting his
     @strategy.revise_strategy(run, offers, registry, None)
     is Err(Ledger(PlanningLimit)),
   )
-  assert_true(@dbhost.execute_local_dispatch(old) is Err(StaleTask))
+  assert_true(@dbhost.execute_synchronous_dispatch(old) is Err(StaleTask))
   assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
   let spent = @resources.ledger_usage(ledger)
   assert_true(

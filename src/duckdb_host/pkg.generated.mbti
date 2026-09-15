@@ -90,7 +90,7 @@ pub fn dispatch_run(StrategyHostDispatch) -> @physical_strategy.CapturedDAG
 
 pub fn dispatch_task(TaskDispatch) -> Int
 
-pub fn execute_local_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
+pub fn execute_synchronous_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
 
 pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 

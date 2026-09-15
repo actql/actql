@@ -17,6 +17,7 @@ pub(all) struct TaskDispatchLimits {
 ///|
 struct StrategyHostDispatch {
   run : @strategy.CapturedDAG
+  driver : @host_driver.DispatchDriver
   registry : @connector.CapabilityRegistry
   local_registration : @connector.CapabilityRegistration
   native_registration : @connector.CapabilityRegistration
@@ -32,7 +33,6 @@ struct StrategyHostDispatch {
   native_rejections : Array[String?]
   resident_rejections : Array[String?]
   limits : TaskDispatchLimits
-  mut pending : TaskDispatch?
   mut estimates : DispatchEstimates?
   mut resident : ResidentDispatch?
 }
@@ -40,18 +40,13 @@ struct StrategyHostDispatch {
 ///|
 struct TaskDispatch {
   owner : StrategyHostDispatch
-  task : Int
-  revision : @strategy.StrategyRevision
+  ticket : @host_driver.DispatchTicket
   work : DispatchWork
-  mut consumed : Bool
 }
 
 ///|
 priv enum DispatchWork {
-  Local(
-    @connector.FixedComputeChoice,
-    @connector.PreparedCompute[@execution.GeneratedSequence]
-  )
+  Synchronous(@connector.SynchronousCompute)
   Native(StrategyComputeHostConfiguration)
 }
 
@@ -155,6 +150,7 @@ pub fn configure_strategy_dispatch(
   }
   Ok({
     run,
+    driver: @host_driver.open_dispatch_driver(run),
     registry,
     local_registration,
     native_registration,
@@ -163,7 +159,6 @@ pub fn configure_strategy_dispatch(
     native_rejections,
     resident_rejections,
     limits,
-    pending: None,
     estimates: None,
     resident: None,
   })
@@ -175,14 +170,10 @@ pub fn configure_strategy_dispatch(
 pub fn prepare_next_dispatch(
   host : StrategyHostDispatch,
 ) -> Result[TaskDispatch?, DispatchIssue] {
-  if host.pending is Some(pending) && !pending.consumed {
-    if @strategy.captured_dag_strategy(host.run) is Some(revision) &&
-      physical_equal(revision, pending.revision) {
-      return Err(PendingTask)
-    }
-    pending.consumed = true
+  match @host_driver.check_dispatch_idle(host.driver) {
+    Err(issue) => return Err(dispatch_driver_issue(issue))
+    Ok(_) => ()
   }
-  host.pending = None
   guard @strategy.next_captured_task(host.run) is Some(task) else {
     return Ok(None)
   }
@@ -196,34 +187,17 @@ pub fn prepare_next_dispatch(
   guard @strategy.strategy_registration(revision, task) is Some(registration) else {
     return Err(ForeignSelection)
   }
-  match @resources.charge_planning(@strategy.captured_dag_ledger(host.run), 1) {
-    Err(issue) => return Err(Run(Physical(issue)))
-    Ok(_) => ()
-  }
-  let generated = host.generated[task - 1]
-  let owner = @execution.generated_sequence_owner(generated)
-  let inputs = []
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
-  for port in 0..<count {
-    let input = match
-      @strategy.captured_task_input(
-        host.run,
-        task,
-        host.limits.input_entries,
-        host.limits.input_name_bytes,
-        input_index=port,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Run(issue))
-    }
-    inputs.push(input)
-  }
   let request = match
-    @connector.prepare_fixed_compute_request(inputs, host.limits.capacity) {
+    @host_driver.prepare_dispatch_inputs(
+      host.driver,
+      task,
+      revision,
+      host.limits.capacity,
+      host.limits.input_entries,
+      host.limits.input_name_bytes,
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(Candidate(issue))
+    Err(issue) => return Err(dispatch_driver_issue(issue))
   }
   guard @connector.capability_implementation(host.implementations, registration)
     is Some(implementation) else {
@@ -233,9 +207,10 @@ pub fn prepare_next_dispatch(
     Ok(work) => work
     Err(issue) => return Err(issue)
   }
-  let dispatch = { owner: host, task, revision, work, consumed: false, }
-  host.pending = Some(dispatch)
-  Ok(Some(dispatch))
+  match @host_driver.prepare_dispatch_ticket(host.driver, task, revision) {
+    Err(issue) => Err(dispatch_driver_issue(issue))
+    Ok(ticket) => Ok(Some({ owner: host, ticket, work, }))
+  }
 }
 
 ///|
@@ -266,48 +241,35 @@ pub fn dispatch_excluded_realizations(
 
 ///|
 fn consume_dispatch(dispatch : TaskDispatch) -> Result[Unit, DispatchIssue] {
-  let host = dispatch.owner
-  if dispatch.consumed ||
-    @strategy.next_captured_task(host.run) != Some(dispatch.task) ||
-    !(host.pending is Some(expected) && physical_equal(expected, dispatch)) ||
-    !(@strategy.captured_dag_strategy(host.run) is Some(revision) &&
-    physical_equal(revision, dispatch.revision)) {
-    return Err(StaleTask)
-  }
-  dispatch.consumed = true
-  host.pending = None
-  Ok(())
+  @host_driver.consume_dispatch_ticket(dispatch.owner.driver, dispatch.ticket).map_err(
+    dispatch_driver_issue,
+  )
 }
 
 ///|
-pub fn execute_local_dispatch(
+fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
+  match issue {
+    PendingTask => PendingTask
+    StaleTask => StaleTask
+    Run(issue) => Run(issue)
+    Candidate(issue) => Candidate(issue)
+  }
+}
+
+///|
+pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  guard dispatch.work is Local(choice, candidate) else {
+  guard dispatch.work is Synchronous(compute) else {
     return Err(ForeignSelection)
   }
   match consume_dispatch(dispatch) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let compute = match
-    @local_connector.prepare_local_compute_execution(
-      choice,
-      candidate,
-      dispatch.owner.limits.local_execution,
-      dispatch.owner.limits.guards,
-      join_output_ceiling=@strategy.captured_task_join_output_limit(
-        dispatch.owner.run,
-        dispatch.task,
-      ).map(limit => (0, limit)),
-    ) {
-    Ok(value) => value
-    Err(InvalidLimits) => return Err(Run(Physical(InvalidLimits)))
-    Err(issue) => return Err(Run(Compute(issue)))
-  }
   @strategy.execute_captured_synchronous_task(
     dispatch.owner.run,
-    dispatch.task,
+    @host_driver.dispatch_ticket_task(dispatch.ticket),
     compute,
   ).map_err(issue => Run(issue))
 }
@@ -325,7 +287,7 @@ pub fn take_native_dispatch(
 
 ///|
 pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
-  dispatch.task
+  @host_driver.dispatch_ticket_task(dispatch.ticket)
 }
 
 ///|
@@ -335,7 +297,10 @@ pub fn dispatch_is_native(dispatch : TaskDispatch) -> Bool {
 
 ///|
 pub fn dispatch_is_resident(dispatch : TaskDispatch) -> Bool {
-  @strategy.strategy_resident_profile(dispatch.revision, dispatch.task)
+  @strategy.strategy_resident_profile(
+    @host_driver.dispatch_ticket_revision(dispatch.ticket),
+    @host_driver.dispatch_ticket_task(dispatch.ticket),
+  )
   is Some(_)
 }
 
@@ -346,6 +311,5 @@ pub fn dispatch_run(host : StrategyHostDispatch) -> @strategy.CapturedDAG {
 
 ///|
 pub fn stop_strategy_dispatch(host : StrategyHostDispatch) -> Unit {
-  host.pending = None
-  @strategy.stop_captured_dag(host.run)
+  @host_driver.stop_dispatch_driver(host.driver)
 }

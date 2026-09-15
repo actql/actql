@@ -70,7 +70,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     for task in [1, 2] {
       let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
       assert_eq(@dbhost.dispatch_task(dispatch), task)
-      @dbhost.execute_local_dispatch(dispatch).unwrap()
+      @dbhost.execute_synchronous_dispatch(dispatch).unwrap()
     }
     @planning.close_mock_query_issuer(issuer)
     let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
@@ -308,7 +308,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     @strategy.close_captured_task_output(run, 2)
     let count = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
     assert_eq(@dbhost.dispatch_task(count), 4)
-    @dbhost.execute_local_dispatch(count).unwrap()
+    @dbhost.execute_synchronous_dispatch(count).unwrap()
     let output = @strategy.captured_task_output(run, 4, Step(0)).unwrap()
     assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(1)))
     @strategy.close_captured_task_output(run, 3)
@@ -361,7 +361,7 @@ test "adaptive join placement charges both ports including self join occurrences
     for _task in [1, 2] {
       let pending = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
       assert_false(@dbhost.dispatch_is_native(pending))
-      @dbhost.execute_local_dispatch(pending).unwrap()
+      @dbhost.execute_synchronous_dispatch(pending).unwrap()
     }
     let pending = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
     assert_eq(@dbhost.dispatch_task(pending), 3)

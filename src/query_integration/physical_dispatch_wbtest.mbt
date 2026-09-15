@@ -100,7 +100,7 @@ test "installed dispatch follows exact registration not its label or registry po
     let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
     assert_eq(@dbhost.dispatch_task(dispatch), task)
     assert_false(@dbhost.dispatch_is_native(dispatch))
-    @dbhost.execute_local_dispatch(dispatch).unwrap()
+    @dbhost.execute_synchronous_dispatch(dispatch).unwrap()
   }
   assert_eq(
     @execution.completed_row_count(
@@ -160,8 +160,10 @@ test "dispatch requires exact generated owners and consumes checked-ready tasks 
     assert_eq(@dbhost.dispatch_task(prepared), task)
     assert_false(@dbhost.dispatch_is_native(prepared))
     assert_true(@dbhost.prepare_next_dispatch(host) is Err(PendingTask))
-    @dbhost.execute_local_dispatch(prepared).unwrap()
-    assert_true(@dbhost.execute_local_dispatch(prepared) is Err(StaleTask))
+    @dbhost.execute_synchronous_dispatch(prepared).unwrap()
+    assert_true(
+      @dbhost.execute_synchronous_dispatch(prepared) is Err(StaleTask),
+    )
   }
   assert_true(@dbhost.prepare_next_dispatch(host) is Ok(None))
   assert_eq(
@@ -208,7 +210,7 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
     None,
   ).unwrap()
   |> ignore
-  assert_true(@dbhost.execute_local_dispatch(old) is Err(StaleTask))
+  assert_true(@dbhost.execute_synchronous_dispatch(old) is Err(StaleTask))
   let replacement = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   assert_true(@dbhost.dispatch_is_native(replacement))
   assert_eq(@resources.ledger_usage(ledger).attempts, 1)

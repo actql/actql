@@ -66,7 +66,7 @@ pub fn strategy_host_take_native(
 pub fn strategy_host_execute_local(
   task : @host.TaskDispatch,
 ) -> Unit raise NodeHostFailure {
-  match @host.execute_local_dispatch(task) {
+  match @host.execute_synchronous_dispatch(task) {
     Ok(_) => ()
     Err(issue) => raise Dispatch(issue)
   }

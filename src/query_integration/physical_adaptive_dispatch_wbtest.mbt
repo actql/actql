@@ -72,7 +72,7 @@ test "observed completion revises only the unstarted suffix without resetting re
   @dbhost.refresh_dispatch_estimates(host).unwrap()
   assert_eq(@resources.ledger_usage(ledger), before)
   let a = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
-  @dbhost.execute_local_dispatch(a).unwrap()
+  @dbhost.execute_synchronous_dispatch(a).unwrap()
   let after_a = @resources.ledger_usage(ledger)
   let b = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   let second = @strategy.strategy_history_at(run, 1).unwrap()
@@ -92,10 +92,10 @@ test "observed completion revises only the unstarted suffix without resetting re
   let revised = @resources.ledger_usage(ledger)
   assert_eq({ ..revised, planning_work: 0, }, { ..after_a, planning_work: 0, })
   assert_true(revised.planning_work > after_a.planning_work)
-  @dbhost.execute_local_dispatch(b).unwrap()
+  @dbhost.execute_synchronous_dispatch(b).unwrap()
   let c = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   assert_false(@dbhost.dispatch_is_native(c))
-  @dbhost.execute_local_dispatch(c).unwrap()
+  @dbhost.execute_synchronous_dispatch(c).unwrap()
   assert_true(@dbhost.prepare_next_dispatch(host) is Ok(None))
   assert_eq(@strategy.strategy_history_count(run), 3)
 }
@@ -144,7 +144,7 @@ test "adaptive estimate overflow and revision exhaustion do not start more work"
       assert_true(@dbhost.prepare_next_dispatch(host) is Err(EstimateOverflow))
     } else {
       let first = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
-      @dbhost.execute_local_dispatch(first).unwrap()
+      @dbhost.execute_synchronous_dispatch(first).unwrap()
       assert_true(
         @dbhost.prepare_next_dispatch(host) is Err(Search(RevisionLimit)),
       )
