@@ -112,33 +112,15 @@ pub fn configure_strategy_dispatch(
       [
         (
           local_registration,
-          @host_driver.ComputeContribution::{
-            prepare: fn(_context : Unit, task, revision, request) {
-              @local_driver.prepare_local_dispatch(
-                local_module, task, revision, request,
-              ).map_err(local_dispatch_issue)
-            },
-            propose: fn(_context, task, quantities) {
-              @local_driver.estimate_local_installed_offers(
-                local_module, task, quantities,
-              ).map_err(local_estimate_issue)
-            },
-          },
+          @local_driver.local_compute_contribution(
+            local_module, local_dispatch_issue, local_estimate_issue,
+          ),
         ),
         (
           native_registration,
-          @host_driver.ComputeContribution::{
-            prepare: fn(_context : Unit, task, revision, request) {
-              @duckdb_driver.prepare_duckdb_dispatch(
-                native_module, task, revision, request,
-              ).map_err(duckdb_dispatch_issue)
-            },
-            propose: fn(_context, task, quantities) {
-              @duckdb_driver.estimate_duckdb_installed_offers(
-                native_module, task, quantities,
-              ).map_err(duckdb_estimate_issue)
-            },
-          },
+          @duckdb_driver.duckdb_compute_contribution(
+            native_module, duckdb_dispatch_issue, duckdb_estimate_issue,
+          ),
         ),
       ],
       2,
@@ -208,40 +190,7 @@ pub fn prepare_next_dispatch(
 pub fn dispatch_excluded_realizations(
   host : StrategyHostDispatch,
 ) -> Array[(Int, String, String)] {
-  let excluded = []
-  for
-    index in 0..<(@strategy.graph_task_count(
-      @strategy.captured_dag_graph(host.run),
-    ) -
-    1) {
-    if @duckdb_driver.duckdb_dispatch_rejection(host.native_module, index + 1)
-      is Some(reason) {
-      excluded.push(
-        (
-          index + 1,
-          @connector.capability_description(host.native_registration).name,
-          reason,
-        ),
-      )
-    }
-  }
-  if @duckdb_driver.duckdb_resident_estimates_installed(host.native_module) {
-    for
-      index in 0..<(@strategy.graph_task_count(
-        @strategy.captured_dag_graph(host.run),
-      ) -
-      1) {
-      if @duckdb_driver.duckdb_dispatch_rejection(
-          host.native_module,
-          index + 1,
-          resident=true,
-        )
-        is Some(reason) {
-        excluded.push((index + 1, "duckdb-resident", reason))
-      }
-    }
-  }
-  excluded
+  @duckdb_driver.duckdb_dispatch_exclusions(host.native_module)
 }
 
 ///|

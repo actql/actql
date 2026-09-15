@@ -726,6 +726,12 @@ may be installed only before strategy history exists and cannot be replaced afte
 installation. No estimate module grants execution, creates a resource, supplies
 a future completed input or relaxes dispatch admission.
 
+The connector's contribution factory pairs preparation and proposal callbacks
+over that same installed module. Composition supplies diagnostic error projections
+but does not construct the callbacks independently. Realization-specific static
+exclusions, including their display labels, are supplied by the owning connector;
+the Host does not infer a second realization from a backend-specific profile flag.
+
 `physical_host.AdaptiveDispatch` owns cardinality propagation, the immutable
 proposal installation and bounded refresh history independently of connector
 configuration. It obtains initial statistics from the exact captured DAG and

@@ -21,6 +21,8 @@ pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.Dispatch
 
 pub fn install_local_dispatch_estimates(LocalDispatchModule, LocalEstimateModule) -> Result[Unit, LocalEstimateIssue]
 
+pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -> E, (LocalEstimateIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
+
 pub fn local_dispatch_work_slots() -> Int
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]

@@ -9,6 +9,10 @@ test('standard preparation and proposals project the same fixed Compute contribu
   const setup = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   const estimates = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
   assert.match(setup, /ComputeContribution/);
+  assert.match(setup, /@local_driver\.local_compute_contribution\(/);
+  assert.match(setup, /@duckdb_driver\.duckdb_compute_contribution\(/);
+  assert.doesNotMatch(setup, /prepare:\s*fn|propose:\s*fn|"duckdb-resident"/);
+  assert.doesNotMatch(setup, /@duckdb_driver\.duckdb_dispatch_rejection\(/);
   assert.match(setup, /project_capability_implementations\([\s\S]*?entry => entry\.prepare/);
   assert.match(estimates, /project_capability_implementations\([\s\S]*?host\.contributions[\s\S]*?entry => entry\.propose/);
   assert.doesNotMatch(estimates, /install_capability_implementations\(/);
@@ -16,6 +20,12 @@ test('standard preparation and proposals project the same fixed Compute contribu
   assert.doesNotMatch(contract, /Local|DuckDB|SQL|Session|connectors\//);
   assert.match(contract, /prepare\s*:/);
   assert.match(contract, /propose\s*:/);
+  for (const name of ['local', 'duckdb']) {
+    const owned = readFileSync(`src/connectors/${name}/driver/contribution.mbt`, 'utf8');
+    assert.match(owned, /prepare:\s*fn/);
+    assert.match(owned, /propose:\s*fn/);
+    assert.doesNotMatch(owned, /StrategyHostDispatch|@dbhost/);
+  }
 });
 
 test('linear cost schedules are neutral and implementations own their work inventories', () => {
@@ -284,7 +294,8 @@ test('Local installed preparation owns candidate construction and bounded sequen
   assert.match(api, /^type LocalComputeModule$/m);
   assert.doesNotMatch(api, /(?:struct|enum) LocalComputeModule\b/);
   const source = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
-  assert.match(source, /@local_driver\.prepare_local_dispatch\(/);
+  assert.match(source, /@local_driver\.local_compute_contribution\(/);
+  assert.match(readFileSync('src/connectors/local/driver/contribution.mbt', 'utf8'), /prepare_local_dispatch\(installed, task, revision, request\)/);
   assert.doesNotMatch(source, /local_fixed_compute_candidate\(|choose_fixed_compute_candidate\(|prepare_local_compute_execution\(/);
   assert.match(source, /DispatchHost\[Unit, DispatchIssue\]/);
   const driver = readFileSync('src/connectors/local/driver/dispatch.mbt', 'utf8');
@@ -313,7 +324,8 @@ test('Host join dispatch cannot build SQL or exchange a compiled preparation req
   const state = dispatch.match(/struct StrategyHostDispatch \{([\s\S]*?)\n\}/)?.[1];
   assert.ok(state);
   assert.doesNotMatch(state, /GeneratedSequence|DispatchChannel|rejections/);
-  assert.match(dispatch, /@duckdb_driver\.prepare_duckdb_dispatch\(/);
+  assert.match(dispatch, /@duckdb_driver\.duckdb_compute_contribution\(/);
+  assert.match(readFileSync('src/connectors/duckdb/driver/contribution.mbt', 'utf8'), /prepare_duckdb_dispatch\(installed, task, revision, request\)/);
   const driver = readFileSync('src/connectors/duckdb/driver/dispatch.mbt', 'utf8');
   assert.match(driver, /duckdb_dispatch_preflight_work\(preparation\)/);
   assert.match(driver, /@resources\.charge_planning\(/);
