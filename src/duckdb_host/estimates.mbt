@@ -19,7 +19,7 @@ pub(all) struct DispatchEstimateProfile {
 
 ///|
 priv struct DispatchEstimates {
-  root : @planning.CapturedSourceStatistics
+  root : @query.CapturedSourceStatistics
   profiles : Array[DispatchEstimateProfile]
   limits : @strategy.SearchLimits
   estimate_work : Int

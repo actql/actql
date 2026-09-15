@@ -1,127 +1,9 @@
 ///|
-/// One already captured observation, shared by completed-input consumers.
-/// No raw output getter: all handoff retains the exact observation's liveness.
-struct CapturedInputSource {
-  requirement : QueryRequirement
-  output : @execution.CompletedOutput
-  live : () -> Bool
-  wire_bytes : Int
-}
-
-///|
-/// Already measured canonical row-wire size, not transport frames, allocator
-/// bytes, an admission exemption or a physical capacity bound.
-pub struct CapturedSourceStatistics {
-  rows : Int
-  canonical_wire_bytes : Int
-}
-
-///|
-pub fn captured_source_statistics(
-  source : CapturedInputSource,
-) -> CapturedSourceStatistics? {
-  if !(source.live)() {
-    return None
-  }
-  Some({
-    rows: @execution.completed_row_count(source.output),
-    canonical_wire_bytes: source.wire_bytes,
-  })
-}
-
-///|
-pub(all) enum CapturedSourceIssue {
-  Unavailable
-  Binding(@execution.ProducerBindingIssue)
-  NativeCompletion(@execution.TrustedOutputIssue)
-  Storage(@execution.ProducerReadIssue)
-}
-
-///|
-/// Read-only physical export of the completed capture, never a raw output that
-/// bypasses observation liveness through ordinary producer binding.
-pub fn captured_source_storage(
-  source : CapturedInputSource,
-  max_entries : Int,
-  max_name_bytes : Int,
-) -> Result[@execution.ProducerStorage, CapturedSourceIssue] {
-  if !(source.live)() {
-    return Err(Unavailable)
-  }
-  @execution.prepare_producer_storage(
-    @execution.restrict_completed_output(source.output, source.live),
-    max_entries,
-    max_name_bytes,
-  ).map_err(issue => Storage(issue))
-}
-
-///|
-pub fn captured_source_matches(
-  source : CapturedInputSource,
-  program : @context.ProgramSourceIdentity,
-  owner : @lower.BoundPrepared,
-) -> Bool {
-  (source.live)() &&
-  physical_equal(source.requirement.program, program) &&
-  physical_equal(
-    @query.query_sequence_owner(source.requirement.material.owner),
-    owner,
-  )
-}
-
-///|
-pub fn captured_source_available(source : CapturedInputSource) -> Bool {
-  (source.live)()
-}
-
-///|
-/// Restrict an already owned capture without replacing its original liveness
-/// checks or copying its retained data. This cannot construct a new observation.
-pub fn restrict_captured_source(
-  source : CapturedInputSource,
-  available : () -> Bool,
-) -> CapturedInputSource {
-  {
-    requirement: source.requirement,
-    output: source.output,
-    live: fn() { available() && (source.live)() },
-    wire_bytes: source.wire_bytes,
-  }
-}
-
-///|
-pub fn captured_source_row_count(source : CapturedInputSource) -> Int? {
-  if (source.live)() {
-    Some(@execution.completed_row_count(source.output))
-  } else {
-    None
-  }
-}
-
-///|
-pub fn bind_captured_source(
-  source : CapturedInputSource,
-  receiver : @lower.BoundPrepared,
-  input : Int,
-) -> Result[@execution.BoundProducerInput, CapturedSourceIssue] {
-  if !(source.live)() {
-    return Err(Unavailable)
-  }
-  @execution.bind_live_completed_input(
-    receiver,
-    input,
-    @query.query_sequence_owner(source.requirement.material.owner),
-    source.output,
-    source.live,
-  ).map_err(issue => Binding(issue))
-}
-
-///|
 pub fn mock_captured_source(
   issuer : MockQueryIssuer,
   attempt : MockQueryAttempt,
   observation : MockQueryObservation,
-) -> Result[CapturedInputSource, CapturedSourceIssue] {
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
   let live = fn() {
     verify_mock_query_records(issuer, attempt, observation.records) is Ok(_) &&
     attempt.state is Captured(actual) &&
@@ -130,12 +12,23 @@ pub fn mock_captured_source(
   if !live() {
     return Err(Unavailable)
   }
-  Ok({
-    requirement: observation.records.retention._requirement,
-    output: observation.records.retention.computation.output,
-    live,
-    wire_bytes: @execution.row_wire_usage(observation.records.retention.output).0,
-  })
+  let requirement = observation.records.retention._requirement
+  @query.prepare_trusted_capture_port(
+    requirement.material.owner,
+    requirement.program,
+    fn(proof : MockQueryObservation) {
+      if physical_equal(proof, observation) && live() {
+        Some(
+          (
+            observation.records.retention.computation.output,
+            @execution.row_wire_usage(observation.records.retention.output).0,
+          ),
+        )
+      } else {
+        None
+      }
+    },
+  ).bind(port => @query.capture_verified_source(port, observation))
 }
 
 ///|
@@ -143,7 +36,7 @@ pub fn broad_captured_source(
   issuer : DuckDBQueryIssuer,
   attempt : DuckDBBroadAttempt,
   observation : DuckDBBroadObservation,
-) -> Result[CapturedInputSource, CapturedSourceIssue] {
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
   let live = fn() {
     verify_duckdb_broad_records(issuer, attempt, observation.records) is Ok(_) &&
     attempt.state is Captured(actual) &&
@@ -152,14 +45,25 @@ pub fn broad_captured_source(
   if !live() {
     return Err(Unavailable)
   }
-  Ok({
-    requirement: observation.records.retention.preparation.requirement,
-    output: observation.records.retention.output,
-    live,
-    wire_bytes: @execution.row_wire_usage(
-      observation.records.retention.measured.output,
-    ).0,
-  })
+  let requirement = observation.records.retention.preparation.requirement
+  @query.prepare_trusted_capture_port(
+    requirement.material.owner,
+    requirement.program,
+    fn(proof : DuckDBBroadObservation) {
+      if physical_equal(proof, observation) && live() {
+        Some(
+          (
+            observation.records.retention.output,
+            @execution.row_wire_usage(
+              observation.records.retention.measured.output,
+            ).0,
+          ),
+        )
+      } else {
+        None
+      }
+    },
+  ).bind(port => @query.capture_verified_source(port, observation))
 }
 
 ///|
@@ -167,18 +71,31 @@ pub fn native_captured_source(
   material : DuckDBNativeOutput,
   max_entries : Int,
   max_name_bytes : Int,
-) -> Result[CapturedInputSource, CapturedSourceIssue] {
-  match complete_duckdb_native_output(material, max_entries, max_name_bytes) {
-    Err(issue) => Err(NativeCompletion(issue))
-    Ok(output) =>
-      Ok({
-        requirement: material.attempt.preparation.requirement,
-        output,
-        live: fn() { duckdb_native_output_rows(material) is Ok(_) },
-        wire_bytes: @duckdb.native_receipt_digest(
-          material.observation.records.measurement.receipts,
-          @duckdb.NativeResult,
-        ).1,
-      })
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  let output = match
+    complete_duckdb_native_output(material, max_entries, max_name_bytes) {
+    Ok(output) => output
+    Err(issue) => return Err(Completion(issue))
   }
+  let requirement = material.attempt.preparation.requirement
+  @query.prepare_trusted_capture_port(
+    requirement.material.owner,
+    requirement.program,
+    fn(proof : DuckDBNativeOutput) {
+      if physical_equal(proof, material) &&
+        duckdb_native_output_rows(proof) is Ok(_) {
+        Some(
+          (
+            output,
+            @duckdb.native_receipt_digest(
+              material.observation.records.measurement.receipts,
+              @duckdb.NativeResult,
+            ).1,
+          ),
+        )
+      } else {
+        None
+      }
+    },
+  ).bind(port => @query.capture_verified_source(port, material))
 }

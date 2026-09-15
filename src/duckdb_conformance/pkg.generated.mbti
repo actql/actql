@@ -4,6 +4,7 @@ package "actql/actql/duckdb_conformance"
 import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/duckdb_host",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
@@ -202,7 +203,7 @@ pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int
 
-pub fn strategy_fixture_open(StrategyFixture, @query_planning.CapturedInputSource) -> Bool
+pub fn strategy_fixture_open(StrategyFixture, @execution_query.CapturedInputSource) -> Bool
 
 pub fn strategy_fixture_placement(StrategyFixture, Int) -> String
 

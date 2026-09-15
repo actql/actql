@@ -9,7 +9,7 @@ priv struct NativePhysical {
   mut completed : Bool
   mut holding : @resources.Holding?
   mut dag : @strategy.CapturedDAG?
-  mut source : @planning.CapturedInputSource?
+  mut source : @query.CapturedInputSource?
   mut observation : @planning.DuckDBNativeObservation?
 }
 

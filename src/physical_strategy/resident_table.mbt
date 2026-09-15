@@ -60,8 +60,7 @@ pub fn prepare_resident_storage(
   }
   let storage = if producer == 0 {
     guard run.source is Some(source) else { return Err(MissingOutput) }
-    match
-      @planning.captured_source_storage(source, max_entries, max_name_bytes) {
+    match @query.captured_source_storage(source, max_entries, max_name_bytes) {
       Ok(value) => value
       Err(issue) => return Err(Capture(issue))
     }

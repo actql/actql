@@ -216,7 +216,7 @@ pub fn strategy_fixture_attach(
 #export_name("strategyFixtureOpen")
 pub fn strategy_fixture_open(
   f : StrategyFixture,
-  source : @planning.CapturedInputSource,
+  source : @query.CapturedInputSource,
 ) -> Bool {
   if f.run is Some(_) {
     return false

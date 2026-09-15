@@ -41,6 +41,16 @@ test('connector SDK has no concrete implementation dependency or public error ty
   assert.match(api, /^type CapabilityImplementations\[T\]$/m);
 });
 
+test('common DAG and Host have no transitive concrete connector dependency', () => {
+  for (const root of ['physical_strategy', 'physical_host', 'execution_query']) {
+    for (const dependency of dependencies(root)) {
+      assert.doesNotMatch(dependency, /^(?:connectors\/|duckdb_|query_planning$)/);
+    }
+    const api = readFileSync(`src/${root}/pkg.generated.mbti`, 'utf8');
+    assert.doesNotMatch(api, /DuckDB|duckdb|query_planning|connectors\//);
+  }
+});
+
 test('physical resource ledger is independent of strategy and connector implementations', () => {
   assert.deepEqual(imports('physical_resources'), []);
   assert.ok(imports('physical_strategy').includes('physical_resources'));
@@ -233,8 +243,7 @@ test('resident output lifecycle does not own table names or materialization SQL'
 });
 
 test('resident borrowers do not store or export concrete view SQL', () => {
-  // This checks the direct boundary. Query planning's transitive concrete
-  // dependencies require the separate remaining connector extraction.
+  // Also pin the direct manifest/API boundary beside the transitive gate.
   assert.ok(imports('physical_strategy').every(name => !name.startsWith('connectors/')));
   const strategyApi = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(strategyApi, /DuckDB|duckdb|connectors\//);

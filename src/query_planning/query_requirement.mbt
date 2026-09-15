@@ -81,12 +81,7 @@ pub fn prepare_query_requirement(
   }
   let selected = @acquisition.mode_input(mode)
   let declaration = @acquisition.declaration(selected)
-  guard @context.program_identity_stage_requests(
-      program,
-      declaration.stage_index,
-    )
-    is Some(expected) &&
-    physical_equal(expected, requests) else {
+  guard @query.query_program_matches(material.owner, program) else {
     return Err(ForeignProgram)
   }
   guard @context.program_identity_stage_at(program, declaration.stage_index)

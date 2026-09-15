@@ -7,6 +7,7 @@ import {
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/duckdb_host",
   "actql/actql/encode_core",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
@@ -95,7 +96,7 @@ pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NodeHostFail
 
 pub fn native_host_capacity(@duckdb_host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
-pub fn native_host_captured_source(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @query_planning.CapturedInputSource raise NodeHostFailure
+pub fn native_host_captured_source(NativeNodeRun, @query_planning.DuckDBNativeObservation) -> @execution_query.CapturedInputSource raise NodeHostFailure
 
 pub fn native_host_close(NativeNodeRun) -> Unit
 
@@ -197,7 +198,7 @@ pub(all) suberror NodeHostFailure {
   Strategy(@physical_strategy.RunIssue)
   Dispatch(@duckdb_host.DispatchIssue)
   Physical(@physical_resources.LedgerIssue)
-  CapturedSource(@query_planning.CapturedSourceIssue)
+  CapturedSource(@execution_query.CapturedSourceIssue)
   ComputeParameter(@adapter.ValueIssue)
   Transport(@adapter.TransportColumnIssue)
   Descriptor(@adapter.ValueIssue)

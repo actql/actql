@@ -6,13 +6,28 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/pipeline_check_context",
   "actql/actql/sourceview_resolution",
 }
 
 // Values
 pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
 
+pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
+
 pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Result[QueryReceipt, QuerySequenceIssue]
+
+pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
+
+pub fn captured_source_available(CapturedInputSource) -> Bool
+
+pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
+
+pub fn captured_source_row_count(CapturedInputSource) -> Int?
+
+pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatistics?
+
+pub fn captured_source_storage(CapturedInputSource, Int, Int) -> Result[@execution_relation.ProducerStorage, CapturedSourceIssue]
 
 pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
 
@@ -22,7 +37,11 @@ pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_rel
 
 pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, @execution_relation.GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
 
+pub fn[P] prepare_trusted_capture_port(QuerySequence, @pipeline_check_context.ProgramSourceIdentity, (P) -> (@execution_relation.CompletedOutput, Int)?) -> Result[TrustedCapturePort[P], CapturedSourceIssue]
+
 pub fn query_generated_sequence(QuerySequence) -> @execution_relation.GeneratedSequence
+
+pub fn query_program_matches(QuerySequence, @pipeline_check_context.ProgramSourceIdentity) -> Bool
 
 pub fn query_receipt_rows(QueryReceipt) -> @execution_relation.CapturedRows
 
@@ -30,9 +49,25 @@ pub fn query_sequence_owner(QuerySequence) -> @lowering_relation.BoundPrepared
 
 pub fn query_sequence_requirement(QuerySequence) -> @sourceview_resolution.QueryAcquisition
 
+pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
+
 // Errors
 
 // Types and methods
+type CapturedInputSource
+
+pub(all) enum CapturedSourceIssue {
+  Unavailable
+  Binding(@execution_relation.ProducerBindingIssue)
+  Completion(@execution_relation.TrustedOutputIssue)
+  Storage(@execution_relation.ProducerReadIssue)
+}
+
+pub struct CapturedSourceStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
+}
+
 pub(all) enum QueryGuardIssue {
   InvalidLimits
   ForeignReceipt
@@ -72,6 +107,8 @@ pub(all) enum QuerySequenceIssue {
   ReceiptAdmission(@execution_relation.CaptureIssue)
   Execution(@execution_relation.SequenceRunIssue)
 }
+
+type TrustedCapturePort[P]
 
 // Type aliases
 

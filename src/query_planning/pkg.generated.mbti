@@ -53,9 +53,7 @@ pub fn bind_captured_duckdb_broad_input(DuckDBQueryIssuer, DuckDBBroadAttempt, D
 
 pub fn bind_captured_query_input(MockQueryIssuer, MockQueryAttempt, MockQueryObservation, @lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> Result[@execution_relation.BoundProducerInput, MockEvidenceIssue]
 
-pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
-
-pub fn broad_captured_source(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadObservation) -> Result[CapturedInputSource, CapturedSourceIssue]
+pub fn broad_captured_source(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadObservation) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn cancel_mock_query(MockQueryAttempt) -> Bool
 
@@ -64,16 +62,6 @@ pub fn capture_duckdb_broad_query(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBB
 pub fn capture_duckdb_native_query(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeRecords, QueryEvidenceLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
 
 pub fn capture_mock_query(MockQueryIssuer, MockQueryAttempt, MockQueryRecords, QueryEvidenceLimits) -> Result[MockQueryObservation, MockEvidenceIssue]
-
-pub fn captured_source_available(CapturedInputSource) -> Bool
-
-pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
-
-pub fn captured_source_row_count(CapturedInputSource) -> Int?
-
-pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatistics?
-
-pub fn captured_source_storage(CapturedInputSource, Int, Int) -> Result[@execution_relation.ProducerStorage, CapturedSourceIssue]
 
 pub fn choose_acquisition_candidate(@connector_sdk.CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
 
@@ -171,7 +159,7 @@ pub fn mock_acquisition_candidate(@connector_sdk.CapabilityRegistration, QueryRe
 
 pub fn mock_acquisition_strategy(AcquisitionChoice, PreparedAcquisition[QueryOffer]) -> QueryStrategy?
 
-pub fn mock_captured_source(MockQueryIssuer, MockQueryAttempt, MockQueryObservation) -> Result[CapturedInputSource, CapturedSourceIssue]
+pub fn mock_captured_source(MockQueryIssuer, MockQueryAttempt, MockQueryObservation) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn mock_query_attempt_identity(MockQueryAttempt) -> (String, String)?
 
@@ -201,7 +189,7 @@ pub fn mock_retention_row_cids(MockQueryRetention) -> (String, String)
 
 pub fn mock_retention_usage(MockQueryRetention) -> (Int, Int, Int)
 
-pub fn native_captured_source(DuckDBNativeOutput, Int, Int) -> Result[CapturedInputSource, CapturedSourceIssue]
+pub fn native_captured_source(DuckDBNativeOutput, Int, Int) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn offer_mock_query(@execution_query.QuerySequence, QueryRealization, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[QueryOffer, QueryPlanningIssue]
 
@@ -287,8 +275,6 @@ pub fn query_work_at(QueryRealization, Int) -> QueryWork?
 
 pub fn query_work_count(QueryRealization) -> Int
 
-pub fn restrict_captured_source(CapturedInputSource, () -> Bool) -> CapturedInputSource
-
 pub fn retain_duckdb_broad_attempt(DuckDBBroadAttempt, QueryRetentionLimits) -> Result[DuckDBBroadRetention, DuckDBBroadAttemptIssue]
 
 pub fn retain_mock_query(MockQueryAttempt, MockRetentionLimits) -> Result[MockQueryRetention, MockRetentionIssue]
@@ -316,20 +302,6 @@ pub enum AcquisitionSelection {
   Proposed(AcquisitionChoice)
   Deferred
   NoCandidates
-}
-
-type CapturedInputSource
-
-pub(all) enum CapturedSourceIssue {
-  Unavailable
-  Binding(@execution_relation.ProducerBindingIssue)
-  NativeCompletion(@execution_relation.TrustedOutputIssue)
-  Storage(@execution_relation.ProducerReadIssue)
-}
-
-pub struct CapturedSourceStatistics {
-  rows : Int
-  canonical_wire_bytes : Int
 }
 
 type DuckDBBroadAttempt

@@ -4,7 +4,7 @@
 struct CapturedDAG {
   graph : CheckedDAG
   offer_owner : StrategyOfferOwner
-  mut source : @planning.CapturedInputSource?
+  mut source : @query.CapturedInputSource?
   ledger : @resources.Ledger
   completed : Array[@execution.CompletedOutput?]
   done : Array[Bool]
@@ -36,7 +36,7 @@ pub(all) enum RunIssue {
   Stopped
   ForeignCandidate
   MissingOutput
-  Capture(@planning.CapturedSourceIssue)
+  Capture(@query.CapturedSourceIssue)
   Binding(@execution.ProducerBindingIssue)
   Read(@execution.ProducerReadIssue)
   Compute(@connector.FixedComputeIssue)
@@ -50,14 +50,14 @@ pub(all) enum RunIssue {
 /// reads are synthesized. Bindings are indexed by checked receiving port.
 pub fn open_captured_dag(
   graph : CheckedDAG,
-  source : @planning.CapturedInputSource,
+  source : @query.CapturedInputSource,
   ledger : @resources.Ledger,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
     return Err(UnsupportedGraph)
   }
-  if !@planning.captured_source_matches(
+  if !@query.captured_source_matches(
       source,
       @checked.source_identity(graph.program),
       graph.owners[0],
@@ -145,7 +145,7 @@ pub fn open_captured_dag(
     graph,
     offer_owner: { graph, },
     source: Some(
-      @planning.restrict_captured_source(source, fn() { root_lifetime.live }),
+      @query.restrict_captured_source(source, fn() { root_lifetime.live }),
     ),
     ledger,
     completed: Array::make(count, None),
@@ -185,8 +185,8 @@ pub fn open_captured_dag(
 ///|
 pub fn captured_root_statistics(
   run : CapturedDAG,
-) -> @planning.CapturedSourceStatistics? {
-  run.source.bind(source => @planning.captured_source_statistics(source))
+) -> @query.CapturedSourceStatistics? {
+  run.source.bind(source => @query.captured_source_statistics(source))
 }
 
 ///|
@@ -291,7 +291,7 @@ pub fn captured_task_input(
       fail_captured_task(run, task, Capture(Unavailable))
       return Err(Capture(Unavailable))
     }
-    match @planning.bind_captured_source(source, receiver, edge.input) {
+    match @query.bind_captured_source(source, receiver, edge.input) {
       Ok(bound) => bound
       Err(issue) => {
         fail_captured_task(run, task, Capture(issue))

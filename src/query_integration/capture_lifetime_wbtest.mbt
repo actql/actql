@@ -109,11 +109,11 @@ test "captured broad bindings retain issuer and exact transport liveness" {
     let owner = @query.query_sequence_owner(f.sequence)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
     let shared = @planning.broad_captured_source(f.issuer, attempt, observation).unwrap()
-    assert_eq(@planning.captured_source_row_count(shared), Some(2))
+    assert_eq(@query.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match @planning.bind_captured_source(shared, receiver, 0) {
+        match @query.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }
@@ -155,11 +155,11 @@ test "captured mock bindings retain issuer liveness for both realizations" {
       query_capture_limits(),
     ).unwrap()
     let shared = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
-    assert_eq(@planning.captured_source_row_count(shared), Some(2))
+    assert_eq(@query.captured_source_row_count(shared), Some(2))
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match @planning.bind_captured_source(shared, receiver, 0) {
+        match @query.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }
@@ -202,7 +202,7 @@ test "captured native bindings obey the same issuer and transport lifetime cases
     assert_capture_input_lifetime(
       receiver,
       fn() {
-        match @planning.bind_captured_source(shared, receiver, 0) {
+        match @query.bind_captured_source(shared, receiver, 0) {
           Ok(bound) => Some(bound)
           Err(_) => None
         }

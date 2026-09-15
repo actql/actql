@@ -37,14 +37,31 @@ while independently retained Host results supply admission and completion eviden
 Two-input resident joins bind the exact ordered input set and share only actual
 producer tables. This does not provide general aggregation or numeric reductions.
 
-`CapturedInputSource` encapsulates an already captured mock, broad or native
-observation. It exposes binding and live metadata, not a raw pre-capture output.
+`execution_query.CapturedInputSource` encapsulates an already captured observation
+without depending on a concrete issuer or planner implementation. It exposes
+binding and live metadata, not a raw pre-capture output.
 Its bindings compose the original output's live condition with the exact
 issuer/attempt/observation check. `CapturedDAG` checks that this source belongs
 to the same checked Program and bound acquisition as its root. Completed local
 tasks are recorded only by invoking the selected existing Compute implementation;
 callers cannot inject arbitrary completed outputs as task success. A candidate
 must refer to the exact ProducerRead prepared for that task, not equal rows.
+
+Capture implementations install a trusted, proof-typed port internally. Its
+verifier retains the existing record-set, attempt, issuer and observation checks
+and returns the exact completed output and retained canonical wire measurement.
+The common port checks the QuerySequence's exact owned Program requests and
+capture target; subsequent use must resolve to the same output handle and
+measurement. This is trusted Host wiring, not an untrusted plugin verification
+hook, and is not exposed through standard Program/Host execution configuration.
+It neither accepts a success Bool nor turns CID/JSON values into output handles.
+Third-party code in the same process remains part of the trusted runtime; opaque
+types alone do not sandbox a malicious implementation.
+
+Common DAG, Host and capture handoff dependencies exclude concrete connectors
+transitively. `scripts/check-core-without-connectors.mjs` copies only the common
+dependency closure into an isolated module and runs the pinned-toolchain check;
+the connector and Node integration suites remain separate verification scopes.
 
 The captured-input serial runner is an incremental internal implementation.
 Local and DuckDB task completions share an opaque output boundary. DuckDB start

@@ -14,7 +14,7 @@ pub(all) suberror NodeHostFailure {
   Strategy(@strategy.RunIssue)
   Dispatch(@host.DispatchIssue)
   Physical(@resources.LedgerIssue)
-  CapturedSource(@planning.CapturedSourceIssue)
+  CapturedSource(@query.CapturedSourceIssue)
   ComputeParameter(@duckdb.ValueIssue)
   Transport(@duckdb.TransportColumnIssue)
   Descriptor(@duckdb.ValueIssue)
@@ -323,7 +323,7 @@ pub fn native_host_document(
 pub fn native_host_captured_source(
   run : NativeNodeRun,
   observation : @planning.DuckDBNativeObservation,
-) -> @planning.CapturedInputSource raise NodeHostFailure {
+) -> @query.CapturedInputSource raise NodeHostFailure {
   if run.physical is Some(p) && (p.completed || p.closed) {
     raise Physical(InvalidCharge)
   }
