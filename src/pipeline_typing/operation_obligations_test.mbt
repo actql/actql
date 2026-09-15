@@ -1,4 +1,46 @@
 ///|
+test "aggregate obligation locations retain call provenance rather than the operation body" {
+  let p = match
+    @pipeline_typing.check(
+      cursor(
+        "[{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"field\":\"amount\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":3}}}}]",
+      ),
+      [("rows", schema())],
+      None,
+      Some(cursor("\"rows\"")),
+      limits(),
+    ) {
+    Ok(p) => p
+    Err(issue) => fail(@debug.to_string(issue.kind))
+  }
+  let group = @pipeline_typing.operation_obligation_group_at(
+    @pipeline_typing.step_at(p, 0).unwrap().operation,
+    0,
+  ).unwrap()
+  assert_eq(
+    @decode.cursor_path(@pipeline_typing.operation_obligations_source(group)),
+    [@source.Index(0), @source.Key("group")],
+  )
+  let mut found = false
+  for i in 0..<@pipeline_typing.operation_obligations_count(group) {
+    if @pipeline_typing.operation_obligations_at(group, i)
+      is Some(RelationRequirement(pending)) &&
+      pending.kind == @relation.AggregateEnvelope {
+      let source = @pipeline_typing.operation_obligation_source_at(group, i).unwrap()
+      assert_true(physical_equal(source, pending.source))
+      assert_eq(@decode.cursor_path(source), [
+        @source.Index(0),
+        @source.Key("group"),
+        @source.Key("aggregates"),
+        @source.Key("items"),
+      ])
+      found = true
+    }
+  }
+  assert_true(found)
+}
+
+///|
 fn assert_obligation_groups(
   operation : @pipeline_typing.CheckedOperation,
   scopes : Array[@pipeline_typing.OperationObligationScope],
@@ -13,9 +55,17 @@ fn assert_obligation_groups(
     let n = @pipeline_typing.operation_obligations_count(g)
     for j in 0..<n {
       assert_true(@pipeline_typing.operation_obligations_at(g, j) is Some(_))
+      let source = @pipeline_typing.operation_obligation_source_at(g, j).unwrap()
+      assert_true(
+        physical_equal(
+          source,
+          @pipeline_typing.operation_obligation_source_at(g, j).unwrap(),
+        ),
+      )
     }
     for j in [-1, n, 2147483647] {
       assert_true(@pipeline_typing.operation_obligations_at(g, j) is None)
+      assert_true(@pipeline_typing.operation_obligation_source_at(g, j) is None)
     }
   }
   for i in [-1, scopes.length(), 2147483647] {
@@ -111,6 +161,12 @@ test "operation obligations retain selected shortest endpoint sides" {
         _ => abort("selector operation")
       }
       assert_true(physical_equal(selector, expected))
+      assert_true(
+        physical_equal(
+          @pipeline_typing.operation_obligations_source(g),
+          @graph.selector_source(expected),
+        ),
+      )
       let repeated = @pipeline_typing.operation_obligation_group_at(op, i).unwrap()
       assert_true(
         physical_equal(
@@ -155,6 +211,12 @@ test "union obligation groups retain every authored binary fold including repeti
         abort("structural")
       }
       assert_eq(actual, expected[j])
+      assert_true(
+        physical_equal(
+          @pipeline_typing.operation_obligation_source_at(g, j).unwrap(),
+          @graph.structural_source(@graph.union_fold_at(c, i).unwrap()),
+        ),
+      )
     }
   }
 }

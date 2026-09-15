@@ -242,6 +242,8 @@ pub fn operation_obligation_group_at(CheckedOperation, Int) -> OperationObligati
 
 pub fn operation_obligation_group_count(CheckedOperation) -> Int
 
+pub fn operation_obligation_source_at(OperationObligations, Int) -> @decode_core.Cursor?
+
 pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligation?
 
 pub fn operation_obligations_count(OperationObligations) -> Int
@@ -249,6 +251,8 @@ pub fn operation_obligations_count(OperationObligations) -> Int
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
 pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
+
+pub fn operation_obligations_source(OperationObligations) -> @decode_core.Cursor
 
 pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 

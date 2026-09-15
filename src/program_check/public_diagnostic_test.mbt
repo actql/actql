@@ -9,6 +9,47 @@ fn public_rejected(
 }
 
 ///|
+test "unresolved operation diagnostics use the retained requirement source" {
+  let (text, _, environment, _, limits) = public_input_fixture()
+  let source = text.replace(
+    old="{\"take\":1,\"as\":\"selected\"}",
+    new="{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"rank\":{\"fn\":\"row_number\"}}},\"as\":\"selected\"}",
+  )
+  let diagnostic = public_rejected(
+    @program_check.check_document(
+      source,
+      environment,
+      None,
+      limits,
+      format=Json,
+      source_path="analytic.actql",
+    ),
+  )
+  assert_eq(@program_check.diagnostic_origin(diagnostic), Some(ProgramDocument))
+  let location = @program_check.diagnostic_location(diagnostic).unwrap()
+  assert_eq(
+    @program_check.diagnostic_location_path(location),
+    Some([
+      @source.Key("stages"),
+      @source.Index(1),
+      @source.Key("steps"),
+      @source.Index(0),
+      @source.Key("analytic"),
+    ]),
+  )
+  assert_eq(
+    @program_check.diagnostic_location_source_path(location),
+    "analytic.actql",
+  )
+  // This remains a static rejection. A diagnostic reader does not turn a
+  // missing selected operation envelope into an external fulfillment flag.
+  assert_true(
+    @program_check.diagnostic_cause(diagnostic)
+    is Closure(UnresolvedOperation(_)),
+  )
+}
+
+///|
 test "unsupported declarations retain their authored source without wrapper traversal" {
   let (text, _, environment, _, limits) = public_input_fixture()
   let text = text.replace(

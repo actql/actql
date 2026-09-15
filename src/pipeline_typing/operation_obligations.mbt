@@ -102,6 +102,68 @@ pub fn operation_obligations_scope(
 }
 
 ///|
+/// Original source of this exact obligation owner, including selector and union
+/// fold owners. Reading provenance does not resolve or discharge an obligation.
+pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor {
+  match v.owner {
+    RelationOwner(c) => @relation.source(c)
+    JoinOwner(c) => @join.source(c)
+    AppendOwner(c) => @append.source(c)
+    NestOwner(c) => @nest.source(c)
+    SetOwner(c) => @set.source(c)
+    CrossJoinOwner(c) => @join.cross_source(c)
+    IntervalJoinOwner(c) => @join.interval_source(c)
+    AsOfOwner(c) => @join.asof_source(c)
+    SequenceRowsOwner(c) | SequenceOwner(c) => @relation.sequence_source(c)
+    ValuesOwner(c) => @values.source(c)
+    SeriesOwner(c) => @series.source(c)
+    CalendarOwner(c) => @calendar.source(c)
+    WindowOwner(c) => @window.source(c)
+    ProjectionOwner(c) => @projection.source(c)
+    GraphOwner(c) => @graph.source(c)
+    MatchOwner(c) => @graph.match_source(c)
+    ReachOwner(c) => @graph.reach_source(c)
+    SubgraphOwner(c) => @graph.subgraph_source(c)
+    TraverseOwner(c) => @graph.traverse_source(c)
+    ShortestOwner(c) => @graph.shortest_source(c)
+    SelectorOwner(c) => @graph.selector_source(c)
+    EqualityOwner(c) => @graph.equality_source(c)
+    DiffOwner(c) => @graph.diff_source(c)
+    ApplyOwner(c) => @graph.apply_source(c)
+    StructuralOwner(c) => @graph.structural_source(c)
+    MeanOwner(c) => @graph.mean_options_source(@graph.mean_options(c))
+    ConstructionOwner(c) => @graph.construction_source(c)
+    VectorOwner(c) => @vector.source(c)
+    NearestOwner(c) =>
+      @vector.nearest_source(
+        @vector.nearest_pair_options(@vector.nearest_pair(c)),
+      )
+    PoolOwner(c) => @vector.pool_source(@vector.pooled_options(c))
+    RankingOwner(c) => @vector.ranking_source(@vector.merged_ranking_options(c))
+    TextRankOwner(c) => @vector.text_rank_source(@vector.text_rank_options(c))
+    EventOwner(c) => @event.source(c)
+  }
+}
+
+///|
+/// The retained requirement location when available, otherwise its owner's
+/// body. Invalid indices return None, not the owner's location. No path copy,
+/// reparse or requirement-array reconstruction is needed for this O(1) read.
+pub fn operation_obligation_source_at(
+  v : OperationObligations,
+  index : Int,
+) -> @decode.Cursor? {
+  guard operation_obligations_at(v, index) is Some(requirement) else {
+    return None
+  }
+  match requirement {
+    RelationRequirement(pending) | SequenceRowsRequirement(pending) =>
+      Some(pending.source)
+    _ => Some(operation_obligations_source(v))
+  }
+}
+
+///|
 /// Returns the retained selector owner, without reconstructing its checked state.
 pub fn operation_obligations_selector(
   v : OperationObligations,

@@ -247,6 +247,15 @@ declarations in the Program from selections in the Check Environment, even if
 both documents have the same source-path label. Reading a location does not
 reparse input; returned paths are caller-owned copies of retained provenance.
 
+Operation obligation owners provide their retained source through a common
+reader, including selected graph endpoints and individual union folds. An
+indexed requirement uses its finer source when one is retained (for example an
+aggregate call); otherwise its owner's body is the available location. Invalid
+indices have no location. A diagnostic for an unresolved operation uses this
+owned provenance, not a fresh search through the Program or a guessed step span.
+Reading provenance neither establishes evidence applicability nor discharges
+the requirement.
+
 ## Consumers and responsibility boundaries
 
 Operation-bound construction belongs with operation-law application, not with

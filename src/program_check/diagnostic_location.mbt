@@ -33,6 +33,7 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
     Environment(_) => Some(CheckEnvironment)
     Source(UnsupportedBindings(_) | UnsupportedEffects(_)) =>
       Some(ProgramDocument)
+    Closure(UnresolvedOperation(_)) => Some(ProgramDocument)
     Source(_) | Closure(_) | Units(_) => None
   }
 }
@@ -48,6 +49,16 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
     Program(RetentionLimit(_, source_path~)) => Retained(source_path)
     Source(UnsupportedBindings(cursor) | UnsupportedEffects(cursor)) =>
       Cursor(cursor)
+    Closure(UnresolvedOperation(site)) => {
+      guard @pipeline.operation_obligation_source_at(
+          site.obligations,
+          site.index,
+        )
+        is Some(source) else {
+        return None
+      }
+      Cursor(source)
+    }
     _ => return None
   }
   Some({ position, })
