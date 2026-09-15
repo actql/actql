@@ -1,5 +1,5 @@
 ///|
-pub(all) struct SourceLimits {
+priv struct SourceLimits {
   topology : @results.LocalProgramLimits
   context : @context.LocalContextLimits
   requests : @sourceviews.RequestLimits

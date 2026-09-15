@@ -17,23 +17,23 @@ fn issued_fixture_checked(
   environment_json : String,
   environment_cid : String,
   source_override? : String? = None,
-  visits? : Array[Int] = [1],
   join? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let source =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
+  let input_limits : @syntax.Limits = {
+    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    tree: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1000000,
+      max_total_string_bytes: 1000000,
+    },
+    max_stages: 10,
+  }
   let program = @syntax.parse(
     source_override.unwrap_or(source),
-    {
-      source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-      tree: {
-        max_nodes: 100000,
-        max_depth: 100,
-        max_string_bytes: 1000000,
-        max_total_string_bytes: 1000000,
-      },
-      max_stages: 10,
-    },
+    input_limits,
     format=Json,
   ).unwrap()
   let environment = @environment.read(
@@ -46,53 +46,36 @@ fn issued_fixture_checked(
       max_members: 1000,
     },
   ).unwrap()
-  let mixed = @wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 0,
-    max_references: 0,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let join_sources = if join {
-    Some(join_fixture_capacity(environment))
+  let evidence = if join {
+    guard @syntax.stage_count(program) == 5 else {
+      fail("join fixture requires five authored Stages")
+    }
+    [join_fixture_capacity(environment, @syntax.stages(program)[3].id)]
   } else {
-    None
+    []
   }
-  @program_check.check(
-    program,
-    environment,
-    Some(cursor("{\"minimum\":1}")),
-    Array::makei(visits.length(), stage => {
-      Array::makei(visits[stage], visit => {
-        if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
-          join_sources is Some(join_sources) {
-          {
-            sources: join_sources,
-            consumers: [@capacity.Join(step=0, output=0)],
-          }
-        } else {
-          { sources, consumers: [], }
-        }
-      })
-    }),
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    fixture_query_limits(10),
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
-  )
+  match
+    @program_check.check_parsed_with_evidence(
+      program,
+      @program_check.checking_environment(
+        environment,
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+      ),
+      Some(cursor("{\"minimum\":1}")),
+      evidence,
+      { input: input_limits, compilation: fixture_query_limits(10), },
+    ) {
+    Checked(value) => value
+    NeedsInputs(_) => fail("fixture requires complete checking inputs")
+    Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|

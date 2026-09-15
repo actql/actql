@@ -181,7 +181,7 @@ CIDs. Encoding a proof alone does not establish the window's source ownership
 or supply a new Program construction path. Failed conversion does not expose a
 partial proof or consume the caller's identity budget.
 
-Formal `program_check.check` admits Relation `row_window` only after constructing
+Formal Program checking admits Relation `row_window` only after constructing
 all owned membership limits. Each retained `WindowLimit` uses the owning Unit's
 operation subject, the selected Host ceiling and every applicable reidentified
 Program candidate. The existing resolved-limit encoder verifies the minimum and

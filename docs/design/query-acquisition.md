@@ -54,7 +54,7 @@ outside the selected request.
 
 Aggregate absorption, shared scans, brought-in captured inputs, changes feeds,
 prefix demand, take and checkpoints are separate contracts. The entry is not a
-replacement for `program_check.check` or a runnable-plan constructor.
+replacement for the standard Program checking entries or a runnable-plan constructor.
 
 ## Resource selection
 

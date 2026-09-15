@@ -120,8 +120,8 @@ consistent static result for the authored Program and stages: inputs, Parameter
 bindings, selected contracts and policy, types, order strategies, capacity
 applications and their producer dependencies. The result must be opaque and
 constructible only through validation; a public aggregate of checker results or
-`validated: true` does not satisfy this boundary. The public
-`program_check.check` constructor returns the opaque `CheckedProgram`; consumers
+`validated: true` does not satisfy this boundary. The public document and parsed
+checking entries return the opaque `CheckedProgram` only in a `Checked` outcome; consumers
 use its read-only interfaces rather than assembling or sealing component results.
 
 The [Checked Program construction contract](checked-program.md) fixes the entry,

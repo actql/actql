@@ -45,20 +45,17 @@ fn query_checked_program_fixture(
   } else {
     text
   }
-  let program = @syntax.parse(
-    text,
-    {
-      source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-      tree: {
-        max_nodes: 100000,
-        max_depth: 100,
-        max_string_bytes: 1000000,
-        max_total_string_bytes: 1000000,
-      },
-      max_stages: 10,
+  let input_limits : @syntax.Limits = {
+    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    tree: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1000000,
+      max_total_string_bytes: 1000000,
     },
-    format=Json,
-  ).unwrap()
+    max_stages: 10,
+  }
+  let program = @syntax.parse(text, input_limits, format=Json).unwrap()
   let policies = @environment.value_contract_policies(
     @environment.source_view_shape_values(
       @environment.read_mode_shapes(
@@ -83,58 +80,33 @@ fn query_checked_program_fixture(
       ),
     ),
   )
-  let mixed = @wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 0,
-    max_references: 0,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let join_sources = if dag_join {
-    Some(join_graph_capacity_material(environment))
+  let evidence = if dag_join {
+    [join_graph_capacity_material(environment, "compute_c")]
   } else {
-    None
+    []
   }
-  @program_check.check(
-    program,
-    environment,
-    Some(input_cursor("{\"minimum\":1}")),
-    if dag {
-      let visits = if dag_join { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] }
-      Array::makei(visits.length(), stage => {
-        Array::makei(visits[stage], visit => {
-          if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
-            join_sources is Some(join_sources) {
-            {
-              sources: join_sources,
-              consumers: [@capacity.Join(step=0, output=0)],
-            }
-          } else {
-            { sources, consumers: [], }
-          }
-        })
-      })
-    } else {
-      [[{ sources, consumers: [], }]]
-    },
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    query_checked_limits(10),
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
-  )
+  match
+    @program_check.check_parsed_with_evidence(
+      program,
+      @program_check.checking_environment(
+        environment,
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+      ),
+      Some(input_cursor("{\"minimum\":1}")),
+      evidence,
+      { input: input_limits, compilation: query_checked_limits(10), },
+    ) {
+    Checked(value) => value
+    NeedsInputs(_) => fail("fixture requires complete checking inputs")
+    Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|

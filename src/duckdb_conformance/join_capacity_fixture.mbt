@@ -4,7 +4,8 @@
 /// generated from a checked Program or an execution result.
 fn join_fixture_capacity(
   environment : @environment.WireEnvironment,
-) -> @host.HostSources raise {
+  stage : String,
+) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
       max_bytes: 10000,
@@ -47,10 +48,15 @@ fn join_fixture_capacity(
     max_witnesses: 10,
     max_references: 20,
   }).unwrap()
-  @host.bind_claim_sources(claims, [policy], {
+  let sources = @host.bind_claim_sources(claims, [policy], {
     max_entries: 10,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
+  {
+    stage,
+    sources,
+    uses: [Join(step=0, output=@wire.mixed_limit_at(mixed, 0).unwrap())],
+  }
 }

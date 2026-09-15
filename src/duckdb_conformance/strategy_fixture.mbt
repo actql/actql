@@ -71,7 +71,6 @@ fn strategy_fixture_create_impl(
       environment_json,
       environment_cid,
       source_override=Some(program_json),
-      visits=if join { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] },
       join~,
     )
     let native = issued_native_create_impl(

@@ -125,8 +125,11 @@ values. They are requirements to enforce, not completed runtime checks.
 Program source identity, requirement construction and final Program/Plan execution
 permission remain distinct; no capture or consumer input is released by this API.
 
-When starting from a Program, use main's public `program_check.check` and obtain
-its `program_check.source_identity`. Derive the query from that identity's owned
+When starting from a Program, use `program_check.check_document` or
+`program_check.check_parsed` (or the corresponding explicit-evidence variant).
+Only the `Checked` outcome contains a Program from which to obtain
+`program_check.source_identity`; missing requests and rejections are not planning
+inputs. Derive the query from that identity's owned
 stage requests, lower the same pipeline and bind its exact Parameter values.
 Pass this identity to `prepare_query_requirement`; do not substitute a separately
 checked equal Program. The executable source-checkout example is

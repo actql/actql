@@ -314,7 +314,8 @@ the implementation; it is not the application's runtime configuration.
 
 `test/issued-broad-query.test.mjs` connects real DuckDB to the actual MoonBit
 issuer in one process through the fixed `duckdb_conformance` fixture. It starts
-at public `program_check.check`, selects the registered broad candidate, and
+at public `program_check.check_parsed_with_evidence`, supplies definition evidence
+by authored Stage rather than internal producer visits, selects the registered broad candidate, and
 checks records and the complete observation against independently composed
 expectations. It covers empty input, nullable unused columns, duplicate/order
 preservation, rejected non-finite unused values, premature issuance, cancellation,

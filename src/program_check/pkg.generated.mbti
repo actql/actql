@@ -21,7 +21,6 @@ import {
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
-  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
@@ -70,8 +69,6 @@ pub fn asof_search_limit_proof_count(AsOfSearchLimit, Int) -> Int
 pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.AsOfSearchCheck
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
-
-pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, capacity_inputs? : @pipeline_check_context.ProgramCapacityInputs?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
@@ -993,20 +990,6 @@ pub struct SourceExecutionSubject {
   response_policy_cid : String
   direct_policy : DirectSourcePolicy?
   authority : SourceReadAuthority
-}
-
-pub(all) struct SourceLimits {
-  topology : @stage_results.LocalProgramLimits
-  context : @pipeline_check_context.LocalContextLimits
-  requests : @sourceview_resolution.RequestLimits
-  checks : @pipeline_check_context.PreparationBudget
-  identity : @pipeline_check_context.SourcePreparationLimits
-  max_parameters : Int
-  max_bindings : Int
-  max_slots : Int
-  max_policy_depth : Int
-  max_requirements : Int
-  max_regex_depth : Int
 }
 
 pub enum SourcePolicyOccurrence {

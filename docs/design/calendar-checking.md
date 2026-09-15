@@ -80,8 +80,8 @@ output; a row ceiling is not timezone validation, a memory bound or a license to
 truncate. The profile and range bindings do not compute bucket boundaries,
 establish an exact series count or attest observed coverage. Backend support for
 the selected artifact and these checks remains a separate execution obligation.
-The formal `program_check.check` entry accepts an Environment-owned selected
-Calendar artifact through its optional `calendar` argument. Registration topology
+The standard checking entries accept an Environment-owned selected
+Calendar artifact through `checking_environment`'s optional `calendar` argument. Registration topology
 rejects a selection from another Environment before preparing any Stage pipeline.
 The same admitted profile is passed to every Calendar operation; Result imports
 retain their original producer rather than rebuilding a calendar-compatible row

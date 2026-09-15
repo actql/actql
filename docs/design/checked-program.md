@@ -12,14 +12,16 @@ boundary; adding another component is not itself end-to-end completion.
 
 ## Entry and success
 
-The entry is `program_check.check`. It takes source and admission
-material, not a caller-assembled list of checker successes. Its conceptual
-arguments are:
+The standard entries are `program_check.check_document` and
+`program_check.check_parsed`; their `*_with_evidence` variants accept explicit
+authored-target evidence. They share one validating construction path and accept
+source and admission material, not caller-assembled checker successes or internal
+visit arrays. Their conceptual arguments are:
 
 | Argument | Meaning and checks performed inside the boundary |
 | --- | --- |
 | Parsed Program | The normalized, source-owned `stage_syntax.Program`, including paths/spans. Parsing is a separate bounded entrance, not repeated by the checker. |
-| Check Environment | The canonical integrity-checked `check_environment.WireEnvironment`. Integrity alone does not establish Catalog closure, policy validity, issuer trust or usable input evidence. |
+| Check Environment | `CheckEnvironment` retains the canonical integrity-checked `check_environment.WireEnvironment` and selected checker profiles. Integrity alone does not establish Catalog closure, policy validity, issuer trust or usable input evidence. |
 | Supplied values | Parameter values and the applicable typed opaque-Binding evidence. Parameter declarations, defaults, used-name selection and binding ownership are derived from this Program, not supplied as a second declaration set. |
 | Check configuration | Explicit selected language profiles, pinned semantic capabilities and available profile artifacts. These are checked against their governing contracts; backend availability is not a language admission rule. |
 | Check budget | Aggregate admission/work/text/node/hash limits and per-traversal depth limits. These are not execution resource ceilings or Host authorization. |
@@ -31,11 +33,13 @@ only through the applicable existing admission boundary and its exact owner.
 Inputs unavailable in an implementation produce a specific unsupported or
 unresolved diagnostic, not empty evidence or fabricated values.
 
-Success returns only an opaque `CheckedProgram`, constructible through the
+Success returns `Checked` containing an opaque `CheckedProgram`, constructible through the
 validating entry. All selected semantics are static-ready for lowering; every
 remaining execution check has a typed binding as described below. Missing caller
 bindings, inconsistent evidence, unsupported static handling or an unresolved
-mandatory static requirement produce an error with no partial CheckedProgram.
+mandatory static requirement never produce a partial CheckedProgram. Established
+missing external inputs or selections yield `NeedsInputs`; invalid or unsupported
+inputs and exhausted budgets yield `Rejected`, as defined by the Check SDK.
 Public planning variants such as `needs_bindings` and `pending_predecessor` are
 separate protocol results, not successful CheckedPrograms with weaker guarantees.
 
