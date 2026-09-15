@@ -6,11 +6,12 @@ With Node.js 22 or newer, Python 3.10 or newer, a C compiler and `make`:
 
 ```sh
 npm ci
-npm run check:docs
 ```
 
 Node.js is used for documentation and toolchain setup. Product implementation
 is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
+Documentation checks also verify generated connector code using the pinned
+MoonBit formatter. Complete the MoonBit setup below before running `check:docs`.
 
 ### MoonBit
 
@@ -23,6 +24,7 @@ node scripts/setup-moonbit.mjs
 export MOON_HOME="$PWD/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
 export PATH="$MOON_HOME/bin:$PATH"
 moon version --all
+npm run check:docs
 moon fmt --check
 moon check --deny-warn
 moon test --deny-warn

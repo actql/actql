@@ -4,8 +4,20 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { parse } from 'yaml';
 import { checkInterfaces } from './check-moonbit-api.mjs';
 import { installationFiles, verifyInstallation } from './moonbit-installation.mjs';
+
+test('CI installs and exposes the pinned formatter before documentation checks', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const steps = workflow.jobs.check.steps;
+  const installation = steps.findIndex(step => /node scripts\/setup-moonbit\.mjs/.test(step.run ?? ''));
+  const documentation = steps.findIndex(step => /npm run check:docs/.test(step.run ?? ''));
+  assert.ok(installation >= 0 && documentation >= 0, 'CI must install MoonBit and run documentation checks');
+  assert.ok(installation < documentation, 'check:docs invokes moonfmt and must follow pinned MoonBit setup');
+  assert.match(steps[installation].run, /MOON_HOME=.*GITHUB_ENV/);
+  assert.match(steps[installation].run, /bin.*GITHUB_PATH/);
+});
 
 test('installation health rejects missing core, bundles, tools and mismatched marker', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-install-test-'));

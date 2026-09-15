@@ -28,7 +28,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
-      - run: npm run check:docs
       - name: Install pinned MoonBit
         run: |
           node scripts/setup-moonbit.mjs
@@ -36,6 +35,7 @@ jobs:
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: moon version --all
+      - run: npm run check:docs
       - run: moon fmt --check
       - name: Check and test common core
         run: |
