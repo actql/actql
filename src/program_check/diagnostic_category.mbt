@@ -151,10 +151,33 @@ fn classify_diagnostic_cause(
     Environment(issue) => environment_diagnostic_category(issue)
     Source(issue) => source_diagnostic_category(issue)
     Closure(issue) => closure_diagnostic_category(issue)
-    Units(BudgetExceeded | Encoding(OutputLimit)) => CompileLimit
+    Units(ProofConversion(error)) => proof_conversion_diagnostic_category(error)
+    Units(
+      BudgetExceeded
+      | Encoding(OutputLimit)
+      | PublicationHost(BudgetExceeded)
+      | PublicationWire(BudgetExceeded)
+      | PublicationRows(BudgetExceeded)
+      | PublicationArithmetic(ClosureBudgetExceeded)
+      | ImportType(Hash(OutputLimit))
+    ) => CompileLimit
     Units(UnsupportedReceipt | UnsupportedStaticPath(_)) =>
       UnsupportedImplementation
     Units(_) => UnclassifiedFailure
+  }
+}
+
+///|
+// Conversion preserves errors raised inside its encoding callback. Only typed
+// resource failures retain the limit classification through this Error wrapper.
+fn proof_conversion_diagnostic_category(error : Error) -> DiagnosticCategory {
+  match error {
+    @encode.OutputLimit
+    | UnitBuildFailure::BudgetExceeded
+    | UnitBuildFailure::Encoding(OutputLimit) => CompileLimit
+    UnitBuildFailure::ProofConversion(inner) =>
+      proof_conversion_diagnostic_category(inner)
+    _ => UnclassifiedFailure
   }
 }
 
@@ -261,6 +284,9 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | SourceView(Binding(Operations(WorkLimit)))
     | SourceView(Program(Program(BudgetExceeded)))
     | SourceView(Context(BudgetExceeded))
+    | SourceView(Context(Policy(BudgetExceeded)))
+    | SourceView(Context(Wiring(BudgetExceeded)))
+    | SourceView(Context(Inputs(Inputs(BudgetExceeded))))
     | SourceView(Context(Stages(BudgetExceeded)))
     | SourceView(Context(Stages(RowCapacity(BudgetExceeded))))
     | SourceView(Context(Stages(Values(_, BudgetExceeded))))
@@ -326,6 +352,43 @@ fn closure_diagnostic_category(
     InvalidLimits => InvalidConfiguration
     BudgetExceeded
     | Values(BudgetExceeded)
+    | Values(
+      Encoding(OutputLimit)
+      | Host(BudgetExceeded)
+      | Admission(BudgetExceeded)
+      | Arithmetic(ClosureBudgetExceeded)
+    )
+    | Values(
+      Rows(
+        _,
+        BudgetExceeded
+        | Encoding(OutputLimit)
+        | Admission(BudgetExceeded)
+        | Host(BudgetExceeded)
+        | Arithmetic(ClosureBudgetExceeded)
+      )
+    )
+    | Values(
+      Wire(
+        _,
+        Encoding(OutputLimit)
+        | Measurement(Encoding(OutputLimit))
+        | Proof(BudgetExceeded)
+        | Limit(
+          Encoding(OutputLimit)
+          | Admission(BudgetExceeded)
+          | Arithmetic(ClosureBudgetExceeded)
+        )
+      )
+    )
+    | Values(
+      Recursive(
+        _,
+        BudgetExceeded
+        | Encoding(OutputLimit)
+        | Measurement(Encoding(OutputLimit))
+      )
+    )
     | Joins(BudgetExceeded)
     | IntervalSearch(BudgetExceeded)
     | AsOfSearch(BudgetExceeded)
@@ -338,6 +401,7 @@ fn closure_diagnostic_category(
     | Links(BudgetExceeded)
     | Requirements(BudgetExceeded)
     | Gates(BudgetExceeded)
+    | Gates(Gate(_, BudgetExceeded | Hash(OutputLimit)))
     | Contracts(BudgetExceeded) => CompileLimit
     Values(InvalidLimits)
     | Joins(InvalidLimits)
