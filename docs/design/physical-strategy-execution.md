@@ -345,6 +345,23 @@ confirmation, without discharging an existing reservation or rewriting the
 binding needed for recovery. Replacing a released environment with another binding
 cannot recover its old copy; accumulated transfer usage remains charged.
 
+The common DAG owns a collection of environments keyed by exact resource binding,
+not a single environment selected by implementation name. Simultaneous bindings
+have separate capacity reservations, copy inventories and settlement. Another
+provision for the same binding is rejected until the previous environment has
+settled, including while cleanup is pending. Settling one environment removes only
+that environment; it does not release another binding's copies or reservations.
+
+Whole-strategy composition accounts for preparation and imports separately for
+each distinct profile. A single binding cannot promise conflicting profiles in
+the same strategy. New environment capacities are cumulative; serial temporary
+work contributes a peak, not a fictitious shared environment. Outstanding cleanup
+for every existing environment applies independently of the remaining task
+placements, including an all-Local selection. Equal input contents on different
+bindings do not discount transfers. These common capabilities do not imply that
+the standard Node assembly provisions multiple resident environments; its resource
+selection and transport wiring must explicitly supply those bindings.
+
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned
 handles: callers can inspect immutable limits, usage, ownership and availability,

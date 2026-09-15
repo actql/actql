@@ -134,47 +134,25 @@ priv struct ResidentComposition {
 }
 
 ///|
-fn compose_resident_choices(
+fn compose_resident_profile(
   run : CapturedDAG,
   choices : Array[TaskOffer?],
+  profile : ResidentProfile,
   work : SearchWork,
 ) -> Result[ResidentComposition, SearchIssue] {
-  let mut profile : ResidentProfile? = None
-  for task, choice in choices {
-    if task_done(run, task) {
-      continue
+  let mut environment : ResidentEnvironment? = None
+  for env in run.resident_environments {
+    match search_charge(work, 1) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    if choice is Some(offer) && offer.resident is Some(actual) {
-      if profile is Some(previous) && !physical_equal(previous, actual) {
-        return Err(InvalidCapacity)
-      }
-      profile = Some(actual)
+    if env.profile is Some(actual) && physical_equal(actual, profile) {
+      environment = Some(env)
+      break
     }
   }
-  // An existing environment's outstanding cleanup belongs to every candidate,
-  // including all-Local plans and plans made while cleanup is still pending.
-  let outstanding_cleanup = match run.resident_environment {
-    Some(env) if !env.settled =>
-      env.profile.map(value => value.cleanup.duration)
-    _ => None
-  }
-  guard profile is Some(profile) else {
-    return Ok({
-      duration: match outstanding_cleanup {
-        Some(value) => value
-        None => @cost.Complete(0L)
-      },
-      transfer: 0L,
-      execution: 0L,
-      database: 0L,
-      attempts: 0,
-      rejected: false,
-    })
-  }
-  let live = run.resident_environment is Some(env) &&
-    resident_environment_available(run, env) &&
-    env.profile is Some(actual) &&
-    physical_equal(actual, profile)
+  let live = environment is Some(env) &&
+    resident_environment_available(run, env)
   let available = Array::make(choices.length(), false)
   let table_bytes = Array::make(choices.length(), 0L)
   let finished = Array::make(choices.length(), false)
@@ -183,7 +161,7 @@ fn compose_resident_choices(
   }
   let mut held = 0L
   let mut rejected = false
-  if live && run.resident_environment is Some(env) {
+  if live && environment is Some(env) {
     for i, table in env.tables {
       if table is Some(table) &&
         table.committed &&
@@ -195,9 +173,6 @@ fn compose_resident_choices(
     held = @resources.shared_capacity_usage(env.capacity).allocated
   }
   let lines = []
-  if outstanding_cleanup is Some(cleanup) {
-    lines.push(cleanup)
-  }
   if !live {
     lines.push(profile.preparation.duration)
     lines.push(profile.cleanup.duration)
@@ -214,7 +189,11 @@ fn compose_resident_choices(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    guard choice is Some(offer) && offer.resident is Some(_) else { continue }
+    guard choice is Some(offer) &&
+      offer.resident is Some(selected) &&
+      physical_equal(selected, profile) else {
+      continue
+    }
     for edge in run.graph.data {
       if edge.consumer != task {
         continue

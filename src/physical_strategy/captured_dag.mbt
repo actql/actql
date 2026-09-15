@@ -14,7 +14,7 @@ struct CapturedDAG {
   inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
-  mut resident_environment : ResidentEnvironment?
+  mut resident_environments : Array[ResidentEnvironment]
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
   mut generation : Int
@@ -169,7 +169,7 @@ pub fn open_captured_dag(
     failure: None,
     running: None,
     executions: Array::make(count, None),
-    resident_environment: None,
+    resident_environments: [],
     generation: 0,
     search: None,
     revisions: 0,

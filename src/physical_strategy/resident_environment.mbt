@@ -26,9 +26,6 @@ pub fn begin_resident_environment(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
-  if run.resident_environment is Some(_) {
-    return Err(NotReady)
-  }
   guard run.strategy is Some(revision) else { return Err(ForeignCandidate) }
   guard strategy_resident_profile(revision, task) is Some(profile) else {
     return Err(ForeignCandidate)
@@ -37,6 +34,12 @@ pub fn begin_resident_environment(
       resident_profile_registration(profile),
     ) {
     return Err(ForeignCandidate)
+  }
+  for existing in run.resident_environments {
+    if existing.profile is Some(owned) &&
+      physical_equal(owned.binding, profile.binding) {
+      return Err(NotReady)
+    }
   }
   guard strategy_task_envelope(run, task) is Some(envelope) else {
     return Err(ForeignCandidate)
@@ -62,7 +65,7 @@ pub fn begin_resident_environment(
     importing: false,
     profile: Some(profile),
   }
-  run.resident_environment = Some(environment)
+  run.resident_environments.push(environment)
   Ok(environment)
 }
 
@@ -72,21 +75,19 @@ fn owns_resident_environment(
   env : ResidentEnvironment,
 ) -> Bool {
   physical_equal(run.offer_owner, env.owner) &&
-  run.resident_environment is Some(owned) &&
-  physical_equal(owned, env)
+  run.resident_environments.any(owned => physical_equal(owned, env))
 }
 
 ///|
 fn resident_provision_pending(run : CapturedDAG) -> Bool {
-  run.resident_environment is Some(env) &&
-  (
+  run.resident_environments.any(env => {
     (
       !env.ready &&
       !@resources.shared_capacity_usage(env.capacity).closing &&
       !env.settled
     ) ||
     env.importing
-  )
+  })
 }
 
 ///|
@@ -211,7 +212,9 @@ pub fn settle_resident_environment(
       for i in 0..<env.tables.length() {
         env.tables[i] = None
       }
-      run.resident_environment = None
+      run.resident_environments = run.resident_environments.filter(owned => {
+        !physical_equal(owned, env)
+      })
       run.generation += 1
       Ok(())
     }
