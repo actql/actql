@@ -138,10 +138,15 @@ test('concrete Compute capacity formula is owned and exported by its connector',
 test('Host join dispatch cannot build SQL or exchange a compiled preparation request', () => {
   const dispatch = readFileSync('src/duckdb_host/dispatch_implementations.mbt', 'utf8');
   assert.doesNotMatch(dispatch, /@duckdb\.(?:compile_fixed_inner_join|prepare_fixed_join_inputs|prepare_fixed_join_compute)\b/);
+  assert.doesNotMatch(dispatch, /"owned_input"|compile_duckdb_join_candidate\(|bind_duckdb_join_candidate\(|choose_fixed_compute_candidate\(/);
+  assert.match(dispatch, /duckdb_dispatch_preflight_work\(preparation\)/);
+  assert.match(dispatch, /@resources\.charge_planning\(/);
   const api = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
-  assert.match(api, /^type DuckDBJoinPreparation$/m);
-  assert.doesNotMatch(api, /(?:struct|enum) DuckDBJoinPreparation\b/);
-  const binding = api.split('\n').find(line => line.startsWith('pub fn bind_duckdb_join_candidate('));
+  assert.doesNotMatch(api, /DuckDBJoinPreparation|pub fn (?:compile_duckdb_join_candidate|bind_duckdb_join_candidate|check_duckdb_compute_static)\b/);
+  assert.match(api, /^type DuckDBDispatchPreparation$/m);
+  assert.match(api, /^type DuckDBSelectedCompute$/m);
+  assert.doesNotMatch(api, /(?:struct|enum) (?:DuckDBDispatchPreparation|DuckDBSelectedCompute)\b/);
+  const binding = api.split('\n').find(line => line.startsWith('pub fn bind_duckdb_dispatch_candidate('));
   assert.ok(binding);
   assert.doesNotMatch(binding, /FixedComputeRequest|ProducerRead/);
 });

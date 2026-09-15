@@ -98,6 +98,15 @@ Configuration slot numbers are private lookup keys; they never replace the exact
 checked-owner comparison against the incoming fixed-input request. Installation
 does not run admission, and registry closure disables later preparation without
 revoking independently completed outputs.
+DuckDB preparation similarly retains its physical input names, compiled join,
+input validation limits and output ceiling inside an opaque connector plan.
+The Host reads the required preflight work and charges the common planning ledger
+before invoking the plan's one-shot binding operation. The binding request and
+limits cannot be replaced between compilation and input validation. Static
+unsupported-expression and resident-name diagnostics are produced by the DuckDB
+connector; Host configuration transports the reasons without interpreting SQL
+name-resolution rules. No native execution or completion is implied by candidate
+selection, and all task reservations and completion checks still apply.
 
 This is trusted connector-author wiring, not a callback accepted from a Program
 or an ordinary Host execution request. It cannot sandbox an arbitrary plugin in

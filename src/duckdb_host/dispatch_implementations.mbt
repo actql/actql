@@ -24,20 +24,14 @@ fn prepare_local_dispatch_work(
 }
 
 ///|
-/// DuckDB-specific compilation and binding stay in this implementation entry.
+/// The connector owns compilation/binding. The Host admits preflight work on
+/// its existing ledger before the connector may scan fixed inputs.
 fn prepare_native_dispatch_work(
   host : StrategyHostDispatch,
   task : Int,
   revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
 ) -> Result[DispatchWork, DispatchIssue] {
-  let registration = host.native_registration
-  let generated = host.generated[task - 1]
-  let quantities : @connector.QueryQuantities = {
-    transfer_bytes: None,
-    retained_bytes: None,
-    money_units: None,
-  }
   if host.native_rejections[task - 1] is Some(_) {
     return Err(ForeignSelection)
   }
@@ -45,71 +39,36 @@ fn prepare_native_dispatch_work(
     host.resident_rejections[task - 1] is Some(_) {
     return Err(ForeignSelection)
   }
-  let prepared = if @strategy.captured_task_join_output_limit(host.run, task)
-    is Some(required) {
-    let query = match
-      @duckdb_compute.compile_duckdb_join_candidate(
-        request,
-        host.limits.native_query,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(NativeCandidate(issue))
-    }
-    match
-      @resources.charge_planning(
-        @strategy.captured_dag_ledger(host.run),
-        host.limits.join_validation.max_work,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(Run(Physical(issue)))
-    }
-    let ceiling = if required < host.limits.capacity.max_rows.to_int64() {
-      required.to_int()
-    } else {
-      host.limits.capacity.max_rows
-    }
-    match
-      @duckdb_compute.bind_duckdb_join_candidate(
-        registration,
-        query,
-        host.limits.join_validation,
-        ceiling,
-        [],
-        quantities,
-        host.limits.candidate_work,
-      ) {
-      Err(JoinPreparation(issue)) => {
-        @strategy.stop_captured_dag(host.run)
-        return Err(JoinPreparation(issue))
-      }
-      result => result
-    }
-  } else {
-    @duckdb_compute.duckdb_fixed_compute_candidate(
-      registration,
+  let preparation = match
+    @duckdb_compute.prepare_duckdb_dispatch_candidate(
+      host.registry,
+      host.native_registration,
       request,
-      "owned_input",
       host.limits.native_query,
-      [],
-      quantities,
+      host.limits.join_validation,
+      @strategy.captured_task_join_output_limit(host.run, task),
       host.limits.candidate_work,
-    )
-  }
-  let candidate = match prepared {
+    ) {
     Ok(value) => value
     Err(issue) => return Err(NativeCandidate(issue))
   }
-  let choice = match
-    @connector.choose_fixed_compute_candidate(
-      host.registry,
-      request,
-      [@connector.prepared_compute_candidate(candidate)],
-      Some([0]),
-      host.limits.candidate_work,
-    ) {
-    Ok(Proposed(choice)) => choice
-    Ok(_) => return Err(ForeignSelection)
-    Err(issue) => return Err(Candidate(issue))
+  if @duckdb_compute.duckdb_dispatch_preflight_work(preparation) is Some(work) {
+    match
+      @resources.charge_planning(@strategy.captured_dag_ledger(host.run), work) {
+      Ok(_) => ()
+      Err(issue) => return Err(Run(Physical(issue)))
+    }
+  }
+  let selected = match
+    @duckdb_compute.bind_duckdb_dispatch_candidate(preparation) {
+    Ok(value) => value
+    Err(Native(JoinPreparation(issue))) => {
+      @strategy.stop_captured_dag(host.run)
+      return Err(JoinPreparation(issue))
+    }
+    Err(Native(issue)) => return Err(NativeCandidate(issue))
+    Err(Selection(issue)) => return Err(Candidate(issue))
+    Err(NotSelected) => return Err(ForeignSelection)
   }
   Ok(
     DispatchWork::Native(
@@ -117,9 +76,9 @@ fn prepare_native_dispatch_work(
         host.run,
         task,
         configure_compute_host(
-          choice,
-          candidate,
-          generated,
+          @duckdb_compute.duckdb_selected_compute_choice(selected),
+          @duckdb_compute.duckdb_selected_compute_candidate(selected),
+          host.generated[task - 1],
           host.limits.native,
           host.limits.transport,
         ),

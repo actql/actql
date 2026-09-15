@@ -2,7 +2,7 @@
 /// Compilation is separate from the bounded input preflight so that the Host
 /// charges planning work before any input scan. The SQL and physical input names
 /// are private to this connector-owned preparation.
-struct DuckDBJoinPreparation {
+priv struct DuckDBJoinPreparation {
   request : @connector.FixedComputeRequest
   query : @duckdb.NativeInnerJoin
   compilation : @duckdb.NativeQueryLimits
@@ -23,7 +23,7 @@ fn compute_input_tables(owner : @lower.BoundPrepared) -> Array[String] {
 }
 
 ///|
-pub fn check_duckdb_compute_static(
+fn check_duckdb_compute_static(
   owner : @lower.BoundPrepared,
   compilation : @duckdb.NativeQueryLimits,
 ) -> Result[Unit, @duckdb.NativeQueryIssue] {
@@ -35,7 +35,7 @@ pub fn check_duckdb_compute_static(
 }
 
 ///|
-pub fn compile_duckdb_join_candidate(
+fn compile_duckdb_join_candidate(
   request : @connector.FixedComputeRequest,
   compilation : @duckdb.NativeQueryLimits,
 ) -> Result[DuckDBJoinPreparation, DuckDBComputeCandidateIssue] {
@@ -53,7 +53,7 @@ pub fn compile_duckdb_join_candidate(
 ///|
 /// Called after the common Host has admitted the bounded preflight work. The
 /// request and compiled owner cannot be exchanged between these two phases.
-pub fn bind_duckdb_join_candidate(
+fn bind_duckdb_join_candidate(
   registration : @connector.CapabilityRegistration,
   preparation : DuckDBJoinPreparation,
   validation : @execution.FixedJoinValidationLimits,
