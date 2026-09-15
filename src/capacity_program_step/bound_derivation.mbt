@@ -94,9 +94,10 @@ pub fn bound_derivation_input_at(
 }
 
 ///|
-/// For these unary rules an input bound at or below this ceiling is already
-/// sufficient through the existing non-expanding transfer. This arithmetic
-/// reader does not establish input applicability or discharge runtime checks.
+/// Arithmetic ceiling for potentially reusing a unary input bound. Callers must
+/// also require forwarded_bound_target to select that operand: an unchanged
+/// numeric bound alone does not establish a valid evidence-transfer path.
+/// This reader neither establishes input applicability nor discharges runtime checks.
 pub fn bound_derivation_reuse_ceiling(derivation : BoundDerivation) -> Int64? {
   match derivation.rule {
     Clamp(maximum) => Some(maximum)

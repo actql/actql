@@ -558,6 +558,12 @@ fn derive_row_capacity(
                 continue
               }
               if inputs.length() == 1 &&
+                @step_bounds.forwarded_bound_target(
+                  derivation.pipeline,
+                  derivation.index,
+                  derivation.unit,
+                ) ==
+                Some(targets[0].target) &&
                 @step_bounds.bound_derivation_reuse_ceiling(derivation)
                 is Some(ceiling) &&
                 inputs[0] is @step_bounds.StepInput(bound) &&
