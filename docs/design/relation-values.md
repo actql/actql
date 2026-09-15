@@ -36,6 +36,19 @@ publication obligations.
 An occurrence count is not proof of unique projected field values, acquisition
 completeness, a published CID or an admitted physical resource envelope.
 
+`pipeline_check_context.prepare_values_row_bound` derives the existing
+`actql.bound.values` proof from the exact checked pipeline and step, without a
+caller-supplied count or proof body. Empty and repeated authored rows contribute
+their actual cardinality. This preparation is independent of wire-byte
+measurement and Host ceiling selection: a count proof does not discharge cell
+binding, supply an absent policy, or attest successful enforcement.
+The returned application retains its exact pipeline owner even when another
+pipeline produces the same local proof CID. Its metadata usage counts the
+complete proof and complete witness once each, with combined byte/node caps and
+per-artifact depth checks. The publication row-limit constructor uses the same
+construction under its enclosing metadata meter; it does not re-admit a second
+count claim or infer a count from the Host ceiling.
+
 The pipeline requires `as`, rejects step-level `from`, records no input edges,
 and establishes this step as current. Existing current is not consumed. Generated
 Relations can feed subsequent operations and named Results, including typed empty

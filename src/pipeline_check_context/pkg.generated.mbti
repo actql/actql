@@ -740,6 +740,8 @@ pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_
 
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
+pub fn prepare_values_row_bound(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.Limits) -> Result[ValuesRowBound, ValuesRowLimitIssue]
+
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
 pub fn program_identity_definition_cid(ProgramSourceIdentity) -> String
@@ -3606,6 +3608,12 @@ pub(all) enum ValuesRecursiveIssue {
   DepthExceeded
   BytesExceeded
 } derive(@debug.Debug)
+
+pub struct ValuesRowBound {
+  bound : @capacity_program_step.StepBound
+  metadata_bytes : Int
+  metadata_nodes : Int
+}
 
 pub struct ValuesRowLimit {
   wire : ValuesWireLimit

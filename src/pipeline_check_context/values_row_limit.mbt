@@ -48,14 +48,11 @@ fn resolve_values_row_limit_metered(
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
     return Err(InvalidOwner)
   }
-  guard step.operation is @pipeline.Values(values) else {
-    return Err(InvalidOwner)
-  }
+  guard step.operation is @pipeline.Values(_) else { return Err(InvalidOwner) }
   guard @policy.ceiling(wire.policy, "max_relation_output_rows")
     is Some(ceiling) else {
     return Err(MissingCeiling)
   }
-  let count = @values.row_count(values)
   let subject = "checked-step:" + site.step.to_string()
   let metadata : @wire.Limits = {
     max_bytes: limits.max_bytes,
@@ -73,79 +70,14 @@ fn resolve_values_row_limit_metered(
       @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
     }
   }
+  let rows = match
+    prepare_values_row_bound_metered(site.pipeline, site.step, limits, meter) {
+    Ok(v) => v
+    Err(e) => return Err(e)
+  }
+  let witness = @wire.program_proof_witness(@step_bounds.checked_proof(rows))
+  let count = @wire.value(witness)
   try {
-    reserve_values_metadata(meter, limits, out => {
-      emit_values_measurement_proof(
-        subject,
-        count,
-        out,
-        law="actql.bound.values",
-        unit="rows",
-      )
-    })
-    let hash = writer(true)
-    emit_values_measurement_proof(
-      subject,
-      count,
-      hash,
-      law="actql.bound.values",
-      unit="rows",
-    )
-    let proof_cid = "sha256:" + @encode.finish_hash(hash)
-    let out = writer(false)
-    emit_values_measurement_proof(
-      subject,
-      count,
-      out,
-      law="actql.bound.values",
-      unit="rows",
-    )
-    let proof_bytes = @wire_utf8.encode(@encode.finish(out))
-    reserve_values_metadata(meter, limits, out => {
-      emit_values_measurement_witness(
-        subject,
-        count,
-        proof_cid,
-        Some(values_metadata_cid),
-        out,
-        law="actql.bound.values",
-        unit="rows",
-      )
-    })
-    let hash = writer(true)
-    emit_values_measurement_witness(
-      subject,
-      count,
-      proof_cid,
-      None,
-      hash,
-      law="actql.bound.values",
-      unit="rows",
-    )
-    let witness_cid = "sha256:" + @encode.finish_hash(hash)
-    let out = writer(false)
-    emit_values_measurement_witness(
-      subject,
-      count,
-      proof_cid,
-      Some(witness_cid),
-      out,
-      law="actql.bound.values",
-      unit="rows",
-    )
-    let witness = match
-      @wire.admit(@wire_utf8.encode(@encode.finish(out)), witness_cid, metadata) {
-      Ok(v) => v
-      Err(e) => return Err(Admission(e))
-    }
-    let proof = match @wire.bind_program_proof(proof_bytes, witness, metadata) {
-      Ok(v) => v
-      Err(e) => return Err(Admission(e))
-    }
-    let rows = match @step_bounds.check(site.pipeline, site.step, proof) {
-      Ok(v) => v
-      Err(e) => return Err(Application(e))
-    }
     let host = match
       @host.create(ceiling, {
         max_bytes: values_metadata_bytes(meter, limits),
@@ -199,7 +131,7 @@ fn resolve_values_row_limit_metered(
       let ceiling_value = @policy.ceiling_value(ceiling)
       @encode.number_value(
         out,
-        if count.to_int64() < ceiling_value {
+        if count < ceiling_value {
           count.to_double()
         } else {
           ceiling_value.to_double()
