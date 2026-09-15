@@ -142,6 +142,7 @@ fn classify_diagnostic_cause(
         }
         Decode(error) => decode_diagnostic_category(error.kind)
         RetentionLimit(_, ..) => CompileLimit
+        Structure(StageLimit, ..) => CompileLimit
         Structure(_, ..) => InvalidInput
       }
     CapacityInputs(InvalidLimits) => InvalidConfiguration
