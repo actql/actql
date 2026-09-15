@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/reference_compute/driver"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/physical_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]
+
+pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
+
+pub fn[C, E] start_numeric_dispatch(NumericDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), @physical_strategy.RunIssue]
+
+// Errors
+
+// Types and methods
+type NumericDispatchModule
+
+// Type aliases
+
+// Traits
