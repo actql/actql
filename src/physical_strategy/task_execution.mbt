@@ -7,6 +7,16 @@ priv struct TaskExecution {
   reservation : @resources.Reservation
   retention : Int64
   scratch : Int64
+  mut hooks : TaskExecutionHooks?
+  mut execution_settled : Bool
+  mut disposed : Bool
+  mut failed_holding : @resources.Holding?
+}
+
+///|
+/// Installed implementation references live only until final disposal and
+/// settlement. A retained closed handle must not retain the whole driver graph.
+priv struct TaskExecutionHooks {
   cancel : () -> Unit
   dispose : () -> Unit
   settled : () -> Unit
@@ -14,9 +24,6 @@ priv struct TaskExecution {
   ready : () -> Result[Unit, RunIssue]
   finish : () -> Result[@execution.CompletedOutput, RunIssue]
   publish : (@execution.CompletedOutput) -> Result[Unit, RunIssue]
-  mut execution_settled : Bool
-  mut disposed : Bool
-  mut failed_holding : @resources.Holding?
 }
 
 ///|
@@ -70,7 +77,7 @@ fn settle_task_execution(
     Err(issue) => Err(issue)
     Ok(_) => {
       execution.execution_settled = true
-      (execution.settled)()
+      (execution.hooks.unwrap().settled)()
       if execution.disposed {
         release_task_execution(run, execution)
       }
@@ -97,7 +104,8 @@ fn complete_task_execution(
   if execution.disposed || !execution.execution_settled {
     return Err(Physical(InvalidCharge))
   }
-  match (execution.ready)() {
+  let hooks = execution.hooks.unwrap()
+  match (hooks.ready)() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -110,7 +118,7 @@ fn complete_task_execution(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  match (execution.finish)() {
+  match (hooks.finish)() {
     Ok(output) => {
       guard captured_task_target(run, task) is Some(target) &&
         @execution.completed_output_matches_port(
@@ -122,7 +130,7 @@ fn complete_task_execution(
         fail_captured_task(run, task, ForeignCandidate)
         return Err(ForeignCandidate)
       }
-      match (execution.publish)(output) {
+      match (hooks.publish)(output) {
         Err(issue) => {
           execution.failed_holding = Some(holding)
           fail_captured_task(run, task, issue)
@@ -156,7 +164,7 @@ fn close_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit {
     stop_captured_dag(run)
   }
   execution.disposed = true
-  (execution.dispose)()
+  (execution.hooks.unwrap().dispose)()
   close_captured_task_output(run, execution.task)
   if execution.execution_settled {
     release_task_execution(run, execution)
@@ -181,5 +189,7 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   }
   captured_cleanup_confirmed(run, execution)
   run.executions[execution.task] = None
-  (execution.released)()
+  let hooks = execution.hooks.unwrap()
+  execution.hooks = None
+  (hooks.released)()
 }

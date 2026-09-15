@@ -13,7 +13,7 @@ pub fn start_captured_duckdb_task(
   native_execution_bytes : Int64,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   resident? : ResidentInputs,
-) -> Result[@duckdb_compute.DuckDBComputeAttempt, RunIssue] {
+) -> Result[CapturedDuckDBTask, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
@@ -124,11 +124,8 @@ pub fn start_captured_duckdb_task(
       if resident is Some(inputs) {
         inputs.claimed = true
       }
-      let execution : TaskExecution = {
-        task,
-        reservation,
-        retention,
-        scratch,
+      let pending_output = Ref(resident_output)
+      let hooks : TaskExecutionHooks = {
         cancel: fn() { @duckdb_compute.abort_duckdb_compute_attempt(attempt) },
         dispose: fn() { @duckdb_compute.close_duckdb_compute_attempt(attempt) },
         settled: fn() {
@@ -136,9 +133,9 @@ pub fn start_captured_duckdb_task(
             return_resident_inputs(read) |> ignore
           }
         },
-        released: fn() { run.native_resources[task] = None },
+        released: fn() { pending_output.val = None },
         ready: fn() {
-          if resident_output is Some(pending) &&
+          if pending_output.val is Some(pending) &&
             (
               !pending.committed ||
               !resident_environment_available(run, pending.environment)
@@ -155,19 +152,25 @@ pub fn start_captured_duckdb_task(
           }
         },
         publish: fn(output) {
-          match resident_output {
+          match pending_output.val {
             Some(pending) => publish_resident_output(run, task, pending, output)
             None => Ok(())
           }
         },
+      }
+      let execution : TaskExecution = {
+        task,
+        reservation,
+        retention,
+        scratch,
+        hooks: Some(hooks),
         execution_settled: false,
         disposed: false,
         failed_holding: None,
       }
       run.executions[task] = Some(execution)
-      run.native_resources[task] = Some({ attempt, execution, resident_output, })
       run.running = Some((task, execution))
-      Ok(attempt)
+      Ok({ attempt, execution, resident_output: pending_output, })
     }
     Err(issue) => {
       // No native work has started: only synchronous admission failed.
@@ -188,12 +191,12 @@ pub fn start_captured_duckdb_task(
 /// verifies transport, capacity, demand and retention before recording success.
 pub fn complete_captured_duckdb_task(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
-  guard native_task_resource(run, attempt) is Some((_, resource)) else {
+  guard captured_duckdb_task_matches(run, resource) else {
     return Err(ForeignCandidate)
   }
   complete_task_execution(run, resource.execution)

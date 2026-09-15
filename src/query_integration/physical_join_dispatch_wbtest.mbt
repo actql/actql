@@ -234,7 +234,9 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       )
       continue
     }
-    let compute = @duckdb_compute.duckdb_compute_attempt_plan(attempt)
+    let compute = @duckdb_compute.duckdb_compute_attempt_plan(
+      @strategy.captured_duckdb_attempt(attempt),
+    )
     assert_eq(@duckdb.fixed_compute_import_count(compute), 2)
     for port in [0, 1] {
       let read = @duckdb.fixed_import_input(
@@ -243,14 +245,19 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(@execution.producer_read_input_index(read), port)
     }
     assert_eq(@duckdb.fixed_compute_join_output_ceiling(compute), Some(100))
-    @duckdb_compute.begin_duckdb_compute_result(attempt, [
-      ("id", @duckdb.Float64),
-    ]).unwrap()
-    @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
-      input_cursor("[\"4008000000000000\"]"),
-    ]).unwrap()
-    @duckdb_compute.finish_duckdb_compute_result(attempt).unwrap()
-    transport.settled = Some(attempt)
+    @duckdb_compute.begin_duckdb_compute_result(
+      @strategy.captured_duckdb_attempt(attempt),
+      [("id", @duckdb.Float64)],
+    ).unwrap()
+    @duckdb_compute.receive_duckdb_compute_chunk(
+      @strategy.captured_duckdb_attempt(attempt),
+      1,
+      [input_cursor("[\"4008000000000000\"]")],
+    ).unwrap()
+    @duckdb_compute.finish_duckdb_compute_result(
+      @strategy.captured_duckdb_attempt(attempt),
+    ).unwrap()
+    transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
     assert_true(
       @strategy.complete_captured_duckdb_task(run, attempt)
       is Err(Physical(InvalidCharge)),

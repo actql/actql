@@ -1,31 +1,37 @@
 ///|
-priv struct NativeTaskResources {
+/// Concrete bridge handle; the DAG retains only its common execution.
+/// It cannot be reconstructed from a raw attempt, task number or equal content.
+struct CapturedDuckDBTask {
   attempt : @duckdb_compute.DuckDBComputeAttempt
   execution : TaskExecution
-  resident_output : ResidentPendingOutput?
+  resident_output : Ref[ResidentPendingOutput?]
 }
 
 ///|
-fn native_task_resource(
+fn captured_duckdb_task_matches(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
-) -> (Int, NativeTaskResources)? {
-  for task, value in run.native_resources {
-    if value is Some(value) && physical_equal(value.attempt, attempt) {
-      return Some((task, value))
-    }
-  }
-  None
+  task : CapturedDuckDBTask,
+) -> Bool {
+  task_execution_matches(run, task.execution)
+}
+
+///|
+/// Transport access only; this raw attempt cannot operate on the DAG ledger or
+/// publish a DAG result without the exact enclosing execution handle.
+pub fn captured_duckdb_attempt(
+  task : CapturedDuckDBTask,
+) -> @duckdb_compute.DuckDBComputeAttempt {
+  task.attempt
 }
 
 ///|
 /// Concrete attempt lookup delegates physical enforcement to the common driver.
 pub fn charge_captured_duckdb_transfer(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
   bytes : Int64,
 ) -> Result[Unit, @resources.LedgerIssue] {
-  guard native_task_resource(run, attempt) is Some((_, resource)) else {
+  guard captured_duckdb_task_matches(run, resource) else {
     return Err(ForeignOwner)
   }
   charge_task_execution_transfer(run, resource.execution, bytes)
@@ -35,10 +41,10 @@ pub fn charge_captured_duckdb_transfer(
 /// Actual transport settlement, not a cancellation request.
 pub fn settle_captured_duckdb_native(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
   confirmed : Bool,
 ) -> Result[Unit, @resources.LedgerIssue] {
-  guard native_task_resource(run, attempt) is Some((_, resource)) else {
+  guard captured_duckdb_task_matches(run, resource) else {
     return Err(ForeignOwner)
   }
   settle_task_execution(run, resource.execution, confirmed)
@@ -47,10 +53,8 @@ pub fn settle_captured_duckdb_native(
 ///|
 pub fn close_captured_duckdb_task(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
 ) -> Unit {
-  guard native_task_resource(run, attempt) is Some((_, resource)) else {
-    return
-  }
+  guard captured_duckdb_task_matches(run, resource) else { return }
   close_task_execution(run, resource.execution)
 }

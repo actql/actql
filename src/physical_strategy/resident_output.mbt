@@ -53,12 +53,12 @@ fn prepare_resident_output(
 /// DROP executes inside this task's transaction after its reads have finished.
 pub fn captured_resident_cleanup_sql(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
 ) -> Result[Array[String], RunIssue] {
-  guard native_task_resource(run, attempt) is Some((_, resource)) &&
+  guard captured_duckdb_task_matches(run, resource) &&
     run.running is Some((task, active)) &&
     physical_equal(active, resource.execution) &&
-    resource.resident_output is Some(pending) else {
+    resource.resident_output.val is Some(pending) else {
     return Err(ForeignCandidate)
   }
   if pending.cleanup_prepared {
@@ -102,11 +102,13 @@ pub fn captured_resident_cleanup_sql(
 ///|
 pub fn captured_resident_query(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
 ) -> @duckdb.ResidentQuery? {
-  native_task_resource(run, attempt).bind(pair => {
-    pair.1.resident_output.map(value => value.query)
-  })
+  if captured_duckdb_task_matches(run, resource) {
+    resource.resident_output.val.map(value => value.query)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -114,15 +116,15 @@ pub fn captured_resident_query(
 /// Host receiving/guard validation must also succeed before task publication.
 pub fn confirm_captured_resident_output(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  resource : CapturedDuckDBTask,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
-  guard native_task_resource(run, attempt) is Some((_, resource)) &&
+  guard captured_duckdb_task_matches(run, resource) &&
     run.running is Some((_, active)) &&
     physical_equal(active, resource.execution) &&
-    resource.resident_output is Some(output) else {
+    resource.resident_output.val is Some(output) else {
     return Err(ForeignCandidate)
   }
   if resource.execution.disposed ||

@@ -41,6 +41,14 @@ test('physical resource ledger is independent of strategy and connector implemen
   for (const [, block] of dependencies) assert.doesNotMatch(block, /actql\/actql\//);
 });
 
+test('DAG execution storage does not maintain a backend attempt lookup table', () => {
+  const source = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
+  const state = source.match(/struct CapturedDAG \{([\s\S]*?)\n\}/)?.[1];
+  assert.ok(state);
+  assert.doesNotMatch(state, /DuckDBComputeAttempt|NativeTaskResources|native_resources/);
+  assert.match(state, /executions : Array\[TaskExecution\?\]/);
+});
+
 test('fixed-input engine has no acquisition or query-integration dependency, including tests', () => {
   const forbidden = ['execution_query', 'query_planning', 'query_integration',
     'sourceview_resolution', 'program_check', 'pipeline_check_context'];

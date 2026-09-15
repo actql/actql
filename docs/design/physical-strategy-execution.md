@@ -76,6 +76,15 @@ input/attempt/transport evidence validation. Cancellation alone never releases
 execution reservations. Confirmed execution cleanup may release execution
 capacity while keeping completion scratch and provisional output accounted.
 
+The DAG stores only common execution handles, not a parallel array indexed by
+concrete backend attempts. The DuckDB bridge retains an opaque task handle that
+binds its transport attempt, common execution and provisional resident output.
+Ledger and completion operations validate that exact execution against the DAG;
+a raw transport attempt cannot be used to recover or replace the binding. Once
+disposal and settlement both finish, the common execution detaches its hooks and
+the bridge drops provisional resident references. A retained closed handle cannot
+reactivate work or release another task's reservation.
+
 The trusted acquisition transport also forwards physical accounting through both
 broad and two-receipt native coordinators. Metadata and each actual row receipt
 are charged before receiver acceptance. Native session cleanup acknowledgement

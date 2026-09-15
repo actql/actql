@@ -14,7 +14,6 @@ struct CapturedDAG {
   inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
-  native_resources : Array[NativeTaskResources?]
   mut resident_environment : ResidentEnvironment?
   mut stopped : Bool
   mut failure : (Int, RunIssue)?
@@ -171,7 +170,6 @@ pub fn open_captured_dag(
     failure: None,
     running: None,
     executions: Array::make(count, None),
-    native_resources: Array::make(count, None),
     resident_environment: None,
     generation: 0,
     search: None,
@@ -464,7 +462,7 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
   if run.running is Some((_, execution)) {
     // Revocation is not stop acknowledgement. The Host still owns cleanup.
-    (execution.cancel)()
+    (execution.hooks.unwrap().cancel)()
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)

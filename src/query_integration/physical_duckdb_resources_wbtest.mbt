@@ -76,9 +76,12 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
     @strategy.settle_captured_duckdb_native(other_run, attempt, true)
     is Err(ForeignOwner),
   )
+  let before_foreign_close = @resources.ledger_usage(ledger)
+  @strategy.close_captured_duckdb_task(other_run, attempt)
+  assert_eq(@resources.ledger_usage(ledger), before_foreign_close)
   @strategy.charge_captured_duckdb_transfer(run, attempt, 7L).unwrap()
   captured_graph_duckdb_receive(attempt, 1)
-  transport.settled = Some(attempt)
+  transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
   assert_true(
     @strategy.complete_captured_duckdb_task(run, attempt)
     is Err(Physical(InvalidCharge)),
@@ -112,6 +115,19 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   @strategy.close_captured_duckdb_task(run, attempt)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 7L)
+  let released = @resources.ledger_usage(ledger)
+  // Retaining the closed bridge cannot recover its detached execution.
+  assert_true(
+    @strategy.charge_captured_duckdb_transfer(run, attempt, 0L)
+    is Err(ForeignOwner),
+  )
+  assert_true(
+    @strategy.settle_captured_duckdb_native(run, attempt, true)
+    is Err(ForeignOwner),
+  )
+  assert_true(@strategy.captured_resident_query(run, attempt) is None)
+  @strategy.close_captured_duckdb_task(run, attempt)
+  assert_eq(@resources.ledger_usage(ledger), released)
 }
 
 ///|

@@ -114,7 +114,7 @@ pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBC
 
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
-pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : @physical_strategy.ResidentInputs) -> Result[@compute.DuckDBComputeAttempt, @physical_strategy.RunIssue]
+pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : @physical_strategy.ResidentInputs) -> Result[@physical_strategy.CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], String, Int, @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 

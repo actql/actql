@@ -74,7 +74,7 @@ pub fn start_configured_strategy_compute_host(
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : @strategy.ResidentInputs,
-) -> Result[@duckdb_compute.DuckDBComputeAttempt, @strategy.RunIssue] {
+) -> Result[@strategy.CapturedDuckDBTask, @strategy.RunIssue] {
   let c = setup.compute
   @strategy.start_captured_duckdb_task(
     setup.graph,

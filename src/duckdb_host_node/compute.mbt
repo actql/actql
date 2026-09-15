@@ -2,7 +2,7 @@
 struct ComputeNodeRun {
   attempt : @duckdb_compute.DuckDBComputeAttempt
   transport : @duckdb.TransportColumnLimits
-  strategy : (@strategy.CapturedDAG, Int)?
+  strategy : (@strategy.CapturedDAG, Int, @strategy.CapturedDuckDBTask)?
   mut closed : Bool
 }
 
@@ -91,11 +91,17 @@ fn open_strategy_compute_host(
       execution_bytes,
       resident?,
     ) {
-    Ok(attempt) =>
+    Ok(task_handle) =>
       {
-        attempt,
+        attempt: @strategy.captured_duckdb_attempt(task_handle),
         transport: @host.configured_strategy_compute_transport(setup),
-        strategy: Some(@host.configured_strategy_compute_graph(setup)),
+        strategy: Some(
+          (
+            @host.configured_strategy_compute_graph(setup).0,
+            @host.configured_strategy_compute_graph(setup).1,
+            task_handle,
+          ),
+        ),
         closed: false,
       }
     Err(issue) => raise Strategy(issue)
@@ -108,8 +114,8 @@ pub fn compute_resident_sql(
   run : ComputeNodeRun,
   kind : Int,
 ) -> String raise NodeHostFailure {
-  guard run.strategy is Some((graph, _)) &&
-    @strategy.captured_resident_query(graph, run.attempt) is Some(query) else {
+  guard run.strategy is Some((graph, _, task_handle)) &&
+    @strategy.captured_resident_query(graph, task_handle) is Some(query) else {
     raise InvalidCommand
   }
   match kind {
@@ -125,8 +131,10 @@ pub fn compute_resident_sql(
 pub fn compute_resident_commit(
   run : ComputeNodeRun,
 ) -> Unit raise NodeHostFailure {
-  guard run.strategy is Some((graph, _)) else { raise InvalidCommand }
-  match @strategy.confirm_captured_resident_output(graph, run.attempt) {
+  guard run.strategy is Some((graph, _, task_handle)) else {
+    raise InvalidCommand
+  }
+  match @strategy.confirm_captured_resident_output(graph, task_handle) {
     Ok(_) => ()
     Err(issue) => raise Strategy(issue)
   }
@@ -137,8 +145,10 @@ pub fn compute_resident_commit(
 pub fn compute_resident_cleanup_sql(
   run : ComputeNodeRun,
 ) -> Array[String] raise NodeHostFailure {
-  guard run.strategy is Some((graph, _)) else { raise InvalidCommand }
-  match @strategy.captured_resident_cleanup_sql(graph, run.attempt) {
+  guard run.strategy is Some((graph, _, task_handle)) else {
+    raise InvalidCommand
+  }
+  match @strategy.captured_resident_cleanup_sql(graph, task_handle) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
@@ -150,8 +160,8 @@ pub fn compute_host_physical_charge(
   run : ComputeNodeRun,
   bytes : Int64,
 ) -> Unit raise NodeHostFailure {
-  if run.strategy is Some((graph, _)) {
-    match @strategy.charge_captured_duckdb_transfer(graph, run.attempt, bytes) {
+  if run.strategy is Some((graph, _, task_handle)) {
+    match @strategy.charge_captured_duckdb_transfer(graph, task_handle, bytes) {
       Ok(_) => ()
       Err(issue) => raise Physical(issue)
     }
@@ -164,9 +174,9 @@ pub fn compute_host_physical_settle(
   run : ComputeNodeRun,
   confirmed : Bool,
 ) -> Unit raise NodeHostFailure {
-  if run.strategy is Some((graph, _)) {
+  if run.strategy is Some((graph, _, task_handle)) {
     match
-      @strategy.settle_captured_duckdb_native(graph, run.attempt, confirmed) {
+      @strategy.settle_captured_duckdb_native(graph, task_handle, confirmed) {
       Ok(_) => ()
       Err(issue) => raise Physical(issue)
     }
@@ -318,8 +328,8 @@ pub fn compute_host_finish(run : ComputeNodeRun) -> Unit raise NodeHostFailure {
 pub fn compute_host_complete(
   run : ComputeNodeRun,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
-  if run.strategy is Some((graph, task)) {
-    match @strategy.complete_captured_duckdb_task(graph, run.attempt) {
+  if run.strategy is Some((graph, task, task_handle)) {
+    match @strategy.complete_captured_duckdb_task(graph, task_handle) {
       Err(issue) => raise Strategy(issue)
       Ok(_) => ()
     }
@@ -352,7 +362,7 @@ pub fn compute_host_query_parameter_count(run : ComputeNodeRun) -> Int {
 ///|
 #export_name("computeHostAbort")
 pub fn compute_host_abort(run : ComputeNodeRun) -> Unit {
-  if run.strategy is Some((graph, _)) {
+  if run.strategy is Some((graph, _, _)) {
     @strategy.stop_captured_dag(graph)
   }
   @duckdb_compute.abort_duckdb_compute_attempt(run.attempt)
@@ -366,7 +376,7 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
   }
   run.closed = true
   @duckdb_compute.close_duckdb_compute_attempt(run.attempt)
-  if run.strategy is Some((graph, _)) {
-    @strategy.close_captured_duckdb_task(graph, run.attempt)
+  if run.strategy is Some((graph, _, task_handle)) {
+    @strategy.close_captured_duckdb_task(graph, task_handle)
   }
 }

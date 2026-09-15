@@ -3,7 +3,7 @@ fn captured_graph_duckdb_start(
   run : @strategy.CapturedDAG,
   task : Int,
   transport : FixedComputeTestTransport,
-) -> @duckdb_compute.DuckDBComputeAttempt raise {
+) -> @strategy.CapturedDuckDBTask raise {
   captured_graph_duckdb_try_start(run, task, transport).unwrap()
 }
 
@@ -14,7 +14,7 @@ fn captured_graph_duckdb_try_start(
   transport : FixedComputeTestTransport,
   transfer_bytes? : Int64 = 100000L,
   execution_bytes? : Int64 = 1000000L,
-) -> Result[@duckdb_compute.DuckDBComputeAttempt, @strategy.RunIssue] raise {
+) -> Result[@strategy.CapturedDuckDBTask, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
   let request = @connector.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -64,9 +64,10 @@ fn captured_graph_duckdb_try_start(
 
 ///|
 fn captured_graph_duckdb_receive(
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  attempt : @strategy.CapturedDuckDBTask,
   task : Int,
 ) -> Unit {
+  let attempt = @strategy.captured_duckdb_attempt(attempt)
   @duckdb_compute.begin_duckdb_compute_result(attempt, [("id", @duckdb.Float64)]).unwrap()
   @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
     input_cursor("[\"4008000000000000\"]"),
@@ -85,7 +86,7 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
     for b in [false, true] {
       for c in [false, true] {
         let (run, issuer) = captured_graph_fixture()
-        let attempts : Array[@duckdb_compute.DuckDBComputeAttempt] = []
+        let attempts : Array[@strategy.CapturedDuckDBTask] = []
         for (task, native) in [(1, a), (2, b), (3, c)] {
           if task == 3 {
             @planning.close_mock_query_issuer(issuer)
@@ -98,7 +99,7 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
               @strategy.captured_task_output(run, task, Step(1)) is None,
             )
             captured_graph_duckdb_receive(attempt, task)
-            transport.settled = Some(attempt)
+            transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
             @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
             @strategy.complete_captured_duckdb_task(run, attempt).unwrap()
             assert_true(
@@ -126,7 +127,7 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
           )
         }
         for attempt in attempts {
-          @duckdb_compute.close_duckdb_compute_attempt(attempt)
+          @strategy.close_captured_duckdb_task(run, attempt)
         }
       }
     }
@@ -139,10 +140,8 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     let (run, issuer) = captured_graph_fixture()
     let transport : FixedComputeTestTransport = { settled: None, }
     let attempt = captured_graph_duckdb_start(run, 1, transport)
-    let (other, _) = fixed_compute_attempt_fixture(
-      { settled: None, },
-      fixed_compute_attempt_limits(),
-    )
+    let (other_run, _) = captured_graph_fixture()
+    let other = captured_graph_duckdb_start(other_run, 1, { settled: None, })
     assert_true(
       @strategy.complete_captured_duckdb_task(run, other)
       is Err(ForeignCandidate),
@@ -153,7 +152,7 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     if mode != 0 {
       captured_graph_duckdb_receive(attempt, 1)
     }
-    transport.settled = Some(attempt)
+    transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
     if mode == 2 {
       @planning.close_mock_query_issuer(issuer)
     }
