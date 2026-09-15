@@ -17,6 +17,7 @@ pub struct FragmentEnforcement {
 struct SequenceRequirements {
   sequence : PreparedSequence
   fragments : Array[FragmentEnforcement]
+  by_step : Map[Int, FragmentEnforcement]
   join_ceilings : Array[(Int, Int64)]
 }
 
@@ -83,17 +84,17 @@ pub fn prepare_sequence_requirements(
     join_ceilings.length() > max_entries - fragments.length() {
     return Err(InvalidLimits)
   }
-  let seen : Map[Int, Bool] = Map([])
+  let by_step : Map[Int, FragmentEnforcement] = Map([])
   for requirement in fragments {
     let fragment = requirement.request.pipeline
     if !physical_equal(fragment.roots.sequence, sequence) {
       return Err(ForeignOccurrence)
     }
     let step = kernel_step(fragment.kernel)
-    if seen.contains(step) {
+    if by_step.contains(step) {
       return Err(DuplicateOccurrence)
     }
-    seen[step] = true
+    by_step[step] = requirement
   }
   let mut previous = -1
   for (step, ceiling) in join_ceilings {
@@ -108,6 +109,7 @@ pub fn prepare_sequence_requirements(
   Ok({
     sequence,
     fragments: fragments.copy(),
+    by_step,
     join_ceilings: join_ceilings.copy(),
   })
 }
@@ -139,6 +141,16 @@ pub fn sequence_requirements_fragment_at(
   index : Int,
 ) -> FragmentEnforcement? {
   value.fragments.get(index)
+}
+
+///|
+/// Occurrence lookup in the index bounded at construction by max_entries.
+/// Enumeration order has no bearing on the sequence's execution order.
+pub fn sequence_requirements_fragment_for_step(
+  value : SequenceRequirements,
+  step : Int,
+) -> FragmentEnforcement? {
+  value.by_step.get(step)
 }
 
 ///|

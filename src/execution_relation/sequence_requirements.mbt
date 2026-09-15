@@ -51,8 +51,14 @@ pub fn generated_satisfies_requirements(
     @lower.sequence_requirements_fragment_count(required) {
     return false
   }
-  for index, context in generated.contexts {
-    let expected = @lower.sequence_requirements_fragment_at(required, index).unwrap()
+  for context in generated.contexts {
+    guard @lower.sequence_requirements_fragment_for_step(
+        required,
+        @lower.kernel_step(context.kernel),
+      )
+      is Some(expected) else {
+      return false
+    }
     let actual = context.limits
     let selected = expected.logical
     if !physical_equal(

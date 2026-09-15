@@ -234,6 +234,8 @@ pub fn sequence_requirements_fragment_at(SequenceRequirements, Int) -> FragmentE
 
 pub fn sequence_requirements_fragment_count(SequenceRequirements) -> Int
 
+pub fn sequence_requirements_fragment_for_step(SequenceRequirements, Int) -> FragmentEnforcement?
+
 pub fn sequence_requirements_join_at(SequenceRequirements, Int) -> (Int, Int64)?
 
 pub fn sequence_requirements_join_count(SequenceRequirements) -> Int
