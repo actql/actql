@@ -4,7 +4,6 @@ package "actql/actql/physical_strategy"
 import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/adapter",
-  "actql/actql/connectors/duckdb/compute",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -241,8 +240,7 @@ pub(all) enum RunIssue {
   Binding(@execution_relation.ProducerBindingIssue)
   Read(@execution_relation.ProducerReadIssue)
   Compute(@connector_sdk.FixedComputeIssue)
-  DuckDB(@compute.DuckDBComputeIssue)
-  NativePreparation(@adapter.NativeQueryIssue)
+  Implementation(Error)
   Physical(@physical_resources.LedgerIssue)
 }
 

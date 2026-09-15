@@ -40,8 +40,7 @@ pub(all) enum RunIssue {
   Binding(@execution.ProducerBindingIssue)
   Read(@execution.ProducerReadIssue)
   Compute(@connector.FixedComputeIssue)
-  DuckDB(@duckdb_compute.DuckDBComputeIssue)
-  NativePreparation(@duckdb.NativeQueryIssue)
+  Implementation(Error)
   Physical(@resources.LedgerIssue)
 }
 

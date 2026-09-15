@@ -23,6 +23,12 @@ pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskE
 
 pub fn captured_duckdb_query(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> @adapter.ResidentQuery?
 
+pub fn compute_failure(@compute.DuckDBComputeIssue) -> @physical_strategy.RunIssue
+
+pub fn duckdb_compute_failure(@physical_strategy.RunIssue) -> @compute.DuckDBComputeIssue?
+
+pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
+
 pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[DuckDBResidentInputs, @physical_strategy.RunIssue]
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
@@ -32,6 +38,10 @@ pub fn resident_inputs_read_plans(DuckDBResidentInputs) -> Array[@compute.DuckDB
 pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 // Errors
+pub suberror DuckDBFailure {
+  Compute(@compute.DuckDBComputeIssue)
+  Preparation(@adapter.NativeQueryIssue)
+}
 
 // Types and methods
 type CapturedDuckDBTask

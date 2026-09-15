@@ -14,7 +14,8 @@ test "synchronous preparation rejection releases capacity without publishing exe
         @execution.producer_read_receiver(foreign_input),
       ),
     )
-    is Err(DuckDB(ForeignPreparation)),
+    is Err(issue) &&
+    @duckdb_driver.duckdb_compute_failure(issue) is Some(ForeignPreparation),
   )
   let after = @resources.ledger_usage(ledger)
   assert_eq(after.attempts, before.attempts + 1)
@@ -25,7 +26,8 @@ test "synchronous preparation rejection releases capacity without publishing exe
   assert_false(@strategy.captured_task_completed(run, 1))
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
   assert_true(
-    @strategy.captured_dag_failure(run) is Some((1, DuckDB(ForeignPreparation))),
+    @strategy.captured_dag_failure(run) is Some((1, issue)) &&
+    @duckdb_driver.duckdb_compute_failure(issue) is Some(ForeignPreparation),
   )
   // An accepted execution preparation failed, not a permission to retry.
   assert_true(@strategy.next_captured_task(run) is None)
@@ -239,7 +241,8 @@ test "common native cancellation and failed completion preserve staged cleanup a
           run,
           @duckdb_driver.captured_duckdb_execution(attempt),
         )
-        is Err(DuckDB(_)),
+        is Err(issue) &&
+        @duckdb_driver.duckdb_compute_failure(issue) is Some(_),
       )
       assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
       assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)

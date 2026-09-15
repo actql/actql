@@ -69,7 +69,7 @@ pub fn start_captured_duckdb_task(
                 limits,
                 transport.max_bytes,
               ) {
-              Err(issue) => Err(NativePreparation(issue))
+              Err(issue) => Err(preparation_failure(issue))
               Ok(plan) => {
                 output_plan.val = Some(plan)
                 Ok(plan)
@@ -80,7 +80,7 @@ pub fn start_captured_duckdb_task(
             match @compute.bind_duckdb_resident_output(plan, output) {
               Ok(value) => Ok(value)
               Err(Read(issue)) => Err(Read(issue))
-              Err(Preparation(issue)) => Err(NativePreparation(issue))
+              Err(Preparation(issue)) => Err(preparation_failure(issue))
             }
           },
         ) {
@@ -107,7 +107,7 @@ pub fn start_captured_duckdb_task(
         @compute.start_duckdb_compute_attempt(
           choice, prepared, generated, limits, verify,
         ) {
-        Err(issue) => Err(@strategy.RunIssue::DuckDB(issue))
+        Err(issue) => Err(compute_failure(issue))
         Ok(attempt) => {
           let operations : @connector.ExecutionOperations[
             @strategy.RunIssue,
@@ -120,7 +120,7 @@ pub fn start_captured_duckdb_task(
             ready: fn() { Ok(()) },
             finish: fn() {
               match @compute.complete_duckdb_compute_attempt(attempt) {
-                Err(issue) => Err(DuckDB(issue))
+                Err(issue) => Err(compute_failure(issue))
                 Ok(output) => Ok(output)
               }
             },
@@ -174,7 +174,7 @@ pub fn captured_duckdb_cleanup_sql(
           task.cleanup_sql_bytes,
         ) {
         Ok(sql) => statements.push(sql)
-        Err(issue) => return Err(NativePreparation(issue))
+        Err(issue) => return Err(preparation_failure(issue))
       }
     }
     Ok(statements)

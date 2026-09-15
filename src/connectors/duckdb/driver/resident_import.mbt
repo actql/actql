@@ -24,7 +24,7 @@ pub fn prepare_resident_table(
         "resident_" + ordinal.to_string(),
         max_entries,
         max_sql_bytes,
-      ).map_err(issue => NativePreparation(issue))
+      ).map_err(issue => preparation_failure(issue))
     },
   )
 }

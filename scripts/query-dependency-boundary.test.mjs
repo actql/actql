@@ -120,6 +120,10 @@ test('asynchronous common start takes an owned preparation rather than transport
 });
 
 test('concrete DuckDB task construction and lifecycle stay in the connector driver', () => {
+  assert.ok(!imports('physical_strategy').includes('connectors/duckdb/compute'));
+  const commonFailure = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
+  assert.doesNotMatch(commonFailure, /DuckDBComputeIssue|NativeQueryIssue|DuckDB\(/);
+  assert.match(commonFailure, /Implementation\(Error\)/);
   for (const file of readdirSync('src/physical_strategy')) {
     if (!file.endsWith('.mbt') || file.endsWith('test.mbt')) continue;
     const source = readFileSync(`src/physical_strategy/${file}`, 'utf8');

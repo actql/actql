@@ -20,7 +20,7 @@ pub fn borrow_resident_table(
         imported, input, view_name, max_entries, max_sql_bytes,
       )
       .map(_ => ())
-      .map_err(issue => NativePreparation(issue))
+      .map_err(issue => preparation_failure(issue))
     },
     input_index~,
   )
@@ -89,7 +89,7 @@ pub fn prepare_resident_inputs(
           imported, input, name, max_entries, remaining,
         ) {
         Ok(plan) => plan
-        Err(issue) => return Err(NativePreparation(issue))
+        Err(issue) => return Err(preparation_failure(issue))
       }
       guard @compute.duckdb_resident_read_matches(plan, imported, input) &&
         @compute.duckdb_resident_read_bytes(plan, remaining) is Some(bytes) else {

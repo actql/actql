@@ -262,6 +262,13 @@ payload. Resident execution admission matches that same candidate. The connector
 additionally checks its chosen typed payload and concrete imports before preparing
 receiver views; equal content cannot replace either ownership relationship.
 
+Connector execution diagnostics cross the common DAG as `Implementation(Error)`.
+The common driver records failure and stops dispatch without interpreting a
+provider-specific variant. DuckDB owns `DuckDBFailure` and its typed diagnostic
+projection, preserving detailed preparation/guard/receiving errors without
+string conversion. An implementation error is never evidence of completion or
+permission to retry another provider.
+
 Resident result materialization keeps its physical table name, SQL and storage
 construction limits in a connector-owned opaque plan. The shared output lifecycle
 retains its allocation, commit state and pending input cleanup, and checks exact
