@@ -16,6 +16,7 @@ pub(all) enum PlanIssue {
   Admission(@admitted.Issue)
   Decoding(@decode.Issue)
   Output(@execution.CaptureIssue)
+  Guard(@execution.FixedInputGuardIssue)
 }
 
 ///|

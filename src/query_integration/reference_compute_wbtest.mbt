@@ -64,6 +64,40 @@ test "independent numeric kernel uses checked shape and exact fixed input withou
     is Err(Output(CaptureLimit)),
   )
   assert_false(@strategy.captured_task_completed(run, 1))
+  let physical : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 100,
+    max_bytes: 100,
+    max_nodes: 100,
+    max_depth: 10,
+  }
+  let measured = @reference_compute.measure_numeric_output(
+    plan, input, 6, 2, 100, values, physical,
+  ).unwrap()
+  assert_eq(
+    @execution.admitted_output_row_count(
+      @reference_compute.measured_numeric_rows(measured),
+    ),
+    1,
+  )
+  assert_true(
+    @reference_compute.measure_numeric_output(
+      plan, input, 6, 1, 100, values, physical,
+    )
+    is Err(Guard(InputRows)),
+  )
+  assert_true(
+    @reference_compute.measure_numeric_output(
+      plan, input, 6, 2, 0, values, physical,
+    )
+    is Err(Guard(ValueBytes(InputValues, 0, 0))),
+  )
+  assert_true(
+    @reference_compute.measure_numeric_output(plan, input, 6, 2, 100, values, {
+      ..physical,
+      max_work: 0,
+    })
+    is Err(Guard(MeasurementWork)),
+  )
   @planning.close_mock_query_issuer(issuer)
   assert_true(
     @reference_compute.select_numeric_rows(plan, input, 100) is Err(Unsupported),

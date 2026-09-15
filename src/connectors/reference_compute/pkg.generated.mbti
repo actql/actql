@@ -11,6 +11,12 @@ import {
 // Values
 pub fn materialize_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, @execution_relation.ValueLimits) -> Result[@execution_relation.AdmittedOutputRows, PlanIssue]
 
+pub fn measure_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, Int, @execution_relation.ValueLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[MeasuredNumericOutput, PlanIssue]
+
+pub fn measured_numeric_rows(MeasuredNumericOutput) -> @execution_relation.AdmittedOutputRows
+
+pub fn measured_numeric_usage(MeasuredNumericOutput) -> (Int, Int, Int)
+
 pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
 
 pub fn prepare_numeric_plan(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.ExpressionLimits) -> Result[NumericPlan, PlanIssue]
@@ -20,6 +26,8 @@ pub fn select_numeric_rows(NumericPlan, @execution_relation.ProducerRead, Int) -
 // Errors
 
 // Types and methods
+type MeasuredNumericOutput
+
 type NumericPlan
 
 pub(all) enum PlanIssue {
@@ -29,6 +37,7 @@ pub(all) enum PlanIssue {
   Admission(@value_admission.Issue)
   Decoding(@decode_core.Issue)
   Output(@execution_relation.CaptureIssue)
+  Guard(@execution_relation.FixedInputGuardIssue)
 }
 
 // Type aliases
