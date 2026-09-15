@@ -3,19 +3,28 @@ package "actql/actql/connectors/reference_compute"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/value_admission",
 }
 
 // Values
+pub fn close_numeric_output(CompletedNumericOutput) -> Unit
+
+pub fn complete_numeric_output(@execution_relation.GeneratedSequence, MeasuredNumericOutput, Int, Int) -> Result[CompletedNumericOutput, PlanIssue]
+
 pub fn materialize_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, @execution_relation.ValueLimits) -> Result[@execution_relation.AdmittedOutputRows, PlanIssue]
 
-pub fn measure_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, Int, @execution_relation.ValueLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[MeasuredNumericOutput, PlanIssue]
+pub fn measure_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, Int, @execution_relation.ValueLimits, @execution_relation.FixedInputGuardMeasureLimits, root_limits~ : @execution_relation.FixedInputGuardMeasureLimits) -> Result[MeasuredNumericOutput, PlanIssue]
+
+pub fn measured_numeric_root_usage(MeasuredNumericOutput) -> (Int, Int, Int)
 
 pub fn measured_numeric_rows(MeasuredNumericOutput) -> @execution_relation.AdmittedOutputRows
 
 pub fn measured_numeric_usage(MeasuredNumericOutput) -> (Int, Int, Int)
+
+pub fn numeric_completed_output(CompletedNumericOutput) -> @execution_relation.CompletedOutput
 
 pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
 
@@ -26,6 +35,8 @@ pub fn select_numeric_rows(NumericPlan, @execution_relation.ProducerRead, Int) -
 // Errors
 
 // Types and methods
+type CompletedNumericOutput
+
 type MeasuredNumericOutput
 
 type NumericPlan
@@ -38,6 +49,10 @@ pub(all) enum PlanIssue {
   Decoding(@decode_core.Issue)
   Output(@execution_relation.CaptureIssue)
   Guard(@execution_relation.FixedInputGuardIssue)
+  RootValueBytes(Int, Int)
+  RootWorkLimit(Int, Int)
+  RootMeasurement(Int, Int, @encode_core.EncodeFailure)
+  Completion(@execution_relation.TrustedOutputIssue)
 }
 
 // Type aliases

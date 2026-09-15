@@ -592,3 +592,25 @@ ports do not create a second parent holding token, and equal content from two
 different parents does not merge tokens. The native adapter and placement
 estimates must explicitly support both inputs before offering a binary native
 candidate.
+
+## Independent numeric connector completion
+
+The bounded reference Compute connector evaluates numeric-field greater-than
+literal predicates and numeric projections without delegating to the Local or
+DuckDB executor. Input/output guards use the common fixed-producer measurement
+session. Demanded operand and predicate values are measured in the evaluation
+loop without reevaluation; their bounded physical measurement budget is separate
+from the input/output measurement budget. Neither budget is a substitute for the
+Host's execution reservation or a selected shared fragment contract.
+
+Only successful measured material can be sealed, once, through the connector's
+internally installed output verifier. Sealing checks exact generated owner and
+input bindings and requires the upstream input to remain available. A sealed
+result owns its retained rows and its own revocation state; closing the upstream
+does not revoke that independent result. Closing the result prevents new
+downstream execution without invalidating already completed descendants.
+
+This connector completion is not a DAG success notification. The common driver
+must still enforce selected-attempt ownership, reservation and holding attachment
+before publishing task success. Raw selected positions or admitted rows carry no
+completion authority.

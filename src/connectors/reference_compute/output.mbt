@@ -8,9 +8,24 @@ pub fn materialize_numeric_output(
   max_rows : Int,
   values : @execution.ValueLimits,
 ) -> Result[@execution.AdmittedOutputRows, PlanIssue] {
+  materialize_with_roots(plan, input, max_work, max_rows, values, None)
+}
+
+///|
+fn materialize_with_roots(
+  plan : NumericPlan,
+  input : @execution.ProducerRead,
+  max_work : Int,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  roots : ((Int, @execution.Value, @execution.Value, @execution.Value) -> Result[
+    Unit,
+    PlanIssue,
+  ])?,
+) -> Result[@execution.AdmittedOutputRows, PlanIssue] {
   let work = Ref(max_work)
   let (selected, projection) = match
-    select_numeric_rows_with_work(plan, input, work) {
+    select_numeric_rows_with_work(plan, input, work, roots) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

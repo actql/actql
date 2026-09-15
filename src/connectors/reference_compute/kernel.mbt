@@ -7,7 +7,7 @@ pub fn select_numeric_rows(
   input : @execution.ProducerRead,
   max_work : Int,
 ) -> Result[(Array[Int], Array[Int]), PlanIssue] {
-  select_numeric_rows_with_work(plan, input, Ref(max_work))
+  select_numeric_rows_with_work(plan, input, Ref(max_work), None)
 }
 
 ///|
@@ -15,6 +15,10 @@ fn select_numeric_rows_with_work(
   plan : NumericPlan,
   input : @execution.ProducerRead,
   work : Ref[Int],
+  roots : ((Int, @execution.Value, @execution.Value, @execution.Value) -> Result[
+    Unit,
+    PlanIssue,
+  ])?,
 ) -> Result[(Array[Int], Array[Int]), PlanIssue] {
   if work.val < 0 {
     return Err(Limit)
@@ -61,13 +65,24 @@ fn select_numeric_rows_with_work(
       return Err(Limit)
     }
     work.val -= 1
-    let keep = match
+    let value : @execution.Value = match
       @execution.producer_read_cell(input, row, predicate_column) {
       Some(Number(value)) | Some(Captured(@admitted.Number(value))) =>
-        value > plan.threshold
-      Some(Null) | Some(Captured(@admitted.Null)) => false
+        Number(value)
+      Some(Null) | Some(Captured(@admitted.Null)) => Null
       _ => return Err(Unsupported)
     }
+    let result : @execution.Value = match value {
+      Number(value) => Boolean(value > plan.threshold)
+      _ => Null
+    }
+    if roots is Some(check) {
+      match check(row, value, @execution.Number(plan.threshold), result) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    let keep = result is @execution.Boolean(true)
     if keep {
       selected.push(row)
     }

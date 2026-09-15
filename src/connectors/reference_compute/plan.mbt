@@ -17,6 +17,10 @@ pub(all) enum PlanIssue {
   Decoding(@decode.Issue)
   Output(@execution.CaptureIssue)
   Guard(@execution.FixedInputGuardIssue)
+  RootValueBytes(Int, Int)
+  RootWorkLimit(Int, Int)
+  RootMeasurement(Int, Int, @encode.EncodeFailure)
+  Completion(@execution.TrustedOutputIssue)
 }
 
 ///|
