@@ -16,10 +16,10 @@ priv struct NativePhysical {
 ///|
 #export_name("nativeHostCapacity")
 pub fn native_host_capacity(
-  setup : @host.NativeHostConfiguration,
+  setup : @acquisition_host.NativeHostConfiguration,
   retained : Bool,
 ) -> Int64 raise NodeHostFailure {
-  guard @host.configured_native_capacity(setup) is Some(capacity) else {
+  guard @acquisition_host.configured_native_capacity(setup) is Some(capacity) else {
     raise Physical(InvalidLimits)
   }
   if retained {
@@ -32,14 +32,14 @@ pub fn native_host_capacity(
 ///|
 #export_name("nativeStrategyHostOpen")
 pub fn native_strategy_host_open(
-  setup : @host.NativeHostConfiguration,
+  setup : @acquisition_host.NativeHostConfiguration,
   ledger : @resources.Ledger,
   nonce : String,
   verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
   transfer : Int64,
   execution : Int64,
 ) -> NativeNodeRun raise NodeHostFailure {
-  guard @host.configured_native_capacity(setup) is Some(capacity) else {
+  guard @acquisition_host.configured_native_capacity(setup) is Some(capacity) else {
     raise Physical(InvalidLimits)
   }
   if execution < 0L ||
@@ -56,7 +56,7 @@ pub fn native_strategy_host_open(
     Ok(value) => value
     Err(issue) => raise Physical(issue)
   }
-  match @host.start_configured_native_host(setup, nonce, verify) {
+  match @acquisition_host.start_configured_native_host(setup, nonce, verify) {
     Err(issue) => {
       @resources.settle_reservation(ledger, reservation) |> ignore
       raise Host(issue)
@@ -64,7 +64,7 @@ pub fn native_strategy_host_open(
     Ok(host) =>
       {
         host,
-        limits: @host.configured_native_host_limits(setup),
+        limits: @acquisition_host.configured_native_host_limits(setup),
         physical: Some({
           ledger,
           reservation,

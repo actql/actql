@@ -1,8 +1,8 @@
 ///|
 // Fixed public-checker conformance setup, not a product Host entry.
 struct IssuedNativeFixture {
-  host : @dbhost.NativeHostRun
-  configuration : @dbhost.NativeHostConfiguration
+  host : @acquisition_host.NativeHostRun
+  configuration : @acquisition_host.NativeHostConfiguration
   attempt : @duckdb_query.DuckDBNativeAttempt
   scan : @duckdb.NativeScan
   requirement : @planning.QueryRequirement
@@ -92,7 +92,7 @@ fn issued_native_create_impl(
       fixture_contract(two_receipt_json),
       { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
     ).unwrap()
-    let host = @dbhost.start_native_host(
+    let host = @acquisition_host.start_native_host(
       contract,
       requirement,
       choice,
@@ -109,10 +109,10 @@ fn issued_native_create_impl(
       issued_native_measure_limits(),
       verify,
     ).unwrap()
-    let attempt = @dbhost.native_host_attempt(host)
+    let attempt = @acquisition_host.native_host_attempt(host)
     {
       host,
-      configuration: @dbhost.configure_native_host(
+      configuration: @acquisition_host.configure_native_host(
         contract,
         requirement,
         choice,
@@ -190,7 +190,7 @@ fn issued_native_create_impl(
 #export_name("issuedNativeConfiguration")
 pub fn issued_native_configuration(
   value : IssuedNativeFixture,
-) -> @dbhost.NativeHostConfiguration {
+) -> @acquisition_host.NativeHostConfiguration {
   value.configuration
 }
 
@@ -242,7 +242,7 @@ pub fn issued_native_bind(
   observation : @duckdb_query.DuckDBNativeObservation,
   rows : Int,
 ) -> String {
-  guard @dbhost.bind_native_host_input(
+  guard @acquisition_host.bind_native_host_input(
       value.host,
       observation,
       @execution.generated_sequence_owner(value.consumer),
@@ -336,7 +336,12 @@ pub fn issued_native_metadata(
   names : String,
   data : String,
 ) -> Bool {
-  @dbhost.native_host_metadata(value.host, rows, fields(names), columns(data))
+  @acquisition_host.native_host_metadata(
+    value.host,
+    rows,
+    fields(names),
+    columns(data),
+  )
   is Ok(_)
 }
 
@@ -352,7 +357,8 @@ pub fn issued_native_begin(
   } else {
     ValidationScan
   }
-  @dbhost.begin_native_host_receipt(value.host, role, fields(names)) is Ok(_)
+  @acquisition_host.begin_native_host_receipt(value.host, role, fields(names))
+  is Ok(_)
 }
 
 ///|
@@ -362,13 +368,14 @@ pub fn issued_native_accept(
   rows : Int,
   data : String,
 ) -> Bool {
-  @dbhost.accept_native_host_chunk(value.host, rows, columns(data)) is Ok(_)
+  @acquisition_host.accept_native_host_chunk(value.host, rows, columns(data))
+  is Ok(_)
 }
 
 ///|
 #export_name("issuedNativeFinish")
 pub fn issued_native_finish(value : IssuedNativeFixture) -> Bool {
-  @dbhost.finish_native_host_receipt(value.host) is Ok(_)
+  @acquisition_host.finish_native_host_receipt(value.host) is Ok(_)
 }
 
 ///|
@@ -377,7 +384,7 @@ pub fn issued_native_complete(
   value : IssuedNativeFixture,
   artifact_bytes : Int,
 ) -> Bool {
-  guard @dbhost.complete_native_host(value.host, {
+  guard @acquisition_host.complete_native_host(value.host, {
       demand: issued_native_measure_limits(),
       receipts: {
         max_columns: 10,
@@ -430,7 +437,7 @@ pub fn issued_native_document(value : IssuedNativeFixture) -> String {
 #export_name("issuedNativeVerify")
 pub fn issued_native_verify(value : IssuedNativeFixture) -> Bool {
   guard value.observation is Some(observation) else { return false }
-  @dbhost.verify_native_host(value.host, observation)
+  @acquisition_host.verify_native_host(value.host, observation)
 }
 
 ///|
@@ -441,12 +448,17 @@ pub fn issued_native_materialize(
   max_rows : Int,
 ) -> String {
   guard value.observation is Some(observation) else { return "null" }
-  guard @dbhost.native_host_output(value.host, observation, max_rows, {
-      max_nodes: 10000,
-      max_text_bytes: 100000,
-      max_depth: 100,
-      max_work: 1000000,
-    })
+  guard @acquisition_host.native_host_output(
+      value.host,
+      observation,
+      max_rows,
+      {
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 100,
+        max_work: 1000000,
+      },
+    )
     is Ok(output) else {
     return "null"
   }
@@ -481,13 +493,13 @@ pub fn issued_native_materialize(
 ///|
 #export_name("issuedNativeAbort")
 pub fn issued_native_abort(value : IssuedNativeFixture) -> Unit {
-  @dbhost.abort_native_host(value.host)
+  @acquisition_host.abort_native_host(value.host)
 }
 
 ///|
 #export_name("issuedNativeClose")
 pub fn issued_native_close(value : IssuedNativeFixture) -> Unit {
-  @dbhost.close_native_host(value.host)
+  @acquisition_host.close_native_host(value.host)
 }
 
 ///|

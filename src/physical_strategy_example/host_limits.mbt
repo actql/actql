@@ -31,7 +31,7 @@ fn transport() -> @duckdb.TransportColumnLimits {
 }
 
 ///|
-fn acquisition_limits() -> @dbhost.NativeHostLimits {
+fn acquisition_limits() -> @acquisition_host.NativeHostLimits {
   {
     physical: {
       max_rows: 100,

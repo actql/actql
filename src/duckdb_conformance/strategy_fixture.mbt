@@ -114,7 +114,7 @@ fn strategy_fixture_create_impl(
       }
     })
     let graph = @strategy.prepare_checked_dag(program, owners, 5, 10000).unwrap()
-    @dbhost.close_native_host(native.host) // unused fixture issuer, not real Host
+    @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
     let ledger = @resources.create_ledger({
       planning_work: if join || multiple_resources {
         100000
@@ -171,7 +171,7 @@ fn strategy_fixture_create_impl(
 #export_name("strategyFixtureAcquisition")
 pub fn strategy_fixture_acquisition(
   f : StrategyFixture,
-) -> @dbhost.NativeHostConfiguration {
+) -> @acquisition_host.NativeHostConfiguration {
   f.native.configuration
 }
 

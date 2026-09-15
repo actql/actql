@@ -1,6 +1,6 @@
 ///|
 fn host_native_fixture() -> (
-  @dbhost.NativeHostRun,
+  @acquisition_host.NativeHostRun,
   Array[@duckdb_query.DuckDBNativeAttempt],
 ) raise {
   let f = native_issuer_fixture()
@@ -17,7 +17,7 @@ fn host_native_fixture() -> (
   ).unwrap()
   @duckdb_query.close_duckdb_native_issuer(f.issuer)
   let transport : Array[@duckdb_query.DuckDBNativeAttempt] = []
-  let run = @dbhost.start_native_host(
+  let run = @acquisition_host.start_native_host(
     contract,
     f.requirement,
     f.choice,
@@ -33,10 +33,13 @@ fn host_native_fixture() -> (
 }
 
 ///|
-fn receive_host_native_fixture(run : @dbhost.NativeHostRun) -> Unit {
-  @dbhost.native_host_metadata(run, 1, [("table_type", @duckdb.Varchar)], [
-    input_cursor("[\"BASE TABLE\"]"),
-  ]).unwrap()
+fn receive_host_native_fixture(run : @acquisition_host.NativeHostRun) -> Unit {
+  @acquisition_host.native_host_metadata(
+    run,
+    1,
+    [("table_type", @duckdb.Varchar)],
+    [input_cursor("[\"BASE TABLE\"]")],
+  ).unwrap()
   for
     (role, rows, cells) in [
       (
@@ -46,9 +49,11 @@ fn receive_host_native_fixture(run : @dbhost.NativeHostRun) -> Unit {
       ),
       (@duckdb.NativeResult, 2, "[\"4008000000000000\",\"4000000000000000\"]"),
     ] {
-    @dbhost.begin_native_host_receipt(run, role, [("id", @duckdb.Float64)]).unwrap()
-    @dbhost.accept_native_host_chunk(run, rows, [input_cursor(cells)]).unwrap()
-    @dbhost.finish_native_host_receipt(run).unwrap()
+    @acquisition_host.begin_native_host_receipt(run, role, [
+      ("id", @duckdb.Float64),
+    ]).unwrap()
+    @acquisition_host.accept_native_host_chunk(run, rows, [input_cursor(cells)]).unwrap()
+    @acquisition_host.finish_native_host_receipt(run).unwrap()
   }
 }
 
@@ -56,18 +61,18 @@ fn receive_host_native_fixture(run : @dbhost.NativeHostRun) -> Unit {
 test "product native Host binds exact capture to consumer without fixed setup or source replay" {
   let (run, transport) = host_native_fixture()
   receive_host_native_fixture(run)
-  transport.push(@dbhost.native_host_attempt(run))
-  let observation = @dbhost.complete_native_host(
+  transport.push(@acquisition_host.native_host_attempt(run))
+  let observation = @acquisition_host.complete_native_host(
     run,
     native_completion_limits(),
   ).unwrap()
-  assert_true(@dbhost.verify_native_host(run, observation))
+  assert_true(@acquisition_host.verify_native_host(run, observation))
   assert_true(
-    @dbhost.complete_native_host(run, native_completion_limits())
+    @acquisition_host.complete_native_host(run, native_completion_limits())
     is Err(Evidence(AlreadyCaptured)),
   )
   let owner = @duckdb.native_query_owner(
-    @duckdb.native_scan_query(@dbhost.native_host_scan(run)),
+    @duckdb.native_scan_query(@acquisition_host.native_host_scan(run)),
   )
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let limits : @execution.ValueLimits = {
@@ -77,13 +82,13 @@ test "product native Host binds exact capture to consumer without fixed setup or
     max_work: 8,
   }
   assert_true(
-    @dbhost.bind_native_host_input(
+    @acquisition_host.bind_native_host_input(
       run, observation, receiver, 0, 1, limits, 100, 10000,
     )
     is Err(Evidence(_)),
   )
-  assert_true(@dbhost.verify_native_host(run, observation))
-  let bound = @dbhost.bind_native_host_input(
+  assert_true(@acquisition_host.verify_native_host(run, observation))
+  let bound = @acquisition_host.bind_native_host_input(
     run, observation, receiver, 0, 2, limits, 100, 10000,
   ).unwrap()
   let completed = @execution.execute_generated_sequence(
@@ -97,15 +102,15 @@ test "product native Host binds exact capture to consumer without fixed setup or
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
   assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
   let (other, _) = host_native_fixture()
-  assert_false(@dbhost.verify_native_host(other, observation))
-  @dbhost.close_native_host(other)
-  @dbhost.abort_native_host(run)
-  assert_true(@dbhost.verify_native_host(run, observation))
-  @dbhost.close_native_host(run)
-  @dbhost.close_native_host(run)
-  assert_false(@dbhost.verify_native_host(run, observation))
+  assert_false(@acquisition_host.verify_native_host(other, observation))
+  @acquisition_host.close_native_host(other)
+  @acquisition_host.abort_native_host(run)
+  assert_true(@acquisition_host.verify_native_host(run, observation))
+  @acquisition_host.close_native_host(run)
+  @acquisition_host.close_native_host(run)
+  assert_false(@acquisition_host.verify_native_host(run, observation))
   assert_true(
-    @dbhost.bind_native_host_input(
+    @acquisition_host.bind_native_host_input(
       run, observation, receiver, 0, 2, limits, 100, 10000,
     )
     is Err(InvalidState),
@@ -118,30 +123,39 @@ test "product native Host rejects unverified transport and unfinished or replace
   let (run, _) = host_native_fixture()
   receive_host_native_fixture(run)
   assert_true(
-    @dbhost.complete_native_host(run, native_completion_limits())
+    @acquisition_host.complete_native_host(run, native_completion_limits())
     is Err(Evidence(UnverifiedTransport)),
   )
-  @dbhost.close_native_host(run)
+  @acquisition_host.close_native_host(run)
   let (early, transport) = host_native_fixture()
-  transport.push(@dbhost.native_host_attempt(early))
+  transport.push(@acquisition_host.native_host_attempt(early))
   assert_true(
-    @dbhost.complete_native_host(early, native_completion_limits())
+    @acquisition_host.complete_native_host(early, native_completion_limits())
     is Err(Evidence(_)),
   )
-  @dbhost.close_native_host(early)
+  @acquisition_host.close_native_host(early)
   let (replaced, _) = host_native_fixture()
-  @dbhost.native_host_metadata(replaced, 1, [("table_type", @duckdb.Varchar)], [
-    input_cursor("[\"BASE TABLE\"]"),
-  ]).unwrap()
-  @dbhost.begin_native_host_receipt(replaced, @duckdb.ValidationScan, [
-    ("id", @duckdb.Float64),
-  ]).unwrap()
+  @acquisition_host.native_host_metadata(
+    replaced,
+    1,
+    [("table_type", @duckdb.Varchar)],
+    [input_cursor("[\"BASE TABLE\"]")],
+  ).unwrap()
+  @acquisition_host.begin_native_host_receipt(
+    replaced,
+    @duckdb.ValidationScan,
+    [("id", @duckdb.Float64)],
+  ).unwrap()
   assert_true(
-    @dbhost.begin_native_host_receipt(replaced, @duckdb.ValidationScan, [
-      ("id", @duckdb.Float64),
-    ])
+    @acquisition_host.begin_native_host_receipt(
+      replaced,
+      @duckdb.ValidationScan,
+      [("id", @duckdb.Float64)],
+    )
     is Err(InvalidState),
   )
-  assert_true(@dbhost.finish_native_host_receipt(replaced) is Err(InvalidState))
-  @dbhost.close_native_host(replaced)
+  assert_true(
+    @acquisition_host.finish_native_host_receipt(replaced) is Err(InvalidState),
+  )
+  @acquisition_host.close_native_host(replaced)
 }

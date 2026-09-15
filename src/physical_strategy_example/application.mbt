@@ -1,6 +1,6 @@
 ///|
 struct Application {
-  acquisition : @dbhost.NativeHostConfiguration
+  acquisition : @acquisition_host.NativeHostConfiguration
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
   generated : Array[@execution.GeneratedSequence]
@@ -216,7 +216,7 @@ pub fn prepare_application(
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
   ).unwrap()
   {
-    acquisition: @dbhost.configure_native_host(
+    acquisition: @acquisition_host.configure_native_host(
       receipts,
       requirement,
       choice,
@@ -233,7 +233,7 @@ pub fn prepare_application(
 #export_name("applicationAcquisition")
 pub fn application_acquisition(
   app : Application,
-) -> @dbhost.NativeHostConfiguration {
+) -> @acquisition_host.NativeHostConfiguration {
   app.acquisition
 }
 

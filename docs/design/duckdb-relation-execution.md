@@ -244,12 +244,16 @@ Digest strings remain diagnostic data, not portable evidence or capture permits.
 
 ## Source and fixed-input isolation
 
-`duckdb_host` owns reusable native Host orchestration above `connectors/duckdb/acquisition` and
-the DuckDB adapter. It accepts existing owned requirements, selected candidates,
+`connectors/duckdb/host` owns reusable acquisition Host orchestration above
+`connectors/duckdb/acquisition` and the DuckDB adapter. It accepts existing owned requirements, selected candidates,
 admitted evidence contracts and explicit resource limits. It does not construct a
 fixed Program/catalog, import conformance code, or derive another semantic Plan.
 The conformance package supplies independent setup and expectations and invokes
 this same Host orchestration for real Node execution.
+Acquisition orchestration has no dependency on Local Compute, the generated
+Compute bundle assembly, or the common adaptive Compute Host. Its configuration,
+receipt state and declared receiver capacity belong to the DuckDB connector;
+application-level Compute composition does not re-export these entrypoints.
 
 `NativeHostRun` retains the exact issuer, attempt, compiled scan and active receipt
 port. Receipt replacement, unfinished completion and unverified transport fail;

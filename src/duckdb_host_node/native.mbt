@@ -1,15 +1,15 @@
 ///|
 /// JS transport facade. No test setup, fixed catalog or semantic derivation.
 struct NativeNodeRun {
-  host : @host.NativeHostRun
-  limits : @host.NativeHostLimits
+  host : @acquisition_host.NativeHostRun
+  limits : @acquisition_host.NativeHostLimits
   physical : NativePhysical?
 }
 
 ///|
 pub(all) suberror NodeHostFailure {
-  Host(@host.NativeHostIssue)
-  Broad(@host.BroadHostIssue)
+  Host(@acquisition_host.NativeHostIssue)
+  Broad(@acquisition_host.BroadHostIssue)
   Compute(@duckdb_compute.DuckDBComputeIssue)
   Strategy(@strategy.RunIssue)
   Dispatch(@host.DispatchIssue)
@@ -27,15 +27,15 @@ pub(all) suberror NodeHostFailure {
 ///|
 #export_name("nativeHostOpen")
 pub fn native_host_open(
-  setup : @host.NativeHostConfiguration,
+  setup : @acquisition_host.NativeHostConfiguration,
   nonce : String,
   verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> NativeNodeRun raise NodeHostFailure {
-  match @host.start_configured_native_host(setup, nonce, verify) {
+  match @acquisition_host.start_configured_native_host(setup, nonce, verify) {
     Ok(host) =>
       {
         host,
-        limits: @host.configured_native_host_limits(setup),
+        limits: @acquisition_host.configured_native_host_limits(setup),
         physical: None,
       }
     Err(issue) => raise Host(issue)
@@ -47,7 +47,7 @@ pub fn native_host_open(
 pub fn native_host_attempt(
   run : NativeNodeRun,
 ) -> @duckdb_query.DuckDBNativeAttempt {
-  @host.native_host_attempt(run.host)
+  @acquisition_host.native_host_attempt(run.host)
 }
 
 ///|
@@ -56,7 +56,7 @@ pub fn native_host_sql(
   run : NativeNodeRun,
   kind : Int,
 ) -> String raise NodeHostFailure {
-  let scan = @host.native_host_scan(run.host)
+  let scan = @acquisition_host.native_host_scan(run.host)
   match kind {
     0 => @duckdb.native_scan_metadata_sql(scan)
     1 => @duckdb.native_scan_sql(scan)
@@ -71,7 +71,7 @@ pub fn native_host_parameter(
   run : NativeNodeRun,
   index : Int,
 ) -> String raise NodeHostFailure {
-  let scan = @host.native_host_scan(run.host)
+  let scan = @acquisition_host.native_host_scan(run.host)
   let parameter = if index == 2 {
     @duckdb.native_query_parameter(@duckdb.native_scan_query(scan))
   } else {
@@ -181,7 +181,7 @@ pub fn native_host_metadata(
   data : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.native_host_metadata(
+    @acquisition_host.native_host_metadata(
       run.host,
       rows,
       transport_fields(run.limits.transport, fields),
@@ -200,7 +200,7 @@ pub fn native_host_begin(
   fields : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.begin_native_host_receipt(
+    @acquisition_host.begin_native_host_receipt(
       run.host,
       if native {
         @duckdb.NativeResult
@@ -222,7 +222,7 @@ pub fn native_host_accept(
   data : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.accept_native_host_chunk(
+    @acquisition_host.accept_native_host_chunk(
       run.host,
       rows,
       chunk_columns(run.limits.transport, data),
@@ -235,7 +235,7 @@ pub fn native_host_accept(
 ///|
 #export_name("nativeHostFinish")
 pub fn native_host_finish(run : NativeNodeRun) -> Unit raise NodeHostFailure {
-  match @host.finish_native_host_receipt(run.host) {
+  match @acquisition_host.finish_native_host_receipt(run.host) {
     Ok(_) => ()
     Err(issue) => raise Host(issue)
   }
@@ -257,7 +257,8 @@ pub fn native_host_complete(
       },
     )
   }
-  match @host.complete_native_host(run.host, run.limits.completion) {
+  match
+    @acquisition_host.complete_native_host(run.host, run.limits.completion) {
     Ok(value) => {
       if run.physical is Some(p) {
         // Construct the retained root while post-DB checking capacity is still
@@ -288,7 +289,7 @@ pub fn native_host_output(
   }
   let limits = run.limits
   let retained = match
-    @host.native_host_output(
+    @acquisition_host.native_host_output(
       run.host,
       observation,
       limits.output_rows,
@@ -329,7 +330,7 @@ pub fn native_host_captured_source(
   }
   let limits = run.limits
   let retained = match
-    @host.native_host_output(
+    @acquisition_host.native_host_output(
       run.host,
       observation,
       limits.output_rows,
@@ -352,12 +353,12 @@ pub fn native_host_captured_source(
 ///|
 #export_name("nativeHostAbort")
 pub fn native_host_abort(run : NativeNodeRun) -> Unit {
-  @host.abort_native_host(run.host)
+  @acquisition_host.abort_native_host(run.host)
 }
 
 ///|
 #export_name("nativeHostClose")
 pub fn native_host_close(run : NativeNodeRun) -> Unit {
-  @host.close_native_host(run.host)
+  @acquisition_host.close_native_host(run.host)
   close_native_physical(run)
 }

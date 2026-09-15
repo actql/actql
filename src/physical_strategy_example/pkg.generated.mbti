@@ -2,13 +2,14 @@
 package "actql/actql/physical_strategy_example"
 
 import {
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/duckdb_host",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
 
 // Values
-pub fn application_acquisition(Application) -> @duckdb_host.NativeHostConfiguration
+pub fn application_acquisition(Application) -> @host.NativeHostConfiguration
 
 pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @duckdb_host.StrategyHostDispatch raise
 

@@ -5,6 +5,7 @@ import {
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/driver",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/duckdb_host",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
@@ -62,7 +63,7 @@ pub fn issued_broad_close(IssuedBroadFixture) -> Unit
 
 pub fn issued_broad_complete(IssuedBroadFixture, Int) -> Bool
 
-pub fn issued_broad_configuration(IssuedBroadFixture) -> @duckdb_host.BroadHostConfiguration
+pub fn issued_broad_configuration(IssuedBroadFixture) -> @host.BroadHostConfiguration
 
 pub fn issued_broad_consume_input(IssuedBroadFixture, @execution_relation.BoundProducerInput, Int) -> String
 
@@ -100,7 +101,7 @@ pub fn issued_native_close(IssuedNativeFixture) -> Unit
 
 pub fn issued_native_complete(IssuedNativeFixture, Int) -> Bool
 
-pub fn issued_native_configuration(IssuedNativeFixture) -> @duckdb_host.NativeHostConfiguration
+pub fn issued_native_configuration(IssuedNativeFixture) -> @host.NativeHostConfiguration
 
 pub fn issued_native_consume_output(IssuedNativeFixture, @execution_relation.CompletedOutput, Int) -> String
 
@@ -168,7 +169,7 @@ pub fn sql(@adapter.NativeReceiving, Int) -> String
 
 pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
 
-pub fn strategy_fixture_acquisition(StrategyFixture) -> @duckdb_host.NativeHostConfiguration
+pub fn strategy_fixture_acquisition(StrategyFixture) -> @host.NativeHostConfiguration
 
 pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
 

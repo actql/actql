@@ -2,7 +2,7 @@
 // Fixed test Program, real public checks and execution. No private completion,
 // fabricated records, source permission or arbitrary Plan constructor.
 struct IssuedBroadFixture {
-  configuration : @dbhost.BroadHostConfiguration
+  configuration : @acquisition_host.BroadHostConfiguration
   issuer : @duckdb_query.DuckDBQueryIssuer
   attempt : @duckdb_query.DuckDBBroadAttempt
   requirement : @planning.QueryRequirement
@@ -266,7 +266,7 @@ pub fn issued_broad_create(
       consumer_owner, registry_json, values_json, fragment_json, false,
     )
     {
-      configuration: @dbhost.configure_broad_host(
+      configuration: @acquisition_host.configure_broad_host(
         evidence,
         requirement,
         choice,
@@ -475,7 +475,7 @@ fn issued_broad_completion_limits(
 #export_name("issuedBroadConfiguration")
 pub fn issued_broad_configuration(
   value : IssuedBroadFixture,
-) -> @dbhost.BroadHostConfiguration {
+) -> @acquisition_host.BroadHostConfiguration {
   value.configuration
 }
 

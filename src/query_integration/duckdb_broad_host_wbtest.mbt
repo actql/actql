@@ -121,7 +121,7 @@ test "configured broad Host uses owned consumer binding with no acquisition data
     evidence,
     query_capture_limits(),
   ).unwrap()
-  let configuration = @dbhost.configure_broad_host(
+  let configuration = @acquisition_host.configure_broad_host(
     contracts,
     f.requirement,
     f.choice,
@@ -141,26 +141,31 @@ test "configured broad Host uses owned consumer binding with no acquisition data
     },
   )
   @duckdb_query.close_duckdb_query_issuer(f.issuer)
-  let run = @dbhost.start_configured_broad_host(
+  let run = @acquisition_host.start_configured_broad_host(
     configuration,
     "configured-broad",
     attempt => f.transport.any(value => physical_equal(value, attempt)),
   ).unwrap()
-  @dbhost.broad_host_metadata(run, 1, [("table_type", @duckdb.Varchar)], [
-    input_cursor("[\"BASE TABLE\"]"),
-  ]).unwrap()
-  @dbhost.begin_broad_host_receipt(run, [("id", @duckdb.Float64)]).unwrap()
-  @dbhost.accept_broad_host_chunk(run, 3, [
+  @acquisition_host.broad_host_metadata(
+    run,
+    1,
+    [("table_type", @duckdb.Varchar)],
+    [input_cursor("[\"BASE TABLE\"]")],
+  ).unwrap()
+  @acquisition_host.begin_broad_host_receipt(run, [("id", @duckdb.Float64)]).unwrap()
+  @acquisition_host.accept_broad_host_chunk(run, 3, [
     input_cursor(
       "[\"4008000000000000\",\"3ff0000000000000\",\"4000000000000000\"]",
     ),
   ]).unwrap()
-  @dbhost.finish_broad_host_receipt(run).unwrap()
-  f.transport.push(@dbhost.broad_host_attempt(run))
-  let observation = @dbhost.complete_broad_host(run).unwrap()
+  @acquisition_host.finish_broad_host_receipt(run).unwrap()
+  f.transport.push(@acquisition_host.broad_host_attempt(run))
+  let observation = @acquisition_host.complete_broad_host(run).unwrap()
   let owner = @query.query_sequence_owner(f.sequence)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
-  let bound = @dbhost.bind_broad_host_input(run, observation, receiver, 0).unwrap()
+  let bound = @acquisition_host.bind_broad_host_input(
+    run, observation, receiver, 0,
+  ).unwrap()
   let completed = @execution.execute_generated_sequence(
     compute_test_sequence(receiver),
     [],
@@ -171,15 +176,16 @@ test "configured broad Host uses owned consumer binding with no acquisition data
   assert_eq(@execution.completed_row_count(output), 2)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
   assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
-  @dbhost.abort_broad_host(run)
+  @acquisition_host.abort_broad_host(run)
   assert_true(
-    @dbhost.bind_broad_host_input(run, observation, receiver, 0) is Ok(_),
+    @acquisition_host.bind_broad_host_input(run, observation, receiver, 0)
+    is Ok(_),
   )
-  @dbhost.close_broad_host(run)
-  @dbhost.close_broad_host(run)
+  @acquisition_host.close_broad_host(run)
+  @acquisition_host.close_broad_host(run)
   assert_true(
-    @dbhost.bind_broad_host_input(run, observation, receiver, 0)
+    @acquisition_host.bind_broad_host_input(run, observation, receiver, 0)
     is Err(InvalidState),
   )
-  assert_true(@dbhost.complete_broad_host(run) is Err(InvalidState))
+  assert_true(@acquisition_host.complete_broad_host(run) is Err(InvalidState))
 }

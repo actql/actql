@@ -1,18 +1,19 @@
 ///|
 struct BroadNodeRun {
-  host : @host.BroadHostRun
-  limits : @host.BroadHostLimits
+  host : @acquisition_host.BroadHostRun
+  limits : @acquisition_host.BroadHostLimits
 }
 
 ///|
 #export_name("broadHostOpen")
 pub fn broad_host_open(
-  setup : @host.BroadHostConfiguration,
+  setup : @acquisition_host.BroadHostConfiguration,
   nonce : String,
   verify : (@duckdb_query.DuckDBBroadAttempt) -> Bool,
 ) -> BroadNodeRun raise NodeHostFailure {
-  match @host.start_configured_broad_host(setup, nonce, verify) {
-    Ok(host) => { host, limits: @host.configured_broad_host_limits(setup), }
+  match @acquisition_host.start_configured_broad_host(setup, nonce, verify) {
+    Ok(host) =>
+      { host, limits: @acquisition_host.configured_broad_host_limits(setup), }
     Err(issue) => raise Broad(issue)
   }
 }
@@ -22,13 +23,13 @@ pub fn broad_host_open(
 pub fn broad_host_attempt(
   run : BroadNodeRun,
 ) -> @duckdb_query.DuckDBBroadAttempt {
-  @host.broad_host_attempt(run.host)
+  @acquisition_host.broad_host_attempt(run.host)
 }
 
 ///|
 #export_name("broadHostSql")
 pub fn broad_host_sql(run : BroadNodeRun, metadata : Bool) -> String {
-  let scan = @host.broad_host_scan(run.host)
+  let scan = @acquisition_host.broad_host_scan(run.host)
   if metadata {
     @duckdb.broad_scan_metadata_sql(scan)
   } else {
@@ -44,7 +45,7 @@ pub fn broad_host_parameter(
 ) -> String raise NodeHostFailure {
   let parameter = match
     @duckdb.broad_scan_metadata_parameter(
-      @host.broad_host_scan(run.host),
+      @acquisition_host.broad_host_scan(run.host),
       index,
     ) {
     Some(value) => value
@@ -69,7 +70,7 @@ pub fn broad_host_metadata(
   data : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.broad_host_metadata(
+    @acquisition_host.broad_host_metadata(
       run.host,
       rows,
       transport_fields(run.limits.transport, fields),
@@ -87,7 +88,7 @@ pub fn broad_host_begin(
   fields : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.begin_broad_host_receipt(
+    @acquisition_host.begin_broad_host_receipt(
       run.host,
       transport_fields(run.limits.transport, fields),
     ) {
@@ -104,7 +105,7 @@ pub fn broad_host_accept(
   data : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @host.accept_broad_host_chunk(
+    @acquisition_host.accept_broad_host_chunk(
       run.host,
       rows,
       chunk_columns(run.limits.transport, data),
@@ -117,7 +118,7 @@ pub fn broad_host_accept(
 ///|
 #export_name("broadHostFinish")
 pub fn broad_host_finish(run : BroadNodeRun) -> Unit raise NodeHostFailure {
-  match @host.finish_broad_host_receipt(run.host) {
+  match @acquisition_host.finish_broad_host_receipt(run.host) {
     Ok(_) => ()
     Err(issue) => raise Broad(issue)
   }
@@ -128,7 +129,7 @@ pub fn broad_host_finish(run : BroadNodeRun) -> Unit raise NodeHostFailure {
 pub fn broad_host_complete(
   run : BroadNodeRun,
 ) -> @duckdb_query.DuckDBBroadObservation raise NodeHostFailure {
-  match @host.complete_broad_host(run.host) {
+  match @acquisition_host.complete_broad_host(run.host) {
     Ok(value) => value
     Err(issue) => raise Broad(issue)
   }
@@ -143,7 +144,12 @@ pub fn broad_host_bind(
   input_index : Int,
 ) -> @execution.BoundProducerInput raise NodeHostFailure {
   match
-    @host.bind_broad_host_input(run.host, observation, receiver, input_index) {
+    @acquisition_host.bind_broad_host_input(
+      run.host,
+      observation,
+      receiver,
+      input_index,
+    ) {
     Ok(value) => value
     Err(issue) => raise Broad(issue)
   }
@@ -162,11 +168,11 @@ pub fn broad_host_document(
 ///|
 #export_name("broadHostAbort")
 pub fn broad_host_abort(run : BroadNodeRun) -> Unit {
-  @host.abort_broad_host(run.host)
+  @acquisition_host.abort_broad_host(run.host)
 }
 
 ///|
 #export_name("broadHostClose")
 pub fn broad_host_close(run : BroadNodeRun) -> Unit {
-  @host.close_broad_host(run.host)
+  @acquisition_host.close_broad_host(run.host)
 }

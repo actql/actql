@@ -104,6 +104,21 @@ const dependencies = name => {
   return [...seen];
 };
 
+test('DuckDB acquisition Host does not depend on Compute composition or Local', () => {
+  const closure = dependencies('connectors/duckdb/host');
+  assert.ok(closure.includes('connectors/duckdb/acquisition'));
+  for (const dependency of closure) {
+    assert.doesNotMatch(dependency, /^(duckdb_host|connectors_builtin|physical_host)$/);
+    assert.doesNotMatch(dependency, /^connectors\/(local|reference_compute)\//);
+  }
+  const api = readFileSync('src/connectors/duckdb/host/pkg.generated.mbti', 'utf8');
+  assert.match(api, /type NativeHostRun/);
+  assert.match(api, /type BroadHostRun/);
+  assert.doesNotMatch(api, /StrategyHostDispatch|ComputeHost|LocalDispatch/);
+  const composition = readFileSync('src/duckdb_host/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(composition, /NativeHostRun|BroadHostRun|configure_native_host|configure_broad_host/);
+});
+
 test('connector SDK has no concrete implementation dependency or public error type', () => {
   for (const dependency of dependencies('connector_sdk')) {
     assert.doesNotMatch(dependency, /^(?:connectors\/|duckdb_|query_planning$|physical_strategy$)/);
