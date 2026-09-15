@@ -100,6 +100,55 @@ test "generated configuration rejects invalid registration sets before connector
   assert_eq(after.attempts, before.attempts)
   assert_eq(after.transferred_bytes, before.transferred_bytes)
   assert_true(after.planning_work > before.planning_work)
+  let schedules = connector_test_schedules(
+    @builtin.local_estimate_work_slots(),
+    10L,
+  )
+  let settings : @local_driver.LocalEstimateSettings = {
+    schedules,
+    max_work: 100,
+  }
+  let absent : @builtin.ConfiguredComputeModules[String] = @builtin.configure_compute_modules(
+    driver,
+    registry,
+    0,
+    _ => "registration-set",
+  ).unwrap()
+  assert_true(
+    @builtin.prepare_local_estimate_policy(absent, settings)
+    is Err(MissingImplementation),
+  )
+  let policy = @builtin.prepare_local_estimate_policy(configured, settings).unwrap()
+  schedules.clear()
+  @builtin.install_configured_estimate_policy(policy).unwrap()
+  assert_true(
+    @builtin.install_configured_estimate_policy(policy) is Err("local-estimate"),
+  )
+  let profile = portfolio_profile(
+    run,
+    @connector.prepare_resource_binding(registry, native_registration).unwrap(),
+    1L,
+    1L,
+    1L,
+  )
+  let resource_schedules = connector_test_schedules(
+    @builtin.duckdb_resource_work_slots(),
+    1L,
+  )
+  let resource_policy = @builtin.prepare_duckdb_resource_policy(configured, {
+    profile,
+    schedules: resource_schedules,
+  }).unwrap()
+  resource_schedules.clear()
+  @builtin.install_configured_estimate_policy(resource_policy).unwrap()
+  assert_true(
+    @builtin.install_configured_estimate_policy(resource_policy)
+    is Err("native-estimate"),
+  )
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+    before.attempts,
+  )
   @connector.close_capability_registry(registry)
   let closed : Result[@builtin.ConfiguredComputeModules[String], String] = @builtin.configure_compute_modules(
     driver,

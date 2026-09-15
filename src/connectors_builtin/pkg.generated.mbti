@@ -27,6 +27,20 @@ pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.Dispatch
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), ConfiguredDispatchIssue[E]]
 
+pub fn duckdb_estimate_work_slots() -> Int
+
+pub fn duckdb_resource_work_slots() -> Int
+
+pub fn[E] install_configured_estimate_policy(ConfiguredEstimatePolicy[E]) -> Result[Unit, E]
+
+pub fn local_estimate_work_slots() -> Int
+
+pub fn[E] prepare_duckdb_estimate_policy(ConfiguredComputeModules[E], @actql/actql/connectors/duckdb/driver.DuckDBEstimateSettings) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]]
+
+pub fn[E] prepare_duckdb_resource_policy(ConfiguredComputeModules[E], @actql/actql/connectors/duckdb/driver.DuckDBResourceEstimateSettings) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]]
+
+pub fn[E] prepare_local_estimate_policy(ConfiguredComputeModules[E], @actql/actql/connectors/local/driver.LocalEstimateSettings) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]]
+
 // Errors
 
 // Types and methods
@@ -36,6 +50,8 @@ pub(all) enum ConfiguredDispatchIssue[E] {
   MissingImplementation
   Implementation(E)
 }
+
+type ConfiguredEstimatePolicy[E]
 
 // Type aliases
 

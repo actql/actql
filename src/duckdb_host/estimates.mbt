@@ -48,8 +48,8 @@ pub fn configure_dispatch_estimates(
     let schedules = []
     for
       (slots, rates) in [
-        (@local_driver.local_dispatch_work_slots(), profile.local_rates),
-        (@duckdb_driver.duckdb_dispatch_work_slots(), profile.native_rates),
+        (@builtin.local_estimate_work_slots(), profile.local_rates),
+        (@builtin.duckdb_estimate_work_slots(), profile.native_rates),
       ] {
       if slots > work || rates.length() > work - slots {
         return Err(InvalidConfiguration)
@@ -90,23 +90,21 @@ pub fn configure_dispatch_estimates(
     capacities.push(profile.native_capacity)
   }
   let local_policy = match
-    @local_driver.prepare_local_estimate_module(
-      host.local_module,
-      local_schedules,
-      limits.max_work,
-    ) {
+    @builtin.prepare_local_estimate_policy(host.modules, {
+      schedules: local_schedules,
+      max_work: limits.max_work,
+    }) {
     Ok(value) => value
-    Err(issue) => return Err(local_estimate_issue(issue))
+    Err(issue) => return Err(configured_dispatch_issue(issue))
   }
   let native_policy = match
-    @duckdb_driver.prepare_duckdb_estimate_module(
-      host.native_module,
-      native_schedules,
+    @builtin.prepare_duckdb_estimate_policy(host.modules, {
+      schedules: native_schedules,
       capacities,
-      limits.max_work,
-    ) {
+      max_work: limits.max_work,
+    }) {
     Ok(value) => value
-    Err(issue) => return Err(duckdb_estimate_issue(issue))
+    Err(issue) => return Err(configured_dispatch_issue(issue))
   }
   match
     @host_driver.configure_compute_host_estimates(
@@ -118,26 +116,18 @@ pub fn configure_dispatch_estimates(
     Ok(_) => ()
     Err(issue) => return Err(adaptive_estimate_issue(issue))
   }
-  match
-    @local_driver.install_local_dispatch_estimates(
-      host.local_module,
-      local_policy,
-    ) {
+  match @builtin.install_configured_estimate_policy(local_policy) {
     Ok(_) => ()
     Err(issue) => {
       @host_driver.stop_dispatch_driver(host.driver)
-      return Err(local_estimate_issue(issue))
+      return Err(issue)
     }
   }
-  match
-    @duckdb_driver.install_duckdb_dispatch_estimates(
-      host.native_module,
-      native_policy,
-    ) {
+  match @builtin.install_configured_estimate_policy(native_policy) {
     Ok(_) => ()
     Err(issue) => {
       @host_driver.stop_dispatch_driver(host.driver)
-      return Err(duckdb_estimate_issue(issue))
+      return Err(issue)
     }
   }
   Ok(())

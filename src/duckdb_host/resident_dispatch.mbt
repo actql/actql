@@ -87,7 +87,7 @@ pub fn configure_resident_dispatch(
     }
     match
       @cost.prepare_rate_schedule(
-        @duckdb_driver.duckdb_dispatch_work_slots(),
+        @builtin.duckdb_resource_work_slots(),
         row,
         host.limits.candidate_work,
       ) {
@@ -95,9 +95,13 @@ pub fn configure_resident_dispatch(
       Err(issue) => return Err(dispatch_rate_issue(issue))
     }
   }
-  @duckdb_driver.install_duckdb_resident_estimates(
-    host.native_module,
-    profile,
-    schedules,
-  ).map_err(duckdb_estimate_issue)
+  let policy = match
+    @builtin.prepare_duckdb_resource_policy(host.modules, {
+      profile,
+      schedules,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(configured_dispatch_issue(issue))
+  }
+  @builtin.install_configured_estimate_policy(policy)
 }

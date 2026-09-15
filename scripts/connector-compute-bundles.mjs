@@ -25,13 +25,22 @@ export function generateComputeAssembly(entries) {
     : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error']) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy']) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
         !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
       throw new Error('Invalid Compute bundle declaration');
     }
     names.add(name);
+    for (const policy of [m.estimate_policy, m.resource_policy]) {
+      if (policy !== null &&
+          (!keys(policy, ['configuration', 'prepare', 'install', 'work_slots']) ||
+           !typeName(policy.configuration) ||
+           !identifier(policy.prepare) || !identifier(policy.install) ||
+           !identifier(policy.work_slots))) {
+        throw new Error('Invalid Compute estimate policy');
+      }
+    }
     alias(m.package);
     const results = m.dispatch_result === 'Unit' ? []
       : Array.isArray(m.dispatch_result) ? m.dispatch_result : [m.dispatch_result];
@@ -78,7 +87,7 @@ export function generateComputeAssembly(entries) {
 
 function configurationAssembly(entries, alias, typed, resultType) {
   const fields = entries.map(({name, manifest: m}) =>
-    `  installed_${name} : (@${alias(m.package)}.${m.module}, (${typed(m.dispatch_error)}) -> E)?\n`).join('');
+    `  installed_${name} : (@${alias(m.package)}.${m.module}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)?\n`).join('');
   const parameters = entries.map(({name, manifest: m}) =>
     `  with_${name}? : (@connector.CapabilityRegistration, @${alias(m.package)}.${m.configuration}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)? = None,\n`).join('');
   const registrations = entries.map(({name}) =>
@@ -92,7 +101,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `        Err(issue) => return Err(dispatch_issue(issue))\n` +
     `      }\n    }\n  }\n`).join('');
   const passed = entries.map(({name}) => `    with_${name}=installed_${name},\n`).join('');
-  const stored = entries.map(({name}) => `    installed_${name}: installed_${name}.map(value => (value.0, value.1)),\n`).join('');
+  const stored = entries.map(({name}) => `    installed_${name},\n`).join('');
   const getters = entries.map(({name, manifest: m}) =>
     `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}.map(value => value.0)\n}\n`).join('');
   const dispatches = entries.map(({name, manifest: m}) =>
@@ -100,7 +109,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `pub fn[C, E] dispatch_${name}(value : ConfiguredComputeModules[E], host : @host.DispatchHost[C, E], task : @host.PreparedTaskDispatch) -> Result[${resultType(m.dispatch_result)}, ConfiguredDispatchIssue[E]] {\n` +
     `  match value.installed_${name} {\n` +
     `    None => Err(MissingImplementation)\n` +
-    `    Some((installed, project)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
+    `    Some((installed, project, _)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
     `  }\n}\n`).join('');
   return '\n///|\nstruct ConfiguredComputeModules[E] {\n' + fields +
     '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
@@ -118,7 +127,25 @@ function configurationAssembly(entries, alias, typed, resultType) {
     '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
     '  Ok({\n' + stored + '    contributions,\n  })\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
-    getters + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches;
+    getters + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias);
+}
+
+function estimateAssembly(entries, alias) {
+  return '\n///|\nstruct ConfiguredEstimatePolicy[E] {\n  install : () -> Result[Unit, E]\n}\n' +
+    '\n///|\npub fn[E] install_configured_estimate_policy(policy : ConfiguredEstimatePolicy[E]) -> Result[Unit, E] {\n  (policy.install)()\n}\n' +
+    entries.flatMap(({name, manifest: m}) => ['estimate', 'resource'].flatMap(kind => {
+      const p = m[`${kind}_policy`];
+      if (p === null) return [];
+      const pkg = `@${alias(m.package)}`;
+      return `\n///|\npub fn ${name}_${kind}_work_slots() -> Int {\n  ${pkg}.${p.work_slots}()\n}\n` +
+        `\n///|\n/// Prepare without installing; installation retains the exact module and policy.\n` +
+        `pub fn[E] prepare_${name}_${kind}_policy(value : ConfiguredComputeModules[E], settings : ${pkg}.${p.configuration}) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {\n` +
+        `  guard value.installed_${name} is Some((installed, _, project)) else { return Err(MissingImplementation) }\n` +
+        `  match ${pkg}.${p.prepare}(installed, settings) {\n` +
+        `    Err(issue) => Err(Implementation(project(issue)))\n` +
+        `    Ok(policy) => Ok({ install: () => ${pkg}.${p.install}(installed, policy).map_err(project) })\n` +
+        `  }\n}\n`;
+    })).join('');
 }
 
 export function checkComputeAssembly(root, write = false) {

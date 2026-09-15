@@ -35,6 +35,8 @@ pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_s
 
 pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
+pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
+
 // Errors
 
 // Types and methods
@@ -62,6 +64,11 @@ pub(all) enum LocalEstimateIssue {
 }
 
 type LocalEstimateModule
+
+pub(all) struct LocalEstimateSettings {
+  schedules : Array[@physical_cost.RateSchedule]
+  max_work : Int
+}
 
 // Type aliases
 

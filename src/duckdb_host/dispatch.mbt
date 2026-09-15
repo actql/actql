@@ -20,9 +20,7 @@ struct StrategyHostDispatch {
   run : @strategy.CapturedDAG
   driver : @host_driver.DispatchDriver
   local_registration : @connector.CapabilityRegistration
-  local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
-  native_module : @duckdb_driver.DuckDBDispatchModule
   runtime : @host_driver.ComputeHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
 }
@@ -112,8 +110,6 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let local_module = @builtin.configured_local_module(modules).unwrap()
-  let native_module = @builtin.configured_duckdb_module(modules).unwrap()
   let contributions = @builtin.configured_compute_contributions(modules)
   let runtime = match
     @host_driver.open_compute_host(
@@ -133,9 +129,7 @@ pub fn configure_strategy_dispatch(
     run,
     driver,
     local_registration,
-    local_module,
     native_registration,
-    native_module,
     runtime,
     limits,
   })

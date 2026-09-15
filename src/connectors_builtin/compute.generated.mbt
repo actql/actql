@@ -87,13 +87,16 @@ struct ConfiguredComputeModules[E] {
   installed_duckdb : (
     @binding2.DuckDBDispatchModule,
     (@binding2.DuckDBDispatchIssue) -> E,
+    (@binding2.DuckDBEstimateIssue) -> E,
   )?
   installed_local : (
     @binding3.LocalDispatchModule,
     (@binding3.LocalDispatchIssue) -> E,
+    (@binding3.LocalEstimateIssue) -> E,
   )?
   installed_reference_compute : (
     @binding4.NumericComputeContribution,
+    (@binding6.RunIssue) -> E,
     (@binding6.RunIssue) -> E,
   )?
   contributions : @connector.CapabilityImplementations[
@@ -190,11 +193,9 @@ pub fn[E] configure_compute_modules(
     Err(issue) => return Err(installation_issue(issue))
   }
   Ok({
-    installed_duckdb: installed_duckdb.map(value => (value.0, value.1)),
-    installed_local: installed_local.map(value => (value.0, value.1)),
-    installed_reference_compute: installed_reference_compute.map(value => {
-      (value.0, value.1)
-    }),
+    installed_duckdb,
+    installed_local,
+    installed_reference_compute,
     contributions,
   })
 }
@@ -245,7 +246,7 @@ pub fn[C, E] dispatch_duckdb(
 ] {
   match value.installed_duckdb {
     None => Err(MissingImplementation)
-    Some((installed, project)) =>
+    Some((installed, project, _)) =>
       @binding2.take_duckdb_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
@@ -261,7 +262,7 @@ pub fn[C, E] dispatch_local(
 ) -> Result[Unit, ConfiguredDispatchIssue[E]] {
   match value.installed_local {
     None => Err(MissingImplementation)
-    Some((installed, project)) =>
+    Some((installed, project, _)) =>
       @binding3.execute_local_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
@@ -280,9 +281,103 @@ pub fn[C, E] dispatch_reference_compute(
 ] {
   match value.installed_reference_compute {
     None => Err(MissingImplementation)
-    Some((installed, project)) =>
+    Some((installed, project, _)) =>
       @binding4.start_numeric_contribution(installed, host, task).map_err(issue => {
         Implementation(project(issue))
+      })
+  }
+}
+
+///|
+struct ConfiguredEstimatePolicy[E] {
+  install : () -> Result[Unit, E]
+}
+
+///|
+pub fn[E] install_configured_estimate_policy(
+  policy : ConfiguredEstimatePolicy[E],
+) -> Result[Unit, E] {
+  (policy.install)()
+}
+
+///|
+pub fn duckdb_estimate_work_slots() -> Int {
+  @binding2.duckdb_dispatch_work_slots()
+}
+
+///|
+/// Prepare without installing; installation retains the exact module and policy.
+pub fn[E] prepare_duckdb_estimate_policy(
+  value : ConfiguredComputeModules[E],
+  settings : @binding2.DuckDBEstimateSettings,
+) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
+  guard value.installed_duckdb is Some((installed, _, project)) else {
+    return Err(MissingImplementation)
+  }
+  match @binding2.prepare_duckdb_estimate_settings(installed, settings) {
+    Err(issue) => Err(Implementation(project(issue)))
+    Ok(policy) =>
+      Ok({
+        install: () => {
+          @binding2.install_duckdb_dispatch_estimates(installed, policy).map_err(
+            project,
+          )
+        },
+      })
+  }
+}
+
+///|
+pub fn duckdb_resource_work_slots() -> Int {
+  @binding2.duckdb_dispatch_work_slots()
+}
+
+///|
+/// Prepare without installing; installation retains the exact module and policy.
+pub fn[E] prepare_duckdb_resource_policy(
+  value : ConfiguredComputeModules[E],
+  settings : @binding2.DuckDBResourceEstimateSettings,
+) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
+  guard value.installed_duckdb is Some((installed, _, project)) else {
+    return Err(MissingImplementation)
+  }
+  match
+    @binding2.prepare_duckdb_resource_estimate_settings(installed, settings) {
+    Err(issue) => Err(Implementation(project(issue)))
+    Ok(policy) =>
+      Ok({
+        install: () => {
+          @binding2.install_duckdb_resource_estimate_policy(installed, policy).map_err(
+            project,
+          )
+        },
+      })
+  }
+}
+
+///|
+pub fn local_estimate_work_slots() -> Int {
+  @binding3.local_dispatch_work_slots()
+}
+
+///|
+/// Prepare without installing; installation retains the exact module and policy.
+pub fn[E] prepare_local_estimate_policy(
+  value : ConfiguredComputeModules[E],
+  settings : @binding3.LocalEstimateSettings,
+) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
+  guard value.installed_local is Some((installed, _, project)) else {
+    return Err(MissingImplementation)
+  }
+  match @binding3.prepare_local_estimate_settings(installed, settings) {
+    Err(issue) => Err(Implementation(project(issue)))
+    Ok(policy) =>
+      Ok({
+        install: () => {
+          @binding3.install_local_dispatch_estimates(installed, policy).map_err(
+            project,
+          )
+        },
       })
   }
 }

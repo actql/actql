@@ -47,8 +47,12 @@ test('linear cost schedules are neutral and implementations own their work inven
   assert.match(api, /^type RateSchedule$/m);
   assert.doesNotMatch(api, /DuckDB|LocalDispatch|connectors\//);
   const composition = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
-  assert.match(composition, /@local_driver\.local_dispatch_work_slots\(\)/);
-  assert.match(composition, /@duckdb_driver\.duckdb_dispatch_work_slots\(\)/);
+  assert.match(composition, /@builtin\.local_estimate_work_slots\(\)/);
+  assert.match(composition, /@builtin\.duckdb_estimate_work_slots\(\)/);
+  assert.doesNotMatch(composition, /@local_driver\.|@duckdb_driver\./);
+  const resident = readFileSync('src/duckdb_host/resident_dispatch.mbt', 'utf8');
+  assert.match(resident, /@builtin\.prepare_duckdb_resource_policy\(/);
+  assert.doesNotMatch(resident, /@duckdb_driver\./);
   assert.doesNotMatch(composition, /\(5, profile\.local_rates\)|\(8, profile\.native_rates\)/);
   assert.doesNotMatch(composition, /fn dispatch_rate_value\b/);
   const proposals = readFileSync('src/duckdb_host/estimate_implementations.mbt', 'utf8');

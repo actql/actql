@@ -1,4 +1,22 @@
 ///|
+pub(all) struct LocalEstimateSettings {
+  schedules : Array[@cost.RateSchedule]
+  max_work : Int
+}
+
+///|
+pub fn prepare_local_estimate_settings(
+  installed : LocalDispatchModule,
+  settings : LocalEstimateSettings,
+) -> Result[LocalEstimateModule, LocalEstimateIssue] {
+  prepare_local_estimate_module(
+    installed,
+    settings.schedules,
+    settings.max_work,
+  )
+}
+
+///|
 struct LocalEstimateModule {
   installed : LocalDispatchModule
   configuration : LocalEstimateConfiguration

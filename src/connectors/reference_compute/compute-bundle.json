@@ -1,5 +1,7 @@
 {
   "package": "actql/actql/connectors/reference_compute/driver",
+  "resource_policy": null,
+  "estimate_policy": null,
   "module": "NumericComputeContribution",
   "dispatch": "start_numeric_contribution",
   "dispatch_result": [{"package":"actql/actql/connectors/reference_compute","type":"NumericAttempt"},{"package":"actql/actql/physical_strategy","type":"TaskExecution"}],

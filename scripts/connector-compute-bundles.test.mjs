@@ -23,6 +23,9 @@ test('independent Compute declaration extends composition without a generator br
   assert.match(generated.source, /dispatch_reference_compute/);
   assert.match(generated.source, /\.start_numeric_contribution\(/);
   assert.match(generated.source, /MissingImplementation/);
+  assert.match(generated.source, /prepare_local_estimate_policy/);
+  assert.match(generated.source, /prepare_duckdb_resource_policy/);
+  assert.doesNotMatch(generated.source, /prepare_reference_compute_estimate_policy/);
   assert.match(generated.manifest, /connectors\/reference_compute\/driver/);
   const code = readFileSync('scripts/connector-compute-bundles.mjs', 'utf8');
   assert.doesNotMatch(code, /duckdb|reference_compute|LocalDispatch|NumericCompute/);
@@ -44,6 +47,8 @@ test('declarations cannot inject code or move implementation ownership into core
     {dispatch_result: [{package: good.manifest.package, type: 'Result'}]},
     {dispatch_result: {package: good.manifest.package, type: 'Result); abort()'}},
     {extra: true},
+    {estimate_policy: {configuration: 'Settings', prepare: 'prepare', install: 'install(); execute', work_slots: 'slots'}},
+    {resource_policy: {configuration: 'Settings', prepare: 'prepare', install: 'install', work_slots: 'slots', extra: true}},
     {dispatch_error: {package: '../../elsewhere', type: 'Issue'}},
     {estimate_error: {package: good.manifest.package, type: 'Issue', extra: true}},
   ]) {

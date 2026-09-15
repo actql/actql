@@ -1,5 +1,7 @@
 {
   "package": "actql/actql/connectors/local/driver",
+  "resource_policy": null,
+  "estimate_policy": {"configuration":"LocalEstimateSettings","prepare":"prepare_local_estimate_settings","install":"install_local_dispatch_estimates","work_slots":"local_dispatch_work_slots"},
   "module": "LocalDispatchModule",
   "dispatch": "execute_local_dispatch",
   "dispatch_result": "Unit",

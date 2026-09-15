@@ -1,5 +1,7 @@
 {
   "package": "actql/actql/connectors/duckdb/driver",
+  "resource_policy": {"configuration":"DuckDBResourceEstimateSettings","prepare":"prepare_duckdb_resource_estimate_settings","install":"install_duckdb_resource_estimate_policy","work_slots":"duckdb_dispatch_work_slots"},
+  "estimate_policy": {"configuration":"DuckDBEstimateSettings","prepare":"prepare_duckdb_estimate_settings","install":"install_duckdb_dispatch_estimates","work_slots":"duckdb_dispatch_work_slots"},
   "module": "DuckDBDispatchModule",
   "dispatch": "take_duckdb_dispatch",
   "dispatch_result": {"package":"actql/actql/connectors/duckdb/driver","type":"StrategyComputeHostConfiguration"},

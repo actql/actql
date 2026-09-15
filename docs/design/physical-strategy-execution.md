@@ -748,6 +748,15 @@ SDK. Registry order, rather than manifest file order, determines the resulting
 entry order. Connector-specific module construction is distinct from this pure
 registration step and does not become resource creation or dispatch permission.
 
+The same declarations provide typed execution entries and optional estimate-policy
+preparation/installation. Generated execution routes to the configured module's
+exact channel; a missing implementation cannot consume a dispatch ticket. Prepared
+estimate installations capture their module and diagnostic projection, keeping
+the policy's concrete type inside generated composition. Standard fresh and shared
+resource policy configuration uses these entries, while bounded rate validation
+and common adaptive-state installation retain their existing ordering and charges.
+No concrete policy module is retained separately by the standard Host.
+
 `physical_host.AdaptiveDispatch` owns cardinality propagation, the immutable
 proposal installation and bounded refresh history independently of connector
 configuration. It obtains initial statistics from the exact captured DAG and

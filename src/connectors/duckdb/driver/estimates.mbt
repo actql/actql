@@ -1,4 +1,24 @@
 ///|
+pub(all) struct DuckDBEstimateSettings {
+  schedules : Array[@cost.RateSchedule]
+  capacities : Array[@strategy.PhysicalEnvelope]
+  max_work : Int
+}
+
+///|
+pub fn prepare_duckdb_estimate_settings(
+  installed : DuckDBDispatchModule,
+  settings : DuckDBEstimateSettings,
+) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue] {
+  prepare_duckdb_estimate_module(
+    installed,
+    settings.schedules,
+    settings.capacities,
+    settings.max_work,
+  )
+}
+
+///|
 struct DuckDBEstimateModule {
   installed : DuckDBDispatchModule
   configuration : DuckDBEstimateConfiguration
@@ -60,6 +80,20 @@ pub fn install_duckdb_resident_estimates(
   profile : @strategy.ResidentProfile,
   schedules : Array[@cost.RateSchedule],
 ) -> Result[Unit, DuckDBEstimateIssue] {
+  match validate_duckdb_resident_estimates(installed, profile, schedules) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  installed.resident_estimates.push({ profile, schedules: schedules.copy(), })
+  Ok(())
+}
+
+///|
+fn validate_duckdb_resident_estimates(
+  installed : DuckDBDispatchModule,
+  profile : @strategy.ResidentProfile,
+  schedules : Array[@cost.RateSchedule],
+) -> Result[Unit, DuckDBEstimateIssue] {
   if installed.resident_estimates.length() >= installed.limits.candidate_work ||
     schedules.length() > installed.limits.candidate_work ||
     @strategy.strategy_history_count(installed.run) != 0 ||
@@ -79,8 +113,52 @@ pub fn install_duckdb_resident_estimates(
       return Err(InvalidConfiguration)
     }
   }
-  installed.resident_estimates.push({ profile, schedules: schedules.copy(), })
   Ok(())
+}
+
+///|
+pub(all) struct DuckDBResourceEstimateSettings {
+  profile : @strategy.ResidentProfile
+  schedules : Array[@cost.RateSchedule]
+}
+
+///|
+struct DuckDBResourceEstimatePolicy {
+  installed : DuckDBDispatchModule
+  profile : @strategy.ResidentProfile
+  schedules : Array[@cost.RateSchedule]
+}
+
+///|
+pub fn prepare_duckdb_resource_estimate_settings(
+  installed : DuckDBDispatchModule,
+  settings : DuckDBResourceEstimateSettings,
+) -> Result[DuckDBResourceEstimatePolicy, DuckDBEstimateIssue] {
+  match
+    validate_duckdb_resident_estimates(
+      installed,
+      settings.profile,
+      settings.schedules,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      Ok({
+        installed,
+        profile: settings.profile,
+        schedules: settings.schedules.copy(),
+      })
+  }
+}
+
+///|
+pub fn install_duckdb_resource_estimate_policy(
+  installed : DuckDBDispatchModule,
+  policy : DuckDBResourceEstimatePolicy,
+) -> Result[Unit, DuckDBEstimateIssue] {
+  if !physical_equal(installed, policy.installed) {
+    return Err(InvalidConfiguration)
+  }
+  install_duckdb_resident_estimates(installed, policy.profile, policy.schedules)
 }
 
 ///|

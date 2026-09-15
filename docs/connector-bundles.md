@@ -51,6 +51,18 @@ the connector's exact typed execution channel. They do not erase result types or
 create completion authority. The standard application's execution calls use these
 generated entrypoints rather than manually wiring connector execution functions.
 
+An optional `estimate_policy` or `resource_policy` declaration supplies a typed
+settings shape, preparation and installation functions, and the implementation's
+work inventory. `null` means that no separate policy installation is needed;
+the independent numeric connector fixes its estimate during construction.
+Generated policy preparation retains the exact module, prepared policy and error
+projection without installing it. `install_configured_estimate_policy` invokes
+that captured installation only; it cannot target another module. The connector
+still checks duplicate installation, resource ownership and prior execution.
+This separation lets the application validate all policies before enabling its
+shared adaptive Host. Neither preparation nor installation creates resources or
+completion evidence, and charged planning work is not refunded on failure.
+
 Pass the assembled installation to `physical_host.open_compute_host` with the
 exact Host registry, fixed-input capacity and bounded inspection limits.
 `configure_compute_host_estimates` installs its optional adaptive policy once;
