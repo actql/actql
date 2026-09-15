@@ -65,7 +65,9 @@ pub fn resident_borrow_setup(
 ///|
 #export_name("residentInputsSql")
 pub fn resident_inputs_sql(inputs : @strategy.ResidentInputs) -> Array[String] {
-  @strategy.resident_inputs_view_sql(inputs)
+  @strategy.resident_inputs_read_plans(inputs).map(
+    @duckdb_compute.duckdb_resident_read_sql,
+  )
 }
 
 ///|

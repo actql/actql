@@ -14,7 +14,7 @@ struct ResidentTable {
 struct ResidentRead {
   table : ResidentTable
   input : @execution.ProducerRead
-  view_sql : String
+  view : @duckdb_compute.DuckDBResidentRead
   mut returned : Bool
   borrow : @resources.SharedBorrow
 }
@@ -219,8 +219,8 @@ pub fn borrow_resident_table(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let view_sql = match
-    @duckdb.resident_import_receiver_sql(
+  let view = match
+    @duckdb_compute.prepare_duckdb_resident_read(
       table.imported,
       input,
       view_name,
@@ -236,13 +236,8 @@ pub fn borrow_resident_table(
       table.allocation,
     ) {
     Err(issue) => Err(Physical(issue))
-    Ok(borrow) => Ok({ table, input, view_sql, borrow, returned: false, })
+    Ok(borrow) => Ok({ table, input, view, borrow, returned: false, })
   }
-}
-
-///|
-pub fn resident_read_view_sql(read : ResidentRead) -> String {
-  read.view_sql
 }
 
 ///|

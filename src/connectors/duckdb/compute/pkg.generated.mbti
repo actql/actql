@@ -37,6 +37,10 @@ pub fn duckdb_resident_output_cleanup(DuckDBResidentOutput, @duckdb_adapter.Resi
 
 pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @duckdb_adapter.ResidentQuery
 
+pub fn duckdb_resident_read_bytes(DuckDBResidentRead, Int) -> Int?
+
+pub fn duckdb_resident_read_sql(DuckDBResidentRead) -> String
+
 pub fn duckdb_task_retention_capacity(DuckDBComputeLimits) -> Int64?
 
 pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
@@ -44,6 +48,8 @@ pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @duckdb_adapter.Transpo
 pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDBComputeIssue]
 
 pub fn prepare_duckdb_resident_output(@duckdb_adapter.FixedQuery, Int, DuckDBComputeLimits, Int) -> Result[DuckDBResidentOutput, @duckdb_adapter.NativeQueryIssue]
+
+pub fn prepare_duckdb_resident_read(@duckdb_adapter.ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[DuckDBResidentRead, @duckdb_adapter.NativeQueryIssue]
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
@@ -90,6 +96,8 @@ pub(all) enum DuckDBResidentOutputIssue {
   Read(@execution_relation.ProducerReadIssue)
   Preparation(@duckdb_adapter.NativeQueryIssue)
 }
+
+type DuckDBResidentRead
 
 // Type aliases
 

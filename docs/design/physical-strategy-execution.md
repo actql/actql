@@ -139,6 +139,10 @@ construction limits in a connector-owned opaque plan. The shared output lifecycl
 retains its allocation, commit state and pending input cleanup, and checks exact
 task/input completion before binding the completed storage to that plan. The plan
 alone is not completion evidence or authority to publish a reusable copy.
+The same boundary applies to receiver views: common borrowing retains an opaque
+connector read plan, while concrete transport wiring obtains its SQL. A bounded
+measurement of that plan charges the existing cumulative preparation allowance;
+the common driver does not inspect SQL to decide input identity or reuse rights.
 
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned

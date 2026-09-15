@@ -91,6 +91,18 @@ test('resident output lifecycle does not own table names or materialization SQL'
   assert.doesNotMatch(api, /(?:struct|enum) DuckDBResidentOutput\b/);
 });
 
+test('resident borrowers do not store or export concrete view SQL', () => {
+  const source = readFileSync('src/physical_strategy/resident_table.mbt', 'utf8');
+  const state = source.match(/struct ResidentRead \{([\s\S]*?)\n\}/)?.[1];
+  assert.ok(state);
+  assert.doesNotMatch(state, /view_sql|String/);
+  assert.doesNotMatch(source, /@duckdb\.resident_import_receiver_sql/);
+  const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(core, /pub fn resident_(?:read_view_sql|inputs_view_sql)\b/);
+  const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
+  assert.match(connector, /^type DuckDBResidentRead$/m);
+});
+
 test('fixed-input engine has no acquisition or query-integration dependency, including tests', () => {
   const forbidden = ['execution_query', 'query_planning', 'query_integration',
     'sourceview_resolution', 'program_check', 'pipeline_check_context'];

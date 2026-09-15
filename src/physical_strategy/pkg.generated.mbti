@@ -118,15 +118,13 @@ pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physi
 
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
-pub fn resident_inputs_view_sql(ResidentInputs) -> Array[String]
+pub fn resident_inputs_read_plans(ResidentInputs) -> Array[@compute.DuckDBResidentRead]
 
 pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
 
 pub fn resident_profile_matches(CapturedDAG, ResidentProfile) -> Bool
 
 pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.ProducerRead) -> Bool
-
-pub fn resident_read_view_sql(ResidentRead) -> String
 
 pub fn resident_table_at(CapturedDAG, ResidentEnvironment, Int) -> ResidentTable?
 

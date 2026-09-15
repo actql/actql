@@ -76,9 +76,9 @@ pub fn prepare_resident_inputs(
       return Err(ForeignCandidate)
     }
     // View SQL is built under the remaining UTF-8 allowance.
-    match @scalar.admit_utf8_length(read.view_sql, remaining) {
-      Ok(bytes) => remaining -= bytes
-      Err(_) => {
+    match @duckdb_compute.duckdb_resident_read_bytes(read.view, remaining) {
+      Some(bytes) => remaining -= bytes
+      None => {
         for read in reads {
           return_resident_read(read) |> ignore
         }
@@ -120,8 +120,10 @@ fn resident_inputs_match(
 }
 
 ///|
-pub fn resident_inputs_view_sql(value : ResidentInputs) -> Array[String] {
-  value.reads.map(read => read.view_sql)
+pub fn resident_inputs_read_plans(
+  value : ResidentInputs,
+) -> Array[@duckdb_compute.DuckDBResidentRead] {
+  value.reads.map(read => read.view)
 }
 
 ///|

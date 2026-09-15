@@ -153,7 +153,9 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         10000,
         10000,
       ).unwrap()
-      let sql = @strategy.resident_inputs_view_sql(cancelled)
+      let sql = @strategy.resident_inputs_read_plans(cancelled).map(
+        @duckdb_compute.duckdb_resident_read_sql,
+      )
       assert_eq(sql.length(), 2)
       assert_true(sql[0].contains("\"owned_input_0\""))
       assert_true(sql[1].contains("\"owned_input_1\""))
