@@ -35,6 +35,7 @@ priv enum RequestInventory {
   CalendarSelection
   CalendarArtifact(@environment.CalendarSelection)
   NumericProfile(@decode.Cursor)
+  AggregateStringLimit(@decode.Cursor)
 }
 
 ///|
@@ -47,6 +48,7 @@ pub enum InputRequestKind {
   HostCalendarSelection
   CalendarProfileArtifact(@environment.CalendarSelection)
   NumericReductionProfile(@decode.Cursor)
+  AggregateStringByteLimit(@decode.Cursor)
 }
 
 ///|
@@ -66,7 +68,8 @@ pub fn input_request_count(value : InputRequests) -> Int {
     | TextRankArtifact(_)
     | CalendarSelection
     | CalendarArtifact(_)
-    | NumericProfile(_) => 1
+    | NumericProfile(_)
+    | AggregateStringLimit(_) => 1
   }
 }
 
@@ -124,6 +127,12 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       NumericReductionProfile(source)
     }
+    AggregateStringLimit(source) => {
+      if index != 0 {
+        return None
+      }
+      AggregateStringByteLimit(source)
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
@@ -145,6 +154,7 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     CalendarProfileArtifact(_) =>
       [Key("host_policy_profile"), Key("calendar"), Key("table_bytes_cid")]
     NumericReductionProfile(source) => @decode.cursor_path(source)
+    AggregateStringByteLimit(source) => @decode.cursor_path(source)
   }
 }
 
@@ -162,6 +172,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
     CalendarProfileArtifact(selection) =>
       Some(@environment.calendar_selection_source(selection))
     NumericReductionProfile(source) => Some(source)
+    AggregateStringByteLimit(source) => Some(source)
   }
 }
 
@@ -200,6 +211,8 @@ fn checking_outcome(
           CalendarArtifact(selection)
         Closure(Operations(Calendar(MissingArtifact(selection)))) =>
           CalendarArtifact(selection)
+        Closure(GroupStringLimits(MissingFiniteBound(source))) =>
+          AggregateStringLimit(source)
         Source(SourceView(Program(MissingCalendarSelection(_, _)))) =>
           CalendarSelection
         Closure(UnresolvedOperation(site)) if environment.numeric is None => {

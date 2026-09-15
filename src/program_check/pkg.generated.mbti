@@ -779,6 +779,7 @@ pub enum InputRequestKind {
   HostCalendarSelection
   CalendarProfileArtifact(@check_environment.CalendarSelection)
   NumericReductionProfile(@decode_core.Cursor)
+  AggregateStringByteLimit(@decode_core.Cursor)
 }
 
 type InputRequests

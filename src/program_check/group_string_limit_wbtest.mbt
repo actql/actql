@@ -133,7 +133,7 @@ test "later string aggregate without a finite limit cannot publish a partial che
     false
   } catch {
     LocalConstructionFailure::Closure(
-      ConstructionFailure::GroupStringLimits(MissingFiniteBound)
+      ConstructionFailure::GroupStringLimits(MissingFiniteBound(_))
     ) => true
     _ => false
   }

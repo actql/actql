@@ -145,6 +145,18 @@ neither the request nor profile admission selects a future observation, grants
 execution permission or discharges runtime checks. Other unresolved operations,
 and unresolved operations despite an already supplied profile, remain rejections.
 
+`AggregateStringByteLimit` retains the authored `string_agg` call when neither
+its `max_bytes` guard nor the selected Host capacity's
+`max_aggregate_string_bytes` supplies a finite output limit. The caller may
+select the Host ceiling in a newly admitted environment, or author a positive
+`max_bytes` guard and admit the changed Program before rechecking. Parameter
+guards still use ordinary binding validation. The quantity is UTF-8 output
+string payload bytes, not rows, serialized JSON size or artifact capacity;
+existing minimum selection and atomic runtime enforcement remain unchanged.
+Invalid guards, unresolved bindings, foreign occurrences and exhausted budgets
+are not capacity requests. The request establishes only this known shortage,
+not the validity of the rest of the Program.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

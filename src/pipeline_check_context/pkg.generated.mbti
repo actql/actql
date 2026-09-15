@@ -1863,7 +1863,7 @@ pub enum GroupStringLimitIssue {
   InvalidLimits
   InvalidRequirement
   UnresolvedGuard
-  MissingFiniteBound
+  MissingFiniteBound(@decode_core.Cursor)
   BudgetExceeded
 }
 

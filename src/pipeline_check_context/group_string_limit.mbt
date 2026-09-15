@@ -3,7 +3,7 @@ pub enum GroupStringLimitIssue {
   InvalidLimits
   InvalidRequirement
   UnresolvedGuard
-  MissingFiniteBound
+  MissingFiniteBound(@decode.Cursor)
   BudgetExceeded
 }
 
@@ -218,7 +218,9 @@ fn select_string_limit(
       },
     )
   }
-  guard maximum is Some(maximum) else { return Err(MissingFiniteBound) }
+  guard maximum is Some(maximum) else {
+    return Err(MissingFiniteBound(@relation.aggregate_source(call)))
+  }
   Ok({
     owner,
     requirement,

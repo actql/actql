@@ -52,6 +52,7 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
     Source(UnsupportedBindings(_) | UnsupportedEffects(_)) =>
       Some(ProgramDocument)
     Closure(UnresolvedOperation(_)) => Some(ProgramDocument)
+    Closure(GroupStringLimits(MissingFiniteBound(_))) => Some(ProgramDocument)
     Source(Declarations(@stages.Declarations(@parameters.InvalidLimits)))
     | Source(SourceView(Binding(Binding(@parameters.InvalidLimits)))) =>
       Some(CheckConfiguration)
@@ -100,6 +101,7 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
       }
       Cursor(source)
     }
+    Closure(GroupStringLimits(MissingFiniteBound(source))) => Cursor(source)
     Source(SourceView(Binding(Binding(@parameters.BindingInput(_, issue))))) =>
       match parameter_issue_position(issue) {
         Some(position) => position
@@ -232,7 +234,9 @@ pub fn diagnostic_location_path(
 ///|
 pub fn input_request_origin(value : InputRequest) -> DiagnosticOrigin {
   match value.kind {
-    ParameterValue(_) | NumericReductionProfile(_) => ProgramDocument
+    ParameterValue(_)
+    | NumericReductionProfile(_)
+    | AggregateStringByteLimit(_) => ProgramDocument
     HostCapacityPolicy
     | HostTextTimePolicy
     | HostTextRankSelection

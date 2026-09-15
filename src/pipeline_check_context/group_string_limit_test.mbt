@@ -144,7 +144,7 @@ test "string aggregate ceilings retain exact Host and author scopes without requ
             // Other byte ceilings are present and equal to one, but not applicable.
             assert_true(
               select_group_string_limit(owner, i, 10000000, 2)
-              is Err(MissingFiniteBound),
+              is Err(MissingFiniteBound(_)),
             )
             continue
           }

@@ -150,7 +150,7 @@ test "window string grouping without a finite bound cannot return a partial prog
       extra_step_budget=2,
     )
   catch {
-    Closure(GroupStringLimits(MissingFiniteBound)) => ()
+    Closure(GroupStringLimits(MissingFiniteBound(_))) => ()
     error => raise error
   } noraise {
     _ => fail("missing window string bound was accepted")

@@ -67,7 +67,7 @@ test "string execution binds owned occurrences and charges all candidates atomic
   let missing = string_limit_fixture(string_limit_policy(None), "")
   assert_true(
     link_program_group_string_limits(missing, 10000000, 100, 100)
-    is Err(MissingFiniteBound),
+    is Err(MissingFiniteBound(_)),
   )
   assert_true(
     link_program_group_string_limits(missing, -1, 100, 100)
