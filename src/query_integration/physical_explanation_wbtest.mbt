@@ -83,9 +83,9 @@ test "strategy explanation snapshots disjoint work lines and preserves unknown a
   let statistics = @strategy.captured_root_statistics(run).unwrap()
   assert_eq(statistics.rows, 2)
   assert_eq(statistics.canonical_wire_bytes, 19)
-  let reservation = @strategy.reserve_attempt(ledger, 30L, 0L, 0L).unwrap()
-  @strategy.charge_transfer(ledger, reservation, 17L).unwrap()
-  @strategy.settle_reservation(ledger, reservation).unwrap()
+  let reservation = @resources.reserve_attempt(ledger, 30L, 0L, 0L).unwrap()
+  @resources.charge_transfer(ledger, reservation, 17L).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
   guard @json.parse(
       @strategy.explain_captured_strategy(run, 20000, 2000).unwrap(),
     )
@@ -117,9 +117,9 @@ test "strategy explanation snapshots disjoint work lines and preserves unknown a
       Some(@json.parse("[{\"slots\":[0,1,2,3,4],\"milliseconds\":null}]")),
     )
   }
-  let usage = @strategy.ledger_usage(ledger)
+  let usage = @resources.ledger_usage(ledger)
   assert_true(@strategy.explain_captured_strategy(run, 1, 2000) is Err(_))
-  assert_eq(@strategy.ledger_usage(ledger), usage)
+  assert_eq(@resources.ledger_usage(ledger), usage)
   @strategy.close_captured_task_output(run, 0)
   assert_true(@strategy.captured_root_statistics(run) is None)
 }

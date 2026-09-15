@@ -52,7 +52,7 @@ pub fn prepare_resident_table(
   if bytes != selected.table_bytes {
     return Err(Physical(InvalidCharge))
   }
-  if env.next_table >= run.ledger.limits.holdings {
+  if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
     return Err(Physical(HoldingLimit))
   }
   let storage = if producer == 0 {
@@ -73,7 +73,7 @@ pub fn prepare_resident_table(
       Err(issue) => return Err(Read(issue))
     }
   }
-  match charge_planning(run.ledger, 1) {
+  match @resources.charge_planning(run.ledger, 1) {
     Err(issue) => return Err(Physical(issue))
     Ok(_) => ()
   }
@@ -120,7 +120,7 @@ fn owns_resident_table(run : CapturedDAG, table : ResidentTable) -> Bool {
 pub fn cancel_resident_table_preparation(
   run : CapturedDAG,
   table : ResidentTable,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   let env = table.environment
   if !owns_resident_table(run, table) {
     return Err(ForeignOwner)
@@ -251,7 +251,9 @@ pub fn resident_read_matches(
 }
 
 ///|
-pub fn return_resident_read(read : ResidentRead) -> Result[Unit, LedgerIssue] {
+pub fn return_resident_read(
+  read : ResidentRead,
+) -> Result[Unit, @resources.LedgerIssue] {
   if read.returned {
     return Err(InvalidCharge)
   }
@@ -268,7 +270,7 @@ pub fn return_resident_read(read : ResidentRead) -> Result[Unit, LedgerIssue] {
 pub fn retire_resident_table(
   run : CapturedDAG,
   table : ResidentTable,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_table(run, table) {
     return Err(ForeignOwner)
   }
@@ -286,7 +288,7 @@ pub fn retire_resident_table(
 pub fn release_resident_table(
   run : CapturedDAG,
   table : ResidentTable,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_table(run, table) {
     return Err(ForeignOwner)
   }

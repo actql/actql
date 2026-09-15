@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/lowering_relation" @lower,

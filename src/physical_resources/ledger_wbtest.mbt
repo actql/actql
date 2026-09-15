@@ -11,6 +11,26 @@ fn test_limits() -> LedgerLimits {
 }
 
 ///|
+test "opaque resource readers distinguish ownership from current availability" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let foreign = create_ledger(test_limits()).unwrap()
+  assert_eq(ledger_limits(ledger), test_limits())
+  let reservation = reserve_attempt(ledger, 0L, 6L, 0L).unwrap()
+  assert_true(reservation_open(reservation))
+  let holding = retain_allocation(ledger, reservation, 6L).unwrap()
+  assert_true(holding_belongs_to(ledger, holding))
+  assert_true(holding_available(ledger, holding))
+  assert_false(holding_belongs_to(foreign, holding))
+  assert_false(holding_available(foreign, holding))
+  settle_reservation(ledger, reservation).unwrap()
+  assert_false(reservation_open(reservation))
+  assert_true(holding_available(ledger, holding))
+  release_allocation(ledger, holding).unwrap()
+  assert_true(holding_belongs_to(ledger, holding))
+  assert_false(holding_available(ledger, holding))
+}
+
+///|
 test "sunk transfers survive settlement replanning failure and cancellation" {
   let ledger = create_ledger(test_limits()).unwrap()
   let first = reserve_attempt(ledger, 9L, 10L, 20L).unwrap()

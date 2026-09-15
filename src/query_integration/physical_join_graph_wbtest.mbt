@@ -39,14 +39,14 @@ test "checked two port DAG joins completed branches then counts in a separate Co
     assert_eq(@execution.completed_row_count(joined), 1)
     assert_true(@execution.completed_cell(joined, 0, 0) is Some(Number(3)))
     let ledger = @strategy.captured_dag_ledger(run)
-    let before_close = @strategy.ledger_usage(ledger).held_bytes
+    let before_close = @resources.ledger_usage(ledger).held_bytes
     @strategy.close_captured_task_output(run, 1)
-    assert_eq(@strategy.ledger_usage(ledger).held_bytes, before_close)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, before_close)
     @strategy.close_captured_task_output(run, 2)
     if !self_join {
       // The second parent must remain accounted for too, not just the first
       // edge found in the graph. Equal content is never the sharing key.
-      assert_eq(@strategy.ledger_usage(ledger).held_bytes, before_close)
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, before_close)
     }
     captured_graph_local(run, 4).unwrap()
     let counted = @strategy.captured_task_output(run, 4, Step(0)).unwrap()
@@ -56,8 +56,8 @@ test "checked two port DAG joins completed branches then counts in a separate Co
     assert_true(@strategy.captured_task_output(run, 4, Step(0)) is Some(_))
     assert_eq(@strategy.next_captured_task(run), None)
     @strategy.close_captured_task_output(run, 4)
-    assert_eq(@strategy.ledger_usage(ledger).held_bytes, 0L)
-    assert_eq(@strategy.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   }
 }
 
@@ -83,7 +83,7 @@ test "closing either prepared join input prevents start without revoking its oth
     assert_true(@strategy.captured_task_output(run, other, Step(1)) is Some(_))
     @strategy.close_captured_task_output(run, other)
     assert_eq(
-      @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
       0L,
     )
   }

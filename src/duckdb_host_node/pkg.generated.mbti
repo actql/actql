@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
@@ -118,7 +119,7 @@ pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFa
 
 pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
-pub fn native_strategy_host_open(@duckdb_host.NativeHostConfiguration, @physical_strategy.Ledger, String, (@query_planning.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
+pub fn native_strategy_host_open(@duckdb_host.NativeHostConfiguration, @physical_resources.Ledger, String, (@query_planning.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
 pub fn resident_begin(@physical_strategy.CapturedDAG, Int, Int64) -> @physical_strategy.ResidentEnvironment raise NodeHostFailure
 
@@ -193,7 +194,7 @@ pub(all) suberror NodeHostFailure {
   Compute(@query_planning.DuckDBComputeIssue)
   Strategy(@physical_strategy.RunIssue)
   Dispatch(@duckdb_host.DispatchIssue)
-  Physical(@physical_strategy.LedgerIssue)
+  Physical(@physical_resources.LedgerIssue)
   CapturedSource(@query_planning.CapturedSourceIssue)
   ComputeParameter(@duckdb_adapter.ValueIssue)
   Transport(@duckdb_adapter.TransportColumnIssue)

@@ -66,7 +66,7 @@ pub fn configure_resident_dispatch(
   }
   for row in rates {
     match
-      @strategy.charge_planning(
+      @resources.charge_planning(
         @strategy.captured_dag_ledger(host.run),
         row.length(),
       ) {

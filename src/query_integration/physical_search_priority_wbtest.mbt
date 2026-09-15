@@ -11,9 +11,9 @@ test "priority uses original positions through partial and complete rejection" {
         max_revisions: 1,
       }).unwrap()
       let ledger = @strategy.captured_dag_ledger(run)
-      let reservation = @strategy.reserve_attempt(ledger, 0L, held, 0L).unwrap()
-      let holding = @strategy.retain_allocation(ledger, reservation, held).unwrap()
-      @strategy.settle_reservation(ledger, reservation).unwrap()
+      let reservation = @resources.reserve_attempt(ledger, 0L, held, 0L).unwrap()
+      let holding = @resources.retain_allocation(ledger, reservation, held).unwrap()
+      @resources.settle_reservation(ledger, reservation).unwrap()
       let offers = search_offers(run, registry, [1, 2, 3], duration)
       let decision = @strategy.revise_strategy(
         run,
@@ -30,7 +30,7 @@ test "priority uses original positions through partial and complete rejection" {
         assert_true(decision is NoFeasible)
       }
       assert_eq(@strategy.strategy_report_count(run), 8)
-      @strategy.release_allocation(ledger, holding).unwrap()
+      @resources.release_allocation(ledger, holding).unwrap()
     }
   }
 }

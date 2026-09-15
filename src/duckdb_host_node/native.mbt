@@ -13,7 +13,7 @@ pub(all) suberror NodeHostFailure {
   Compute(@planning.DuckDBComputeIssue)
   Strategy(@strategy.RunIssue)
   Dispatch(@host.DispatchIssue)
-  Physical(@strategy.LedgerIssue)
+  Physical(@resources.LedgerIssue)
   CapturedSource(@planning.CapturedSourceIssue)
   ComputeParameter(@duckdb.ValueIssue)
   Transport(@duckdb.TransportColumnIssue)
@@ -251,7 +251,7 @@ pub fn native_host_complete(
       raise Physical(InvalidCharge)
     }
     p.holding = Some(
-      match @strategy.retain_allocation(p.ledger, p.reservation, p.retention) {
+      match @resources.retain_allocation(p.ledger, p.reservation, p.retention) {
         Ok(value) => value
         Err(issue) => raise Physical(issue)
       },
@@ -264,7 +264,7 @@ pub fn native_host_complete(
         // reserved. DAG adoption subsequently transfers this exact handle.
         p.source = Some(native_host_captured_source(run, value))
         p.observation = Some(value)
-        match @strategy.settle_reservation(p.ledger, p.reservation) {
+        match @resources.settle_reservation(p.ledger, p.reservation) {
           Ok(_) => p.completed = true
           Err(issue) => raise Physical(issue)
         }

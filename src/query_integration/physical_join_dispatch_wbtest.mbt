@@ -161,7 +161,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_true(
         @strategy.cancel_resident_inputs(cancelled) is Err(InvalidCharge),
       )
-      let before = @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).attempts
+      let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts
       assert_true(
         @dbhost.start_configured_strategy_compute_host(
           setup,
@@ -173,7 +173,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         is Err(ForeignCandidate),
       )
       assert_eq(
-        @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+        @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
         before,
       )
       @dbhost.borrow_configured_resident_inputs(
@@ -209,10 +209,10 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         @strategy.settle_resident_environment(run, env) is Err(InvalidCharge),
       )
       let ledger = @strategy.captured_dag_ledger(run)
-      let reserved = @strategy.ledger_usage(ledger).reserved_execution_bytes
+      let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
       @strategy.settle_captured_duckdb_native(run, attempt, false).unwrap()
       assert_eq(
-        @strategy.ledger_usage(ledger).reserved_execution_bytes,
+        @resources.ledger_usage(ledger).reserved_execution_bytes,
         reserved,
       )
       assert_true(
@@ -224,7 +224,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       @strategy.settle_resident_environment(run, env).unwrap()
       @strategy.close_captured_task_output(run, 1)
       @strategy.close_captured_task_output(run, 2)
-      let usage = @strategy.ledger_usage(ledger)
+      let usage = @resources.ledger_usage(ledger)
       assert_eq(usage.reserved_execution_bytes, 0L)
       assert_eq(usage.reserved_retention_bytes, 0L)
       assert_eq(usage.held_bytes, 0L)
@@ -274,7 +274,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       // Also proves rejected partial sets and both claimed ports were returned.
       @strategy.settle_resident_environment(run, env).unwrap()
     }
-    let usage = @strategy.ledger_usage(@strategy.captured_dag_ledger(run))
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
     assert_eq(usage.held_bytes, 0L)
     assert_eq(usage.reserved_retention_bytes, 0L)
     assert_eq(usage.reserved_execution_bytes, 0L)

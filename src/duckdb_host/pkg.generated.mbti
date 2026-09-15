@@ -6,6 +6,7 @@ import {
   "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
@@ -67,7 +68,7 @@ pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimit
 
 pub fn configured_strategy_compute_graph(StrategyComputeHostConfiguration) -> (@physical_strategy.CapturedDAG, Int)
 
-pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @physical_strategy.Ledger
+pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @physical_resources.Ledger
 
 pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -> @duckdb_adapter.TransportColumnLimits
 

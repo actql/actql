@@ -23,7 +23,7 @@ priv struct DispatchEstimates {
   profiles : Array[DispatchEstimateProfile]
   limits : @strategy.SearchLimits
   estimate_work : Int
-  mut seen : (Int, Int, @strategy.LedgerUsage)?
+  mut seen : (Int, Int, @resources.LedgerUsage)?
   mut failure : DispatchIssue?
 }
 
@@ -53,7 +53,7 @@ pub fn configure_dispatch_estimates(
     return Err(InvalidConfiguration)
   }
   let ledger = @strategy.captured_dag_ledger(host.run)
-  match @strategy.charge_planning(ledger, profiles.length()) {
+  match @resources.charge_planning(ledger, profiles.length()) {
     Err(issue) => return Err(Run(Physical(issue)))
     Ok(_) => ()
   }
@@ -73,7 +73,7 @@ pub fn configure_dispatch_estimates(
       if slots > work || rates.length() > work - slots {
         return Err(InvalidConfiguration)
       }
-      match @strategy.charge_planning(ledger, slots + rates.length()) {
+      match @resources.charge_planning(ledger, slots + rates.length()) {
         Err(issue) => return Err(Run(Physical(issue)))
         Ok(_) => ()
       }
@@ -82,7 +82,7 @@ pub fn configure_dispatch_estimates(
         if rate.work_slots.length() > work {
           return Err(InvalidConfiguration)
         }
-        match @strategy.charge_planning(ledger, rate.work_slots.length()) {
+        match @resources.charge_planning(ledger, rate.work_slots.length()) {
           Err(issue) => return Err(Run(Physical(issue)))
           Ok(_) => ()
         }
@@ -198,7 +198,7 @@ pub fn refresh_dispatch_estimates(
   guard @strategy.next_captured_task(host.run) is Some(next) else {
     return Ok(())
   }
-  let usage = @strategy.ledger_usage(@strategy.captured_dag_ledger(host.run))
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(host.run))
   let key = (
     next,
     @strategy.captured_dag_generation(host.run),
@@ -228,12 +228,15 @@ fn rebuild_dispatch_estimates(
     return Err(InvalidConfiguration)
   }
   match
-    @strategy.charge_planning(@strategy.captured_dag_ledger(run), count + edges) {
+    @resources.charge_planning(
+      @strategy.captured_dag_ledger(run),
+      count + edges,
+    ) {
     Err(issue) => return Err(Run(Physical(issue)))
     Ok(_) => ()
   }
   match
-    @strategy.charge_planning(
+    @resources.charge_planning(
       @strategy.captured_dag_ledger(run),
       policy.estimate_work,
     ) {

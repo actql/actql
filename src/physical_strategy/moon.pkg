@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/physical_resources" @resources,
   "actql/actql/program_check" @checked,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/pipeline_typing" @pipeline,

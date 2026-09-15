@@ -112,7 +112,7 @@ fn captured_graph_fixture(
     query_capture_limits(),
   ).unwrap()
   let source = @planning.mock_captured_source(issuer, attempt, observation).unwrap()
-  let ledger = @strategy.create_ledger({
+  let ledger = @resources.create_ledger({
     planning_work: 10000,
     attempts: 10,
     holdings: 10,

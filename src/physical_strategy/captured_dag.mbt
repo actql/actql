@@ -5,8 +5,8 @@ struct CapturedDAG {
   graph : CheckedDAG
   offer_owner : StrategyOfferOwner
   mut source : @planning.CapturedInputSource?
-  ledger : Ledger
-  completed : Array[TaskCompletion?]
+  ledger : @resources.Ledger
+  completed : Array[@execution.CompletedOutput?]
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
@@ -42,13 +42,7 @@ pub(all) enum RunIssue {
   Compute(@planning.FixedComputeIssue)
   DuckDB(@planning.DuckDBComputeIssue)
   NativePreparation(@duckdb.NativeQueryIssue)
-  Physical(LedgerIssue)
-}
-
-///|
-priv enum TaskCompletion {
-  Local(@execution.CompletedSequence)
-  DuckDB(@execution.CompletedOutput)
+  Physical(@resources.LedgerIssue)
 }
 
 ///|
@@ -58,7 +52,7 @@ priv enum TaskCompletion {
 pub fn open_captured_dag(
   graph : CheckedDAG,
   source : @planning.CapturedInputSource,
-  ledger : Ledger,
+  ledger : @resources.Ledger,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
@@ -385,7 +379,7 @@ pub fn execute_captured_local_task(
     return Err(Physical(InvalidCharge))
   }
   let reservation = match
-    reserve_attempt(
+    @resources.reserve_attempt(
       run.ledger,
       0L,
       capacity.retained_bytes,
@@ -397,10 +391,14 @@ pub fn execute_captured_local_task(
   // Reserve the holding record before calculation too: a successful computation
   // must not discover afterward that its result cannot be retained.
   let holding = match
-    retain_allocation(run.ledger, reservation, capacity.retained_bytes) {
+    @resources.retain_allocation(
+      run.ledger,
+      reservation,
+      capacity.retained_bytes,
+    ) {
     Ok(holding) => holding
     Err(issue) => {
-      settle_reservation(run.ledger, reservation) |> ignore
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
       return Err(Physical(issue))
     }
   }
@@ -415,17 +413,24 @@ pub fn execute_captured_local_task(
       }),
     ) {
     Ok(completed) => {
-      run.completed[task] = Some(Local(completed))
+      guard captured_task_target(run, task) is Some(target) &&
+        @execution.completed_output(completed, target) is Some(output) else {
+        @resources.release_allocation(run.ledger, holding) |> ignore
+        @resources.settle_reservation(run.ledger, reservation) |> ignore
+        fail_captured_task(run, task, MissingOutput)
+        return Err(MissingOutput)
+      }
+      run.completed[task] = Some(output)
       record_task_retention(run, task)
       run.resources[task].unwrap().holding = Some(holding)
-      settle_reservation(run.ledger, reservation) |> ignore
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
       clear_captured_inputs(run, task)
       run.generation += 1
       Ok(())
     }
     Err(issue) => {
-      release_allocation(run.ledger, holding) |> ignore
-      settle_reservation(run.ledger, reservation) |> ignore
+      @resources.release_allocation(run.ledger, holding) |> ignore
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
       fail_captured_task(run, task, Compute(issue))
       Err(Compute(issue))
     }
@@ -443,11 +448,7 @@ pub fn captured_task_output(
     !run.lifetimes[task].live {
     return None
   }
-  let output = match run.completed.get(task).bind(value => value) {
-    Some(Local(completed)) => @execution.completed_output(completed, target)
-    Some(DuckDB(output)) => Some(output)
-    None => None
-  }
+  let output = run.completed.get(task).bind(value => value)
   let lifetime = run.lifetimes[task]
   output.map(output => {
     @execution.restrict_completed_output(output, fn() { lifetime.live })
@@ -484,7 +485,7 @@ pub fn captured_dag_failure(run : CapturedDAG) -> (Int, RunIssue)? {
 
 ///|
 /// One persistent Host ledger for the run, never replaced by a task choice.
-pub fn captured_dag_ledger(run : CapturedDAG) -> Ledger {
+pub fn captured_dag_ledger(run : CapturedDAG) -> @resources.Ledger {
   run.ledger
 }
 

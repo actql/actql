@@ -1,0 +1,89 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_resources"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
+
+pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
+
+pub fn holding_available(Ledger, Holding) -> Bool
+
+pub fn holding_belongs_to(Ledger, Holding) -> Bool
+
+pub fn holding_serial(Holding) -> Int
+
+pub fn ledger_limits(Ledger) -> LedgerLimits
+
+pub fn ledger_usage(Ledger) -> LedgerUsage
+
+pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
+pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
+
+pub fn reservation_open(Reservation) -> Bool
+
+pub fn reservation_pending(Reservation) -> Bool
+
+pub fn reservation_serial(Reservation) -> Int
+
+pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
+
+pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
+
+pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
+
+pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
+// Errors
+
+// Types and methods
+type Holding
+
+type Ledger
+
+pub(all) enum LedgerIssue {
+  InvalidLimits
+  PlanningLimit
+  AttemptLimit
+  HoldingLimit
+  TransferLimit
+  RetentionLimit
+  ExecutionLimit
+  ForeignOwner
+  ClosedReservation
+  ClosedHolding
+  InvalidCharge
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LedgerLimits {
+  planning_work : Int
+  attempts : Int
+  holdings : Int
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LedgerUsage {
+  planning_work : Int
+  attempts : Int
+  holdings : Int
+  transferred_bytes : Int64
+  reserved_transfer_bytes : Int64
+  held_bytes : Int64
+  reserved_retention_bytes : Int64
+  reserved_execution_bytes : Int64
+  peak_retention_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+type Reservation
+
+// Type aliases
+
+// Traits

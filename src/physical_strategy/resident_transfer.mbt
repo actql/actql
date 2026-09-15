@@ -1,7 +1,7 @@
 ///|
 struct ResidentTransfer {
   table : ResidentTable
-  reservation : Reservation
+  reservation : @resources.Reservation
   mut settled : Bool
   mut completed : Bool
 }
@@ -22,7 +22,7 @@ fn selected_resident_import(
     physical_equal(selected, actual) else {
     return Err(ForeignCandidate)
   }
-  match charge_planning(run.ledger, run.graph.data.length()) {
+  match @resources.charge_planning(run.ledger, run.graph.data.length()) {
     Err(issue) => return Err(Physical(issue))
     Ok(_) => ()
   }
@@ -77,7 +77,7 @@ pub fn begin_resident_transfer(
     return Err(Physical(InvalidCharge))
   }
   let reservation = match
-    reserve_attempt(run.ledger, transfer_bytes, 0L, scratch_bytes) {
+    @resources.reserve_attempt(run.ledger, transfer_bytes, 0L, scratch_bytes) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -91,11 +91,11 @@ pub fn charge_resident_transfer(
   run : CapturedDAG,
   transfer : ResidentTransfer,
   bytes : Int64,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_table(run, transfer.table) || transfer.settled {
     return Err(ForeignOwner)
   }
-  charge_transfer(run.ledger, transfer.reservation, bytes)
+  @resources.charge_transfer(run.ledger, transfer.reservation, bytes)
 }
 
 ///|
@@ -104,7 +104,7 @@ pub fn settle_resident_transfer(
   run : CapturedDAG,
   transfer : ResidentTransfer,
   confirmed : Bool,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_table(run, transfer.table) {
     return Err(ForeignOwner)
   }
@@ -112,9 +112,9 @@ pub fn settle_resident_transfer(
     return Ok(())
   }
   if !confirmed {
-    return mark_cleanup_pending(run.ledger, transfer.reservation)
+    return @resources.mark_cleanup_pending(run.ledger, transfer.reservation)
   }
-  match settle_reservation(run.ledger, transfer.reservation) {
+  match @resources.settle_reservation(run.ledger, transfer.reservation) {
     Err(issue) => Err(issue)
     Ok(_) => {
       transfer.settled = true

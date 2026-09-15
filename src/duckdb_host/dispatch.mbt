@@ -94,7 +94,7 @@ pub fn configure_strategy_dispatch(
     }
     // Bounded compilation against exact checked ownership, before any costs.
     match
-      @strategy.charge_planning(
+      @resources.charge_planning(
         @strategy.captured_dag_ledger(run),
         limits.candidate_work,
       ) {
@@ -175,7 +175,7 @@ pub fn prepare_next_dispatch(
   guard @strategy.strategy_registration(revision, task) is Some(registration) else {
     return Err(ForeignSelection)
   }
-  match @strategy.charge_planning(@strategy.captured_dag_ledger(host.run), 1) {
+  match @resources.charge_planning(@strategy.captured_dag_ledger(host.run), 1) {
     Err(issue) => return Err(Run(Physical(issue)))
     Ok(_) => ()
   }
@@ -256,7 +256,7 @@ pub fn prepare_next_dispatch(
         Err(issue) => return Err(Candidate(Compilation(issue)))
       }
       match
-        @strategy.charge_planning(
+        @resources.charge_planning(
           @strategy.captured_dag_ledger(host.run),
           host.limits.join_validation.max_work,
         ) {

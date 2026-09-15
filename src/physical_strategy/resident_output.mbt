@@ -20,7 +20,7 @@ fn prepare_resident_output(
   limits : @planning.DuckDBComputeLimits,
   max_sql_bytes : Int,
 ) -> Result[ResidentPendingOutput, RunIssue] {
-  if env.next_table >= run.ledger.limits.holdings {
+  if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
     return Err(Physical(HoldingLimit))
   }
   let table_name = "resident_" + env.next_table.to_string()
@@ -70,7 +70,7 @@ pub fn captured_resident_cleanup_sql(
     guard table is Some(table) && table.committed && !table.allocation.retiring else {
       continue
     }
-    match charge_planning(run.ledger, run.graph.data.length() + 1) {
+    match @resources.charge_planning(run.ledger, run.graph.data.length() + 1) {
       Err(issue) => return Err(Physical(issue))
       Ok(_) => ()
     }

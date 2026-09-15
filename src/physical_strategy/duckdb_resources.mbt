@@ -1,12 +1,12 @@
 ///|
 priv struct NativeTaskResources {
   attempt : @planning.DuckDBComputeAttempt
-  reservation : Reservation
+  reservation : @resources.Reservation
   retention : Int64
   scratch : Int64
   mut native_settled : Bool
   mut disposed : Bool
-  mut failed_holding : Holding?
+  mut failed_holding : @resources.Holding?
   resident : ResidentInputs?
   resident_output : ResidentPendingOutput?
 }
@@ -30,14 +30,14 @@ pub fn charge_captured_duckdb_transfer(
   run : CapturedDAG,
   attempt : @planning.DuckDBComputeAttempt,
   bytes : Int64,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   guard native_task_resource(run, attempt) is Some((_, resource)) else {
     return Err(ForeignOwner)
   }
   if resource.disposed || resource.native_settled {
     return Err(ClosedReservation)
   }
-  charge_transfer(run.ledger, resource.reservation, bytes)
+  @resources.charge_transfer(run.ledger, resource.reservation, bytes)
 }
 
 ///|
@@ -47,7 +47,7 @@ pub fn settle_captured_duckdb_native(
   run : CapturedDAG,
   attempt : @planning.DuckDBComputeAttempt,
   confirmed : Bool,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   guard native_task_resource(run, attempt) is Some((task, resource)) else {
     return Err(ForeignOwner)
   }
@@ -55,12 +55,12 @@ pub fn settle_captured_duckdb_native(
     return Ok(())
   }
   if !confirmed {
-    return mark_cleanup_pending(run.ledger, resource.reservation)
+    return @resources.mark_cleanup_pending(run.ledger, resource.reservation)
   }
   let result = if resource.disposed {
-    settle_reservation(run.ledger, resource.reservation)
+    @resources.settle_reservation(run.ledger, resource.reservation)
   } else {
-    settle_execution_reservation(
+    @resources.settle_execution_reservation(
       run.ledger,
       resource.reservation,
       remaining_execution=resource.scratch,
@@ -104,10 +104,10 @@ pub fn close_captured_duckdb_task(
   close_captured_task_output(run, task)
   if resource.native_settled {
     if resource.failed_holding is Some(holding) {
-      release_allocation(run.ledger, holding) |> ignore
+      @resources.release_allocation(run.ledger, holding) |> ignore
     }
-    if resource.reservation.open {
-      settle_reservation(run.ledger, resource.reservation) |> ignore
+    if @resources.reservation_open(resource.reservation) {
+      @resources.settle_reservation(run.ledger, resource.reservation) |> ignore
     }
     captured_cleanup_confirmed(run, attempt)
     // Do not retain a closed attempt's input graph after releasing its ledger

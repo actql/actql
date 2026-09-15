@@ -129,7 +129,7 @@ pub fn resident_inputs_view_sql(value : ResidentInputs) -> Array[String] {
 /// native settlement owns release, including after cancellation or failure.
 pub fn cancel_resident_inputs(
   value : ResidentInputs,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if value.claimed || value.returned {
     return Err(InvalidCharge)
   }
@@ -137,7 +137,9 @@ pub fn cancel_resident_inputs(
 }
 
 ///|
-fn return_resident_inputs(value : ResidentInputs) -> Result[Unit, LedgerIssue] {
+fn return_resident_inputs(
+  value : ResidentInputs,
+) -> Result[Unit, @resources.LedgerIssue] {
   if value.returned {
     return Err(InvalidCharge)
   }

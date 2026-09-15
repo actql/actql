@@ -94,6 +94,15 @@ success issuer.
 
 ## Transfer and execution ownership
 
+`physical_resources` owns the physical ledger, reservations and holdings without
+depending on a planner, driver or concrete connector. These are opaque owned
+handles: callers can inspect immutable limits, usage, ownership and availability,
+but cannot mutate counters or manufacture a reservation or holding. Settlement
+releases unused reservations, not already consumed transfer or independently held
+output. Releasing a holding changes its availability, not its owning ledger.
+The strategy layer additionally binds those resources to checked tasks and selected
+attempts; a ledger handle alone is not execution permission or completion evidence.
+
 `duckdb_host.configure_strategy_dispatch` binds a bounded array of generated
 sequences to their exact checked task owners, the owned registry, selected
 consumer capacities and transport/execution limits. It copies the configuration

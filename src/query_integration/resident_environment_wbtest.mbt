@@ -73,7 +73,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     is Err(Physical(InvalidCharge)),
   )
   let ledger = @strategy.captured_dag_ledger(run)
-  let before = @strategy.ledger_usage(ledger)
+  let before = @resources.ledger_usage(ledger)
   let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
   assert_eq(@strategy.next_captured_task(run), None)
   assert_true(
@@ -97,9 +97,9 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   // Unstarted preparations are reversible, including an actual ledger refusal.
   // More than the holding/name bound: names and table quota must not leak.
-  let planned = @strategy.ledger_usage(ledger).planning_work
-  let blocker = @strategy.reserve_attempt(ledger, 300000L, 0L, 0L).unwrap()
-  let attempts_before_corrections = @strategy.ledger_usage(ledger).attempts
+  let planned = @resources.ledger_usage(ledger).planning_work
+  let blocker = @resources.reserve_attempt(ledger, 300000L, 0L, 0L).unwrap()
+  let attempts_before_corrections = @resources.ledger_usage(ledger).attempts
   let mut stale = None
   for _ in 0..<20 {
     let pending = @strategy.prepare_resident_table(
@@ -121,11 +121,11 @@ test "resident provision freezes dispatch and search until binding or close" {
     stale = Some(pending)
   }
   assert_eq(
-    @strategy.ledger_usage(ledger).attempts,
+    @resources.ledger_usage(ledger).attempts,
     attempts_before_corrections,
   )
-  assert_true(@strategy.ledger_usage(ledger).planning_work > planned)
-  @strategy.settle_reservation(ledger, blocker).unwrap()
+  assert_true(@resources.ledger_usage(ledger).planning_work > planned)
+  @resources.settle_reservation(ledger, blocker).unwrap()
   let table = @strategy.prepare_resident_table(
     run, env, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
@@ -133,7 +133,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.borrow_resident_table(run, table, 1, 1000, 10000, 10000)
     is Err(ForeignCandidate),
   )
-  let attempts = @strategy.ledger_usage(ledger).attempts
+  let attempts = @resources.ledger_usage(ledger).attempts
   assert_true(
     @strategy.begin_resident_transfer(run, table, 21L, 100L)
     is Err(Physical(InvalidCharge)),
@@ -142,7 +142,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.begin_resident_transfer(run, table, 20L, 101L)
     is Err(Physical(InvalidCharge)),
   )
-  assert_eq(@strategy.ledger_usage(ledger).attempts, attempts)
+  assert_eq(@resources.ledger_usage(ledger).attempts, attempts)
   let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
   assert_true(
     @strategy.cancel_resident_table_preparation(run, table)
@@ -170,7 +170,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     @strategy.begin_resident_transfer(run, table, 20L, 100L)
     is Err(ForeignCandidate),
   )
-  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 12L)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 12L)
   let read = @strategy.borrow_resident_table(run, table, 1, 1000, 10000, 10000).unwrap()
   let another = @strategy.borrow_resident_table(
     run, table, 1, 1000, 10000, 10000,
@@ -191,22 +191,22 @@ test "resident provision freezes dispatch and search until binding or close" {
   assert_true(@strategy.return_resident_read(another) is Err(InvalidCharge))
   @strategy.release_resident_table(run, table).unwrap()
   assert_eq(
-    @strategy.ledger_usage(ledger).reserved_execution_bytes,
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes + 1000L,
   )
   @strategy.close_resident_environment(run, env).unwrap()
   assert_false(@strategy.resident_environment_available(run, env))
   assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(
-    @strategy.ledger_usage(ledger).reserved_execution_bytes,
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes + 1000L,
   )
   @strategy.settle_resident_environment(run, env).unwrap()
   assert_eq(
-    @strategy.ledger_usage(ledger).reserved_execution_bytes,
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
     before.reserved_execution_bytes,
   )
-  assert_eq(@strategy.ledger_usage(ledger).attempts, before.attempts + 3)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 3)
   // Correction is possible after genuine environment loss, with the history
   // and planning work intact. There is no implicit retry of a started task.
   assert_true(
@@ -216,16 +216,16 @@ test "resident provision freezes dispatch and search until binding or close" {
   let failed_provision = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
   @strategy.close_resident_environment(run, failed_provision).unwrap()
   assert_eq(@strategy.next_captured_task(run), None)
-  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 1000L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 1000L)
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(Stopped),
   )
   @strategy.settle_resident_environment(run, failed_provision).unwrap()
-  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(Stopped),
   )
-  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 12L)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 12L)
 }
 
 ///|
@@ -276,7 +276,7 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
   @strategy.charge_resident_transfer(run, transfer, 12L).unwrap()
   @strategy.abort_resident_transfer(run, transfer).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 1100L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 1100L)
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(Stopped),
   )
@@ -284,10 +284,10 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
   assert_true(
     @strategy.complete_resident_transfer(run, transfer) is Err(Stopped),
   )
-  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 1000L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 1000L)
   @strategy.close_resident_environment(run, env).unwrap()
   @strategy.settle_resident_environment(run, env).unwrap()
-  assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 0L)
-  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 12L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 12L)
   assert_eq(@strategy.next_captured_task(run), None)
 }

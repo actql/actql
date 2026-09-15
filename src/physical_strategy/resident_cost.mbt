@@ -52,7 +52,7 @@ pub fn prepare_resident_profile(
   if database_bytes <= 0L || imports.length() != run.graph.owners.length() {
     return Err(InvalidCapacity)
   }
-  match charge_planning(run.ledger, imports.length()) {
+  match @resources.charge_planning(run.ledger, imports.length()) {
     Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()
   }

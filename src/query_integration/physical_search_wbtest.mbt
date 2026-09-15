@@ -88,9 +88,9 @@ test "whole strategy includes transfer costs and revises only after new completi
   assert_true(captured_graph_local(run, 1) is Err(ForeignCandidate))
   captured_graph_local(run, 1, supplied_registry=Some(registry)).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  let previous = @strategy.reserve_attempt(ledger, 1L, 0L, 0L).unwrap()
-  @strategy.charge_transfer(ledger, previous, 1L).unwrap()
-  @strategy.mark_cleanup_pending(ledger, previous).unwrap()
+  let previous = @resources.reserve_attempt(ledger, 1L, 0L, 0L).unwrap()
+  @resources.charge_transfer(ledger, previous, 1L).unwrap()
+  @resources.mark_cleanup_pending(ledger, previous).unwrap()
   let next = search_offers(run, registry, [2, 3], Some(1L))
   guard @strategy.revise_strategy(run, next, registry, None).unwrap()
     is Selected(second) else {
@@ -100,7 +100,7 @@ test "whole strategy includes transfer costs and revises only after new completi
   assert_eq(@strategy.strategy_revision_number(second), 2)
   assert_eq(@strategy.strategy_assessment(second).duration, @cost.Complete(4L))
   assert_eq(@strategy.strategy_usage_before(second).transferred_bytes, 1L)
-  assert_true(@strategy.reservation_pending(previous))
+  assert_true(@resources.reservation_pending(previous))
   assert_true(
     physical_equal(
       @strategy.strategy_registration(second, 1).unwrap(),
@@ -117,7 +117,7 @@ test "whole strategy includes transfer costs and revises only after new completi
     captured_graph_local(run, 2, supplied_registry=Some(registry))
     is Err(ForeignCandidate),
   )
-  assert_eq(@strategy.ledger_usage(ledger).transferred_bytes, 1L)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 1L)
 }
 
 ///|
@@ -166,7 +166,7 @@ test "search limits and duplicate work cannot be bypassed by another revision" {
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Err(StrategyLimit),
   )
-  let work = @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work
+  let work = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work
   assert_true(
     @strategy.revise_strategy(
       run,
@@ -177,7 +177,7 @@ test "search limits and duplicate work cannot be bypassed by another revision" {
     is Ok(Selected(_)),
   )
   assert_true(
-    @strategy.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work >
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).planning_work >
     work,
   )
   assert_true(
@@ -208,9 +208,9 @@ test "pending physical reservations reject assignments and real release permits 
     max_revisions: 2,
   }).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  let reserved = @strategy.reserve_attempt(ledger, 0L, 31999901L, 0L).unwrap()
-  let holding = @strategy.retain_allocation(ledger, reserved, 31999901L).unwrap()
-  @strategy.settle_reservation(ledger, reserved).unwrap()
+  let reserved = @resources.reserve_attempt(ledger, 0L, 31999901L, 0L).unwrap()
+  let holding = @resources.retain_allocation(ledger, reserved, 31999901L).unwrap()
+  @resources.settle_reservation(ledger, reserved).unwrap()
   let offers = search_offers(run, registry, [1, 2, 3], Some(1L))
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Ok(NoFeasible),
@@ -226,7 +226,7 @@ test "pending physical reservations reject assignments and real release permits 
     @strategy.revise_strategy(run, offers, registry, None)
     is Err(UnchangedState),
   )
-  @strategy.release_allocation(ledger, holding).unwrap()
+  @resources.release_allocation(ledger, holding).unwrap()
   guard @strategy.revise_strategy(run, offers, registry, None).unwrap()
     is Selected(revision) else {
     abort("released capacity")
@@ -269,9 +269,9 @@ test "deferred selection revokes dispatch without forgetting completed placement
     is Err(ForeignCandidate),
   )
   let ledger = @strategy.captured_dag_ledger(run)
-  let reservation = @strategy.reserve_attempt(ledger, 1L, 0L, 0L).unwrap()
-  @strategy.charge_transfer(ledger, reservation, 1L).unwrap()
-  @strategy.settle_reservation(ledger, reservation).unwrap()
+  let reservation = @resources.reserve_attempt(ledger, 1L, 0L, 0L).unwrap()
+  @resources.charge_transfer(ledger, reservation, 1L).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
   let known = search_offers(run, registry, [2, 3], Some(1L))
   guard @strategy.revise_strategy(run, known, registry, None).unwrap()
     is Selected(last) else {

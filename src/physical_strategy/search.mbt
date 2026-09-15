@@ -50,7 +50,7 @@ priv struct StrategyOfferOwner {
 pub struct StrategyAssessment {
   position : Int
   duration : @cost.DurationEstimate
-  rejection : LedgerIssue?
+  rejection : @resources.LedgerIssue?
   transfer_bytes : Int64
   retained_bytes : Int64
   execution_bytes : Int64
@@ -62,7 +62,7 @@ struct StrategyRevision {
   generation : Int
   choices : Array[TaskOffer?]
   assessment : StrategyAssessment
-  before : LedgerUsage
+  before : @resources.LedgerUsage
   estimated_fastest : Bool
 }
 
@@ -84,7 +84,7 @@ pub(all) enum SearchIssue {
   InvalidPreference
   Overflow
   Cost(@cost.CostIssue)
-  Ledger(LedgerIssue)
+  Ledger(@resources.LedgerIssue)
 }
 
 ///|
@@ -178,7 +178,7 @@ pub fn prepare_task_offer(
 
 ///|
 priv struct SearchWork {
-  ledger : Ledger
+  ledger : @resources.Ledger
   mut remaining : Int
 }
 
@@ -187,7 +187,7 @@ fn search_charge(work : SearchWork, amount : Int) -> Result[Unit, SearchIssue] {
   if amount > work.remaining {
     return Err(Ledger(PlanningLimit))
   }
-  match charge_planning(work.ledger, amount) {
+  match @resources.charge_planning(work.ledger, amount) {
     Err(issue) => Err(Ledger(issue))
     Ok(_) => {
       work.remaining -= amount
@@ -214,7 +214,7 @@ pub fn revise_strategy(
   if run.running is Some(_) || resident_provision_pending(run) {
     return Err(Busy)
   }
-  let latest = ledger_usage(run.ledger)
+  let latest = @resources.ledger_usage(run.ledger)
   let resources = {
     attempts: latest.attempts,
     holdings: latest.holdings,
@@ -311,7 +311,7 @@ pub fn revise_strategy(
   let indices = Array::make(tasks.length(), 0)
   let feasible : Array[StrategyRevision] = []
   let durations = []
-  let usage = ledger_usage(run.ledger)
+  let usage = @resources.ledger_usage(run.ledger)
   for position in 0..<combinations {
     match search_charge(work, count) {
       Err(e) => return Err(e)
@@ -381,27 +381,27 @@ pub fn revise_strategy(
         duration += value
       }
     }
-    let available = run.ledger.limits
+    let available = @resources.ledger_limits(run.ledger)
     let rejection = if tasks.length() + shared.attempts >
       available.attempts - usage.attempts {
-      Some(AttemptLimit)
+      Some(@resources.AttemptLimit)
     } else if shared.rejected {
-      Some(RetentionLimit)
+      Some(@resources.RetentionLimit)
     } else if tasks.length() > available.holdings - usage.holdings {
-      Some(HoldingLimit)
+      Some(@resources.HoldingLimit)
     } else if transfer >
       available.transfer_bytes -
       usage.transferred_bytes -
       usage.reserved_transfer_bytes {
-      Some(TransferLimit)
+      Some(@resources.TransferLimit)
     } else if retained >
       available.retained_bytes -
       usage.held_bytes -
       usage.reserved_retention_bytes {
-      Some(RetentionLimit)
+      Some(@resources.RetentionLimit)
     } else if execution >
       available.execution_bytes - usage.reserved_execution_bytes {
-      Some(ExecutionLimit)
+      Some(@resources.ExecutionLimit)
     } else {
       None
     }
@@ -525,7 +525,9 @@ pub fn strategy_assessment(revision : StrategyRevision) -> StrategyAssessment {
 }
 
 ///|
-pub fn strategy_usage_before(revision : StrategyRevision) -> LedgerUsage {
+pub fn strategy_usage_before(
+  revision : StrategyRevision,
+) -> @resources.LedgerUsage {
   revision.before
 }
 

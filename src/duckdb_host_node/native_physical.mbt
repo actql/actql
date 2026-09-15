@@ -1,13 +1,13 @@
 ///|
 priv struct NativePhysical {
-  ledger : @strategy.Ledger
-  reservation : @strategy.Reservation
+  ledger : @resources.Ledger
+  reservation : @resources.Reservation
   retention : Int64
   scratch : Int64
   mut settled : Bool
   mut closed : Bool
   mut completed : Bool
-  mut holding : @strategy.Holding?
+  mut holding : @resources.Holding?
   mut dag : @strategy.CapturedDAG?
   mut source : @planning.CapturedInputSource?
   mut observation : @planning.DuckDBNativeObservation?
@@ -33,7 +33,7 @@ pub fn native_host_capacity(
 #export_name("nativeStrategyHostOpen")
 pub fn native_strategy_host_open(
   setup : @host.NativeHostConfiguration,
-  ledger : @strategy.Ledger,
+  ledger : @resources.Ledger,
   nonce : String,
   verify : (@planning.DuckDBNativeAttempt) -> Bool,
   transfer : Int64,
@@ -47,7 +47,7 @@ pub fn native_strategy_host_open(
     raise Physical(InvalidLimits)
   }
   let reservation = match
-    @strategy.reserve_attempt(
+    @resources.reserve_attempt(
       ledger,
       transfer,
       capacity.retained_bytes,
@@ -58,7 +58,7 @@ pub fn native_strategy_host_open(
   }
   match @host.start_configured_native_host(setup, nonce, verify) {
     Err(issue) => {
-      @strategy.settle_reservation(ledger, reservation) |> ignore
+      @resources.settle_reservation(ledger, reservation) |> ignore
       raise Host(issue)
     }
     Ok(host) =>
@@ -91,7 +91,7 @@ pub fn native_host_physical_charge(
   guard run.physical is Some(p) && !p.closed else {
     raise Physical(InvalidCharge)
   }
-  match @strategy.charge_transfer(p.ledger, p.reservation, bytes) {
+  match @resources.charge_transfer(p.ledger, p.reservation, bytes) {
     Ok(_) => ()
     Err(issue) => raise Physical(issue)
   }
@@ -108,11 +108,11 @@ pub fn native_host_physical_settle(
     return
   }
   let result = if !confirmed {
-    @strategy.mark_cleanup_pending(p.ledger, p.reservation)
+    @resources.mark_cleanup_pending(p.ledger, p.reservation)
   } else if p.closed {
-    @strategy.settle_reservation(p.ledger, p.reservation)
+    @resources.settle_reservation(p.ledger, p.reservation)
   } else {
-    @strategy.settle_execution_reservation(
+    @resources.settle_execution_reservation(
       p.ledger,
       p.reservation,
       remaining_execution=p.scratch,
@@ -168,10 +168,10 @@ fn close_native_physical(run : NativeNodeRun) -> Unit {
     @strategy.close_captured_task_output(dag, 0)
   }
   if p.holding is Some(holding) {
-    @strategy.release_allocation(p.ledger, holding) |> ignore
+    @resources.release_allocation(p.ledger, holding) |> ignore
     p.holding = None
   }
   if p.settled && !p.completed {
-    @strategy.settle_reservation(p.ledger, p.reservation) |> ignore
+    @resources.settle_reservation(p.ledger, p.reservation) |> ignore
   }
 }

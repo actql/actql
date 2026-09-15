@@ -7,6 +7,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
+  "actql/actql/physical_resources",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
@@ -23,9 +24,9 @@ pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Resu
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, Int, input_index? : Int, view_name? : String) -> Result[ResidentRead, RunIssue]
 
-pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, LedgerIssue]
+pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, LedgerIssue]
+pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
@@ -33,7 +34,7 @@ pub fn captured_dag_generation(CapturedDAG) -> Int
 
 pub fn captured_dag_graph(CapturedDAG) -> CheckedDAG
 
-pub fn captured_dag_ledger(CapturedDAG) -> Ledger
+pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
@@ -53,19 +54,15 @@ pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execu
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
-pub fn charge_captured_duckdb_transfer(CapturedDAG, @query_planning.DuckDBComputeAttempt, Int64) -> Result[Unit, LedgerIssue]
+pub fn charge_captured_duckdb_transfer(CapturedDAG, @query_planning.DuckDBComputeAttempt, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
-
-pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, LedgerIssue]
-
-pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn close_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Unit
 
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
-pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, LedgerIssue]
+pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
 
@@ -78,8 +75,6 @@ pub fn confirm_captured_resident_output(CapturedDAG, @query_planning.DuckDBCompu
 pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> Result[Unit, RunIssue]
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
-
-pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn duckdb_task_retention_capacity(@query_planning.DuckDBComputeLimits) -> Int64?
 
@@ -103,15 +98,9 @@ pub fn graph_task_count(CheckedDAG) -> Int
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
-pub fn holding_serial(Holding) -> Int
-
-pub fn ledger_usage(Ledger) -> LedgerUsage
-
-pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
-
 pub fn next_captured_task(CapturedDAG) -> Int?
 
-pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, Ledger) -> Result[CapturedDAG, RunIssue]
+pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
@@ -123,15 +112,7 @@ pub fn prepare_resident_table(CapturedDAG, ResidentEnvironment, Int, Int64, Int,
 
 pub fn prepare_task_offer(CapturedDAG, Int, @query_planning.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
-pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
-
-pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, LedgerIssue]
-
-pub fn reservation_pending(Reservation) -> Bool
-
-pub fn reservation_serial(Reservation) -> Int
-
-pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
+pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
@@ -151,25 +132,19 @@ pub fn resident_table_import(ResidentTable) -> @duckdb_adapter.ResidentImport
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile) -> Result[TaskOffer, SearchIssue]
 
-pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
+pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn retain_captured_task_allocation(CapturedDAG, Int, Holding) -> Result[Unit, LedgerIssue]
+pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, LedgerIssue]
-
-pub fn return_resident_read(ResidentRead) -> Result[Unit, LedgerIssue]
+pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
-pub fn settle_captured_duckdb_native(CapturedDAG, @query_planning.DuckDBComputeAttempt, Bool) -> Result[Unit, LedgerIssue]
+pub fn settle_captured_duckdb_native(CapturedDAG, @query_planning.DuckDBComputeAttempt, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
+pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
-
-pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, LedgerIssue]
-
-pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, LedgerIssue]
+pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@query_planning.DuckDBComputeAttempt) -> Bool, resident? : ResidentInputs) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
 
@@ -195,7 +170,7 @@ pub fn strategy_revision_number(StrategyRevision) -> Int
 
 pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
 
-pub fn strategy_usage_before(StrategyRevision) -> LedgerUsage
+pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
 
 // Errors
 
@@ -230,52 +205,11 @@ pub(all) enum GraphIssue {
   NonDAG(Int)
 } derive(Eq, @debug.Debug)
 
-type Holding
-
-type Ledger
-
-pub(all) enum LedgerIssue {
-  InvalidLimits
-  PlanningLimit
-  AttemptLimit
-  HoldingLimit
-  TransferLimit
-  RetentionLimit
-  ExecutionLimit
-  ForeignOwner
-  ClosedReservation
-  ClosedHolding
-  InvalidCharge
-} derive(Eq, @debug.Debug)
-
-pub(all) struct LedgerLimits {
-  planning_work : Int
-  attempts : Int
-  holdings : Int
-  transfer_bytes : Int64
-  retained_bytes : Int64
-  execution_bytes : Int64
-} derive(Eq, @debug.Debug)
-
-pub(all) struct LedgerUsage {
-  planning_work : Int
-  attempts : Int
-  holdings : Int
-  transferred_bytes : Int64
-  reserved_transfer_bytes : Int64
-  held_bytes : Int64
-  reserved_retention_bytes : Int64
-  reserved_execution_bytes : Int64
-  peak_retention_bytes : Int64
-} derive(Eq, @debug.Debug)
-
 pub(all) struct PhysicalEnvelope {
   transfer_bytes : Int64
   retained_bytes : Int64
   execution_bytes : Int64
 } derive(Eq, @debug.Debug)
-
-type Reservation
 
 type ResidentEnvironment
 
@@ -309,7 +243,7 @@ pub(all) enum RunIssue {
   Compute(@query_planning.FixedComputeIssue)
   DuckDB(@query_planning.DuckDBComputeIssue)
   NativePreparation(@duckdb_adapter.NativeQueryIssue)
-  Physical(LedgerIssue)
+  Physical(@physical_resources.LedgerIssue)
 }
 
 pub(all) enum SearchIssue {
@@ -329,7 +263,7 @@ pub(all) enum SearchIssue {
   InvalidPreference
   Overflow
   Cost(@physical_cost.CostIssue)
-  Ledger(LedgerIssue)
+  Ledger(@physical_resources.LedgerIssue)
 }
 
 pub(all) struct SearchLimits {
@@ -342,7 +276,7 @@ pub(all) struct SearchLimits {
 pub struct StrategyAssessment {
   position : Int
   duration : @physical_cost.DurationEstimate
-  rejection : LedgerIssue?
+  rejection : @physical_resources.LedgerIssue?
   transfer_bytes : Int64
   retained_bytes : Int64
   execution_bytes : Int64

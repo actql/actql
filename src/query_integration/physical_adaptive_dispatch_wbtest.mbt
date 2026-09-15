@@ -68,12 +68,12 @@ test "observed completion revises only the unstarted suffix without resetting re
     ),
   )
   let ledger = @strategy.captured_dag_ledger(run)
-  let before = @strategy.ledger_usage(ledger)
+  let before = @resources.ledger_usage(ledger)
   @dbhost.refresh_dispatch_estimates(host).unwrap()
-  assert_eq(@strategy.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), before)
   let a = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   @dbhost.execute_local_dispatch(a).unwrap()
-  let after_a = @strategy.ledger_usage(ledger)
+  let after_a = @resources.ledger_usage(ledger)
   let b = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   let second = @strategy.strategy_history_at(run, 1).unwrap()
   // A really produced one row: C's estimate falls from 4 to 2, below native 3.
@@ -89,7 +89,7 @@ test "observed completion revises only the unstarted suffix without resetting re
       local_reg,
     ),
   )
-  let revised = @strategy.ledger_usage(ledger)
+  let revised = @resources.ledger_usage(ledger)
   assert_eq({ ..revised, planning_work: 0, }, { ..after_a, planning_work: 0, })
   assert_true(revised.planning_work > after_a.planning_work)
   @dbhost.execute_local_dispatch(b).unwrap()
@@ -116,10 +116,10 @@ test "unknown downstream size defers and cannot fall through to an old selection
     max_revisions: 3,
   }).unwrap()
   assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
-  let usage = @strategy.ledger_usage(@strategy.captured_dag_ledger(run))
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   assert_eq(usage.attempts, 0)
   assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
-  assert_eq(@strategy.ledger_usage(@strategy.captured_dag_ledger(run)), usage)
+  assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)), usage)
 }
 
 ///|
@@ -150,10 +150,10 @@ test "adaptive estimate overflow and revision exhaustion do not start more work"
       )
       assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
     }
-    let before = @strategy.ledger_usage(@strategy.captured_dag_ledger(run))
+    let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
     assert_true(@dbhost.prepare_next_dispatch(host) is Err(_))
     assert_eq(
-      @strategy.ledger_usage(@strategy.captured_dag_ledger(run)),
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
       before,
     )
     assert_false(@strategy.captured_task_completed(run, 2))

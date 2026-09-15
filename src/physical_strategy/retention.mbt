@@ -5,7 +5,7 @@ priv struct TaskLifetime {
 
 ///|
 priv struct TaskRetention {
-  mut holding : Holding?
+  mut holding : @resources.Holding?
   parents : Array[Int]
 }
 
@@ -37,12 +37,12 @@ fn record_task_retention(run : CapturedDAG, task : Int) -> Unit {
 pub fn retain_captured_task_allocation(
   run : CapturedDAG,
   task : Int,
-  holding : Holding,
-) -> Result[Unit, LedgerIssue] {
-  if !physical_equal(holding.owner, run.ledger) {
+  holding : @resources.Holding,
+) -> Result[Unit, @resources.LedgerIssue] {
+  if !@resources.holding_belongs_to(run.ledger, holding) {
     return Err(ForeignOwner)
   }
-  guard holding.live &&
+  guard @resources.holding_available(run.ledger, holding) &&
     run.resources.get(task).bind(x => x) is Some(resource) &&
     resource.holding is None &&
     run.lifetimes[task].live else {
@@ -114,7 +114,7 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
     }
     if !needed {
       if resource.holding is Some(holding) {
-        release_allocation(run.ledger, holding) |> ignore
+        @resources.release_allocation(run.ledger, holding) |> ignore
       }
       run.resources[task] = None
     }

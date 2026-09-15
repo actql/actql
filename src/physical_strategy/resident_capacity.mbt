@@ -2,8 +2,8 @@
 /// One run-owned DB capacity reservation. Resident table allowances are
 /// suballocations of this capacity, not additional Host retained allocations.
 priv struct ResidentCapacity {
-  ledger : Ledger
-  reservation : Reservation
+  ledger : @resources.Ledger
+  reservation : @resources.Reservation
   capacity : Int64
   mut allocated : Int64
   mut closing : Bool
@@ -20,13 +20,13 @@ priv struct ResidentAllocation {
 
 ///|
 fn reserve_resident_capacity(
-  ledger : Ledger,
+  ledger : @resources.Ledger,
   bytes : Int64,
-) -> Result[ResidentCapacity, LedgerIssue] {
+) -> Result[ResidentCapacity, @resources.LedgerIssue] {
   if bytes <= 0L {
     return Err(InvalidCharge)
   }
-  match reserve_attempt(ledger, 0L, 0L, bytes) {
+  match @resources.reserve_attempt(ledger, 0L, 0L, bytes) {
     Err(issue) => Err(issue)
     Ok(reservation) =>
       Ok({
@@ -43,8 +43,8 @@ fn reserve_resident_capacity(
 fn allocate_resident_capacity(
   owner : ResidentCapacity,
   bytes : Int64,
-) -> Result[ResidentAllocation, LedgerIssue] {
-  if owner.closing || !owner.reservation.open {
+) -> Result[ResidentAllocation, @resources.LedgerIssue] {
+  if owner.closing || !@resources.reservation_open(owner.reservation) {
     return Err(ClosedReservation)
   }
   if bytes < 0L {
@@ -61,12 +61,12 @@ fn allocate_resident_capacity(
 fn borrow_resident_capacity(
   owner : ResidentCapacity,
   allocation : ResidentAllocation,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !physical_equal(owner, allocation.owner) {
     return Err(ForeignOwner)
   }
   if owner.closing ||
-    !owner.reservation.open ||
+    !@resources.reservation_open(owner.reservation) ||
     allocation.retiring ||
     allocation.released {
     return Err(ClosedHolding)
@@ -88,7 +88,7 @@ fn retire_resident_capacity(allocation : ResidentAllocation) -> Unit {
 /// Call only after the native reader has stopped, not on cancellation request.
 fn return_resident_capacity(
   allocation : ResidentAllocation,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if allocation.readers <= 0 {
     return Err(InvalidCharge)
   }
@@ -100,7 +100,7 @@ fn return_resident_capacity(
 /// Successful DROP/DB cleanup acknowledgement, never a logical handle close.
 fn release_resident_capacity(
   allocation : ResidentAllocation,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if allocation.released {
     return Err(ClosedHolding)
   }
@@ -115,18 +115,18 @@ fn release_resident_capacity(
 ///|
 fn close_resident_capacity(
   owner : ResidentCapacity,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   owner.closing = true
-  mark_cleanup_pending(owner.ledger, owner.reservation)
+  @resources.mark_cleanup_pending(owner.ledger, owner.reservation)
 }
 
 ///|
 /// DB cleanup must also finish outstanding readers and retire their tables.
 fn settle_resident_capacity(
   owner : ResidentCapacity,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owner.closing || owner.allocated != 0L {
     return Err(InvalidCharge)
   }
-  settle_reservation(owner.ledger, owner.reservation)
+  @resources.settle_reservation(owner.ledger, owner.reservation)
 }

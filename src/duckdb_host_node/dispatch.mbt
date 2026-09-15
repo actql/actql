@@ -141,7 +141,7 @@ pub fn strategy_host_explain(
 ///|
 #export_name("strategyHostUsage")
 pub fn strategy_host_usage(host : @host.StrategyHostDispatch) -> Array[Int64] {
-  let usage = @strategy.ledger_usage(
+  let usage = @resources.ledger_usage(
     @strategy.captured_dag_ledger(@host.dispatch_run(host)),
   )
   [

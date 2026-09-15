@@ -6,6 +6,7 @@ import {
   "actql/actql/duckdb_host",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
@@ -195,7 +196,7 @@ pub fn strategy_fixture_history_placement(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_join_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_strategy.Ledger
+pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_resources.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 

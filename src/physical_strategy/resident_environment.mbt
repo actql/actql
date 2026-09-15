@@ -118,7 +118,7 @@ pub fn resident_environment_available(
 pub fn close_resident_environment(
   run : CapturedDAG,
   env : ResidentEnvironment,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_environment(run, env) {
     return Err(ForeignOwner)
   }
@@ -146,7 +146,7 @@ pub fn close_resident_environment(
 pub fn settle_resident_environment(
   run : CapturedDAG,
   env : ResidentEnvironment,
-) -> Result[Unit, LedgerIssue] {
+) -> Result[Unit, @resources.LedgerIssue] {
   if !owns_resident_environment(run, env) {
     return Err(ForeignOwner)
   }

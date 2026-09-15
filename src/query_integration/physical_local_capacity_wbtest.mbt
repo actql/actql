@@ -36,18 +36,18 @@ test "Local capacity profile has independent fixed node text and fragment allowa
 test "Local reserves physical capacity before execution and releases failed work without erasing upstream retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)
-  let occupied = @strategy.reserve_attempt(ledger, 0L, 24240001L, 0L).unwrap()
-  let before = @strategy.ledger_usage(ledger)
+  let occupied = @resources.reserve_attempt(ledger, 0L, 24240001L, 0L).unwrap()
+  let before = @resources.ledger_usage(ledger)
   assert_true(captured_graph_local(run, 1) is Err(Physical(RetentionLimit)))
-  assert_eq(@strategy.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), before)
   assert_eq(@strategy.next_captured_task(run), Some(1))
   assert_false(@strategy.captured_task_completed(run, 1))
-  @strategy.settle_reservation(ledger, occupied).unwrap()
-  let exact = @strategy.reserve_attempt(ledger, 0L, 24240000L, 0L).unwrap()
+  @resources.settle_reservation(ledger, occupied).unwrap()
+  let exact = @resources.reserve_attempt(ledger, 0L, 24240000L, 0L).unwrap()
   captured_graph_local(run, 1).unwrap()
-  assert_eq(@strategy.ledger_usage(ledger).reserved_retention_bytes, 24240000L)
-  @strategy.settle_reservation(ledger, exact).unwrap()
-  let held = @strategy.ledger_usage(ledger)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 24240000L)
+  @resources.settle_reservation(ledger, exact).unwrap()
+  let held = @resources.ledger_usage(ledger)
   assert_eq(held.held_bytes, 7760000L)
   assert_eq(held.reserved_execution_bytes, 0L)
   assert_true(
@@ -57,7 +57,7 @@ test "Local reserves physical capacity before execution and releases failed work
     })
     is Err(Compute(_)),
   )
-  let failed = @strategy.ledger_usage(ledger)
+  let failed = @resources.ledger_usage(ledger)
   assert_eq(failed.held_bytes, held.held_bytes)
   assert_eq(failed.reserved_retention_bytes, 0L)
   assert_eq(failed.reserved_execution_bytes, 0L)
@@ -72,7 +72,7 @@ test "Local working capacity and selected strategy envelope are enforced before 
   let (run, _) = captured_graph_fixture()
   let ordinary = compute_test_limits()
   let ledger = @strategy.captured_dag_ledger(run)
-  let before = @strategy.ledger_usage(ledger)
+  let before = @resources.ledger_usage(ledger)
   assert_true(
     captured_graph_local(run, 1, limits={
       ..ordinary,
@@ -80,7 +80,7 @@ test "Local working capacity and selected strategy envelope are enforced before 
     })
     is Err(Physical(ExecutionLimit)),
   )
-  assert_eq(@strategy.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), before)
   let registry = search_registry()
   @strategy.configure_strategy_search(run, {
     max_offers: 3,
@@ -102,12 +102,12 @@ test "Local working capacity and selected strategy envelope are enforced before 
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
   )
-  let planned = @strategy.ledger_usage(ledger)
+  let planned = @resources.ledger_usage(ledger)
   assert_true(
     captured_graph_local(run, 1, supplied_registry=Some(registry))
     is Err(Physical(InvalidCharge)),
   )
-  assert_eq(@strategy.ledger_usage(ledger), planned)
+  assert_eq(@resources.ledger_usage(ledger), planned)
   assert_false(@strategy.captured_task_completed(run, 1))
 }
 
@@ -128,16 +128,16 @@ test "strategy comparison cannot reuse consumed attempt or holding record budget
       @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
     )
     if use_holdings {
-      let reservation = @strategy.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+      let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
       for _ in 0..<8 {
-        let holding = @strategy.retain_allocation(ledger, reservation, 0L).unwrap()
-        @strategy.release_allocation(ledger, holding).unwrap()
+        let holding = @resources.retain_allocation(ledger, reservation, 0L).unwrap()
+        @resources.release_allocation(ledger, holding).unwrap()
       }
-      @strategy.settle_reservation(ledger, reservation).unwrap()
+      @resources.settle_reservation(ledger, reservation).unwrap()
     } else {
       for _ in 0..<8 {
-        let reservation = @strategy.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
-        @strategy.settle_reservation(ledger, reservation).unwrap()
+        let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+        @resources.settle_reservation(ledger, reservation).unwrap()
       }
     }
     assert_true(
@@ -147,13 +147,13 @@ test "strategy comparison cannot reuse consumed attempt or holding record budget
       assert_eq(
         @strategy.strategy_report_at(run, index).unwrap().rejection,
         if use_holdings {
-          Some(@strategy.HoldingLimit)
+          Some(@resources.HoldingLimit)
         } else {
-          Some(@strategy.AttemptLimit)
+          Some(@resources.AttemptLimit)
         },
       )
     }
-    assert_eq(@strategy.ledger_usage(ledger).held_bytes, 0L)
-    assert_eq(@strategy.ledger_usage(ledger).reserved_execution_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   }
 }

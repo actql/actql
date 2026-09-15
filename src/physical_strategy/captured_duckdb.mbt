@@ -87,7 +87,7 @@ pub fn start_captured_duckdb_task(
   // This boundary creates its own initial reservation for the exact run/task,
   // current selection and configuration; caller-owned tokens cannot be reused.
   let reservation = match
-    reserve_attempt(run.ledger, transfer_bytes, retention, execution) {
+    @resources.reserve_attempt(run.ledger, transfer_bytes, retention, execution) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -96,7 +96,7 @@ pub fn start_captured_duckdb_task(
     Some(read) => {
       guard @planning.fixed_compute_choice_payload(choice, prepared)
         is Some(compute) else {
-        settle_reservation(run.ledger, reservation) |> ignore
+        @resources.settle_reservation(run.ledger, reservation) |> ignore
         return Err(ForeignCandidate)
       }
       match
@@ -110,7 +110,7 @@ pub fn start_captured_duckdb_task(
         ) {
         Ok(value) => Some(value)
         Err(issue) => {
-          settle_reservation(run.ledger, reservation) |> ignore
+          @resources.settle_reservation(run.ledger, reservation) |> ignore
           return Err(issue)
         }
       }
@@ -144,7 +144,7 @@ pub fn start_captured_duckdb_task(
         retire_resident_capacity(output.allocation)
         release_resident_capacity(output.allocation) |> ignore
       }
-      settle_reservation(run.ledger, reservation) |> ignore
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
       fail_captured_task(run, task, DuckDB(issue))
       Err(DuckDB(issue))
     }
@@ -180,7 +180,11 @@ pub fn complete_captured_duckdb_task(
     return Err(NotReady)
   }
   let holding = match
-    retain_allocation(run.ledger, resource.reservation, resource.retention) {
+    @resources.retain_allocation(
+      run.ledger,
+      resource.reservation,
+      resource.retention,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -196,10 +200,10 @@ pub fn complete_captured_duckdb_task(
           }
         }
       }
-      run.completed[task] = Some(DuckDB(output))
+      run.completed[task] = Some(output)
       record_task_retention(run, task)
       run.resources[task].unwrap().holding = Some(holding)
-      settle_reservation(run.ledger, resource.reservation) |> ignore
+      @resources.settle_reservation(run.ledger, resource.reservation) |> ignore
       clear_captured_inputs(run, task)
       run.running = None
       run.generation += 1

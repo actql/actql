@@ -28,7 +28,7 @@ pub fn explain_captured_strategy(
     @encode.key(w, "program_success")
     @encode.bool_value(w, false)
     @encode.key(w, "ledger")
-    emit_strategy_ledger(w, ledger_usage(run.ledger))
+    emit_strategy_ledger(w, @resources.ledger_usage(run.ledger))
     @encode.key(w, "available_root_statistics")
     match captured_root_statistics(run) {
       None => @encode.null_value(w)
@@ -239,7 +239,7 @@ fn emit_strategy_duration(
 ///|
 fn emit_strategy_ledger(
   w : @encode.Writer,
-  usage : LedgerUsage,
+  usage : @resources.LedgerUsage,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(w)
   emit_strategy_quantity(w, "planning_work", usage.planning_work.to_int64())

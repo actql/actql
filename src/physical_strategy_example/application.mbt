@@ -269,8 +269,8 @@ pub fn application_output_cid(
 
 ///|
 #export_name("applicationLedger")
-pub fn application_ledger() -> @strategy.Ledger {
-  @strategy.create_ledger({
+pub fn application_ledger() -> @resources.Ledger {
+  @resources.create_ledger({
     planning_work: 100000,
     attempts: 10,
     holdings: 10,

@@ -60,7 +60,7 @@ pub fn configure_strategy_compute_host(
 ///|
 pub fn configured_strategy_compute_ledger(
   setup : StrategyComputeHostConfiguration,
-) -> @strategy.Ledger {
+) -> @resources.Ledger {
   @strategy.captured_dag_ledger(setup.graph)
 }
 

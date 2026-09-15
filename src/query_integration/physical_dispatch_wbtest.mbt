@@ -135,8 +135,8 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
   |> ignore
   let old = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  let reservation = @strategy.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
-  @strategy.settle_reservation(ledger, reservation).unwrap()
+  let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
   @strategy.revise_strategy(
     run,
     search_offers(run, registry, [1, 2, 3], Some(1L)),
@@ -147,7 +147,7 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
   assert_true(@dbhost.execute_local_dispatch(old) is Err(StaleTask))
   let replacement = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   assert_true(@dbhost.dispatch_is_native(replacement))
-  assert_eq(@strategy.ledger_usage(ledger).attempts, 1)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   @dbhost.stop_strategy_dispatch(host)
   assert_true(@dbhost.take_native_dispatch(replacement) is Err(StaleTask))
 }

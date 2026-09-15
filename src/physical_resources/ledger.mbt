@@ -1,5 +1,5 @@
 ///|
-/// Host-private physical capacity, independent of all logical consumer budgets.
+/// Host-private physical capacity, independent of connectors, DAGs and logical budgets.
 pub(all) struct LedgerLimits {
   planning_work : Int
   attempts : Int
@@ -338,4 +338,24 @@ pub fn reservation_serial(reservation : Reservation) -> Int {
 ///|
 pub fn holding_serial(holding : Holding) -> Int {
   holding.serial
+}
+
+///|
+pub fn ledger_limits(ledger : Ledger) -> LedgerLimits {
+  ledger.limits
+}
+
+///|
+pub fn reservation_open(reservation : Reservation) -> Bool {
+  reservation.open
+}
+
+///|
+pub fn holding_available(ledger : Ledger, holding : Holding) -> Bool {
+  physical_equal(ledger, holding.owner) && holding.live
+}
+
+///|
+pub fn holding_belongs_to(ledger : Ledger, holding : Holding) -> Bool {
+  physical_equal(ledger, holding.owner)
 }

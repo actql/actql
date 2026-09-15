@@ -3,7 +3,7 @@
 struct StrategyFixture {
   native : IssuedNativeFixture
   graph : @strategy.CheckedDAG
-  ledger : @strategy.Ledger
+  ledger : @resources.Ledger
   registry : @planning.CapabilityRegistry
   mut search_configured : Bool
   mut selected : @strategy.StrategyRevision?
@@ -114,7 +114,7 @@ fn strategy_fixture_create_impl(
     })
     let graph = @strategy.prepare_checked_dag(program, owners, 5, 10000).unwrap()
     @dbhost.close_native_host(native.host) // unused fixture issuer, not real Host
-    let ledger = @strategy.create_ledger({
+    let ledger = @resources.create_ledger({
       planning_work: if join {
         100000
       } else {
@@ -175,7 +175,7 @@ pub fn strategy_fixture_acquisition(
 pub fn strategy_fixture_accounted(f : StrategyFixture) -> StrategyFixture {
   // This fixture includes conservative retained capacities for all three
   // evidence records, the observation, scan and native output, not just Compute.
-  let ledger = @strategy.create_ledger({
+  let ledger = @resources.create_ledger({
     planning_work: 10000,
     attempts: 10,
     holdings: 10,
@@ -188,7 +188,7 @@ pub fn strategy_fixture_accounted(f : StrategyFixture) -> StrategyFixture {
 
 ///|
 #export_name("strategyFixtureLedger")
-pub fn strategy_fixture_ledger(f : StrategyFixture) -> @strategy.Ledger {
+pub fn strategy_fixture_ledger(f : StrategyFixture) -> @resources.Ledger {
   f.ledger
 }
 
@@ -562,7 +562,7 @@ pub fn strategy_fixture_can_bind(f : StrategyFixture, task : Int) -> Bool {
 ///|
 #export_name("strategyFixtureUsage")
 pub fn strategy_fixture_usage(f : StrategyFixture, field : Int) -> Int64 {
-  let usage = @strategy.ledger_usage(f.ledger)
+  let usage = @resources.ledger_usage(f.ledger)
   match field {
     0 => usage.transferred_bytes
     1 => usage.reserved_transfer_bytes
