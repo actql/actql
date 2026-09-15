@@ -79,6 +79,21 @@ collapsing their input occurrences or equating separate observations. Evidence
 body CID equality does not establish checked-owner equality. Existing bound
 wire bodies are not rewritten merely to simplify target lookup.
 
+Definition-level capacity evidence is selected by an authored Stage name and
+typed limit uses at source step ordinals. A use refers to the exact admitted
+limit handle in its supplied inventory, not a numeric position in a mixed
+claim table. Binding copies mutable caller selections and ties the result to
+the exact admitted Program. Equal source text or equal limit CIDs do not
+substitute for that ownership.
+
+The compiler expands definition evidence over the actual checked producer
+occurrences. Repeated imports retain every application, while unspecified
+definitions have no externally supplied claims. Empty evidence is not a proof
+of completeness: subsequent application and closure checks still determine
+whether the Program can be checked. Binding, owner lookup and occurrence
+expansion contribute their own incremental work. Definition evidence cannot
+assert consumer-specific observations or completed execution attempts.
+
 For supported Programs, the compiler constructs the facts necessary for formal
 check completion that follow from existing inference rules and admitted
 premises. It preserves existing candidate collection and selection rules; this

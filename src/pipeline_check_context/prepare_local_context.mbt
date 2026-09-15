@@ -101,10 +101,19 @@ pub fn prepare_local_context(
   sourceviews? : @sourceviews.PipelineInputs? = None,
   proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
+  capacity_inputs? : ProgramCapacityInputs? = None,
 ) -> Result[SelectedPolicyContext, LocalContextIssue] {
   let caps = limits.stages
   if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
+  }
+  if capacity_inputs is Some(_) &&
+    (
+      !materials.is_empty() ||
+      proof_owners is Some(_) ||
+      input_owners is Some(_)
+    ) {
+    return Err(Stages(Inputs(ConflictingInputs)))
   }
   let wiring = @stage_results.local_source_wiring(prepared)
   let (prefix_work, prefix_text) = @stage_results.local_source_context_prefix(
@@ -148,19 +157,33 @@ pub fn prepare_local_context(
   if remote_work > remaining_work {
     return Err(BudgetExceeded)
   }
-  let stages = match
-    prepare_local_stage_contexts(
-      prepared,
-      materials,
-      @environment.capacity_policy(capacity),
-      {
-        ..caps,
-        max_work: remaining_work - remote_work,
-        max_text_bytes: remaining_text,
-      },
-      proof_owners~,
-      input_owners~,
-    ) {
+  let prepared_stages = match capacity_inputs {
+    Some(inputs) =>
+      prepare_local_stage_contexts_from_inputs(
+        prepared,
+        inputs,
+        @environment.capacity_policy(capacity),
+        {
+          ..caps,
+          max_work: remaining_work - remote_work,
+          max_text_bytes: remaining_text,
+        },
+      )
+    None =>
+      prepare_local_stage_contexts(
+        prepared,
+        materials,
+        @environment.capacity_policy(capacity),
+        {
+          ..caps,
+          max_work: remaining_work - remote_work,
+          max_text_bytes: remaining_text,
+        },
+        proof_owners~,
+        input_owners~,
+      )
+  }
+  let stages = match prepared_stages {
     Ok(v) => v
     Err(e) => return Err(Stages(e))
   }

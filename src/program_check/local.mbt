@@ -1,6 +1,7 @@
 ///|
 pub suberror LocalConstructionFailure {
   InvalidLimits
+  CapacityInputs(@context.CapacityInputsIssue)
   Environment(EnvironmentFailure)
   Source(SourceFailure)
   Closure(ConstructionFailure)
@@ -23,6 +24,7 @@ fn construct_local(
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
   conversion_out? : Array[ProofConversion]? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -108,6 +110,7 @@ fn construct_local(
     operation_profiles,
     limits,
     calendar~,
+    capacity_inputs~,
   ) catch {
     e => raise Source(e)
   }

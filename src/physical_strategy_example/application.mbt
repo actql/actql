@@ -30,7 +30,7 @@ fn cursor(text : String) -> @decode.Cursor {
 
 ///|
 // Preparation occurs before DB authorization or any execution resources.
-// These limits and empty external claims belong to this bounded example only.
+// These limits and selected external claims belong to this bounded example only.
 #export_name("prepareApplication")
 pub fn prepare_application(
   program_json : String,
@@ -76,46 +76,16 @@ pub fn prepare_application(
       max_members: 1000,
     },
   ).unwrap()
-  let mixed = @wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 0,
-    max_references: 0,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let join_sources = if stages == 5 {
-    Some(join_capacity_material(environment))
+  let evidence = if stages == 5 {
+    [join_capacity_material(environment, @syntax.stages(program)[3].id)]
   } else {
-    None
+    []
   }
-  let visits = if stages == 5 { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] }
-  let checked = @program_check.check(
+  let checked = @program_check.check_with_evidence(
     program,
     environment,
     Some(cursor(parameter_json)),
-    Array::makei(visits.length(), stage => {
-      Array::makei(visits[stage], visit => {
-        if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
-          join_sources is Some(join_sources) {
-          {
-            sources: join_sources,
-            consumers: [@capacity.Join(step=0, output=0)],
-          }
-        } else {
-          { sources, consumers: [], }
-        }
-      })
-    }),
+    evidence,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     source_limits(10),

@@ -18,6 +18,7 @@ pub(all) struct CapacityStageLimits {
 ///|
 pub enum CapacityStageIssue {
   InvalidLimits
+  Inputs(CapacityInputsIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded

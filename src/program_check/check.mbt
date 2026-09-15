@@ -155,6 +155,7 @@ pub fn check(
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -180,6 +181,7 @@ pub fn check(
     calendar~,
     text_rank~,
     conversion_out=Some(conversions),
+    capacity_inputs~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {

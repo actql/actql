@@ -69,7 +69,9 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
-pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckedProgram raise LocalConstructionFailure
+pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, capacity_inputs? : @pipeline_check_context.ProgramCapacityInputs?) -> CheckedProgram raise LocalConstructionFailure
+
+pub fn check_with_evidence(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
 
@@ -547,6 +549,7 @@ pub suberror EnvironmentFailure {
 
 pub suberror LocalConstructionFailure {
   InvalidLimits
+  CapacityInputs(@pipeline_check_context.CapacityInputsIssue)
   Environment(EnvironmentFailure)
   Source(SourceFailure)
   Closure(ConstructionFailure)

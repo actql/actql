@@ -80,6 +80,7 @@ fn prepare_catalog_source(
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  capacity_inputs? : @context.ProgramCapacityInputs? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = match
     @stages.prepare(program, {
@@ -120,6 +121,7 @@ fn prepare_catalog_source(
       limits.topology,
       limits.context,
       calendar~,
+      capacity_inputs~,
     ) {
     Ok(v) => v
     Err(e) => raise SourceView(e)

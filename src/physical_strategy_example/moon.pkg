@@ -26,7 +26,6 @@ import {
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_policy",
-  "actql/actql/capacity_graph_preflight" @capacity,
   "actql/actql/sha256" @sha,
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/execution_query" @query,

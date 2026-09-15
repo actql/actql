@@ -94,6 +94,8 @@ pub fn attach_result_wiring(StageContexts, @stage_results.ResultWiring, max_work
 
 pub fn attach_stage_contexts(@stage_parameters.BoundOperations, @stage_results.Checked, Array[BoundParameters], @capacity_policy.Policy, max_work~ : Int, max_text_bytes~ : Int) -> Result[StageContexts, StageIssue]
 
+pub fn bind_capacity_inputs(@stage_syntax.Program, Array[StageCapacityInput], Int) -> Result[ProgramCapacityInputs, CapacityInputsIssue]
+
 pub fn bind_capacity_policy(ReconciledContexts, @check_environment.Capacity, max_work~ : Int, max_text_bytes~ : Int, max_policy_nodes~ : Int) -> Result[SelectedPolicyContext, SelectedPolicyIssue]
 
 pub fn bind_program_source_contracts(ProgramSourceIdentity, SourceContractRequirements, Int) -> Result[ProgramSourceContracts, SourceContractIssue]
@@ -105,6 +107,8 @@ pub fn bind_source_policy(SourceRowContexts, SelectedPolicyContext, Int) -> Resu
 pub fn bind_source_producers(SourceCapacityContext, Array[Array[(Int, Int)]], Int) -> Result[SourceProducerContext, SourceProducerIssue]
 
 pub fn bound_guards(PipelineContext) -> @pipeline_typing.BoundGuardClosure
+
+pub fn capacity_inputs_work(ProgramCapacityInputs) -> Int
 
 pub fn check(@relation_results.CheckedResults, Array[@parameter_binding.BoundValues?], Array[@capacity_graph_preflight.ApplicationCoverage], @capacity_policy.Policy, Limits, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)]) -> Result[PipelineContext, Issue]
 
@@ -698,11 +702,13 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
-pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, sourceviews? : @sourceview_resolution.PipelineInputs?, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalContextIssue]
+pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, sourceviews? : @sourceview_resolution.PipelineInputs?, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, capacity_inputs? : ProgramCapacityInputs?) -> Result[SelectedPolicyContext, LocalContextIssue]
 
 pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
+
+pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
 
@@ -730,7 +736,7 @@ pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment
 
 pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_relation_snapshot.Limits) -> Result[SourceStateRequirement?, SourceStateIssue]
 
-pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
+pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
@@ -1258,6 +1264,18 @@ pub(all) enum CalendarExecutionRule {
   EnforceCalendarOutputEnvelope
 } derive(Eq, @debug.Debug)
 
+pub(all) enum CapacityInputsIssue {
+  InvalidLimits
+  ConflictingInputs
+  BudgetExceeded
+  UnknownStage(Int)
+  DuplicateStage(Int)
+  ForeignLimit(Int, Int)
+  InvalidStep(Int, Int)
+  ForeignProgram
+  ForeignPipeline
+} derive(Eq, @debug.Debug)
+
 pub(all) struct CapacityMaterial {
   sources : @capacity_host_witness.HostSources
   consumers : Array[@capacity_graph_preflight.ConsumerRequest]
@@ -1265,6 +1283,7 @@ pub(all) struct CapacityMaterial {
 
 pub enum CapacityStageIssue {
   InvalidLimits
+  Inputs(CapacityInputsIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -1281,6 +1300,13 @@ pub(all) struct CapacityStageLimits {
   max_input_work : Int
   max_operand_work : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) enum CapacityUse {
+  Sequence(step~ : Int, matches~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
+  Join(step~ : Int, output~ : @capacity_witness.LimitClaim)
+  Components(step~ : Int, nodes~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
+  Traversal(step~ : Int, paths~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
+}
 
 pub struct ComponentsLimitsCheck {
   site : OperationRequirementSite
@@ -2739,6 +2765,8 @@ pub enum PreparedStagesIssue {
 
 type ProgramAnalyticNumericSlots
 
+type ProgramCapacityInputs
+
 type ProgramExpressionClosure
 
 pub enum ProgramIdentityIssue {
@@ -3320,6 +3348,12 @@ pub enum SourceViewProgramIssue {
   BudgetExceeded
   Program(@stage_results.LocalProgramIssue)
   Registration(Int, @sourceview_resolution.PipelineIssue)
+}
+
+pub(all) struct StageCapacityInput {
+  stage : String
+  sources : @capacity_host_witness.HostSources
+  uses : Array[CapacityUse]
 }
 
 type StageContexts

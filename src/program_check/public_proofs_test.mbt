@@ -50,7 +50,8 @@ test "external consumer retains repeated imported operands and rejects an exhaus
     2,
   )
   try public_program_fixture(generated=true, repeated=true, max_work=0) catch {
-    @program_check.LocalConstructionFailure::Units(BudgetExceeded) => ()
+    @program_check.LocalConstructionFailure::CapacityInputs(BudgetExceeded) =>
+      ()
     e => raise e
   } noraise {
     _ => fail("exhausted preparation returned a CheckedProgram")

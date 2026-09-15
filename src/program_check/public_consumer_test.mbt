@@ -70,10 +70,9 @@ fn public_program_fixture(
     max_nodes: 10000,
     max_depth: 100,
   }).unwrap()
-  // Scalar derive and take need no supplied capacity proofs. The consumer
-  // closure has its own visit followed by its one imported producer visit.
-  let material : @context.CapacityMaterial = { sources, consumers: [], }
-  let consumer_material = if repeated {
+  // Explicit proofs target Stage definitions. The compiler, not this public
+  // consumer, assigns them to the actual imported producer occurrences.
+  let consumer_sources = if repeated {
     let all = [public_seed_claim(), public_append_claim()]
     let mixed = @wire.check_mixed_claims(
       all.map(p => @wire.program_proof_witness(p)),
@@ -96,15 +95,22 @@ fn public_program_fixture(
       max_nodes: 10000,
       max_depth: 100,
     }).unwrap()
-    @context.CapacityMaterial::{ sources, consumers: [], }
+    sources
   } else {
-    material
+    sources
   }
-  @program_check.check(
+  @program_check.check_with_evidence(
     program,
     environment,
     None,
-    [[material], [consumer_material, material]],
+    if generated || repeated {
+      [
+        { stage: "producer", sources, uses: [], },
+        { stage: "consumer", sources: consumer_sources, uses: [], },
+      ]
+    } else {
+      []
+    },
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     {
