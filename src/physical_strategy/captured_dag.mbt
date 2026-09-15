@@ -363,8 +363,8 @@ pub fn execute_captured_synchronous_task(
     return Err(Compute(NotSelected))
   }
   if captured_task_join_output_limit(run, task) is Some(required) {
-    guard @connector.synchronous_compute_join_output_ceiling(compute)
-      is Some((0, actual)) &&
+    guard @connector.synchronous_compute_join_output_ceiling(compute, 0)
+      is Some(actual) &&
       actual <= required else {
       return Err(ForeignCandidate)
     }

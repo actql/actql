@@ -102,11 +102,13 @@ pub fn start_captured_duckdb_task(
       scratch_bytes: scratch,
       execution_bytes: native_execution_bytes + scratch,
     },
-    @connector.fixed_compute_choice_payload(choice, prepared).bind(compute => {
-      @duckdb.fixed_compute_join_output_ceiling(compute).map(value => {
-        (0, value.to_int64())
-      })
-    }),
+    match
+      @connector.fixed_compute_choice_payload(choice, prepared).bind(compute => {
+        @duckdb.fixed_compute_join_output_ceiling(compute)
+      }) {
+      Some(value) => [(0, value.to_int64())]
+      None => []
+    },
     fn(_payload) {
       match
         @compute.start_duckdb_compute_attempt(

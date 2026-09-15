@@ -16,7 +16,7 @@ test "common execution preserves independent connector errors and releases unsta
       scratch_bytes: 10L,
       execution_bytes: 100L,
     },
-    None,
+    [],
     fn(
       _payload,
     ) -> Result[

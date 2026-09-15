@@ -20,7 +20,7 @@ pub(all) enum SynchronousComputeFailure {
 struct SynchronousCompute {
   candidate : FixedComputeCandidate
   capacity : SynchronousComputeCapacity
-  join_output_ceiling : (Int, Int64)?
+  join_output_ceilings : Array[(Int, Int64)]
   execute : () -> Result[@execution.CompletedOutput, SynchronousComputeFailure]
   mut started : Bool
 }
@@ -33,7 +33,7 @@ pub fn[T] bind_synchronous_compute(
   choice : FixedComputeChoice,
   prepared : PreparedCompute[T],
   capacity : SynchronousComputeCapacity,
-  join_output_ceiling : (Int, Int64)?,
+  join_output_ceilings : Array[(Int, Int64)],
   execute : (T) -> Result[@execution.CompletedOutput, SynchronousComputeFailure],
 ) -> Result[SynchronousCompute, FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
@@ -42,13 +42,16 @@ pub fn[T] bind_synchronous_compute(
   if capacity.retained_bytes < 0L || capacity.execution_bytes < 0L {
     return Err(InvalidLimits)
   }
-  if join_output_ceiling is Some((step, ceiling)) && (step < 0 || ceiling < 0L) {
+  let steps = @pipeline.step_count(
+    @lower.pipeline(@lower.bound_preparation(prepared.candidate.request.owner)),
+  )
+  guard snapshot_step_ceilings(join_output_ceilings, steps) is Some(ceilings) else {
     return Err(InvalidLimits)
   }
   Ok({
     candidate: prepared.candidate,
     capacity,
-    join_output_ceiling,
+    join_output_ceilings: ceilings,
     execute: fn() { execute(payload) },
     started: false,
   })
@@ -71,8 +74,9 @@ pub fn synchronous_compute_capacity(
 ///|
 pub fn synchronous_compute_join_output_ceiling(
   compute : SynchronousCompute,
-) -> (Int, Int64)? {
-  compute.join_output_ceiling
+  step : Int,
+) -> Int64? {
+  step_ceiling(compute.join_output_ceilings, step)
 }
 
 ///|

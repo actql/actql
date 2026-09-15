@@ -83,7 +83,7 @@ pub fn[E, P] prepare_numeric_execution(
     Ok(capacity) => capacity
     Err(issue) => return Err(issue)
   }
-  @connector.bind_prepared_execution(choice, prepared, capacity, None, fn(
+  @connector.bind_prepared_execution(choice, prepared, capacity, [], fn(
     compute,
   ) {
     let attempt = {

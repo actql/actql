@@ -162,6 +162,18 @@ transported labels are not interpreted as dispatch. This lexical regression chec
 does not establish a security boundary against obfuscated code; dependency/API
 checks and the isolated addition/build tests provide separate evidence.
 
+## Occurrence-indexed execution declarations
+
+The synchronous and prepared execution SDKs take join output ceilings as an
+ascending array of `(step, ceiling)` declarations. Steps must be distinct and
+inside the exact request's checked pipeline; ceilings must be nonnegative. The
+SDK copies the array before retaining it and exposes only per-step lookup, so
+later caller mutation cannot change an admitted preparation. These declarations
+are trusted implementation commitments, not checked capacity claims: the Host
+must still compare them with the original owned task obligations before start.
+The current single-join profile supplies a singleton array; this representation
+alone does not extend the common DAG's accepted operation profile.
+
 ## Node transport composition
 
 Node execution contributions are separately declared by connector-owned

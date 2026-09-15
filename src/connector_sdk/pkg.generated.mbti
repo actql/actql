@@ -10,9 +10,9 @@ import {
 // Values
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
-pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, (Int, Int64)?, (U) -> Result[(T, ExecutionOperations[E, P]), E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
+pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
 
-pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, (Int, Int64)?, (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
+pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 
@@ -80,7 +80,7 @@ pub fn[T, E, P] prepared_execution_candidate(PreparedExecution[T, E, P]) -> Fixe
 
 pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> ExecutionCapacity
 
-pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P]) -> (Int, Int64)?
+pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P], Int) -> Int64?
 
 pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
 
@@ -94,7 +94,7 @@ pub fn synchronous_compute_candidate(SynchronousCompute) -> FixedComputeCandidat
 
 pub fn synchronous_compute_capacity(SynchronousCompute) -> SynchronousComputeCapacity
 
-pub fn synchronous_compute_join_output_ceiling(SynchronousCompute) -> (Int, Int64)?
+pub fn synchronous_compute_join_output_ceiling(SynchronousCompute, Int) -> Int64?
 
 pub fn valid_quantity(Int64?) -> Bool
 

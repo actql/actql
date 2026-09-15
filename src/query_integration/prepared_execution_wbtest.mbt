@@ -17,7 +17,7 @@ test "prepared asynchronous execution reserves before calling installed payload"
       scratch_bytes: 10L,
       execution_bytes: 100L,
     },
-    None,
+    [],
     fn(payload) {
       calls.val += 1
       let operations : @connector.ExecutionOperations[
@@ -113,7 +113,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
       foreign_choice,
       candidate,
       capacity,
-      None,
+      [],
       prepare,
     )
     is Err(NotSelected),
@@ -122,7 +122,7 @@ test "prepared execution rejects foreign task and revoked input without preparat
     choice,
     candidate,
     capacity,
-    None,
+    [],
     prepare,
   ).unwrap()
   let ledger = @strategy.captured_dag_ledger(other)
@@ -163,7 +163,7 @@ test "prepared execution still rejects foreign completed output and keeps holdin
       scratch_bytes: 10L,
       execution_bytes: 100L,
     },
-    None,
+    [],
     fn(payload) {
       let operations : @connector.ExecutionOperations[
         @strategy.RunIssue,

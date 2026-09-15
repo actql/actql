@@ -51,7 +51,7 @@ test "synchronous wiring binds exact payload and runs only after common reservat
     choice,
     prepared,
     { retained_bytes: 100L, execution_bytes: 100L, },
-    None,
+    [],
     fn(payload) {
       calls.val += 1
       received.val = payload
@@ -89,6 +89,70 @@ test "synchronous wiring binds exact payload and runs only after common reservat
 }
 
 ///|
+test "both execution protocols bind immutable per-step ceiling declarations to the selected owner" {
+  let (run, _) = captured_graph_fixture()
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let ceilings = [(0, 10L), (1, 3L)]
+  let synchronous = @connector.bind_synchronous_compute(
+    choice,
+    candidate,
+    { retained_bytes: 100L, execution_bytes: 100L, },
+    ceilings,
+    _ => Err(MissingOutput),
+  ).unwrap()
+  let prepare = fn(
+    _payload : Int,
+  ) -> Result[(Unit, @connector.ExecutionOperations[Unit, Unit]), Unit] {
+    Err(())
+  }
+  let capacity : @connector.ExecutionCapacity = {
+    transfer_bytes: 0L,
+    retained_bytes: 100L,
+    scratch_bytes: 0L,
+    execution_bytes: 100L,
+  }
+  let asynchronous = @connector.bind_prepared_execution(
+    choice, candidate, capacity, ceilings, prepare,
+  ).unwrap()
+  ceilings[0] = (0, 999L)
+  ceilings.clear()
+  for (step, expected) in [(0, Some(10L)), (1, Some(3L)), (2, None)] {
+    assert_eq(
+      @connector.synchronous_compute_join_output_ceiling(synchronous, step),
+      expected,
+    )
+    assert_eq(
+      @connector.prepared_execution_join_output_ceiling(asynchronous, step),
+      expected,
+    )
+  }
+  for bad in [[(0, 1L), (0, 2L)], [(2, 1L)]] {
+    assert_true(
+      @connector.bind_synchronous_compute(
+        choice,
+        candidate,
+        { retained_bytes: 100L, execution_bytes: 100L, },
+        bad,
+        _ => Err(MissingOutput),
+      )
+      is Err(InvalidLimits),
+    )
+    assert_true(
+      @connector.bind_prepared_execution(
+        choice, candidate, capacity, bad, prepare,
+      )
+      is Err(InvalidLimits),
+    )
+  }
+  assert_true(@connector.synchronous_compute_available(synchronous))
+  assert_true(@connector.prepared_execution_available(asynchronous))
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+    0,
+  )
+}
+
+///|
 test "synchronous connector cannot publish another owner's completed output" {
   let (run, _) = captured_graph_fixture()
   let (other, _) = captured_graph_fixture()
@@ -99,7 +163,7 @@ test "synchronous connector cannot publish another owner's completed output" {
     choice,
     prepared,
     { retained_bytes: 100L, execution_bytes: 100L, },
-    None,
+    [],
     _ => Ok(foreign),
   ).unwrap()
   assert_true(
@@ -123,7 +187,7 @@ test "synchronous start rejects input revoked after preparation without invoking
     choice,
     prepared,
     { retained_bytes: 100L, execution_bytes: 100L, },
-    None,
+    [],
     fn(_payload) {
       calls.val += 1
       Err(MissingOutput)
@@ -164,7 +228,7 @@ test "synchronous preparations reject exchanged choice and closed implementation
       foreign_choice,
       prepared,
       capacity,
-      None,
+      [],
       invoke,
     )
     is Err(NotSelected),
@@ -174,7 +238,7 @@ test "synchronous preparations reject exchanged choice and closed implementation
       choice,
       prepared,
       { retained_bytes: -1L, execution_bytes: 1L, },
-      None,
+      [],
       invoke,
     )
     is Err(InvalidLimits),
@@ -183,7 +247,7 @@ test "synchronous preparations reject exchanged choice and closed implementation
     choice,
     prepared,
     capacity,
-    None,
+    [],
     invoke,
   ).unwrap()
   let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))

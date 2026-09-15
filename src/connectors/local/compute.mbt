@@ -65,7 +65,10 @@ pub fn prepare_local_compute_execution(
       retained_bytes: capacity.retained_bytes,
       execution_bytes: capacity.execution_bytes,
     },
-    join_output_ceiling,
+    match join_output_ceiling {
+      None => []
+      Some(ceiling) => [ceiling]
+    },
     fn(_sequence) {
       match
         execute_local_fixed_compute(

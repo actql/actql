@@ -35,7 +35,7 @@ pub(all) enum ExecutionPreparationIssue[E] {
 struct PreparedExecution[T, E, P] {
   candidate : FixedComputeCandidate
   capacity : ExecutionCapacity
-  join_output_ceiling : (Int, Int64)?
+  join_output_ceilings : Array[(Int, Int64)]
   prepare : () -> Result[(T, ExecutionOperations[E, P]), E]
   mut started : Bool
 }
@@ -47,7 +47,7 @@ pub fn[T, E, P, U] bind_prepared_execution(
   choice : FixedComputeChoice,
   prepared : PreparedCompute[U],
   capacity : ExecutionCapacity,
-  join_output_ceiling : (Int, Int64)?,
+  join_output_ceilings : Array[(Int, Int64)],
   prepare : (U) -> Result[(T, ExecutionOperations[E, P]), E],
 ) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
@@ -59,13 +59,16 @@ pub fn[T, E, P, U] bind_prepared_execution(
     capacity.execution_bytes < capacity.scratch_bytes {
     return Err(InvalidLimits)
   }
-  if join_output_ceiling is Some((step, ceiling)) && (step < 0 || ceiling < 0L) {
+  let steps = @pipeline.step_count(
+    @lower.pipeline(@lower.bound_preparation(prepared.candidate.request.owner)),
+  )
+  guard snapshot_step_ceilings(join_output_ceilings, steps) is Some(ceilings) else {
     return Err(InvalidLimits)
   }
   Ok({
     candidate: prepared.candidate,
     capacity,
-    join_output_ceiling,
+    join_output_ceilings: ceilings,
     prepare: fn() { prepare(payload) },
     started: false,
   })
@@ -88,8 +91,9 @@ pub fn[T, E, P] prepared_execution_capacity(
 ///|
 pub fn[T, E, P] prepared_execution_join_output_ceiling(
   prepared : PreparedExecution[T, E, P],
-) -> (Int, Int64)? {
-  prepared.join_output_ceiling
+  step : Int,
+) -> Int64? {
+  step_ceiling(prepared.join_output_ceilings, step)
 }
 
 ///|
