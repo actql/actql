@@ -54,7 +54,7 @@ pub fn declaration_source(value : Declaration) -> @decode.Cursor {
 pub enum Origin {
   Supplied
   Default
-}
+} derive(Eq, Debug)
 
 ///|
 pub struct BoundParameter {
@@ -172,6 +172,7 @@ pub(all) enum IssueKind {
 
 ///|
 pub(all) enum Issue {
+  BindingInput(Origin, Issue)
   Decode(@decode.Issue)
   Contract(@contract.AdmissionError)
   Value(@value.Issue)

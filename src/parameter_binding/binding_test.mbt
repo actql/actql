@@ -82,6 +82,7 @@ fn outcome(
   result : Result[@parameter_binding.BindingResult, @parameter_binding.Issue],
 ) -> String {
   match result {
+    Err(@parameter_binding.BindingInput(_, issue)) => outcome(Err(issue))
     Ok(@parameter_binding.Ready(_)) => "Ready"
     Ok(@parameter_binding.NeedsBindings(_)) => "NeedsBindings"
     Err(@parameter_binding.Decode(e)) => decode_outcome(e.kind)
@@ -189,7 +190,9 @@ test "all missing names are reported without exposing a partially ready set" {
   )
   assert_true(
     @parameter_binding.bind(d, Some(cursor("{\"extra\":1}")), values_limit())
-    is Err(@parameter_binding.Decode(_)),
+    is Err(
+      @parameter_binding.BindingInput(Supplied, @parameter_binding.Decode(_))
+    ),
   )
 }
 
@@ -236,9 +239,12 @@ test "integer and bounds impose no unintended safe integer ceiling" {
     assert_true(
       bind(text, "{\"x\":" + n + "}")
       is Err(
-        @parameter_binding.ParameterIssue(
-          @parameter_binding.NumericConstraint,
-          ..
+        @parameter_binding.BindingInput(
+          Supplied,
+          @parameter_binding.ParameterIssue(
+            @parameter_binding.NumericConstraint,
+            ..
+          )
         )
       ),
     )
@@ -281,9 +287,12 @@ test "duration constraints follow ASCII token and positive safe millisecond rule
         values_limit(),
       )
       is Err(
-        @parameter_binding.ParameterIssue(
-          @parameter_binding.DurationConstraint,
-          ..
+        @parameter_binding.BindingInput(
+          Supplied,
+          @parameter_binding.ParameterIssue(
+            @parameter_binding.DurationConstraint,
+            ..
+          )
         )
       ),
     )
@@ -468,10 +477,13 @@ test "diagnostics preserve original paths and values do not depend on mutable vi
       values_limit(),
     ) {
     Err(
-      @parameter_binding.ParameterIssue(
-        @parameter_binding.NumericConstraint,
-        path~,
-        span~
+      @parameter_binding.BindingInput(
+        Supplied,
+        @parameter_binding.ParameterIssue(
+          @parameter_binding.NumericConstraint,
+          path~,
+          span~
+        )
       )
     ) => {
       assert_eq(path, [@source.Key("p"), @source.Key("x")])

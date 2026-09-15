@@ -256,6 +256,15 @@ owned provenance, not a fresh search through the Program or a guessed step span.
 Reading provenance neither establishes evidence applicability nor discharges
 the requirement.
 
+Parameter binding records the selected input origin before validation or
+preflight can fail. Supplied-map shape errors belong to supplied values;
+failures while charging or reading a retained default belong to the Program.
+The original typed cause and its nested path/span are retained within the
+origin-bearing binding failure. Declaration/default admission failures retain
+their Program origin before binding begins. File labels and path spelling are
+not used to infer these domains. Invalid binding-limit configuration remains a
+configuration error rather than a default or supplied-value failure.
+
 ## Consumers and responsibility boundaries
 
 Operation-bound construction belongs with operation-law application, not with

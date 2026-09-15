@@ -99,6 +99,10 @@ pub fn bind(
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
+  // This is the selected input domain, not a guess from equal path labels.
+  // Outer-map validation belongs to supplied data; defaults are charged and
+  // may fail their current binding budget without being supplied values.
+  let mut origin = Supplied
   try {
     let names = declarations.entries.map(e => e.name)
     let object = match supplied {
@@ -124,6 +128,7 @@ pub fn bind(
       match selected {
         None => missing.push(declaration)
         Some(cursor) => {
+          origin = if provided is Some(_) { Supplied } else { Default }
           charge_text(declaration.name, cursor, budget)
           preflight(cursor, budget)
           let (value, origin) = if provided is Some(_) {
@@ -150,6 +155,6 @@ pub fn bind(
       Ok(NeedsBindings({ declarations, entries: missing, usage, }))
     }
   } catch {
-    Abort(issue) => Err(issue)
+    Abort(issue) => Err(BindingInput(origin, issue))
   }
 }

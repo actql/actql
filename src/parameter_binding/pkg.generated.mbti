@@ -94,6 +94,7 @@ pub(all) struct DeclarationLimits {
 type Declarations
 
 pub(all) enum Issue {
+  BindingInput(Origin, Issue)
   Decode(@decode_core.Issue)
   Contract(@value_contract.AdmissionError)
   Value(@value_admission.Issue)
@@ -122,7 +123,7 @@ type MissingNames
 pub enum Origin {
   Supplied
   Default
-}
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

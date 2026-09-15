@@ -34,6 +34,17 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
     Source(UnsupportedBindings(_) | UnsupportedEffects(_)) =>
       Some(ProgramDocument)
     Closure(UnresolvedOperation(_)) => Some(ProgramDocument)
+    Source(Declarations(@stages.Declarations(@parameters.InvalidLimits)))
+    | Source(SourceView(Binding(Binding(@parameters.InvalidLimits)))) =>
+      Some(CheckConfiguration)
+    Source(Declarations(@stages.Declarations(_))) => Some(ProgramDocument)
+    Source(SourceView(Binding(Binding(@parameters.BindingInput(origin, _))))) =>
+      Some(
+        match origin {
+          Supplied => SuppliedValues
+          Default => ProgramDocument
+        },
+      )
     Source(_) | Closure(_) | Units(_) => None
   }
 }
@@ -59,9 +70,35 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
       }
       Cursor(source)
     }
+    Source(SourceView(Binding(Binding(@parameters.BindingInput(_, issue))))) =>
+      match parameter_issue_position(issue) {
+        Some(position) => position
+        None => return None
+      }
+    Source(Declarations(@stages.Declarations(issue))) =>
+      match parameter_issue_position(issue) {
+        Some(position) => position
+        None => return None
+      }
     _ => return None
   }
   Some({ position, })
+}
+
+///|
+fn parameter_issue_position(issue : @parameters.Issue) -> DiagnosticPosition? {
+  match issue {
+    @parameters.Decode(error) => Some(Located(error.path, error.span))
+    @parameters.Contract(Decode(error)) => Some(Located(error.path, error.span))
+    @parameters.Contract(ContractIssue(_, path~, span~)) =>
+      Some(Located(path, span))
+    @parameters.Value(Decode(error)) => Some(Located(error.path, error.span))
+    @parameters.Value(ValueIssue(_, path~, span~)) => Some(Located(path, span))
+    @parameters.ParameterIssue(_, path~, span~) => Some(Located(path, span))
+    @parameters.InvalidLimits
+    | @parameters.Contract(InvalidLimits)
+    | @parameters.BindingInput(_, _) => None
+  }
 }
 
 ///|
