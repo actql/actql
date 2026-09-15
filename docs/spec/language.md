@@ -8217,6 +8217,10 @@ field schemas and renamed keys are inferred from the checked schema bundle,
 but loss or preservation cannot vary by host. Successful check reports the
 inferred schema, one preferred identity when proven, stable-order status,
 completeness requirements, and generated-field collisions.
+For window operations, a `WindowResult` completeness requirement denotes the
+selected window's result extent and retains the operation's input and coverage
+requirements. It does not assert completeness of the entire source or observed
+completion merely because window boundary fields are present.
 
 <!-- requirement-block: evidence-propagation.an-assertion-must-execute-before-any-operation-that-relies-on -->
 An assertion MUST execute before any operation that relies on its proof.

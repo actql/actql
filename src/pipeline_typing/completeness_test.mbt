@@ -1,4 +1,37 @@
 ///|
+test "window completeness retains input extent rather than asserting source completion" {
+  let p = @pipeline_typing.check(
+    cursor(
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"amount\",\"size\":1}},{\"window_group\":{\"by\":[],\"aggregates\":{}}}]",
+    ),
+    [("rows", schema())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  for i in 0..<2 {
+    let result = @pipeline_typing.completeness_requirement(p, Step(i)).unwrap()
+    assert_eq(@pipeline_typing.completeness_scope(result), WindowResult)
+    assert_eq(@pipeline_typing.completeness_dependency_count(result), 1)
+    let input = @pipeline_typing.completeness_dependency_at(result, 0).unwrap().requirement
+    let target = if i == 0 {
+      @pipeline_typing.Input(0)
+    } else {
+      @pipeline_typing.Step(0)
+    }
+    assert_true(@pipeline_typing.completeness_belongs_to(input, p, target))
+    assert_eq(
+      @pipeline_typing.completeness_scope(input),
+      if i == 0 {
+        InputExtent
+      } else {
+        WindowResult
+      },
+    )
+  }
+}
+
+///|
 test "coverage requirements retain selection and both membership operands" {
   for
     operation in [

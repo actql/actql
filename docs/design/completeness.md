@@ -14,6 +14,33 @@ of that exact operation under its contracts, not the entire external source.
 The retained operation supplies its specific request, partition, window or
 selection semantics; this scope classification does not replace those rules.
 
+The consumer applies the operation's fixed completeness law to these owned
+dependencies; it does not choose a new propagation rule. In particular:
+
+| Checked operation | Required coverage premise | Permitted conclusion after successful validation/execution |
+| --- | --- | --- |
+| Filter, exact projection, derive, group | Input coverage at its required extent | Preserve that coverage qualification for the operation result; do not promote it to whole-source coverage |
+| Join and append | Both operand occurrences complete at their respective required extents | Completeness of this operation result, not of either external source |
+| Semi/anti join, except/intersect | Both operand occurrences, including the membership-testing side | Right-side coverage remains necessary even though right values are not output |
+| Take/top-k | Selected bounded-query coverage and the retained input requirements | Only the bounded result extent; never infer that its source was exhausted |
+| Window/window-group | The selected window extent and its operation-specific coverage/validation requirements | Only that window result; neither a boundary column nor finite row count closes source coverage |
+
+For the two-input premise, complete/complete may establish result completeness;
+complete/partial and complete/unknown do not. A separately admitted complete
+query result can satisfy a query extent while the larger source stays partial
+or unknown. These cases are not contradictory: the extent and owner must match
+before using any claim. An empty anti result, an unused projected column, or a
+repeated producer edge does not remove a required premise. Failed validation or
+an atomic limit breach yields no successful result-completeness conclusion.
+
+In 0.1, formal check constructs this static, owner-bound requirement view and
+binds the existing execution checks. It does not combine future observations
+into a completed-coverage flag. Observation admission and execution apply the
+above existing laws at their established boundaries. This is a division of
+validation phases, not delegation of language semantics to the lowerer.
+`WindowResult` is the window-qualified form of an operation extent, rather than
+an extra whole-source completeness guarantee.
+
 Indexed readers expose the existing typed operand occurrences without copying
 or recursively expanding a dependency tree. Filter, projection and derive keep
 their input dependency. Join, append and set operations retain both operands;
