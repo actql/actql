@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn estimate_numeric_dispatch_offer(NumericDispatchModule, Int, Int64?, Int) -> Result[@physical_strategy.TaskOffer?, @physical_strategy.RunIssue]
+
 pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]
 
 pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]

@@ -2,6 +2,7 @@
 priv suberror ReferenceDispatchFailure {
   Plan(@numeric.PlanIssue)
   Dispatch(@host.DispatchIssue)
+  Search(@strategy.SearchIssue)
 }
 
 ///|
@@ -123,6 +124,75 @@ pub fn prepare_numeric_dispatch(
       return Err(
         @strategy.RunIssue::Implementation(
           ReferenceDispatchFailure::Dispatch(issue),
+        ),
+      )
+  }
+}
+
+///|
+/// Propose only the independently supported checked shape. No future input or
+/// content identity is fabricated; actual input binding remains a later step.
+pub fn estimate_numeric_dispatch_offer(
+  installed : NumericDispatchModule,
+  task : Int,
+  milliseconds : Int64?,
+  max_work : Int,
+) -> Result[@strategy.TaskOffer?, @strategy.RunIssue] {
+  if max_work < 1 {
+    return Err(numeric_dispatch_issue(Limit))
+  }
+  guard installed.sequences.get(task - 1) is Some(sequence) else {
+    return Err(numeric_dispatch_issue(Unsupported))
+  }
+  match
+    @resources.charge_planning(
+      @strategy.captured_dag_ledger(installed.run),
+      max_work,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(@strategy.RunIssue::Physical(issue))
+  }
+  match
+    @numeric.prepare_numeric_plan(
+      @execution.generated_sequence_owner(sequence),
+      installed.limits.max_entries,
+      installed.limits.max_name_bytes,
+      {
+        ..installed.expressions,
+        max_work: if installed.expressions.max_work < max_work {
+          installed.expressions.max_work
+        } else {
+          max_work
+        },
+      },
+    ) {
+    Ok(_) => ()
+    Err(Unsupported) => return Ok(None)
+    Err(issue) => return Err(numeric_dispatch_issue(issue))
+  }
+  let capacity = match @numeric.numeric_execution_capacity(installed.limits) {
+    Ok(value) => value
+    Err(issue) => return Err(numeric_dispatch_issue(issue))
+  }
+  match
+    @strategy.prepare_task_offer(
+      installed.run,
+      task,
+      installed.registration,
+      1,
+      [{ work_slots: [0], milliseconds, }],
+      {
+        transfer_bytes: capacity.transfer_bytes,
+        retained_bytes: capacity.retained_bytes,
+        execution_bytes: capacity.execution_bytes,
+      },
+      max_work,
+    ) {
+    Ok(value) => Ok(Some(value))
+    Err(issue) =>
+      Err(
+        @strategy.RunIssue::Implementation(
+          ReferenceDispatchFailure::Search(issue),
         ),
       )
   }

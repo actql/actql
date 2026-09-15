@@ -25,6 +25,10 @@ test "independent numeric and Local bundles use the same installed Host without 
             @host_driver.DispatchHost[Unit, @strategy.RunIssue],
             @host_driver.PreparedTaskDispatch,
           ) -> Result[Unit, @strategy.RunIssue],
+          (Unit, Int, @host_driver.TaskEstimateQuantities) -> Result[
+            Array[@strategy.TaskOffer],
+            @strategy.RunIssue,
+          ],
         ),
       ],
     ] = [
@@ -78,6 +82,19 @@ test "independent numeric and Local bundles use the same installed Host without 
                 @strategy.complete_task_execution(run, execution)
               }
             },
+            fn(_context, task, _quantities) {
+              @reference_driver.estimate_numeric_dispatch_offer(
+                implementation,
+                task,
+                Some(1L),
+                100,
+              ).map(offer => {
+                match offer {
+                  Some(value) => [value]
+                  None => []
+                }
+              })
+            },
           )
         }),
       },
@@ -106,6 +123,16 @@ test "independent numeric and Local bundles use the same installed Host without 
                 },
               )
             },
+            fn(_context, task, _quantities) {
+              @local_driver.estimate_local_dispatch_offer(
+                implementation,
+                task,
+                [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
+                100,
+              )
+              .map(offer => [offer])
+              .map_err(_ => @strategy.RunIssue::ForeignCandidate)
+            },
           )
         }),
       },
@@ -130,44 +157,55 @@ test "independent numeric and Local bundles use the same installed Host without 
     ).unwrap()
     preparations.clear()
     @strategy.configure_strategy_search(run, {
-      max_offers: 4,
-      max_strategies: 2,
+      max_offers: 5,
+      max_strategies: 4,
       max_work: 1000,
       max_revisions: 1,
     }).unwrap()
+    let proposals = @connector.capability_implementation_registrations(
+        entries, 2,
+      )
+      .unwrap()
+      .map(registration => {
+        (
+          registration,
+          @connector.capability_implementation(entries, registration).unwrap().2,
+        )
+      })
+    let offer_installation = @connector.install_capability_implementations(
+      registry, proposals, 2,
+    ).unwrap()
+    proposals.clear()
     let offers = []
     for task in [1, 2, 3] {
-      for index in [0, 1] {
-        // The independent connector covers A's numeric filter/select, not the
-        // unrelated shape of C. Unsupported shapes never enter comparison.
-        if index == 0 && task != 1 {
-          continue
-        }
-        offers.push(
-          @strategy.prepare_task_offer(
-            run,
-            task,
-            @connector.capability_registration_at(registry, index).unwrap(),
-            1,
-            [
-              {
-                work_slots: [0],
-                milliseconds: Some(if index == 0 { 1L } else { 10L }),
-              },
-            ],
-            {
-              transfer_bytes: 0L,
-              retained_bytes: 8000000L,
-              execution_bytes: 64000000L,
-            },
-            100,
-          ).unwrap(),
-        )
+      let proposed = @host_driver.collect_installed_task_offers(
+        driver,
+        offer_installation,
+        (),
+        task,
+        { rows: None, wire_bytes: None, pairs: None, },
+        2,
+        5 - offers.length(),
+      ).unwrap()
+      for offer in proposed {
+        offers.push(offer)
       }
     }
+    // The numeric implementation supports A and B's greater-than predicate;
+    // C's less-than shape is rejected by the connector before comparison.
+    assert_eq(offers.length(), 5)
     assert_true(
       @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
     )
+    let revision = @strategy.captured_dag_strategy(run).unwrap()
+    for (task, index) in [(1, 0), (2, 0), (3, 1)] {
+      assert_true(
+        physical_equal(
+          @strategy.strategy_registration(revision, task).unwrap(),
+          @connector.capability_registration_at(registry, index).unwrap(),
+        ),
+      )
+    }
     let mut dispatched = 0
     while @host_driver.prepare_next_installed_task(host, ()).unwrap()
           is Some(task) {
