@@ -41,7 +41,6 @@ fn attach_fragment_budgets(
       @lower.ValuesStep(_) => ()
       @lower.JoinStep(kernel) => {
         let profile = @lower.join_kernel_profile(kernel)
-        let checked = @lower.inner_join_checked(profile)
         for key in 0..<@lower.inner_join_key_count(profile) {
           let (left, right) = @lower.inner_join_key_at(profile, key).unwrap()
           if !spend_control(control, 1) ||
@@ -49,9 +48,15 @@ fn attach_fragment_budgets(
             !spend_control_text(control, @schema.reference_name(right)) {
             return Err(InputLimit)
           }
-          guard @schema.lookup(@join.input_schema(checked, Left), left)
+          guard @schema.lookup(
+              @lower.inner_join_input_schema(profile, true),
+              left,
+            )
             is Some(lc) &&
-            @schema.lookup(@join.input_schema(checked, Right), right)
+            @schema.lookup(
+              @lower.inner_join_input_schema(profile, false),
+              right,
+            )
             is Some(rc) else {
             return Err(FragmentContext(i, KernelMismatch))
           }
@@ -76,9 +81,7 @@ fn attach_fragment_budgets(
             }
           @lower.Select(_) => ()
           @lower.CountGroups(group) => {
-            let schema = @relation.input_schema(
-              @lower.count_group_checked(group),
-            )
+            let schema = @lower.count_group_input_schema(group)
             for j in 0..<@lower.count_group_key_count(group) {
               let name = @lower.count_group_key_at(group, j).unwrap()
               if !spend_control(control, 1) ||
@@ -94,18 +97,17 @@ fn attach_fragment_budgets(
             }
           }
           @lower.DedupeRows | @lower.StableSort(_) | @lower.Limit(_, _, _) => {
-            let checked = @lower.kernel_checked(kernel)
-            let schema = @relation.input_schema(checked)
+            let schema = @lower.kernel_input_schema(kernel)
             let sorting = !(body is @lower.DedupeRows)
             let keys = if sorting {
               0
             } else {
-              @relation.dedupe_key_count(checked)
+              @lower.kernel_dedupe_key_count(kernel)
             }
             let terms = if sorting {
               @lower.kernel_sort_term_count(kernel)
             } else {
-              @relation.dedupe_order_count(checked)
+              @lower.kernel_dedupe_order_count(kernel)
             }
             if keys > control.remaining || terms > control.remaining - keys {
               return Err(InputLimit)
@@ -117,9 +119,9 @@ fn attach_fragment_budgets(
               let name = if sorting {
                 @lower.kernel_sort_term_at(kernel, j).unwrap().0
               } else if j < keys {
-                @relation.dedupe_key_at(checked, j).unwrap().field
+                @lower.kernel_dedupe_key_at(kernel, j).unwrap()
               } else {
-                @relation.dedupe_order_at(checked, j - keys).unwrap().field
+                @lower.kernel_dedupe_order_at(kernel, j - keys).unwrap().0
               }
               // This is a checked reference lookup, not source name resolution.
               let spelling = @schema.reference_name(name)
@@ -144,7 +146,7 @@ fn attach_fragment_budgets(
             }
           }
           @lower.DistinctRows => {
-            let schema = @relation.output_schema(@lower.kernel_checked(kernel))
+            let schema = @lower.kernel_output_schema(kernel)
             for j = 0; j < @schema.field_count(schema); j = j + 1 {
               if !spend_control(control, 1) {
                 return Err(InputLimit)

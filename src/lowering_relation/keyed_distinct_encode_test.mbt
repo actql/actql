@@ -6,6 +6,37 @@ test "keyed distinct expands projection before distinct with collision-checked I
   assert_eq(usage.nodes, 3)
   assert_eq(usage.references, 2)
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("distinct")
+  }
+  let projection = @lowering_relation.kernel_distinct_projection(kernel).unwrap()
+  assert_true(@lowering_relation.kernel_is_distinct(kernel))
+  assert_eq(@lowering_relation.projection_field_count(projection), 1)
+  let fields = @lowering_relation.projection_fields(projection)
+  assert_eq(
+    fields.map(field => {
+      (
+        @schema.reference_name(field.input),
+        @schema.reference_name(field.output),
+      )
+    }),
+    [("id", "id")],
+  )
+  fields.clear()
+  assert_eq(@lowering_relation.projection_fields(projection).length(), 1)
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 1),
+    Some(2),
+  )
+  for
+    (index, id, operation) in [
+      (0, "select_1", "REL.select"),
+      (1, "distinct_1", "REL.distinct"),
+    ] {
+    let node = @lowering_relation.sequence_canonical_node_at(sequence, 1, index).unwrap()
+    assert_eq((node.source_step, node.id, node.operation), (1, id, operation))
+  }
   let writer = @encode.writer(10000, 1000, 100)
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
@@ -39,6 +70,46 @@ test "keyed distinct expands projection before distinct with collision-checked I
         1,
         @lowering_relation.KernelBudgetExceeded
       )
+    ),
+  )
+}
+
+///|
+test "authored prefix-like aliases cannot change canonical distinct identities" {
+  let sequence = @lowering_relation.prepare_sequence(
+    expression_pipeline(
+      ",{\"derive\":{\"z\":\"id\"},\"as\":\"select_2\"},{\"from\":\"select_2\",\"distinct\":[\"z\",\"id\"],\"as\":\"distinct_2\"}",
+    ),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 2)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("distinct")
+  }
+  let projection = @lowering_relation.kernel_distinct_projection(kernel).unwrap()
+  assert_eq(
+    @lowering_relation.projection_fields(projection).map(field => {
+      @schema.reference_name(field.input)
+    }),
+    ["z", "id"],
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 2),
+    Some(2),
+  )
+  for
+    (index, id, operation) in [
+      (0, "select_2", "REL.select"),
+      (1, "distinct_2", "REL.distinct"),
+    ] {
+    let node = @lowering_relation.sequence_canonical_node_at(sequence, 2, index).unwrap()
+    assert_eq((node.source_step, node.id, node.operation), (2, id, operation))
+  }
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_true(
+    @encode.finish(writer).contains(
+      "{\"id\":\"select_2\",\"in\":[\"derive_1\"],\"op\":\"REL.select\",\"params\":{\"columns\":[\"z\",\"id\"]}},{\"id\":\"distinct_2\",\"in\":[\"select_2\"],\"op\":\"REL.distinct\",\"params\":{}}",
     ),
   )
 }

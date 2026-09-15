@@ -64,9 +64,9 @@ fn prepare_ordered_shapes(
     limits.max_body_depth < 0 {
     return Err(InvalidLimits)
   }
-  let operation = @lower.kernel_checked(ordered_params_kernel(params))
-  let input = @relation.input_schema(operation)
-  let output = @relation.output_schema(operation)
+  let kernel = ordered_params_kernel(params)
+  let input = @lower.kernel_input_schema(kernel)
+  let output = @lower.kernel_output_schema(kernel)
   let ids = try {
     let before = @encode.hashing_writer(
       limits.max_body_bytes,
@@ -99,8 +99,8 @@ fn emit_ordered_context(
   out : @encode.Writer,
   self_cid? : String? = None,
 ) -> Unit raise @encode.EncodeFailure {
-  let operation = @lower.kernel_checked(ordered_params_kernel(shapes.params))
-  if prefix < 0 || prefix > @relation.binding_count(operation) {
+  if prefix < 0 ||
+    prefix > @lower.ordered_binding_count(ordered_params_kernel(shapes.params)) {
     raise @encode.InvalidStructure
   }
   @encode.begin_object(out)

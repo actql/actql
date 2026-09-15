@@ -63,8 +63,8 @@ pub fn prepare_fixed_producer_measurement(
     return Err(ForeignInput)
   }
   let owner = producer_read_receiver(inputs[0])
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  if inputs.length() != @pipeline.input_count(pipeline) {
+  let prepared = @lower.bound_preparation(owner)
+  if inputs.length() != @lower.preparation_input_count(prepared) {
     return Err(ForeignInput)
   }
   if inputs.length() > physical.max_work {
@@ -82,8 +82,8 @@ pub fn prepare_fixed_producer_measurement(
     }
   }
   guard target is Step(index) &&
-    index == @pipeline.step_count(pipeline) - 1 &&
-    @pipeline.schema_at(pipeline, target) is Some(_) else {
+    index == @lower.node_count(prepared) - 1 &&
+    @lower.preparation_schema_at(prepared, target) is Some(_) else {
     return Err(MissingOutput)
   }
   let budget : FixedInputGuardBudget = {
@@ -125,7 +125,7 @@ pub fn finish_fixed_producer_measurement(
   }
   measurement.open = false
   let owner = producer_read_receiver(measurement.inputs[0])
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  let prepared = @lower.bound_preparation(owner)
   for input in measurement.inputs {
     if !producer_read_available(input) {
       return Err(ForeignInput)
@@ -134,7 +134,8 @@ pub fn finish_fixed_producer_measurement(
   if !physical_equal(rows.owner, owner) || rows.target != measurement.target {
     return Err(ForeignInput)
   }
-  guard @pipeline.schema_at(pipeline, measurement.target) is Some(schema) &&
+  guard @lower.preparation_schema_at(prepared, measurement.target)
+    is Some(schema) &&
     physical_equal(schema, rows.schema) else {
     return Err(InvalidLayout)
   }

@@ -115,7 +115,7 @@ fn[T : RowValues] retain_row(
 /// Sources remain bound to checked preparation; no arbitrary row program.
 priv enum RowBodySource {
   PreparedBody(@lower.PreparedKernel)
-  CheckedProjection(@relation.CheckedOperation)
+  Projection(@lower.PreparedProjection)
 }
 
 ///|
@@ -206,19 +206,19 @@ fn[T : RelationRows] evaluate_rows_dispatch(
   }
   let prepared = @lower.bound_preparation(input.checked_owner())
   let node = @lower.node_at(prepared, @lower.kernel_step(kernel)).unwrap()
-  if @relation.operation(@lower.kernel_checked(kernel)) == @relation.Sort {
+  if @lower.kernel_is_sort(kernel) {
     return (backend.sort)(kernel, input, @lower.node_id(node))
   }
-  if @relation.operation(@lower.kernel_checked(kernel)) == @relation.DedupeRows {
+  if @lower.kernel_is_dedupe(kernel) {
     return (backend.dedupe)(kernel, input, @lower.node_id(node))
   }
-  if @relation.operation(@lower.kernel_checked(kernel)) == @relation.Distinct {
+  if @lower.kernel_is_distinct(kernel) {
     let selected = match @lower.projection_node_id(node) {
       None => input
       Some(id) =>
         match
           (backend.body)(
-            CheckedProjection(@lower.kernel_checked(kernel)),
+            Projection(@lower.kernel_distinct_projection(kernel).unwrap()),
             input,
             id,
             None,
@@ -377,13 +377,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   }
   let view_entries = match body {
     PreparedBody(kernel) => @lower.kernel_view_entries(kernel)
-    CheckedProjection(checked) => {
-      if @relation.operation(checked) != Select &&
-        @relation.operation(checked) != Distinct {
-        return Err(InvalidRows)
-      }
-      @schema.field_count(@relation.output_schema(checked))
-    }
+    Projection(view) => @lower.projection_field_count(view)
   }
   if !reserve_slots(workspace, view_entries) {
     return Err(RowLimit)
@@ -409,7 +403,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
             return Err(MissingOrderedResourceContext)
           }
       }
-    CheckedProjection(checked) => Select(@relation.projection(checked))
+    Projection(view) => Select(@lower.projection_fields(view))
   }
   let output_names : Array[String] = []
   let projection : Array[Int] = []

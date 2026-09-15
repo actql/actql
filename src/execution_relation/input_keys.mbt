@@ -35,8 +35,11 @@ fn validate_captured_keys(
     return Err(InvalidLimits)
   }
   guard input.origin is SuppliedInput(index) else { return Err(WrongOrigin) }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(input.owner))
-  guard @pipeline.candidate_keys(pipeline, @pipeline.Input(index)) is Some(keys) else {
+  guard @lower.preparation_input_keys(
+      @lower.bound_preparation(input.owner),
+      index,
+    )
+    is Some(keys) else {
     return Ok(())
   }
   for k = 0; k < @evidence.key_witness_count(keys); k = k + 1 {

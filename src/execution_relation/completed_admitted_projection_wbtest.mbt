@@ -39,7 +39,7 @@ test "admitted projection retains nonnumeric values aliases and empty schema met
     })
     let workspace : RowWorkspace = { limit: 10000, live: 0, peak: 0, }
     let result = evaluate_completed_body(
-      CheckedProjection(checked),
+      Projection(@lower.prepare_projection(checked).unwrap()),
       table,
       "projected",
       count,
@@ -61,7 +61,7 @@ test "admitted projection retains nonnumeric values aliases and empty schema met
     }
     for capacity in [workspace.peak, workspace.peak - 1] {
       let retried = evaluate_completed_body(
-        CheckedProjection(checked),
+        Projection(@lower.prepare_projection(checked).unwrap()),
         table,
         "retry",
         count,

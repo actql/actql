@@ -154,7 +154,7 @@ fn prepare_traffic_rows(
         Some(projection) =>
           traffic_row_result(
             evaluate_row_body(
-              CheckedProjection(projection),
+              Projection(projection),
               adopted,
               id,
               limits.max_rows,

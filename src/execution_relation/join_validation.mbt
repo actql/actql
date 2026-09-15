@@ -2,7 +2,7 @@
 /// Shared logical checks, independent of the algorithm that produces pairs.
 /// Both Local execution and native preflight use this exact failure ordering.
 fn[L : IndexedRows, R : IndexedRows] validate_join_obligations(
-  checked : @join.CheckedJoin,
+  profile : @lower.PreparedInnerJoin,
   left : L,
   right : R,
   keys : Array[(Int, Int)],
@@ -10,8 +10,8 @@ fn[L : IndexedRows, R : IndexedRows] validate_join_obligations(
   control : ControlBudget,
   workspace : RowWorkspace,
 ) -> Result[Unit, RowIssue] {
-  let assertion = @join.assertion(checked)
-  let fail_null = @join.null_key(checked) == @join.Fail
+  let assertion = @lower.inner_join_assertion(profile)
+  let fail_null = @lower.inner_join_fails_null(profile)
   if validate_join_index_input(left, keys, true, fail_null, control) is Err(e) {
     return Err(join_index_failure(e))
   }
@@ -59,19 +59,18 @@ pub fn validate_fixed_join_inputs(
   if limits.max_rows < 0 || limits.max_work < 0 || limits.max_entries < 0 {
     return Err(InvalidRowLimits)
   }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let count = @pipeline.input_count(pipeline)
+  let prepared = @lower.bound_preparation(owner)
+  let count = @lower.preparation_input_count(prepared)
   if count < 1 ||
     count > 2 ||
     inputs.length() != count ||
-    @pipeline.step_count(pipeline) != 1 {
+    @lower.node_count(prepared) != 1 {
     return Err(InputMismatch)
   }
-  let step = @pipeline.step_at(pipeline, 0).unwrap()
-  guard step.operation is @pipeline.Join(right~, checked~) &&
-    physical_equal(checked, @lower.inner_join_checked(profile)) &&
-    step.input is Some(@pipeline.Input(li)) &&
-    right is @pipeline.Input(ri) else {
+  let step = @lower.node_at(prepared, 0).unwrap()
+  guard @lower.inner_join_matches_node(profile, step) &&
+    @lower.node_input_target(step, 0) is Some(@pipeline.Input(li)) &&
+    @lower.node_input_target(step, 1) is Some(@pipeline.Input(ri)) else {
     return Err(OwnerMismatch)
   }
   let control = ControlBudget::{ remaining: limits.max_work, max_frames: 0, }
@@ -124,7 +123,7 @@ pub fn validate_fixed_join_inputs(
   }
   match
     validate_join_obligations(
-      checked,
+      profile,
       ProducerGuardRows::{ input: inputs[li], },
       ProducerGuardRows::{ input: inputs[ri], },
       keys,

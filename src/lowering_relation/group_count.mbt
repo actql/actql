@@ -105,6 +105,16 @@ pub fn count_group_key_count(group : PreparedCountGroup) -> Int {
 }
 
 ///|
+pub fn count_group_input_schema(group : PreparedCountGroup) -> @schema.Schema {
+  @relation.input_schema(group.checked)
+}
+
+///|
+pub fn count_group_output_schema(group : PreparedCountGroup) -> @schema.Schema {
+  @relation.output_schema(group.checked)
+}
+
+///|
 pub fn count_group_key_at(
   group : PreparedCountGroup,
   index : Int,

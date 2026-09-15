@@ -8,6 +8,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
@@ -22,15 +23,21 @@ pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
+pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
+
 pub fn count_group_aggregate_at(PreparedCountGroup, Int) -> PreparedCount?
 
 pub fn count_group_aggregate_count(PreparedCountGroup) -> Int
 
 pub fn count_group_checked(PreparedCountGroup) -> @relation_typing.CheckedOperation
 
+pub fn count_group_input_schema(PreparedCountGroup) -> @relation_schema.Schema
+
 pub fn count_group_key_at(PreparedCountGroup, Int) -> @relation_schema.FieldName?
 
 pub fn count_group_key_count(PreparedCountGroup) -> Int
+
+pub fn count_group_output_schema(PreparedCountGroup) -> @relation_schema.Schema
 
 pub fn demand_root_at(DemandIndex, Int) -> @expression_typing.DemandPaths?
 
@@ -96,15 +103,23 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn inner_join_assertion(PreparedInnerJoin) -> @relation_join_shape.Cardinality?
+
 pub fn inner_join_checked(PreparedInnerJoin) -> @relation_join_shape.CheckedJoin
+
+pub fn inner_join_fails_null(PreparedInnerJoin) -> Bool
 
 pub fn inner_join_field_at(PreparedInnerJoin, Int) -> InnerJoinField?
 
 pub fn inner_join_field_count(PreparedInnerJoin) -> Int
 
+pub fn inner_join_input_schema(PreparedInnerJoin, Bool) -> @relation_schema.Schema
+
 pub fn inner_join_key_at(PreparedInnerJoin, Int) -> (@relation_schema.FieldName, @relation_schema.FieldName)?
 
 pub fn inner_join_key_count(PreparedInnerJoin) -> Int
+
+pub fn inner_join_matches_node(PreparedInnerJoin, PreparedNode) -> Bool
 
 pub fn input_id(Prepared, Int) -> String?
 
@@ -126,7 +141,29 @@ pub fn kernel_checked(PreparedKernel) -> @relation_typing.CheckedOperation
 
 pub fn kernel_count_group(PreparedKernel) -> PreparedCountGroup?
 
+pub fn kernel_dedupe_key_at(PreparedKernel, Int) -> @relation_schema.FieldName?
+
+pub fn kernel_dedupe_key_count(PreparedKernel) -> Int
+
+pub fn kernel_dedupe_order_at(PreparedKernel, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn kernel_dedupe_order_count(PreparedKernel) -> Int
+
+pub fn kernel_distinct_projection(PreparedKernel) -> PreparedProjection?
+
 pub fn kernel_input(PreparedKernel) -> String
+
+pub fn kernel_input_schema(PreparedKernel) -> @relation_schema.Schema
+
+pub fn kernel_is_dedupe(PreparedKernel) -> Bool
+
+pub fn kernel_is_distinct(PreparedKernel) -> Bool
+
+pub fn kernel_is_projection(PreparedKernel) -> Bool
+
+pub fn kernel_is_sort(PreparedKernel) -> Bool
+
+pub fn kernel_output_schema(PreparedKernel) -> @relation_schema.Schema
 
 pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
@@ -148,15 +185,21 @@ pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
 
+pub fn node_input_count(PreparedNode) -> Int
+
 pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?
 
 pub fn node_output_schema(PreparedNode) -> @relation_schema.Schema
+
+pub fn node_values_row_count(PreparedNode) -> Int?
 
 pub fn operation(PreparedNode) -> String
 
 pub fn order_node_id(PreparedNode) -> String?
 
 pub fn ordered_binding_at(PreparedKernel, Int) -> (String, Expression)?
+
+pub fn ordered_binding_count(PreparedKernel) -> Int
 
 pub fn ordered_reference_at(OrderedReferences, Int) -> OrderedReference?
 
@@ -173,6 +216,12 @@ pub fn payload(PreparedNode) -> Payload
 pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 
 pub fn preparation_input_count(Prepared) -> Int
+
+pub fn preparation_input_is_produced(Prepared, Int) -> Bool
+
+pub fn preparation_input_keys(Prepared, Int) -> @relation_evidence.KeySet?
+
+pub fn preparation_input_projection(Prepared, Int) -> PreparedProjection?
 
 pub fn preparation_input_schema(Prepared, Int) -> @relation_schema.Schema?
 
@@ -202,6 +251,8 @@ pub fn prepare_kernel_roots(PreparedSequence, Int, RootLimits) -> Result[RootInd
 
 pub fn prepare_ordered_references(PreparedKernel, OrderedReferenceLimits) -> Result[OrderedReferences, OrderedReferenceIssue]
 
+pub fn prepare_projection(@relation_typing.CheckedOperation) -> PreparedProjection?
+
 pub fn prepare_root_evidence(DemandIndex, Int, RootEvidenceLimits) -> Result[RootEvidence, RootEvidenceIssue]
 
 pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssue]
@@ -212,7 +263,13 @@ pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
+pub fn projection_field_count(PreparedProjection) -> Int
+
+pub fn projection_fields(PreparedProjection) -> Array[@relation_typing.ProjectionField]
+
 pub fn projection_node_id(PreparedNode) -> String?
+
+pub fn projection_output_schema(PreparedProjection) -> @relation_schema.Schema
 
 pub fn root_at(RootIndex, Int) -> ExpressionRoot?
 
@@ -513,6 +570,8 @@ type PreparedJoinKernel
 type PreparedKernel
 
 type PreparedNode
+
+type PreparedProjection
 
 type PreparedSequence
 

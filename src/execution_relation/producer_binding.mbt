@@ -7,7 +7,7 @@ struct BoundProducerInput {
   receiver : @lower.BoundPrepared
   input_index : Int
   output : CompletedOutput
-  projection : @relation.CheckedOperation?
+  projection : @lower.PreparedProjection?
 }
 
 ///|
@@ -63,7 +63,10 @@ pub fn bind_completed_input(
     receiver,
     input_index,
     output,
-    projection: @pipeline.producer_projection(producer),
+    projection: @lower.preparation_input_projection(
+      @lower.bound_preparation(receiver),
+      input_index,
+    ),
   })
 }
 

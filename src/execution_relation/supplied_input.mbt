@@ -20,10 +20,7 @@ pub fn capture_input(
   guard @lower.input_id(prepared, input_index) is Some(_) else {
     return Err(NotRelationInput)
   }
-  guard @pipeline.schema_at(
-      @lower.pipeline(prepared),
-      @pipeline.Input(input_index),
-    )
+  guard @lower.preparation_schema_at(prepared, @pipeline.Input(input_index))
     is Some(schema) else {
     return Err(NotRelationInput)
   }

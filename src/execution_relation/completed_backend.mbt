@@ -12,12 +12,8 @@ fn evaluate_completed_body(
   logical : LogicalBudget?,
 ) -> Result[CompletedTable, RowIssue] {
   let projection = match body {
-    CheckedProjection(_) => true
-    PreparedBody(kernel) =>
-      match @relation.operation(@lower.kernel_checked(kernel)) {
-        Select | Rename | Drop => true
-        _ => false
-      }
+    Projection(_) => true
+    PreparedBody(kernel) => @lower.kernel_is_projection(kernel)
   }
   if input is RowTable(_) || !projection {
     return evaluate_row_body(

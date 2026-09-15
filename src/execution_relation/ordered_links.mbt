@@ -50,7 +50,7 @@ fn prepare_ordered_links(
     @lower.root_step_range(roots) != (step, step + 1) {
     return Err(OwnerMismatch)
   }
-  let count = @relation.binding_count(@lower.kernel_checked(kernel))
+  let count = @lower.ordered_binding_count(kernel)
   if @lower.root_count(roots) != count {
     return Err(RootMismatch)
   }

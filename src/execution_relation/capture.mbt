@@ -64,37 +64,29 @@ pub fn capture_values(
   guard @lower.node_at(prepared, node_index) is Some(node) else {
     return Err(NotValuesNode)
   }
-  guard @lower.payload(node) is @lower.Values(values) else {
+  guard @lower.node_values_row_count(node) is Some(count) else {
     return Err(NotValuesNode)
   }
-  let count = @values.row_count(values)
   if count > max_rows || count > limits.max_nodes {
     return Err(CaptureLimit)
   }
-  let schema = @values.output_schema(values)
+  let schema = @lower.node_output_schema(node)
   let width = @schema.field_count(schema)
   let rows : Array[Array[@admitted.Value]] = []
   for i = 0; i < count; i = i + 1 {
     if !charge_node(budget, 1) || width > limits.max_nodes - budget.nodes {
       return Err(CaptureLimit)
     }
-    let source = @values.row_at(values, i).unwrap()
     let row : Array[@admitted.Value] = []
     for j = 0; j < width; j = j + 1 {
       let field = @schema.field_at(schema, j).unwrap()
       if !charge_text(budget, @schema.reference_name(field.name)) {
         return Err(CaptureLimit)
       }
-      guard @values.cell_at(source, j) is Some(cell) else {
-        return Err(InvalidCheckedRow)
-      }
-      let checked = match cell {
-        @values.Literal(v, ..) => v
-        @values.Parameter(name, ..) =>
-          match @lower.parameter_value(owner, name) {
-            Some(v) => v
-            None => return Err(MissingParameter(name))
-          }
+      let checked = match @lower.bound_values_cell(owner, node_index, i, j) {
+        Ok(value) => value
+        Err(MissingValuesParameter(name)) => return Err(MissingParameter(name))
+        Err(_) => return Err(InvalidCheckedRow)
       }
       if budget.limits.max_depth < 2 || !measure(checked.value, 2, budget) {
         return Err(CaptureLimit)

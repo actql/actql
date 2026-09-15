@@ -41,8 +41,8 @@ pub fn prepare_local_compute_attempt(
     return Err(InvalidInputLimit)
   }
   let owner = @lower.sequence_owner(generated.sequence)
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let count = @pipeline.input_count(pipeline)
+  let prepared = @lower.bound_preparation(owner)
+  let count = @lower.preparation_input_count(prepared)
   // Inventory + membership bookkeeping + owned input container.
   if count > max_entries || produced.length() > (max_entries - count) / 2 {
     return Err(InputLimit)
@@ -61,7 +61,7 @@ pub fn prepare_local_compute_attempt(
     seen[input.input_index] = true
   }
   for index = 0; index < count; index = index + 1 {
-    if @pipeline.input_producer(pipeline, index) is None {
+    if !@lower.preparation_input_is_produced(prepared, index) {
       return Err(RequiresCompletedProducer(index))
     }
     if !seen.contains(index) {

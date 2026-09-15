@@ -36,7 +36,7 @@ fn prepare_wiring(
     return Err(InvalidLimits)
   }
   let prepared = @lower.bound_preparation(owner)
-  let inputs = @pipeline.input_count(@lower.pipeline(prepared))
+  let inputs = @lower.preparation_input_count(prepared)
   let nodes = @lower.node_count(prepared)
   let ids : Array[String] = []
   let last_use : Array[Int] = []
@@ -71,10 +71,7 @@ fn prepare_wiring(
     }
     // The checked occurrence count admits the copied reference view without
     // repeating operation-specific arity rules or parsing source JSON.
-    guard @pipeline.step_at(@lower.pipeline(prepared), i) is Some(step) else {
-      return Err(InvalidReference)
-    }
-    let arity = @pipeline.input_occurrence_count(step)
+    let arity = @lower.node_input_count(node)
     if !reserve_slots(workspace, arity) {
       return Err(Limit)
     }

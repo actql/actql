@@ -15,10 +15,29 @@ pub fn preparation_input_schema(
 }
 
 ///|
+/// Input provenance category, not proof that a producer has completed.
+pub fn preparation_input_is_produced(prepared : Prepared, index : Int) -> Bool {
+  @pipeline.input_producer(prepared.owner, index) is Some(_)
+}
+
+///|
+pub fn preparation_input_keys(
+  prepared : Prepared,
+  index : Int,
+) -> @evidence.KeySet? {
+  @pipeline.candidate_keys(prepared.owner, @pipeline.Input(index))
+}
+
+///|
 /// Ordered input occurrences, not a deduplicated predecessor set. A self join
 /// retains both occurrences even when they identify the same logical input.
 pub fn node_input_target(node : PreparedNode, index : Int) -> @pipeline.Target? {
   node.input_targets.get(index)
+}
+
+///|
+pub fn node_input_count(node : PreparedNode) -> Int {
+  node.input_targets.length()
 }
 
 ///|

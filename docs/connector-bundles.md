@@ -185,6 +185,19 @@ and excludes tasks needing multiple ceilings. DuckDB retains its compiler's
 bounded operation profiles. The DAG itself does not branch on operation names
 or demonstration step counts; Local sort/take uses the standard Host unchanged.
 
+For Relation semantics, use the readonly lowering views described in
+[the typed Relation boundary](design/typed-relation-boundary.md), including
+`kernel_dedupe_key_at` / `kernel_dedupe_order_at`,
+`kernel_distinct_projection`, and the prepared join rules. Local evaluator and
+preparation code are subject to the same no-frontend-traversal gate as Connector
+code. Charge a projection's field count before requesting its defensive copy.
+
+Common `SequenceRequirements` are matched by occurrence and exact request, not
+their enumeration order. Reordering them does not change the semantic sequence.
+DuckDB still rejects selected `common_fragment: Some(...)` requirements before
+comparison; Local-free DuckDB preparation does not imply enforcement of every
+common logical budget.
+
 ## Node transport composition
 
 Node execution contributions are separately declared by connector-owned

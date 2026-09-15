@@ -35,7 +35,7 @@ pub fn prepare_admitted_output(
   let prepared = @lower.bound_preparation(owner)
   guard target is Step(index) &&
     @lower.node_at(prepared, index) is Some(_) &&
-    @pipeline.schema_at(@lower.pipeline(prepared), target) is Some(schema) else {
+    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(NotRelationOutput)
   }
   if @schema.as_object(schema) is None {

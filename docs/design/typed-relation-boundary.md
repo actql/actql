@@ -7,6 +7,14 @@ realizations. They do not traverse `CheckedPipeline` or `CheckedOperation` to
 reconstruct meaning. The source checker remains authoritative; checked ownership
 is retained internally rather than replaced by content equality.
 
+Local's evaluator and fragment preparation obey the same boundary as Connector
+packages. Allocation-free kernel discriminants select row algorithms; indexed
+dedupe keys and representative order, opaque projection views, bound values,
+and join rules
+provide their semantics. Canonical emitters use those same views. Projection
+copies are requested only after charging their declared width; schemas and
+occurrence references do not copy the input data.
+
 ## Semantic sequence and canonical expansion
 
 `PreparedSequence` contains existing typed values, row and join operations. It is
@@ -24,6 +32,11 @@ remove an intermediate guard, demand obligation, failure rule or final order.
 No runtime JSON serialization/reparse is needed. Existing canonical wire and CID
 domains remain unchanged; the projection does not introduce an alternative hash.
 
+Current node IDs use operation prefixes and source-step indices, independent of
+authored aliases. A generated identifier collision is rejected, not repaired by
+renaming. Ordered derive's occurrence projection describes its node identity;
+it does not bypass the separate registry/evidence path required for emission.
+
 Resolved port views preserve repeated inputs, including self-join occurrences.
 Host tasks bind these semantic operations to exact input producers and checked
 control gates. Tasks and canonical algebra nodes are not interchangeable. Host
@@ -37,6 +50,9 @@ limits, measurement ceilings and join ceilings without an evaluator or storage.
 It is a requirement, not evidence that enforcement ran. Request owners are not
 reconstructed from JSON, CIDs or equal numeric limits. Its bounded constructors
 validate ownership, duplicate occurrences and selected ceilings.
+The constructor retains a step index within the existing entry bound. Local
+matches by occurrence and exact request reference, not by enumeration position;
+reordering requirements does not reorder execution or reset any budget.
 
 `FixedComputeCapacity.common_fragment` carries this neutral contract. Local's
 `GeneratedSequence` is a separate implementation preparation; Local compares its
@@ -45,6 +61,8 @@ Other connectors receive the same contract without constructing Local contexts.
 A connector that cannot enforce a selected common budget rejects the candidate
 before comparison. It must not reinterpret that budget as Local-only or replace
 logical work with SQL elapsed time or memory consumption.
+The initial DuckDB profile rejects `common_fragment: Some(...)` before comparison;
+its Local-free preparation is not support for all common logical budget profiles.
 
 ## Completion versus representation
 
@@ -73,10 +91,14 @@ task profile. It does not add Graph/Vector execution, remote Store, durable
 publication, new operators or performance guarantees. Full validation-scan
 transfer and process-local capture remain constraints of the DuckDB profile.
 
-The backend semantic dependency gate checks connector imports and reader calls,
+The backend semantic dependency gate checks Connector and Local evaluator/
+preparation imports and reader calls,
 including renamed aliases, and rejects Local preparation in non-Local/common
 APIs. It supplements typed ownership tests rather than providing a plugin
-sandbox. Standard Node conformance includes a DuckDB-only Compute registration,
+sandbox. Within the engine, only the exact producer owner/target comparisons in
+`producer_binding` retain narrowly listed frontend calls; that is not an exemption
+for schema, operation, projection or obligation reconstruction. Standard Node
+conformance includes a DuckDB-only Compute registration,
 neutral completion construction, checked task execution, result CID verification
 and cleanup. Existing independent wire, order, guard and row/column ownership
 fixtures remain the semantic regression oracle.

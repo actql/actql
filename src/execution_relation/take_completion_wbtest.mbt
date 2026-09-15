@@ -18,6 +18,15 @@ fn take_key_owner(tail : String) -> @lower.BoundPrepared {
 test "take emits its owned key completion before limit and applies offset after ordering" {
   let owner = take_key_owner("[{\"take\":{\"count\":1,\"offset\":1}}]")
   let sequence = prepared_sequence(owner)
+  assert_eq(@lower.sequence_canonical_node_count(sequence, 0), Some(2))
+  for
+    (index, id, operation) in [
+      (0, "sort_0", "REL.orderByStable"),
+      (1, "limit_0", "REL.limit"),
+    ] {
+    let node = @lower.sequence_canonical_node_at(sequence, 0, index).unwrap()
+    assert_eq((node.source_step, node.id, node.operation), (0, id, operation))
+  }
   let writer = @encode.writer(10000, 1000, 100)
   @lower.emit_sequence_steps(sequence, writer)
   assert_eq(

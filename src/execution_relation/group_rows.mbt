@@ -71,7 +71,7 @@ fn[T : RelationRows] evaluate_count_group_into(
       },
     )
   }
-  let schema = @relation.output_schema(@lower.count_group_checked(group))
+  let schema = @lower.count_group_output_schema(group)
   let width = @schema.field_count(schema)
   if !reserve_slots(workspace, width) || !reserve_slots(workspace, width) {
     return Err(RowLimit)

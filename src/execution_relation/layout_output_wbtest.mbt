@@ -336,12 +336,14 @@ fn evaluate_layout_source(
         })
     }
   }
-  let checked = match body {
-    PreparedBody(kernel) => @lower.kernel_checked(kernel)
-    CheckedProjection(checked) => checked
+  let schema = match body {
+    PreparedBody(kernel) => @lower.kernel_output_schema(kernel)
+    Projection(view) => @lower.projection_output_schema(view)
   }
-  let schema = @relation.output_schema(checked)
-  let filtering = @relation.operation(checked) == @relation.Filter
+  let filtering = match body {
+    PreparedBody(kernel) => @lower.kernel_body(kernel) is @lower.Filter(_)
+    Projection(_) => false
+  }
   let kept : Array[Int] = []
   let mut projection : Array[Int]? = None
   let mut builder : LayoutColumnBuilder? = None

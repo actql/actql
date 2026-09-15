@@ -20,8 +20,8 @@ pub fn prepare_producer_storage(
     return Err(ProducerUnavailable)
   }
   let owner = @lower.sequence_owner(output.completion.sequence)
-  guard @pipeline.schema_at(
-      @lower.pipeline(@lower.bound_preparation(owner)),
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(owner),
       output.target,
     )
     is Some(schema) else {

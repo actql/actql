@@ -76,7 +76,7 @@ fn import_layout_producer(
     None => Ok(adopted)
     Some(projection) => {
       let result = evaluate_layout_source(
-        CheckedProjection(projection),
+        Projection(projection),
         adopted,
         id,
         limits.max_rows,

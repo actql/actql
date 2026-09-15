@@ -73,9 +73,7 @@ pub fn execute_fixed_producers_guarded(
     return Err(InvalidLimits)
   }
   let owner = generated_sequence_owner(original)
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
   if inputs.length() != count {
     return Err(ForeignInput)
   }

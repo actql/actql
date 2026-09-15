@@ -96,6 +96,43 @@ pub fn inner_join_key_count(join : PreparedInnerJoin) -> Int {
 }
 
 ///|
+pub fn inner_join_input_schema(
+  join : PreparedInnerJoin,
+  left : Bool,
+) -> @schema.Schema {
+  @join.input_schema(
+    join.checked,
+    if left {
+      @schema.Left
+    } else {
+      @schema.Right
+    },
+  )
+}
+
+///|
+pub fn inner_join_assertion(join : PreparedInnerJoin) -> @join.Cardinality? {
+  @join.assertion(join.checked)
+}
+
+///|
+pub fn inner_join_fails_null(join : PreparedInnerJoin) -> Bool {
+  @join.null_key(join.checked) == @join.Fail
+}
+
+///|
+/// Exact origin check only: semantic interpretation stays inside lowering.
+pub fn inner_join_matches_node(
+  join : PreparedInnerJoin,
+  node : PreparedNode,
+) -> Bool {
+  match node.payload {
+    InnerJoin(checked) => physical_equal(join.checked, checked)
+    _ => false
+  }
+}
+
+///|
 pub fn inner_join_key_at(
   join : PreparedInnerJoin,
   index : Int,

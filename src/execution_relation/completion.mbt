@@ -93,9 +93,7 @@ pub fn completed_output_matches_inputs(
 ) -> Bool {
   let completion = output.completion
   let owner = @lower.sequence_owner(completion.sequence)
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
   if inputs.length() != count ||
     completion.input_bindings.length() != count ||
     !completion_is_live(completion) {

@@ -108,6 +108,18 @@ test "join sequence preserves two self input occurrences and emits checked proje
   assert_eq(@lowering_relation.join_kernel_input(kernel, true), "values_0")
   assert_eq(@lowering_relation.join_kernel_input(kernel, false), "values_0")
   assert_eq(@lowering_relation.join_kernel_output_limit(kernel), Some(3L))
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 1),
+    Some(2),
+  )
+  for
+    (index, id, operation) in [
+      (0, "join_raw_1", "REL.join"),
+      (1, "join_1", "REL.select"),
+    ] {
+    let node = @lowering_relation.sequence_canonical_node_at(sequence, 1, index).unwrap()
+    assert_eq((node.source_step, node.id, node.operation), (1, id, operation))
+  }
   assert_true(
     @lowering_relation.prepare_kernel_roots(sequence, 1, {
       max_roots: 10,

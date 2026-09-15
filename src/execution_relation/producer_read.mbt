@@ -33,8 +33,8 @@ pub fn prepare_producer_read(
   if !physical_equal(receiver, bound.receiver) {
     return Err(ForeignReceiver)
   }
-  guard @pipeline.schema_at(
-      @lower.pipeline(@lower.bound_preparation(receiver)),
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(receiver),
       Input(bound.input_index),
     )
     is Some(schema) else {
@@ -48,13 +48,13 @@ pub fn prepare_producer_read(
   let mut bytes = max_name_bytes
   let projection = match bound.projection {
     None => []
-    Some(checked) => {
-      let size = @schema.field_count(@relation.output_schema(checked))
+    Some(view) => {
+      let size = @lower.projection_field_count(view)
       if size > remaining {
         return Err(Limit)
       }
       remaining -= size
-      @relation.projection(checked)
+      @lower.projection_fields(view)
     }
   }
   let columns = []
@@ -163,9 +163,7 @@ pub fn execute_fixed_producer_inputs(
   limits : SequenceExecutionLimits,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let owner = generated_sequence_owner(sequence)
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
   if inputs.length() != count {
     return Err(InputSet)
   }

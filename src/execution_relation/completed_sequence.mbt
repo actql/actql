@@ -36,7 +36,7 @@ fn prepare_physical_sequence(
         None => Ok(adopted)
         Some(projection) =>
           evaluate_completed_body(
-            CheckedProjection(projection),
+            Projection(projection),
             adopted,
             id,
             limits.max_rows,

@@ -43,7 +43,6 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
     return Err(RowLimit)
   }
   let profile = @lower.join_kernel_profile(kernel)
-  let checked = @lower.inner_join_checked(profile)
   let resolve = fn(
     names : Array[String],
     field : @schema.FieldName,
@@ -86,7 +85,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
       orders[1].push({ column: rc, descending: false, nulls_first: true, })
     }
     if validate_join_obligations(
-        checked, left, right, keys, orders, control, workspace,
+        profile, left, right, keys, orders, control, workspace,
       )
       is Err(e) {
       return Err(e)

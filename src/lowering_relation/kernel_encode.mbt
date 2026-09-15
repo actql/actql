@@ -93,12 +93,10 @@ pub fn emit_kernel_node(
     DedupeRows => {
       @encode.key(out, "by")
       @encode.begin_array(out)
-      for i = 0; i < @relation.dedupe_key_count(kernel.checked); i = i + 1 {
+      for i = 0; i < kernel_dedupe_key_count(kernel); i = i + 1 {
         @encode.string_value(
           out,
-          @schema.reference_name(
-            @relation.dedupe_key_at(kernel.checked, i).unwrap().field,
-          ),
+          @schema.reference_name(kernel_dedupe_key_at(kernel, i).unwrap()),
         )
       }
       @encode.end_array(out)
@@ -108,27 +106,15 @@ pub fn emit_kernel_node(
       @encode.string_value(out, "fail")
       @encode.key(out, "order_by")
       @encode.begin_array(out)
-      for i = 0; i < @relation.dedupe_order_count(kernel.checked); i = i + 1 {
-        let term = @relation.dedupe_order_at(kernel.checked, i).unwrap()
+      for i = 0; i < kernel_dedupe_order_count(kernel); i = i + 1 {
+        let (field, descending, nulls_first) = kernel_dedupe_order_at(kernel, i).unwrap()
         @encode.begin_object(out)
         @encode.key(out, "dir")
-        @encode.string_value(
-          out,
-          match term.direction {
-            Asc => "asc"
-            Desc => "desc"
-          },
-        )
+        @encode.string_value(out, if descending { "desc" } else { "asc" })
         @encode.key(out, "field")
-        @encode.string_value(out, @schema.reference_name(term.field))
+        @encode.string_value(out, @schema.reference_name(field))
         @encode.key(out, "nulls")
-        @encode.string_value(
-          out,
-          match term.nulls {
-            First => "first"
-            Last => "last"
-          },
-        )
+        @encode.string_value(out, if nulls_first { "first" } else { "last" })
         @encode.end_object(out)
       }
       @encode.end_array(out)
@@ -244,7 +230,7 @@ fn emit_kernel_prefix(
   @encode.begin_object(out)
   @encode.key(out, "columns")
   @encode.begin_array(out)
-  for field in @relation.projection(kernel.checked) {
+  for field in projection_fields(kernel_distinct_projection(kernel).unwrap()) {
     @encode.string_value(out, @schema.reference_name(field.input))
   }
   @encode.end_array(out)

@@ -42,7 +42,6 @@ fn[T : RelationRows] evaluate_dedupe_selection(
     workspace.peak < workspace.live {
     return Err(InvalidRowLimits)
   }
-  let checked = @lower.kernel_checked(kernel)
   let names = input.field_names()
   let width = names.length()
   let count_rows = IndexedRows::row_count(input)
@@ -70,8 +69,8 @@ fn[T : RelationRows] evaluate_dedupe_selection(
       return Err(RowLimit)
     }
   }
-  let keys = @relation.dedupe_key_count(checked)
-  let terms = @relation.dedupe_order_count(checked)
+  let keys = @lower.kernel_dedupe_key_count(kernel)
+  let terms = @lower.kernel_dedupe_order_count(kernel)
   if !reserve_slots(workspace, keys) ||
     !reserve_slots(workspace, terms) ||
     !spend_control(control, keys) ||
@@ -82,7 +81,7 @@ fn[T : RelationRows] evaluate_dedupe_selection(
   let order : Array[ColumnOrder] = []
   for i = 0; i < keys; i = i + 1 {
     let name = @schema.reference_name(
-      @relation.dedupe_key_at(checked, i).unwrap().field,
+      @lower.kernel_dedupe_key_at(kernel, i).unwrap(),
     )
     if !spend_control_text(control, name) {
       return Err(RowLimit)
@@ -91,17 +90,15 @@ fn[T : RelationRows] evaluate_dedupe_selection(
     by.push({ column, descending: false, nulls_first: false, })
   }
   for i = 0; i < terms; i = i + 1 {
-    let term = @relation.dedupe_order_at(checked, i).unwrap()
-    let name = @schema.reference_name(term.field)
+    let (field, descending, nulls_first) = @lower.kernel_dedupe_order_at(
+      kernel, i,
+    ).unwrap()
+    let name = @schema.reference_name(field)
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
     guard ordinals.get(name) is Some(column) else { return Err(InvalidRows) }
-    order.push({
-      column,
-      descending: term.direction is Desc,
-      nulls_first: term.nulls is First,
-    })
+    order.push({ column, descending, nulls_first, })
   }
   let indices = match dedupe_indices(input, by, order, control, workspace) {
     Ok(indices) => indices

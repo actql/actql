@@ -80,6 +80,11 @@ test "ordered preparation does not confer fragment encoding admission" {
   )
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
   assert_eq(@lowering_relation.sequence_count(sequence), 3)
+  let occurrence = @lowering_relation.sequence_canonical_node_at(sequence, 2, 0).unwrap()
+  assert_eq(
+    (occurrence.source_step, occurrence.id, occurrence.operation),
+    (2, "derive_2", "REL.derive"),
+  )
   let fragment = @lowering_relation.prepare_fragment_pipeline(
     sequence,
     2,

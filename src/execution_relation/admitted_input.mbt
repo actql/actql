@@ -33,8 +33,7 @@ pub fn prepare_admitted_input(
   }
   let prepared = @lower.bound_preparation(owner)
   guard @lower.input_id(prepared, input_index) is Some(_) &&
-    @pipeline.schema_at(@lower.pipeline(prepared), @pipeline.Input(input_index))
-    is Some(schema) else {
+    @lower.preparation_input_schema(prepared, input_index) is Some(schema) else {
     return Err(NotRelationInput)
   }
   if @schema.as_object(schema) is None {

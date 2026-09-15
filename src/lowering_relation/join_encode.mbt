@@ -24,7 +24,6 @@ pub fn emit_join_kernel(
 ) -> Unit raise @encode.EncodeFailure {
   let node = kernel.owner.prepared.nodes[kernel.step]
   let profile = kernel.profile
-  let checked = profile.checked
   let raw = node.projection_id.unwrap()
   @encode.begin_object(out)
   @encode.key(out, "id")
@@ -39,7 +38,7 @@ pub fn emit_join_kernel(
   @encode.string_value(out, "REL.join")
   @encode.key(out, "params")
   @encode.begin_object(out)
-  if @join.assertion(checked) is Some(cardinality) {
+  if inner_join_assertion(profile) is Some(cardinality) {
     @encode.key(out, "cardinality")
     @encode.string_value(
       out,
@@ -70,7 +69,7 @@ pub fn emit_join_kernel(
   @encode.key(out, "null_key")
   @encode.string_value(
     out,
-    if @join.null_key(checked) == Fail {
+    if inner_join_fails_null(profile) {
       "fail"
     } else {
       "no_match"

@@ -16,6 +16,52 @@ pub(all) enum ValuesIssue {
 }
 
 ///|
+/// Allocation-free semantic view; no execution or complete-fragment admission.
+pub fn node_values_row_count(node : PreparedNode) -> Int? {
+  match node.payload {
+    Values(values) => Some(@values.row_count(values))
+    _ => None
+  }
+}
+
+///|
+/// Resolve a literal/parameter once through its exact bound owner. Local and
+/// canonical emission share this cell interpretation, not a frontend payload.
+pub fn bound_values_cell(
+  owner : BoundPrepared,
+  step : Int,
+  row : Int,
+  column : Int,
+) -> Result[@value.CheckedValue, ValuesIssue] {
+  guard owner.prepared.nodes.get(step) is Some(node) &&
+    node.payload is Values(values) else {
+    return Err(MissingValuesNode)
+  }
+  resolved_values_cell(owner, values, row, column)
+}
+
+///|
+fn resolved_values_cell(
+  owner : BoundPrepared,
+  values : @values.CheckedValues,
+  row : Int,
+  column : Int,
+) -> Result[@value.CheckedValue, ValuesIssue] {
+  guard @values.row_at(values, row) is Some(source) &&
+    @values.cell_at(source, column) is Some(cell) else {
+    return Err(InvalidValuesRow)
+  }
+  match cell {
+    Literal(value, ..) => Ok(value)
+    Parameter(name, ..) =>
+      match parameter_value(owner, name) {
+        Some(value) => Ok(value)
+        None => Err(MissingValuesParameter(name))
+      }
+  }
+}
+
+///|
 pub fn prepare_values_node(
   owner : BoundPrepared,
   index : Int,
@@ -65,21 +111,17 @@ pub fn emit_values_params(
   prepared : PreparedValues,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let schema = @values.output_schema(prepared.values)
+  let schema = node_output_schema(prepared.node)
   let width = @schema.field_count(schema)
   @encode.begin_object(out)
   @encode.key(out, "rows")
   @encode.begin_array(out)
-  for i = 0; i < @values.row_count(prepared.values); i = i + 1 {
-    let row = @values.row_at(prepared.values, i).unwrap()
+  for i = 0; i < node_values_row_count(prepared.node).unwrap(); i = i + 1 {
     @encode.begin_object(out)
     for j = 0; j < width; j = j + 1 {
       let field = @schema.field_at(schema, j).unwrap()
       @encode.key(out, @schema.reference_name(field.name))
-      let checked = match @values.cell_at(row, j).unwrap() {
-        Literal(value, ..) => value
-        Parameter(name, ..) => parameter_value(prepared.owner, name).unwrap()
-      }
+      let checked = resolved_values_cell(prepared.owner, prepared.values, i, j).unwrap()
       emit_wire_value(checked.value, out)
     }
     @encode.end_object(out)
