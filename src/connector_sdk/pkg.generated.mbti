@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
+pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, (Int, Int64)?, (U) -> Result[(T, ExecutionOperations[E, P]), E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
+
 pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, (Int, Int64)?, (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
@@ -58,6 +60,16 @@ pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], Fi
 
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
 
+pub fn[T, E, P] prepared_execution_available(PreparedExecution[T, E, P]) -> Bool
+
+pub fn[T, E, P] prepared_execution_candidate(PreparedExecution[T, E, P]) -> FixedComputeCandidate
+
+pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> ExecutionCapacity
+
+pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P]) -> (Int, Int64)?
+
+pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]]
+
 pub fn synchronous_compute_available(SynchronousCompute) -> Bool
 
 pub fn synchronous_compute_candidate(SynchronousCompute) -> FixedComputeCandidate
@@ -100,6 +112,28 @@ pub(all) enum CapabilityRegistrationIssue {
 
 type CapabilityRegistry
 
+pub(all) struct ExecutionCapacity {
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  scratch_bytes : Int64
+  execution_bytes : Int64
+}
+
+pub(all) struct ExecutionOperations[E, P] {
+  cancel : () -> Unit
+  dispose : () -> Unit
+  settled : () -> Unit
+  released : () -> Unit
+  ready : () -> Result[Unit, E]
+  finish : () -> Result[@execution_relation.CompletedOutput, E]
+  publish : (P) -> Result[Unit, E]
+}
+
+pub(all) enum ExecutionPreparationIssue[E] {
+  Candidate(FixedComputeIssue)
+  Implementation(E)
+}
+
 type FixedComputeCandidate
 
 pub(all) struct FixedComputeCapacity {
@@ -140,6 +174,8 @@ pub enum FixedComputeSelection {
 }
 
 type PreparedCompute[T]
+
+type PreparedExecution[T, E, P]
 
 pub(all) struct QueryQuantities {
   transfer_bytes : Int64?

@@ -1,0 +1,198 @@
+///|
+test "prepared asynchronous execution reserves before calling installed payload" {
+  let (run, _) = captured_graph_fixture()
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let calls = Ref(0)
+  let cancelled = Ref(0)
+  let disposed = Ref(0)
+  let settled = Ref(0)
+  let released = Ref(0)
+  let prepared = @connector.bind_prepared_execution(
+    choice,
+    candidate,
+    {
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      scratch_bytes: 10L,
+      execution_bytes: 100L,
+    },
+    None,
+    fn(payload) {
+      calls.val += 1
+      let operations : @connector.ExecutionOperations[
+        @strategy.RunIssue,
+        @strategy.TaskPublication,
+      ] = {
+        cancel: fn() { cancelled.val += 1 },
+        dispose: fn() { disposed.val += 1 },
+        settled: fn() { settled.val += 1 },
+        released: fn() { released.val += 1 },
+        ready: fn() { Ok(()) },
+        finish: fn() { Err(MissingOutput) },
+        publish: fn(_) { Ok(()) },
+      }
+      Ok((payload, operations))
+    },
+  ).unwrap()
+  let saturation = @resources.reserve_attempt(
+    ledger, 300000L, 32000000L, 134217728L,
+  ).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  assert_true(
+    @strategy.start_captured_execution(run, 1, prepared) is Err(Physical(_)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  assert_eq(calls.val, 0)
+  assert_true(@connector.prepared_execution_available(prepared))
+  @resources.settle_reservation(ledger, saturation).unwrap()
+  let (payload, execution) = @strategy.start_captured_execution(
+    run, 1, prepared,
+  ).unwrap()
+  assert_eq(payload, 17)
+  assert_eq(calls.val, 1)
+  assert_false(@connector.prepared_execution_available(prepared))
+  assert_true(
+    @connector.start_prepared_execution(prepared) is Err(Candidate(NotSelected)),
+  )
+  @strategy.charge_task_execution_transfer(run, execution, 23L).unwrap()
+  assert_true(
+    @strategy.complete_task_execution(run, execution)
+    is Err(Physical(InvalidCharge)),
+  )
+  @strategy.close_task_execution(run, execution)
+  @strategy.close_task_execution(run, execution)
+  assert_eq(cancelled.val, 1)
+  assert_eq(disposed.val, 1)
+  assert_eq(released.val, 0)
+  @strategy.settle_task_execution(run, execution, false).unwrap()
+  let pending = @resources.ledger_usage(ledger)
+  assert_eq(pending.reserved_execution_bytes, 100L)
+  assert_eq(pending.reserved_retention_bytes, 100L)
+  assert_eq(pending.transferred_bytes, 23L)
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  assert_eq(settled.val, 1)
+  assert_eq(released.val, 1)
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.reserved_execution_bytes, 0L)
+  assert_eq(after.reserved_retention_bytes, 0L)
+  assert_eq(after.transferred_bytes, 23L)
+  assert_false(@strategy.captured_task_completed(run, 1))
+}
+
+///|
+test "prepared execution rejects foreign task and revoked input without preparation" {
+  let (run, issuer) = captured_graph_fixture()
+  let (other, _) = captured_graph_fixture()
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let (_, foreign_choice, _) = synchronous_test_choice(other)
+  let calls = Ref(0)
+  let prepare = fn(
+    _payload : Int,
+  ) -> Result[
+    (
+      Int,
+      @connector.ExecutionOperations[
+        @strategy.RunIssue,
+        @strategy.TaskPublication,
+      ],
+    ),
+    @strategy.RunIssue,
+  ] {
+    calls.val += 1
+    Err(MissingOutput)
+  }
+  let capacity : @connector.ExecutionCapacity = {
+    transfer_bytes: 100L,
+    retained_bytes: 100L,
+    scratch_bytes: 10L,
+    execution_bytes: 100L,
+  }
+  assert_true(
+    @connector.bind_prepared_execution(
+      foreign_choice,
+      candidate,
+      capacity,
+      None,
+      prepare,
+    )
+    is Err(NotSelected),
+  )
+  let prepared = @connector.bind_prepared_execution(
+    choice,
+    candidate,
+    capacity,
+    None,
+    prepare,
+  ).unwrap()
+  let ledger = @strategy.captured_dag_ledger(other)
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @strategy.start_captured_execution(other, 1, prepared)
+    is Err(ForeignCandidate),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(@connector.prepared_execution_available(prepared))
+  @planning.close_mock_query_issuer(issuer)
+  assert_true(
+    @strategy.start_captured_execution(run, 1, prepared)
+    is Err(Compute(InputUnavailable)),
+  )
+  assert_eq(calls.val, 0)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_false(@connector.prepared_execution_available(prepared))
+  assert_true(@strategy.next_captured_task(run) is None)
+}
+
+///|
+test "prepared execution still rejects foreign completed output and keeps holding until close" {
+  let (run, _) = captured_graph_fixture()
+  let (other, _) = captured_graph_fixture()
+  captured_graph_local(other, 1).unwrap()
+  let foreign = @strategy.captured_task_output(other, 1, Step(1)).unwrap()
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let publications = Ref(0)
+  let prepared = @connector.bind_prepared_execution(
+    choice,
+    candidate,
+    {
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      scratch_bytes: 10L,
+      execution_bytes: 100L,
+    },
+    None,
+    fn(payload) {
+      let operations : @connector.ExecutionOperations[
+        @strategy.RunIssue,
+        @strategy.TaskPublication,
+      ] = {
+        cancel: fn() {  },
+        dispose: fn() {  },
+        settled: fn() {  },
+        released: fn() {  },
+        ready: fn() { Ok(()) },
+        finish: fn() { Ok(foreign) },
+        publish: fn(_) {
+          publications.val += 1
+          Ok(())
+        },
+      }
+      Ok((payload, operations))
+    },
+  ).unwrap()
+  let (_, execution) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  assert_true(
+    @strategy.complete_task_execution(run, execution) is Err(ForeignCandidate),
+  )
+  assert_eq(publications.val, 0)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  let ledger = @strategy.captured_dag_ledger(run)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
+  @strategy.close_task_execution(run, execution)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_true(@strategy.captured_task_output(other, 1, Step(1)) is Some(_))
+}

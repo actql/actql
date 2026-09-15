@@ -131,6 +131,24 @@ inputs and produce an already verified engine completion; they cannot settle
 the common ledger by returning success alone. The common completion boundary
 also checks the output's exact bound owner, retained port, fixed-input binding
 identities and current liveness.
+Installed asynchronous implementations bind their typed selected payload into
+the SDK's opaque `PreparedExecution`. Its preparation is single-use and rechecks
+registration and fixed-input availability. `start_captured_execution` validates
+the exact candidate, checked inputs, join ceiling and required capacity before
+invoking that preparation under a common reservation. The returned transport
+handle remains implementation-typed; the DAG retains only common lifecycle
+operations. A failed reservation does not consume the preparation. A failure
+after admission stops further task dispatch without refunding attempt work.
+This task-local entry rejects selections requiring shared-resource admission;
+it is not an escape hatch around a selected reuse contract.
+
+The SDK operation record is trusted connector-author wiring, not an ordinary
+Program or per-call Host option. It does not isolate malicious code in the same
+process. Completion still requires engine-produced output with exact provenance,
+and returning successful operations cannot itself settle reservations or create
+a DAG completion. Scoped `TaskPublication` has no public constructor or output
+getter; it is issued only after output and holding verification and expires on
+return from the publication operation.
 Synchronous Local and asynchronous realizations use the same private output
 installation operation. It validates the completed port and input identities
 before implementation-specific publication, then attaches the owned holding and

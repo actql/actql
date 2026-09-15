@@ -75,16 +75,21 @@ pub fn start_captured_duckdb_task(
       @resources.shared_capacity_usage(read.environment.capacity).capacity
     }
   }
-  let started = start_task_execution(
-    run,
-    task,
-    @connector.prepared_compute_candidate(prepared),
-    transfer_bytes,
-    retention,
-    scratch,
-    execution,
-    database,
-    fn() {
+  let bound = @connector.bind_prepared_execution(
+    choice,
+    prepared,
+    {
+      transfer_bytes,
+      retained_bytes: retention,
+      scratch_bytes: scratch,
+      execution_bytes: execution,
+    },
+    @connector.fixed_compute_choice_payload(choice, prepared).bind(compute => {
+      @duckdb.fixed_compute_join_output_ceiling(compute).map(value => {
+        (0, value.to_int64())
+      })
+    }),
+    fn(_compute) {
       let resident_output = match resident {
         None => None
         Some(read) => {
@@ -115,7 +120,7 @@ pub fn start_captured_duckdb_task(
             inputs.claimed = true
           }
           let pending_output = Ref(resident_output)
-          let hooks : TaskExecutionHooks = {
+          let hooks : @connector.ExecutionOperations[RunIssue, TaskPublication] = {
             cancel: fn() {
               @duckdb_compute.abort_duckdb_compute_attempt(attempt)
             },
@@ -145,10 +150,10 @@ pub fn start_captured_duckdb_task(
                 Ok(output) => Ok(output)
               }
             },
-            publish: fn(output) {
+            publish: fn(publication) {
               match pending_output.val {
                 Some(pending) =>
-                  publish_resident_output(run, task, pending, output)
+                  publish_resident_output(run, task, pending, publication)
                 None => Ok(())
               }
             },
@@ -167,6 +172,14 @@ pub fn start_captured_duckdb_task(
       }
     },
   )
+  let bound = match bound {
+    Ok(value) => value
+    Err(issue) => return Err(Compute(issue))
+  }
+  let started = match resident {
+    None => start_captured_execution(run, task, bound)
+    Some(_) => start_task_execution(run, task, bound, database)
+  }
   match started {
     Err(issue) => Err(issue)
     Ok(((attempt, resident_output), execution)) =>

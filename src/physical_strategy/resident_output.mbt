@@ -155,12 +155,15 @@ fn publish_resident_output(
   run : CapturedDAG,
   task : Int,
   pending : ResidentPendingOutput,
-  output : @execution.CompletedOutput,
+  publication : TaskPublication,
 ) -> Result[Unit, RunIssue] {
   if !pending.committed ||
     !resident_environment_available(run, pending.environment) ||
     pending.environment.tables[task] is Some(_) {
     return Err(NotReady)
+  }
+  guard claim_task_publication(run, task, publication) is Some(output) else {
+    return Err(ForeignCandidate)
   }
   let imported = match
     @duckdb_compute.bind_duckdb_resident_output(pending.plan, output) {

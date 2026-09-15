@@ -7,23 +7,26 @@ struct TaskExecution {
   reservation : @resources.Reservation
   retention : Int64
   scratch : Int64
-  mut hooks : TaskExecutionHooks?
+  mut hooks : @connector.ExecutionOperations[RunIssue, TaskPublication]?
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
 }
 
 ///|
-/// Installed implementation references live only until final disposal and
-/// settlement. A retained closed handle must not retain the whole driver graph.
-priv struct TaskExecutionHooks {
-  cancel : () -> Unit
-  dispose : () -> Unit
-  settled : () -> Unit
-  released : () -> Unit
-  ready : () -> Result[Unit, RunIssue]
-  finish : () -> Result[@execution.CompletedOutput, RunIssue]
-  publish : (@execution.CompletedOutput) -> Result[Unit, RunIssue]
+/// Registered asynchronous execution without a shared-copy admission. A
+/// selected shared-resource realization must use its exact resource admission;
+/// it cannot evade that requirement through this task-local entry.
+pub fn[T] start_captured_execution(
+  run : CapturedDAG,
+  task : Int,
+  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+) -> Result[(T, TaskExecution), RunIssue] {
+  if run.strategy.bind(revision => strategy_resident_profile(revision, task))
+    is Some(_) {
+    return Err(ForeignCandidate)
+  }
+  start_task_execution(run, task, prepared, 0L)
 }
 
 ///|
@@ -34,13 +37,8 @@ priv struct TaskExecutionHooks {
 fn[T] start_task_execution(
   run : CapturedDAG,
   task : Int,
-  candidate : @connector.FixedComputeCandidate,
-  transfer : Int64,
-  retention : Int64,
-  scratch : Int64,
-  execution_capacity : Int64,
+  prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
   shared_execution : Int64,
-  prepare : () -> Result[(T, TaskExecutionHooks), RunIssue],
 ) -> Result[(T, TaskExecution), RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -48,6 +46,7 @@ fn[T] start_task_execution(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
+  let candidate = @connector.prepared_execution_candidate(prepared)
   if !strategy_candidate_matches(run, task, candidate) ||
     !captured_request_inputs_match(
       run,
@@ -56,6 +55,21 @@ fn[T] start_task_execution(
     ) {
     return Err(ForeignCandidate)
   }
+  if !@connector.prepared_execution_available(prepared) {
+    return Err(Compute(NotSelected))
+  }
+  if captured_task_join_output_limit(run, task) is Some(required) {
+    guard @connector.prepared_execution_join_output_ceiling(prepared)
+      is Some((0, actual)) &&
+      actual <= required else {
+      return Err(ForeignCandidate)
+    }
+  }
+  let capacity = @connector.prepared_execution_capacity(prepared)
+  let transfer = capacity.transfer_bytes
+  let retention = capacity.retained_bytes
+  let scratch = capacity.scratch_bytes
+  let execution_capacity = capacity.execution_bytes
   if transfer < 0L ||
     retention < 0L ||
     scratch < 0L ||
@@ -85,10 +99,15 @@ fn[T] start_task_execution(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  match prepare() {
+  match @connector.start_prepared_execution(prepared) {
     Err(issue) => {
       @resources.settle_reservation(run.ledger, reservation) |> ignore
-      Err(issue)
+      let failure = match issue {
+        Candidate(issue) => RunIssue::Compute(issue)
+        Implementation(issue) => issue
+      }
+      fail_captured_task(run, task, failure)
+      Err(failure)
     }
     Ok((payload, hooks)) => {
       let execution : TaskExecution = {

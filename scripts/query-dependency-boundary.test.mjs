@@ -91,6 +91,22 @@ test('common synchronous dispatch has no Local connector or generated-sequence e
   assert.doesNotMatch(sdk, /(?:struct|enum) SynchronousCompute\b/);
 });
 
+test('asynchronous common start takes an owned preparation rather than transport callbacks', () => {
+  const source = readFileSync('src/physical_strategy/task_execution.mbt', 'utf8');
+  assert.doesNotMatch(source, /@(?:duckdb|duckdb_compute|local_connector)\b/);
+  assert.match(source, /@connector\.start_prepared_execution\(prepared\)/);
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  const signature = api.split('\n').find(line => line.startsWith('pub fn[T] start_captured_execution('));
+  assert.ok(signature);
+  assert.match(signature, /PreparedExecution/);
+  assert.doesNotMatch(signature, /DuckDB|GeneratedSequence|Bool|-> Result.*->/);
+  assert.match(api, /^type TaskPublication$/m);
+  assert.doesNotMatch(api, /pub fn (?:claim_task_publication|publish_task_completion)\b/);
+  const sdk = readFileSync('src/connector_sdk/pkg.generated.mbti', 'utf8');
+  assert.match(sdk, /^type PreparedExecution\[T, E, P\]$/m);
+  assert.doesNotMatch(sdk, /(?:struct|enum) PreparedExecution\b/);
+});
+
 test('prepared dispatch ownership has one common state machine and no connector payload', () => {
   assert.deepEqual(imports('physical_host'), [
     'physical_strategy', 'physical_resources', 'connector_sdk',
