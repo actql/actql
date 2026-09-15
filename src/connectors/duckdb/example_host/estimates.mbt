@@ -120,14 +120,14 @@ pub fn configure_dispatch_estimates(
     Ok(_) => ()
     Err(issue) => {
       @host_driver.stop_dispatch_driver(host.driver)
-      return Err(issue)
+      return Err(unwrap_issue(issue))
     }
   }
   match @builtin.install_configured_estimate_policy(native_policy) {
     Ok(_) => ()
     Err(issue) => {
       @host_driver.stop_dispatch_driver(host.driver)
-      return Err(issue)
+      return Err(unwrap_issue(issue))
     }
   }
   Ok(())
@@ -144,7 +144,7 @@ fn dispatch_rate_issue(issue : @cost.RateIssue) -> DispatchIssue {
 
 ///|
 fn adaptive_estimate_issue(
-  issue : @host_driver.AdaptiveEstimateIssue[DispatchIssue],
+  issue : @host_driver.AdaptiveEstimateIssue[@strategy.RunIssue],
 ) -> DispatchIssue {
   match issue {
     InvalidConfiguration => InvalidConfiguration
@@ -153,7 +153,7 @@ fn adaptive_estimate_issue(
     EstimateOverflow => EstimateOverflow
     Resources(issue) => Run(Physical(issue))
     Search(issue) => Search(issue)
-    Implementation(issue) => issue
+    Implementation(issue) => unwrap_issue(issue)
   }
 }
 

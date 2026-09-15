@@ -6,6 +6,7 @@ fn query_checked_program_fixture(
   dag_count? : Bool = false,
   dag_join? : Bool = false,
   self_join? : Bool = false,
+  numeric_dag? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -36,6 +37,11 @@ fn query_checked_program_fixture(
       old="}],\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}",
       new="},{\"id\":\"count_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_c\",\"result\":\"r\"}}},\"steps\":[{\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"n\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"count_d\",\"result\":\"r\"}}}}",
     )
+  } else {
+    text
+  }
+  let text = if numeric_dag {
+    text.replace(old="id < 9", new="id > 2")
   } else {
     text
   }

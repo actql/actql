@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
-import { runCapturedStrategy } from '../strategy-host.mjs';
+import { runCapturedStrategy } from '../../host-node/entry.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -32,7 +32,7 @@ const cases = [
 
 test('case-distinct names preserve group order and exclude lossy resident storage', async () => {
   const exec = promisify(execFile);
-  for (const name of ['connectors/duckdb/host_node', 'duckdb_host_node', 'duckdb_conformance']) {
+  for (const name of ['connectors/duckdb/host_node', 'connectors_builtin_node', 'duckdb_conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${name}`], { cwd: root });
   }
   const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
@@ -88,7 +88,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f)
             : moon.strategyFixtureCostedDispatch(f, placement === 'local' ? 20n : 1n);
-          execution = await runCapturedStrategy(dispatch, limits, { maxRows: 100, maxCells: 1000 });
+          execution = await runCapturedStrategy(dispatch, {duckdb: {transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }}});
           const expected = hash([{[key]: low,[aggregate]:4},{[key]:high,[aggregate]:1}]);
           const actual = moon.strategyFixtureCid(f,4);
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}/${key}/${collision}: ${inspect(execution.failure, { depth: 10 })}`);

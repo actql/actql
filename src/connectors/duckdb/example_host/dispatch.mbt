@@ -1,4 +1,5 @@
 ///|
+/// DuckDB/Local example configuration, not the standard Host entry.
 /// Bounded application configuration; no source connection, SQL callback or
 /// completion injection. Generated sequences retain their exact checked owners.
 pub(all) struct TaskDispatchLimits {
@@ -16,12 +17,13 @@ pub(all) struct TaskDispatchLimits {
 
 ///|
 struct StrategyHostDispatch {
-  modules : @builtin.ConfiguredComputeModules[DispatchIssue]
+  installation : @builtin.ConfiguredComputeHost[@strategy.RunIssue]
+  modules : @builtin.ConfiguredComputeModules[@strategy.RunIssue]
   run : @strategy.CapturedDAG
   driver : @host_driver.DispatchDriver
   local_registration : @connector.CapabilityRegistration
   native_registration : @connector.CapabilityRegistration
-  runtime : @host_driver.ComputeHost[Unit, DispatchIssue]
+  runtime : @host_driver.ComputeHost[Unit, @strategy.RunIssue]
   limits : TaskDispatchLimits
 }
 
@@ -74,7 +76,7 @@ pub fn configure_strategy_dispatch(
       driver,
       registry,
       2,
-      _issue => InvalidConfiguration,
+      _issue => wrap_issue(InvalidConfiguration),
       with_local=Some(
         (
           local_registration,
@@ -84,8 +86,8 @@ pub fn configure_strategy_dispatch(
             measurement: limits.guards,
             max_work: limits.candidate_work,
           },
-          local_dispatch_issue,
-          local_estimate_issue,
+          issue => wrap_issue(local_dispatch_issue(issue)),
+          issue => wrap_issue(local_estimate_issue(issue)),
         ),
       ),
       with_duckdb=Some(
@@ -102,20 +104,18 @@ pub fn configure_strategy_dispatch(
               transport: limits.transport,
             },
           },
-          duckdb_dispatch_issue,
-          duckdb_estimate_issue,
+          issue => wrap_issue(duckdb_dispatch_issue(issue)),
+          issue => wrap_issue(duckdb_estimate_issue(issue)),
         ),
       ),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(unwrap_issue(issue))
   }
-  let contributions = @builtin.configured_compute_contributions(modules)
-  let runtime = match
-    @host_driver.open_compute_host(
-      driver,
+  let installation = match
+    @builtin.open_configured_compute_host(
+      modules,
       registry,
-      contributions,
       limits.capacity,
       limits.input_entries,
       limits.input_name_bytes,
@@ -124,7 +124,9 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(issue) => return Err(compute_host_issue(issue))
   }
+  let runtime = @builtin.configured_host_runtime(installation)
   Ok({
+    installation,
     modules,
     run,
     driver,
@@ -149,7 +151,7 @@ pub fn prepare_next_dispatch(
 
 ///|
 fn compute_host_issue(
-  issue : @host_driver.ComputeHostIssue[DispatchIssue],
+  issue : @host_driver.ComputeHostIssue[@strategy.RunIssue],
 ) -> DispatchIssue {
   match issue {
     ForeignInstallation => InvalidConfiguration
@@ -158,7 +160,7 @@ fn compute_host_issue(
     Dispatch(NoStrategy) => NoStrategy
     Dispatch(Dispatch(issue)) => dispatch_driver_issue(issue)
     Dispatch(MissingImplementation) => ForeignSelection
-    Dispatch(Implementation(issue)) => issue
+    Dispatch(Implementation(issue)) => unwrap_issue(issue)
   }
 }
 
@@ -204,11 +206,11 @@ pub fn take_native_dispatch(
 
 ///|
 fn configured_dispatch_issue(
-  issue : @builtin.ConfiguredDispatchIssue[DispatchIssue],
+  issue : @builtin.ConfiguredDispatchIssue[@strategy.RunIssue],
 ) -> DispatchIssue {
   match issue {
     MissingImplementation => InvalidConfiguration
-    Implementation(issue) => issue
+    Implementation(issue) => unwrap_issue(issue)
   }
 }
 
@@ -269,4 +271,30 @@ pub fn dispatch_module_keys(host : StrategyHostDispatch) -> Array[String] {
 ///|
 pub fn stop_strategy_dispatch(host : StrategyHostDispatch) -> Unit {
   @host_driver.stop_dispatch_driver(host.driver)
+}
+
+///|
+priv suberror ExampleDispatchFailure {
+  Failure(DispatchIssue)
+}
+
+///|
+fn wrap_issue(issue : DispatchIssue) -> @strategy.RunIssue {
+  Implementation(ExampleDispatchFailure::Failure(issue))
+}
+
+///|
+fn unwrap_issue(issue : @strategy.RunIssue) -> DispatchIssue {
+  match issue {
+    Implementation(ExampleDispatchFailure::Failure(value)) => value
+    _ => Run(issue)
+  }
+}
+
+///|
+/// Expose the standard installation, not this example's configuration wrapper.
+pub fn dispatch_installation(
+  value : StrategyHostDispatch,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  value.installation
 }

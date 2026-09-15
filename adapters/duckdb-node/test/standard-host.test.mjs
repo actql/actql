@@ -11,7 +11,7 @@ import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
-import { runCapturedStrategy } from '../strategy-host.mjs';
+import { runCapturedStrategy } from '../../host-node/entry.mjs';
 import { checked } from '../runtime-result.mjs';
 import { runExample } from '../examples/physical-strategy.mjs';
 
@@ -24,7 +24,7 @@ const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
-  await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_host_node'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
@@ -168,7 +168,7 @@ test('standard native and broad Node Hosts own verification through real capture
 });
 
 async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits) {
-  const hostRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_host_node/duckdb_host_node.js')));
+  const hostRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const stage = (id, producer, filter) => ({ id, inputs: { x: { result: { stage: producer, result: 'r' } } },
     steps: [{ filter }, { select: ['id'], as: 'out' }],
     results: { r: { from: 'out', fields: ['id'] } } });
@@ -184,6 +184,40 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const connection = await db.connect();
     try { await connection.run('DELETE FROM records'); await connection.run(sql); }
     finally { connection.closeSync(); db.closeSync(); }
+  }
+  // The same fixed capture can run with no DuckDB Compute registration or
+  // settings. The standard entry/bridge are unchanged for the third module.
+  const numericProgram = JSON.parse(program);
+  numericProgram.stages[3].steps[0].filter = 'id > 2';
+  for (const mode of [0, 1, 2]) {
+    for (const cancel of [false, true]) {
+      await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+      const f = fixture.strategyFixtureCreate(...args, JSON.stringify(numericProgram));
+      const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+      let execution;
+      try {
+        assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+        const setup = fixture.strategyFixtureModuleSubset(f, mode);
+        const absent = new Proxy({}, {get() { assert.fail('unused Compute provider settings accessed'); }});
+        const controller = new AbortController();
+        if (cancel) controller.abort();
+        execution = await runCapturedStrategy(setup, {duckdb: absent}, controller.signal);
+        assert.equal(execution.status, cancel ? 'host-tasks-failed' : 'host-tasks-completed', String(execution.failure));
+        if (cancel) {
+          assert.equal(execution.completed.length, 0);
+          assert.equal(execution.usage().attempts, 0n);
+        } else {
+          assert.deepEqual(execution.completed.map(item => item.realization),
+            Array(3).fill(mode === 0 ? 'local' : 'reference-numeric'));
+          assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
+          assert.equal(execution.usage().transferredBytes, 0n);
+        }
+      } finally { execution?.close(); capture.close(); }
+      assert.equal(execution.cleanupPending(), false);
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+    }
   }
   // The runnable application reads user-supplied documents, not conformance
   // exports or test catalogs. Tests supply their own documents at its boundary.
@@ -330,7 +364,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         const dispatch = placement === 'resident'
           ? fixture.strategyFixtureResidentDispatch(f) : fixture.strategyFixtureDispatch(f);
         if (placement !== 'resident') assert.equal(fixture.strategyFixtureReplan(f, placement === 'local' ? 20n : 1n), true);
-        execution = await runCapturedStrategy(dispatch, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+        execution = await runCapturedStrategy(dispatch, {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 100, maxCells: 1000 }}});
         assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
         assert.deepEqual(execution.completed.map(value => value.realization),
           Array(4).fill(placement === 'resident' ? 'duckdb-resident' : placement));
@@ -362,8 +396,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try {
       assert.equal(fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f))), true);
       assert.equal(fixture.strategyFixtureReplan(f, transferCost), true);
-      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), suppliedLimits,
-        { maxRows: 100, maxCells: 1000 });
+      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 100, maxCells: 1000 }}});
       assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
       // The 300000-byte ledger already contains acquisition traffic. Three
       // 100000-byte native transfer reservations cannot fit; equal-cost mixed
@@ -411,7 +444,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f))), true);
       const setup = fixture.strategyFixtureAdaptiveDispatch(f);
       assert.equal(fixture.strategyFixtureHistoryPlacement(f, 0), 'LDD');
-      execution = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+      execution = await runCapturedStrategy(setup, {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 100, maxCells: 1000 }}});
       assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
       assert.deepEqual(execution.completed.map(item => item.realization), ['local', 'duckdb', 'local']);
       assert.equal(fixture.strategyFixtureHistoryPlacement(f, 1), 'LDL');
@@ -437,8 +470,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try {
       fixture.strategyFixtureAttach(f, capture.openDAG(fixture.strategyFixtureGraph(f)));
       if (selected) assert.equal(fixture.strategyFixtureReplan(f, 1n), true);
-      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), suppliedLimits,
-        { maxRows: 0, maxCells: 0 });
+      execution = await runCapturedStrategy(fixture.strategyFixtureDispatch(f), {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 0, maxCells: 0 }}});
       assert.equal(execution.status, 'host-tasks-failed');
       assert(execution.failure);
       assert.deepEqual(execution.completed.map(item => item.task), selected ? [1] : []);
@@ -665,7 +697,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       for (let task = 1; task <= 3; task++) {
         const table = environment.table(task === 3 ? 1 : 0);
         const selected = task === 1 ? firstTask : checked(hostRuntime.strategyHostNext(dispatch));
-        const compute = checked(hostRuntime.strategyHostTakeNative(selected));
+        const compute = checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, selected));
         if (task === 1) {
           await assert.rejects(runResidentStrategyHostCompute(compute, environment, [table],
             { ...suppliedLimits, threads: 2 }, mapping), { code: 'ResidentProfileMismatch' });
@@ -730,13 +762,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       environment = await openResidentStrategyEnvironment(graph, 1, suppliedLimits);
       const mapping = { maxEntries: 1000, maxNameBytes: 10000 };
       await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
-      a = await runResidentStrategyHostCompute(checked(hostRuntime.strategyHostTakeNative(selectedA)),
+      a = await runResidentStrategyHostCompute(checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, selectedA)),
         environment, [environment.table(0)], suppliedLimits, mapping);
       const before = fixture.strategyFixtureUsage(f, 0);
       const selectedB = checked(hostRuntime.strategyHostNext(dispatch));
       const abort = new AbortController();
       if (failure === 'cancelled') abort.abort();
-      await assert.rejects(runResidentStrategyHostCompute(checked(hostRuntime.strategyHostTakeNative(selectedB)),
+      await assert.rejects(runResidentStrategyHostCompute(checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, selectedB)),
         environment, [environment.table(0)],
         { ...suppliedLimits, maxRows: failure === 'received-row-limit' ? 2 : 100 }, mapping, abort.signal));
       assert.equal(fixture.strategyFixtureNext(f), -1, 'failed B cannot authorize unstarted C');
@@ -775,8 +807,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           // Two new imports plus both task envelopes exceed the remaining
           // transfer budget. Reselection must choose Local B, not erase A's
           // spent transfer to retain the old all-resident placement.
-          assert.equal(hostRuntime.strategyHostRegistration(task), hostRuntime.strategyHostLocalRegistration(dispatch));
-          checked(hostRuntime.strategyHostExecuteLocal(task));
+          assert.equal(hostRuntime.strategyHostRegistration(task), hostRuntime.strategyModule_local_Registration(dispatch));
+          checked(hostRuntime.strategyModule_local_Dispatch(dispatch, task));
           capture.close();
           continue;
         }
@@ -790,7 +822,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(imported.importedRows, index === 3 ? 2 : 3);
         }
         const result = await runResidentStrategyHostCompute(
-          checked(hostRuntime.strategyHostTakeNative(task)), environment, [environment.table(Number(producer))],
+          checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, task)), environment, [environment.table(Number(producer))],
           suppliedLimits, mapping);
         outputs.push(result);
         if (index === 1) {
@@ -820,7 +852,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       const setup = expensiveCleanup
         ? fixture.strategyFixtureResidentCleanupDispatch(selectedFixture)
         : fixture.strategyFixtureResidentDispatch(selectedFixture);
-      result = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+      result = await runCapturedStrategy(setup, {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 100, maxCells: 1000 }}});
       assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
       assert.equal(result.cleanupPending(), false);
       assert.equal(await result.cleanup(), true);
@@ -839,7 +871,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
       await replaceRows('INSERT INTO records VALUES (99,99)');
       const setup = fixture.strategyFixtureTwoResourcesDispatch(f);
-      result = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+      result = await runCapturedStrategy(setup, {duckdb: {transportLimits: suppliedLimits, importLimits: { maxRows: 100, maxCells: 1000 }}});
       assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
       assert.deepEqual(result.completed.map(task => task.realization), Array(3).fill('duckdb-resident'));
       assert.deepEqual(result.completed.map(task => task.preparation.environmentCreated), [true, true, false]);
@@ -885,7 +917,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.notEqual(bindings[1], bindings[0]);
           environment = environments[0];
         }
-        const compute = checked(hostRuntime.strategyHostTakeNative(task));
+        const compute = checked(hostRuntime.strategyModule_duckdb_Dispatch(setup, task));
         if (index === 2) {
           const attempts = fixture.strategyFixtureUsage(f, 3);
           const transferred = fixture.strategyFixtureUsage(f, 0);

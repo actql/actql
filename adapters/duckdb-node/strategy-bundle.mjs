@@ -28,7 +28,7 @@ export function duckdbStrategyContribution(moon, setup, checked, options) {
     }
   }
   return Object.freeze({
-    registration: moon.strategyHostDuckdbRegistration(setup),
+    registration: moon.strategyModule_duckdb_Registration(setup),
     async beforeNext() {
       await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
     },
@@ -58,7 +58,7 @@ export function duckdbStrategyContribution(moon, setup, checked, options) {
           inputs.push(environment.table(Number(producer)));
         }
       }
-      const selected = checked(moon.strategyHostTakeNative(task));
+      const selected = checked(moon.strategyModule_duckdb_Dispatch(setup, task));
       const result = resident
         ? await runResidentStrategyHostCompute(selected, environment, inputs, limits, mapping, signal)
         : await runStrategyHostCompute(selected, limits, imports, signal);

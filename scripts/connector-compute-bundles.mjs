@@ -115,7 +115,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
     `  }\n}\n`).join('');
-  return '\n///|\nstruct ConfiguredComputeModules[E] {\n' + fields +
+  return '\n///|\nstruct ConfiguredComputeModules[E] {\n  driver : @host.DispatchDriver\n' + fields +
     '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
     '\n///|\n/// Validate the complete registration subset before invoking any connector factory.\n' +
     '/// Configuration is synchronous and cannot authorize provider I/O or task start.\n' +
@@ -129,9 +129,58 @@ function configurationAssembly(entries, alias, typed, resultType) {
     prepare +
     '  let contributions = match assemble_compute_contributions(registry, max_entries,\n' + passed +
     '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
-    '  Ok({\n' + stored + '    contributions,\n  })\n}\n' +
+    '  Ok({\n    driver,\n' + stored + '    contributions,\n  })\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
-    getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias);
+    getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias) + hostAssembly() + synchronousAssembly(entries, alias);
+}
+
+function synchronousAssembly(entries, alias) {
+  return `
+///|
+/// Invoke an installed in-process implementation by exact registration. External
+/// transport modules are not coerced into this synchronous execution contract.
+pub fn[E] execute_configured_in_process(value : ConfiguredComputeHost[E], task : @host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]] {
+  let selected = @host.prepared_task_registration(task)
+` + entries.filter(({manifest:m})=>m.dispatch_result === 'Unit').map(({name, manifest:m})=>`
+  if value.modules.installed_${name} is Some((installed, _, _)) &&
+    physical_equal(selected, @${alias(m.package)}.${m.registration}(installed)) {
+    return dispatch_${name}(value.modules, @host.compute_host_dispatch(value.runtime), task)
+  }
+`).join('') + '  Err(MissingImplementation)\n}\n';
+}
+
+function hostAssembly() {
+  return `
+///|
+/// Standard composition: only an already configured installation and common
+/// limits. Connector configuration and typed execution remain in the modules.
+struct ConfiguredComputeHost[E] {
+  modules : ConfiguredComputeModules[E]
+  runtime : @host.ComputeHost[Unit, E]
+}
+
+///|
+pub fn[E] open_configured_compute_host(
+  modules : ConfiguredComputeModules[E],
+  registry : @connector.CapabilityRegistry,
+  capacity : @connector.FixedComputeCapacity,
+  max_entries : Int,
+  max_name_bytes : Int,
+  max_implementations : Int,
+) -> Result[ConfiguredComputeHost[E], @host.ComputeHostIssue[E]] {
+  @host.open_compute_host(modules.driver, registry, modules.contributions,
+    capacity, max_entries, max_name_bytes, max_implementations).map(runtime => { modules, runtime, })
+}
+
+///|
+pub fn[E] configured_host_runtime(value : ConfiguredComputeHost[E]) -> @host.ComputeHost[Unit, E] { value.runtime }
+
+///|
+pub fn[E] configured_host_modules(value : ConfiguredComputeHost[E]) -> ConfiguredComputeModules[E] { value.modules }
+
+///|
+pub fn[E] configured_host_driver(value : ConfiguredComputeHost[E]) -> @host.DispatchDriver { value.modules.driver }
+`;
 }
 
 function estimateAssembly(entries, alias) {

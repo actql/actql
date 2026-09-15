@@ -383,9 +383,11 @@ output. Releasing a holding changes its availability, not its owning ledger.
 The strategy layer additionally binds those resources to checked tasks and selected
 attempts; a ledger handle alone is not execution permission or completion evidence.
 
-`duckdb_host.configure_strategy_dispatch` binds a bounded array of generated
-sequences to their exact checked task owners, the owned registry, selected
-consumer capacities and transport/execution limits. Each connector module copies
+`connectors_builtin.open_configured_compute_host` accepts an already configured
+module installation, its exact registry, common consumer capacity and inspection
+bounds. It uses the installation's original driver; a second driver or reconstructed
+module owner cannot replace it. There is no mandatory pair of implementations or
+provider-specific setting in this entry. Each connector module copies
 its sequence-handle container rather than borrowing mutable caller slots.
 Configuration dispatch is generated from connector-owned declarations: the
 complete registration subset is checked before invoking pure connector factories,
@@ -453,13 +455,23 @@ Each preparation consumes a planning ledger unit and is bounded by its compiler
 and candidate limits. A prepared task is single-use; a replaced unstarted
 revision invalidates it without creating a DB or starting a Local calculation.
 
-The standard Node `runCapturedStrategy` driver executes that finite serial
-sequence through existing Local and trusted DuckDB Host operations. No fixture,
+The standard Node `adapters/host-node/entry.mjs` entry executes that finite serial
+sequence through configured modules. Its bridge is generated in
+`connectors_builtin_node` from the common bridge template and connector manifests.
+The common template, serial driver and Host contain no implementation-specific
+configuration or dispatch branch. Generated typed entries route to each module's
+own execution channel. The numeric and Local in-process modules complete work in
+their connector-owned entry; external transports retain explicit settlement.
+No fixture,
 source connection, replacement runtime or verifier callback enters the driver.
 It stops on the first failure and preserves that failure, including any live
 cleanup handle, alongside internal completed task records. Its result is labeled
 Host-task completion/failure, never Program success or partial publication.
 Closing the result closes its task ports but not the caller-owned capture.
+The Local/DuckDB application profile is a dedicated example under
+`connectors/duckdb/example_host`, not a standard Host configuration or compatibility
+entry. It constructs the same standard installation and owns only example policy.
+The former top-level `duckdb_host` and `duckdb_host_node` packages are absent.
 The driver consumes the current selected revision. An explicitly installed
 estimate policy refreshes unstarted choices before the next dispatch preparation;
 manual selection remains available without that policy. `explain_captured_strategy` produces bounded

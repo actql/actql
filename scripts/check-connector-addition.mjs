@@ -1,12 +1,13 @@
 // Prove an implementation addition in an isolated tree, not by inferring
 // extensibility from names or a successful test against an already-built core.
-import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
+import {checkNodeAssembly} from './connector-node-bundles.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const git = args => {
@@ -15,14 +16,24 @@ const git = args => {
   return result.stdout.trim();
 };
 const sourceHead = git(['rev-parse', 'HEAD']);
-if (git(['status', '--porcelain', '--', 'src', 'moon.mod'])) {
-  throw new Error('Commit product sources before the connector-addition check');
+const sourcePaths = ['src', 'adapters', 'scripts', 'moon.mod'];
+if (git(['status', '--porcelain', '--', ...sourcePaths])) {
+  throw new Error('Commit product sources and assembly checks before the connector-addition check');
 }
 const isolated = mkdtempSync(join(tmpdir(), 'actql-connector-addition-'));
 const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
-  path.startsWith('src/connectors_builtin/') || path.startsWith('src/query_integration/');
-const omitted = new Set(['connectors_builtin', 'query_integration']);
+  path.startsWith('src/connectors_builtin/') || path.startsWith('src/connectors_builtin_node/') ||
+  path.startsWith('src/query_integration/') || path.startsWith('src/connector_conformance/') ||
+  path.startsWith('src/duckdb_conformance/') || path.startsWith('adapters/reference-compute-node/') ||
+  path.startsWith('adapters/connectors-builtin/');
+const omitted = new Set(['connectors_builtin', 'connectors_builtin_node', 'query_integration', 'connector_conformance', 'duckdb_conformance']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
+cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
+cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
+  filter: path => !path.includes('/node_modules') && !path.includes('/reference-compute-node') && !path.includes('/connectors-builtin'),
+});
+symlinkSync(join(root, 'adapters/duckdb-node/node_modules'), join(isolated, 'adapters/duckdb-node/node_modules'), 'dir');
+cpSync(join(root, 'spec'), join(isolated, 'spec'), {recursive:true});
 mkdirSync(join(isolated, 'src'));
 for (const name of readdirSync(join(root, 'src'))) {
   if (omitted.has(name)) continue;
@@ -41,6 +52,7 @@ const hash = data => createHash('sha256').update(data).digest('hex');
 function inventory(directory, prefix = '') {
   const result = new Map();
   for (const entry of readdirSync(directory, {withFileTypes: true})) {
+    if (entry.isSymbolicLink()) continue;
     const name = prefix + entry.name;
     if (entry.isDirectory()) {
       for (const [path, digest] of inventory(join(directory, entry.name), name + '/')) result.set(path, digest);
@@ -48,9 +60,9 @@ function inventory(directory, prefix = '') {
   }
   return result;
 }
-function run(label, args) {
-  console.log(JSON.stringify({phase: label, command: ['moon', ...args], isolated}));
-  const result = spawnSync('moon', args, {
+function run(label, args, executable = 'moon') {
+  console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated}));
+  const result = spawnSync(executable, args, {
     cwd: isolated, env: process.env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
   });
   writeFileSync(join(isolated, label + '.log'), (result.stdout ?? '') + (result.stderr ?? ''));
@@ -64,15 +76,19 @@ function run(label, args) {
 }
 
 if (checkComputeAssembly(isolated, true) !== 2) throw new Error('Expected the declared two-implementation baseline');
+checkNodeAssembly(isolated, true);
 if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Error('Third implementation leaked into baseline');
-const before = inventory(join(isolated, 'src'), 'src/');
+const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
+  ...inventory(join(isolated, 'adapters'), 'adapters/'), ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/')]);
+const before = snapshot();
 run('baseline-check', ['check', '--target', 'all', '--deny-warn']);
 
-for (const path of ['src/connectors/reference_compute', 'src/query_integration']) {
+for (const path of ['src/connectors/reference_compute', 'src/query_integration', 'src/connector_conformance', 'src/duckdb_conformance', 'adapters/reference-compute-node']) {
   cpSync(join(root, path), join(isolated, path), {recursive: true});
 }
 if (checkComputeAssembly(isolated, true) !== 3) throw new Error('Third declaration was not assembled');
-const after = inventory(join(isolated, 'src'), 'src/');
+checkNodeAssembly(isolated, true);
+const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(path => before.get(path) !== after.get(path)).sort();
 for (const path of changed) if (!allowed(path)) throw new Error(`Common implementation changed: ${path}`);
 if (!changed.some(path => path.startsWith('src/connectors/reference_compute/'))) throw new Error('No independent connector added');
@@ -80,16 +96,18 @@ run('extended-check', ['check', '--target', 'all', '--deny-warn']);
 const tests = {};
 for (const target of ['js', 'wasm', 'native']) {
   tests[target] = run('third-' + target, ['test', '--target', target,
-    'src/query_integration/installed_numeric_host_wbtest.mbt']);
+    'src/query_integration/standard_subset_wbtest.mbt']);
   if (!tests[target].some(total => total === 'Total tests: 1, passed: 1, failed: 0.')) {
     throw new Error(`Independent connector test was not executed on ${target}`);
   }
 }
-const final = inventory(join(isolated, 'src'), 'src/');
+tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',
+  'adapters/duckdb-node/test/standard-host.test.mjs'], process.execPath);
+const final = snapshot();
 for (const path of new Set([...before.keys(), ...final.keys()])) {
   if (!allowed(path) && final.get(path) !== before.get(path)) throw new Error(`Verification changed common source: ${path}`);
 }
-if (git(['rev-parse', 'HEAD']) !== sourceHead || git(['status', '--porcelain', '--', 'src', 'moon.mod'])) {
+if (git(['rev-parse', 'HEAD']) !== sourceHead || git(['status', '--porcelain', '--', ...sourcePaths])) {
   throw new Error('Source state changed during verification; isolated evidence remains available');
 }
 const report = {

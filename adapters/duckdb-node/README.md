@@ -328,7 +328,7 @@ transport cleanup checks.
 both validation and native receipts to retain the exact issued attempt. The
 real `test/issued-native-query.test.mjs` connects the public CheckedProgram and
 selected native attempt to SQL, admission, measurement, issuance and capture.
-Its fixed setup calls the reusable MoonBit `duckdb_host` operations for receipt
+Its fixed setup calls the reusable MoonBit `connectors/duckdb/host` operations for receipt
 management, completion and consumer binding; the Host package has no fixture or
 catalog dependency. The low-level `start_native_host` verifier parameter remains
 trusted runtime wiring, not a Program/Connector option. The standard native Node
@@ -425,7 +425,7 @@ requirement.
 
 With the pinned MoonBit toolchain on `PATH`, run
 `npm run build:host --prefix adapters/duckdb-node`. Trusted MoonBit application
-preparation uses `@duckdb_host.configure_native_host` with its exact requirement,
+preparation uses `@connectors/duckdb/host.configure_native_host` with its exact requirement,
 selected native candidate, admitted two-receipt contract and explicit limits.
 Pass that opaque configuration to the Node entry; do not serialize it or import
 fixed conformance setup into an application:
@@ -460,7 +460,7 @@ bounded materialization under the configured limits, without another source read
 Typed MoonBit failures are retained as the `cause` of `MoonBitHostFailure`.
 
 For a selected broad candidate, application preparation instead uses
-`@duckdb_host.configure_broad_host` with `BroadHostLimits`. Call
+`@connectors/duckdb/host.configure_broad_host` with `BroadHostLimits`. Call
 `runBroadHostQuery(grant, ownedBroadConfiguration, transportLimits, signal)` from
 the same `host.mjs`. Its returned `bindInput(ownedConsumerPreparation, inputIndex)`
 uses the existing captured-input binding directly. The expected producer is
@@ -484,7 +484,7 @@ observation ownership; it is not a portable CID-based replay handle. Bind it to
 the same checked graph using `physical_strategy.open_captured_dag`, supplying one
 Host physical ledger that remains owned by that run across task choices.
 Prepare a selected task's `ComputeHostConfiguration`, wrap it with
-`duckdb_host.configure_strategy_compute_host`, and execute through
+`connectors/duckdb/driver.configure_strategy_compute_host`, and execute through
 `runStrategyHostCompute` in `host.mjs`. The standard Host retains verifier wiring;
 task completion is recorded by the DAG's exact attempt, not a caller-supplied
 output. This fresh-DB entry uses a separate temporary database for every task and
@@ -520,7 +520,7 @@ This is an in-process handle, not durable recovery or a hard native-kill timeout
 
 ### Run-owned resident execution
 
-Before the first search, `duckdb_host.configure_resident_dispatch` can attach a
+Before the first search, `connectors/duckdb/example_host.configure_resident_dispatch` can attach a
 run-owned `physical_strategy.ResidentProfile` and resident task rates to the
 standard dispatch setup. The profile specifies DB capacity, preparation/cleanup
 estimates and per-producer import transfer, scratch and table allowances. Task
@@ -631,9 +631,12 @@ For a runnable application using user-supplied files, see the
 the standard Host driver and explanation output without conformance dependencies.
 
 To drive a selected finite DAG without fixture-specific per-task calls, construct
-an owned `duckdb_host.StrategyHostDispatch` with `configure_strategy_dispatch` and
-call `runCapturedStrategy(setup, transportLimits, importLimits, signal)` from
-`strategy-host.mjs`. The generated sequences must belong to the exact checked
+an owned `connectors_builtin.ConfiguredComputeHost` using configured modules and
+`open_configured_compute_host`, then call
+`runCapturedStrategy(setup, {duckdb: {transportLimits, importLimits}}, signal)` from
+`../host-node/entry.mjs`. Other configured modules supply their own options; an
+in-process-only installation needs no DuckDB settings. The generated sequences
+must belong to the exact checked
 tasks. The driver reads the current strategy; it does not choose a fallback or
 invent an input before its producer completes. Its returned `status` is
 `host-tasks-completed` or `host-tasks-failed`, not Program/Run success. `completed`

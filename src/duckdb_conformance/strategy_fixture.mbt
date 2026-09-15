@@ -257,8 +257,7 @@ fn strategy_fixture_request(
 }
 
 ///|
-#export_name("strategyFixtureDispatch")
-pub fn strategy_fixture_dispatch(
+fn fixture_example_dispatch(
   f : StrategyFixture,
 ) -> @dbhost.StrategyHostDispatch {
   let generated = []
@@ -588,4 +587,12 @@ pub fn strategy_fixture_close_output(f : StrategyFixture, task : Int) -> Unit {
   if f.run is Some(run) {
     @strategy.close_captured_task_output(run, task)
   }
+}
+
+///|
+#export_name("strategyFixtureDispatch")
+pub fn strategy_fixture_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  @dbhost.dispatch_installation(fixture_example_dispatch(f))
 }

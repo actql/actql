@@ -10,8 +10,6 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/lowering_relation" @lower,
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_cost" @cost,
 }

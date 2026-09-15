@@ -18,6 +18,12 @@ pub fn[E] configured_compute_module_keys(ConfiguredComputeModules[E]) -> Array[S
 
 pub fn[E] configured_duckdb_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/duckdb/driver.DuckDBDispatchModule?
 
+pub fn[E] configured_host_driver(ConfiguredComputeHost[E]) -> @physical_host.DispatchDriver
+
+pub fn[E] configured_host_modules(ConfiguredComputeHost[E]) -> ConfiguredComputeModules[E]
+
+pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.ComputeHost[Unit, E]
+
 pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/local/driver.LocalDispatchModule?
 
 pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/reference_compute/driver.NumericComputeContribution?
@@ -32,9 +38,13 @@ pub fn duckdb_estimate_work_slots() -> Int
 
 pub fn duckdb_resource_work_slots() -> Int
 
+pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
 pub fn[E] install_configured_estimate_policy(ConfiguredEstimatePolicy[E]) -> Result[Unit, E]
 
 pub fn local_estimate_work_slots() -> Int
+
+pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host.ComputeHostIssue[E]]
 
 pub fn[E] prepare_duckdb_estimate_policy(ConfiguredComputeModules[E], @actql/actql/connectors/duckdb/driver.DuckDBEstimateSettings) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]]
 
@@ -45,6 +55,8 @@ pub fn[E] prepare_local_estimate_policy(ConfiguredComputeModules[E], @actql/actq
 // Errors
 
 // Types and methods
+type ConfiguredComputeHost[E]
+
 type ConfiguredComputeModules[E]
 
 pub(all) enum ConfiguredDispatchIssue[E] {

@@ -9,8 +9,8 @@ test('Node installation touches only the configured module subset', async () => 
   let executions = 0;
   const moon = new Proxy({
     strategyHostModules: value => { assert.equal(value, setup); return ['local']; },
-    strategyHostLocalRegistration: value => { assert.equal(value, setup); return registration; },
-    strategyHostExecuteLocal: value => { assert.equal(value, task); executions++; },
+    strategyModule_local_Registration: value => { assert.equal(value, setup); return registration; },
+    strategyModule_local_Dispatch: (owner, value) => { assert.equal(owner, setup); assert.equal(value, task); executions++; },
   }, {
     get(target, key) {
       assert.ok(Object.hasOwn(target, key), `Absent module accessed ${String(key)}`);
@@ -18,7 +18,7 @@ test('Node installation touches only the configured module subset', async () => 
     },
   });
   const options = new Proxy({}, {get() { throw new Error('Absent module read settings'); }});
-  const entries = installStrategyContributions(moon, setup, value => value, options);
+  const entries = installStrategyContributions(moon, setup, value => value, {local: options});
   assert.equal(entries.length, 1);
   assert.equal(entries[0].registration, registration);
   await entries[0].run(task);
@@ -32,7 +32,7 @@ test('empty installation invokes no factory and malformed subsets fail before an
     let configured = 0;
     const moon = {
       strategyHostModules: () => keys,
-      strategyHostLocalRegistration: () => { configured++; return {}; },
+      strategyModule_local_Registration: () => { configured++; return {}; },
     };
     if (Array.isArray(keys) && keys.length === 0) {
       assert.deepEqual(installStrategyContributions(moon, {}, x => x), []);

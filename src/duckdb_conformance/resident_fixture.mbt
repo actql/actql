@@ -32,7 +32,7 @@ pub fn strategy_fixture_two_resources_create(
 #export_name("strategyFixtureTwoResourcesDispatch")
 pub fn strategy_fixture_two_resources_dispatch(
   f : StrategyFixture,
-) -> @dbhost.StrategyHostDispatch {
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   resident_dispatch_fixture(f, 1L, 100L, 100L, multiple_resources=true)
 }
 
@@ -40,7 +40,7 @@ pub fn strategy_fixture_two_resources_dispatch(
 #export_name("strategyFixtureResidentDispatch")
 pub fn strategy_fixture_resident_dispatch(
   f : StrategyFixture,
-) -> @dbhost.StrategyHostDispatch {
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   resident_dispatch_fixture(f, 1L, 100L, 100L)
 }
 
@@ -48,7 +48,7 @@ pub fn strategy_fixture_resident_dispatch(
 #export_name("strategyFixtureResidentCleanupDispatch")
 pub fn strategy_fixture_resident_cleanup_dispatch(
   f : StrategyFixture,
-) -> @dbhost.StrategyHostDispatch {
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   resident_dispatch_fixture(f, 100L, 1000L, 10L)
 }
 
@@ -59,8 +59,8 @@ fn resident_dispatch_fixture(
   first_local : Int64,
   remaining_local : Int64,
   multiple_resources? : Bool = false,
-) -> @dbhost.StrategyHostDispatch {
-  let host = strategy_fixture_dispatch(f)
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let host = fixture_example_dispatch(f)
   let count = @strategy.graph_task_count(f.graph) - 1
   let profiles = Array::makei(count, i => @dbhost.DispatchEstimateProfile::{
     local_rates: [
@@ -154,5 +154,5 @@ fn resident_dispatch_fixture(
       }),
     ).unwrap()
   }
-  host
+  @dbhost.dispatch_installation(host)
 }

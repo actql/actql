@@ -287,7 +287,7 @@ pub fn application_dispatch(
   run : @strategy.CapturedDAG,
   native_fixed_ms : Int64,
   resident : Bool,
-) -> @dbhost.StrategyHostDispatch raise {
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
     fail("foreign graph")
   }
@@ -400,5 +400,5 @@ pub fn application_dispatch(
       ]),
     ).unwrap()
   }
-  dispatch
+  @dbhost.dispatch_installation(dispatch)
 }

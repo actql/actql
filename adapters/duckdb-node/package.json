@@ -6,7 +6,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "pretest": "node ../../scripts/connector-node-bundles.mjs",
-    "build:host": "cd ../.. && moon build --target js --release src/connectors/duckdb/host_node && moon build --target js --release src/duckdb_host_node",
+    "build:host": "cd ../.. && moon build --target js --release src/connectors/duckdb/host_node && moon build --target js --release src/connectors_builtin_node",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

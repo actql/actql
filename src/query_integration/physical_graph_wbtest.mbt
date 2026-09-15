@@ -73,12 +73,14 @@ fn captured_graph_fixture(
   count? : Bool = false,
   join? : Bool = false,
   self_join? : Bool = false,
+  numeric_dag? : Bool = false,
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     dag=true,
     dag_count=count,
     dag_join=join,
     self_join~,
+    numeric_dag~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)

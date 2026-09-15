@@ -72,8 +72,12 @@ This separation lets the application validate all policies before enabling its
 shared adaptive Host. Neither preparation nor installation creates resources or
 completion evidence, and charged planning work is not refunded on failure.
 
-Pass the assembled installation to `physical_host.open_compute_host` with the
-exact Host registry, fixed-input capacity and bounded inspection limits.
+Pass configured modules to `connectors_builtin.open_configured_compute_host` with
+the exact Host registry, fixed-input capacity, bounded inspection limits and the
+implementation count bound. This standard entry retains the original module
+driver and delegates to `physical_host.open_compute_host`; it does not require
+any particular implementation or unused provider settings.
+`configured_host_runtime` provides the common Host for policy installation.
 `configure_compute_host_estimates` installs its optional adaptive policy once;
 `prepare_next_compute_task` refreshes that policy before preparing a checked-ready
 task. The Host internally projects preparation and proposal from the same fixed
@@ -134,14 +138,18 @@ To verify extension without modifying the common implementation, run:
 npm run check:connector-addition
 ```
 
-The check requires committed product sources so its revision identifies the
+The check requires committed product and assembly sources so its revision identifies the
 tested input. It creates an isolated source tree with Local/DuckDB declarations,
 without the numeric connector or integration package. It checks that baseline,
 adds the independent connector and reused integration fixtures, regenerates only
-the composition root, and runs the numeric Host test on JS/Wasm/native. File
-digests reject changes outside the connector, generated composition and
-integration directories. The test exercises normal execution and cancellation
-before dispatch; separate prepared-execution tests retain post-start cancellation
+the composition roots, and runs the standard installation with Local alone,
+the numeric connector alone and both on JS/Wasm/native. It also runs these
+subsets through the same standard Node entry and generated bridge using a real
+captured input, without DuckDB Compute settings. File digests include the
+handwritten standard entry and bridge template, rejecting changes outside the
+connector, generated composition and integration directories. The tests exercise
+normal execution, retained results, recovery and cancellation before dispatch;
+separate prepared-execution tests retain post-start cancellation
 and settlement order checks. The isolated sources, per-phase logs and
 machine-readable change inventory are retained at the printed temporary path.
 This is an implementation-addition check, not proof of a new provider's semantic
@@ -164,8 +172,33 @@ calling any factory; omitted factories, their settings and finalizers are never
 used. These generated composition keys do not replace exact capability
 registrations or resource bindings. Unknown and duplicate keys are rejected.
 A typed Compute declaration does not
-by itself implement Node I/O. The standard Node application currently configures
-Local and DuckDB; the numeric reference path exercises the portable common Host.
+by itself implement Node I/O. `connectors_builtin_node` generates typed bridge
+operations from the same configured modules and their manifest execution entries.
+Use `runCapturedStrategy(setup, moduleOptions, signal)` from
+`adapters/host-node/entry.mjs`. `moduleOptions` is indexed by generated module key;
+its provider-specific value is read only by that installed module. For example,
+DuckDB accepts `{duckdb: {transportLimits, importLimits}}`; in-process Local or
+numeric-only setups require no transport options. The entry fixes its runtime,
+ABI checking and driver; execution options cannot replace them.
+
+Local-only, numeric-only and mixed Compute installations use this same entry and
+generated bridge. The independent numeric Node contribution calls its owned
+in-process execution entry; conformance does not drive attempt settlement or
+completion. To add an existing capability implementation, provide its module,
+typed `compute-bundle.json`, optional Node `node-bundle.json` contribution and
+application settings, then regenerate the two composition packages. Neither the
+standard bridge template nor common Host/driver changes.
+
+The Local/DuckDB rate and resource profile in `connectors/duckdb/example_host`
+belongs to the dedicated DuckDB example. It returns the standard installation;
+it is not a mandatory two-provider Host API. The old top-level packages and
+DuckDB-owned standard Node entry have been removed, without compatibility exports.
+
+Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
+SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning
+packages. Those existing source Host entrypoints are not generated Compute
+modules: source grants and acquisition settings remain separate. This does not
+claim a unified generated Acquisition Node installer or a new SaaS capability.
 
 The registry key identifies an implementation, not a resource or data location.
 Distinct resource bindings can belong to one implementation. Reuse requires an

@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
@@ -17,7 +18,7 @@ import {
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
-  "actql/actql/duckdb_host" @dbhost,
+  "actql/actql/connectors/duckdb/example_host" @dbhost,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @admitted,
   "actql/actql/pipeline_typing" @pipeline,

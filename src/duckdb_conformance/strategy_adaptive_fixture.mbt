@@ -3,8 +3,8 @@
 pub fn strategy_fixture_costed_dispatch(
   f : StrategyFixture,
   native_ms : Int64,
-) -> @dbhost.StrategyHostDispatch {
-  let host = strategy_fixture_dispatch(f)
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let host = fixture_example_dispatch(f)
   let count = @strategy.graph_task_count(f.graph) - 1
   let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(count, _ => {
     local_rates: [
@@ -39,15 +39,15 @@ pub fn strategy_fixture_costed_dispatch(
     max_revisions: count + 1,
   }).unwrap()
   @dbhost.refresh_dispatch_estimates(host).unwrap()
-  host
+  @dbhost.dispatch_installation(host)
 }
 
 ///|
 #export_name("strategyFixtureAdaptiveDispatch")
 pub fn strategy_fixture_adaptive_dispatch(
   f : StrategyFixture,
-) -> @dbhost.StrategyHostDispatch {
-  let host = strategy_fixture_dispatch(f)
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let host = fixture_example_dispatch(f)
   let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(3, index => {
     local_rates: [
       {
@@ -97,7 +97,7 @@ pub fn strategy_fixture_adaptive_dispatch(
     max_revisions: 3,
   }).unwrap()
   @dbhost.refresh_dispatch_estimates(host).unwrap()
-  host
+  @dbhost.dispatch_installation(host)
 }
 
 ///|

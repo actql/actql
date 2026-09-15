@@ -37,7 +37,8 @@ export function checkConnectorDispatchBoundary(root) {
   const connectors = readdirSync(join(root, 'src/connectors'), {withFileTypes: true})
     .filter(entry => entry.isDirectory()).map(entry => entry.name);
   const roots = ['src/connector_sdk', 'src/query_planning', 'src/physical_host',
-    'src/physical_strategy', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node'];
+    'src/physical_strategy', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node',
+    'scripts/templates'];
   const failures = [];
   let count = 0;
   function inspect(directory) {

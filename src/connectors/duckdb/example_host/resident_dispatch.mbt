@@ -3,44 +3,7 @@ pub fn dispatch_resident_inputs(
   host : StrategyHostDispatch,
   task : Int,
 ) -> Array[(Int, Int64, Int, Int)]? {
-  guard @strategy.captured_dag_strategy(host.run) is Some(revision) &&
-    @strategy.strategy_resident_profile(revision, task) is Some(profile) else {
-    return None
-  }
-  let graph = @strategy.captured_dag_graph(host.run)
-  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
-    return None
-  }
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
-  let inputs = []
-  for port in 0..<count {
-    let mut found = false
-    for i in 0..<@strategy.graph_data_count(graph) {
-      let edge = @strategy.graph_data_at(graph, i).unwrap()
-      if edge.consumer == task && edge.input == port {
-        guard @strategy.resident_profile_import(profile, edge.producer)
-          is Some(value) else {
-          return None
-        }
-        inputs.push(
-          (
-            edge.producer,
-            value.table_bytes,
-            host.limits.input_entries,
-            host.limits.input_name_bytes,
-          ),
-        )
-        found = true
-        break
-      }
-    }
-    if !found {
-      return None
-    }
-  }
-  Some(inputs)
+  @host_driver.compute_host_resident_inputs(host.runtime, task)
 }
 
 ///|
@@ -103,5 +66,5 @@ pub fn configure_resident_dispatch(
     Ok(value) => value
     Err(issue) => return Err(configured_dispatch_issue(issue))
   }
-  @builtin.install_configured_estimate_policy(policy)
+  @builtin.install_configured_estimate_policy(policy).map_err(unwrap_issue)
 }

@@ -6,7 +6,7 @@ import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
-  "actql/actql/duckdb_host",
+  "actql/actql/connectors_builtin",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -171,7 +171,7 @@ pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
 
 pub fn strategy_fixture_acquisition(StrategyFixture) -> @host.NativeHostConfiguration
 
-pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_adaptive_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_attach(StrategyFixture, @physical_strategy.CapturedDAG) -> Bool
 
@@ -185,11 +185,11 @@ pub fn strategy_fixture_compute(StrategyFixture, Int) -> @driver.StrategyCompute
 
 pub fn strategy_fixture_consume(StrategyFixture, Int, String) -> String
 
-pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_costed_dispatch(StrategyFixture, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
 
@@ -203,6 +203,8 @@ pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_resources.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
+pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_next(StrategyFixture) -> Int
 
 pub fn strategy_fixture_open(StrategyFixture, @execution_query.CapturedInputSource) -> Bool
@@ -211,15 +213,15 @@ pub fn strategy_fixture_placement(StrategyFixture, Int) -> String
 
 pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 
-pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
-pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 
 pub fn strategy_fixture_two_resources_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
-pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 

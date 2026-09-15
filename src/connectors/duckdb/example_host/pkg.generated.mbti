@@ -1,11 +1,12 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/duckdb_host"
+package "actql/actql/connectors/duckdb/example_host"
 
 import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
   "actql/actql/connectors/duckdb/driver",
+  "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
@@ -22,6 +23,8 @@ pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sd
 pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
 pub fn dispatch_excluded_realizations(StrategyHostDispatch, Int) -> Result[Array[(Int, String, String)], @physical_host.ComputeDiagnosticsIssue]
+
+pub fn dispatch_installation(StrategyHostDispatch) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn dispatch_is_resident(TaskDispatch) -> Bool
 

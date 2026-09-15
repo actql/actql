@@ -84,6 +84,7 @@ pub fn[E] assemble_compute_contributions(
 
 ///|
 struct ConfiguredComputeModules[E] {
+  driver : @host.DispatchDriver
   installed_duckdb : (
     @binding2.DuckDBDispatchModule,
     (@binding2.DuckDBDispatchIssue) -> E,
@@ -193,6 +194,7 @@ pub fn[E] configure_compute_modules(
     Err(issue) => return Err(installation_issue(issue))
   }
   Ok({
+    driver,
     installed_duckdb,
     installed_local,
     installed_reference_compute,
@@ -395,4 +397,85 @@ pub fn[E] prepare_local_estimate_policy(
         },
       })
   }
+}
+
+///|
+/// Standard composition: only an already configured installation and common
+/// limits. Connector configuration and typed execution remain in the modules.
+struct ConfiguredComputeHost[E] {
+  modules : ConfiguredComputeModules[E]
+  runtime : @host.ComputeHost[Unit, E]
+}
+
+///|
+pub fn[E] open_configured_compute_host(
+  modules : ConfiguredComputeModules[E],
+  registry : @connector.CapabilityRegistry,
+  capacity : @connector.FixedComputeCapacity,
+  max_entries : Int,
+  max_name_bytes : Int,
+  max_implementations : Int,
+) -> Result[ConfiguredComputeHost[E], @host.ComputeHostIssue[E]] {
+  @host.open_compute_host(
+    modules.driver,
+    registry,
+    modules.contributions,
+    capacity,
+    max_entries,
+    max_name_bytes,
+    max_implementations,
+  ).map(runtime => { modules, runtime, })
+}
+
+///|
+pub fn[E] configured_host_runtime(
+  value : ConfiguredComputeHost[E],
+) -> @host.ComputeHost[Unit, E] {
+  value.runtime
+}
+
+///|
+pub fn[E] configured_host_modules(
+  value : ConfiguredComputeHost[E],
+) -> ConfiguredComputeModules[E] {
+  value.modules
+}
+
+///|
+pub fn[E] configured_host_driver(
+  value : ConfiguredComputeHost[E],
+) -> @host.DispatchDriver {
+  value.modules.driver
+}
+
+///|
+/// Invoke an installed in-process implementation by exact registration. External
+/// transport modules are not coerced into this synchronous execution contract.
+pub fn[E] execute_configured_in_process(
+  value : ConfiguredComputeHost[E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[Unit, ConfiguredDispatchIssue[E]] {
+  let selected = @host.prepared_task_registration(task)
+
+  if value.modules.installed_local is Some((installed, _, _)) &&
+    physical_equal(selected, @binding3.local_dispatch_registration(installed)) {
+    return dispatch_local(
+      value.modules,
+      @host.compute_host_dispatch(value.runtime),
+      task,
+    )
+  }
+
+  if value.modules.installed_reference_compute is Some((installed, _, _)) &&
+    physical_equal(
+      selected,
+      @binding4.numeric_contribution_registration(installed),
+    ) {
+    return dispatch_reference_compute(
+      value.modules,
+      @host.compute_host_dispatch(value.runtime),
+      task,
+    )
+  }
+  Err(MissingImplementation)
 }

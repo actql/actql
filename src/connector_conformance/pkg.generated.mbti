@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connector_conformance"
+
+import {
+  "actql/actql/connectors_builtin",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn configure_subset(@physical_strategy.CapturedDAG, Array[@execution_relation.GeneratedSequence], Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
