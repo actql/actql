@@ -132,7 +132,7 @@ export function inspectCore(root, roots = coreRoots) {
     }
     if (key.value === 'source' && value.value !== 'src') throw new Error('UnsupportedCoreSourceRoot');
   }
-  const packages = new Map(), external = new Map();
+  const packages = new Map(), external = new Map(), publicImports = [];
   const pending = [...roots];
   while (pending.length) {
     const name = pending.pop();
@@ -168,7 +168,23 @@ export function inspectCore(root, roots = coreRoots) {
           throw new Error(`ConcretePublicType: ${name}: ${t.value}`);
         }
       }
+      for (let i = 0; i < api.length; i++) {
+        if (api[i].kind !== 'word' || api[i].value !== 'import') continue;
+        if (api[++i]?.value !== '{') throw new Error(`UnknownPublicImports: ${name}`);
+        while (api[++i] && api[i].value !== '}') {
+          if (api[i].kind === 'string') publicImports.push([name, api[i].value]);
+        }
+        if (!api[i]) throw new Error(`UnknownPublicImports: ${name}`);
+      }
     }
+  }
+  for (const [owner, path] of publicImports) {
+    // Generated Show/Debug declarations reference this implicit runtime trait;
+    // its implementation is separately covered by the pinned stdlib inventory.
+    const permitted = path === 'moonbitlang/core/debug' ||
+      Object.hasOwn(pureExternal, path) ||
+      path.startsWith('actql/actql/') && packages.has(path.slice(12));
+    if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);
   }
   return {roots:[...roots], packages:[...packages.keys()].sort(), external:Object.fromEntries(external),
     implicitRuntime: 'Pinned MoonBit builtin/compiler runtime: generated JS requires the separate explicit-seed and artifact audit; source import inspection alone does not certify it.'};

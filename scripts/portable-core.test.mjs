@@ -95,6 +95,10 @@ test('public concrete binding import is rejected; opaque abstract port is allowe
   const f = fixture(t);
   f.put('root', 'pkg.generated.mbti', 'import { "actql/actql/connectors/duckdb/adapter" @db }\npub fn leak() -> @db.Session');
   assert.throws(f.check, /ConcretePublicType/);
+  for (const path of ['cloudflare:workers', 'node:fs', 'vendor/neutral/session']) {
+    f.put('root', 'pkg.generated.mbti', `import { "${path}" @ordinary }\npub fn leak() -> @ordinary.Binding`);
+    assert.throws(f.check, /UnreviewedPublicType/);
+  }
   f.put('root', 'pkg.generated.mbti', 'type Port\npub fn request(Port) -> Unit');
   assert.deepEqual(f.check().packages, ['root']);
 });
