@@ -47,6 +47,15 @@ contract is for trusted synchronous **no-I/O** implementations; it is not a way
 to register arbitrary execution callbacks through ordinary Host request options.
 This task-level entry does not authorize formal Program publication.
 
+For repeated Host dispatch, `prepare_local_compute_module` installs a bounded
+snapshot of sequence handles and Local execution settings against one exact
+capability registration. `prepare_local_module_compute` prepares the selected
+configuration slot for an actual fixed-input request and returns the same opaque
+SDK execution handle. It rejects an out-of-range slot or a request with another
+checked owner. Altering the caller's sequence array cannot replace an installed
+entry. This is Local's preparation implementation, not the final cross-connector
+bundle assembly API or a dynamic loader.
+
 ## Acquisition-internal residual building block
 
 The acquisition adapter belongs to `execution_query`, not the fixed-input

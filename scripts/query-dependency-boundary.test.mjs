@@ -115,6 +115,17 @@ test('prepared dispatch ownership has one common state machine and no connector 
   assert.doesNotMatch(bridgeApi, /pub fn execute_local_dispatch\b/);
 });
 
+test('Local installed preparation owns candidate construction and bounded sequence configuration', () => {
+  const api = readFileSync('src/connectors/local/pkg.generated.mbti', 'utf8');
+  assert.match(api, /^type LocalComputeModule$/m);
+  assert.doesNotMatch(api, /(?:struct|enum) LocalComputeModule\b/);
+  const source = readFileSync('src/duckdb_host/dispatch_implementations.mbt', 'utf8');
+  const local = source.match(/fn prepare_local_dispatch_work\([\s\S]*?\n\}/)?.[0];
+  assert.ok(local);
+  assert.match(local, /prepare_local_module_compute\(/);
+  assert.doesNotMatch(local, /local_fixed_compute_candidate\(|choose_fixed_compute_candidate\(|prepare_local_compute_execution\(|host\.generated|host\.limits/);
+});
+
 test('concrete Compute capacity formula is owned and exported by its connector', () => {
   const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');

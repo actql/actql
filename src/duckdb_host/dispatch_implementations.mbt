@@ -6,51 +6,20 @@ fn prepare_local_dispatch_work(
   _revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
 ) -> Result[DispatchWork, DispatchIssue] {
-  let registration = host.local_registration
-  let generated = host.generated[task - 1]
-  let quantities : @connector.QueryQuantities = {
-    transfer_bytes: None,
-    retained_bytes: None,
-    money_units: None,
-  }
-  let candidate = match
-    @local_connector.local_fixed_compute_candidate(
-      registration,
-      request,
-      generated,
-      [],
-      quantities,
-      host.limits.candidate_work,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Candidate(issue))
-  }
-  let choice = match
-    @connector.choose_fixed_compute_candidate(
-      host.registry,
-      request,
-      [@connector.prepared_compute_candidate(candidate)],
-      Some([0]),
-      host.limits.candidate_work,
-    ) {
-    Ok(Proposed(choice)) => choice
-    Ok(_) => return Err(ForeignSelection)
-    Err(issue) => return Err(Candidate(issue))
-  }
   match
-    @local_connector.prepare_local_compute_execution(
-      choice,
-      candidate,
-      host.limits.local_execution,
-      host.limits.guards,
-      join_output_ceiling=@strategy.captured_task_join_output_limit(
-        host.run,
-        task,
-      ).map(limit => (0, limit)),
+    @local_connector.prepare_local_module_compute(
+      host.local_module,
+      task - 1,
+      request,
+      @strategy.captured_task_join_output_limit(host.run, task).map(limit => {
+        (0, limit)
+      }),
     ) {
     Ok(compute) => Ok(DispatchWork::Synchronous(compute))
-    Err(InvalidLimits) => Err(Run(Physical(InvalidLimits)))
-    Err(issue) => Err(Run(Compute(issue)))
+    Err(Candidate(issue)) => Err(Candidate(issue))
+    Err(NotSelected) => Err(ForeignSelection)
+    Err(Capacity) => Err(Run(Physical(InvalidLimits)))
+    Err(Execution(issue)) => Err(Run(Compute(issue)))
   }
 }
 

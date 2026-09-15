@@ -20,6 +20,7 @@ struct StrategyHostDispatch {
   driver : @host_driver.DispatchDriver
   registry : @connector.CapabilityRegistry
   local_registration : @connector.CapabilityRegistration
+  local_module : @local_connector.LocalComputeModule
   native_registration : @connector.CapabilityRegistration
   implementations : @connector.CapabilityImplementations[
     (
@@ -136,6 +137,19 @@ pub fn configure_strategy_dispatch(
       },
     )
   }
+  let local_module = match
+    @local_connector.prepare_local_compute_module(
+      registry,
+      local_registration,
+      generated,
+      limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+      @strategy.graph_task_count(graph) - 1,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidConfiguration)
+  }
   let implementations = match
     @connector.install_capability_implementations(
       registry,
@@ -153,6 +167,7 @@ pub fn configure_strategy_dispatch(
     driver: @host_driver.open_dispatch_driver(run),
     registry,
     local_registration,
+    local_module,
     native_registration,
     implementations,
     generated: generated.copy(),

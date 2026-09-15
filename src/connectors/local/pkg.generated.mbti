@@ -14,9 +14,21 @@ pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @con
 
 pub fn prepare_local_compute_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?) -> Result[@connector_sdk.SynchronousCompute, @connector_sdk.FixedComputeIssue]
 
+pub fn prepare_local_compute_module(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int) -> Result[LocalComputeModule, @connector_sdk.FixedComputeIssue]
+
+pub fn prepare_local_module_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, (Int, Int64)?) -> Result[@connector_sdk.SynchronousCompute, LocalModuleIssue]
+
 // Errors
 
 // Types and methods
+type LocalComputeModule
+
+pub(all) enum LocalModuleIssue {
+  Candidate(@connector_sdk.FixedComputeIssue)
+  NotSelected
+  Capacity
+  Execution(@connector_sdk.FixedComputeIssue)
+}
 
 // Type aliases
 

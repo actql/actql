@@ -90,6 +90,14 @@ not import Local or interpret its payload. Returned data must be an engine-owned
 The installed preparation entry supplies this handle before dispatch is staged;
 the Host's synchronous execution operation does not interpret Local limits or
 construct a generated-sequence executor.
+Local's installed preparation entry is an opaque connector-owned configuration:
+it retains the exact capability registration, a bounded snapshot of sequence
+handles, and its execution/measurement settings. Candidate construction, selected
+payload binding and capacity preparation happen inside the Local connector.
+Configuration slot numbers are private lookup keys; they never replace the exact
+checked-owner comparison against the incoming fixed-input request. Installation
+does not run admission, and registry closure disables later preparation without
+revoking independently completed outputs.
 
 This is trusted connector-author wiring, not a callback accepted from a Program
 or an ordinary Host execution request. It cannot sandbox an arbitrary plugin in
