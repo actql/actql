@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
+import {finalizerCase} from './finalizer-fixture.mjs';
+
+test('finalizer failure without a retry handle retains its owner on direct and scoped Hosts', async () => {
+  for (const kind of ['error', 'undefined', 'null']) {
+    assert.deepEqual(await finalizerCase(kind), {
+      failed: true, firstPreserved: true, output: 1, pending: true,
+      cleanups: [false, false], cleanup: false, finished: 2, closed: 1,
+    });
+    assert.deepEqual(await finalizerCase(kind, true), {
+      failed: true, firstPreserved: true, pending: true, cleanup: false,
+      finished: 2, closed: 1, consumed: 0,
+    });
+  }
+});
 
 // Protocol test double, not semantic execution proof. Real checked/capture and
 // reservation enforcement are exercised by the standard Host conformance suite.

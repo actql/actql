@@ -41,10 +41,10 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
       unconfirmedRelease.add(releaseOwner);
     }
   };
-  const rememberFailure = error => {
+  const rememberFailure = (error, releaseOwner) => {
     if (!failed) failure = error;
     failed = true;
-    rememberCleanup(error);
+    rememberCleanup(error, releaseOwner);
   };
   const cleanupPending = () => {
     if (unconfirmedRelease.size) return true;
@@ -87,7 +87,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
   } finally {
     for (const entry of installed.values()) {
       try { await entry.finish?.(); }
-      catch (error) { rememberFailure(error); }
+      catch (error) { rememberFailure(error, entry); }
     }
     active.delete(setup);
   }

@@ -15,6 +15,7 @@ prepareRuntimeModules();
 run('node',['adapters/workers/build.mjs']);
 run('node',['--test',
   'adapters/workers/runtime.test.mjs',
+  'adapters/workers/finalizer.test.mjs',
   'adapters/workers/moon-runtime.test.mjs',
   'adapters/workers/artifact.test.mjs',
   'adapters/workers/phase-audit.test.mjs',

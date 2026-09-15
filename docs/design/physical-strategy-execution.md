@@ -82,11 +82,14 @@ coordination API is trusted runtime wiring, not a sandbox for arbitrary plugins.
 Failure presence is separate from its JavaScript payload: `undefined`, `null`
 and other non-Error rejections remain failures, with the first payload preserved.
 Result invalidation on close is separate from recovery confirmation. Release
-errors from result handles and core output closure enter the recovery set; a
+errors from finalizers, result handles and core output closure enter the recovery set; a
 release without an explicit recovery handle stays unconfirmed and is not retried
 implicitly. Cleanup attempts every independent handle, aggregates retry errors,
 and retains incomplete handles. Concurrent cleanup callers share the same attempt.
 Repeated close never repeats release work or revives result access.
+When a finalizer throws without a recovery handle, its installed owner remains
+unconfirmed even after result close. Neither cleanup nor the Workers invocation
+wrapper retries that finalizer or reports successful cleanup on its behalf.
 
 The captured-input serial runner is an incremental internal implementation.
 Local and DuckDB task completions share an opaque output boundary. DuckDB start
