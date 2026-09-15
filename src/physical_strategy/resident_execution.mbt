@@ -6,32 +6,36 @@ struct ResidentExecution {
   task : Int
   candidate : @connector.FixedComputeCandidate
   inputs : ResidentInputs
-  limits : @duckdb_compute.DuckDBComputeLimits
-  transport : @duckdb.TransportColumnLimits
+  prepare_output : (Int) -> Result[
+    (@execution.CompletedOutput) -> Result[@duckdb.ResidentImport, RunIssue],
+    RunIssue,
+  ]
   retention : Int64
   scratch : Int64
   mut pending : ResidentPendingOutput?
 }
 
 ///|
-pub fn prepare_resident_execution(
+pub fn[T] prepare_resident_execution(
   run : CapturedDAG,
   task : Int,
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   inputs : ResidentInputs,
-  limits : @duckdb_compute.DuckDBComputeLimits,
-  transport : @duckdb.TransportColumnLimits,
+  retention : Int64,
+  scratch : Int64,
+  prepare_output : (Int) -> Result[T, RunIssue],
+  bind_output : (T, @execution.CompletedOutput) -> Result[
+    @duckdb.ResidentImport,
+    RunIssue,
+  ],
 ) -> Result[ResidentExecution, RunIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(compute) &&
     resident_inputs_match(run, inputs, task, compute) else {
     return Err(ForeignCandidate)
   }
-  guard @duckdb_compute.duckdb_task_retention_capacity(limits)
-    is Some(retention) &&
-    @duckdb_compute.duckdb_task_scratch_capacity(limits, transport)
-    is Some(scratch) else {
+  if retention < 0L || scratch < 0L {
     return Err(Physical(InvalidLimits))
   }
   Ok({
@@ -39,8 +43,11 @@ pub fn prepare_resident_execution(
     task,
     candidate: @connector.prepared_compute_candidate(prepared),
     inputs,
-    limits,
-    transport,
+    prepare_output: fn(ordinal) {
+      prepare_output(ordinal).map(plan => {
+        fn(output) { bind_output(plan, output) }
+      })
+    },
     retention,
     scratch,
     pending: None,
@@ -103,10 +110,8 @@ fn activate_resident_execution(
     prepare_resident_output(
       run,
       resource.inputs.environment,
-      @duckdb.fixed_compute_query(resource.inputs.compute),
       resource.retention,
-      resource.limits,
-      resource.transport.max_bytes,
+      resource.prepare_output,
     ) {
     Err(issue) => Err(issue)
     Ok(pending) => {

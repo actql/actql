@@ -14,6 +14,14 @@ pub fn resident_import_available(value : ResidentImport) -> Bool {
 }
 
 ///|
+pub fn resident_import_matches_output(
+  value : ResidentImport,
+  output : @execution.CompletedOutput,
+) -> Bool {
+  @execution.producer_storage_matches_output(value.storage, output)
+}
+
+///|
 pub fn resident_import_drop_sql(
   value : ResidentImport,
   max_sql_bytes : Int,

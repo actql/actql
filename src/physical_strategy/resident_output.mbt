@@ -2,7 +2,10 @@
 priv struct ResidentPendingOutput {
   environment : ResidentEnvironment
   allocation : @resources.SharedAllocation
-  plan : @duckdb_compute.DuckDBResidentOutput
+  bind_output : (@execution.CompletedOutput) -> Result[
+    @duckdb.ResidentImport,
+    RunIssue,
+  ]
   mut committed : Bool
   mut cleanup_prepared : Bool
   retired_inputs : Array[ResidentTable]
@@ -12,23 +15,18 @@ priv struct ResidentPendingOutput {
 fn prepare_resident_output(
   run : CapturedDAG,
   env : ResidentEnvironment,
-  query : @duckdb.FixedQuery,
   bytes : Int64,
-  limits : @duckdb_compute.DuckDBComputeLimits,
-  max_sql_bytes : Int,
+  prepare : (Int) -> Result[
+    (@execution.CompletedOutput) -> Result[@duckdb.ResidentImport, RunIssue],
+    RunIssue,
+  ],
 ) -> Result[ResidentPendingOutput, RunIssue] {
   if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
     return Err(Physical(HoldingLimit))
   }
-  let plan = match
-    @duckdb_compute.prepare_duckdb_resident_output(
-      query,
-      env.next_table,
-      limits,
-      max_sql_bytes,
-    ) {
+  let bind_output = match prepare(env.next_table) {
     Ok(value) => value
-    Err(issue) => return Err(NativePreparation(issue))
+    Err(issue) => return Err(issue)
   }
   let allocation = match
     @resources.allocate_shared_capacity(env.capacity, bytes) {
@@ -40,7 +38,7 @@ fn prepare_resident_output(
   Ok({
     environment: env,
     allocation,
-    plan,
+    bind_output,
     committed: false,
     cleanup_prepared: false,
     retired_inputs: [],
@@ -115,17 +113,13 @@ pub fn[T] prepare_captured_cleanup(
 }
 
 ///|
-pub fn captured_resident_query(
+pub fn captured_resident_output_available(
   run : CapturedDAG,
   resource : TaskExecution,
-) -> @duckdb.ResidentQuery? {
-  if task_execution_matches(run, resource) {
-    resource.resident
-    .bind(value => value.pending)
-    .map(value => @duckdb_compute.duckdb_resident_output_query(value.plan))
-  } else {
-    None
-  }
+) -> Bool {
+  task_execution_matches(run, resource) &&
+  !resource.disposed &&
+  resource.resident.bind(value => value.pending) is Some(_)
 }
 
 ///|
@@ -176,11 +170,12 @@ fn publish_resident_output(
   guard claim_task_publication(run, task, publication) is Some(output) else {
     return Err(ForeignCandidate)
   }
-  let imported = match
-    @duckdb_compute.bind_duckdb_resident_output(pending.plan, output) {
+  let imported = match (pending.bind_output)(output) {
     Ok(value) => value
-    Err(Read(issue)) => return Err(Read(issue))
-    Err(Preparation(issue)) => return Err(NativePreparation(issue))
+    Err(issue) => return Err(issue)
+  }
+  if !@duckdb.resident_import_matches_output(imported, output) {
+    return Err(ForeignCandidate)
   }
   pending.environment.tables[task] = Some({
     environment: pending.environment,

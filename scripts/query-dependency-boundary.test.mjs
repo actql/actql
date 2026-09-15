@@ -211,6 +211,12 @@ test('resident output lifecycle does not own table names or materialization SQL'
   const state = source.match(/struct ResidentPendingOutput \{([\s\S]*?)\n\}/)?.[1];
   assert.ok(state);
   assert.doesNotMatch(state, /table_name|query :|max_sql_bytes|limits :/);
+  assert.doesNotMatch(source, /DuckDBResidentOutput|@duckdb_compute|ResidentQuery|FixedQuery/);
+  assert.match(source, /resident_import_matches_output\(imported, output\)/);
+  const preparation = readFileSync('src/physical_strategy/resident_execution.mbt', 'utf8');
+  assert.doesNotMatch(preparation, /DuckDBComputeLimits|TransportColumnLimits|@duckdb_compute|fixed_compute_query/);
+  const commonApi = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(commonApi, /pub fn captured_resident_query\b/);
   assert.doesNotMatch(source, /@duckdb\.(?:prepare_resident_query|prepare_resident_import|resident_import_drop_sql)\b/);
   const api = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
   assert.match(api, /^type DuckDBResidentOutput$/m);

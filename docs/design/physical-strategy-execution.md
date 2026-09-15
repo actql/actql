@@ -175,6 +175,15 @@ handle, attempt construction, cancellation and verified completion operations.
 Its handle binds the transport attempt to the common execution. Provisional
 shared output and borrower settlement belong to that common execution, not to
 the DuckDB attempt wrapper.
+Materialization plans and concrete configuration stay in the connector as well.
+The common resource preparation invokes an installed typed factory with its
+allocated ordinal, without interpreting SQL. It retains only the operation that
+binds a verified completion to the physical representation. That binding is
+checked against the exact completion supplied to the binding operation; equal contents or
+a separately restricted output alias are not sufficient. The engine checks this
+identity without exposing mutable storage or copying rows. Transport-facing
+query retrieval remains in the DuckDB driver, gated by the owning execution's
+availability, and final disposal drops the driver's provisional plan reference.
 Ledger and completion operations validate that exact execution against the DAG;
 a raw transport attempt cannot be used to recover or replace the binding. Once
 disposal and settlement both finish, the common execution detaches its hooks and

@@ -208,13 +208,7 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
     )
     is Err(ForeignOwner),
   )
-  assert_true(
-    @strategy.captured_resident_query(
-      run,
-      @duckdb_driver.captured_duckdb_execution(attempt),
-    )
-    is None,
-  )
+  assert_true(@duckdb_driver.captured_duckdb_query(run, attempt) is None)
   @strategy.close_task_execution(
     run,
     @duckdb_driver.captured_duckdb_execution(attempt),

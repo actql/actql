@@ -4,6 +4,7 @@ struct CapturedDuckDBTask {
   attempt : @compute.DuckDBComputeAttempt
   execution : @strategy.TaskExecution
   cleanup_sql_bytes : Int
+  output_plan : Ref[@compute.DuckDBResidentOutput?]
 }
 
 ///|
@@ -43,12 +44,45 @@ pub fn start_captured_duckdb_task(
     native_execution_bytes <= 9223372036854775807L - scratch else {
     return Err(Physical(InvalidLimits))
   }
+  let output_plan : Ref[@compute.DuckDBResidentOutput?] = Ref(None)
   let resident = match resident {
     None => None
     Some(inputs) =>
       match
         @strategy.prepare_resident_execution(
-          run, task, choice, prepared, inputs, limits, transport,
+          run,
+          task,
+          choice,
+          prepared,
+          inputs,
+          retention,
+          scratch,
+          fn(ordinal) {
+            guard @connector.fixed_compute_choice_payload(choice, prepared)
+              is Some(compute) else {
+              return Err(ForeignCandidate)
+            }
+            match
+              @compute.prepare_duckdb_resident_output(
+                @duckdb.fixed_compute_query(compute),
+                ordinal,
+                limits,
+                transport.max_bytes,
+              ) {
+              Err(issue) => Err(NativePreparation(issue))
+              Ok(plan) => {
+                output_plan.val = Some(plan)
+                Ok(plan)
+              }
+            }
+          },
+          fn(plan, output) {
+            match @compute.bind_duckdb_resident_output(plan, output) {
+              Ok(value) => Ok(value)
+              Err(Read(issue)) => Err(Read(issue))
+              Err(Preparation(issue)) => Err(NativePreparation(issue))
+            }
+          },
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)
@@ -82,7 +116,7 @@ pub fn start_captured_duckdb_task(
             cancel: fn() { @compute.abort_duckdb_compute_attempt(attempt) },
             dispose: fn() { @compute.close_duckdb_compute_attempt(attempt) },
             settled: fn() {  },
-            released: fn() {  },
+            released: fn() { output_plan.val = None },
             ready: fn() { Ok(()) },
             finish: fn() {
               match @compute.complete_duckdb_compute_attempt(attempt) {
@@ -104,8 +138,24 @@ pub fn start_captured_duckdb_task(
   match @strategy.start_captured_execution(run, task, bound, resident?) {
     Err(issue) => Err(issue)
     Ok((attempt, execution)) =>
-      Ok({ attempt, execution, cleanup_sql_bytes: transport.max_bytes, })
+      Ok({
+        attempt,
+        execution,
+        cleanup_sql_bytes: transport.max_bytes,
+        output_plan,
+      })
   }
+}
+
+///|
+pub fn captured_duckdb_query(
+  run : @strategy.CapturedDAG,
+  task : CapturedDuckDBTask,
+) -> @duckdb.ResidentQuery? {
+  if !@strategy.captured_resident_output_available(run, task.execution) {
+    return None
+  }
+  task.output_plan.val.map(plan => @compute.duckdb_resident_output_query(plan))
 }
 
 ///|

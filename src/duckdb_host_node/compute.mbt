@@ -115,11 +115,7 @@ pub fn compute_resident_sql(
   kind : Int,
 ) -> String raise NodeHostFailure {
   guard run.strategy is Some((graph, _, task_handle)) &&
-    @strategy.captured_resident_query(
-      graph,
-      @duckdb_driver.captured_duckdb_execution(task_handle),
-    )
-    is Some(query) else {
+    @duckdb_driver.captured_duckdb_query(graph, task_handle) is Some(query) else {
     raise InvalidCommand
   }
   match kind {

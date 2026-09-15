@@ -234,6 +234,8 @@ pub fn resident_import_drop_sql(ResidentImport, Int) -> Result[String, NativeQue
 
 pub fn resident_import_insert_sql(ResidentImport) -> String
 
+pub fn resident_import_matches_output(ResidentImport, @execution_relation.CompletedOutput) -> Bool
+
 pub fn resident_import_parameter(ResidentImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
 pub fn resident_import_receiver_sql(ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[String, NativeQueryIssue]

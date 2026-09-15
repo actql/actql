@@ -80,6 +80,15 @@ pub fn producer_storage_available(storage : ProducerStorage) -> Bool {
 }
 
 ///|
+/// Exact output supplied to storage preparation, not equality of its contents.
+pub fn producer_storage_matches_output(
+  storage : ProducerStorage,
+  output : CompletedOutput,
+) -> Bool {
+  physical_equal(storage.output, output) && producer_storage_available(storage)
+}
+
+///|
 fn same_completed_storage(
   left : CompletedTable,
   right : CompletedTable,

@@ -173,6 +173,8 @@ pub fn producer_storage_available(ProducerStorage) -> Bool
 
 pub fn producer_storage_cell(ProducerStorage, Int, Int) -> Value?
 
+pub fn producer_storage_matches_output(ProducerStorage, CompletedOutput) -> Bool
+
 pub fn producer_storage_projection(ProducerStorage, ProducerRead, Int) -> Result[Array[Int], ProducerReadIssue]
 
 pub fn producer_storage_row_count(ProducerStorage) -> Int
