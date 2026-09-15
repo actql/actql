@@ -353,9 +353,14 @@ construction depend directly on that immutable owner, not on the sequence of
 reconciliation and wiring wrappers used to prepare it. The original reconciled
 inputs remain available where their distinct correspondence checks are needed.
 Construction reads the existing operation-bound plan,
-including its exact row-operand arity and explicitly permitted fallback arity.
+including each operand's quantity, exact arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a
 bound. Graph entity measures are not substituted for missing row premises.
+Rows, nodes and edges have separate memoized states even at the same target.
+Existing construction and projection laws bridge these quantities explicitly;
+a rows-to-graph-to-rows path does not require caller-built intermediate proofs.
+Quantity state storage is allocated on demand and charged before allocation;
+lookup work is retained, and unsupported premises do not create a bound.
 An already sufficient unary input bound is transferred without constructing a
 redundant refinement; a stricter take or an expanding operation creates its own
 bound. Count Parameter interpretation is shared with subsequent application

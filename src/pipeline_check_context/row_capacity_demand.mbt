@@ -26,8 +26,7 @@ priv struct RowCapacityStage {
   bindings : @step_bounds.CountBindings?
   material : CapacityMaterial
   roots : Array[@pipeline.Target]
-  steps : Array[RowBoundState]
-  inputs : Array[RowBoundState]
+  quantities : Array[CapacityQuantityStates]
   known : Map[String, Bool]
   supplied : Map[String, Array[@wire.ProgramProofClaim]]
   added : Array[@wire.ProgramProofClaim]
@@ -35,10 +34,22 @@ priv struct RowCapacityStage {
 }
 
 ///|
+priv struct CapacityQuantityStates {
+  unit : @derivation.BoundUnit
+  steps : Array[RowBoundState]
+  inputs : Array[RowBoundState]
+}
+
+///|
 priv enum RowCapacityFrame {
-  Visit(Int, @pipeline.Target)
-  Forward(Int, @pipeline.Target, Int, @pipeline.Target)
-  Finish(Int, @step_bounds.BoundDerivation, Array[@pipeline.Target], Bool)
+  Visit(Int, @pipeline.Target, @derivation.BoundUnit)
+  Forward(Int, @pipeline.Target, Int, @pipeline.Target, @derivation.BoundUnit)
+  Finish(
+    Int,
+    @step_bounds.BoundDerivation,
+    Array[@step_bounds.BoundOperand],
+    Bool
+  )
 }
 
 ///|
@@ -54,7 +65,7 @@ priv struct RowCapacityResult {
 
 ///|
 // Demand follows Result targets and collection-envelope inputs through the existing
-// non-expanding transfer rules and row-bound operand plans. Unavailable premises
+// non-expanding transfer rules and quantity-typed operand plans. Unavailable premises
 // do not become Host claims. Cache entries retain exact producer handles.
 fn derive_row_capacity(
   prepared : @stage_results.PreparedLocalSource,
@@ -96,20 +107,50 @@ fn derive_row_capacity(
     }
     raise RowCapacityStop(InvalidGraph)
   }
-  fn state(stage : Int, target : @pipeline.Target) -> RowBoundState {
+  fn quantity(
+    stage : Int,
+    unit : @derivation.BoundUnit,
+  ) -> CapacityQuantityStates raise RowCapacityStop {
+    for states in stages[stage].quantities {
+      spend(1)
+      if states.unit == unit {
+        return states
+      }
+    }
+    let pipeline = stages[stage].pipeline
+    let steps = @pipeline.step_count(pipeline)
+    let inputs = @pipeline.input_count(pipeline)
+    spend(steps)
+    spend(inputs)
+    let states = {
+      unit,
+      steps: Array::make(steps, Unvisited),
+      inputs: Array::make(inputs, Unvisited),
+    }
+    stages[stage].quantities.push(states)
+    states
+  }
+  fn state(
+    stage : Int,
+    target : @pipeline.Target,
+    unit : @derivation.BoundUnit,
+  ) -> RowBoundState raise RowCapacityStop {
+    let states = quantity(stage, unit)
     match target {
-      @pipeline.Step(i) => stages[stage].steps[i]
-      @pipeline.Input(i) => stages[stage].inputs[i]
+      @pipeline.Step(i) => states.steps[i]
+      @pipeline.Input(i) => states.inputs[i]
     }
   }
   fn retain(
     stage : Int,
     target : @pipeline.Target,
+    unit : @derivation.BoundUnit,
     value : RowBoundState,
-  ) -> Unit {
+  ) -> Unit raise RowCapacityStop {
+    let states = quantity(stage, unit)
     match target {
-      @pipeline.Step(i) => stages[stage].steps[i] = value
-      @pipeline.Input(i) => stages[stage].inputs[i] = value
+      @pipeline.Step(i) => states.steps[i] = value
+      @pipeline.Input(i) => states.inputs[i] = value
     }
   }
   fn add_closure(
@@ -301,13 +342,18 @@ fn derive_row_capacity(
         bindings,
         material: materials[stage],
         roots,
-        steps: Array::makei(steps, i => {
-          match seeds[stage][i] {
-            Some(bound) => Found(bound)
-            None => Unvisited
-          }
-        }),
-        inputs: Array::make(inputs, Unvisited),
+        quantities: [
+          {
+            unit: @derivation.Rows,
+            steps: Array::makei(steps, i => {
+              match seeds[stage][i] {
+                Some(bound) => Found(bound)
+                None => Unvisited
+              }
+            }),
+            inputs: Array::make(inputs, Unvisited),
+          },
+        ],
         known,
         supplied,
         added: [],
@@ -321,17 +367,17 @@ fn derive_row_capacity(
     }
     for root_stage in 0..<stages.length() {
       for root in stages[root_stage].roots {
-        let stack = [Visit(root_stage, root)]
+        let stack = [Visit(root_stage, root, @derivation.Rows)]
         while !stack.is_empty() {
           spend(1)
           match stack.pop().unwrap() {
-            Visit(stage, target) => {
-              match state(stage, target) {
+            Visit(stage, target, unit) => {
+              match state(stage, target, unit) {
                 Found(_) | Missing => continue
                 Visiting => raise RowCapacityStop(InvalidGraph)
                 Unvisited => ()
               }
-              retain(stage, target, Visiting)
+              retain(stage, target, unit, Visiting)
               let pipeline = stages[stage].pipeline
               match target {
                 @pipeline.Input(index) =>
@@ -339,16 +385,19 @@ fn derive_row_capacity(
                     Some(producer) => {
                       let source = owner(@pipeline.producer_pipeline(producer))
                       let source_target = @pipeline.producer_target(producer)
-                      stack.push(Forward(stage, target, source, source_target))
-                      stack.push(Visit(source, source_target))
+                      stack.push(
+                        Forward(stage, target, source, source_target, unit),
+                      )
+                      stack.push(Visit(source, source_target, unit))
                     }
-                    None => retain(stage, target, Missing)
+                    None => retain(stage, target, unit, Missing)
                   }
                 @pipeline.Step(index) => {
                   let derivation = match
                     @step_bounds.prepare_bound_derivation(
                       pipeline,
                       index,
+                      unit~,
                       bindings=stages[stage].bindings,
                     ) {
                     Ok(value) => Some(value)
@@ -365,50 +414,40 @@ fn derive_row_capacity(
                   if derivation is Some(derivation) {
                     spend(derivation.input_count)
                     let targets = []
-                    let mut rows_only = true
                     for i in 0..<derivation.input_count {
                       let operand = @step_bounds.bound_derivation_input_at(
                         derivation,
                         derivation.input_count,
                         i,
                       ).unwrap()
-                      if operand.unit != @derivation.Rows {
-                        rows_only = false
-                      }
-                      targets.push(operand.target)
+                      targets.push(operand)
                     }
-                    if rows_only {
-                      stack.push(Finish(stage, derivation, targets, false))
-                      for i = targets.length() - 1; i >= 0; i = i - 1 {
-                        stack.push(Visit(stage, targets[i]))
-                      }
-                    } else {
-                      retain(stage, target, Missing)
+                    stack.push(Finish(stage, derivation, targets, false))
+                    for i = targets.length() - 1; i >= 0; i = i - 1 {
+                      stack.push(
+                        Visit(stage, targets[i].target, targets[i].unit),
+                      )
                     }
                   } else {
                     match
-                      @step_bounds.forwarded_bound_target(
-                        pipeline,
-                        index,
-                        @derivation.Rows,
-                      ) {
+                      @step_bounds.forwarded_bound_target(pipeline, index, unit) {
                       Some(input) => {
-                        stack.push(Forward(stage, target, stage, input))
-                        stack.push(Visit(stage, input))
+                        stack.push(Forward(stage, target, stage, input, unit))
+                        stack.push(Visit(stage, input, unit))
                       }
-                      None => retain(stage, target, Missing)
+                      None => retain(stage, target, unit, Missing)
                     }
                   }
                 }
               }
             }
-            Forward(stage, target, source, input) =>
-              retain(stage, target, state(source, input))
+            Forward(stage, target, source, input, unit) =>
+              retain(stage, target, unit, state(source, input, unit))
             Finish(stage, derivation, targets, fallback) => {
               spend(targets.length())
               let inputs = []
               for target in targets {
-                if state(stage, target) is Found(bound) {
+                if state(stage, target.target, target.unit) is Found(bound) {
                   inputs.push(@step_bounds.StepInput(bound))
                 }
               }
@@ -416,11 +455,16 @@ fn derive_row_capacity(
                 if !fallback && derivation.fallback_input_count is Some(n) {
                   spend(n)
                   let targets = Array::makei(n, i => {
-                    @step_bounds.bound_derivation_input_at(derivation, n, i).unwrap().target
+                    @step_bounds.bound_derivation_input_at(derivation, n, i).unwrap()
                   })
                   stack.push(Finish(stage, derivation, targets, true))
                 } else {
-                  retain(stage, @pipeline.Step(derivation.index), Missing)
+                  retain(
+                    stage,
+                    @pipeline.Step(derivation.index),
+                    derivation.unit,
+                    Missing,
+                  )
                 }
                 continue
               }
@@ -432,7 +476,12 @@ fn derive_row_capacity(
                   @wire.program_proof_witness(@step_bounds.checked_proof(bound)),
                 ) <=
                 ceiling {
-                retain(stage, @pipeline.Step(derivation.index), Found(bound))
+                retain(
+                  stage,
+                  @pipeline.Step(derivation.index),
+                  derivation.unit,
+                  Found(bound),
+                )
                 continue
               }
               let subject = @step_bounds.subject_ref(
@@ -469,7 +518,12 @@ fn derive_row_capacity(
                 }
               }
               if reused is Some(bound) {
-                retain(stage, @pipeline.Step(derivation.index), Found(bound))
+                retain(
+                  stage,
+                  @pipeline.Step(derivation.index),
+                  derivation.unit,
+                  Found(bound),
+                )
                 continue
               }
               let result = match
@@ -503,6 +557,7 @@ fn derive_row_capacity(
               retain(
                 stage,
                 @pipeline.Step(derivation.index),
+                derivation.unit,
                 Found(result.bound),
               )
             }
