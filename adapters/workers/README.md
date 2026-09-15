@@ -20,6 +20,11 @@ Compatibility date `2026-09-11` explicitly disables both `nodejs_compat` and
 the absence of Node globals. See the [Cloudflare compatibility flag rules](https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag).
 An outbound service denies every external request, including unknown URLs;
 the host process does not forward failed requests to the real network.
+Every runtime records outbound attempts and its common `dispose()` finalizer
+requires zero by default. Worker-side error handling cannot suppress this audit.
+Intentional network probes declare an exact `expectedOutbound` count; an observer
+callback alone does not exempt a test. The real-fetch injection tests deliberately
+bypass the phase spies and require finalization to reject the attempt.
 
 Local Compute composition is generated separately with the pinned MoonBit:
 
@@ -79,6 +84,15 @@ the same invocation. Tests cover cancellation before and after computation,
 cleanup failure and recovery, and interleaved independent Runs. Phase spies
 reject acquire/store/transfer/provision/execute calls during checking, lowering,
 and pure comparison; they observe rather than replace Core admission.
+Unimplemented acquisition/store ports are spy-unit-test coverage, not evidence
+of real Store conformance. Core code bypassing these spies is checked separately
+by the runtime-wide outbound audit. Node comparisons use the same seed-adapted
+runtime as workerd, not an unmodified Node compilation.
+
+The common coordinator checks cancellation before and after each preparation
+callback and immediately before dispatch. Cancellation stops remaining normal
+preparation and fresh attempts; stop/finalization and recovery still run. This
+does not preempt an already-running synchronous Local computation.
 
 The command also checks `scripts/fixtures/portable-stdlib.json`, an explicit
 inventory of the pinned standard-library production closure, including implicit
@@ -112,6 +126,10 @@ not permission for arbitrary Core FFI.
 The `workers` CI job records the revision and pinned tools and runs this command
 on Linux without credentials or deployment. A workflow definition is not evidence
 of a successful GitHub Actions run.
+The separate `connector-addition` CI job runs the committed-source, isolated
+addition proof with pinned MoonBit and DuckDB dependencies. It retains common-file
+digests and phase logs as artifacts, including available failure logs. This
+expensive integration check is deliberately not part of `check:docs`.
 
 Local workerd tests do not establish deployed CPU/memory limits, large-input
 capacity, cross-request persistence, Workers Wasm conformance or production

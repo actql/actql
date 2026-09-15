@@ -41,6 +41,9 @@ outputs while the Host owns them. Returning from consumption triggers output
 close and cleanup; a failed close does not erase recovery responsibility. A
 cleanup handle describes unresolved recovery, not a lease authorizing a future
 request. Cross-request handles, durable capture and Store are separate contracts.
+Cancellation is rechecked after every asynchronous preparation boundary and
+before dispatch. It prevents further normal preparation and unstarted work;
+cleanup remains mandatory. It does not imply synchronous-kernel preemption.
 Internal task success is not publication of a successful Program or durable Run.
 
 Application preparation and generated Host operations share one linked MoonBit
@@ -84,6 +87,10 @@ a violation. Tests deny external traffic at the runtime boundary; normal Host
 I/O outside Core is not prohibited by this rule. Dependency and I/O injection
 tests check the guards' detection behavior, not isolation of malicious plugin
 code inside the same process.
+Runtime finalization independently audits every outbound attempt, including
+attempts whose failure the Worker catches. Phase-port spies and this ambient-I/O
+audit cover different bypass paths; denying the network alone is not proof that
+no I/O was attempted.
 
 Node and workerd executions compare independent expected row content and content
 CIDs. Distinct invocations need not have identical attempt, access or dispatch

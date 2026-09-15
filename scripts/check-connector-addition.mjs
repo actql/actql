@@ -21,6 +21,15 @@ if (git(['status', '--porcelain', '--', ...sourcePaths])) {
   throw new Error('Commit product sources and assembly checks before the connector-addition check');
 }
 const isolated = mkdtempSync(join(tmpdir(), 'actql-connector-addition-'));
+const artifactDirectory = process.env.ACTQL_CONNECTOR_ADDITION_ARTIFACTS;
+if (artifactDirectory) process.on('exit', code => {
+  mkdirSync(artifactDirectory, {recursive:true});
+  for (const file of readdirSync(isolated)) {
+    if (/\.(?:log|json)$/.test(file)) cpSync(join(isolated,file),join(artifactDirectory,file));
+  }
+  writeFileSync(join(artifactDirectory,'execution.json'),JSON.stringify({sourceHead,exitCode:code,
+    platform:process.platform,arch:process.arch,node:process.version},null,2)+'\n');
+});
 const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
   path.startsWith('src/connectors_builtin/') || path.startsWith('src/connectors_builtin_node/') ||
   path.startsWith('src/query_integration/') || path.startsWith('src/connector_conformance/') ||
@@ -86,6 +95,8 @@ if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Er
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'), ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/')]);
 const before = snapshot();
+writeFileSync(join(isolated,'common-before.json'),JSON.stringify(
+  Object.fromEntries([...before].filter(([path]) => !allowed(path))),null,2)+'\n');
 run('baseline-check', ['check', '--target', 'all', '--deny-warn']);
 
 for (const path of ['src/connectors/reference_compute', 'src/query_integration', 'src/connector_conformance', 'src/duckdb_conformance', 'adapters/reference-compute-node']) {
@@ -109,6 +120,8 @@ for (const target of ['js', 'wasm', 'native']) {
 tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',
   'adapters/duckdb-node/test/standard-host.test.mjs'], process.execPath);
 const final = snapshot();
+writeFileSync(join(isolated,'common-after.json'),JSON.stringify(
+  Object.fromEntries([...final].filter(([path]) => !allowed(path))),null,2)+'\n');
 for (const path of new Set([...before.keys(), ...final.keys()])) {
   if (!allowed(path) && final.get(path) !== before.get(path)) throw new Error(`Verification changed common source: ${path}`);
 }
