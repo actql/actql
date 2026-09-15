@@ -107,6 +107,20 @@ test('asynchronous common start takes an owned preparation rather than transport
   assert.doesNotMatch(sdk, /(?:struct|enum) PreparedExecution\b/);
 });
 
+test('concrete DuckDB task construction and lifecycle stay in the connector driver', () => {
+  for (const file of readdirSync('src/physical_strategy')) {
+    if (!file.endsWith('.mbt') || file.endsWith('test.mbt')) continue;
+    const source = readFileSync(`src/physical_strategy/${file}`, 'utf8');
+    assert.doesNotMatch(source, /CapturedDuckDBTask|DuckDBComputeAttempt|(?:start|abort|close|complete)_duckdb_compute_attempt/, file);
+  }
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /CapturedDuckDBTask|DuckDBComputeAttempt|start_captured_duckdb_task|captured_duckdb_(?:attempt|execution)/);
+  assert.ok(!dependencies('physical_strategy').includes('connectors/duckdb/driver'));
+  const driver = readFileSync('src/connectors/duckdb/driver/execution.mbt', 'utf8');
+  assert.match(driver, /@strategy\.start_captured_execution\(/);
+  assert.doesNotMatch(driver, /reserve_attempt|retain_allocation|settle_reservation/);
+});
+
 test('prepared dispatch ownership has one common state machine and no connector payload', () => {
   assert.deepEqual(imports('physical_host'), [
     'physical_strategy', 'physical_resources', 'connector_sdk',

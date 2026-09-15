@@ -139,8 +139,11 @@ invoking that preparation under a common reservation. The returned transport
 handle remains implementation-typed; the DAG retains only common lifecycle
 operations. A failed reservation does not consume the preparation. A failure
 after admission stops further task dispatch without refunding attempt work.
-This task-local entry rejects selections requiring shared-resource admission;
-it is not an escape hatch around a selected reuse contract.
+Shared-resource selections additionally require an opaque `ResidentExecution`
+bound to the exact run, task, candidate and borrowers. The common start checks
+its required capacity and selected resource profile, allocates provisional
+output only after reservation, and claims borrowers only on successful start.
+Omitting or exchanging this admission cannot bypass a selected reuse contract.
 
 The SDK operation record is trusted connector-author wiring, not an ordinary
 Program or per-call Host option. It does not isolate malicious code in the same
@@ -160,12 +163,15 @@ execution reservations. Confirmed execution cleanup may release execution
 capacity while keeping completion scratch and provisional output accounted.
 
 The DAG stores only common execution handles, not a parallel array indexed by
-concrete backend attempts. The DuckDB bridge retains an opaque task handle that
-binds its transport attempt, common execution and provisional resident output.
+concrete backend attempts. `connectors/duckdb/driver` owns the opaque DuckDB task
+handle, attempt construction, cancellation and verified completion operations.
+Its handle binds the transport attempt to the common execution. Provisional
+shared output and borrower settlement belong to that common execution, not to
+the DuckDB attempt wrapper.
 Ledger and completion operations validate that exact execution against the DAG;
 a raw transport attempt cannot be used to recover or replace the binding. Once
 disposal and settlement both finish, the common execution detaches its hooks and
-the bridge drops provisional resident references. A retained closed handle cannot
+the execution drops provisional resident references. A retained closed handle cannot
 reactivate work or release another task's reservation.
 
 The trusted acquisition transport also forwards physical accounting through both

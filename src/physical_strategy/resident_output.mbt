@@ -52,12 +52,12 @@ fn prepare_resident_output(
 /// DROP executes inside this task's transaction after its reads have finished.
 pub fn captured_resident_cleanup_sql(
   run : CapturedDAG,
-  resource : CapturedDuckDBTask,
+  resource : TaskExecution,
 ) -> Result[Array[String], RunIssue] {
-  guard captured_duckdb_task_matches(run, resource) &&
+  guard task_execution_matches(run, resource) &&
     run.running is Some((task, active)) &&
-    physical_equal(active, resource.execution) &&
-    resource.resident_output.val is Some(pending) else {
+    physical_equal(active, resource) &&
+    resource.resident.bind(value => value.pending) is Some(pending) else {
     return Err(ForeignCandidate)
   }
   if pending.cleanup_prepared {
@@ -106,12 +106,12 @@ pub fn captured_resident_cleanup_sql(
 ///|
 pub fn captured_resident_query(
   run : CapturedDAG,
-  resource : CapturedDuckDBTask,
+  resource : TaskExecution,
 ) -> @duckdb.ResidentQuery? {
-  if captured_duckdb_task_matches(run, resource) {
-    resource.resident_output.val.map(value => {
-      @duckdb_compute.duckdb_resident_output_query(value.plan)
-    })
+  if task_execution_matches(run, resource) {
+    resource.resident
+    .bind(value => value.pending)
+    .map(value => @duckdb_compute.duckdb_resident_output_query(value.plan))
   } else {
     None
   }
@@ -122,19 +122,19 @@ pub fn captured_resident_query(
 /// Host receiving/guard validation must also succeed before task publication.
 pub fn confirm_captured_resident_output(
   run : CapturedDAG,
-  resource : CapturedDuckDBTask,
+  resource : TaskExecution,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
-  guard captured_duckdb_task_matches(run, resource) &&
+  guard task_execution_matches(run, resource) &&
     run.running is Some((_, active)) &&
-    physical_equal(active, resource.execution) &&
-    resource.resident_output.val is Some(output) else {
+    physical_equal(active, resource) &&
+    resource.resident.bind(value => value.pending) is Some(output) else {
     return Err(ForeignCandidate)
   }
-  if resource.execution.disposed ||
-    !resource.execution.execution_settled ||
+  if resource.disposed ||
+    !resource.execution_settled ||
     output.committed ||
     !resident_environment_available(run, output.environment) {
     return Err(NotReady)

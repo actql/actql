@@ -11,22 +11,20 @@ struct TaskExecution {
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
+  mut resident : ResidentExecution?
 }
 
 ///|
-/// Registered asynchronous execution without a shared-copy admission. A
-/// selected shared-resource realization must use its exact resource admission;
-/// it cannot evade that requirement through this task-local entry.
+/// Registered asynchronous execution. A selected shared-resource realization
+/// must supply its exact resource admission; omitting it cannot evade the
+/// selected reuse contract.
 pub fn[T] start_captured_execution(
   run : CapturedDAG,
   task : Int,
   prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
+  resident? : ResidentExecution,
 ) -> Result[(T, TaskExecution), RunIssue] {
-  if run.strategy.bind(revision => strategy_resident_profile(revision, task))
-    is Some(_) {
-    return Err(ForeignCandidate)
-  }
-  start_task_execution(run, task, prepared, 0L)
+  start_task_execution(run, task, prepared, resident)
 }
 
 ///|
@@ -38,7 +36,7 @@ fn[T] start_task_execution(
   run : CapturedDAG,
   task : Int,
   prepared : @connector.PreparedExecution[T, RunIssue, TaskPublication],
-  shared_execution : Int64,
+  resident : ResidentExecution?,
 ) -> Result[(T, TaskExecution), RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -70,6 +68,11 @@ fn[T] start_task_execution(
   let retention = capacity.retained_bytes
   let scratch = capacity.scratch_bytes
   let execution_capacity = capacity.execution_bytes
+  let shared_execution = match
+    resident_execution_capacity(run, task, candidate, capacity, resident) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   if transfer < 0L ||
     retention < 0L ||
     scratch < 0L ||
@@ -99,8 +102,20 @@ fn[T] start_task_execution(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  if resident is Some(resource) {
+    match activate_resident_execution(run, resource, retention) {
+      Ok(_) => ()
+      Err(issue) => {
+        @resources.settle_reservation(run.ledger, reservation) |> ignore
+        return Err(issue)
+      }
+    }
+  }
   match @connector.start_prepared_execution(prepared) {
     Err(issue) => {
+      if resident is Some(resource) {
+        abandon_resident_execution(resource)
+      }
       @resources.settle_reservation(run.ledger, reservation) |> ignore
       let failure = match issue {
         Candidate(issue) => RunIssue::Compute(issue)
@@ -110,6 +125,9 @@ fn[T] start_task_execution(
       Err(failure)
     }
     Ok((payload, hooks)) => {
+      if resident is Some(resource) {
+        resource.inputs.claimed = true
+      }
       let execution : TaskExecution = {
         task,
         reservation,
@@ -119,6 +137,7 @@ fn[T] start_task_execution(
         execution_settled: false,
         disposed: false,
         failed_holding: None,
+        resident,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -178,6 +197,9 @@ pub fn settle_task_execution(
     Err(issue) => Err(issue)
     Ok(_) => {
       execution.execution_settled = true
+      if execution.resident is Some(resource) {
+        return_resident_inputs(resource.inputs) |> ignore
+      }
       (execution.hooks.unwrap().settled)()
       if execution.disposed {
         release_task_execution(run, execution)
@@ -206,6 +228,13 @@ pub fn complete_task_execution(
     return Err(Physical(InvalidCharge))
   }
   let hooks = execution.hooks.unwrap()
+  if execution.resident is Some(resource) {
+    guard resource.pending is Some(pending) &&
+      pending.committed &&
+      resident_environment_available(run, pending.environment) else {
+      return Err(NotReady)
+    }
+  }
   match (hooks.ready)() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -222,14 +251,18 @@ pub fn complete_task_execution(
   match (hooks.finish)() {
     Ok(output) => {
       match
-        publish_task_completion(
-          run,
-          task,
-          output,
-          holding,
-          ForeignCandidate,
-          hooks.publish,
+        publish_task_completion(run, task, output, holding, ForeignCandidate, fn(
+          publication,
         ) {
+          if execution.resident is Some(resource) &&
+            resource.pending is Some(pending) {
+            match publish_resident_output(run, task, pending, publication) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+          }
+          (hooks.publish)(publication)
+        }) {
         Err(issue) => {
           execution.failed_holding = Some(holding)
           fail_captured_task(run, task, issue)
@@ -288,5 +321,6 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   run.executions[execution.task] = None
   let hooks = execution.hooks.unwrap()
   execution.hooks = None
+  execution.resident = None
   (hooks.released)()
 }

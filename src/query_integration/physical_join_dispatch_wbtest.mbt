@@ -207,12 +207,12 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       let env = env.unwrap()
       @strategy.charge_task_execution_transfer(
         run,
-        @strategy.captured_duckdb_execution(attempt),
+        @duckdb_driver.captured_duckdb_execution(attempt),
         17L,
       ).unwrap()
       @strategy.close_task_execution(
         run,
-        @strategy.captured_duckdb_execution(attempt),
+        @duckdb_driver.captured_duckdb_execution(attempt),
       )
       @strategy.close_resident_environment(run, env).unwrap()
       assert_true(
@@ -222,7 +222,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
       @strategy.settle_task_execution(
         run,
-        @strategy.captured_duckdb_execution(attempt),
+        @duckdb_driver.captured_duckdb_execution(attempt),
         false,
       ).unwrap()
       assert_eq(
@@ -232,7 +232,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_true(
         @strategy.complete_task_execution(
           run,
-          @strategy.captured_duckdb_execution(attempt),
+          @duckdb_driver.captured_duckdb_execution(attempt),
         )
         is Err(Stopped),
       )
@@ -240,7 +240,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_true(@strategy.captured_task_output(run, 2, Step(1)) is Some(_))
       @strategy.settle_task_execution(
         run,
-        @strategy.captured_duckdb_execution(attempt),
+        @duckdb_driver.captured_duckdb_execution(attempt),
         true,
       ).unwrap()
       @strategy.settle_resident_environment(run, env).unwrap()
@@ -257,7 +257,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       continue
     }
     let compute = @duckdb_compute.duckdb_compute_attempt_plan(
-      @strategy.captured_duckdb_attempt(attempt),
+      @duckdb_driver.captured_duckdb_attempt(attempt),
     )
     assert_eq(@duckdb.fixed_compute_import_count(compute), 2)
     for port in [0, 1] {
@@ -268,41 +268,44 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     }
     assert_eq(@duckdb.fixed_compute_join_output_ceiling(compute), Some(100))
     @duckdb_compute.begin_duckdb_compute_result(
-      @strategy.captured_duckdb_attempt(attempt),
+      @duckdb_driver.captured_duckdb_attempt(attempt),
       [("id", @duckdb.Float64)],
     ).unwrap()
     @duckdb_compute.receive_duckdb_compute_chunk(
-      @strategy.captured_duckdb_attempt(attempt),
+      @duckdb_driver.captured_duckdb_attempt(attempt),
       1,
       [input_cursor("[\"4008000000000000\"]")],
     ).unwrap()
     @duckdb_compute.finish_duckdb_compute_result(
-      @strategy.captured_duckdb_attempt(attempt),
+      @duckdb_driver.captured_duckdb_attempt(attempt),
     ).unwrap()
-    transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
+    transport.settled = Some(@duckdb_driver.captured_duckdb_attempt(attempt))
     assert_true(
       @strategy.complete_task_execution(
         run,
-        @strategy.captured_duckdb_execution(attempt),
+        @duckdb_driver.captured_duckdb_execution(attempt),
       )
       is Err(Physical(InvalidCharge)),
     )
     @strategy.charge_task_execution_transfer(
       run,
-      @strategy.captured_duckdb_execution(attempt),
+      @duckdb_driver.captured_duckdb_execution(attempt),
       17L,
     ).unwrap()
     @strategy.settle_task_execution(
       run,
-      @strategy.captured_duckdb_execution(attempt),
+      @duckdb_driver.captured_duckdb_execution(attempt),
       true,
     ).unwrap()
     if resident {
-      @strategy.confirm_captured_resident_output(run, attempt).unwrap()
+      @strategy.confirm_captured_resident_output(
+        run,
+        @duckdb_driver.captured_duckdb_execution(attempt),
+      ).unwrap()
     }
     @strategy.complete_task_execution(
       run,
-      @strategy.captured_duckdb_execution(attempt),
+      @duckdb_driver.captured_duckdb_execution(attempt),
     ).unwrap()
     @strategy.close_captured_task_output(run, 1)
     @strategy.close_captured_task_output(run, 2)

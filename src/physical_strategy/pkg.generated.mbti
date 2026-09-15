@@ -40,13 +40,9 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
-pub fn captured_duckdb_attempt(CapturedDuckDBTask) -> @compute.DuckDBComputeAttempt
+pub fn captured_resident_cleanup_sql(CapturedDAG, TaskExecution) -> Result[Array[String], RunIssue]
 
-pub fn captured_duckdb_execution(CapturedDuckDBTask) -> TaskExecution
-
-pub fn captured_resident_cleanup_sql(CapturedDAG, CapturedDuckDBTask) -> Result[Array[String], RunIssue]
-
-pub fn captured_resident_query(CapturedDAG, CapturedDuckDBTask) -> @duckdb_adapter.ResidentQuery?
+pub fn captured_resident_query(CapturedDAG, TaskExecution) -> @duckdb_adapter.ResidentQuery?
 
 pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceStatistics?
 
@@ -76,7 +72,7 @@ pub fn complete_task_execution(CapturedDAG, TaskExecution) -> Result[Unit, RunIs
 
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 
-pub fn confirm_captured_resident_output(CapturedDAG, CapturedDuckDBTask) -> Result[Unit, RunIssue]
+pub fn confirm_captured_resident_output(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
 
 pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> Result[Unit, RunIssue]
 
@@ -105,6 +101,8 @@ pub fn next_captured_task(CapturedDAG) -> Int?
 pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
+
+pub fn prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], ResidentInputs, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Result[ResidentExecution, RunIssue]
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @duckdb_adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
 
@@ -148,9 +146,7 @@ pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[U
 
 pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn start_captured_duckdb_task(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : ResidentInputs) -> Result[CapturedDuckDBTask, RunIssue]
-
-pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication]) -> Result[(T, TaskExecution), RunIssue]
+pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -180,8 +176,6 @@ pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsag
 
 // Types and methods
 type CapturedDAG
-
-type CapturedDuckDBTask
 
 type CheckedDAG
 
@@ -218,6 +212,8 @@ pub(all) struct PhysicalEnvelope {
 } derive(Eq, @debug.Debug)
 
 type ResidentEnvironment
+
+type ResidentExecution
 
 pub(all) struct ResidentImportEstimate {
   milliseconds : Int64?

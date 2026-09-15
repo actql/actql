@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/duckdb/driver"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/compute",
+  "actql/actql/duckdb_adapter",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn captured_duckdb_attempt(CapturedDuckDBTask) -> @compute.DuckDBComputeAttempt
+
+pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskExecution
+
+pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : @physical_strategy.ResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
+
+// Errors
+
+// Types and methods
+type CapturedDuckDBTask
+
+// Type aliases
+
+// Traits

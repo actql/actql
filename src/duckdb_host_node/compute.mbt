@@ -2,7 +2,7 @@
 struct ComputeNodeRun {
   attempt : @duckdb_compute.DuckDBComputeAttempt
   transport : @duckdb.TransportColumnLimits
-  strategy : (@strategy.CapturedDAG, Int, @strategy.CapturedDuckDBTask)?
+  strategy : (@strategy.CapturedDAG, Int, @duckdb_driver.CapturedDuckDBTask)?
   mut closed : Bool
 }
 
@@ -93,7 +93,7 @@ fn open_strategy_compute_host(
     ) {
     Ok(task_handle) =>
       {
-        attempt: @strategy.captured_duckdb_attempt(task_handle),
+        attempt: @duckdb_driver.captured_duckdb_attempt(task_handle),
         transport: @host.configured_strategy_compute_transport(setup),
         strategy: Some(
           (
@@ -115,7 +115,11 @@ pub fn compute_resident_sql(
   kind : Int,
 ) -> String raise NodeHostFailure {
   guard run.strategy is Some((graph, _, task_handle)) &&
-    @strategy.captured_resident_query(graph, task_handle) is Some(query) else {
+    @strategy.captured_resident_query(
+      graph,
+      @duckdb_driver.captured_duckdb_execution(task_handle),
+    )
+    is Some(query) else {
     raise InvalidCommand
   }
   match kind {
@@ -134,7 +138,11 @@ pub fn compute_resident_commit(
   guard run.strategy is Some((graph, _, task_handle)) else {
     raise InvalidCommand
   }
-  match @strategy.confirm_captured_resident_output(graph, task_handle) {
+  match
+    @strategy.confirm_captured_resident_output(
+      graph,
+      @duckdb_driver.captured_duckdb_execution(task_handle),
+    ) {
     Ok(_) => ()
     Err(issue) => raise Strategy(issue)
   }
@@ -148,7 +156,11 @@ pub fn compute_resident_cleanup_sql(
   guard run.strategy is Some((graph, _, task_handle)) else {
     raise InvalidCommand
   }
-  match @strategy.captured_resident_cleanup_sql(graph, task_handle) {
+  match
+    @strategy.captured_resident_cleanup_sql(
+      graph,
+      @duckdb_driver.captured_duckdb_execution(task_handle),
+    ) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
@@ -164,7 +176,7 @@ pub fn compute_host_physical_charge(
     match
       @strategy.charge_task_execution_transfer(
         graph,
-        @strategy.captured_duckdb_execution(task_handle),
+        @duckdb_driver.captured_duckdb_execution(task_handle),
         bytes,
       ) {
       Ok(_) => ()
@@ -183,7 +195,7 @@ pub fn compute_host_physical_settle(
     match
       @strategy.settle_task_execution(
         graph,
-        @strategy.captured_duckdb_execution(task_handle),
+        @duckdb_driver.captured_duckdb_execution(task_handle),
         confirmed,
       ) {
       Ok(_) => ()
@@ -341,7 +353,7 @@ pub fn compute_host_complete(
     match
       @strategy.complete_task_execution(
         graph,
-        @strategy.captured_duckdb_execution(task_handle),
+        @duckdb_driver.captured_duckdb_execution(task_handle),
       ) {
       Err(issue) => raise Strategy(issue)
       Ok(_) => ()
@@ -392,7 +404,7 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
   if run.strategy is Some((graph, _, task_handle)) {
     @strategy.close_task_execution(
       graph,
-      @strategy.captured_duckdb_execution(task_handle),
+      @duckdb_driver.captured_duckdb_execution(task_handle),
     )
   }
 }

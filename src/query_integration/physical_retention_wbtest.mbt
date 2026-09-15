@@ -58,11 +58,11 @@ test "closed capture stays held until an in-flight native consumer confirms clea
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
   @strategy.close_task_execution(
     run,
-    @strategy.captured_duckdb_execution(attempt),
+    @duckdb_driver.captured_duckdb_execution(attempt),
   )
   @strategy.settle_task_execution(
     run,
-    @strategy.captured_duckdb_execution(attempt),
+    @duckdb_driver.captured_duckdb_execution(attempt),
     true,
   ).unwrap()
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
@@ -208,11 +208,11 @@ test "cancelled native child retains its closed parent until cleanup confirmatio
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 15520000L)
   @strategy.close_task_execution(
     run,
-    @strategy.captured_duckdb_execution(attempt),
+    @duckdb_driver.captured_duckdb_execution(attempt),
   )
   @strategy.settle_task_execution(
     run,
-    @strategy.captured_duckdb_execution(attempt),
+    @duckdb_driver.captured_duckdb_execution(attempt),
     true,
   ).unwrap()
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 7760000L)
