@@ -160,6 +160,26 @@ change a selected runtime contract. Removing unnecessary computation may reduce
 charged work; it does not waive work actually performed or change the meaning
 of a meter.
 
+Compilation controls are grouped by the things measured, not by preparation
+phases:
+
+| Control | Scope |
+| --- | --- |
+| Work | The construction's aggregate logical work; subordinate traversals are additionally bounded by remaining work |
+| Artifacts | The existing aggregate byte/node accounting for generated and admitted Program artifacts; depth is a traversal maximum |
+| Structure | Stage, step, Result, Parameter, Binding, slot, reference, requirement and token counts |
+| Traversal | Structural nodes/depth, text and individual strings, names, pointer units and comparison pairs |
+| Values | Value-admission nodes, depth and text; distinct existing source-value and Local-input counters retain their scopes |
+| Policy | Policy bytes, nodes and depth, independent of the selected policy's runtime ceilings |
+| Patterns | Constructed pattern bytes/nodes and pattern nesting depth |
+
+The compiler maps these controls to each checker that consumes them. Selecting
+the same ceiling for two existing meters does not merge those meters into a
+single total, recharge shared work, or exempt either traversal. Per-pass caps
+remain separate from the aggregate work and artifact budget. Input-document
+retention measurements are also separate from these generated/preparation
+quantities. No internal phase configuration is a runtime capacity selection.
+
 Diagnostics retain a stable classification and typed details, applicable target,
 origin domain, path, source span, decoded-expression range and related causes
 or locations. Origin domains distinguish Program, environment, supplied values,

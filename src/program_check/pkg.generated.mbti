@@ -71,7 +71,7 @@ pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
 pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, capacity_inputs? : @pipeline_check_context.ProgramCapacityInputs?) -> CheckedProgram raise LocalConstructionFailure
 
-pub fn check_with_evidence(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckedProgram raise LocalConstructionFailure
+pub fn check_with_evidence(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, CompileLimits, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckedProgram raise LocalConstructionFailure
 
 pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
 
@@ -617,6 +617,62 @@ pub struct BuiltResultInterface {
 }
 
 type CheckedProgram
+
+pub(all) struct CompileArtifactLimits {
+  bytes : Int
+  nodes : Int
+  depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompileLimits {
+  work : Int
+  artifacts : CompileArtifactLimits
+  structure : CompileStructureLimits
+  traversal : CompileTraversalLimits
+  values : CompileValueLimits
+  policy : CompilePolicyLimits
+  patterns : CompilePatternLimits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompilePatternLimits {
+  bytes : Int
+  nodes : Int
+  depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompilePolicyLimits {
+  bytes : Int
+  nodes : Int
+  depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompileStructureLimits {
+  stages : Int
+  steps : Int
+  results : Int
+  parameters : Int
+  bindings : Int
+  slots : Int
+  references : Int
+  requirements : Int
+  tokens : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompileTraversalLimits {
+  nodes : Int
+  depth : Int
+  text_bytes : Int
+  string_bytes : Int
+  name_bytes : Int
+  pointer_units : Int
+  comparison_pairs : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CompileValueLimits {
+  nodes : Int
+  depth : Int
+  text_bytes : Int
+} derive(Eq, @debug.Debug)
 
 type ComponentsLimit
 

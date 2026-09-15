@@ -176,3 +176,25 @@ fn public_seed_claim() -> @wire.ProgramProofClaim {
 }
 
 ///|
+test "compilation work does not select a different runtime capacity or identity" {
+  let first = public_program_fixture()
+  let second = public_program_fixture(max_work=20000000)
+  for stage in 0..<2 {
+    assert_eq(
+      @program_check.unit_definition_cid(first, stage),
+      @program_check.unit_definition_cid(second, stage),
+    )
+    let a = @program_check.unit_publication_at(first, stage, 0).unwrap()
+    let b = @program_check.unit_publication_at(second, stage, 0).unwrap()
+    assert_eq(
+      @wire.limit_cid(@program_check.publication_rows(a)),
+      @wire.limit_cid(@program_check.publication_rows(b)),
+    )
+    assert_eq(
+      @wire.limit_cid(@program_check.publication_bytes(a)),
+      @wire.limit_cid(@program_check.publication_bytes(b)),
+    )
+  }
+}
+
+///|

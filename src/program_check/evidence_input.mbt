@@ -10,20 +10,16 @@ pub fn check_with_evidence(
   evidence : Array[@context.StageCapacityInput],
   expression_profiles : @context.ExpressionProfiles,
   operation_profiles : @context.PureOperationProfiles,
-  limits : SourceLimits,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
+  limits : CompileLimits,
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+  if !compile_limits_valid(limits) {
     raise InvalidLimits
   }
   let inputs = match
-    @context.bind_capacity_inputs(program, evidence, max_work) {
+    @context.bind_capacity_inputs(program, evidence, limits.work) {
     Ok(value) => value
     Err(issue) => raise CapacityInputs(issue)
   }
@@ -34,11 +30,11 @@ pub fn check_with_evidence(
     [],
     expression_profiles,
     operation_profiles,
-    limits,
-    max_work=max_work - @context.capacity_inputs_work(inputs),
-    max_bytes~,
-    max_nodes~,
-    max_depth~,
+    compile_source_limits(limits),
+    max_work=limits.work - @context.capacity_inputs_work(inputs),
+    max_bytes=limits.artifacts.bytes,
+    max_nodes=limits.artifacts.nodes,
+    max_depth=limits.artifacts.depth,
     numeric_profile~,
     calendar~,
     text_rank~,

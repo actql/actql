@@ -89,10 +89,6 @@ pub fn prepare_application(
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     source_limits(10),
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
   )
   if @program_check.unit_count(checked) != stages {
     fail("example requires one unit per stage")
