@@ -156,12 +156,6 @@ test "independent numeric and Local bundles use the same installed Host without 
       10000,
     ).unwrap()
     preparations.clear()
-    @strategy.configure_strategy_search(run, {
-      max_offers: 5,
-      max_strategies: 4,
-      max_work: 1000,
-      max_revisions: 1,
-    }).unwrap()
     let proposals = @connector.capability_implementation_registrations(
         entries, 2,
       )
@@ -176,27 +170,25 @@ test "independent numeric and Local bundles use the same installed Host without 
       registry, proposals, 2,
     ).unwrap()
     proposals.clear()
-    let offers = []
-    for task in [1, 2, 3] {
-      let proposed = @host_driver.collect_installed_task_offers(
-        driver,
-        offer_installation,
-        (),
-        task,
-        { rows: None, wire_bytes: None, pairs: None, },
-        2,
-        5 - offers.length(),
-      ).unwrap()
-      for offer in proposed {
-        offers.push(offer)
-      }
-    }
-    // The numeric implementation supports A and B's greater-than predicate;
-    // C's less-than shape is rejected by the connector before comparison.
-    assert_eq(offers.length(), 5)
-    assert_true(
-      @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
+    let policy = @host_driver.open_adaptive_dispatch(
+      driver,
+      registry,
+      offer_installation,
+      [Some(1000), Some(1000), Some(1000)],
+      { max_offers: 5, max_strategies: 4, max_work: 1000, max_revisions: 3, },
+      0,
+    ).unwrap()
+    @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+    let after_selection = @resources.ledger_usage(
+      @strategy.captured_dag_ledger(run),
     )
+    @host_driver.refresh_adaptive_dispatch(policy).unwrap()
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+      after_selection,
+    )
+    // The same adaptive Host selects numeric A/B and Local C from pure
+    // registered proposals, then refreshes only after real state progress.
     let revision = @strategy.captured_dag_strategy(run).unwrap()
     for (task, index) in [(1, 0), (2, 0), (3, 1)] {
       assert_true(
@@ -215,7 +207,7 @@ test "independent numeric and Local bundles use the same installed Host without 
       ).unwrap()
       dispatched += 1
       match (implementation.1)(host, task) {
-        Ok(_) => ()
+        Ok(_) => @host_driver.refresh_adaptive_dispatch(policy).unwrap()
         Err(_) => {
           @host_driver.stop_dispatch_driver(driver)
           break

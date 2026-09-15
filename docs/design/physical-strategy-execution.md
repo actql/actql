@@ -722,6 +722,16 @@ owns the fresh/resident alternatives and the resident profile association, which
 may be installed only before strategy history exists and cannot be replaced after
 installation. No estimate module grants execution, creates a resource, supplies
 a future completed input or relaxes dispatch admission.
+
+`physical_host.AdaptiveDispatch` owns cardinality propagation, the immutable
+proposal installation and bounded refresh history independently of connector
+configuration. It obtains initial statistics from the exact captured DAG and
+updates them only from completed task outputs; callers cannot replace these
+observations with unrelated values. The output-fraction estimates are copied at
+installation. A successful refresh in an unchanged execution state is a no-op;
+a failed refresh stays failed, stops the associated driver and never reopens the
+previous selection. Completed results and cleanup obligations are retained. Both
+standard composition and independent Compute bundles use this common policy.
 Local reservation envelopes are derived from selected execution limits; native
 envelopes are explicit Host capacities and still checked against actual start
 requirements. Neither is reduced by the forecast. Dispatch refreshes before

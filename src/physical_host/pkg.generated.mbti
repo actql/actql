@@ -3,6 +3,7 @@ package "actql/actql/physical_host"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
 
@@ -22,6 +23,8 @@ pub fn dispatch_ticket_revision(DispatchTicket) -> @physical_strategy.StrategyRe
 pub fn dispatch_ticket_task(DispatchTicket) -> Int
 
 pub fn dispatch_work_registration(DispatchWork) -> @connector_sdk.CapabilityRegistration
+
+pub fn[E] open_adaptive_dispatch(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[(Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[AdaptiveDispatch[E], AdaptiveEstimateIssue[E]]
 
 pub fn[T] open_dispatch_channel(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration) -> Result[DispatchChannel[T], DispatchIssue]
 
@@ -43,6 +46,8 @@ pub fn prepared_task_registration(PreparedTaskDispatch) -> @connector_sdk.Capabi
 
 pub fn prepared_task_revision(PreparedTaskDispatch) -> @physical_strategy.StrategyRevision
 
+pub fn[E] refresh_adaptive_dispatch(AdaptiveDispatch[E]) -> Result[Unit, AdaptiveEstimateIssue[E]]
+
 pub fn[T] stage_dispatch_work(DispatchChannel[T], Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest, T) -> Result[DispatchWork, DispatchIssue]
 
 pub fn stop_dispatch_driver(DispatchDriver) -> Unit
@@ -54,6 +59,18 @@ pub fn[C, E, T] take_installed_task(DispatchHost[C, E], PreparedTaskDispatch, Di
 // Errors
 
 // Types and methods
+type AdaptiveDispatch[E]
+
+pub(all) enum AdaptiveEstimateIssue[E] {
+  InvalidConfiguration
+  NoStrategy
+  ForeignSelection
+  EstimateOverflow
+  Resources(@physical_resources.LedgerIssue)
+  Search(@physical_strategy.SearchIssue)
+  Implementation(E)
+}
+
 type DispatchChannel[T]
 
 type DispatchDriver

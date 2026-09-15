@@ -25,7 +25,12 @@ test('linear cost schedules are neutral and implementations own their work inven
   const state = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(state, /mut resident\s*:\s*ResidentDispatch/);
   assert.doesNotMatch(composition, /profiles\s*:\s*Array\[InstalledDispatchEstimateProfile\]/);
-  assert.match(composition, /output_rows_per_mille\s*:\s*Array\[Int\?\]/);
+  const adaptive = readFileSync('src/physical_host/adaptive_dispatch.mbt', 'utf8');
+  assert.match(adaptive, /output_rows_per_mille\s*:\s*Array\[Int\?\]/);
+  assert.doesNotMatch(adaptive, /DuckDB|duckdb|LocalDispatch|local_driver|native_module/);
+  assert.match(composition, /@host_driver\.open_adaptive_dispatch\(/);
+  assert.match(composition, /@host_driver\.refresh_adaptive_dispatch\(/);
+  assert.doesNotMatch(composition, /fn rebuild_dispatch_estimates|mut seen/);
 });
 
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {
@@ -219,6 +224,7 @@ test('common cleanup selects allocations but does not compile physical removal S
 
 test('prepared dispatch ownership has one common state machine and no connector payload', () => {
   assert.deepEqual(imports('physical_host'), [
+    'execution_relation', // completed row counts, never provider payloads
     'physical_strategy', 'physical_resources', 'connector_sdk',
     'lowering_relation', 'pipeline_typing',
   ]);
@@ -332,8 +338,8 @@ test('installed offer collection does not select providers by work inventory', (
   assert.doesNotMatch(common, /DuckDB|duckdb|Local|resident|work_slots/);
   assert.match(common, /capability_implementation\(installed, registration\)/);
   assert.match(common, /@strategy\.task_offer_matches\(/);
-  const policy = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
-  const rebuild = policy.match(/fn rebuild_dispatch_estimates\([\s\S]*?\n\}/)?.[0];
+  const policy = readFileSync('src/physical_host/adaptive_dispatch.mbt', 'utf8');
+  const rebuild = policy.match(/fn\[E\] rebuild_adaptive_dispatch\([\s\S]*?\n\}/)?.[0];
   assert.ok(rebuild);
   assert.match(rebuild, /collect_installed_task_offers\(/);
   assert.doesNotMatch(rebuild, /native_registration|local_registration|slots ==|generated_sequence_capacity\(/);

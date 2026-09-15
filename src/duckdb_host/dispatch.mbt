@@ -25,7 +25,7 @@ struct StrategyHostDispatch {
   native_module : @duckdb_driver.DuckDBDispatchModule
   installation : @host_driver.DispatchHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
-  mut estimates : DispatchEstimates?
+  mut estimates : @host_driver.AdaptiveDispatch[DispatchIssue]?
 }
 
 ///|
@@ -163,9 +163,6 @@ pub fn prepare_next_dispatch(
   match @host_driver.check_dispatch_idle(host.driver) {
     Err(issue) => return Err(dispatch_driver_issue(issue))
     Ok(_) => ()
-  }
-  guard @strategy.next_captured_task(host.run) is Some(_) else {
-    return Ok(None)
   }
   match refresh_dispatch_estimates(host) {
     Err(issue) => return Err(issue)
