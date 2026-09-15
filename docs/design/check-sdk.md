@@ -71,6 +71,25 @@ selected runtime capacity contracts are not invented. Failure to finish a
 derivation within the compilation budget is a budget failure, not absence of a
 key, proof or external fact.
 
+The input-responsibility split for the supported formal-check domain is:
+
+| Rule family | Compiler-owned derivation | External premise | Explicit selection / remaining boundary |
+| --- | --- | --- | --- |
+| Stage topology and Parameters | Named imports, producer occurrences, effective bindings and typed uses | Program and supplied values; available input declarations | No caller-provided visit order; unavailable values may require a request |
+| Local input and SourceView interpretation | Reconcile declarations, select applicable type/request contracts and retain source policy dependencies | Admitted environment, Local snapshot assertions, Catalog bodies and source contracts | Selected policy remains authoritative; checking does not acquire data |
+| Relation keys and logical order | Existing exact-copy/projection/key-transfer rules and operation-specific order completion | Declared or otherwise admitted keys/order facts with their required validations | Runtime uniqueness is not statically asserted; unsupported inference is not added |
+| Values and generated sources | Bound-cell admission, known row counts, typed-wire/recursive measurements and their existing proof forms | Parameter values and the declared value contracts | Host ceilings and selected numeric/calendar contracts are not inferred from compile limits |
+| Capacity composition | Apply existing transfer/count laws to the actual input occurrences; collect applicable candidates and select prescribed limits | Applicable admitted external bounds and their owners when needed | Preserve author guards and selected capacity policy; retain atomic enforcement |
+| Numeric, Calendar and lexical interpretation | Bind the selected profile and retain operation/slot identities and dependencies | Admitted profile data and contracts | A missing explicit profile is not permission to choose another meaning |
+| Aggregate, nest, window and search limits | Existing producer-bound candidate selection and quantity-specific obligations | Required input bounds and selected ceilings | Rows, items, memberships and search work remain distinct; not all are output-row bounds |
+| Policy, publication and incoming requirements | Existing dependency transfer, Result/import interfaces, Unit identity and runtime-check linkage | Admitted policies, source assertions and applicable evidence | No completed observation or authorization is fabricated; effect/receipt paths outside the supported domain remain unsupported |
+
+This table assigns responsibility, not conformance by operation name. Carrier
+alternatives and operation-specific prerequisites still govern each rule. In
+particular, the existence of a wire grammar for a path does not make that path
+supported by the formal checker. An implementation gap must remain a diagnostic,
+not a request for the caller to manufacture a successful checker result.
+
 ## Owned information and preparation
 
 Operation consumers depend on the owned pipelines, effective bindings, selected
