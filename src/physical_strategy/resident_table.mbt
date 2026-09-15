@@ -20,14 +20,17 @@ struct ResidentRead {
 }
 
 ///|
-pub fn prepare_resident_table(
+pub fn prepare_resident_storage(
   run : CapturedDAG,
   env : ResidentEnvironment,
   producer : Int,
   bytes : Int64,
   max_entries : Int,
   max_name_bytes : Int,
-  max_sql_bytes : Int,
+  prepare : (@execution.ProducerStorage, Int) -> Result[
+    @duckdb.ResidentImport,
+    RunIssue,
+  ],
 ) -> Result[ResidentTable, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -78,15 +81,19 @@ pub fn prepare_resident_table(
     Err(issue) => return Err(Physical(issue))
     Ok(_) => ()
   }
-  let imported = match
-    @duckdb.prepare_resident_import(
-      storage,
-      "resident_" + env.next_table.to_string(),
-      max_entries,
-      max_sql_bytes,
-    ) {
+  let ordinal = env.next_table
+  let imported = match prepare(storage, ordinal) {
     Ok(value) => value
-    Err(issue) => return Err(NativePreparation(issue))
+    Err(issue) => return Err(issue)
+  }
+  // Trusted preparation cannot substitute equal-content storage or publish an
+  // allocation after changing the selected environment's preparation state.
+  if run.stopped ||
+    !resident_environment_available(run, env) ||
+    env.next_table != ordinal ||
+    env.tables[producer] is Some(_) ||
+    !@duckdb.resident_import_matches_storage(imported, storage) {
+    return Err(ForeignCandidate)
   }
   let allocation = match
     @resources.allocate_shared_capacity(env.capacity, bytes) {

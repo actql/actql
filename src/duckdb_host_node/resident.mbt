@@ -93,7 +93,7 @@ pub fn resident_table_prepare(
   sql : Int,
 ) -> @strategy.ResidentTable raise NodeHostFailure {
   match
-    @strategy.prepare_resident_table(
+    @duckdb_driver.prepare_resident_table(
       run, env, producer, bytes, entries, names, sql,
     ) {
     Ok(value) => value

@@ -230,6 +230,11 @@ test('resident output lifecycle does not own table names or materialization SQL'
 
 test('resident borrowers do not store or export concrete view SQL', () => {
   const source = readFileSync('src/physical_strategy/resident_table.mbt', 'utf8');
+  assert.doesNotMatch(source, /@duckdb\.prepare_resident_import\(|"resident_"/);
+  assert.match(source, /resident_import_matches_storage\(imported, storage\)/);
+  const importDriver = readFileSync('src/connectors/duckdb/driver/resident_import.mbt', 'utf8');
+  assert.match(importDriver, /@strategy\.prepare_resident_storage\(/);
+  assert.match(importDriver, /@duckdb\.prepare_resident_import\(/);
   const state = source.match(/struct ResidentRead \{([\s\S]*?)\n\}/)?.[1];
   assert.ok(state);
   assert.doesNotMatch(state, /view_sql|String/);

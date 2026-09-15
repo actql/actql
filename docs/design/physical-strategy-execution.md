@@ -238,6 +238,14 @@ resource settlement requires all suballocations to have been released. Read-only
 usage snapshots expose capacities and lifecycle facts, not mutable counters or
 the owner's reservation. Connector-specific objects remain outside this ledger.
 
+Resident input preparation selects the exact producer storage in the common
+boundary, then invokes trusted connector preparation with a bounded ordinal.
+The DuckDB driver owns physical table naming and import SQL. The common boundary
+checks exact storage affinity and current environment state before allocating
+shared capacity; a rejected preparation cannot leave a table registration or
+consume a table ordinal. Reusing equal-content storage from another preparation
+is not accepted as the owned input.
+
 Resident result materialization keeps its physical table name, SQL and storage
 construction limits in a connector-owned opaque plan. The shared output lifecycle
 retains its allocation, commit state and pending input cleanup, and checks exact

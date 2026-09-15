@@ -14,6 +14,14 @@ pub fn resident_import_available(value : ResidentImport) -> Bool {
 }
 
 ///|
+pub fn resident_import_matches_storage(
+  value : ResidentImport,
+  storage : @execution.ProducerStorage,
+) -> Bool {
+  physical_equal(value.storage, storage) && resident_import_available(value)
+}
+
+///|
 pub fn resident_import_matches_output(
   value : ResidentImport,
   output : @execution.CompletedOutput,

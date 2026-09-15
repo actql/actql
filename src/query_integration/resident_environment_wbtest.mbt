@@ -96,17 +96,54 @@ test "resident provision freezes dispatch and search until binding or close" {
   assert_true(@strategy.resident_environment_available(run, env))
   assert_eq(@strategy.next_captured_task(run), Some(1))
   assert_true(
-    @strategy.prepare_resident_table(run, env, 0, 79L, 1000, 10000, 10000)
+    @duckdb_driver.prepare_resident_table(run, env, 0, 79L, 1000, 10000, 10000)
     is Err(Physical(InvalidCharge)),
   )
   // Unstarted preparations are reversible, including an actual ledger refusal.
+  let rejected = Ref(None)
+  let capacity_before = @resources.ledger_usage(ledger)
+  assert_true(
+    @strategy.prepare_resident_storage(run, env, 0, 80L, 1000, 10000, fn(
+      storage,
+      ordinal,
+    ) {
+      rejected.val = Some(
+        @duckdb.prepare_resident_import(
+          storage,
+          "resident_" + ordinal.to_string(),
+          1000,
+          10000,
+        ).unwrap(),
+      )
+      Err(NotReady)
+    })
+    is Err(NotReady),
+  )
+  // Even the same producer's equal storage from a failed preparation is not
+  // the exact storage selected for a later preparation attempt.
+  assert_true(
+    @strategy.prepare_resident_storage(run, env, 0, 80L, 1000, 10000, fn(
+      _storage,
+      _ordinal,
+    ) {
+      Ok(rejected.val.unwrap())
+    })
+    is Err(ForeignCandidate),
+  )
+  let capacity_after = @resources.ledger_usage(ledger)
+  assert_eq(capacity_after.attempts, capacity_before.attempts)
+  assert_eq(capacity_after.held_bytes, capacity_before.held_bytes)
+  assert_eq(
+    capacity_after.reserved_retention_bytes,
+    capacity_before.reserved_retention_bytes,
+  )
   // More than the holding/name bound: names and table quota must not leak.
   let planned = @resources.ledger_usage(ledger).planning_work
   let blocker = @resources.reserve_attempt(ledger, 300000L, 0L, 0L).unwrap()
   let attempts_before_corrections = @resources.ledger_usage(ledger).attempts
   let mut stale = None
   for _ in 0..<20 {
-    let pending = @strategy.prepare_resident_table(
+    let pending = @duckdb_driver.prepare_resident_table(
       run, env, 0, 80L, 1000, 10000, 10000,
     ).unwrap()
     assert_true(
@@ -130,7 +167,7 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   assert_true(@resources.ledger_usage(ledger).planning_work > planned)
   @resources.settle_reservation(ledger, blocker).unwrap()
-  let table = @strategy.prepare_resident_table(
+  let table = @duckdb_driver.prepare_resident_table(
     run, env, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
   assert_true(
@@ -276,7 +313,7 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
   )
   let env = @strategy.begin_resident_environment(run, 1, 1000L).unwrap()
   @strategy.confirm_resident_environment(run, env, 1000L).unwrap()
-  let table = @strategy.prepare_resident_table(
+  let table = @duckdb_driver.prepare_resident_table(
     run, env, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
   let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()

@@ -108,7 +108,7 @@ pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[Resi
 
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
-pub fn prepare_resident_table(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[ResidentTable, RunIssue]
+pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@adapter.ResidentImport, RunIssue]) -> Result[ResidentTable, RunIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 

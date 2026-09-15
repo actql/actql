@@ -95,7 +95,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(inventory[0].0, 1)
       assert_eq(inventory[1].0, if self_join { 1 } else { 2 })
       for producer in (if self_join { [1] } else { [1, 2] }) {
-        let table = @strategy.prepare_resident_table(
+        let table = @duckdb_driver.prepare_resident_table(
           run, env, producer, 80L, 1000, 10000, 10000,
         ).unwrap()
         let transfer = @strategy.begin_resident_transfer(run, table, 20L, 100L).unwrap()
