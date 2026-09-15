@@ -414,7 +414,13 @@ pub fn execute_captured_local_task(
     ) {
     Ok(completed) => {
       guard captured_task_target(run, task) is Some(target) &&
-        @execution.completed_output(completed, target) is Some(output) else {
+        @execution.completed_output(completed, target) is Some(output) &&
+        @execution.completed_output_matches_port(
+          output,
+          run.graph.owners[task],
+          target,
+        ) &&
+        captured_output_inputs_match(run, task, output) else {
         @resources.release_allocation(run.ledger, holding) |> ignore
         @resources.settle_reservation(run.ledger, reservation) |> ignore
         fail_captured_task(run, task, MissingOutput)
@@ -521,6 +527,22 @@ fn captured_request_inputs_match(
     }
   }
   true
+}
+
+///|
+/// Completion records the exact bound ports that were selected at start. This
+/// identity check is independent of backend attempt or transport types.
+fn captured_output_inputs_match(
+  run : CapturedDAG,
+  task : Int,
+  output : @execution.CompletedOutput,
+) -> Bool {
+  let inputs = []
+  for input in run.inputs[task] {
+    guard input is Some(input) else { return false }
+    inputs.push(input)
+  }
+  @execution.completed_output_matches_inputs(output, inputs)
 }
 
 ///|

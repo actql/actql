@@ -10,6 +10,7 @@ struct TrustedOutputPort[P] {
   id : String
   names : Array[String]
   verify : (P) -> AdmittedOutputRows?
+  input_bindings : Array[ProducerBindingIdentity]
 }
 
 ///|
@@ -20,23 +21,43 @@ pub(all) enum TrustedOutputIssue {
   NotRetained
   Unverified
   ForeignOutput
+  ForeignInputs
 } derive(Eq, Debug)
 
 ///|
 /// A low-level trusted-runtime API, deliberately not a raw-data completion
 /// constructor. Do not expose verifier installation through untrusted exports.
+/// Fixed-input Compute supplies its exact receiving ports; Acquisition omits
+/// them and does not claim fixed-input provenance. The saved identities retain
+/// neither input rows nor a liveness callback to an upstream result. The installed
+/// verifier must still validate live inputs before sealing successful output.
 pub fn[P] prepare_trusted_output_port(
   generated : GeneratedSequence,
   target : @pipeline.Target,
   max_entries : Int,
   max_name_bytes : Int,
   verify : (P) -> AdmittedOutputRows?,
+  inputs? : Array[ProducerRead],
 ) -> Result[TrustedOutputPort[P], TrustedOutputIssue] {
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
   let owner = generated_sequence_owner(generated)
   let prepared = @lower.bound_preparation(owner)
+  let input_bindings = []
+  if inputs is Some(inputs) {
+    if inputs.length() != @pipeline.input_count(@lower.pipeline(prepared)) {
+      return Err(ForeignInputs)
+    }
+    for index, input in inputs {
+      if !physical_equal(input.bound.receiver, owner) ||
+        input.bound.input_index != index ||
+        !producer_read_available(input) {
+        return Err(ForeignInputs)
+      }
+      input_bindings.push(input.bound.identity)
+    }
+  }
   guard target is Step(index) &&
     index == @lower.sequence_count(generated.sequence) - 1 &&
     @lower.node_at(prepared, index) is Some(node) &&
@@ -74,7 +95,7 @@ pub fn[P] prepare_trusted_output_port(
     }
     names.push(name)
   }
-  Ok({ generated, target, id, names, verify, })
+  Ok({ generated, target, id, names, verify, input_bindings, })
 }
 
 ///|
@@ -111,6 +132,7 @@ pub fn[P] complete_trusted_output(
     sequence: port.generated.sequence,
     store: ImportedStore(@pipeline.input_count(pipeline), port.target, table),
     _producer_inputs: [],
+    input_bindings: port.input_bindings,
     live: Some(live),
   }
   Ok({ completion, target: port.target, table, })

@@ -125,7 +125,8 @@ fn complete_task_execution(
           output,
           run.graph.owners[task],
           target,
-        ) else {
+        ) &&
+        captured_output_inputs_match(run, task, output) else {
         execution.failed_holding = Some(holding)
         fail_captured_task(run, task, ForeignCandidate)
         return Err(ForeignCandidate)

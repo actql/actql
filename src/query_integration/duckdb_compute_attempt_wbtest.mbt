@@ -29,11 +29,13 @@ test "DuckDB Compute seals independent output only after live upstream validatio
       continue
     }
     let output = @duckdb_compute.complete_duckdb_compute_attempt(attempt).unwrap()
+    assert_true(@execution.completed_output_matches_inputs(output, [input]))
     let owner = @execution.producer_read_receiver(input)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
     let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
     close_upstream()
     assert_false(@execution.producer_read_available(input))
+    assert_true(@execution.completed_output_matches_inputs(output, [input]))
     assert_true(
       @execution.bind_completed_input(receiver, 0, owner, output) is Ok(_),
     )
@@ -51,6 +53,7 @@ test "DuckDB Compute seals independent output only after live upstream validatio
     )
     transport.settled = Some(attempt)
     @duckdb_compute.close_duckdb_compute_attempt(attempt)
+    assert_false(@execution.completed_output_matches_inputs(output, [input]))
     assert_true(
       @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
     )

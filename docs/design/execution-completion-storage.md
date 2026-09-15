@@ -29,6 +29,23 @@ An existing binding or producer read does not freeze that condition: new read
 preparation, import and consumer execution still check it. Independently
 completed consumers retain their own successful results after upstream revocation.
 
+Each successful producer binding has a private immutable process-local identity.
+Fixed-input completions record those identities by receiving port, separately
+from their physical storage anchors. `completed_output_matches_inputs` checks
+the exact bound owner, all receiving ports and those binding identities; equal
+rows, schemas or CIDs cannot substitute for a different binding. Rebuilding a
+read view of the same binding preserves that identity. The identities themselves
+hold no row buffers or upstream liveness callbacks.
+
+Local execution records the admitted producer bindings. A trusted external
+Compute port receives its exact fixed inputs at preparation and snapshots only
+their identities; its installed verifier remains responsible for the actual
+input/attempt/transport relationship and live admission before completion.
+Acquisition ports do not claim fixed-input provenance. Checking an independently
+completed result's input affinity does not require its upstream to remain live;
+the result's own liveness and retention still apply. No identity wire domain or
+logical charging rule is changed by these private references.
+
 Row storage remains the default. A typed producer selects the mixed-storage
 adapter before execution. This is representation dispatch, not error recovery:
 neither exhausted budgets nor expression failures retry a different strategy.

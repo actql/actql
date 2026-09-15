@@ -81,6 +81,61 @@ test "two fixed producer ports share storage but not admission or measurement cr
     measurement,
   ).unwrap()
   let output = completed_output(result, Step(0)).unwrap()
+  assert_true(completed_output_matches_inputs(output, inputs))
+  assert_false(completed_output_matches_inputs(output, [inputs[1], inputs[0]]))
+  assert_false(completed_output_matches_inputs(output, [inputs[0], inputs[0]]))
+  assert_false(completed_output_matches_inputs(output, [inputs[0]]))
+  // Same owner, same target, same rows, but a different receiving binding.
+  let original = inputs[0].bound
+  let rebound = bind_completed_input(
+    receiver,
+    0,
+    @lower.sequence_owner(original.output.completion.sequence),
+    original.output,
+  ).unwrap()
+  let other_read = prepare_producer_read(receiver, rebound, 100, 100).unwrap()
+  assert_false(completed_output_matches_inputs(output, [other_read, inputs[1]]))
+  let read_again = prepare_producer_read(receiver, original, 100, 100).unwrap()
+  assert_true(completed_output_matches_inputs(output, [read_again, inputs[1]]))
+  let reversed = execute_generated_sequence(generated, [], execution, produced=[
+    inputs[1].bound,
+    inputs[0].bound,
+  ]).unwrap()
+  assert_true(
+    completed_output_matches_inputs(
+      completed_output(reversed, Step(0)).unwrap(),
+      inputs,
+    ),
+  )
+  let supplied = inputs.copy()
+  let port = prepare_trusted_output_port(
+    generated,
+    Step(0),
+    100,
+    1000,
+    fn(_proof : Unit) { None },
+    inputs=supplied,
+  ).unwrap()
+  supplied.clear()
+  assert_eq(port.input_bindings.length(), 2)
+  assert_true(physical_equal(port.input_bindings[0], inputs[0].bound.identity))
+  assert_true(physical_equal(port.input_bindings[1], inputs[1].bound.identity))
+  // Input affinity alone cannot manufacture verified retained data.
+  assert_true(complete_trusted_output(port, ()) is Err(Unverified))
+  for
+    invalid in [[], [inputs[0]], [inputs[1], inputs[0]], [inputs[0], inputs[0]]] {
+    assert_true(
+      prepare_trusted_output_port(
+        generated,
+        Step(0),
+        100,
+        1000,
+        fn(_proof : Unit) { None },
+        inputs=invalid,
+      )
+      is Err(ForeignInputs),
+    )
+  }
   assert_eq(completed_row_count(output), 2)
   for (row, expected) in [(0, 1.0), (1, 0.0)] {
     for column in 0..<2 {
@@ -198,6 +253,7 @@ test "two fixed producer ports share storage but not admission or measurement cr
     measurement,
   ).unwrap()
   live.val = false
+  assert_true(completed_output_matches_inputs(output, inputs))
   assert_true(
     finish_fixed_producer_measurement(unfinished, received) is Err(ForeignInput),
   )

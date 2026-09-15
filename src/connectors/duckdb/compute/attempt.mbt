@@ -95,6 +95,7 @@ pub fn start_duckdb_compute_attempt(
       limits.completion_entries,
       limits.completion_name_bytes,
       verified_compute_rows,
+      inputs=@connector.fixed_compute_request_inputs(request),
     ) {
     Ok(port) => port
     Err(issue) => return Err(Completion(issue))

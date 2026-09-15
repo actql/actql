@@ -9,6 +9,7 @@ struct CompletedSequence {
   // Strong ownership anchors: keep upstream completions alive with this result.
   // This retention is intentional even when no subsequent cell read needs them.
   _producer_inputs : Array[BoundProducerInput]
+  input_bindings : Array[ProducerBindingIdentity]
   live : (() -> Bool)?
 }
 
@@ -80,6 +81,41 @@ pub fn completed_output_matches_port(
   physical_equal(@lower.sequence_owner(output.completion.sequence), owner) &&
   output.target == target &&
   completion_is_live(output.completion)
+}
+
+///|
+/// Exact fixed-input provenance, in receiving-port order. This does not infer
+/// input identity from equal rows, schemas or CIDs, and does not revalidate the
+/// upstream's current liveness after this independent result has completed.
+pub fn completed_output_matches_inputs(
+  output : CompletedOutput,
+  inputs : Array[ProducerRead],
+) -> Bool {
+  let completion = output.completion
+  let owner = @lower.sequence_owner(completion.sequence)
+  let count = @pipeline.input_count(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+  )
+  if inputs.length() != count ||
+    completion.input_bindings.length() != count ||
+    !completion_is_live(completion) {
+    return false
+  }
+  for index, input in inputs {
+    if !physical_equal(input.bound.receiver, owner) ||
+      input.bound.input_index != index {
+      return false
+    }
+  }
+  // Generated execution can receive the bindings in a different array order;
+  // their checked port positions, not that incidental order, are authoritative.
+  for identity in completion.input_bindings {
+    guard inputs.get(identity.input_index) is Some(input) &&
+      physical_equal(input.bound.identity, identity) else {
+      return false
+    }
+  }
+  true
 }
 
 ///|

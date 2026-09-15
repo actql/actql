@@ -2,10 +2,18 @@
 /// Exact completed producer selection and its checked input projection.
 /// Binding does not discharge receiving input resource accounting.
 struct BoundProducerInput {
+  // Process-local identity only; retaining it does not retain the producer data.
+  identity : ProducerBindingIdentity
   receiver : @lower.BoundPrepared
   input_index : Int
   output : CompletedOutput
   projection : @relation.CheckedOperation?
+}
+
+///|
+/// Immutable process-local binding identity; no producer rows or live closure.
+priv struct ProducerBindingIdentity {
+  input_index : Int
 }
 
 ///|
@@ -51,6 +59,7 @@ pub fn bind_completed_input(
     return Err(ProducerTargetMismatch)
   }
   Ok({
+    identity: { input_index, },
     receiver,
     input_index,
     output,

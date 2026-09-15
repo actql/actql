@@ -459,6 +459,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     sequence: invocation.sequence,
     store: wrap(invocation.store),
     _producer_inputs: invocation.produced.copy(),
+    input_bindings: invocation.produced.map(input => input.identity),
     live: None,
   })
 }

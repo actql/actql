@@ -70,7 +70,8 @@ disposal. Its running handle is not a concrete connector attempt. Private
 implementation hooks request cancellation, dispose buffers, confirm reusable
 inputs and produce an already verified engine completion; they cannot settle
 the common ledger by returning success alone. The common completion boundary
-also checks the output's exact bound owner, retained port and current liveness.
+also checks the output's exact bound owner, retained port, fixed-input binding
+identities and current liveness.
 This port check supplements, rather than replaces, the implementation's exact
 input/attempt/transport evidence validation. Cancellation alone never releases
 execution reservations. Confirmed execution cleanup may release execution
