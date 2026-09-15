@@ -1,4 +1,37 @@
 ///|
+test "synchronous preparation rejection releases capacity without publishing execution" {
+  let (run, _) = captured_graph_fixture()
+  let (other, _) = captured_graph_fixture()
+  let foreign_input = @strategy.captured_task_input(other, 1, 100, 10000).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    captured_graph_duckdb_try_start(
+      run,
+      1,
+      { settled: None, },
+      generated=query_generated(
+        @execution.producer_read_receiver(foreign_input),
+      ),
+    )
+    is Err(DuckDB(ForeignPreparation)),
+  )
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, before.attempts + 1)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_false(@strategy.captured_task_completed(run, 1))
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  assert_true(
+    @strategy.captured_dag_failure(run) is Some((1, DuckDB(ForeignPreparation))),
+  )
+  // An accepted execution preparation failed, not a permission to retry.
+  assert_true(@strategy.next_captured_task(run) is None)
+}
+
+///|
 test "common native start enforces calculated capacity against selected envelope" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

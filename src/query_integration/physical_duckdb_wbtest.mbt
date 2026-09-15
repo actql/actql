@@ -14,6 +14,7 @@ fn captured_graph_duckdb_try_start(
   transport : FixedComputeTestTransport,
   transfer_bytes? : Int64 = 100000L,
   execution_bytes? : Int64 = 1000000L,
+  generated? : @execution.GeneratedSequence,
 ) -> Result[@strategy.CapturedDuckDBTask, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
   let request = @connector.prepare_fixed_compute_request([input], {
@@ -51,7 +52,10 @@ fn captured_graph_duckdb_try_start(
     task,
     choice,
     prepared,
-    query_generated(@execution.producer_read_receiver(input)),
+    match generated {
+      Some(value) => value
+      None => query_generated(@execution.producer_read_receiver(input))
+    },
     fixed_compute_attempt_limits(),
     dispatch_test_limits().transport,
     transfer_bytes,

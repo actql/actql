@@ -193,10 +193,11 @@ reservation before admission or native work. It binds the exact run/task/current
 selection, candidate, attempt and concrete limits; no externally created, closed,
 foreign-ledger or reused reservation is accepted. The Host supplies the enforced
 native execution and serialized-transfer ceilings, not an estimate. Both must be
-positive for this protocol. Calculated MoonBit scratch and retention are added by
-the common boundary, and the initial reservation must fit the selected envelope
+positive for this protocol. The implementation calculates MoonBit scratch and
+retention from its concrete configuration; the common start boundary checks those
+capacities, and the initial reservation must fit the selected envelope
 and ledger. Later transfer consumption is not confused with initial admission.
-It derives retention capacity from the exact configured admission limits:
+The DuckDB implementation derives retention capacity from the exact configured admission limits:
 256 bytes per permitted retained value node, physical output row and completion
 metadata entry, plus eight per retained text/name UTF-8 byte. These are declared
 container allowances, not observed heap size. Native settlement releases transfer
@@ -205,6 +206,11 @@ result capacity. Successful completion transfers that reservation to an exact
 holding token in the same operation that records task success, without a second
 charge or an externally visible unheld success. Node forwards charges and cleanup
 acknowledgements to this common owner rather than managing a second reservation.
+Synchronous preparation runs under that reservation but cannot start external I/O.
+It returns private implementation state and lifecycle operations; only the common
+driver registers the execution. Preparation rejection releases unused capacity,
+without refunding its consumed attempt entry. Once external work can start,
+failure instead retains capacity until the corresponding cleanup is confirmed.
 Failure disposes provisional material and
 settles the remaining reservation only after native cleanup confirmation.
 

@@ -73,115 +73,102 @@ pub fn start_captured_duckdb_task(
       read.environment.capacity.capacity
     }
   }
-  if execution > 9223372036854775807L - database {
-    return Err(Physical(InvalidLimits))
-  }
-  if strategy_task_envelope(run, task) is Some(capacity) &&
-    (
-      transfer_bytes > capacity.transfer_bytes ||
-      retention > capacity.retained_bytes ||
-      execution + database > capacity.execution_bytes
-    ) {
-    return Err(Physical(InvalidCharge))
-  }
-  // This boundary creates its own initial reservation for the exact run/task,
-  // current selection and configuration; caller-owned tokens cannot be reused.
-  let reservation = match
-    @resources.reserve_attempt(run.ledger, transfer_bytes, retention, execution) {
-    Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
-  }
-  let resident_output = match resident {
-    None => None
-    Some(read) => {
-      guard @connector.fixed_compute_choice_payload(choice, prepared)
-        is Some(compute) else {
-        @resources.settle_reservation(run.ledger, reservation) |> ignore
-        return Err(ForeignCandidate)
-      }
-      match
-        prepare_resident_output(
-          run,
-          read.environment,
-          @duckdb.fixed_compute_query(compute),
-          retention,
-          limits,
-          transport.max_bytes,
-        ) {
-        Ok(value) => Some(value)
-        Err(issue) => {
-          @resources.settle_reservation(run.ledger, reservation) |> ignore
-          return Err(issue)
+  let started = start_task_execution(
+    run,
+    task,
+    @connector.prepared_compute_candidate(prepared),
+    transfer_bytes,
+    retention,
+    scratch,
+    execution,
+    database,
+    fn() {
+      let resident_output = match resident {
+        None => None
+        Some(read) => {
+          guard @connector.fixed_compute_choice_payload(choice, prepared)
+            is Some(compute) else {
+            return Err(ForeignCandidate)
+          }
+          match
+            prepare_resident_output(
+              run,
+              read.environment,
+              @duckdb.fixed_compute_query(compute),
+              retention,
+              limits,
+              transport.max_bytes,
+            ) {
+            Ok(value) => Some(value)
+            Err(issue) => return Err(issue)
+          }
         }
       }
-    }
-  }
-  match
-    @duckdb_compute.start_duckdb_compute_attempt(
-      choice, prepared, generated, limits, verify,
-    ) {
-    Ok(attempt) => {
-      if resident is Some(inputs) {
-        inputs.claimed = true
-      }
-      let pending_output = Ref(resident_output)
-      let hooks : TaskExecutionHooks = {
-        cancel: fn() { @duckdb_compute.abort_duckdb_compute_attempt(attempt) },
-        dispose: fn() { @duckdb_compute.close_duckdb_compute_attempt(attempt) },
-        settled: fn() {
-          if resident is Some(read) {
-            return_resident_inputs(read) |> ignore
+      match
+        @duckdb_compute.start_duckdb_compute_attempt(
+          choice, prepared, generated, limits, verify,
+        ) {
+        Ok(attempt) => {
+          if resident is Some(inputs) {
+            inputs.claimed = true
           }
-        },
-        released: fn() { pending_output.val = None },
-        ready: fn() {
-          if pending_output.val is Some(pending) &&
-            (
-              !pending.committed ||
-              !resident_environment_available(run, pending.environment)
-            ) {
-            Err(NotReady)
-          } else {
-            Ok(())
+          let pending_output = Ref(resident_output)
+          let hooks : TaskExecutionHooks = {
+            cancel: fn() {
+              @duckdb_compute.abort_duckdb_compute_attempt(attempt)
+            },
+            dispose: fn() {
+              @duckdb_compute.close_duckdb_compute_attempt(attempt)
+            },
+            settled: fn() {
+              if resident is Some(read) {
+                return_resident_inputs(read) |> ignore
+              }
+            },
+            released: fn() { pending_output.val = None },
+            ready: fn() {
+              if pending_output.val is Some(pending) &&
+                (
+                  !pending.committed ||
+                  !resident_environment_available(run, pending.environment)
+                ) {
+                Err(NotReady)
+              } else {
+                Ok(())
+              }
+            },
+            finish: fn() {
+              match @duckdb_compute.complete_duckdb_compute_attempt(attempt) {
+                Err(issue) => Err(DuckDB(issue))
+                Ok(output) => Ok(output)
+              }
+            },
+            publish: fn(output) {
+              match pending_output.val {
+                Some(pending) =>
+                  publish_resident_output(run, task, pending, output)
+                None => Ok(())
+              }
+            },
           }
-        },
-        finish: fn() {
-          match @duckdb_compute.complete_duckdb_compute_attempt(attempt) {
-            Err(issue) => Err(DuckDB(issue))
-            Ok(output) => Ok(output)
+          Ok(((attempt, pending_output), hooks))
+        }
+        Err(issue) => {
+          // No native work has started: only synchronous admission failed.
+          if resident_output is Some(output) {
+            retire_resident_capacity(output.allocation)
+            release_resident_capacity(output.allocation) |> ignore
           }
-        },
-        publish: fn(output) {
-          match pending_output.val {
-            Some(pending) => publish_resident_output(run, task, pending, output)
-            None => Ok(())
-          }
-        },
+          fail_captured_task(run, task, DuckDB(issue))
+          Err(DuckDB(issue))
+        }
       }
-      let execution : TaskExecution = {
-        task,
-        reservation,
-        retention,
-        scratch,
-        hooks: Some(hooks),
-        execution_settled: false,
-        disposed: false,
-        failed_holding: None,
-      }
-      run.executions[task] = Some(execution)
-      run.running = Some((task, execution))
-      Ok({ attempt, execution, resident_output: pending_output, })
-    }
-    Err(issue) => {
-      // No native work has started: only synchronous admission failed.
-      if resident_output is Some(output) {
-        retire_resident_capacity(output.allocation)
-        release_resident_capacity(output.allocation) |> ignore
-      }
-      @resources.settle_reservation(run.ledger, reservation) |> ignore
-      fail_captured_task(run, task, DuckDB(issue))
-      Err(DuckDB(issue))
-    }
+    },
+  )
+  match started {
+    Err(issue) => Err(issue)
+    Ok(((attempt, resident_output), execution)) =>
+      Ok({ attempt, execution, resident_output, })
   }
 }
 

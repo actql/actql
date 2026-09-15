@@ -27,6 +27,88 @@ priv struct TaskExecutionHooks {
 }
 
 ///|
+/// Synchronous preparation only: the installed implementation may construct
+/// owned transport state here, but must not start I/O. An error therefore has
+/// confirmed absence of external work and releases the untouched reservation.
+/// Actual execution starts only after the returned handle is registered.
+fn[T] start_task_execution(
+  run : CapturedDAG,
+  task : Int,
+  candidate : @connector.FixedComputeCandidate,
+  transfer : Int64,
+  retention : Int64,
+  scratch : Int64,
+  execution_capacity : Int64,
+  shared_execution : Int64,
+  prepare : () -> Result[(T, TaskExecutionHooks), RunIssue],
+) -> Result[(T, TaskExecution), RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) {
+    return Err(NotReady)
+  }
+  if !strategy_candidate_matches(run, task, candidate) ||
+    !captured_request_inputs_match(
+      run,
+      task,
+      @connector.fixed_compute_candidate_request(candidate),
+    ) {
+    return Err(ForeignCandidate)
+  }
+  if transfer < 0L ||
+    retention < 0L ||
+    scratch < 0L ||
+    execution_capacity < 0L ||
+    scratch > execution_capacity ||
+    shared_execution < 0L ||
+    execution_capacity > 9223372036854775807L - shared_execution {
+    return Err(Physical(InvalidLimits))
+  }
+  if strategy_task_envelope(run, task) is Some(capacity) &&
+    (
+      transfer > capacity.transfer_bytes ||
+      retention > capacity.retained_bytes ||
+      execution_capacity + shared_execution > capacity.execution_bytes
+    ) {
+    return Err(Physical(InvalidCharge))
+  }
+  // Shared resources already have their own reservation. They still contribute
+  // to the selected task envelope, but are not reserved a second time here.
+  let reservation = match
+    @resources.reserve_attempt(
+      run.ledger,
+      transfer,
+      retention,
+      execution_capacity,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  match prepare() {
+    Err(issue) => {
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
+      Err(issue)
+    }
+    Ok((payload, hooks)) => {
+      let execution : TaskExecution = {
+        task,
+        reservation,
+        retention,
+        scratch,
+        hooks: Some(hooks),
+        execution_settled: false,
+        disposed: false,
+        failed_holding: None,
+      }
+      run.executions[task] = Some(execution)
+      run.running = Some((task, execution))
+      Ok((payload, execution))
+    }
+  }
+}
+
+///|
 fn task_execution_matches(run : CapturedDAG, execution : TaskExecution) -> Bool {
   run.executions.get(execution.task).bind(x => x) is Some(owned) &&
   physical_equal(owned, execution)
