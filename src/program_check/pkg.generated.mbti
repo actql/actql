@@ -97,6 +97,8 @@ pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format,
 
 pub fn diagnostic_alternative_count(CheckDiagnostic) -> Int
 
+pub fn diagnostic_category(CheckDiagnostic) -> DiagnosticCategory
+
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
 
 pub fn diagnostic_expression_range(CheckDiagnostic) -> @expression_text.Range?
@@ -716,6 +718,15 @@ pub(all) struct CompileValueLimits {
 } derive(Eq, @debug.Debug)
 
 type ComponentsLimit
+
+pub(all) enum DiagnosticCategory {
+  InvalidInput
+  InvalidConfiguration
+  UnsupportedImplementation
+  CompileLimit
+  MissingInput
+  UnclassifiedFailure
+} derive(Eq, @debug.Debug)
 
 type DiagnosticLocation
 

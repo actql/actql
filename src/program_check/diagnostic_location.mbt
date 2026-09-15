@@ -128,7 +128,14 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
 
 ///|
 fn diagnostic_pipeline_issue(value : CheckDiagnostic) -> @pipeline.Issue? {
-  match value.cause {
+  diagnostic_pipeline_cause(value.cause)
+}
+
+///|
+fn diagnostic_pipeline_cause(
+  cause : LocalConstructionFailure,
+) -> @pipeline.Issue? {
+  match cause {
     Source(SourceView(Program(Program(Pipeline(_, issue)))))
     | Source(SourceView(Program(MissingCalendarSelection(_, issue))))
     | Source(SourceView(Program(Program(Order(_, PipelineOrder(issue))))))
@@ -139,7 +146,14 @@ fn diagnostic_pipeline_issue(value : CheckDiagnostic) -> @pipeline.Issue? {
 
 ///|
 fn diagnostic_result_issue(value : CheckDiagnostic) -> @publication.Issue? {
-  match value.cause {
+  diagnostic_result_cause(value.cause)
+}
+
+///|
+fn diagnostic_result_cause(
+  cause : LocalConstructionFailure,
+) -> @publication.Issue? {
+  match cause {
     Source(SourceView(Program(Program(Results(_, issue)))))
     | Source(SourceView(Program(Program(Order(_, ResultOrder(issue)))))) =>
       Some(issue)

@@ -8,6 +8,7 @@ test "diagnostic readers preserve offset units and absent versus root paths" {
     ] {
     for path in [None, Some([]), Some([@source.Key("x")])] {
       let diagnostic : CheckDiagnostic = {
+        category: InvalidInput,
         cause: Program(
           Parse({
             issue: InvalidUnicodeEscape,

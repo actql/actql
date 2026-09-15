@@ -97,6 +97,12 @@ test "numeric profile requests retain aggregate locations and recheck publicly" 
     fail("expected numeric profile request")
   }
   assert_eq(@program_check.input_request_count(requests), 1)
+  assert_eq(
+    @program_check.diagnostic_category(
+      @program_check.input_requests_diagnostic(requests),
+    ),
+    @program_check.MissingInput,
+  )
   let request = @program_check.input_request_at(requests, 0).unwrap()
   guard request.kind is NumericReductionProfile(source) else {
     fail("wrong request kind")

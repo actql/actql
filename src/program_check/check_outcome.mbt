@@ -10,6 +10,7 @@ pub enum CheckOutcome {
 ///|
 struct CheckDiagnostic {
   cause : LocalConstructionFailure
+  category : DiagnosticCategory
 }
 
 ///|
@@ -211,7 +212,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
 
 ///|
 fn rejected(cause : LocalConstructionFailure) -> CheckOutcome {
-  Rejected({ cause, })
+  Rejected({ cause, category: classify_diagnostic_cause(cause), })
 }
 
 ///|
@@ -285,7 +286,7 @@ fn checking_outcome(
         program,
         environment,
         inventory,
-        diagnostic: { cause: error, },
+        diagnostic: { cause: error, category: MissingInput, },
       })
     }
   }

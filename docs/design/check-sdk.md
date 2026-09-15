@@ -336,6 +336,19 @@ document byte range. Missing location information stays explicitly absent; it
 is not fabricated as the Program root. Normative failure order is preserved,
 without requiring clients to unpack a preparation-phase wrapper tree.
 
+`diagnostic_category` exposes `InvalidInput`, `InvalidConfiguration`,
+`UnsupportedImplementation`, `CompileLimit`, `MissingInput`, and
+`UnclassifiedFailure` independently of the origin domain. Classification uses
+typed causes, never rendered error text or source paths. An unprojected internal
+cause remains `UnclassifiedFailure`: it does not blame author input, promise
+that changing configuration will help, or become an external requirement.
+`MissingInput` is assigned only when the existing request-admission path has
+established a typed partial requirement. The category neither changes failure
+precedence nor authorizes retry success. `diagnostic_cause` retains the detailed
+cause for investigation; ordinary callers need not traverse its phase wrappers.
+For auto-format parsing, a resource-limited alternative prevents classification
+as conclusively invalid input; both original alternative locations remain.
+
 Location readers preserve the original coordinate representation: a source
 span, a byte offset, a UTF-16 offset or explicit unavailability. Retained-input
 limit failures can identify a source document without identifying an offending
