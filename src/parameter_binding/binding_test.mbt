@@ -161,6 +161,25 @@ test "all missing names are reported without exposing a partially ready set" {
       assert_eq(names, ["a", "z"])
       names.clear()
       assert_eq(@parameter_binding.missing_names(missing), ["a", "z"])
+      assert_eq(@parameter_binding.missing_count(missing), 2)
+      assert_true(
+        physical_equal(@parameter_binding.missing_declaration_owner(missing), d),
+      )
+      for index in 0..<2 {
+        let original = @parameter_binding.declaration_at(d, index).unwrap()
+        let retained = @parameter_binding.missing_at(missing, index).unwrap()
+        assert_true(physical_equal(original, retained))
+        assert_eq(
+          @decode.cursor_path(@parameter_binding.declaration_source(retained)),
+          [@source.Key(retained.name)],
+        )
+        assert_eq(
+          @decode.cursor_span(@parameter_binding.declaration_source(retained)).source_path,
+          "params.json",
+        )
+      }
+      assert_true(@parameter_binding.missing_at(missing, -1) is None)
+      assert_true(@parameter_binding.missing_at(missing, 2) is None)
     }
     _ => assert_true(false)
   }

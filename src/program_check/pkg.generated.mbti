@@ -13,6 +13,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/expression_typing",
   "actql/actql/numeric_reduction",
+  "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_nest",
@@ -71,13 +72,13 @@ pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
 pub fn check(@stage_syntax.Program, @check_environment.WireEnvironment, @decode_core.Cursor?, Array[Array[@pipeline_check_context.CapacityMaterial]], @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, SourceLimits, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, capacity_inputs? : @pipeline_check_context.ProgramCapacityInputs?) -> CheckedProgram raise LocalConstructionFailure
 
-pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckedProgram raise LocalConstructionFailure
+pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
-pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckedProgram raise LocalConstructionFailure
+pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
-pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckedProgram raise LocalConstructionFailure
+pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
 
-pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckedProgram raise LocalConstructionFailure
+pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
 
@@ -92,6 +93,8 @@ pub fn components_limit_selection(ComponentsLimit) -> @pipeline_check_context.Co
 pub fn components_limit_source(ComponentsLimit) -> UnitOperationSource
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
+
+pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
 
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
@@ -170,6 +173,10 @@ pub fn group_string_limit_selection(GroupStringLimit) -> @pipeline_check_context
 pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
+
+pub fn input_request_at(InputRequests, Int) -> InputRequest?
+
+pub fn input_request_count(InputRequests) -> Int
 
 pub fn interval_search_limit_cid(IntervalSearchLimit) -> String
 
@@ -625,12 +632,20 @@ pub struct BuiltResultInterface {
   cid : String
 }
 
+type CheckDiagnostic
+
 type CheckEnvironment
 
 pub(all) struct CheckLimits {
   input : @stage_syntax.Limits
   compilation : CompileLimits
 } derive(Eq, @debug.Debug)
+
+pub enum CheckOutcome {
+  Checked(CheckedProgram)
+  NeedsInputs(InputRequests)
+  Rejected(CheckDiagnostic)
+}
 
 type CheckedProgram
 
@@ -728,6 +743,17 @@ pub struct InputCompletenessRequirement {
   unit : UnitCompletenessRequirement
   binding : InputCompletenessBinding
 }
+
+pub struct InputRequest {
+  program : @stage_syntax.Program
+  kind : InputRequestKind
+}
+
+pub enum InputRequestKind {
+  ParameterValue(@parameter_binding.Declaration)
+}
+
+type InputRequests
 
 type IntervalSearchLimit
 

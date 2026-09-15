@@ -30,6 +30,8 @@ pub fn declaration_at(Declarations, Int) -> Declaration?
 
 pub fn declaration_count(Declarations) -> Int
 
+pub fn declaration_source(Declaration) -> @decode_core.Cursor
+
 pub fn declaration_usage(Declarations) -> (Int, Int)
 
 pub fn declarations(Declarations) -> Array[Declaration]
@@ -43,6 +45,12 @@ pub fn emit_values(BoundValues, @encode_core.Writer) -> Unit raise @encode_core.
 pub fn has_default(Declaration) -> Bool
 
 pub fn measure_values(BoundValues, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
+
+pub fn missing_at(MissingNames, Int) -> Declaration?
+
+pub fn missing_count(MissingNames) -> Int
+
+pub fn missing_declaration_owner(MissingNames) -> Declarations
 
 pub fn missing_names(MissingNames) -> Array[String]
 

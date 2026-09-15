@@ -14,7 +14,7 @@ fn public_program_fixture(
     ..limits,
     compilation: { ..limits.compilation, work: max_work, },
   }
-  if document {
+  let outcome = if document {
     @program_check.check_document_with_evidence(
       text,
       environment,
@@ -32,6 +32,18 @@ fn public_program_fixture(
       evidence,
       limits,
     )
+  }
+  public_checked(outcome)
+}
+
+///|
+fn public_checked(
+  outcome : @program_check.CheckOutcome,
+) -> @program_check.CheckedProgram raise {
+  match outcome {
+    Checked(program) => program
+    NeedsInputs(_) => fail("fixture has missing inputs")
+    Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
   }
 }
 

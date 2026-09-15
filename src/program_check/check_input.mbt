@@ -49,7 +49,7 @@ pub fn check_parsed(
   environment : CheckEnvironment,
   supplied : @decode.Cursor?,
   limits : CheckLimits,
-) -> CheckedProgram raise LocalConstructionFailure {
+) -> CheckOutcome {
   check_parsed_with_evidence(program, environment, supplied, [], limits)
 }
 
@@ -63,7 +63,7 @@ pub fn check_document(
   limits : CheckLimits,
   format? : @syntax.Format = Auto,
   source_path? : String = "<memory>",
-) -> CheckedProgram raise LocalConstructionFailure {
+) -> CheckOutcome {
   check_document_with_evidence(
     document,
     environment,
@@ -86,14 +86,14 @@ pub fn check_document_with_evidence(
   limits : CheckLimits,
   format? : @syntax.Format = Auto,
   source_path? : String = "<memory>",
-) -> CheckedProgram raise LocalConstructionFailure {
+) -> CheckOutcome {
   if !compile_limits_valid(limits.compilation) {
-    raise InvalidLimits
+    return rejected(InvalidLimits)
   }
   let program = match
     @syntax.parse(document, limits.input, format~, source_path~) {
     Ok(program) => program
-    Err(issue) => raise Program(issue)
+    Err(issue) => return rejected(Program(issue))
   }
   check_parsed_with_evidence(program, environment, supplied, evidence, limits)
 }

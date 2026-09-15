@@ -14,6 +14,7 @@ formatter(
 
 import {
   "actql/actql/calendar_typing" @calendar,
+  "actql/actql/parameter_binding" @parameters,
   "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
   "actql/actql/event_typing" @event,
@@ -51,7 +52,6 @@ import {
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/source_request_slots" @slots,
-  "actql/actql/parameter_binding" @parameters,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/relation_schema" @schema,

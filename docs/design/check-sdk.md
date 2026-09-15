@@ -73,6 +73,21 @@ another operation. No suspended checker state or general resume protocol is
 required. Implementation gaps, contradictions and exhausted search budgets are
 not external evidence requests.
 
+For missing Parameter values, the request inventory retains the exact admitted
+declarations and their owner rather than collecting names and searching the
+Program again. Indexed readers expose the name, full Parameter type (including
+constraints), original declaration cursor and the admitted Program to which the
+request belongs. Reading a request does not copy the entire inventory or
+re-admit its contract. No partially bound value set is exposed.
+
+Binding validates supplied values even when another Parameter is missing:
+an invalid supplied value is a rejection, not a request response that can be
+accepted later. Additional values are ordinary untrusted inputs to a new check;
+there is no fulfillment flag, retained execution permission or resume position.
+A changed declaration is checked afresh, so a value valid for an earlier
+request does not bypass the current type or constraints. Rejected outcomes
+retain the original typed failure independently of request interpretation.
+
 Existing runtime obligations remain runtime obligations when their contracts
 permit that phase. A statically required fact cannot instead be deferred to
 execution. Runtime checks retain their subjects, phases, dependencies and

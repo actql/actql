@@ -46,6 +46,11 @@ pub fn has_default(value : Declaration) -> Bool {
 }
 
 ///|
+pub fn declaration_source(value : Declaration) -> @decode.Cursor {
+  value.source
+}
+
+///|
 pub enum Origin {
   Supplied
   Default
@@ -101,7 +106,8 @@ pub enum BindingResult {
 
 ///|
 struct MissingNames {
-  names : Array[String]
+  declarations : Declarations
+  entries : Array[Declaration]
   usage : (Int, Int)
 }
 
@@ -119,7 +125,24 @@ pub fn binding_usage(value : BindingResult) -> (Int, Int) {
 
 ///|
 pub fn missing_names(value : MissingNames) -> Array[String] {
-  value.names.copy()
+  value.entries.map(entry => entry.name)
+}
+
+///|
+/// Read retained missing declarations without copying the inventory or
+/// re-admitting their type contracts. These are not partially bound values.
+pub fn missing_count(value : MissingNames) -> Int {
+  value.entries.length()
+}
+
+///|
+pub fn missing_at(value : MissingNames, index : Int) -> Declaration? {
+  value.entries.get(index)
+}
+
+///|
+pub fn missing_declaration_owner(value : MissingNames) -> Declarations {
+  value.declarations
 }
 
 ///|

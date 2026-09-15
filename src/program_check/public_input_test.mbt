@@ -54,19 +54,18 @@ test "ordinary entries require no evidence inventory and reuse current Parameter
     max_string_bytes: 1,
     max_total_string_bytes: 1,
   }).unwrap()
-  let a = @program_check.check_document(
-    text,
-    environment,
-    Some(supplied),
-    limits,
-    format=Json,
-    source_path="fixture.actql",
+  let a = public_checked(
+    @program_check.check_document(
+      text,
+      environment,
+      Some(supplied),
+      limits,
+      format=Json,
+      source_path="fixture.actql",
+    ),
   )
-  let b = @program_check.check_parsed(
-    parsed,
-    environment,
-    Some(supplied),
-    limits,
+  let b = public_checked(
+    @program_check.check_parsed(parsed, environment, Some(supplied), limits),
   )
   for value in [a, b] {
     let stage = @context.program_identity_stage_at(
@@ -102,7 +101,11 @@ test "parsed entry enforces retained raw document bytes including trailing white
     format=Json,
     source_path="retained.actql",
   ).unwrap()
-  ignore(@program_check.check_parsed(parsed, environment, None, exact))
+  ignore(
+    public_checked(
+      @program_check.check_parsed(parsed, environment, None, exact),
+    ),
+  )
   let smaller = {
     ..exact,
     input: {
@@ -110,7 +113,11 @@ test "parsed entry enforces retained raw document bytes including trailing white
       source: { ..exact.input.source, max_input_bytes: text.length() + 2, },
     },
   }
-  try @program_check.check_parsed(parsed, environment, None, smaller) catch {
+  try
+    public_checked(
+      @program_check.check_parsed(parsed, environment, None, smaller),
+    )
+  catch {
     @program_check.LocalConstructionFailure::Program(
       RetentionLimit(InputBytes, source_path="retained.actql")
     ) => ()
@@ -119,13 +126,15 @@ test "parsed entry enforces retained raw document bytes including trailing white
     _ => fail("reuse bypassed the current document byte limit")
   }
   try
-    @program_check.check_document(
-      document,
-      environment,
-      None,
-      smaller,
-      format=Json,
-      source_path="retained.actql",
+    public_checked(
+      @program_check.check_document(
+        document,
+        environment,
+        None,
+        smaller,
+        format=Json,
+        source_path="retained.actql",
+      ),
     )
   catch {
     @program_check.LocalConstructionFailure::Program(Parse(issue)) => {
@@ -142,13 +151,15 @@ test "parsed entry enforces retained raw document bytes including trailing white
 test "input errors retain syntax locations and later checking cannot return partial success" {
   let (text, _, environment, _, limits) = public_input_fixture()
   try
-    @program_check.check_document(
-      "{",
-      environment,
-      None,
-      limits,
-      format=Json,
-      source_path="broken.actql",
+    public_checked(
+      @program_check.check_document(
+        "{",
+        environment,
+        None,
+        limits,
+        format=Json,
+        source_path="broken.actql",
+      ),
     )
   catch {
     @program_check.LocalConstructionFailure::Program(Parse(issue)) =>
@@ -162,12 +173,14 @@ test "input errors retain syntax locations and later checking cannot return part
     new="{\"derive\":{\"bad\":\"missing_column + 1\"},\"as\":\"selected\"}",
   )
   try
-    @program_check.check_document(
-      invalid,
-      environment,
-      None,
-      limits,
-      format=Json,
+    public_checked(
+      @program_check.check_document(
+        invalid,
+        environment,
+        None,
+        limits,
+        format=Json,
+      ),
     )
   catch {
     @program_check.LocalConstructionFailure::Source(_) => ()

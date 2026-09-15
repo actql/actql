@@ -9,6 +9,19 @@ pub fn check_parsed_with_evidence(
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
+) -> CheckOutcome {
+  checking_outcome(program, () => {
+    construct_parsed(program, environment, supplied, evidence, limits)
+  })
+}
+
+///|
+fn construct_parsed(
+  program : @syntax.Program,
+  environment : CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : CheckLimits,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if !compile_limits_valid(limits.compilation) {
     raise InvalidLimits

@@ -78,17 +78,28 @@ pub fn prepare_application(
   } else {
     []
   }
-  let checked = @program_check.check_parsed_with_evidence(
-    program,
-    @program_check.checking_environment(
-      environment,
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    ),
-    Some(cursor(parameter_json)),
-    evidence,
-    { input: input_limits, compilation: source_limits(10), },
-  )
+  let checked = match
+    @program_check.check_parsed_with_evidence(
+      program,
+      @program_check.checking_environment(
+        environment,
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+      ),
+      Some(cursor(parameter_json)),
+      evidence,
+      { input: input_limits, compilation: source_limits(10), },
+    ) {
+    Checked(value) => value
+    NeedsInputs(_) => fail("example requires complete checking inputs")
+    Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
+  }
   if @program_check.unit_count(checked) != stages {
     fail("example requires one unit per stage")
   }

@@ -111,7 +111,7 @@ pub fn bind(
       depth: limits.max_depth,
     }
     let entries : Array[BoundParameter] = []
-    let missing : Array[String] = []
+    let missing : Array[Declaration] = []
     for declaration in declarations.entries {
       let provided = match object {
         None => None
@@ -122,7 +122,7 @@ pub fn bind(
         None => declaration.default_cursor
       }
       match selected {
-        None => missing.push(declaration.name)
+        None => missing.push(declaration)
         Some(cursor) => {
           charge_text(declaration.name, cursor, budget)
           preflight(cursor, budget)
@@ -147,7 +147,7 @@ pub fn bind(
     if missing.is_empty() {
       Ok(Ready({ declarations, entries, usage, }))
     } else {
-      Ok(NeedsBindings({ names: missing, usage, }))
+      Ok(NeedsBindings({ declarations, entries: missing, usage, }))
     }
   } catch {
     Abort(issue) => Err(issue)
