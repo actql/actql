@@ -75,6 +75,22 @@ test('synchronous and asynchronous completion share private retained-output inst
   assert.doesNotMatch(api, /pub fn publish_task_completion\b/);
 });
 
+test('common synchronous dispatch has no Local connector or generated-sequence execution API', () => {
+  assert.ok(!imports('physical_strategy').includes('connectors/local'));
+  const source = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
+  assert.doesNotMatch(source, /@local_connector\b|generated_sequence_capacity\(/);
+  assert.match(source, /@connector\.execute_synchronous_compute\(compute\)/);
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /pub fn execute_captured_local_task\b/);
+  const signature = api.split('\n').find(line => line.startsWith('pub fn execute_captured_synchronous_task('));
+  assert.ok(signature);
+  assert.match(signature, /SynchronousCompute/);
+  assert.doesNotMatch(signature, /GeneratedSequence|SequenceExecutionLimits|Local/);
+  const sdk = readFileSync('src/connector_sdk/pkg.generated.mbti', 'utf8');
+  assert.match(sdk, /^type SynchronousCompute$/m);
+  assert.doesNotMatch(sdk, /(?:struct|enum) SynchronousCompute\b/);
+});
+
 test('concrete Compute capacity formula is owned and exported by its connector', () => {
   const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');

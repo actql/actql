@@ -64,6 +64,24 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
+Synchronous no-I/O Compute is supplied through the connector SDK's opaque
+`SynchronousCompute`. A trusted installed connector binds the exact selected
+candidate, typed private payload, physical capacity, join ceiling where needed,
+and executable operation. Binding does not evaluate inputs or grant task success.
+The common DAG checks candidate/input ownership and the selected envelope, then
+reserves capacity and a holding before invoking it. The operation is single-use
+and checks current input availability before calling the connector. Local owns
+its generated-sequence limits and execution; the common synchronous driver does
+not import Local or interpret its payload. Returned data must be an engine-owned
+`CompletedOutput`, not a success Bool, row array or caller-supplied CID.
+
+This is trusted connector-author wiring, not a callback accepted from a Program
+or an ordinary Host execution request. It cannot sandbox an arbitrary plugin in
+the same process. The no-I/O contract excludes network, DB, asynchronous cleanup
+and fresh reads; those require the asynchronous execution lifecycle. Conservative
+capacity declarations do not replace the request's logical guards or completion
+evidence checks.
+
 The common asynchronous task lifecycle owns the exact task reservation,
 and exposes transfer charging, settlement, completion and close through an opaque
 `TaskExecution`. The handle is created only by common start admission; it cannot

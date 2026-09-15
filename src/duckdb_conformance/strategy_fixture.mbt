@@ -449,14 +449,17 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
       is Proposed(choice) else {
       return false
     }
-    @strategy.execute_captured_local_task(
-      f.run.unwrap(),
-      task,
+    let compute = @local_connector.prepare_local_compute_execution(
       choice,
       candidate,
       issued_execution_limits(100),
       issued_native_measure_limits(),
-    )
+      join_output_ceiling=@strategy.captured_task_join_output_limit(
+        f.run.unwrap(),
+        task,
+      ).map(limit => (0, limit)),
+    ).unwrap()
+    @strategy.execute_captured_synchronous_task(f.run.unwrap(), task, compute)
     is Ok(_)
   } catch {
     _ => false

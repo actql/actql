@@ -28,6 +28,25 @@ CLI execution mode. Raw input, fresh source reads, asynchronous/in-flight
 cancellation, durable capture and formal Program/Plan admission are not supplied
 by this adapter. See [design](design/local-compute-attempt.md).
 
+## Compute inside a physical task graph
+
+The Local connector (`connectors/local`) provides
+`prepare_local_compute_execution(choice, prepared, limits, measurement, ...)` for
+an exactly selected Local candidate. It returns an opaque SDK
+`SynchronousCompute`; it neither runs the calculation nor reserves resources.
+Pass the handle to `physical_strategy.execute_captured_synchronous_task(run,
+task, compute)`. The common driver checks selection and input ownership, reserves
+the declared capacity, and installs a verified result with its holding atomically.
+For a join task, bind the checked ceiling returned by
+`captured_task_join_output_limit` to step zero when preparing the execution.
+
+The execution handle is one-shot. Revoked inputs are rejected before the
+implementation is called, and failure cannot publish a partial task result.
+The common DAG no longer has a Local-specific execution entry point. Its SDK
+contract is for trusted synchronous **no-I/O** implementations; it is not a way
+to register arbitrary execution callbacks through ordinary Host request options.
+This task-level entry does not authorize formal Program publication.
+
 ## Acquisition-internal residual building block
 
 The acquisition adapter belongs to `execution_query`, not the fixed-input

@@ -82,7 +82,7 @@ pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> 
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
 
-pub fn execute_captured_local_task(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
+pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 

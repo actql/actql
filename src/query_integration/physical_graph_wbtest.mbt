@@ -181,12 +181,22 @@ fn captured_graph_local(
     is Proposed(choice) else {
     abort("local candidate")
   }
-  @strategy.execute_captured_local_task(run, task, choice, prepared, limits, {
-    max_work: 10000,
-    max_bytes: 10000,
-    max_nodes: 10000,
-    max_depth: 100,
-  })
+  let compute = match
+    @local_connector.prepare_local_compute_execution(
+      choice,
+      prepared,
+      limits,
+      { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
+      join_output_ceiling=@strategy.captured_task_join_output_limit(run, task).map(limit => {
+          (0, limit)
+        },
+      ),
+    ) {
+    Ok(value) => value
+    Err(InvalidLimits) => return Err(Physical(InvalidLimits))
+    Err(issue) => return Err(Compute(issue))
+  }
+  @strategy.execute_captured_synchronous_task(run, task, compute)
 }
 
 ///|

@@ -290,13 +290,25 @@ pub fn execute_local_dispatch(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  @strategy.execute_captured_local_task(
+  let compute = match
+    @local_connector.prepare_local_compute_execution(
+      choice,
+      candidate,
+      dispatch.owner.limits.local_execution,
+      dispatch.owner.limits.guards,
+      join_output_ceiling=@strategy.captured_task_join_output_limit(
+        dispatch.owner.run,
+        dispatch.task,
+      ).map(limit => (0, limit)),
+    ) {
+    Ok(value) => value
+    Err(InvalidLimits) => return Err(Run(Physical(InvalidLimits)))
+    Err(issue) => return Err(Run(Compute(issue)))
+  }
+  @strategy.execute_captured_synchronous_task(
     dispatch.owner.run,
     dispatch.task,
-    choice,
-    candidate,
-    dispatch.owner.limits.local_execution,
-    dispatch.owner.limits.guards,
+    compute,
   ).map_err(issue => Run(issue))
 }
 

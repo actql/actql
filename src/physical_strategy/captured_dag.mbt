@@ -335,14 +335,11 @@ pub fn captured_task_input(
 
 ///|
 /// No callback can inject arbitrary CompletedOutput as a task success.
-/// Choice, request and generated sequence are verified before existing execution.
-pub fn execute_captured_local_task(
+/// The selected synchronous realization supplies execution, never a backend tag.
+pub fn execute_captured_synchronous_task(
   run : CapturedDAG,
   task : Int,
-  choice : @connector.FixedComputeChoice,
-  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
-  limits : @execution.SequenceExecutionLimits,
-  measurement : @execution.FixedInputGuardMeasureLimits,
+  compute : @connector.SynchronousCompute,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -351,26 +348,29 @@ pub fn execute_captured_local_task(
     return Err(NotReady)
   }
   let request = @connector.fixed_compute_candidate_request(
-    @connector.prepared_compute_candidate(prepared),
+    @connector.synchronous_compute_candidate(compute),
   )
   if !strategy_candidate_matches(
       run,
       task,
-      @connector.prepared_compute_candidate(prepared),
+      @connector.synchronous_compute_candidate(compute),
     ) {
     return Err(ForeignCandidate)
   }
   if !captured_request_inputs_match(run, task, request) {
     return Err(ForeignCandidate)
   }
-  guard @connector.fixed_compute_choice_payload(choice, prepared)
-    is Some(generated) else {
+  if !@connector.synchronous_compute_available(compute) {
     return Err(Compute(NotSelected))
   }
-  guard @execution.generated_sequence_capacity(generated, limits, measurement)
-    is Some(capacity) else {
-    return Err(Physical(InvalidLimits))
+  if captured_task_join_output_limit(run, task) is Some(required) {
+    guard @connector.synchronous_compute_join_output_ceiling(compute)
+      is Some((0, actual)) &&
+      actual <= required else {
+      return Err(ForeignCandidate)
+    }
   }
+  let capacity = @connector.synchronous_compute_capacity(compute)
   if strategy_task_envelope(run, task) is Some(selected) &&
     (
       capacity.retained_bytes > selected.retained_bytes ||
@@ -402,24 +402,8 @@ pub fn execute_captured_local_task(
       return Err(Physical(issue))
     }
   }
-  match
-    @local_connector.execute_local_fixed_compute(
-      choice,
-      prepared,
-      limits,
-      measurement~,
-      join_output_ceiling=run.join_limits[task].map(limit => {
-        (0, @derivation.minimum_value(@witness.limit_minimum(limit)))
-      }),
-    ) {
-    Ok(completed) => {
-      guard captured_task_target(run, task) is Some(target) &&
-        @execution.completed_output(completed, target) is Some(output) else {
-        @resources.release_allocation(run.ledger, holding) |> ignore
-        @resources.settle_reservation(run.ledger, reservation) |> ignore
-        fail_captured_task(run, task, MissingOutput)
-        return Err(MissingOutput)
-      }
+  match @connector.execute_synchronous_compute(compute) {
+    Ok(output) => {
       match
         publish_task_completion(run, task, output, holding, MissingOutput, _ => {
           Ok(())
@@ -436,10 +420,14 @@ pub fn execute_captured_local_task(
       Ok(())
     }
     Err(issue) => {
+      let failure : RunIssue = match issue {
+        Compute(issue) => Compute(issue)
+        MissingOutput => MissingOutput
+      }
       @resources.release_allocation(run.ledger, holding) |> ignore
       @resources.settle_reservation(run.ledger, reservation) |> ignore
-      fail_captured_task(run, task, Compute(issue))
-      Err(Compute(issue))
+      fail_captured_task(run, task, failure)
+      Err(failure)
     }
   }
 }

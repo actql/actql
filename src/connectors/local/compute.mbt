@@ -29,6 +29,64 @@ pub fn local_fixed_compute_candidate(
 }
 
 ///|
+/// Prepare this connector's execution and capacity without running admission or
+/// calculation. The common task driver owns reservation and success publication.
+pub fn prepare_local_compute_execution(
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  join_output_ceiling? : (Int, Int64)? = None,
+) -> Result[@connector.SynchronousCompute, @connector.FixedComputeIssue] {
+  guard @connector.fixed_compute_choice_payload(choice, prepared)
+    is Some(sequence) else {
+    return Err(NotSelected)
+  }
+  guard @execution.generated_sequence_capacity(sequence, limits, measurement)
+    is Some(capacity) else {
+    return Err(InvalidLimits)
+  }
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
+  )
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+  )
+  let count = @pipeline.step_count(pipeline)
+  let target : @pipeline.Target = if count == 0 {
+    Input(0)
+  } else {
+    Step(count - 1)
+  }
+  @connector.bind_synchronous_compute(
+    choice,
+    prepared,
+    {
+      retained_bytes: capacity.retained_bytes,
+      execution_bytes: capacity.execution_bytes,
+    },
+    join_output_ceiling,
+    fn(_sequence) {
+      match
+        execute_local_fixed_compute(
+          choice,
+          prepared,
+          limits,
+          measurement~,
+          join_output_ceiling~,
+        ) {
+        Err(issue) => Err(Compute(issue))
+        Ok(completed) =>
+          match @execution.completed_output(completed, target) {
+            Some(output) => Ok(output)
+            None => Err(MissingOutput)
+          }
+      }
+    },
+  )
+}
+
+///|
 pub fn execute_local_fixed_compute(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@execution.GeneratedSequence],

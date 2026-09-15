@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
+pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, (Int, Int64)?, (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
+
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 
 pub fn[T] capability_implementation(CapabilityImplementations[T], CapabilityRegistration) -> T?
@@ -23,6 +25,8 @@ pub fn capability_registration_matches(CapabilityRegistration, CapabilityRegistr
 pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
 
 pub fn close_capability_registry(CapabilityRegistry) -> Unit
+
+pub fn execute_synchronous_compute(SynchronousCompute) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]
 
 pub fn fixed_compute_candidate_duration(FixedComputeCandidate) -> @physical_cost.DurationEstimate
 
@@ -53,6 +57,14 @@ pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Re
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
+
+pub fn synchronous_compute_available(SynchronousCompute) -> Bool
+
+pub fn synchronous_compute_candidate(SynchronousCompute) -> FixedComputeCandidate
+
+pub fn synchronous_compute_capacity(SynchronousCompute) -> SynchronousComputeCapacity
+
+pub fn synchronous_compute_join_output_ceiling(SynchronousCompute) -> (Int, Int64)?
 
 pub fn valid_quantity(Int64?) -> Bool
 
@@ -133,6 +145,18 @@ pub(all) struct QueryQuantities {
   transfer_bytes : Int64?
   retained_bytes : Int64?
   money_units : Int64?
+}
+
+type SynchronousCompute
+
+pub(all) struct SynchronousComputeCapacity {
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
+
+pub(all) enum SynchronousComputeFailure {
+  Compute(FixedComputeIssue)
+  MissingOutput
 }
 
 // Type aliases
