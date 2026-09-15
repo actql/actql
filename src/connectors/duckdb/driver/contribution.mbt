@@ -1,4 +1,11 @@
 ///|
+pub fn duckdb_dispatch_registration(
+  installed : DuckDBDispatchModule,
+) -> @connector.CapabilityRegistration {
+  installed.registration
+}
+
+///|
 /// The connector, rather than composition, pairs preparation and proposal for
 /// its exact installed module. These callbacks do not execute transport.
 pub fn[E] duckdb_compute_contribution(

@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors_builtin"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/physical_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_duckdb? : (@actql/actql/connectors/duckdb/driver.DuckDBDispatchModule, (@actql/actql/connectors/duckdb/driver.DuckDBDispatchIssue) -> E, (@actql/actql/connectors/duckdb/driver.DuckDBEstimateIssue) -> E)?, with_local? : (@actql/actql/connectors/local/driver.LocalDispatchModule, (@actql/actql/connectors/local/driver.LocalDispatchIssue) -> E, (@actql/actql/connectors/local/driver.LocalEstimateIssue) -> E)?, with_reference_compute? : (@actql/actql/connectors/reference_compute/driver.NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

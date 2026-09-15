@@ -1,0 +1,8 @@
+{
+  "package": "actql/actql/connectors/duckdb/driver",
+  "module": "DuckDBDispatchModule",
+  "registration": "duckdb_dispatch_registration",
+  "contribution": "duckdb_compute_contribution",
+  "dispatch_error": {"package": "actql/actql/connectors/duckdb/driver", "type": "DuckDBDispatchIssue"},
+  "estimate_error": {"package": "actql/actql/connectors/duckdb/driver", "type": "DuckDBEstimateIssue"}
+}

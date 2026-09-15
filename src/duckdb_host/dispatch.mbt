@@ -107,23 +107,15 @@ pub fn configure_strategy_dispatch(
     Err(_) => return Err(InvalidConfiguration)
   }
   let contributions = match
-    @connector.install_capability_implementations(
+    @builtin.assemble_compute_contributions(
       registry,
-      [
-        (
-          local_registration,
-          @local_driver.local_compute_contribution(
-            local_module, local_dispatch_issue, local_estimate_issue,
-          ),
-        ),
-        (
-          native_registration,
-          @duckdb_driver.duckdb_compute_contribution(
-            native_module, duckdb_dispatch_issue, duckdb_estimate_issue,
-          ),
-        ),
-      ],
       2,
+      with_local=Some(
+        (local_module, local_dispatch_issue, local_estimate_issue),
+      ),
+      with_duckdb=Some(
+        (native_module, duckdb_dispatch_issue, duckdb_estimate_issue),
+      ),
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)

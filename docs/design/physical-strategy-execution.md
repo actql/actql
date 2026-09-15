@@ -732,6 +732,15 @@ but does not construct the callbacks independently. Realization-specific static
 exclusions, including their display labels, are supplied by the owning connector;
 the Host does not infer a second realization from a backend-specific profile flag.
 
+Typed Compute composition is generated in `connectors_builtin` from declarations
+owned by connector packages. The standard composition and the independent numeric
+integration use the same assembly entrypoint; common Host and planner packages
+do not import this concrete composition root. Its optional typed module arguments
+select an immutable implementation subset, and all entries are validated by the
+SDK. Registry order, rather than manifest file order, determines the resulting
+entry order. Connector-specific module construction is distinct from this pure
+registration step and does not become resource creation or dispatch permission.
+
 `physical_host.AdaptiveDispatch` owns cardinality propagation, the immutable
 proposal installation and bounded refresh history independently of connector
 configuration. It obtains initial statistics from the exact captured DAG and

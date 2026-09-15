@@ -1,4 +1,11 @@
 ///|
+pub fn local_dispatch_registration(
+  installed : LocalDispatchModule,
+) -> @connector.CapabilityRegistration {
+  installed.registration
+}
+
+///|
 /// Both pure entrypoints close over the same installed implementation. Error
 /// projection is diagnostic only; it cannot supply work or completion evidence.
 pub fn[E] local_compute_contribution(

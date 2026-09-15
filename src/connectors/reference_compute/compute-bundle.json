@@ -1,0 +1,8 @@
+{
+  "package": "actql/actql/connectors/reference_compute/driver",
+  "module": "NumericComputeContribution",
+  "registration": "numeric_contribution_registration",
+  "contribution": "numeric_compute_contribution",
+  "dispatch_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"},
+  "estimate_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"}
+}

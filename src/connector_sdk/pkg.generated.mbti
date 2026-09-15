@@ -56,7 +56,7 @@ pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.Bo
 
 pub fn[A, C] install_bundles(Array[CapabilityBundle[A, C]], Int, Int) -> Result[InstalledBundles[A, C], CapabilityRegistrationIssue]
 
-pub fn[T] install_capability_implementations(CapabilityRegistry, Array[(CapabilityRegistration, T)], Int) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue]
+pub fn[T] install_capability_implementations(CapabilityRegistry, Array[(CapabilityRegistration, T)], Int, registry_order? : Bool) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue]
 
 pub fn[A, C] installed_acquisition_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[A]
 

@@ -20,10 +20,13 @@ pub(all) enum CapabilityInstallationIssue {
 /// Pure installation of an explicit subset of this Host's registrations. An
 /// absent entry means this installation does not provide that operation. This
 /// neither calls implementations nor grants source or execution authority.
+/// Generated composition can request registry order so file enumeration does
+/// not become Host preference. The default preserves the supplied entry order.
 pub fn[T] install_capability_implementations(
   registry : CapabilityRegistry,
   entries : Array[(CapabilityRegistration, T)],
   max_entries : Int,
+  registry_order? : Bool = false,
 ) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue] {
   if max_entries < 0 {
     return Err(InvalidLimits)
@@ -46,7 +49,11 @@ pub fn[T] install_capability_implementations(
     }
     seen[registration.position] = true
   }
-  Ok({ registry, entries: entries.copy(), })
+  let owned = entries.copy()
+  if registry_order {
+    owned.sort_by((left, right) => left.0.position.compare(right.0.position))
+  }
+  Ok({ registry, entries: owned, })
 }
 
 ///|

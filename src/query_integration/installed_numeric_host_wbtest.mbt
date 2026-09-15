@@ -5,6 +5,8 @@ test "independent numeric and Local bundles use the same installed Host without 
     let driver = @host_driver.open_dispatch_driver(run)
     let generated = dispatch_test_generated(run)
     let limits = dispatch_test_limits()
+    let mut numeric_installation = None
+    let mut local_installation = None
     let measurement : @execution.FixedInputGuardMeasureLimits = {
       max_work: 100,
       max_bytes: 100,
@@ -15,21 +17,9 @@ test "independent numeric and Local bundles use the same installed Host without 
       @connector.CapabilityBundle[
         Unit,
         (
-          (
-            Unit,
-            Int,
-            @strategy.StrategyRevision,
-            @connector.FixedComputeRequest,
-          ) -> Result[@host_driver.DispatchWork, @strategy.RunIssue],
-          (
-            @host_driver.DispatchHost[Unit, @strategy.RunIssue],
-            @host_driver.PreparedTaskDispatch,
-          ) -> Result[Unit, @strategy.RunIssue],
-          (Unit, Int, @host_driver.TaskEstimateQuantities) -> Result[
-            Array[@strategy.TaskOffer],
-            @strategy.RunIssue,
-          ],
-        ),
+          @host_driver.DispatchHost[Unit, @strategy.RunIssue],
+          @host_driver.PreparedTaskDispatch,
+        ) -> Result[Unit, @strategy.RunIssue],
       ],
     ] = [
       {
@@ -56,46 +46,33 @@ test "independent numeric and Local bundles use the same installed Host without 
             },
             limits.native_query.expressions,
           ).unwrap()
-          (
-            fn(_context, task, revision, request) {
-              @reference_driver.prepare_numeric_dispatch(
-                implementation, task, revision, request,
-              )
-            },
-            fn(host, task) {
-              let (attempt, execution) = @reference_driver.start_numeric_dispatch(
-                implementation, host, task,
-              ).unwrap()
-              if cancel {
-                @strategy.close_task_execution(run, execution)
-                assert_true(
-                  @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
-                  0L,
-                ) catch {
-                  _ => abort("reservation released before settlement")
-                }
-                @strategy.settle_task_execution(run, execution, true).unwrap()
-                Err(@strategy.RunIssue::Stopped)
-              } else {
-                @reference_compute.execute_numeric_attempt(attempt).unwrap()
-                @strategy.settle_task_execution(run, execution, true).unwrap()
-                @strategy.complete_task_execution(run, execution)
-              }
-            },
-            fn(_context, task, _quantities) {
-              @reference_driver.estimate_numeric_dispatch_offer(
-                implementation,
-                task,
-                Some(1L),
-                100,
-              ).map(offer => {
-                match offer {
-                  Some(value) => [value]
-                  None => []
-                }
-              })
-            },
+          numeric_installation = Some(
+            @reference_driver.prepare_numeric_contribution(
+              implementation,
+              Some(1L),
+              100,
+            ).unwrap(),
           )
+          fn(host, task) {
+            let (attempt, execution) = @reference_driver.start_numeric_dispatch(
+              implementation, host, task,
+            ).unwrap()
+            if cancel {
+              @strategy.close_task_execution(run, execution)
+              assert_true(
+                @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+                0L,
+              ) catch {
+                _ => abort("reservation released before settlement")
+              }
+              @strategy.settle_task_execution(run, execution, true).unwrap()
+              Err(@strategy.RunIssue::Stopped)
+            } else {
+              @reference_compute.execute_numeric_attempt(attempt).unwrap()
+              @strategy.settle_task_execution(run, execution, true).unwrap()
+              @strategy.complete_task_execution(run, execution)
+            }
+          }
         }),
       },
       {
@@ -111,29 +88,24 @@ test "independent numeric and Local bundles use the same installed Host without 
             limits.guards,
             limits.candidate_work,
           ).unwrap()
-          (
-            fn(_context, task, revision, request) {
-              @local_driver.prepare_local_dispatch(
-                implementation, task, revision, request,
-              ).map_err(_ => @strategy.RunIssue::ForeignCandidate)
-            },
-            fn(host, task) {
-              @local_driver.execute_local_dispatch(implementation, host, task).map_err(_ => {
-                  @strategy.RunIssue::ForeignCandidate
-                },
-              )
-            },
-            fn(_context, task, _quantities) {
-              @local_driver.estimate_local_dispatch_offer(
-                implementation,
-                task,
-                [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
-                100,
-              )
-              .map(offer => [offer])
-              .map_err(_ => @strategy.RunIssue::ForeignCandidate)
-            },
-          )
+          let estimates = @local_driver.prepare_local_estimate_module(
+            implementation,
+            connector_test_schedules(
+              @local_driver.local_dispatch_work_slots(),
+              10L,
+            ),
+            1000,
+          ).unwrap()
+          @local_driver.install_local_dispatch_estimates(
+            implementation, estimates,
+          ).unwrap()
+          local_installation = Some(implementation)
+          fn(host, task) {
+            @local_driver.execute_local_dispatch(implementation, host, task).map_err(_ => {
+                @strategy.RunIssue::ForeignCandidate
+              },
+            )
+          }
         }),
       },
     ]
@@ -141,13 +113,39 @@ test "independent numeric and Local bundles use the same installed Host without 
     manifest.clear()
     let registry = @connector.installed_bundle_registry(installed)
     let entries = @connector.installed_compute_implementations(installed)
-    let contributions = @connector.project_capability_implementations(
-      entries,
-      entry => @host_driver.ComputeContribution::{
-        prepare: entry.0,
-        propose: entry.2,
-      },
+    let local_entry = Some(
+      (
+        local_installation.unwrap(),
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    )
+    let numeric_entry = Some(
+      (numeric_installation.unwrap(), issue => issue, issue => issue),
+    )
+    assert_true(
+      @builtin.assemble_compute_contributions(
+        registry,
+        1,
+        with_local=local_entry,
+        with_reference_compute=numeric_entry,
+      )
+      is Err(EntryLimit),
+    )
+    assert_true(
+      @builtin.assemble_compute_contributions(
+        search_registry(),
+        2,
+        with_local=local_entry,
+        with_reference_compute=numeric_entry,
+      )
+      is Err(ForeignRegistration(_)),
+    )
+    let contributions = @builtin.assemble_compute_contributions(
+      registry,
       2,
+      with_local=local_entry,
+      with_reference_compute=numeric_entry,
     ).unwrap()
     let preparations = @connector.project_capability_implementations(
       contributions,
@@ -202,7 +200,7 @@ test "independent numeric and Local bundles use the same installed Host without 
         @host_driver.prepared_task_registration(task),
       ).unwrap()
       dispatched += 1
-      match (implementation.1)(host, task) {
+      match implementation(host, task) {
         Ok(_) => @host_driver.refresh_adaptive_dispatch(policy).unwrap()
         Err(_) => {
           @host_driver.stop_dispatch_driver(driver)

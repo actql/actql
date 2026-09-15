@@ -1,4 +1,45 @@
 ///|
+test "generated assembly registry ordering preserves Host preference and input ownership" {
+  let registry = installation_registry()
+  let first = capability_registration_at(registry, 0).unwrap()
+  let third = capability_registration_at(registry, 2).unwrap()
+  let input = [(third, 30), (first, 10)]
+  let installed = install_capability_implementations(
+    registry,
+    input,
+    2,
+    registry_order=true,
+  ).unwrap()
+  assert_true(physical_equal(input[0].0, third))
+  let order = capability_implementation_registrations(installed, 2).unwrap()
+  assert_true(physical_equal(order[0], first))
+  assert_true(physical_equal(order[1], third))
+  assert_eq(capability_implementation(installed, first), Some(10))
+  input.clear()
+  assert_eq(capability_implementation(installed, third), Some(30))
+  assert_true(
+    install_capability_implementations(
+      registry,
+      [(third, 1), (third, 2)],
+      2,
+      registry_order=true,
+    )
+    is Err(DuplicateRegistration(1)),
+  )
+  assert_true(
+    install_capability_implementations(
+      registry,
+      [(third, 1), (first, 2)],
+      1,
+      registry_order=true,
+    )
+    is Err(EntryLimit),
+  )
+  close_capability_registry(registry)
+  assert_true(capability_implementation(installed, first) is None)
+}
+
+///|
 fn installation_registry() -> CapabilityRegistry {
   prepare_capability_registry(
     [

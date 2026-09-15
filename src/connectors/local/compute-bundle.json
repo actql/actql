@@ -1,0 +1,8 @@
+{
+  "package": "actql/actql/connectors/local/driver",
+  "module": "LocalDispatchModule",
+  "registration": "local_dispatch_registration",
+  "contribution": "local_compute_contribution",
+  "dispatch_error": {"package": "actql/actql/connectors/local/driver", "type": "LocalDispatchIssue"},
+  "estimate_error": {"package": "actql/actql/connectors/local/driver", "type": "LocalEstimateIssue"}
+}
