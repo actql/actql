@@ -3,8 +3,8 @@ package "actql/actql/connectors/duckdb/compute"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/adapter",
   "actql/actql/decode_core",
-  "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
@@ -13,29 +13,29 @@ import {
 // Values
 pub fn abort_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
-pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[Unit, DuckDBComputeIssue]
+pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @adapter.PhysicalType)]) -> Result[Unit, DuckDBComputeIssue]
 
 pub fn bind_duckdb_dispatch_candidate(DuckDBDispatchPreparation) -> Result[DuckDBSelectedCompute, DuckDBDispatchIssue]
 
-pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.CompletedOutput) -> Result[@duckdb_adapter.ResidentImport, DuckDBResidentOutputIssue]
+pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.CompletedOutput) -> Result[@adapter.ResidentImport, DuckDBResidentOutputIssue]
 
 pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
 pub fn complete_duckdb_compute_attempt(DuckDBComputeAttempt) -> Result[@execution_relation.CompletedOutput, DuckDBComputeIssue]
 
-pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @duckdb_adapter.FixedCompute, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
+pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.FixedCompute, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
-pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @duckdb_adapter.FixedCompute
+pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @adapter.FixedCompute
 
-pub fn duckdb_compute_static_rejection(@lowering_relation.BoundPrepared, @connector_sdk.FixedComputeCapacity, @duckdb_adapter.NativeQueryLimits) -> String?
+pub fn duckdb_compute_static_rejection(@lowering_relation.BoundPrepared, @connector_sdk.FixedComputeCapacity, @adapter.NativeQueryLimits) -> String?
 
 pub fn duckdb_dispatch_preflight_work(DuckDBDispatchPreparation) -> Int?
 
-pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
+pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
-pub fn duckdb_resident_output_cleanup(DuckDBResidentOutput, @duckdb_adapter.ResidentImport) -> Result[String, @duckdb_adapter.NativeQueryIssue]
+pub fn duckdb_resident_output_cleanup(DuckDBResidentOutput, @adapter.ResidentImport) -> Result[String, @adapter.NativeQueryIssue]
 
-pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @duckdb_adapter.ResidentQuery
+pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @adapter.ResidentQuery
 
 pub fn duckdb_resident_read_bytes(DuckDBResidentRead, Int) -> Int?
 
@@ -43,25 +43,25 @@ pub fn duckdb_resident_read_sql(DuckDBResidentRead) -> String
 
 pub fn duckdb_resident_static_rejection(@lowering_relation.BoundPrepared) -> String?
 
-pub fn duckdb_selected_compute_candidate(DuckDBSelectedCompute) -> @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute]
+pub fn duckdb_selected_compute_candidate(DuckDBSelectedCompute) -> @connector_sdk.PreparedCompute[@adapter.FixedCompute]
 
 pub fn duckdb_selected_compute_choice(DuckDBSelectedCompute) -> @connector_sdk.FixedComputeChoice
 
 pub fn duckdb_task_retention_capacity(DuckDBComputeLimits) -> Int64?
 
-pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
+pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @adapter.TransportColumnLimits) -> Int64?
 
 pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDBComputeIssue]
 
-pub fn prepare_duckdb_dispatch_candidate(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @duckdb_adapter.NativeQueryLimits, @execution_relation.FixedJoinValidationLimits, Int64?, Int) -> Result[DuckDBDispatchPreparation, DuckDBComputeCandidateIssue]
+pub fn prepare_duckdb_dispatch_candidate(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.NativeQueryLimits, @execution_relation.FixedJoinValidationLimits, Int64?, Int) -> Result[DuckDBDispatchPreparation, DuckDBComputeCandidateIssue]
 
-pub fn prepare_duckdb_resident_output(@duckdb_adapter.FixedQuery, Int, DuckDBComputeLimits, Int) -> Result[DuckDBResidentOutput, @duckdb_adapter.NativeQueryIssue]
+pub fn prepare_duckdb_resident_output(@adapter.FixedQuery, Int, DuckDBComputeLimits, Int) -> Result[DuckDBResidentOutput, @adapter.NativeQueryIssue]
 
-pub fn prepare_duckdb_resident_read(@duckdb_adapter.ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[DuckDBResidentRead, @duckdb_adapter.NativeQueryIssue]
+pub fn prepare_duckdb_resident_read(@adapter.ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[DuckDBResidentRead, @adapter.NativeQueryIssue]
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
-pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
+pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
 
 // Errors
 
@@ -70,8 +70,8 @@ type DuckDBComputeAttempt
 
 pub(all) enum DuckDBComputeCandidateIssue {
   Request(@connector_sdk.FixedComputeIssue)
-  Compilation(@duckdb_adapter.NativeQueryIssue)
-  JoinPreparation(@duckdb_adapter.FixedJoinInputIssue)
+  Compilation(@adapter.NativeQueryIssue)
+  JoinPreparation(@adapter.FixedJoinInputIssue)
 }
 
 pub(all) enum DuckDBComputeIssue {
@@ -81,15 +81,15 @@ pub(all) enum DuckDBComputeIssue {
   UnverifiedTransport
   Guard(@execution_relation.FixedInputGuardIssue)
   JoinValidation(@execution_relation.RowIssue)
-  Receiving(@duckdb_adapter.FixedComputeReceivingIssue)
-  Demand(@duckdb_adapter.NativeDemandIssue)
+  Receiving(@adapter.FixedComputeReceivingIssue)
+  Demand(@adapter.NativeDemandIssue)
   Completion(@execution_relation.TrustedOutputIssue)
 }
 
 pub(all) struct DuckDBComputeLimits {
   values : @execution_relation.FixedInputGuardMeasureLimits
   demand : @execution_relation.FixedInputGuardMeasureLimits
-  physical : @duckdb_adapter.PhysicalResultLimits
+  physical : @adapter.PhysicalResultLimits
   retention : @execution_relation.ValueLimits
   metadata_work : Int
   completion_entries : Int
@@ -108,7 +108,7 @@ type DuckDBResidentOutput
 
 pub(all) enum DuckDBResidentOutputIssue {
   Read(@execution_relation.ProducerReadIssue)
-  Preparation(@duckdb_adapter.NativeQueryIssue)
+  Preparation(@adapter.NativeQueryIssue)
 }
 
 type DuckDBResidentRead

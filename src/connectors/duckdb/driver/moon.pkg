@@ -4,6 +4,6 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/connectors/duckdb/compute",
 }

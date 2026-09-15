@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/duckdb_adapter"
+package "actql/actql/connectors/duckdb/adapter"
 
 import {
   "actql/actql/decode_core",

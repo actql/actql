@@ -3,8 +3,8 @@ package "actql/actql/physical_strategy"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
-  "actql/actql/duckdb_adapter",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -42,7 +42,7 @@ pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
 pub fn captured_resident_cleanup_sql(CapturedDAG, TaskExecution) -> Result[Array[String], RunIssue]
 
-pub fn captured_resident_query(CapturedDAG, TaskExecution) -> @duckdb_adapter.ResidentQuery?
+pub fn captured_resident_query(CapturedDAG, TaskExecution) -> @adapter.ResidentQuery?
 
 pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceStatistics?
 
@@ -102,9 +102,9 @@ pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, @physi
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
-pub fn prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], ResidentInputs, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Result[ResidentExecution, RunIssue]
+pub fn prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], ResidentInputs, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits) -> Result[ResidentExecution, RunIssue]
 
-pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @duckdb_adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
+pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
 
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
@@ -128,7 +128,7 @@ pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.Prod
 
 pub fn resident_table_at(CapturedDAG, ResidentEnvironment, Int) -> ResidentTable?
 
-pub fn resident_table_import(ResidentTable) -> @duckdb_adapter.ResidentImport
+pub fn resident_table_import(ResidentTable) -> @adapter.ResidentImport
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
@@ -244,7 +244,7 @@ pub(all) enum RunIssue {
   Read(@execution_relation.ProducerReadIssue)
   Compute(@connector_sdk.FixedComputeIssue)
   DuckDB(@compute.DuckDBComputeIssue)
-  NativePreparation(@duckdb_adapter.NativeQueryIssue)
+  NativePreparation(@adapter.NativeQueryIssue)
   Physical(@physical_resources.LedgerIssue)
 }
 

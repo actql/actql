@@ -10,7 +10,7 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/canonical_json" @identity,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/duckdb_host" @dbhost,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,

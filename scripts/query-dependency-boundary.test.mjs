@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
-import {readFileSync, readdirSync} from 'node:fs';
+import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import test from 'node:test';
 
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
+
+test('DuckDB SQL and physical values belong to the connector package group', () => {
+  assert.ok(!existsSync('src/duckdb_adapter/moon.pkg'));
+  for (const file of ['count_group_query.mbt', 'inner_join_query.mbt',
+    'native_query.mbt', 'physical_values.mbt', 'resident_query.mbt']) {
+    assert.ok(existsSync(`src/connectors/duckdb/adapter/${file}`), file);
+  }
+  for (const pkg of ['connectors/duckdb/compute', 'connectors/duckdb/driver']) {
+    assert.ok(imports(pkg).includes('connectors/duckdb/adapter'));
+    assert.ok(!imports(pkg).includes('duckdb_adapter'));
+  }
+});
 
 const dependencies = name => {
   const seen = new Set();

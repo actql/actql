@@ -8,7 +8,7 @@ import {
   "actql/actql/physical_resources" @resources,
   "actql/actql/duckdb_host" @host,
   "actql/actql/query_planning" @planning,
-  "actql/actql/duckdb_adapter" @duckdb,
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/decode_core" @decode,

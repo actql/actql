@@ -2,7 +2,7 @@
 package "actql/actql/duckdb_conformance"
 
 import {
-  "actql/actql/duckdb_adapter",
+  "actql/actql/connectors/duckdb/adapter",
   "actql/actql/duckdb_host",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -12,9 +12,9 @@ import {
 }
 
 // Values
-pub fn accept(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort, Int, String) -> Bool
+pub fn accept(@adapter.NativeReceiving, @adapter.NativeReceiptPort, Int, String) -> Bool
 
-pub fn begin(@duckdb_adapter.NativeReceiving, Int, String) -> @duckdb_adapter.NativeReceiptPort
+pub fn begin(@adapter.NativeReceiving, Int, String) -> @adapter.NativeReceiptPort
 
 pub fn broad_accept(BroadFixture, Int, String) -> Bool
 
@@ -36,15 +36,15 @@ pub fn broad_residual(BroadFixture, String, String, String, Int) -> String
 
 pub fn broad_sql(BroadFixture, Bool) -> String
 
-pub fn cancel(@duckdb_adapter.NativeReceiving) -> Unit
+pub fn cancel(@adapter.NativeReceiving) -> Unit
 
-pub fn create() -> @duckdb_adapter.NativeReceiving
+pub fn create() -> @adapter.NativeReceiving
 
-pub fn create_guarded(Int, Int, Int) -> @duckdb_adapter.NativeReceiving
+pub fn create_guarded(Int, Int, Int) -> @adapter.NativeReceiving
 
-pub fn demand_usage(@duckdb_adapter.NativeReceiving) -> String
+pub fn demand_usage(@adapter.NativeReceiving) -> String
 
-pub fn finish(@duckdb_adapter.NativeReceiving, @duckdb_adapter.NativeReceiptPort) -> Bool
+pub fn finish(@adapter.NativeReceiving, @adapter.NativeReceiptPort) -> Bool
 
 pub fn issued_broad_abort(IssuedBroadFixture) -> Unit
 
@@ -124,7 +124,7 @@ pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_verify(IssuedNativeFixture) -> Bool
 
-pub fn metadata(@duckdb_adapter.NativeReceiving, Int, String, String) -> Bool
+pub fn metadata(@adapter.NativeReceiving, Int, String, String) -> Bool
 
 pub fn owned_count_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
 
@@ -156,13 +156,13 @@ pub fn owned_fixed_sql(OwnedFixedFixture, Int) -> String
 
 pub fn owned_join_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
 
-pub fn parameter(@duckdb_adapter.NativeReceiving, Int, Int) -> String
+pub fn parameter(@adapter.NativeReceiving, Int, Int) -> String
 
-pub fn ready(@duckdb_adapter.NativeReceiving) -> Bool
+pub fn ready(@adapter.NativeReceiving) -> Bool
 
-pub fn receipt_identities(@duckdb_adapter.NativeReceiving) -> String
+pub fn receipt_identities(@adapter.NativeReceiving) -> String
 
-pub fn sql(@duckdb_adapter.NativeReceiving, Int) -> String
+pub fn sql(@adapter.NativeReceiving, Int) -> String
 
 pub fn strategy_fixture_accounted(StrategyFixture) -> StrategyFixture
 

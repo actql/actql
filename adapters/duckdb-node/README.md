@@ -764,7 +764,7 @@ bytes/nodes/columns/rows, preserves decomposed Unicode and CRLF, and returns typ
 errors for malformed frames. It is a per-frame transport check, not a replacement
 for cumulative receiving limits or value admission. The conformance wrappers now
 use this same decoder; only their fixed test setup unwraps failures.
-The MoonBit `duckdb_adapter` also emits exact prepared parameters from admitted
+The MoonBit `connectors/duckdb/adapter` also emits exact prepared parameters from admitted
 scalar values for fixed-input import.
 
 The transport-byte ledger measures UTF-8 JSON frames for parameter arrays, field

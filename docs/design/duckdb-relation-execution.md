@@ -41,7 +41,7 @@ distribution decision for the final Local Host.
 
 `query_planning.prepare_duckdb_query` retains the exact `QueryRequirement` and
 derives provider scan/native preparations from its owned query sequence. SQL
-generation and comparison rules remain in `duckdb_adapter`; this connection
+generation and comparison rules remain in `connectors/duckdb/adapter`; this connection
 does not rederive a canonical acquisition or grant access to a database path.
 The separately selected broad residual consumes the requirement's output-row
 and value-byte guards through the existing query execution boundary. Equivalent
