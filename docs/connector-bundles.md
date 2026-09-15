@@ -76,6 +76,24 @@ declarations. The reference implementation supplies Compute only; it does not
 need an Acquisition implementation. Its conformance path selects numeric work
 and Local work through the same shared Host, including cancellation and settlement.
 
+To verify extension without modifying the common implementation, run:
+
+```sh
+npm run check:connector-addition
+```
+
+The check requires committed product sources so its revision identifies the
+tested input. It creates an isolated source tree with Local/DuckDB declarations,
+without the numeric connector or integration package. It checks that baseline,
+adds the independent connector and reused integration fixtures, regenerates only
+the composition root, and runs the numeric Host test on JS/Wasm/native. File
+digests reject changes outside the connector, generated composition and
+integration directories. The test exercises both normal execution and cancellation
+with settlement through the shared Host. The isolated sources, per-phase logs and
+machine-readable change inventory are retained at the printed temporary path.
+This is an implementation-addition check, not proof of a new provider's semantic
+conformance or an unimplemented transport capability.
+
 ## Node transport composition
 
 Node execution contributions are separately declared by connector-owned
