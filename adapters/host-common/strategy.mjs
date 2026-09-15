@@ -1,4 +1,4 @@
-// Trusted Node coordination only. Checked readiness, selected ownership,
+// Trusted JavaScript coordination only. Checked readiness, selected ownership,
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
 export class StrategyHostError extends Error {

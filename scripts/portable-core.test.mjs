@@ -66,6 +66,7 @@ test('source FFI, embedded JS and native files are rejected', t => {
     'extern "C" fn read() -> Int = "read"',
     '#cfg(target="native")\nfn io() -> Unit {}',
     '#import("fs")', 'fn now() { Date.now() }',
+    'fn diagnostic() { println("unrequested output") }',
   ]) {
     f.put('root', 'main.mbt', source);
     assert.throws(f.check, /CoreEnvironmentAccess|CoreForeignOrUnknownAttribute/);
@@ -73,6 +74,12 @@ test('source FFI, embedded JS and native files are rejected', t => {
   f.put('root', 'main.mbt', 'pub fn id(x : Int) -> Int { x }');
   f.put('root', 'native.c', 'int io() { return 1; }');
   assert.throws(f.check, /CoreForeignFile/);
+});
+
+test('alternative package metadata cannot be ignored in the audited closure', t => {
+  const f = fixture(t);
+  f.put('root', 'moon.pkg.json', '{"link":{"native":{"cc-link-flags":"-lsocket"}}}');
+  assert.throws(f.check,/AmbiguousCoreManifest/);
 });
 
 test('public concrete binding import is rejected; opaque abstract port is allowed', t => {

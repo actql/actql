@@ -74,8 +74,12 @@ fn captured_graph_fixture(
   join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  nullable? : Bool = false,
+  rows? : Array[String]? = None,
+  retention? : @mock.MockRetentionLimits = query_retention_limits(),
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
+    nullable~,
     dag=true,
     dag_count=count,
     dag_join=join,
@@ -101,8 +105,8 @@ fn captured_graph_fixture(
   let issuer = @mock.prepare_mock_query_issuer(
     contracts, requirement, "dag-test", 100,
   ).unwrap()
-  let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery)
-  query_issuer_run(attempt)
+  let attempt = query_issuer_attempt(issuer, sequence, @mock.NativeQuery, rows~)
+  query_issuer_run(attempt, retention~)
   let records = @mock.issue_mock_query_records(attempt, query_material_limits()).unwrap()
   let observation = @mock.capture_mock_query(
     issuer,

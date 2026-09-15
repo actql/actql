@@ -489,6 +489,9 @@ design also reaches browser, edge, and managed runtimes.
   user-supplied documents and a trusted local DB through shared capture,
   Local/DuckDB placement, unstarted-task revision and bounded explanation;
   internal task completion, not Program success publication
+- [Workers boundary verification](adapters/workers/README.md) — Local-only
+  composition, invocation-scoped Host and actual local workerd tests; not a
+  deployed service, Workers Wasm or cross-request persistence guarantee
 
 ## Status
 

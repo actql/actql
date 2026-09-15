@@ -1,31 +1,16 @@
 // Standard composition entry. Callers cannot replace the runtime, installed
 // implementation factories, verification or SQL through execution options.
-import {runInstalledStrategy} from './strategy.mjs';
+import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
-import {checked} from './runtime-result.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 let runtime;
-const usageKeys = ['planningWork', 'attempts', 'holdings', 'transferredBytes',
-  'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes', 'reservedExecutionBytes'];
 
 export async function runCapturedStrategy(setup, options = {}, signal) {
   const moon = await (runtime ??= import(runtimeUrl.href));
-  const core = Object.freeze({
-    count: moon.strategyHostCount,
-    next: value => checked(moon.strategyHostNext(value)),
-    task: moon.strategyHostTask,
-    registration: moon.strategyHostRegistration,
-    completed: moon.strategyHostTaskCompleted,
-    finished: moon.strategyHostFinished,
-    stop: moon.strategyHostStop,
-    closeOutputs: moon.strategyHostCloseOutputs,
-    output: moon.strategyHostOutput,
-    explain: (value, bytes, nodes) => JSON.parse(checked(moon.strategyHostExplain(value, bytes, nodes))),
-    usage: value => Object.freeze(Object.fromEntries(
-      moon.strategyHostUsage(value).map((count, index) => [usageKeys[index], count]),
-    )),
-  });
+  const core = runtimeCore(moon);
   const installed = await installStrategyContributions(moon, setup, checked, options);
   return runInstalledStrategy(setup, core, installed, signal);
 }

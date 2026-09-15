@@ -38,6 +38,7 @@ export function checkConnectorDispatchBoundary(root) {
     .filter(entry => entry.isDirectory()).map(entry => entry.name);
   const roots = ['src/connector_sdk', 'src/query_planning', 'src/physical_host',
     'src/physical_strategy', 'src/physical_resources', 'src/physical_cost', 'adapters/host-node',
+    'adapters/host-common',
     'scripts/templates'];
   const failures = [];
   let count = 0;

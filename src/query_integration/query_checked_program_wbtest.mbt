@@ -7,6 +7,7 @@ fn query_checked_program_fixture(
   dag_join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  acquisition_filter? : String = "id > $minimum",
 ) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -45,6 +46,7 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let input_limits : @syntax.Limits = {
     source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
     tree: {

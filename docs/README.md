@@ -7,6 +7,7 @@
 - [Physical cost helper](physical-cost-usage.md): source-checkout serial latency estimates and explicit unknown-cost selection; no Connector dispatch or Plan admission.
 - [Local Compute attempts](local-compute-usage.md): synchronous execution using completed producer inputs; no source acquisition or durable capture.
 - [Rebuild-time connector contributions](connector-bundles.md): typed Compute manifests, fixed Host installations and separate Node transport composition.
+- [Portable execution boundary](design/portable-execution-boundary.md): Core/Host responsibilities, explicit runtime initialization and invocation-scoped Workers execution; [Workers verification](../adapters/workers/README.md) documents local workerd commands and deployment exclusions.
 - [Query adapter boundary](design/query-residual-execution.md): acquisition-specific preparation above the fixed-input row engine; opaque handles and cumulative guard measurement.
 - [DuckDB execution boundary](design/duckdb-relation-execution.md): internal adapter responsibilities, exact type transport and source/Compute isolation; [Node Host usage and conformance](../adapters/duckdb-node/README.md) covers bounded acquisition/capture and completed-input Compute, not durable Program/Run execution.
 - [Local inner join](design/local-relation-join.md): checked binary steps, stable pair ordering, cardinality validation and intermediate output limits; separate from multi-input Host dispatch.

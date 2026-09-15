@@ -110,7 +110,7 @@ test('linear cost schedules are neutral and implementations own their work inven
 });
 
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {
-  const driver = readFileSync('adapters/host-node/strategy.mjs', 'utf8');
+  const driver = readFileSync('adapters/host-common/strategy.mjs', 'utf8');
   const entry = readFileSync('adapters/host-node/entry.mjs', 'utf8');
   // This common module has no imports at all, including transitive concrete IO.
   assert.doesNotMatch(driver, /^import\s/m);

@@ -24,28 +24,37 @@ fn query_issuer_attempt(
   issuer : @mock.MockQueryIssuer,
   sequence : @query.QuerySequence,
   route : @mock.QueryRealization,
+  rows? : Array[String]? = None,
 ) -> @mock.MockQueryAttempt {
+  let inputs = match rows {
+    Some(rows) => rows.map(input_cursor)
+    None =>
+      [
+        input_cursor("{\"id\":3}"),
+        input_cursor("{\"id\":1}"),
+        input_cursor("{\"id\":2}"),
+      ]
+  }
   @mock.prepare_issued_mock_query_attempt(
     issuer,
     strategy_for(sequence, route),
-    [
-      input_cursor("{\"id\":3}"),
-      input_cursor("{\"id\":1}"),
-      input_cursor("{\"id\":2}"),
-    ],
-    3,
+    inputs,
+    inputs.length(),
   ).unwrap()
 }
 
 ///|
-fn query_issuer_run(attempt : @mock.MockQueryAttempt) -> Unit {
+fn query_issuer_run(
+  attempt : @mock.MockQueryAttempt,
+  retention? : @mock.MockRetentionLimits = query_retention_limits(),
+) -> Unit {
   @mock.execute_mock_query(
     attempt,
     mock_strategy_limits(),
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
   |> ignore
-  @mock.retain_mock_query(attempt, query_retention_limits()).unwrap() |> ignore
+  @mock.retain_mock_query(attempt, retention).unwrap() |> ignore
 }
 
 ///|

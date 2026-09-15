@@ -1,0 +1,63 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors_workers_bridge"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors_workers",
+  "actql/actql/encode_core",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
+
+pub fn local_registration(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
+
+pub fn strategy_host_close_outputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn strategy_host_count(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
+pub fn strategy_host_explain(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
+
+pub fn strategy_host_finished(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn strategy_host_modules(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+
+pub fn strategy_host_next(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
+
+pub fn strategy_host_output(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
+
+pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
+
+pub fn strategy_host_resident_inputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Array[Int64]] raise NodeHostFailure
+
+pub fn strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
+
+pub fn strategy_host_run(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
+
+pub fn strategy_host_stop(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
+
+pub fn strategy_host_task_completed(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn strategy_host_usage(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
+
+// Errors
+pub(all) suberror NodeHostFailure {
+  Diagnostics(@physical_host.ComputeDiagnosticsIssue)
+  Dispatch(@physical_host.ComputeHostIssue[@physical_strategy.RunIssue])
+  Execution(@physical_strategy.RunIssue)
+  InvalidCommand
+  Encoding(@encode_core.EncodeFailure)
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits

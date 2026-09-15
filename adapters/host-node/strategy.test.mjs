@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {runInstalledStrategy} from './strategy.mjs';
+import {runInstalledStrategy} from '../host-common/strategy.mjs';
 
 // Protocol test double, not semantic execution proof. Real checked/capture and
 // reservation enforcement are exercised by the standard Host conformance suite.

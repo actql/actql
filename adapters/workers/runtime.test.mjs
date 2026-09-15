@@ -34,3 +34,22 @@ test('Node builtin module import is rejected by the runtime, not polyfilled', as
     catch (error) { assert.equal(error, startup); }
   }
 });
+
+test('injected module-initialization I/O fails before a Worker can serve a request', async () => {
+  let outgoing = 0;
+  const runtime = createTestRuntime(`
+    const initialized = await fetch('https://must-not-resolve.invalid/');
+    export default { fetch() { return new Response(String(initialized.status)); } };
+  `, () => outgoing++);
+  let startup;
+  try {
+    await assert.rejects(runtime.ready, error => {
+      startup = error;
+      return error.code === 'ERR_RUNTIME_FAILURE' && /global scope/.test(error.message);
+    });
+    assert.equal(outgoing,0);
+  } finally {
+    try { await runtime.dispose(); }
+    catch (error) { assert.equal(error,startup); }
+  }
+});

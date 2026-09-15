@@ -103,7 +103,7 @@ function inspectSource(source, path) {
   // target code. Literal data strings and comments do not trigger name checks.
   const ts = tokens(source, true);
   const words = ts.filter(t => t.kind !== 'string').map(t => t.value);
-  const forbidden = new Set(['extern', 'fetch', 'performance',
+  const forbidden = new Set(['extern', 'fetch', 'performance', 'println', 'print',
     'process', 'globalThis', 'require', 'eval', 'crypto']);
   for (const word of words) if (forbidden.has(word)) {
     throw new Error(`CoreEnvironmentAccess: ${path}: ${word}`);
@@ -131,6 +131,9 @@ export function inspectCore(root, roots = coreRoots) {
       throw new Error(`ConcreteCoreDependency: ${name}`);
     }
     const directory = join(root, 'src', name);
+    if (existsSync(join(directory, 'moon.pkg.json'))) {
+      throw new Error(`AmbiguousCoreManifest: ${name}`);
+    }
     const imports = packageImports(readFileSync(join(directory, 'moon.pkg'), 'utf8'));
     packages.set(name, imports);
     for (const entry of imports.filter(x => x.scope === 'production')) {
@@ -143,7 +146,7 @@ export function inspectCore(root, roots = coreRoots) {
     for (const file of readdirSync(directory)) {
       if (file.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/.test(file)) {
         inspectSource(readFileSync(join(directory, file), 'utf8'), `${name}/${file}`);
-      } else if (/\.(?:js|mjs|c|h|cc|wasm)$/.test(file)) {
+      } else if (/\.(?:js|mjs|cjs|c|h|cc|cpp|rs|s|S|o|a|node|so|dylib|dll|wasm)$/.test(file)) {
         throw new Error(`CoreForeignFile: ${name}/${file}`);
       }
     }
@@ -157,7 +160,8 @@ export function inspectCore(root, roots = coreRoots) {
       }
     }
   }
-  return {roots:[...roots], packages:[...packages.keys()].sort(), external:Object.fromEntries(external)};
+  return {roots:[...roots], packages:[...packages.keys()].sort(), external:Object.fromEntries(external),
+    implicitRuntime: 'Pinned MoonBit builtin/compiler runtime: generated JS requires the separate explicit-seed and artifact audit; source import inspection alone does not certify it.'};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

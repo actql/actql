@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/workers_conformance"
+
+import {
+  "actql/actql/connectors_workers",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn close_scenario(Scenario) -> Unit
+
+pub fn foreign_dispatch() -> Array[Bool] raise
+
+pub fn output_identity(@execution_relation.CompletedOutput) -> String
+
+pub fn output_rows(@execution_relation.CompletedOutput) -> Int
+
+pub fn prepare_scenario(Array[String], Bool, Int) -> Scenario raise
+
+pub fn reject_invalid_program() -> Bool raise
+
+pub fn scenario_host(Scenario) -> @connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+// Errors
+
+// Types and methods
+type Scenario
+
+// Type aliases
+
+// Traits
