@@ -40,8 +40,6 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
-pub fn captured_resident_cleanup_sql(CapturedDAG, TaskExecution) -> Result[Array[String], RunIssue]
-
 pub fn captured_resident_query(CapturedDAG, TaskExecution) -> @adapter.ResidentQuery?
 
 pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceStatistics?
@@ -99,6 +97,8 @@ pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @query_planning.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 

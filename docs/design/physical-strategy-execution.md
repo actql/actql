@@ -180,6 +180,14 @@ a raw transport attempt cannot be used to recover or replace the binding. Once
 disposal and settlement both finish, the common execution detaches its hooks and
 the execution drops provisional resident references. A retained closed handle cannot
 reactivate work or release another task's reservation.
+Cleanup preparation is split at the same ownership boundary. The common driver
+selects the exact last-use allocation set and charges its graph traversal. The
+connector prepares physical removal operations using a copied list of opaque
+table handles (not copied rows). Only successful preparation retires the original
+set; failure leaves every member available. The common driver rechecks ownership
+and liveness before that transition. DuckDB DROP generation and its configured
+SQL limit belong to the connector driver. Preparation and retirement are not
+acknowledgements of native removal or authority to release reserved capacity.
 
 The trusted acquisition transport also forwards physical accounting through both
 broad and two-receipt native coordinators. Metadata and each actual row receipt

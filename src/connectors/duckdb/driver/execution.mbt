@@ -3,6 +3,7 @@
 struct CapturedDuckDBTask {
   attempt : @compute.DuckDBComputeAttempt
   execution : @strategy.TaskExecution
+  cleanup_sql_bytes : Int
 }
 
 ///|
@@ -102,6 +103,30 @@ pub fn start_captured_duckdb_task(
   }
   match @strategy.start_captured_execution(run, task, bound, resident?) {
     Err(issue) => Err(issue)
-    Ok((attempt, execution)) => Ok({ attempt, execution, })
+    Ok((attempt, execution)) =>
+      Ok({ attempt, execution, cleanup_sql_bytes: transport.max_bytes, })
   }
+}
+
+///|
+/// Physical cleanup compilation stays in the installed connector. Common code
+/// chooses and retires the exact last-use set only after all compilation succeeds.
+pub fn captured_duckdb_cleanup_sql(
+  run : @strategy.CapturedDAG,
+  task : CapturedDuckDBTask,
+) -> Result[Array[String], @strategy.RunIssue] {
+  @strategy.prepare_captured_cleanup(run, task.execution, fn(tables) {
+    let statements = []
+    for table in tables {
+      match
+        @duckdb.resident_import_drop_sql(
+          @strategy.resident_table_import(table),
+          task.cleanup_sql_bytes,
+        ) {
+        Ok(sql) => statements.push(sql)
+        Err(issue) => return Err(NativePreparation(issue))
+      }
+    }
+    Ok(statements)
+  })
 }

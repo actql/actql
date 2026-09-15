@@ -133,6 +133,19 @@ test('concrete DuckDB task construction and lifecycle stay in the connector driv
   assert.doesNotMatch(driver, /reserve_attempt|retain_allocation|settle_reservation/);
 });
 
+test('common cleanup selects allocations but does not compile physical removal SQL', () => {
+  const source = readFileSync('src/physical_strategy/resident_output.mbt', 'utf8');
+  const preparation = source.match(/pub fn\[T\] prepare_captured_cleanup\([\s\S]*?\n\}/)?.[0];
+  assert.ok(preparation);
+  assert.doesNotMatch(preparation, /@duckdb|Array\[String\]|drop_sql|cleanup_sql/);
+  assert.match(preparation, /prepare\(tables\.copy\(\)\)/);
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /pub fn captured_resident_cleanup_sql/);
+  const driver = readFileSync('src/connectors/duckdb/driver/execution.mbt', 'utf8');
+  assert.match(driver, /@strategy\.prepare_captured_cleanup\(/);
+  assert.match(driver, /@duckdb\.resident_import_drop_sql\(/);
+});
+
 test('prepared dispatch ownership has one common state machine and no connector payload', () => {
   assert.deepEqual(imports('physical_host'), [
     'physical_strategy', 'physical_resources', 'connector_sdk',

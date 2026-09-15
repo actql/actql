@@ -156,11 +156,7 @@ pub fn compute_resident_cleanup_sql(
   guard run.strategy is Some((graph, _, task_handle)) else {
     raise InvalidCommand
   }
-  match
-    @strategy.captured_resident_cleanup_sql(
-      graph,
-      @duckdb_driver.captured_duckdb_execution(task_handle),
-    ) {
+  match @duckdb_driver.captured_duckdb_cleanup_sql(graph, task_handle) {
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }

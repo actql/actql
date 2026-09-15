@@ -39,14 +39,6 @@ pub fn duckdb_resident_output_query(
 }
 
 ///|
-pub fn duckdb_resident_output_cleanup(
-  output : DuckDBResidentOutput,
-  imported : @duckdb.ResidentImport,
-) -> Result[String, @duckdb.NativeQueryIssue] {
-  @duckdb.resident_import_drop_sql(imported, output.max_sql_bytes)
-}
-
-///|
 /// Common completion validates exact task/input ownership before invoking this
 /// operation. It shares the completed storage rather than copying or admitting
 /// the rows again; live resident ownership is installed by the common driver.

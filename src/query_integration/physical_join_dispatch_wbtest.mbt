@@ -232,6 +232,28 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       resident?=resident_inputs,
     ).unwrap()
     if resident_inputs is Some(inputs) {
+      let ledger = @strategy.captured_dag_ledger(run)
+      let before = @resources.ledger_usage(ledger)
+      assert_true(
+        @strategy.prepare_captured_cleanup(
+          run,
+          @duckdb_driver.captured_duckdb_execution(attempt),
+          fn(tables) -> Result[Unit, @strategy.RunIssue] {
+            // Compiler failure cannot retire any earlier member of the set.
+            assert_eq(tables.length(), if self_join { 1 } else { 2 }) catch {
+              _ => abort("cleanup set")
+            }
+            Err(NotReady)
+          },
+        )
+        is Err(NotReady),
+      )
+      assert_true(@strategy.resident_table_at(run, env.unwrap(), 1) is Some(_))
+      let after = @resources.ledger_usage(ledger)
+      assert_eq(after.attempts, before.attempts)
+      assert_eq(after.held_bytes, before.held_bytes)
+      assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+      assert_eq(after.transferred_bytes, before.transferred_bytes)
       assert_true(
         @strategy.cancel_resident_inputs(inputs) is Err(InvalidCharge),
       )

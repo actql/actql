@@ -33,8 +33,6 @@ pub fn duckdb_dispatch_preflight_work(DuckDBDispatchPreparation) -> Int?
 
 pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
-pub fn duckdb_resident_output_cleanup(DuckDBResidentOutput, @adapter.ResidentImport) -> Result[String, @adapter.NativeQueryIssue]
-
 pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @adapter.ResidentQuery
 
 pub fn duckdb_resident_read_bytes(DuckDBResidentRead, Int) -> Int?

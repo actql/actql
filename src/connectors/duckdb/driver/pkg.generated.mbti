@@ -12,6 +12,8 @@ import {
 // Values
 pub fn captured_duckdb_attempt(CapturedDuckDBTask) -> @compute.DuckDBComputeAttempt
 
+pub fn captured_duckdb_cleanup_sql(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> Result[Array[String], @physical_strategy.RunIssue]
+
 pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskExecution
 
 pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : @physical_strategy.ResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]

@@ -49,11 +49,14 @@ fn prepare_resident_output(
 
 ///|
 /// Includes the current task's final use, but never another unstarted consumer.
-/// DROP executes inside this task's transaction after its reads have finished.
-pub fn captured_resident_cleanup_sql(
+/// The trusted implementation prepares its physical cleanup without I/O. Only
+/// successful preparation retires the selected allocations; actual cleanup
+/// confirmation remains separate. This operation grants no result authority.
+pub fn[T] prepare_captured_cleanup(
   run : CapturedDAG,
   resource : TaskExecution,
-) -> Result[Array[String], RunIssue] {
+  prepare : (Array[ResidentTable]) -> Result[T, RunIssue],
+) -> Result[T, RunIssue] {
   guard task_execution_matches(run, resource) &&
     run.running is Some((task, active)) &&
     physical_equal(active, resource) &&
@@ -63,7 +66,6 @@ pub fn captured_resident_cleanup_sql(
   if pending.cleanup_prepared {
     return Err(NotReady)
   }
-  let sql = []
   let tables = []
   for table in pending.environment.tables {
     guard table is Some(table) &&
@@ -84,15 +86,24 @@ pub fn captured_resident_cleanup_sql(
       }
     }
     if !needed {
-      match
-        @duckdb_compute.duckdb_resident_output_cleanup(
-          pending.plan,
-          table.imported,
-        ) {
-        Ok(value) => sql.push(value)
-        Err(issue) => return Err(NativePreparation(issue))
-      }
       tables.push(table)
+    }
+  }
+  // Only handles are copied. The implementation cannot edit the selected set.
+  let prepared = match prepare(tables.copy()) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if run.stopped ||
+    resource.disposed ||
+    pending.cleanup_prepared ||
+    !resident_environment_available(run, pending.environment) {
+    return Err(NotReady)
+  }
+  for table in tables {
+    if !owns_resident_table(run, table) ||
+      @resources.shared_allocation_usage(table.allocation).retiring {
+      return Err(ForeignCandidate)
     }
   }
   for table in tables {
@@ -100,7 +111,7 @@ pub fn captured_resident_cleanup_sql(
     pending.retired_inputs.push(table)
   }
   pending.cleanup_prepared = true
-  Ok(sql)
+  Ok(prepared)
 }
 
 ///|
