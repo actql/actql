@@ -8,14 +8,14 @@ fn estimate_local_task_offers(
   let (host, policy) = context
   let profile = policy.profiles[task - 1]
   let lines = match
-    dispatch_estimate_lines(
+    @cost.evaluate_rate_schedule(
       profile.local_rates,
       quantities.rows,
       quantities.wire_bytes,
       quantities.pairs,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(dispatch_rate_issue(issue))
   }
   @local_driver.estimate_local_dispatch_offer(
     host.local_module,
@@ -42,14 +42,14 @@ fn estimate_duckdb_task_offers(
   }
   let profile = policy.profiles[task - 1]
   let lines = match
-    dispatch_estimate_lines(
+    @cost.evaluate_rate_schedule(
       profile.native_rates,
       quantities.rows,
       quantities.wire_bytes,
       quantities.pairs,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(dispatch_rate_issue(issue))
   }
   let base = match
     @duckdb_driver.estimate_duckdb_task_offer(
@@ -72,14 +72,14 @@ fn estimate_duckdb_task_offers(
     )
     is None {
     let lines = match
-      dispatch_estimate_lines(
+      @cost.evaluate_rate_schedule(
         resident.rates[task - 1],
         quantities.rows,
         quantities.wire_bytes,
         quantities.pairs,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(issue) => return Err(dispatch_rate_issue(issue))
     }
     match
       @duckdb_driver.estimate_duckdb_task_offer(

@@ -1,7 +1,7 @@
 ///|
 priv struct ResidentDispatch {
   profile : @strategy.ResidentProfile
-  rates : Array[Array[DispatchRate]]
+  rates : Array[@cost.RateSchedule]
 }
 
 ///|
@@ -55,7 +55,7 @@ pub fn dispatch_resident_inputs(
 pub fn configure_resident_dispatch(
   host : StrategyHostDispatch,
   profile : @strategy.ResidentProfile,
-  rates : Array[Array[DispatchRate]],
+  rates : Array[Array[@cost.WorkRate]],
 ) -> Result[Unit, DispatchIssue] {
   if host.resident is Some(_) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
@@ -69,6 +69,7 @@ pub fn configure_resident_dispatch(
     ) {
     return Err(InvalidConfiguration)
   }
+  let schedules = []
   for row in rates {
     match
       @resources.charge_planning(
@@ -92,20 +93,15 @@ pub fn configure_resident_dispatch(
       }
     }
     match
-      @cost.assess_serial(
-        8,
-        row.map(rate => { work_slots: rate.work_slots, milliseconds: None, }),
+      @cost.prepare_rate_schedule(
+        @duckdb_driver.duckdb_dispatch_work_slots(),
+        row,
         host.limits.candidate_work,
       ) {
-      Ok(_) => ()
-      Err(issue) => return Err(Search(Cost(issue)))
+      Ok(schedule) => schedules.push(schedule)
+      Err(issue) => return Err(dispatch_rate_issue(issue))
     }
   }
-  host.resident = Some({
-    profile,
-    rates: rates.map(row => {
-      row.map(rate => { ..rate, work_slots: rate.work_slots.copy(), })
-    }),
-  })
+  host.resident = Some({ profile, rates: schedules, })
   Ok(())
 }

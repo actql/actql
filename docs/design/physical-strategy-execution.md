@@ -706,7 +706,13 @@ Missing coefficients or required quantities keep the total unknown. This policy
 defers on unknown totals; explicit preference remains available through the
 separate manual search API.
 
-Estimate profiles and their nested work-slot arrays are copied at installation.
+Estimate profiles are installed as opaque `physical_cost.RateSchedule` values.
+Their `WorkRate` inputs and nested work-slot arrays are copied after bounded
+validation; returned estimate lines cannot mutate the installed schedule. The
+owning realization supplies the work inventory, while the common cost library
+checks disjoint coverage and evaluates the same linear rate rules for any
+inventory. Missing coefficients or needed quantities remain unknown, zero
+coefficients do not demand a quantity, and overflow is an explicit failure.
 Local reservation envelopes are derived from selected execution limits; native
 envelopes are explicit Host capacities and still checked against actual start
 requirements. Neither is reduced by the forecast. Dispatch refreshes before

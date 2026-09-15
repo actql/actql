@@ -12,7 +12,13 @@ pub fn estimate_duckdb_task_offer(
 ) -> Result[@strategy.TaskOffer, @strategy.SearchIssue] {
   let base = match
     @strategy.prepare_task_offer(
-      run, task, registration, 8, lines, capacity, max_work,
+      run,
+      task,
+      registration,
+      duckdb_dispatch_work_slots(),
+      lines,
+      capacity,
+      max_work,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -22,4 +28,9 @@ pub fn estimate_duckdb_task_offer(
       @strategy.resident_task_offer(run, base, profile, capacity.retained_bytes)
     None => Ok(base)
   }
+}
+
+///|
+pub fn duckdb_dispatch_work_slots() -> Int {
+  8
 }

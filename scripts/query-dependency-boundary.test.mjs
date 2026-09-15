@@ -5,6 +5,20 @@ import test from 'node:test';
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
 
+test('linear cost schedules are neutral and implementations own their work inventories', () => {
+  assert.deepEqual(imports('physical_cost'), []);
+  const api = readFileSync('src/physical_cost/pkg.generated.mbti', 'utf8');
+  assert.match(api, /^type RateSchedule$/m);
+  assert.doesNotMatch(api, /DuckDB|LocalDispatch|connectors\//);
+  const composition = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
+  assert.match(composition, /@local_driver\.local_dispatch_work_slots\(\)/);
+  assert.match(composition, /@duckdb_driver\.duckdb_dispatch_work_slots\(\)/);
+  assert.doesNotMatch(composition, /\(5, profile\.local_rates\)|\(8, profile\.native_rates\)/);
+  assert.doesNotMatch(composition, /fn dispatch_rate_value\b/);
+  const proposals = readFileSync('src/duckdb_host/estimate_implementations.mbt', 'utf8');
+  assert.match(proposals, /@cost\.evaluate_rate_schedule\(/);
+});
+
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {
   const driver = readFileSync('adapters/host-node/strategy.mjs', 'utf8');
   const entry = readFileSync('adapters/duckdb-node/strategy-host.mjs', 'utf8');

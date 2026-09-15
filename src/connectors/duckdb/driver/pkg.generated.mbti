@@ -53,6 +53,8 @@ pub fn duckdb_compute_failure(@physical_strategy.RunIssue) -> @compute.DuckDBCom
 
 pub fn duckdb_dispatch_rejection(DuckDBDispatchModule, Int, resident? : Bool) -> String?
 
+pub fn duckdb_dispatch_work_slots() -> Int
+
 pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue

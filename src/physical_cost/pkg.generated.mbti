@@ -10,6 +10,12 @@ pub fn assess_serial(Int, Array[SerialEstimateLine], Int) -> Result[DurationEsti
 
 pub fn choose_serial(Array[DurationEstimate], Array[Int]?, Int) -> Result[CostChoice, CostIssue]
 
+pub fn evaluate_rate_schedule(RateSchedule, Int64?, Int64?, Int64?) -> Result[Array[SerialEstimateLine], RateIssue]
+
+pub fn prepare_rate_schedule(Int, Array[WorkRate], Int) -> Result[RateSchedule, RateIssue]
+
+pub fn rate_schedule_work(RateSchedule) -> Int
+
 // Errors
 
 // Types and methods
@@ -36,9 +42,26 @@ pub(all) enum DurationEstimate {
   Unknown
 } derive(Eq, @debug.Debug)
 
+pub enum RateIssue {
+  InvalidQuantity
+  InvalidCoefficient
+  Overflow
+  Coverage(CostIssue)
+} derive(Eq, @debug.Debug)
+
+type RateSchedule
+
 pub(all) struct SerialEstimateLine {
   work_slots : Array[Int]
   milliseconds : Int64?
+}
+
+pub(all) struct WorkRate {
+  work_slots : Array[Int]
+  fixed_ms : Int64?
+  per_row_ms : Int64?
+  per_wire_byte_ms : Int64?
+  per_pair_ms : Int64?
 }
 
 // Type aliases

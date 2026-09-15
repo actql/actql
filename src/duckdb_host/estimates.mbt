@@ -1,18 +1,15 @@
 ///|
-/// Explicit Host estimates, never physical reservations or admission evidence.
-/// A missing coefficient remains unknown. A known zero has no quantity dependency.
-pub(all) struct DispatchRate {
-  work_slots : Array[Int]
-  fixed_ms : Int64?
-  per_row_ms : Int64?
-  per_wire_byte_ms : Int64?
-  per_pair_ms : Int64?
+pub(all) struct DispatchEstimateProfile {
+  local_rates : Array[@cost.WorkRate]
+  native_rates : Array[@cost.WorkRate]
+  native_capacity : @strategy.PhysicalEnvelope
+  output_rows_per_mille : Int?
 }
 
 ///|
-pub(all) struct DispatchEstimateProfile {
-  local_rates : Array[DispatchRate]
-  native_rates : Array[DispatchRate]
+priv struct InstalledDispatchEstimateProfile {
+  local_rates : @cost.RateSchedule
+  native_rates : @cost.RateSchedule
   native_capacity : @strategy.PhysicalEnvelope
   output_rows_per_mille : Int?
 }
@@ -20,7 +17,7 @@ pub(all) struct DispatchEstimateProfile {
 ///|
 priv struct DispatchEstimates {
   root : @query.CapturedSourceStatistics
-  profiles : Array[DispatchEstimateProfile]
+  profiles : Array[InstalledDispatchEstimateProfile]
   limits : @strategy.SearchLimits
   estimate_work : Int
   implementations : @connector.CapabilityImplementations[
@@ -66,6 +63,7 @@ pub fn configure_dispatch_estimates(
     Ok(_) => ()
   }
   work -= profiles.length()
+  let installed_profiles : Array[InstalledDispatchEstimateProfile] = []
   for profile in profiles {
     if profile.output_rows_per_mille is Some(value) &&
       (value < 0 || value > 1000) {
@@ -77,7 +75,12 @@ pub fn configure_dispatch_estimates(
       cap.execution_bytes < 0L {
       return Err(InvalidConfiguration)
     }
-    for (slots, rates) in [(5, profile.local_rates), (8, profile.native_rates)] {
+    let schedules = []
+    for
+      (slots, rates) in [
+        (@local_driver.local_dispatch_work_slots(), profile.local_rates),
+        (@duckdb_driver.duckdb_dispatch_work_slots(), profile.native_rates),
+      ] {
       if slots > work || rates.length() > work - slots {
         return Err(InvalidConfiguration)
       }
@@ -107,16 +110,17 @@ pub fn configure_dispatch_estimates(
           }
         }
       }
-      match
-        @cost.assess_serial(
-          slots,
-          rates.map(rate => { work_slots: rate.work_slots, milliseconds: None, }),
-          limits.max_work,
-        ) {
-        Err(issue) => return Err(Search(Cost(issue)))
-        Ok(_) => ()
+      match @cost.prepare_rate_schedule(slots, rates, limits.max_work) {
+        Err(issue) => return Err(dispatch_rate_issue(issue))
+        Ok(schedule) => schedules.push(schedule)
       }
     }
+    installed_profiles.push({
+      local_rates: schedules[0],
+      native_rates: schedules[1],
+      native_capacity: profile.native_capacity,
+      output_rows_per_mille: profile.output_rows_per_mille,
+    })
   }
   match @strategy.configure_strategy_search(host.run, limits) {
     Err(issue) => return Err(Search(issue))
@@ -141,69 +145,18 @@ pub fn configure_dispatch_estimates(
     estimate_work: limits.max_work - work,
     seen: None,
     failure: None,
-    profiles: profiles.map(profile => {
-      ..profile,
-      local_rates: profile.local_rates.map(rate => {
-        ..rate,
-        work_slots: rate.work_slots.copy(),
-      }),
-      native_rates: profile.native_rates.map(rate => {
-        ..rate,
-        work_slots: rate.work_slots.copy(),
-      }),
-    }),
+    profiles: installed_profiles,
   })
   Ok(())
 }
 
 ///|
-fn dispatch_rate_value(
-  rate : DispatchRate,
-  rows : Int64?,
-  bytes : Int64?,
-  pairs : Int64?,
-) -> Result[Int64?, DispatchIssue] {
-  guard rate.fixed_ms is Some(base) &&
-    rate.per_row_ms is Some(per_row) &&
-    rate.per_wire_byte_ms is Some(per_byte) &&
-    rate.per_pair_ms is Some(per_pair) else {
-    return Ok(None)
+fn dispatch_rate_issue(issue : @cost.RateIssue) -> DispatchIssue {
+  match issue {
+    Overflow => EstimateOverflow
+    Coverage(issue) => Search(Cost(issue))
+    InvalidQuantity | InvalidCoefficient => InvalidConfiguration
   }
-  let mut total = base
-  for
-    (coefficient, quantity) in [
-      (per_row, rows),
-      (per_byte, bytes),
-      (per_pair, pairs),
-    ] {
-    if coefficient == 0L {
-      continue
-    }
-    guard quantity is Some(quantity) else { return Ok(None) }
-    if quantity > (9223372036854775807L - total) / coefficient {
-      return Err(EstimateOverflow)
-    }
-    total += quantity * coefficient
-  }
-  Ok(Some(total))
-}
-
-///|
-fn dispatch_estimate_lines(
-  rates : Array[DispatchRate],
-  rows : Int64?,
-  bytes : Int64?,
-  pairs : Int64?,
-) -> Result[Array[@cost.SerialEstimateLine], DispatchIssue] {
-  let lines : Array[@cost.SerialEstimateLine] = []
-  for rate in rates {
-    match dispatch_rate_value(rate, rows, bytes, pairs) {
-      Err(issue) => return Err(issue)
-      Ok(milliseconds) =>
-        lines.push({ work_slots: rate.work_slots, milliseconds, })
-    }
-  }
-  Ok(lines)
 }
 
 ///|

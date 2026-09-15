@@ -10,6 +10,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
@@ -51,7 +52,7 @@ pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimate
 
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
-pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.ResidentProfile, Array[Array[DispatchRate]]) -> Result[Unit, DispatchIssue]
+pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.ResidentProfile, Array[Array[@physical_cost.WorkRate]]) -> Result[Unit, DispatchIssue]
 
 pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
 
@@ -129,8 +130,8 @@ pub(all) struct BroadHostLimits {
 type BroadHostRun
 
 pub(all) struct DispatchEstimateProfile {
-  local_rates : Array[DispatchRate]
-  native_rates : Array[DispatchRate]
+  local_rates : Array[@physical_cost.WorkRate]
+  native_rates : Array[@physical_cost.WorkRate]
   native_capacity : @physical_strategy.PhysicalEnvelope
   output_rows_per_mille : Int?
 }
@@ -147,14 +148,6 @@ pub(all) enum DispatchIssue {
   Search(@physical_strategy.SearchIssue)
   EstimateOverflow
   JoinPreparation(@adapter.FixedJoinInputIssue)
-}
-
-pub(all) struct DispatchRate {
-  work_slots : Array[Int]
-  fixed_ms : Int64?
-  per_row_ms : Int64?
-  per_wire_byte_ms : Int64?
-  per_pair_ms : Int64?
 }
 
 pub struct NativeCapacity {

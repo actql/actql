@@ -76,7 +76,7 @@ pub fn estimate_local_dispatch_offer(
     installed.run,
     task,
     installed.registration,
-    5,
+    local_dispatch_work_slots(),
     lines,
     {
       transfer_bytes: 0L,
@@ -85,6 +85,12 @@ pub fn estimate_local_dispatch_offer(
     },
     max_work,
   ).map_err(issue => Search(issue))
+}
+
+///|
+/// Work inventory owned by this realization, not by the Host's rate policy.
+pub fn local_dispatch_work_slots() -> Int {
+  5
 }
 
 ///|
