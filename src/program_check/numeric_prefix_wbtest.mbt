@@ -34,7 +34,7 @@ fn numeric_prefix_program(profile : Bool, mixed : Bool) -> CheckedProgram raise 
 }
 
 ///|
-test "formal closure charges each numeric preparation prefix once" {
+test "formal closure composes incremental collection with numeric preparation once" {
   let cases = [
     (numeric_prefix_program(false, false), false),
     (numeric_prefix_program(true, false), true),
@@ -95,16 +95,13 @@ test "formal closure charges each numeric preparation prefix once" {
       shared = Int::max(shared, base) + (total - base)
     }
     let requirement_work = @context.stage_requirement_usage(requirements).0
+    assert_true(shared <= requirement_work)
     let owner_work = @context.incoming_links_work(
       @context.stage_requirement_owner(requirements),
     )
     let gate_work = @context.program_incoming_gates_usage(gates).0
     let contract_work = @context.core_contract_usage(contracts).0
-    let expected = requirement_work +
-      gate_work -
-      owner_work +
-      contract_work -
-      shared
+    let expected = requirement_work + gate_work - owner_work + contract_work
     assert_eq(10000000 - budget.work, expected)
     let exact = IdentityBudget::{
       work: expected,
@@ -140,5 +137,69 @@ test "formal closure charges each numeric preparation prefix once" {
     }
     assert_true(failed)
     assert_eq((short.work, short.bytes, short.nodes), before)
+  }
+}
+
+///|
+test "empty prepared numeric inventories do not recharge collection prerequisites" {
+  let program = numeric_prefix_program(true, false)
+  let budget = IdentityBudget::{
+    work: 10000000,
+    bytes: 1000000,
+    nodes: 100000,
+    depth: 100,
+  }
+  let (_, _, prepared) = prepare_owned_closure(
+    program.identity,
+    budget,
+    numeric_profile=Some(numeric_profile_fixture()),
+  )
+  let plain = @context.collect_core_contracts(program.identity, {
+    max_work: 1000000,
+    max_roots: 10000,
+    max_bodies: 10000,
+    max_edges: 10000,
+  }).unwrap()
+  // The selected profile was prepared, but there is no numeric operation to
+  // interpret. Both collections do the same work and select the same bodies;
+  // the independent numeric preparation belongs to its own caller's accounting.
+  assert_eq(
+    @context.core_contract_usage(prepared),
+    @context.core_contract_usage(plain),
+  )
+  assert_eq(
+    @context.core_contract_hash_usage(prepared),
+    @context.core_contract_hash_usage(plain),
+  )
+  let count = @context.core_contract_body_count(plain)
+  assert_eq(@context.core_contract_body_count(prepared), count)
+  for i in 0..<count {
+    assert_eq(
+      @context.core_contract_body_at(prepared, i),
+      @context.core_contract_body_at(plain, i),
+    )
+  }
+  let exact : @context.CoreContractLimits = {
+    max_work: @context.core_contract_usage(plain).0,
+    max_roots: @context.core_contract_root_count(plain),
+    max_bodies: count,
+    max_edges: @context.core_contract_usage(plain).1,
+  }
+  for short in [false, true] {
+    let result = @context.collect_core_contracts(
+      program.identity,
+      { ..exact, max_work: exact.max_work - (if short { 1 } else { 0 }), },
+      profile_checks=@context.core_contract_profile_checks(prepared),
+      numeric_slots=@context.core_contract_numeric_slots(prepared),
+      analytic_numeric_slots=@context.core_contract_analytic_numeric_slots(
+        prepared,
+      ),
+      pivot_numeric_slots=@context.core_contract_pivot_numeric_slots(prepared),
+    )
+    if short {
+      assert_true(result is Err(@context.CoreContractIssue::BudgetExceeded))
+    } else {
+      assert_true(result is Ok(_))
+    }
   }
 }

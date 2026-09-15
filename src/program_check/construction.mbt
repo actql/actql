@@ -335,36 +335,11 @@ fn prepare_owned_closure(
   let profiles = @context.operation_profile_links_calendar(
     @context.operation_resolution_profiles(resolutions),
   )
-  let profile_work = @context.operation_calendar_work(profiles)
-  let mut contract_prefix = match numeric_slots {
-    None => profile_work
-    Some(slots) => {
-      let shared = @context.operation_requirements_work(
-        @context.numeric_slots_requirements(slots),
-      )
-      Int::max(profile_work, shared) +
-      (@context.numeric_slots_work(slots) - shared)
-    }
-  }
-  if analytic_numeric_slots is Some(slots) {
-    let shared = @context.operation_requirements_work(
-      @context.analytic_numeric_slots_requirements(slots),
-    )
-    contract_prefix = Int::max(contract_prefix, shared) +
-      (@context.analytic_numeric_slots_work(slots) - shared)
-  }
-  if pivot_numeric_slots is Some(slots) {
-    let shared = @context.operation_requirements_work(
-      @context.pivot_numeric_slots_requirements(slots),
-    )
-    contract_prefix = Int::max(contract_prefix, shared) +
-      (@context.pivot_numeric_slots_work(slots) - shared)
-  }
   let contracts = match
     @context.collect_core_contracts(
       identity,
       {
-        max_work: contract_prefix + (ceiling - used),
+        max_work: ceiling - used,
         max_roots: ceiling - used,
         max_bodies: ceiling - used,
         max_edges: ceiling - used,
@@ -386,9 +361,10 @@ fn prepare_owned_closure(
   let (contract_bytes, contract_nodes) = @context.core_contract_hash_usage(
     contracts,
   )
-  // Commit aggregate usage only after every branch succeeds. Each branch counts
-  // its shared owner internally; only its nonshared suffix is charged here.
-  budget.work = ceiling - used - (contract_work - contract_prefix)
+  // Contract collection reports only new work. Its retained profiles and slots
+  // were already charged through resolution; do not reconstruct their prefixes.
+  // Commit aggregate usage only after every branch succeeds.
+  budget.work = ceiling - used - contract_work
   budget.bytes -= values_bytes + gate_bytes + contract_bytes
   budget.nodes -= values_nodes + gate_nodes + contract_nodes
   (requirements, gates, contracts)

@@ -97,7 +97,6 @@ test "core contract collection preserves owned occurrences and shares dependency
   assert_eq(edges, 26)
   assert_eq(
     work,
-    program_identity_usage(identity).0 +
     7 +
     20 +
     2 +
@@ -257,17 +256,11 @@ test "core contract collection preserves owned occurrences and shares dependency
   }
   assert_true(collect_core_contracts(identity, exact) is Ok(_))
   assert_true(
-    collect_core_contracts(identity, {
-      ..exact,
-      max_work: program_identity_usage(identity).0,
-    })
+    collect_core_contracts(identity, { ..exact, max_work: 0, })
     is Err(BudgetExceeded),
   )
   assert_true(
-    collect_core_contracts(identity, {
-      ..exact,
-      max_work: program_identity_usage(identity).0 + 1,
-    })
+    collect_core_contracts(identity, { ..exact, max_work: 1, })
     is Err(SourceInventory(BudgetExceeded)),
   )
   for

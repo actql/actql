@@ -1,5 +1,6 @@
 ///|
 pub(all) struct CoreContractLimits {
+  // Work performed by this collection, excluding previously checked inputs.
   max_work : Int
   max_roots : Int
   max_bodies : Int
@@ -227,6 +228,13 @@ fn core_numeric_contracts(
 }
 
 ///|
+// Bridge the remaining local allowance to helpers that still expose cumulative
+// input-prefix work. Saturate the cap, never overflow or charge the prefix here.
+fn core_contract_phase_limit(prefix : Int, remaining : Int) -> Int {
+  prefix + Int::min(remaining, 2147483647 - prefix)
+}
+
+///|
 /// Collect expression body references and adopted operation laws from every
 /// owned Stage/producer/step and selected Catalog reference. This is not the
 /// complete Unit closure or interface identity. Unsupported selected Catalog
@@ -254,56 +262,37 @@ pub fn collect_core_contracts(
     hash_limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let mut prefix = match profile_checks {
-    None => identity.work
-    Some(checks) => {
-      let owner = checks.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
-      if !physical_equal(owner, identity) {
-        return Err(ForeignProfiles)
-      }
-      checks.work
+  if profile_checks is Some(checks) {
+    let owner = checks.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
+    if !physical_equal(owner, identity) {
+      return Err(ForeignProfiles)
     }
   }
   if numeric_slots is Some(slots) {
     if !physical_equal(slots.requirements.expressions.identity, identity) {
       return Err(ForeignNumericSlots)
     }
-    let base = Int::max(prefix, slots.requirements.work)
-    let extra = slots.work - slots.requirements.work
-    if base > limits.max_work || extra > limits.max_work - base {
-      return Err(BudgetExceeded)
-    }
-    prefix = base + extra
   }
   if analytic_numeric_slots is Some(slots) {
     if !physical_equal(slots.requirements.expressions.identity, identity) {
       return Err(ForeignNumericSlots)
     }
-    let base = Int::max(prefix, slots.requirements.work)
-    let extra = slots.work - slots.requirements.work
-    if base > limits.max_work || extra > limits.max_work - base {
-      return Err(BudgetExceeded)
-    }
-    prefix = base + extra
   }
   if pivot_numeric_slots is Some(slots) {
     if !physical_equal(slots.requirements.expressions.identity, identity) {
       return Err(ForeignNumericSlots)
     }
-    let base = Int::max(prefix, slots.requirements.work)
-    let extra = slots.work - slots.requirements.work
-    if base > limits.max_work || extra > limits.max_work - base {
-      return Err(BudgetExceeded)
-    }
-    prefix = base + extra
   }
-  if prefix >= limits.max_work {
+  if limits.max_work == 0 {
     return Err(BudgetExceeded)
   }
   let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
   // Only the remaining Program work may be spent on the source branch.
   // Reserve the owner join before the branch can allocate its inventory.
-  let source_work_limit = context.usage.work + (limits.max_work - prefix - 1)
+  let source_work_limit = core_contract_phase_limit(
+    context.usage.work,
+    limits.max_work - 1,
+  )
   let requirements = match
     collect_source_contracts(context, {
       max_work: source_work_limit,
@@ -314,14 +303,18 @@ pub fn collect_core_contracts(
     Err(issue) => return Err(SourceInventory(issue))
   }
   let sources = match
-    bind_program_source_contracts(identity, requirements, limits.max_work) {
+    bind_program_source_contracts(
+      identity,
+      requirements,
+      core_contract_phase_limit(identity.work, limits.max_work),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(SourceInventory(issue))
   }
-  let used = sources.work + (prefix - identity.work)
+  let used = sources.work - identity.work
   let incoming = match
     collect_program_incoming(identity, {
-      max_work: identity.work + (limits.max_work - used),
+      max_work: core_contract_phase_limit(identity.work, limits.max_work - used),
       max_name_units: limits.max_work - used,
       max_requirements: limits.max_roots,
     }) {
@@ -808,6 +801,8 @@ pub fn core_contract_body_at(
 }
 
 ///|
+/// Work performed by collection and dependency construction, excluding the
+/// preparation of admitted identity, profile and numeric-slot inputs.
 pub fn core_contract_usage(v : CoreContractInventory) -> (Int, Int) {
   (v.work, v.edges)
 }
@@ -864,7 +859,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
 
 ///|
 /// Emitted projection bytes/nodes, charged per occurrence even when CIDs match.
-/// The caller must also retain the cumulative core_contract_usage work charge.
+/// The caller must also retain the incremental core_contract_usage work charge.
 pub fn core_contract_hash_usage(v : CoreContractInventory) -> (Int, Int) {
   (v.hash_bytes, v.hash_nodes)
 }
