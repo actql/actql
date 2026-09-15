@@ -41,6 +41,28 @@ test "independent numeric kernel uses checked shape and exact fixed input withou
     is Err(Unsupported),
   )
   // Kernel data is not a completed output or a common task success.
+  let values : @execution.ValueLimits = {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 100,
+  }
+  let rows = @reference_compute.materialize_numeric_output(
+    plan, input, 6, 10, values,
+  ).unwrap()
+  assert_eq(@execution.admitted_output_row_count(rows), 1)
+  assert_true(@execution.admitted_output_cell(rows, 0, 0) is Some(Number(3.0)))
+  assert_true(physical_equal(@execution.admitted_output_owner(rows), owner))
+  // Selection and materialization share one work counter, rather than resetting
+  // at the boundary: four selection units plus one row and one admitted cell.
+  assert_true(
+    @reference_compute.materialize_numeric_output(plan, input, 5, 10, values)
+    is Err(Limit),
+  )
+  assert_true(
+    @reference_compute.materialize_numeric_output(plan, input, 6, 0, values)
+    is Err(Output(CaptureLimit)),
+  )
   assert_false(@strategy.captured_task_completed(run, 1))
   @planning.close_mock_query_issuer(issuer)
   assert_true(

@@ -2,11 +2,15 @@
 package "actql/actql/connectors/reference_compute"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/value_admission",
 }
 
 // Values
+pub fn materialize_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, @execution_relation.ValueLimits) -> Result[@execution_relation.AdmittedOutputRows, PlanIssue]
+
 pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
 
 pub fn prepare_numeric_plan(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.ExpressionLimits) -> Result[NumericPlan, PlanIssue]
@@ -22,6 +26,9 @@ pub(all) enum PlanIssue {
   Unsupported
   Preparation(@lowering_relation.KernelIssue)
   Limit
+  Admission(@value_admission.Issue)
+  Decoding(@decode_core.Issue)
+  Output(@execution_relation.CaptureIssue)
 }
 
 // Type aliases

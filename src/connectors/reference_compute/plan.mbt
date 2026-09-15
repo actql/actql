@@ -13,6 +13,9 @@ pub(all) enum PlanIssue {
   Unsupported
   Preparation(@lower.KernelIssue)
   Limit
+  Admission(@admitted.Issue)
+  Decoding(@decode.Issue)
+  Output(@execution.CaptureIssue)
 }
 
 ///|

@@ -7,7 +7,16 @@ pub fn select_numeric_rows(
   input : @execution.ProducerRead,
   max_work : Int,
 ) -> Result[(Array[Int], Array[Int]), PlanIssue] {
-  if max_work < 0 {
+  select_numeric_rows_with_work(plan, input, Ref(max_work))
+}
+
+///|
+fn select_numeric_rows_with_work(
+  plan : NumericPlan,
+  input : @execution.ProducerRead,
+  work : Ref[Int],
+) -> Result[(Array[Int], Array[Int]), PlanIssue] {
+  if work.val < 0 {
     return Err(Limit)
   }
   if !@execution.producer_read_available(input) ||
@@ -16,14 +25,13 @@ pub fn select_numeric_rows(
     return Err(Unsupported)
   }
   let schema = @execution.producer_read_schema(input)
-  let mut work = max_work
   let mut predicate_column = None
   let projection = []
   for column in 0..<@schema.field_count(schema) {
-    if work == 0 {
+    if work.val == 0 {
       return Err(Limit)
     }
-    work -= 1
+    work.val -= 1
     if @schema.reference_name(@schema.field_at(schema, column).unwrap().name) ==
       plan.predicate_field {
       predicate_column = Some(column)
@@ -35,10 +43,10 @@ pub fn select_numeric_rows(
   for field in plan.fields {
     let mut found = None
     for column in 0..<@schema.field_count(schema) {
-      if work == 0 {
+      if work.val == 0 {
         return Err(Limit)
       }
-      work -= 1
+      work.val -= 1
       if @schema.field_at(schema, column).unwrap().name == field.input {
         found = Some(column)
         break
@@ -49,10 +57,10 @@ pub fn select_numeric_rows(
   }
   let selected = []
   for row in 0..<@execution.producer_read_row_count(input) {
-    if work == 0 {
+    if work.val == 0 {
       return Err(Limit)
     }
-    work -= 1
+    work.val -= 1
     let keep = match
       @execution.producer_read_cell(input, row, predicate_column) {
       Some(Number(value)) | Some(Captured(@admitted.Number(value))) =>
