@@ -5,7 +5,12 @@ test "resource profiles bind implementation identity without identifying the res
   let same_names = search_registry()
   let implementation = @connector.capability_registration_at(registry, 1).unwrap()
   let imports = Array::make(4, @strategy.ResidentImportEstimate::{
-    milliseconds: Some(1L),
+    work: @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
     transfer_bytes: 20L,
     scratch_bytes: 100L,
     table_bytes: 80L,
@@ -14,16 +19,36 @@ test "resource profiles bind implementation identity without identifying the res
     run,
     implementation,
     1000L,
-    Some(1L),
-    Some(1L),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
     imports,
   ).unwrap()
   let second = @strategy.prepare_resident_profile(
     run,
     implementation,
     1000L,
-    Some(1L),
-    Some(1L),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
     imports,
   ).unwrap()
   assert_false(physical_equal(first, second))
@@ -43,8 +68,18 @@ test "resource profiles bind implementation identity without identifying the res
     run,
     @connector.capability_registration_at(same_names, 1).unwrap(),
     1000L,
-    Some(1L),
-    Some(1L),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
     imports,
   ).unwrap()
   let offers = search_offers(run, registry, [1, 2, 3], Some(1L))
@@ -66,8 +101,18 @@ test "resource profiles bind implementation identity without identifying the res
       run,
       implementation,
       1000L,
-      Some(1L),
-      Some(1L),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        3,
+      ).unwrap(),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        3,
+      ).unwrap(),
       imports,
     )
     is Err(InvalidCapacity),
@@ -105,14 +150,34 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
     run,
     @connector.capability_registration_at(registry, 1).unwrap(),
     1000L,
-    Some(5L),
-    if unknown {
-      None
-    } else {
-      Some(100L)
-    },
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(5L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [
+        {
+          work_slots: [0],
+          milliseconds: if unknown {
+            None
+          } else {
+            Some(100L)
+          },
+        },
+      ],
+      3,
+    ).unwrap(),
     Array::make(4, @strategy.ResidentImportEstimate::{
-      milliseconds: Some(0L),
+      work: @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(0L), }],
+        3,
+      ).unwrap(),
       transfer_bytes: 20L,
       scratch_bytes: 100L,
       table_bytes: 80L,
@@ -250,10 +315,25 @@ fn verify_resident_cost(
     run,
     @connector.capability_registration_at(registry, 1).unwrap(),
     database_bytes,
-    Some(3L),
-    Some(2L),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(3L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      run,
+      1,
+      [{ work_slots: [0], milliseconds: Some(2L), }],
+      3,
+    ).unwrap(),
     Array::make(4, @strategy.ResidentImportEstimate::{
-      milliseconds: Some(5L),
+      work: @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(5L), }],
+        3,
+      ).unwrap(),
       transfer_bytes: 100L,
       scratch_bytes: 100L,
       table_bytes: 100L,

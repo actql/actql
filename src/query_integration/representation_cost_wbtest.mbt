@@ -23,10 +23,25 @@ test "shared representation capacity is independent of Host result capacity" {
       run,
       registration,
       1000L,
-      Some(0L),
-      Some(0L),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(0L), }],
+        3,
+      ).unwrap(),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(0L), }],
+        3,
+      ).unwrap(),
       Array::make(4, @strategy.ResidentImportEstimate::{
-        milliseconds: Some(0L),
+        work: @strategy.prepare_shared_work(
+          run,
+          1,
+          [{ work_slots: [0], milliseconds: Some(0L), }],
+          3,
+        ).unwrap(),
         transfer_bytes: 20L,
         scratch_bytes: 100L,
         table_bytes: 80L,

@@ -104,9 +104,11 @@ pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedCo
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @connector_sdk.FixedComputeCandidate, Int, Int, Int, (Int, ResidentTable, @execution_relation.ProducerRead, Int) -> Result[Int, RunIssue]) -> Result[ResidentInputs, RunIssue]
 
-pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
+pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
+
+pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
@@ -145,6 +147,8 @@ pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[U
 pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
 pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
@@ -216,7 +220,7 @@ type ResidentEnvironment
 type ResidentExecution
 
 pub(all) struct ResidentImportEstimate {
-  milliseconds : Int64?
+  work : SharedWorkEstimate
   transfer_bytes : Int64
   scratch_bytes : Int64
   table_bytes : Int64
@@ -273,6 +277,8 @@ pub(all) struct SearchLimits {
   max_work : Int
   max_revisions : Int
 }
+
+type SharedWorkEstimate
 
 pub struct StrategyAssessment {
   position : Int

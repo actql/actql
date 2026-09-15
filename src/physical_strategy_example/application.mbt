@@ -359,10 +359,25 @@ pub fn application_dispatch(
       run,
       @connector.capability_registration_at(app.registry, 1).unwrap(),
       134217728L,
-      Some(1L),
-      Some(1L),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        3,
+      ).unwrap(),
+      @strategy.prepare_shared_work(
+        run,
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        3,
+      ).unwrap(),
       Array::make(count + 1, @strategy.ResidentImportEstimate::{
-        milliseconds: Some(1L),
+        work: @strategy.prepare_shared_work(
+          run,
+          1,
+          [{ work_slots: [0], milliseconds: Some(1L), }],
+          3,
+        ).unwrap(),
         transfer_bytes: 100000L,
         scratch_bytes: 2000000L,
         table_bytes: 4000000L,

@@ -63,10 +63,25 @@ fn resident_dispatch_fixture(
     f.run.unwrap(),
     @connector.capability_registration_at(f.registry, 1).unwrap(),
     134217728L,
-    Some(1L),
-    Some(cleanup),
+    @strategy.prepare_shared_work(
+      f.run.unwrap(),
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      3,
+    ).unwrap(),
+    @strategy.prepare_shared_work(
+      f.run.unwrap(),
+      1,
+      [{ work_slots: [0], milliseconds: Some(cleanup), }],
+      3,
+    ).unwrap(),
     Array::make(count + 1, @strategy.ResidentImportEstimate::{
-      milliseconds: Some(1L),
+      work: @strategy.prepare_shared_work(
+        f.run.unwrap(),
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        3,
+      ).unwrap(),
       transfer_bytes: 100000L,
       scratch_bytes: 2000000L,
       table_bytes: 4000000L,

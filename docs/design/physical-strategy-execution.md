@@ -600,6 +600,18 @@ validation, Transfer, computation, capture, retention and cleanup. Bundled work 
 not added again as edge costs. Time, transfer and retention are separate units;
 unknown estimates remain unknown. Explicit Host ordering resolves unknowns or
 ties; without an unknown-selection policy the choice is deferred.
+Shared preparation, copy and recovery phases use bounded `SharedWorkEstimate`
+inventories supplied by the implementation. Each phase can contain any bounded
+number of disjoint work slots or bundled lines; the common layer does not define
+provider-specific slot counts. Overlapping lines are rejected, and absent slots
+or durations produce unknown cost. The inventory is charged to planning before
+inspection, snapshots nested arrays, and retains the exact graph owner. It is an
+estimate, not proof of an available copy, a reservation, or completion. Reusing
+the same estimate object does not deduplicate distinct physical work. Whole-plan
+composition still counts only actually shared preparation/copies once and keeps
+unsettled recovery costs for every alternative, including alternatives that no
+longer use the retained resource. Bounded explanation includes these inventories
+alongside their assessed totals.
 The priority array is a full permutation of original enumeration positions,
 including infeasible strategies. Charged preflight validates that permutation;
 selection removes rejected positions and maps the remaining order to feasible

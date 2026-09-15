@@ -2,7 +2,7 @@
 /// Per-producer physical import, including its real transfer and scratch. This
 /// estimate never discharges input guards or asserts that a table exists.
 pub(all) struct ResidentImportEstimate {
-  milliseconds : Int64?
+  work : SharedWorkEstimate
   transfer_bytes : Int64
   scratch_bytes : Int64
   table_bytes : Int64
@@ -13,8 +13,8 @@ struct ResidentProfile {
   owner : StrategyOfferOwner
   implementation : @connector.CapabilityRegistration
   database_bytes : Int64
-  preparation_ms : Int64?
-  cleanup_ms : Int64?
+  preparation : SharedWorkEstimate
+  cleanup : SharedWorkEstimate
   imports : Array[ResidentImportEstimate]
 }
 
@@ -56,8 +56,8 @@ pub fn prepare_resident_profile(
   run : CapturedDAG,
   implementation : @connector.CapabilityRegistration,
   database_bytes : Int64,
-  preparation_ms : Int64?,
-  cleanup_ms : Int64?,
+  preparation : SharedWorkEstimate,
+  cleanup : SharedWorkEstimate,
   imports : Array[ResidentImportEstimate],
 ) -> Result[ResidentProfile, SearchIssue] {
   if !@connector.capability_registration_available(implementation) ||
@@ -71,15 +71,15 @@ pub fn prepare_resident_profile(
     Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()
   }
-  if (preparation_ms is Some(value) && value < 0L) ||
-    (cleanup_ms is Some(value) && value < 0L) {
+  if !physical_equal(run.offer_owner, preparation.owner) ||
+    !physical_equal(run.offer_owner, cleanup.owner) {
     return Err(InvalidCapacity)
   }
   for item in imports {
     if item.transfer_bytes <= 0L ||
       item.scratch_bytes <= 0L ||
       item.table_bytes <= 0L ||
-      (item.milliseconds is Some(value) && value < 0L) {
+      !physical_equal(run.offer_owner, item.work.owner) {
       return Err(InvalidCapacity)
     }
   }
@@ -87,8 +87,8 @@ pub fn prepare_resident_profile(
     owner: run.offer_owner,
     implementation,
     database_bytes,
-    preparation_ms,
-    cleanup_ms,
+    preparation,
+    cleanup,
     imports: imports.copy(),
   })
 }
@@ -146,14 +146,14 @@ fn compose_resident_choices(
   // An existing environment's outstanding cleanup belongs to every candidate,
   // including all-Local plans and plans made while cleanup is still pending.
   let outstanding_cleanup = match run.resident_environment {
-    Some(env) if !env.settled => env.profile.map(value => value.cleanup_ms)
+    Some(env) if !env.settled =>
+      env.profile.map(value => value.cleanup.duration)
     _ => None
   }
   guard profile is Some(profile) else {
     return Ok({
       duration: match outstanding_cleanup {
-        Some(Some(value)) => @cost.Complete(value)
-        Some(None) => @cost.Unknown
+        Some(value) => value
         None => @cost.Complete(0L)
       },
       transfer: 0L,
@@ -191,8 +191,8 @@ fn compose_resident_choices(
     lines.push(cleanup)
   }
   if !live {
-    lines.push(profile.preparation_ms)
-    lines.push(profile.cleanup_ms)
+    lines.push(profile.preparation.duration)
+    lines.push(profile.cleanup.duration)
   }
   let mut transfer = 0L
   let mut scratch = 0L
@@ -213,7 +213,7 @@ fn compose_resident_choices(
       }
       if !available[edge.producer] {
         let imported = profile.imports[edge.producer]
-        lines.push(imported.milliseconds)
+        lines.push(imported.work.duration)
         if transfer > 9223372036854775807L - imported.transfer_bytes {
           return Err(Overflow)
         }
@@ -275,8 +275,8 @@ fn compose_resident_choices(
   let mut unknown = false
   for line in lines {
     match line {
-      None => unknown = true
-      Some(value) => {
+      Unknown => unknown = true
+      Complete(value) => {
         if value > 9223372036854775807L - duration {
           return Err(Overflow)
         }
