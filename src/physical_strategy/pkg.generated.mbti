@@ -130,7 +130,7 @@ pub fn resident_table_at(CapturedDAG, ResidentEnvironment, Int) -> ResidentTable
 
 pub fn resident_table_import(ResidentTable) -> @duckdb_adapter.ResidentImport
 
-pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile) -> Result[TaskOffer, SearchIssue]
+pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding) -> Result[Unit, @physical_resources.LedgerIssue]
 

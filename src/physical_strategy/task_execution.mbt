@@ -103,7 +103,7 @@ fn[T] start_task_execution(
     Err(issue) => return Err(Physical(issue))
   }
   if resident is Some(resource) {
-    match activate_resident_execution(run, resource, retention) {
+    match activate_resident_execution(run, resource) {
       Ok(_) => ()
       Err(issue) => {
         @resources.settle_reservation(run.ledger, reservation) |> ignore

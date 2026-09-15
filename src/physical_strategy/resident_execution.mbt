@@ -79,6 +79,13 @@ fn resident_execution_capacity(
         capacity.scratch_bytes < resource.scratch {
         return Err(Physical(InvalidCharge))
       }
+      guard run.strategy.bind(revision => {
+          revision.choices.get(task).bind(value => value)
+        })
+        is Some(offer) &&
+        resource.retention <= offer.resident_output_bytes else {
+        return Err(Physical(InvalidCharge))
+      }
       Ok(
         @resources.shared_capacity_usage(resource.inputs.environment.capacity).capacity,
       )
@@ -91,14 +98,13 @@ fn resident_execution_capacity(
 fn activate_resident_execution(
   run : CapturedDAG,
   resource : ResidentExecution,
-  retention : Int64,
 ) -> Result[Unit, RunIssue] {
   match
     prepare_resident_output(
       run,
       resource.inputs.environment,
       @duckdb.fixed_compute_query(resource.inputs.compute),
-      retention,
+      resource.retention,
       resource.limits,
       resource.transport.max_bytes,
     ) {

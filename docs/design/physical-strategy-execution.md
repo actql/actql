@@ -144,6 +144,13 @@ bound to the exact run, task, candidate and borrowers. The common start checks
 its required capacity and selected resource profile, allocates provisional
 output only after reservation, and claims borrowers only on successful start.
 Omitting or exchanging this admission cannot bypass a selected reuse contract.
+An offer declares the resource-side output-copy capacity separately from Host
+retention. Whole-strategy composition uses that declaration for resource capacity
+and copy lifetimes; it never infers physical-copy size from equal logical content
+or from the Host envelope. Start admission checks the concrete materialization
+requirement against the selected copy allowance before claiming inputs or
+reserving task work. The DuckDB implementation uses its existing conservative
+result allowance for both declarations, but that equality is not a planner rule.
 
 The SDK operation record is trusted connector-author wiring, not an ordinary
 Program or per-call Host option. It does not isolate malicious code in the same

@@ -64,7 +64,9 @@ test "resident provision freezes dispatch and search until binding or close" {
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
       100,
     ).unwrap()
-    offers[task * 2 - 1] = @strategy.resident_task_offer(run, base, profile).unwrap()
+    offers[task * 2 - 1] = @strategy.resident_task_offer(
+      run, base, profile, 100L,
+    ).unwrap()
   }
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None).unwrap()
@@ -264,7 +266,9 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
       100,
     ).unwrap()
-    offers.push(@strategy.resident_task_offer(run, offer, profile).unwrap())
+    offers.push(
+      @strategy.resident_task_offer(run, offer, profile, 100L).unwrap(),
+    )
   }
   assert_true(
     @strategy.revise_strategy(run, offers, registry, None).unwrap()

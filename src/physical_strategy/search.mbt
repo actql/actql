@@ -38,6 +38,7 @@ struct TaskOffer {
   work_slots : Int
   lines : Array[@cost.SerialEstimateLine]
   resident : ResidentProfile?
+  resident_output_bytes : Int64
 }
 
 ///|
@@ -172,6 +173,7 @@ pub fn prepare_task_offer(
           milliseconds: line.milliseconds,
         }),
         resident: None,
+        resident_output_bytes: 0L,
       })
   }
 }

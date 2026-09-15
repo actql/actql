@@ -101,16 +101,18 @@ pub fn resident_task_offer(
   run : CapturedDAG,
   offer : TaskOffer,
   profile : ResidentProfile,
+  output_bytes : Int64,
 ) -> Result[TaskOffer, SearchIssue] {
   if !physical_equal(run.offer_owner, offer.owner) ||
     !physical_equal(run.offer_owner, profile.owner) ||
     !physical_equal(offer.registration, profile.implementation) {
     return Err(ForeignOffer(offer.task))
   }
-  if offer.capacity.execution_bytes < profile.database_bytes {
+  if output_bytes < 0L ||
+    offer.capacity.execution_bytes < profile.database_bytes {
     return Err(InvalidCapacity)
   }
-  Ok({ ..offer, resident: Some(profile), })
+  Ok({ ..offer, resident: Some(profile), resident_output_bytes: output_bytes, })
 }
 
 ///|
@@ -229,14 +231,14 @@ fn compose_resident_choices(
         available[edge.producer] = true
       }
     }
-    // The current runtime reserves the same declared result allowance on the
-    // Host and inside the DB; these are distinct retained physical copies.
-    let output_fits = offer.capacity.retained_bytes <=
+    // The implementation declares this physical representation independently
+    // from its Host result. Equal logical contents do not imply equal sizes.
+    let output_fits = offer.resident_output_bytes <=
       profile.database_bytes - held
     if !output_fits {
       rejected = true
     } else {
-      held += offer.capacity.retained_bytes
+      held += offer.resident_output_bytes
     }
     // Match transaction cleanup: reserve the new result before releasing any
     // previous table, and retain inputs through all still-unstarted consumers.
@@ -263,7 +265,7 @@ fn compose_resident_choices(
       }
     }
     table_bytes[task] = if output_fits {
-      offer.capacity.retained_bytes
+      offer.resident_output_bytes
     } else {
       0L
     }

@@ -370,7 +370,13 @@ fn rebuild_dispatch_estimates(
         Ok(value) => value
         Err(issue) => return Err(Search(issue))
       }
-      match @strategy.resident_task_offer(run, base, resident.profile) {
+      match
+        @strategy.resident_task_offer(
+          run,
+          base,
+          resident.profile,
+          profile.native_capacity.retained_bytes,
+        ) {
         Ok(value) => offers.push(value)
         Err(issue) => return Err(Search(issue))
       }

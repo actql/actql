@@ -1,13 +1,14 @@
 ///|
 test "shared dispatch binds both completed join inputs and enforces native reservation and completion" {
   for
-    (self_join, resident, cancelled) in [
-      (false, false, false),
-      (true, false, false),
-      (false, true, false),
-      (true, true, false),
-      (false, true, true),
-      (true, true, true),
+    (self_join, resident, cancelled, undersized_copy) in [
+      (false, false, false, false),
+      (true, false, false, false),
+      (false, true, false, false),
+      (true, true, false, false),
+      (false, true, true, false),
+      (true, true, true, false),
+      (false, true, false, true),
     ] {
     let (run, issuer) = captured_graph_fixture(join=true, self_join~)
     let registry = search_registry()
@@ -54,7 +55,16 @@ test "shared dispatch binds both completed join inputs and enforces native reser
           table_bytes: 80L,
         }),
       ).unwrap()
-      @strategy.resident_task_offer(run, native, profile).unwrap()
+      @strategy.resident_task_offer(
+        run,
+        native,
+        profile,
+        if undersized_copy {
+          0L
+        } else {
+          8000000L
+        },
+      ).unwrap()
     } else {
       native
     }
@@ -189,6 +199,29 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       ).unwrap()
     })
     let transport : FixedComputeTestTransport = { settled: None, }
+    if undersized_copy {
+      let ledger = @strategy.captured_dag_ledger(run)
+      let before = @resources.ledger_usage(ledger)
+      assert_true(
+        @dbhost.start_configured_strategy_compute_host(
+          setup,
+          _ => false,
+          100000L,
+          1000000L,
+          resident?=resident_inputs,
+        )
+        is Err(Physical(InvalidCharge)),
+      )
+      assert_eq(@resources.ledger_usage(ledger), before)
+      @strategy.cancel_resident_inputs(resident_inputs.unwrap()).unwrap()
+      @strategy.stop_captured_dag(run)
+      @strategy.close_captured_task_output(run, 1)
+      @strategy.close_captured_task_output(run, 2)
+      @strategy.close_resident_environment(run, env.unwrap()).unwrap()
+      @strategy.settle_resident_environment(run, env.unwrap()).unwrap()
+      assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+      continue
+    }
     let attempt = @dbhost.start_configured_strategy_compute_host(
       setup,
       current => {

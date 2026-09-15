@@ -51,14 +51,15 @@ test "resource profiles bind implementation identity without identifying the res
   // The same run and identical descriptive name/costs do not bind another
   // registration's resource. A Local offer cannot borrow it either.
   assert_true(
-    @strategy.resident_task_offer(run, offers[0], first) is Err(ForeignOffer(1)),
-  )
-  assert_true(
-    @strategy.resident_task_offer(run, offers[1], foreign)
+    @strategy.resident_task_offer(run, offers[0], first, 100L)
     is Err(ForeignOffer(1)),
   )
-  @strategy.resident_task_offer(run, offers[1], first).unwrap() |> ignore
-  @strategy.resident_task_offer(run, offers[1], second).unwrap() |> ignore
+  assert_true(
+    @strategy.resident_task_offer(run, offers[1], foreign, 100L)
+    is Err(ForeignOffer(1)),
+  )
+  @strategy.resident_task_offer(run, offers[1], first, 100L).unwrap() |> ignore
+  @strategy.resident_task_offer(run, offers[1], second, 100L).unwrap() |> ignore
   @connector.close_capability_registry(registry)
   assert_true(
     @strategy.prepare_resident_profile(
@@ -129,7 +130,9 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
       100,
     ).unwrap()
-    resident.push(@strategy.resident_task_offer(run, native, profile).unwrap())
+    resident.push(
+      @strategy.resident_task_offer(run, native, profile, 100L).unwrap(),
+    )
     local_offers.push(
       @strategy.prepare_task_offer(
         run,
@@ -271,7 +274,9 @@ fn verify_resident_cost(
       },
       100,
     ).unwrap()
-    offers.push(@strategy.resident_task_offer(run, base, profile).unwrap())
+    offers.push(
+      @strategy.resident_task_offer(run, base, profile, 100L).unwrap(),
+    )
   }
   guard @strategy.revise_strategy(run, offers, registry, None).unwrap()
     is Selected(selected) else {
