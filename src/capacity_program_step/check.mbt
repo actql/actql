@@ -585,44 +585,17 @@ fn check_application(
     @wire.program_proof_input_count(proof) != n {
     return Err(InputCountMismatch)
   }
-  let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
-    // Five bounded passes: edges, multiset construction, proof comparison,
-    // arithmetic and owned input copy. Check before allocating either table.
-    if n > max_operand_work / 5 {
-      return Err(OperandWorkLimit)
-    }
-    n * 5
-  } else {
-    0
+  let prepared = match
+    prepare_bound_inputs(
+      pipeline, step, rule, n, get_input, max_input_work, max_operand_work, usage,
+    ) {
+    Ok(v) => v
+    Err(e) => return Err(e)
   }
-  let ids : Array[String] = []
-  if usage is Some(v) {
-    v[1] = operand_work
-  }
-  let inputs : Array[BoundInput] = []
-  let mut input_work = 0
-  for i in 0..<n {
-    let input = get_input(i)
-    let (matched, used) = check_input_target_usage(
-      pipeline,
-      step,
-      rule,
-      n,
-      i,
-      input,
-      max_input_work - input_work,
-    )
-    input_work += used
-    if usage is Some(v) {
-      v[0] = input_work
-    }
-    match matched {
-      Ok(_) => ()
-      Err(e) => return Err(e)
-    }
-    ids.push(@wire.cid(source_witness(input)))
-    inputs.push(input)
-  }
+  let ids = prepared.ids
+  let inputs = prepared.inputs
+  let input_work = prepared.input_work
+  let operand_work = prepared.operand_work
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
   if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
@@ -646,11 +619,7 @@ fn check_application(
       }
     }
   }
-  let output_unit = match rule {
-    GraphMeasure(unit, _, _, _) => unit
-    GraphCombine(unit, _) => unit
-    _ => @arithmetic.Rows
-  }
+  let output_unit = rule_output_unit(rule)
   if @law.name(@wire.law(witness)) != law ||
     @wire.role(witness) != @arithmetic.ProvenUpperBound ||
     @wire.unit(witness) != output_unit {
@@ -710,6 +679,76 @@ fn check_application(
     join_evidence,
     enforcement: None,
   })
+}
+
+///|
+fn rule_output_unit(rule : Rule) -> @arithmetic.BoundUnit {
+  match rule {
+    GraphMeasure(unit, _, _, _) | GraphCombine(unit, _) => unit
+    _ => @arithmetic.Rows
+  }
+}
+
+///|
+priv struct PreparedBoundInputs {
+  ids : Array[String]
+  inputs : Array[BoundInput]
+  input_work : Int
+  operand_work : Int
+}
+
+///|
+// Both supplied-proof admission and compiler construction validate actual
+// operand edges here. CID equality never substitutes for an input owner.
+fn prepare_bound_inputs(
+  pipeline : @pipeline.CheckedPipeline,
+  step : @pipeline.CheckedStep,
+  rule : Rule,
+  n : Int,
+  get_input : (Int) -> BoundInput,
+  max_input_work : Int,
+  max_operand_work : Int,
+  usage : Array[Int]?,
+) -> Result[PreparedBoundInputs, Issue] {
+  let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
+    // Five bounded passes: edges, multiset construction, proof comparison,
+    // arithmetic and owned input copy. Check before allocating either table.
+    if n > max_operand_work / 5 {
+      return Err(OperandWorkLimit)
+    }
+    n * 5
+  } else {
+    0
+  }
+  let ids : Array[String] = []
+  if usage is Some(v) {
+    v[1] = operand_work
+  }
+  let inputs : Array[BoundInput] = []
+  let mut input_work = 0
+  for i in 0..<n {
+    let input = get_input(i)
+    let (matched, used) = check_input_target_usage(
+      pipeline,
+      step,
+      rule,
+      n,
+      i,
+      input,
+      max_input_work - input_work,
+    )
+    input_work += used
+    if usage is Some(v) {
+      v[0] = input_work
+    }
+    match matched {
+      Ok(_) => ()
+      Err(e) => return Err(e)
+    }
+    ids.push(@wire.cid(source_witness(input)))
+    inputs.push(input)
+  }
+  Ok({ ids, inputs, input_work, operand_work, })
 }
 
 ///|

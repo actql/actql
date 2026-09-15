@@ -239,6 +239,17 @@ without requiring clients to unpack a preparation-phase wrapper tree.
 
 ## Consumers and responsibility boundaries
 
+Operation-bound construction belongs with operation-law application, not with
+the SDK's graph traversal. `capacity_program_step.derive_bound` uses the same
+operand-edge validation and arithmetic rules as supplied-proof admission. It
+accepts already checked inputs in data-edge order and returns an owned bound;
+it neither searches for candidates nor selects a capacity policy. Sorted proof
+inputs retain repetitions, unique dependency sets do not replace those input
+occurrences, and arithmetic derivations preserve left/right roles. Metadata is
+reserved per complete artifact. Input traversal, operand preparation and bounded
+CID ordering have separate usage scopes; caller-owned input arrays are not
+retained. Construction establishes no completed observation or execution permit.
+
 Values row-count evidence is prepared once per checked Stage definition before
 capacity applications are expanded across imports. An applicable supplied proof
 is retained; otherwise the compiler constructs the existing count law from the

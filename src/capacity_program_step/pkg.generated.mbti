@@ -2,11 +2,13 @@
 package "actql/actql/capacity_program_step"
 
 import {
+  "actql/actql/capacity_derivation",
   "actql/actql/capacity_graph_input",
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
+  "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/time_series",
@@ -135,6 +137,8 @@ pub fn components_limit_step(ComponentsLimits) -> Int
 pub fn components_limit_work(ComponentsLimits) -> Int
 
 pub fn components_unconsumed_limit_count(ComponentsApplications) -> Int
+
+pub fn derive_bound(@pipeline_typing.CheckedPipeline, Int, Array[BoundInput], DeriveBoundLimits, unit? : @capacity_derivation.BoundUnit, bindings? : CountBindings?) -> Result[DerivedBound, DeriveBoundIssue]
 
 pub fn guard_application_context(GuardApplications) -> @pipeline_typing.BoundAuthorGuards
 
@@ -348,6 +352,28 @@ pub(all) enum ComponentsScope {
 } derive(Eq, @debug.Debug)
 
 type CountBindings
+
+pub(all) enum DeriveBoundIssue {
+  InvalidLimits
+  ReferenceWorkLimit
+  Application(Issue)
+  Encoding(@encode_core.EncodeFailure)
+  Admission(@capacity_witness.Issue)
+} derive(@debug.Debug)
+
+pub(all) struct DeriveBoundLimits {
+  max_input_work : Int
+  max_operand_work : Int
+  max_reference_work : Int
+  metadata : @capacity_witness.Limits
+}
+
+pub struct DerivedBound {
+  bound : StepBound
+  metadata_bytes : Int
+  metadata_nodes : Int
+  reference_work : Int
+}
 
 type GuardApplications
 

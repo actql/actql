@@ -19,31 +19,30 @@ pub fn prepare_values_row_bound(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  let meter : ValuesMetadataBudget = {
-    bytes: limits.max_bytes,
-    nodes: limits.max_nodes,
-    used_bytes: 0,
-    used_nodes: 0,
+  guard @pipeline.step_at(pipeline, step_index) is Some(step) &&
+    step.operation is @pipeline.Values(_) else {
+    return Err(InvalidOwner)
   }
   match
-    prepare_values_row_bound_metered(
-      pipeline,
-      step_index,
-      {
-        max_bytes: limits.max_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-        max_candidates: 0,
-      },
-      Some(meter),
-    ) {
-    Ok(bound) =>
+    @step_bounds.derive_bound(pipeline, step_index, [], {
+      max_input_work: 0,
+      max_operand_work: 0,
+      // No input sorting: only the proof's own dependency is emitted. Its
+      // visit is already covered by complete-artifact node accounting here.
+      max_reference_work: 1,
+      metadata: limits,
+    }) {
+    Ok(result) =>
       Ok({
-        bound,
-        metadata_bytes: meter.used_bytes,
-        metadata_nodes: meter.used_nodes,
+        bound: result.bound,
+        metadata_bytes: result.metadata_bytes,
+        metadata_nodes: result.metadata_nodes,
       })
-    Err(e) => Err(e)
+    Err(@step_bounds.InvalidLimits) => Err(InvalidLimits)
+    Err(@step_bounds.ReferenceWorkLimit) => Err(BudgetExceeded)
+    Err(@step_bounds.Application(e)) => Err(Application(e))
+    Err(@step_bounds.Encoding(e)) => Err(Encoding(e))
+    Err(@step_bounds.Admission(e)) => Err(Admission(e))
   }
 }
 

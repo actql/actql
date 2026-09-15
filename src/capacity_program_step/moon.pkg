@@ -1,6 +1,8 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/capacity_sequence_limit" @sequence,
   "actql/actql/capacity_graph_input" @graph_input,
   "actql/actql/pipeline_typing" @pipeline,
@@ -33,6 +35,4 @@ import {
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/calendar_profile",
   "actql/actql/sha256" @sha,
-  "actql/actql/encode_core" @encode,
-  "moonbitlang/core/encoding/utf8",
 } for "test"
