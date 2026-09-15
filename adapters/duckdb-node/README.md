@@ -634,9 +634,14 @@ the standard Host driver and explanation output without conformance dependencies
 To drive a selected finite DAG without fixture-specific per-task calls, construct
 an owned `connectors_builtin.ConfiguredComputeHost` using configured modules and
 `open_configured_compute_host`, then call
-`runCapturedStrategy(setup, {duckdb: {transportLimits, importLimits}}, signal)` from
-`../host-node/entry.mjs`. Other configured modules supply their own options; an
-in-process-only installation needs no DuckDB settings. The generated sequences
+`runCapturedStrategy(setup, {duckdb: configuration}, signal)` from
+`../host-node/entry.mjs`. The opaque `configuration` is created before execution with
+`prepareDuckDBStrategyConfiguration({transportLimits, importLimits})` from
+`./configuration.mjs`. Preparation is pure and does not import the DuckDB SDK;
+later mutation of the original limits cannot change the owned configuration.
+Selected module loading or pre-execution cancellation rejects before task start.
+Other configured modules supply their own options; an in-process-only installation
+needs no DuckDB settings. The generated sequences
 must belong to the exact checked
 tasks. The driver reads the current strategy; it does not choose a fallback or
 invent an input before its producer completes. Its returned `status` is

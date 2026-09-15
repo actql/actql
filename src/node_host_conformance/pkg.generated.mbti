@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/node_host_conformance"
+
+import {
+  "actql/actql/connectors_builtin",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn close_subset(Scenario) -> Unit
+
+pub fn output_rows(@execution_relation.CompletedOutput) -> Int
+
+pub fn output_value(@execution_relation.CompletedOutput) -> Double
+
+pub fn prepare_subset(Int) -> Scenario raise
+
+pub fn subset_host(Scenario) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+// Errors
+
+// Types and methods
+type Scenario
+
+// Type aliases
+
+// Traits

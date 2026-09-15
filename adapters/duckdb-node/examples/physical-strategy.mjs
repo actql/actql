@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runStrategyNativeHostQuery } from '../host.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
+import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
 
 const root = new URL('../../../', import.meta.url);
@@ -48,7 +49,7 @@ export async function runExample({ database, environment, environmentCid, progra
   try {
     const graph = capture.openDAG(app.applicationGraph(prepared));
     const setup = checked(app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident));
-    execution = await runCapturedStrategy(setup, {duckdb: {transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }}}, signal);
+    execution = await runCapturedStrategy(setup, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})}, signal);
     const explanation = execution.explain();
     const report = Object.freeze({ status: execution.status, program_success: false,
       estimate_model: 'supplied example estimates, not measured speed',

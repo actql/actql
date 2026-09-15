@@ -6,11 +6,11 @@ import {checkNodeAssembly} from './connector-node-bundles.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 checkNodeAssembly(root, process.argv.includes('--write'), {
   names:['local'], assembly:'connectors_workers', bridge:'connectors_workers_bridge',
-  adapter:'connectors-workers',
+  adapter:'connectors-workers', loading:'static',
 });
 console.log('Local-only Workers Compute composition verified.');
 checkNodeAssembly(root, process.argv.includes('--write'), {
   names:['reference_compute'], assembly:'connectors_workers_async',
-  bridge:'connectors_workers_async_bridge', adapter:'connectors-workers-async',
+  bridge:'connectors_workers_async_bridge', adapter:'connectors-workers-async', loading:'static',
 });
 console.log('Independent numeric Workers test composition verified.');

@@ -40,7 +40,7 @@ const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
 // product baseline. Keep the Local-only Workers assembly in that baseline.
 const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
   'query_integration', 'connector_conformance', 'duckdb_conformance',
-  'workers_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
+  'workers_conformance', 'node_host_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
 cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
 cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,

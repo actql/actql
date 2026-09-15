@@ -9,6 +9,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
+import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -88,7 +89,7 @@ test('typed composite join and count preserve fixed capture across Local fresh a
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f) : moon.strategyFixtureDispatch(f);
           if (placement !== 'resident') assert.equal(moon.strategyFixtureReplan(f, placement === 'local' ? 20n : 1n), true);
-          execution = await runCapturedStrategy(dispatch, {duckdb: {transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }}});
+          execution = await runCapturedStrategy(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}: ${execution.failure}`);
           assert.deepEqual(execution.completed.map(item => item.realization), Array(4).fill(placement === 'resident' ? 'duckdb-resident' : placement));
           assert.equal(moon.strategyFixtureCid(f, 3), hash([high, high, low, high, high].map(amount => ({ amount }))), `${name} join order`);

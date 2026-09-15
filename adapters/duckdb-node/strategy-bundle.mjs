@@ -3,7 +3,10 @@
 import { runStrategyHostCompute, openResidentStrategyEnvironment,
   importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
 
-export function duckdbStrategyContribution(moon, setup, checked, options) {
+import {preparedStrategyConfiguration} from './configuration.mjs';
+
+export function duckdbStrategyContribution(moon, setup, checked, configuration) {
+  const options = preparedStrategyConfiguration(configuration);
   const limits = Object.freeze({ ...options.transportLimits });
   const imports = Object.freeze({ ...options.importLimits });
   const environments = new Map();

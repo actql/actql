@@ -168,8 +168,12 @@ Node execution contributions are separately declared by connector-owned
 `node-bundle.json` files and generated with `connector-node-bundles.mjs`.
 `adapters/connectors-builtin/strategy.generated.mjs` obtains the actual configured
 module keys from the owned MoonBit setup. It validates the whole subset before
-calling any factory; omitted factories, their settings and finalizers are never
-used. These generated composition keys do not replace exact capability
+loading any module. Only selected entries in the fixed, generated loader table
+are imported; omitted SDK dependencies are not resolved. All selected modules
+must load before any pure factory is called. Load failure stops installation,
+without fallback. Omitted factories, settings and finalizers are never used.
+This is not arbitrary dynamic plugin loading. Workers keep explicit static
+build-time compositions. These keys do not replace exact capability
 registrations or resource bindings. Unknown and duplicate keys are rejected.
 A typed Compute declaration does not
 by itself implement Node I/O. `connectors_builtin_node` generates typed bridge
@@ -177,9 +181,16 @@ operations from the same configured modules and their manifest execution entries
 Use `runCapturedStrategy(setup, moduleOptions, signal)` from
 `adapters/host-node/entry.mjs`. `moduleOptions` is indexed by generated module key;
 its provider-specific value is read only by that installed module. For example,
-DuckDB accepts `{duckdb: {transportLimits, importLimits}}`; in-process Local or
+DuckDB accepts `{duckdb: prepareDuckDBStrategyConfiguration({transportLimits, importLimits})}`;
+import that pure preparation function from `adapters/duckdb-node/configuration.mjs`
+without loading the SDK. The standard entry snapshots the outer mapping before
+awaiting, retaining exact immutable Connector-owned handles without copying their
+contents. Accessor properties in that mapping are rejected. In-process Local or
 numeric-only setups require no transport options. The entry fixes its runtime,
 ABI checking and driver; execution options cannot replace them.
+Installation failure or cancellation before execution rejects the call without
+starting a task. Cancellation stops further loads and factories, but an already
+started import is observed until settlement; it is not abandoned in the background.
 
 Local-only, numeric-only and mixed Compute installations use this same entry and
 generated bridge. The independent numeric Node contribution calls its owned
@@ -188,6 +199,11 @@ completion. To add an existing capability implementation, provide its module,
 typed `compute-bundle.json`, optional Node `node-bundle.json` contribution and
 application settings, then regenerate the two composition packages. Neither the
 standard bridge template nor common Host/driver changes.
+
+`node scripts/check-node-without-duckdb.mjs` executes Local-only, numeric-only and
+mixed installations through that standard entry in a copied tree without
+`node_modules`. It uses the actual compiled Core and a mock captured-input fixture,
+not a substitute execution driver. Real DuckDB conformance runs separately.
 
 The Local/DuckDB rate and resource profile in `connectors/duckdb/example_host`
 belongs to the dedicated DuckDB example. It returns the standard installation;

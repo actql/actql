@@ -4,12 +4,11 @@ import { realpath, stat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical-values.mjs';
+import { DuckDBTransportError, validateLimits } from './configuration.mjs';
+export { DuckDBTransportError, validateLimits } from './configuration.mjs';
 
 const files = new WeakMap();
 
-export class DuckDBTransportError extends Error {
-  constructor(code, options) { super(code, options); this.name = 'DuckDBTransportError'; this.code = code; }
-}
 
 // Call only from explicit Host setup, never from Program/source wire decoding.
 // The returned grant cannot be reconstructed by serializing its properties.
@@ -20,21 +19,6 @@ export async function authorizeLocalDatabase(path) {
   const grant = Object.freeze({});
   files.set(grant, resolved);
   return grant;
-}
-
-// Pure validation shared with Host admission, before reservations or native I/O.
-export function validateLimits(limits) {
-  limits = { ...limits };
-  if (limits.cancelWaitMs !== undefined &&
-      (!Number.isSafeInteger(limits.cancelWaitMs) || limits.cancelWaitMs < 0 || limits.cancelWaitMs > 2147483647)) {
-    throw new DuckDBTransportError('InvalidLimits');
-  }
-  for (const name of ['maxRows', 'maxCells', 'maxTransportBytes', 'maxSqlBytes', 'maxParameters', 'maxColumns', 'memoryBytes', 'threads']) {
-    if (!Number.isSafeInteger(limits[name]) || limits[name] < (['memoryBytes', 'threads'].includes(name) ? 1 : 0)) {
-      throw new DuckDBTransportError('InvalidLimits');
-    }
-  }
-  return Object.freeze({ ...limits });
 }
 
 // A caller's cancellation deadline is not native settlement. Keep observing the

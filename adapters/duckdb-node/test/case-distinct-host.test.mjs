@@ -9,6 +9,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery } from '../host.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
+import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
@@ -88,7 +89,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
           await write('empty'); // Neither branch may reread the source.
           const dispatch = placement === 'resident' ? moon.strategyFixtureResidentDispatch(f)
             : moon.strategyFixtureCostedDispatch(f, placement === 'local' ? 20n : 1n);
-          execution = await runCapturedStrategy(dispatch, {duckdb: {transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }}});
+          execution = await runCapturedStrategy(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: limits, importLimits: { maxRows: 100, maxCells: 1000 }})});
           const expected = hash([{[key]: low,[aggregate]:4},{[key]:high,[aggregate]:1}]);
           const actual = moon.strategyFixtureCid(f,4);
           assert.equal(execution.status, 'host-tasks-completed', `${name}/${placement}/${key}/${collision}: ${inspect(execution.failure, { depth: 10 })}`);

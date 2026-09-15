@@ -70,6 +70,12 @@ contributions implement execution and environment finalization; declarations in
 their `node-bundle.json` manifests generate the separate builtin assembly.
 Factories perform no I/O, and the standard composition entry does not accept a
 replacement runtime, verifier or contribution through execution options.
+Node loads only the selected modules through generated, build-time fixed import
+functions. The full module selection and prepared configuration handles are
+snapshotted before asynchronous loading. A failed load stops installation rather
+than changing the candidate set. Cancellation observes any already-started import
+and prevents subsequent imports, factories and dispatch. Workers use a separately
+generated static composition; this does not add runtime plugin loading there.
 
 An implementation's fulfilled Promise is not a completion proof. The loop checks
 the common MoonBit DAG's retained completion before recording success. Failure

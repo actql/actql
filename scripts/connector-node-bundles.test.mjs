@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installStrategyContributions} from '../adapters/connectors-builtin/strategy.generated.mjs';
+import '../adapters/host-node/installation.test.mjs';
 
 test('Node installation touches only the configured module subset', async () => {
   const setup = {};
