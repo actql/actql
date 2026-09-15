@@ -47,6 +47,70 @@ fn dispatch_test_generated(
 }
 
 ///|
+test "installed dispatch follows exact registration not its label or registry position" {
+  let (run, _) = captured_graph_fixture()
+  let registry = @connector.prepare_capability_registry(
+    [
+      { name: "local", acquisition: false, fixed_compute: true, },
+      { name: "duckdb", acquisition: false, fixed_compute: true, },
+    ],
+    2,
+    100,
+  ).unwrap()
+  // Deliberately label the DuckDB implementation local and put Local second.
+  // These are diagnostics only, not provider selection instructions.
+  let local_entry = @connector.capability_registration_at(registry, 1).unwrap()
+  let native = @connector.capability_registration_at(registry, 0).unwrap()
+  let host = @dbhost.configure_strategy_dispatch(
+    run,
+    registry,
+    local_entry,
+    native,
+    dispatch_test_generated(run),
+    dispatch_test_limits(),
+  ).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 4,
+  }).unwrap()
+  let offers = []
+  for task in [1, 2, 3] {
+    offers.push(
+      @strategy.prepare_task_offer(
+        run,
+        task,
+        local_entry,
+        1,
+        [{ work_slots: [0], milliseconds: Some(1L), }],
+        {
+          transfer_bytes: 0L,
+          retained_bytes: 8000000L,
+          execution_bytes: 64000000L,
+        },
+        100,
+      ).unwrap(),
+    )
+  }
+  assert_true(
+    @strategy.revise_strategy(run, offers, registry, None) is Ok(Selected(_)),
+  )
+  for task in [1, 2, 3] {
+    let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
+    assert_eq(@dbhost.dispatch_task(dispatch), task)
+    assert_false(@dbhost.dispatch_is_native(dispatch))
+    @dbhost.execute_local_dispatch(dispatch).unwrap()
+  }
+  assert_eq(
+    @execution.completed_row_count(
+      @strategy.captured_task_output(run, 3, Step(1)).unwrap(),
+    ),
+    1,
+  )
+}
+
+///|
 test "dispatch requires exact generated owners and consumes checked-ready tasks once" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

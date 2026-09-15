@@ -16,6 +16,16 @@ registry closure prevents subsequent recovery without revoking independently
 completed outputs. Input accessors retain exact producer handles; the input-array
 snapshot cannot mutate owned ports or copy/re-admit the underlying rows.
 
+`CapabilityImplementations[T]` snapshots a bounded, explicit installation of
+entrypoints against exact registrations from one Host registry. Installation is
+pure: it does not call the entries or create resources. A missing entry denotes
+an unsupported operation in that installation; equal names or descriptions from
+another registry cannot recover it. The installed set has no mutation or
+replacement operation. Closing its registry prevents future lookup, not unloading
+of already-recovered code or cancellation of running work. Start and completion
+checks remain mandatory after lookup. Typed entries can retain private payloads;
+the SDK does not inspect SQL, provider names or resource representations.
+
 The Local realization is owned by `connectors/local`; DuckDB Compute candidate,
 receiving and completion state is owned by `connectors/duckdb/compute`. The latter
 keeps concrete compiler diagnostics and trusted transport verification separate

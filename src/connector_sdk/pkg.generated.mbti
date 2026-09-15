@@ -12,6 +12,8 @@ pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T,
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 
+pub fn[T] capability_implementation(CapabilityImplementations[T], CapabilityRegistration) -> T?
+
 pub fn capability_registration_at(CapabilityRegistry, Int) -> CapabilityRegistration?
 
 pub fn capability_registration_available(CapabilityRegistration) -> Bool
@@ -44,6 +46,8 @@ pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_rel
 
 pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
 
+pub fn[T] install_capability_implementations(CapabilityRegistry, Array[(CapabilityRegistration, T)], Int) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue]
+
 pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Result[CapabilityRegistry, CapabilityRegistrationIssue]
 
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
@@ -59,6 +63,16 @@ pub(all) struct CapabilityDescription {
   name : String
   acquisition : Bool
   fixed_compute : Bool
+}
+
+type CapabilityImplementations[T]
+
+pub(all) enum CapabilityInstallationIssue {
+  InvalidLimits
+  EntryLimit
+  RegistryClosed
+  ForeignRegistration(Int)
+  DuplicateRegistration(Int)
 }
 
 type CapabilityRegistration

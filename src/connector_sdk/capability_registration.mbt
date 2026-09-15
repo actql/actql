@@ -31,6 +31,7 @@ priv struct CapabilityRegistryOwner {
 ///|
 struct CapabilityRegistration {
   owner : CapabilityRegistryOwner
+  position : Int
   description : CapabilityDescription
 }
 
@@ -66,7 +67,11 @@ pub fn prepare_capability_registry(
       return Err(DuplicateName(index))
     }
     names[description.name] = true
-    registry.entries.push({ owner: registry.owner, description, })
+    registry.entries.push({
+      owner: registry.owner,
+      position: index,
+      description,
+    })
   }
   Ok(registry)
 }

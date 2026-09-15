@@ -26,6 +26,7 @@ test('connector SDK has no concrete implementation dependency or public error ty
   for (const type of ['CapabilityRegistry', 'CapabilityRegistration', 'FixedComputeRequest', 'FixedComputeCandidate']) {
     assert.match(api, new RegExp(`^type ${type}$`, 'm'));
   }
+  assert.match(api, /^type CapabilityImplementations\[T\]$/m);
 });
 
 test('physical resource ledger is independent of strategy and connector implementations', () => {

@@ -119,6 +119,10 @@ attempts; a ledger handle alone is not execution permission or completion eviden
 sequences to their exact checked task owners, the owned registry, selected
 consumer capacities and transport/execution limits. It copies the configuration
 array rather than borrowing mutable caller slots. The next-dispatch operation
+recovers the installed preparation entry by exact registration, never by name or
+registration position. Local and DuckDB preparation entries retain their own
+compiler and binding rules; a lookup is not permission to start or complete work.
+The next-dispatch operation
 consults the current whole-strategy revision and checked data/control readiness,
 then binds the actual completed input and validates only the selected realization.
 Candidate estimates at this binding stage are unknown, not zero; selecting the
