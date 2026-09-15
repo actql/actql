@@ -42,6 +42,27 @@ pub fn prepare_local_stage_contexts(
   proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
 ) -> Result[StageContexts, CapacityStageIssue] {
+  prepare_local_stage_contexts_owned(
+    prepared,
+    materials,
+    selected_policy,
+    limits,
+    capacity_count_bindings(@stage_results.local_source_values(prepared)),
+    proof_owners~,
+    input_owners~,
+  )
+}
+
+///|
+fn prepare_local_stage_contexts_owned(
+  prepared : @stage_results.PreparedLocalSource,
+  materials : Array[Array[CapacityMaterial]],
+  selected_policy : @policy.Policy,
+  limits : CapacityStageLimits,
+  count_bindings : CapacityCountBindings,
+  proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
+  input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
+) -> Result[StageContexts, CapacityStageIssue] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
     limits.max_name_bytes < 0 ||
@@ -146,24 +167,18 @@ pub fn prepare_local_stage_contexts(
         return Err(BudgetExceeded)
       }
       extra_work += claim_count
-      let bindings = if @pipeline.parameters(pipeline) is Some(_) {
-        let bound = match
-          @step_bounds.bind_parameters(
-            pipeline,
-            @stage_results.local_source_values(prepared),
-            max_work=limits.max_work - base_work - extra_work - coverage_work,
-            max_text_bytes=limits.max_text_bytes - base_text - extra_text,
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Bindings(stage, visit, e))
-        }
-        let used = @step_bounds.binding_usage(bound)
-        extra_work += used.0
-        extra_text += used.1
-        Some(bound)
-      } else {
-        None
+      let (bindings, binding_work, binding_text) = match
+        capacity_count_binding(
+          count_bindings,
+          pipeline,
+          limits.max_work - base_work - extra_work - coverage_work,
+          limits.max_text_bytes - base_text - extra_text,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Bindings(stage, visit, issue))
       }
+      extra_work += binding_work
+      extra_text += binding_text
       if material.consumers.length() >
         limits.max_work - base_work - extra_work - coverage_work {
         return Err(BudgetExceeded)

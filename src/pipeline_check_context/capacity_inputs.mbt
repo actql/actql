@@ -337,12 +337,18 @@ pub fn prepare_local_stage_contexts_from_inputs(
     Err(issue) => return Err(Inputs(issue))
   }
   match
-    prepare_local_stage_contexts(prepared, materials, selected_policy, {
-      ..limits,
-      max_work: limits.max_work - work - generated_work,
-      max_input_work: limits.max_input_work - generated_input_work,
-      max_operand_work: limits.max_operand_work - generated_operand_work,
-    }) {
+    prepare_local_stage_contexts_owned(
+      prepared,
+      materials,
+      selected_policy,
+      {
+        ..limits,
+        max_work: limits.max_work - work - generated_work,
+        max_input_work: limits.max_input_work - generated_input_work,
+        max_operand_work: limits.max_operand_work - generated_operand_work,
+      },
+      capacity_count_bindings(@stage_results.local_source_values(prepared)),
+    ) {
     Ok(value) =>
       Ok({
         ..value,

@@ -265,6 +265,20 @@ The values-specific preparation adapter retains its complete-artifact scope:
 with no input operands, its sole self-dependency visit is already represented
 in the artifact nodes and is not charged again by that adapter.
 
+Count Parameter preparation separates immutable value interpretation from
+pipeline applicability. One admitted bound-value collection owns its name
+lookup and parsed duration values. Attaching that lookup to a pipeline requires
+the exact declaration owner and retains that pipeline as a separate authority;
+equal values or equal declaration text do not authorize another owner.
+
+A capacity construction shares this value lookup and memoizes attachments by
+exact checked pipeline, including repeated imported visits. Each lookup and
+new attachment is charged, while value scanning and duration parsing are
+charged only when performed. The independently usable combined binding entry
+reports its full preparation usage; attaching already prepared values reports
+no repeated value-preparation usage. A failed construction does not publish its
+session or reuse it in a subsequent Program check.
+
 Values row-count evidence is prepared once per checked Stage definition before
 capacity applications are expanded across imports. An applicable supplied proof
 is retained; otherwise the compiler constructs the existing count law from the

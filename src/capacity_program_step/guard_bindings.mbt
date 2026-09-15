@@ -38,7 +38,7 @@ pub fn check_guard_bindings(
       local_count += 1
       if app.bindings is Some(bindings) {
         guard expected is Some(values) &&
-          physical_equal(bindings.values, values) else {
+          physical_equal(bindings.parameters.values, values) else {
           return Err(BindingMismatch(i))
         }
       }

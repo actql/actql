@@ -262,7 +262,8 @@ fn operation_rule(
       let a = match @series.start(op) {
         @series.Literal(_) => None
         @series.Parameter(name) => {
-          guard bindings is Some(b) && b.entries.get(name) is Some(entry) else {
+          guard bindings is Some(b) &&
+            b.parameters.entries.get(name) is Some(entry) else {
             return Err(UnresolvedCount)
           }
           Some(entry.value)
@@ -271,7 +272,8 @@ fn operation_rule(
       let z = match @series.end(op) {
         @series.Literal(_) => None
         @series.Parameter(name) => {
-          guard bindings is Some(b) && b.entries.get(name) is Some(entry) else {
+          guard bindings is Some(b) &&
+            b.parameters.entries.get(name) is Some(entry) else {
             return Err(UnresolvedCount)
           }
           Some(entry.value)

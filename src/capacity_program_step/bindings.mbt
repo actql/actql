@@ -2,6 +2,15 @@
 /// A lookup owned by one checked pipeline and one complete bound collection.
 struct CountBindings {
   pipeline : @pipeline.CheckedPipeline
+  parameters : CountParameters
+  work : Int
+  text : Int
+}
+
+///|
+/// Immutable value lookup and duration interpretation, independent of a
+/// pipeline occurrence. The exact admitted collection remains its owner.
+struct CountParameters {
   values : @parameter.BoundValues
   entries : Map[String, @parameter.BoundParameter]
   durations : Map[String, Int64]
@@ -23,6 +32,25 @@ pub fn bind_parameters(
   guard @pipeline.parameters(pipeline) is Some(declarations) &&
     physical_equal(declarations, @parameter.bound_declarations(values)) else {
     return Err(BindingOwnerMismatch)
+  }
+  let parameters = match
+    prepare_count_parameters(values, max_work~, max_text_bytes~) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ pipeline, parameters, work: parameters.work, text: parameters.text, })
+}
+
+///|
+/// Prepare the admitted values once; this does not bind them to any pipeline
+/// or apply defaults. Work and text belong to this preparation, not each use.
+pub fn prepare_count_parameters(
+  values : @parameter.BoundValues,
+  max_work~ : Int,
+  max_text_bytes~ : Int,
+) -> Result[CountParameters, Issue] {
+  if max_work < 0 || max_text_bytes < 0 {
+    return Err(InvalidBindingLimits)
   }
   let work = @parameter.bound_value_count(values)
   if work > max_work {
@@ -51,7 +79,34 @@ pub fn bind_parameters(
     }
     entries[entry.name] = entry
   }
-  Ok({ pipeline, values, entries, durations, work, text, })
+  Ok({ values, entries, durations, work, text, })
+}
+
+///|
+/// O(1) exact declaration-owner check. Reusing the lookup performs no value
+/// traversal or duration parse, so binding_usage is zero for this attachment.
+pub fn bind_prepared_parameters(
+  pipeline : @pipeline.CheckedPipeline,
+  parameters : CountParameters,
+) -> Result[CountBindings, Issue] {
+  guard @pipeline.parameters(pipeline) is Some(declarations) &&
+    physical_equal(
+      declarations,
+      @parameter.bound_declarations(parameters.values),
+    ) else {
+    return Err(BindingOwnerMismatch)
+  }
+  Ok({ pipeline, parameters, work: 0, text: 0, })
+}
+
+///|
+pub fn count_parameters_usage(parameters : CountParameters) -> (Int, Int) {
+  (parameters.work, parameters.text)
+}
+
+///|
+pub fn binding_parameters(bindings : CountBindings) -> CountParameters {
+  bindings.parameters
 }
 
 ///|
@@ -64,9 +119,9 @@ fn resolve_milliseconds(
     @window.Parameter(name, duration~, domain~) => {
       guard bindings is Some(bound) else { return Err(UnresolvedCount) }
       let n = if duration {
-        bound.durations.get(name)
+        bound.parameters.durations.get(name)
       } else {
-        match bound.entries.get(name) {
+        match bound.parameters.entries.get(name) {
           Some(entry) =>
             match entry.value.value {
               Number(n) => @scalar.read_safe_integer(n)
@@ -121,7 +176,7 @@ fn resolve_count(
     @relation.Literal(n) => Ok(n)
     @relation.Parameter(name) => {
       guard bindings is Some(bound) else { return Err(UnresolvedCount) }
-      guard bound.entries.get(name) is Some(entry) else {
+      guard bound.parameters.entries.get(name) is Some(entry) else {
         return Err(UnresolvedCount)
       }
       guard entry.value.value is Number(n) else {
@@ -137,7 +192,7 @@ fn resolve_count(
 
 ///|
 pub fn parameter_values(bindings : CountBindings) -> @parameter.BoundValues {
-  bindings.values
+  bindings.parameters.values
 }
 
 ///|

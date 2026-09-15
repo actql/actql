@@ -44,6 +44,10 @@ pub fn asof_search_work(AsOfSearchProduct) -> Int
 
 pub fn bind_parameters(@pipeline_typing.CheckedPipeline, @parameter_binding.BoundValues, max_work~ : Int, max_text_bytes~ : Int) -> Result[CountBindings, Issue]
 
+pub fn bind_prepared_parameters(@pipeline_typing.CheckedPipeline, CountParameters) -> Result[CountBindings, Issue]
+
+pub fn binding_parameters(CountBindings) -> CountParameters
+
 pub fn binding_usage(CountBindings) -> (Int, Int)
 
 pub fn bound_derivation_input_at(BoundDerivation, Int, Int) -> BoundOperand?
@@ -142,6 +146,8 @@ pub fn components_limit_work(ComponentsLimits) -> Int
 
 pub fn components_unconsumed_limit_count(ComponentsApplications) -> Int
 
+pub fn count_parameters_usage(CountParameters) -> (Int, Int)
+
 pub fn derive_bound(@pipeline_typing.CheckedPipeline, Int, Array[BoundInput], DeriveBoundLimits, unit? : @capacity_derivation.BoundUnit, bindings? : CountBindings?, max_work? : Int) -> Result[DerivedBound, DeriveBoundIssue]
 
 pub fn derive_prepared_bound(BoundDerivation, Array[BoundInput], DeriveBoundLimits, max_work? : Int) -> Result[DerivedBound, DeriveBoundIssue]
@@ -211,6 +217,8 @@ pub fn operand_work(StepBound) -> Int
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
 
 pub fn prepare_bound_derivation(@pipeline_typing.CheckedPipeline, Int, unit? : @capacity_derivation.BoundUnit, bindings? : CountBindings?) -> Result[BoundDerivation, Issue]
+
+pub fn prepare_count_parameters(@parameter_binding.BoundValues, max_work~ : Int, max_text_bytes~ : Int) -> Result[CountParameters, Issue]
 
 pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?, sequences? : @capacity_sequence_limit.Applications?, producers? : Array[Applications]) -> Result[Applications, PreparationIssue]
 
@@ -377,6 +385,8 @@ pub(all) enum ComponentsScope {
 } derive(Eq, @debug.Debug)
 
 type CountBindings
+
+type CountParameters
 
 pub(all) enum DeriveBoundIssue {
   InvalidLimits
