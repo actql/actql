@@ -22,13 +22,17 @@ struct StrategyHostDispatch {
   local_registration : @connector.CapabilityRegistration
   local_module : @local_connector.LocalComputeModule
   native_registration : @connector.CapabilityRegistration
+  local_channel : @host_driver.DispatchChannel[@connector.SynchronousCompute]
+  native_channel : @host_driver.DispatchChannel[
+    StrategyComputeHostConfiguration,
+  ]
   implementations : @connector.CapabilityImplementations[
     (
       StrategyHostDispatch,
       Int,
       @strategy.StrategyRevision,
       @connector.FixedComputeRequest,
-    ) -> Result[DispatchWork, DispatchIssue],
+    ) -> Result[@host_driver.DispatchWork, DispatchIssue],
   ]
   generated : Array[@execution.GeneratedSequence]
   native_rejections : Array[String?]
@@ -42,13 +46,7 @@ struct StrategyHostDispatch {
 struct TaskDispatch {
   owner : StrategyHostDispatch
   ticket : @host_driver.DispatchTicket
-  work : DispatchWork
-}
-
-///|
-priv enum DispatchWork {
-  Synchronous(@connector.SynchronousCompute)
-  Native(StrategyComputeHostConfiguration)
+  work : @host_driver.DispatchWork
 }
 
 ///|
@@ -144,13 +142,26 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
   }
+  let driver = @host_driver.open_dispatch_driver(run)
+  let local_channel = match
+    @host_driver.open_dispatch_channel(driver, registry, local_registration) {
+    Ok(value) => value
+    Err(issue) => return Err(dispatch_driver_issue(issue))
+  }
+  let native_channel = match
+    @host_driver.open_dispatch_channel(driver, registry, native_registration) {
+    Ok(value) => value
+    Err(issue) => return Err(dispatch_driver_issue(issue))
+  }
   Ok({
     run,
-    driver: @host_driver.open_dispatch_driver(run),
+    driver,
     registry,
     local_registration,
     local_module,
     native_registration,
+    local_channel,
+    native_channel,
     implementations,
     generated: generated.copy(),
     native_rejections,
@@ -226,13 +237,6 @@ pub fn dispatch_excluded_realizations(
 }
 
 ///|
-fn consume_dispatch(dispatch : TaskDispatch) -> Result[Unit, DispatchIssue] {
-  @host_driver.consume_dispatch_ticket(dispatch.owner.driver, dispatch.ticket).map_err(
-    dispatch_driver_issue,
-  )
-}
-
-///|
 fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
   match issue {
     PendingTask => PendingTask
@@ -246,12 +250,15 @@ fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
 pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  guard dispatch.work is Synchronous(compute) else {
-    return Err(ForeignSelection)
-  }
-  match consume_dispatch(dispatch) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  let compute = match
+    @host_driver.take_dispatch_work(
+      dispatch.owner.local_channel,
+      dispatch.owner.driver,
+      dispatch.ticket,
+      dispatch.work,
+    ) {
+    Err(issue) => return Err(dispatch_driver_issue(issue))
+    Ok(value) => value
   }
   @strategy.execute_captured_synchronous_task(
     dispatch.owner.run,
@@ -264,11 +271,12 @@ pub fn execute_synchronous_dispatch(
 pub fn take_native_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[StrategyComputeHostConfiguration, DispatchIssue] {
-  guard dispatch.work is Native(setup) else { return Err(ForeignSelection) }
-  match consume_dispatch(dispatch) {
-    Err(issue) => Err(issue)
-    Ok(_) => Ok(setup)
-  }
+  @host_driver.take_dispatch_work(
+    dispatch.owner.native_channel,
+    dispatch.owner.driver,
+    dispatch.ticket,
+    dispatch.work,
+  ).map_err(dispatch_driver_issue)
 }
 
 ///|
@@ -281,10 +289,7 @@ pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
 pub fn dispatch_registration(
   dispatch : TaskDispatch,
 ) -> @connector.CapabilityRegistration? {
-  @strategy.strategy_registration(
-    @host_driver.dispatch_ticket_revision(dispatch.ticket),
-    @host_driver.dispatch_ticket_task(dispatch.ticket),
-  )
+  Some(@host_driver.dispatch_work_registration(dispatch.work))
 }
 
 ///|

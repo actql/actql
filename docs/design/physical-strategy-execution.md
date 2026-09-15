@@ -354,6 +354,15 @@ array rather than borrowing mutable caller slots. The next-dispatch operation
 recovers the installed preparation entry by exact registration, never by name or
 registration position. Local and DuckDB preparation entries retain their own
 compiler and binding rules; a lookup is not permission to start or complete work.
+Preparation payloads stay in typed, implementation-specific `DispatchChannel[T]`
+slots. The common `DispatchWork` token contains only the exact driver owner,
+registration, task and revision, not a closed backend variant. Recovering a
+payload checks the exact channel token and driver, consumes the current dispatch
+ticket once, and leaves normal reservation/start admission mandatory. A foreign
+channel, closed registration or stale ticket cannot recover the payload. The
+single slot may replace a stale, unstarted preparation; it cannot contain an
+active attempt or cleanup responsibility. This boundary neither copies row data
+nor creates resources while preparing a dispatch.
 DuckDB join preparation keeps physical input names and compiled SQL in an opaque
 connector-owned handle. Compilation precedes the Host's preflight-work charge;
 binding and bounded input inspection follow that charge. The second phase uses

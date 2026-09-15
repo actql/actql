@@ -3,9 +3,9 @@
 fn prepare_local_dispatch_work(
   host : StrategyHostDispatch,
   task : Int,
-  _revision : @strategy.StrategyRevision,
+  revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
-) -> Result[DispatchWork, DispatchIssue] {
+) -> Result[@host_driver.DispatchWork, DispatchIssue] {
   match
     @local_connector.prepare_local_module_compute(
       host.local_module,
@@ -15,7 +15,14 @@ fn prepare_local_dispatch_work(
         (0, limit)
       }),
     ) {
-    Ok(compute) => Ok(DispatchWork::Synchronous(compute))
+    Ok(compute) =>
+      @host_driver.stage_dispatch_work(
+        host.local_channel,
+        task,
+        revision,
+        request,
+        compute,
+      ).map_err(dispatch_driver_issue)
     Err(Candidate(issue)) => Err(Candidate(issue))
     Err(NotSelected) => Err(ForeignSelection)
     Err(Capacity) => Err(Run(Physical(InvalidLimits)))
@@ -31,7 +38,7 @@ fn prepare_native_dispatch_work(
   task : Int,
   revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
-) -> Result[DispatchWork, DispatchIssue] {
+) -> Result[@host_driver.DispatchWork, DispatchIssue] {
   if host.native_rejections[task - 1] is Some(_) {
     return Err(ForeignSelection)
   }
@@ -70,19 +77,21 @@ fn prepare_native_dispatch_work(
     Err(Selection(issue)) => return Err(Candidate(issue))
     Err(NotSelected) => return Err(ForeignSelection)
   }
-  Ok(
-    DispatchWork::Native(
-      configure_strategy_compute_host(
-        host.run,
-        task,
-        configure_compute_host(
-          @duckdb_compute.duckdb_selected_compute_choice(selected),
-          @duckdb_compute.duckdb_selected_compute_candidate(selected),
-          host.generated[task - 1],
-          host.limits.native,
-          host.limits.transport,
-        ),
+  @host_driver.stage_dispatch_work(
+    host.native_channel,
+    task,
+    revision,
+    request,
+    configure_strategy_compute_host(
+      host.run,
+      task,
+      configure_compute_host(
+        @duckdb_compute.duckdb_selected_compute_choice(selected),
+        @duckdb_compute.duckdb_selected_compute_candidate(selected),
+        host.generated[task - 1],
+        host.limits.native,
+        host.limits.transport,
       ),
     ),
-  )
+  ).map_err(dispatch_driver_issue)
 }

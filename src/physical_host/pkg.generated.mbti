@@ -17,6 +17,10 @@ pub fn dispatch_ticket_revision(DispatchTicket) -> @physical_strategy.StrategyRe
 
 pub fn dispatch_ticket_task(DispatchTicket) -> Int
 
+pub fn dispatch_work_registration(DispatchWork) -> @connector_sdk.CapabilityRegistration
+
+pub fn[T] open_dispatch_channel(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration) -> Result[DispatchChannel[T], DispatchIssue]
+
 pub fn open_dispatch_driver(@physical_strategy.CapturedDAG) -> DispatchDriver
 
 pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[@connector_sdk.FixedComputeRequest, DispatchIssue]
@@ -25,11 +29,17 @@ pub fn prepare_dispatch_ticket(DispatchDriver, Int, @physical_strategy.StrategyR
 
 pub fn[C, W, E] prepare_installed_dispatch(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[W, E]], C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[(DispatchTicket, W), InstalledDispatchIssue[E]]
 
+pub fn[T] stage_dispatch_work(DispatchChannel[T], Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest, T) -> Result[DispatchWork, DispatchIssue]
+
 pub fn stop_dispatch_driver(DispatchDriver) -> Unit
+
+pub fn[T] take_dispatch_work(DispatchChannel[T], DispatchDriver, DispatchTicket, DispatchWork) -> Result[T, DispatchIssue]
 
 // Errors
 
 // Types and methods
+type DispatchChannel[T]
+
 type DispatchDriver
 
 pub(all) enum DispatchIssue {
@@ -40,6 +50,8 @@ pub(all) enum DispatchIssue {
 }
 
 type DispatchTicket
+
+type DispatchWork
 
 pub(all) enum InstalledDispatchIssue[E] {
   Dispatch(DispatchIssue)
