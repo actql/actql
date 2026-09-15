@@ -2,16 +2,27 @@
 // Public test-package setup: no private constructor or reissued checked handle.
 fn public_program_fixture(
   generated? : Bool = false,
+  repeated? : Bool = false,
+  max_work? : Int = 10000000,
 ) -> @program_check.CheckedProgram raise {
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"public-reader","params":{"n":{"type":"number","default":1}},"stages":[{"id":"producer","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"consumer","inputs":{"rows":{"result":{"stage":"producer","result":"out"}}},"steps":[{"take":1,"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","value"]}}}],"results":{"out":{"from":{"stage":"consumer","result":"out"}}}}
-    ).replace(
+    )
+    .replace(
       old="\"inputs\":{\"rows\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}},\"steps\":[",
       new=if generated {
         "\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"id\"]}},"
       } else {
         "\"inputs\":{\"rows\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}},\"steps\":["
+      },
+    )
+    .replace(
+      old="{\"take\":1,\"as\":\"selected\"}",
+      new=if repeated {
+        "{\"append\":{\"with\":\"rows\"}},{\"distinct\":[\"id\",\"value\"],\"as\":\"selected\"}"
+      } else {
+        "{\"take\":1,\"as\":\"selected\"}"
       },
     ),
     {
@@ -62,18 +73,45 @@ fn public_program_fixture(
   // Scalar derive and take need no supplied capacity proofs. The consumer
   // closure has its own visit followed by its one imported producer visit.
   let material : @context.CapacityMaterial = { sources, consumers: [], }
+  let consumer_material = if repeated {
+    let all = [public_seed_claim(), public_append_claim()]
+    let mixed = @wire.check_mixed_claims(
+      all.map(p => @wire.program_proof_witness(p)),
+      [],
+      {
+        max_entities: 100,
+        max_references: 100,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+    ).unwrap()
+    let claims = @wire.check_mixed_program_claims(mixed, all, {
+      max_witnesses: 100,
+      max_references: 100,
+    }).unwrap()
+    let sources = @host.bind_claim_sources(claims, [], {
+      max_entries: 100,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }).unwrap()
+    @context.CapacityMaterial::{ sources, consumers: [], }
+  } else {
+    material
+  }
   @program_check.check(
     program,
     environment,
     None,
-    [[material], [material, material]],
+    [[material], [consumer_material, material]],
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     {
       ..public_source_limits(2),
-      topology: { ..public_source_limits(2).topology, max_steps: 4, },
+      topology: { ..public_source_limits(2).topology, max_steps: 5, },
     },
-    max_work=10000000,
+    max_work~,
     max_bytes=1000000,
     max_nodes=100000,
     max_depth=100,

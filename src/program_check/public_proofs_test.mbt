@@ -1,4 +1,63 @@
 ///|
+// Independently hashed canonical fixture input, not expected conversion output.
+fn public_append_claim() -> @wire.ProgramProofClaim {
+  let caps : @wire.Limits = {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }
+  let witness = @wire.admit(
+    @utf8.encode(
+      (
+        #|{"dependencies":["sha256:303443716d06c93bfdddc667c9134088a4367e7bbb40e8a931c037ad1cd96b1a","sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d"],"derivation":{"left":"sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d","op":"add","right":"sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d"},"law_id":"actql.bound.append","role":"proven_upper_bound","source":{"kind":"program","proof_cid":"sha256:303443716d06c93bfdddc667c9134088a4367e7bbb40e8a931c037ad1cd96b1a","semantic_ref":"checked-step:0"},"unit":"rows","value":2,"version":"actql-bound-witness/0.1","witness_cid":"sha256:9b48d118a1fce63528097cabfbad8dd2eeab05c8e6cdd22b48081da080798a1c"}
+      ),
+    ),
+    "sha256:9b48d118a1fce63528097cabfbad8dd2eeab05c8e6cdd22b48081da080798a1c",
+    caps,
+  ).unwrap()
+  @wire.bind_program_proof(
+    @utf8.encode(
+      (
+        #|{"inputs":["sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d","sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d"],"law_id":"actql.bound.append","semantic_ref":"checked-step:0","unit":"rows","value":2,"version":"actql-bound-proof/0.1"}
+      ),
+    ),
+    witness,
+    caps,
+  ).unwrap()
+}
+
+///|
+test "external consumer retains repeated imported operands and rejects an exhausted check" {
+  let program = public_program_fixture(generated=true, repeated=true)
+  let publication = @program_check.unit_publication_at(program, 1, 0).unwrap()
+  assert_eq(
+    @context.publication_row_limit_maximum(
+      @program_check.publication_selection(publication),
+    ),
+    2L,
+  )
+  let root = @program_check.publication_proof_at(publication, 0).unwrap()
+  assert_eq(@program_check.proof_input_count(root), 2)
+  let left = @program_check.proof_input_at(root, 0).unwrap()
+  let right = @program_check.proof_input_at(root, 1).unwrap()
+  assert_true(physical_equal(left, right))
+  assert_eq(
+    @program_check.proof_source(left).unit_definition_cid,
+    @program_check.unit_definition_cid(program, 0).unwrap(),
+  )
+  assert_eq(
+    @wire.program_proof_input_count(@program_check.proof_claim(root)),
+    2,
+  )
+  try public_program_fixture(generated=true, repeated=true, max_work=0) catch {
+    @program_check.LocalConstructionFailure::Units(BudgetExceeded) => ()
+    e => raise e
+  } noraise {
+    _ => fail("exhausted preparation returned a CheckedProgram")
+  }
+}
+
+///|
 test "external consumer reads persistent imported proof limits and runtime ownership" {
   let program = public_program_fixture(generated=true)
   let producer_cid = @program_check.unit_definition_cid(program, 0).unwrap()
