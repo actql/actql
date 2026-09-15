@@ -327,6 +327,10 @@ input demands follow actual producer edges and existing non-expanding transfers.
 An array envelope demands its input bound independently of the output's row
 bound or publication target. Multiple array calls in one operation share a
 single input demand; inspecting calls and retaining that demand are metered.
+Nest demands its child input for grouped-array item bounds and its parent input
+for attachment bounds, independently of the published target. Both demands use
+the actual checked operands and share the same target memoization; repeated uses
+do not create another proof or erase a parent/child occurrence.
 Construction reads the existing operation-bound plan,
 including its exact row-operand arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a

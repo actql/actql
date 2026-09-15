@@ -53,7 +53,7 @@ priv struct RowCapacityResult {
 }
 
 ///|
-// Demand follows Result targets and array-envelope inputs through the existing
+// Demand follows Result targets and collection-envelope inputs through the existing
 // non-expanding transfer rules and row-bound operand plans. Unavailable premises
 // do not become Host claims. Cache entries retain exact producer handles.
 fn derive_row_capacity(
@@ -182,6 +182,14 @@ fn derive_row_capacity(
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
         guard step.input is Some(input) else { continue }
+        if step.operation is @pipeline.Nest(right=child, ..) {
+          // Child rows bound each grouped array; parent rows bound attachment
+          // copies. Neither demand depends on publishing the nest output.
+          spend(2)
+          roots.push(input)
+          roots.push(child)
+          continue
+        }
         let operation = match step.operation {
           @pipeline.Unary(operation) | @pipeline.WindowGroup(operation) =>
             operation
