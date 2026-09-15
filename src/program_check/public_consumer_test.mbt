@@ -1,9 +1,18 @@
 ///|
 // Public test-package setup: no private constructor or reissued checked handle.
-fn public_program_fixture() -> @program_check.CheckedProgram raise {
+fn public_program_fixture(
+  generated? : Bool = false,
+) -> @program_check.CheckedProgram raise {
   let program = @syntax.parse(
     (
       #|{"version":"actql/0.1","id":"public-reader","params":{"n":{"type":"number","default":1}},"stages":[{"id":"producer","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"consumer","inputs":{"rows":{"result":{"stage":"producer","result":"out"}}},"steps":[{"take":1,"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","value"]}}}],"results":{"out":{"from":{"stage":"consumer","result":"out"}}}}
+    ).replace(
+      old="\"inputs\":{\"rows\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}},\"steps\":[",
+      new=if generated {
+        "\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"id\"]}},"
+      } else {
+        "\"inputs\":{\"rows\":{\"carrier\":\"relation\",\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"primary_key\":[\"id\"]}},\"steps\":["
+      },
     ),
     {
       source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
@@ -28,22 +37,27 @@ fn public_program_fixture() -> @program_check.CheckedProgram raise {
     "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
     { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
   ).unwrap()
-  let mixed = @wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 0,
-    max_references: 0,
+  let proofs = if generated { [public_seed_claim()] } else { [] }
+  let mixed = @wire.check_mixed_claims(
+    proofs.map(p => @wire.program_proof_witness(p)),
+    [],
+    {
+      max_entities: 100,
+      max_references: 100,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
+    max_witnesses: 100,
+    max_references: 100,
   }).unwrap()
   let sources = @host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
+    max_entries: 100,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
   }).unwrap()
   // Scalar derive and take need no supplied capacity proofs. The consumer
   // closure has its own visit followed by its one imported producer visit.
@@ -55,7 +69,10 @@ fn public_program_fixture() -> @program_check.CheckedProgram raise {
     [[material], [material, material]],
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    public_source_limits(2),
+    {
+      ..public_source_limits(2),
+      topology: { ..public_source_limits(2).topology, max_steps: 4, },
+    },
     max_work=10000000,
     max_bytes=1000000,
     max_nodes=100000,

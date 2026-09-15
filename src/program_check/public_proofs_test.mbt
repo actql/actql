@@ -1,0 +1,118 @@
+///|
+test "external consumer reads persistent imported proof limits and runtime ownership" {
+  let program = public_program_fixture(generated=true)
+  let producer_cid = @program_check.unit_definition_cid(program, 0).unwrap()
+  for stage in 0..<2 {
+    let unit_cid = @program_check.unit_definition_cid(program, stage).unwrap()
+    let publication = @program_check.unit_publication_at(program, stage, 0).unwrap()
+    assert_true(
+      @program_check.publication_phase(publication) is BeforeResultPublication,
+    )
+    assert_true(
+      @program_check.publication_failure(publication)
+      is PreventResultPublication,
+    )
+    assert_eq(
+      @context.publication_row_limit_maximum(
+        @program_check.publication_selection(publication),
+      ),
+      1L,
+    )
+    let rows = @program_check.publication_rows(publication)
+    assert_eq(
+      @wire.limit_subject(rows),
+      "unit:" + unit_cid + "#/results/out/rows",
+    )
+    assert_eq(
+      @wire.limit_subject(@program_check.publication_bytes(publication)),
+      "unit:" + unit_cid + "#/results/out/bytes",
+    )
+    let count = @program_check.publication_proof_count(publication)
+    assert_true(count > 0)
+    for index in 0..<count {
+      let proof = @program_check.publication_proof_at(publication, index).unwrap()
+      let location = @program_check.proof_source(proof)
+      assert_eq(location.unit_definition_cid, producer_cid)
+      assert_eq(location.source_ordinal, 0)
+      let claim = @program_check.proof_claim(proof)
+      let witness = @wire.program_proof_witness(claim)
+      assert_eq(@wire.value(witness), 1L)
+      assert_eq(@program_check.proof_input_count(proof), 0)
+      assert_eq(@program_check.proof_graph_input_count(proof), 0)
+      assert_eq(@program_check.proof_external_input_count(proof), 0)
+      assert_true(@program_check.proof_input_at(proof, 0) is None)
+      assert_true(
+        physical_equal(
+          @step_bounds.checked_pipeline(@program_check.proof_application(proof)),
+          @program_check.unit_pipeline(program, 0).unwrap(),
+        ),
+      )
+    }
+    assert_true(@program_check.publication_proof_at(publication, count) is None)
+    // This Local-only Program has no SourceView publication policy. Absence is
+    // explicit, not a synthetic policy attestation inferred from a row proof.
+    assert_true(@program_check.publication_source_policy(publication) is None)
+  }
+  let input = @program_check.unit_input_completeness(program, 1, 0).unwrap()
+  guard input.binding is Imported(interface, producer) else {
+    fail("import binding lost")
+  }
+  assert_eq(interface.producer_unit_definition_cid, producer_cid)
+  assert_true(
+    physical_equal(
+      @pipeline.producer_pipeline(producer),
+      @program_check.unit_pipeline(program, 0).unwrap(),
+    ),
+  )
+  assert_true(@program_check.unit_input_completeness(program, 0, 0) is None)
+  let other = public_program_fixture(generated=true)
+  assert_eq(@program_check.unit_definition_cid(other, 0), Some(producer_cid))
+  let proof = @program_check.publication_proof_at(
+    @program_check.unit_publication_at(program, 1, 0).unwrap(),
+    0,
+  ).unwrap()
+  let bound = @program_check.proof_application(proof)
+  assert_true(
+    @step_bounds.check_target_rows(
+      @program_check.unit_pipeline(program, 0).unwrap(),
+      Step(0),
+      bound,
+      10000,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @step_bounds.check_target_rows(
+      @program_check.unit_pipeline(other, 0).unwrap(),
+      Step(0),
+      bound,
+      10000,
+    )
+    is Err(_),
+  )
+}
+
+///|
+fn public_seed_claim() -> @wire.ProgramProofClaim {
+  let limits : @wire.Limits = {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }
+  let witness = @wire.admit(
+    @utf8.encode(
+      "{\"dependencies\":[\"sha256:02fa1dd5e32fc11c42454c3e573531ad747e164ee12d88921206650b45014033\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.bound.values\",\"role\":\"proven_upper_bound\",\"source\":{\"kind\":\"program\",\"proof_cid\":\"sha256:02fa1dd5e32fc11c42454c3e573531ad747e164ee12d88921206650b45014033\",\"semantic_ref\":\"checked-step:0\"},\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-witness/0.1\",\"witness_cid\":\"sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d\"}",
+    ),
+    "sha256:a7aa58ed1092b375da4a044a6096eb5c3432aea5c8562613081f35c4d962f23d",
+    limits,
+  ).unwrap()
+  @wire.bind_program_proof(
+    @utf8.encode(
+      "{\"inputs\":[],\"law_id\":\"actql.bound.values\",\"semantic_ref\":\"checked-step:0\",\"unit\":\"rows\",\"value\":1,\"version\":\"actql-bound-proof/0.1\"}",
+    ),
+    witness,
+    limits,
+  ).unwrap()
+}
+
+///|
