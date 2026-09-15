@@ -547,6 +547,25 @@ fn derive_row_capacity(
                     @step_bounds.bound_derivation_input_at(derivation, n, i).unwrap()
                   })
                   stack.push(Finish(stage, derivation, targets, true))
+                } else if @step_bounds.forwarded_bound_target(
+                    derivation.pipeline,
+                    derivation.index,
+                    derivation.unit,
+                  )
+                  is Some(input) {
+                  // A missing construction premise does not invalidate an
+                  // independently applicable non-expanding transfer. Follow
+                  // that exact edge through the same metered demand walk.
+                  stack.push(
+                    Forward(
+                      stage,
+                      @pipeline.Step(derivation.index),
+                      stage,
+                      input,
+                      derivation.unit,
+                    ),
+                  )
+                  stack.push(Visit(stage, input, derivation.unit))
                 } else {
                   retain(
                     stage,

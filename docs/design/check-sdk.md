@@ -495,10 +495,16 @@ Existing construction and projection laws bridge these quantities explicitly;
 a rows-to-graph-to-rows path does not require caller-built intermediate proofs.
 Quantity state storage is allocated on demand and charged before allocation;
 lookup work is retained, and unsupported premises do not create a bound.
-An already sufficient unary input bound is transferred without constructing a
-redundant refinement; a stricter take or an expanding operation creates its own
-bound. Count Parameter interpretation is shared with subsequent application
-checking, and its incremental work/text is charged once.
+An already sufficient unary input bound is reused only when the existing
+quantity-specific transfer rule also reaches that exact operand. Equal numeric
+bounds alone do not establish applicability; an operation without that transfer
+path constructs its own bound even when its multiplier is one.
+When operation-specific construction lacks premises, an independently applicable
+non-expanding transfer remains available. It follows the same metered target walk
+and preserves the input owner. This does not omit validation of other operands
+or the runtime conditions required by that transfer, such as exactly one right
+row in a cross join. Count Parameter interpretation is shared with subsequent
+application checking, and its incremental work/text is charged once.
 
 Target memoization is scoped to exact Stage pipelines; repeated Result demands
 share construction without deleting operand occurrences. Applicable supplied
