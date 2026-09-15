@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+}

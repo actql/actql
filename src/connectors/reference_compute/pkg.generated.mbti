@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/reference_compute"
+
+import {
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+}
+
+// Values
+pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
+
+pub fn prepare_numeric_plan(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.ExpressionLimits) -> Result[NumericPlan, PlanIssue]
+
+pub fn select_numeric_rows(NumericPlan, @execution_relation.ProducerRead, Int) -> Result[(Array[Int], Array[Int]), PlanIssue]
+
+// Errors
+
+// Types and methods
+type NumericPlan
+
+pub(all) enum PlanIssue {
+  Unsupported
+  Preparation(@lowering_relation.KernelIssue)
+  Limit
+}
+
+// Type aliases
+
+// Traits
