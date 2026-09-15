@@ -246,6 +246,12 @@ is promoted to a primary failure. Request origins distinguish Parameter
 declarations in the Program from selections in the Check Environment, even if
 both documents have the same source-path label. Reading a location does not
 reparse input; returned paths are caller-owned copies of retained provenance.
+Pipeline typing and Result checking expose their original path and span through
+the same reader. Expression diagnostics additionally retain half-open Unicode
+scalar offsets in the decoded expression, before token normalization. Those
+offsets are not UTF-16 or document-byte coordinates; non-expression failures
+have no expression range. Invalid checker limits identify check configuration,
+not a fabricated authored token. The original typed cause remains available.
 
 Operation obligation owners provide their retained source through a common
 reader, including selected graph endpoints and individual union folds. An

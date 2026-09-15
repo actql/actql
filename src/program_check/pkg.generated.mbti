@@ -11,6 +11,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/expression_text",
   "actql/actql/expression_typing",
   "actql/actql/numeric_reduction",
   "actql/actql/parameter_binding",
@@ -97,6 +98,8 @@ pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format,
 pub fn diagnostic_alternative_count(CheckDiagnostic) -> Int
 
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
+
+pub fn diagnostic_expression_range(CheckDiagnostic) -> @expression_text.Range?
 
 pub fn diagnostic_location(CheckDiagnostic) -> DiagnosticLocation?
 

@@ -25,6 +25,24 @@ struct DiagnosticLocation {
 /// None means no domain projection is available for this cause; the original
 /// typed cause is still retained. Domains are never guessed from file labels.
 pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
+  if diagnostic_pipeline_issue(value) is Some(issue) {
+    return Some(
+      if issue.kind == @pipeline.InvalidLimits {
+        CheckConfiguration
+      } else {
+        ProgramDocument
+      },
+    )
+  }
+  if diagnostic_result_issue(value) is Some(issue) {
+    return Some(
+      if issue.kind == @publication.InvalidLimits {
+        CheckConfiguration
+      } else {
+        ProgramDocument
+      },
+    )
+  }
   match value.cause {
     InvalidLimits | Program(InvalidLimits) => Some(CheckConfiguration)
     Program(_) => Some(ProgramDocument)
@@ -53,6 +71,18 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
 /// Location extraction does not reparse input or allocate a path during
 /// rejection. Ambiguous auto-format failures have alternatives, not a primary.
 pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
+  if diagnostic_pipeline_issue(value) is Some(issue) {
+    if issue.kind == @pipeline.InvalidLimits {
+      return None
+    }
+    return Some({ position: Located(issue.path, issue.span), })
+  }
+  if diagnostic_result_issue(value) is Some(issue) {
+    if issue.kind == @publication.InvalidLimits {
+      return None
+    }
+    return Some({ position: Located(issue.path, issue.span), })
+  }
   let position = match value.cause {
     Program(Parse(error)) => Parsed(error)
     Program(Decode(error)) => Located(error.path, error.span)
@@ -83,6 +113,43 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
     _ => return None
   }
   Some({ position, })
+}
+
+///|
+fn diagnostic_pipeline_issue(value : CheckDiagnostic) -> @pipeline.Issue? {
+  match value.cause {
+    Source(SourceView(Program(Program(Pipeline(_, issue)))))
+    | Source(SourceView(Program(Program(Order(_, PipelineOrder(issue))))))
+    | Source(SourceView(Context(Stages(Guards(_, _, issue))))) => Some(issue)
+    _ => None
+  }
+}
+
+///|
+fn diagnostic_result_issue(value : CheckDiagnostic) -> @publication.Issue? {
+  match value.cause {
+    Source(SourceView(Program(Program(Results(_, issue)))))
+    | Source(SourceView(Program(Program(Order(_, ResultOrder(issue)))))) =>
+      Some(issue)
+    _ => None
+  }
+}
+
+///|
+/// Range within the original decoded expression, not a document byte span.
+/// Absence is retained when the underlying checker has no expression range.
+pub fn diagnostic_expression_range(
+  value : CheckDiagnostic,
+) -> @expression_text.Range? {
+  match diagnostic_pipeline_issue(value) {
+    Some(issue) =>
+      if issue.kind == @pipeline.InvalidLimits {
+        None
+      } else {
+        issue.range
+      }
+    None => None
+  }
 }
 
 ///|
