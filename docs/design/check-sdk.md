@@ -294,8 +294,12 @@ their input occurrences without repeating definition-level artifact generation.
 Count evidence does not admit cells, imply uniqueness or discharge runtime
 enforcement obligations.
 
-Result row-bound demand follows actual producer edges and existing
-non-expanding transfers. Construction reads the existing operation-bound plan,
+Result row-bound demand and group, window-group and analytic array-envelope
+input demands follow actual producer edges and existing non-expanding transfers.
+An array envelope demands its input bound independently of the output's row
+bound or publication target. Multiple array calls in one operation share a
+single input demand; inspecting calls and retaining that demand are metered.
+Construction reads the existing operation-bound plan,
 including its exact row-operand arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a
 bound. Graph entity measures are not substituted for missing row premises.

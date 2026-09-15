@@ -53,8 +53,8 @@ priv struct RowCapacityResult {
 }
 
 ///|
-// Demand follows actual Result targets through the existing non-expanding
-// transfer rules and existing row-bound operand plans. Unavailable premises
+// Demand follows Result targets and array-envelope inputs through the existing
+// non-expanding transfer rules and row-bound operand plans. Unavailable premises
 // do not become Host claims. Cache entries retain exact producer handles.
 fn derive_row_capacity(
   prepared : @stage_results.PreparedLocalSource,
@@ -173,6 +173,47 @@ fn derive_row_capacity(
             @results.port_result(@results.port_at(ports, i).unwrap()),
           ),
         )
+      }
+      // A global aggregate can determine its output count without inspecting
+      // its input count. Its array envelope nevertheless needs input bounds,
+      // including when a different target is published. Register one demand
+      // per operation, not one copy of the traversal per aggregate call.
+      for index in 0..<steps {
+        spend(1)
+        let step = @pipeline.step_at(pipeline, index).unwrap()
+        guard step.input is Some(input) else { continue }
+        let operation = match step.operation {
+          @pipeline.Unary(operation) | @pipeline.WindowGroup(operation) =>
+            operation
+          _ => continue
+        }
+        let mut needed = false
+        if @relation.group(operation) is Some(group) {
+          for call in 0..<@relation.aggregate_count(group) {
+            spend(1)
+            if @relation.aggregate_function(
+                @relation.aggregate_at(group, call).unwrap(),
+              )
+              is @relation.ArrayAgg {
+              needed = true
+              break
+            }
+          }
+        } else if @relation.analytic(operation) is Some(analytic) {
+          for call in 0..<@relation.analytic_call_count(analytic) {
+            spend(1)
+            if @relation.analytic_call_at(analytic, call).unwrap().function
+              is @relation.Aggregate(aggregate) &&
+              @relation.aggregate_function(aggregate) is @relation.ArrayAgg {
+              needed = true
+              break
+            }
+          }
+        }
+        if needed {
+          spend(1)
+          roots.push(input)
+        }
       }
       let claims = @host.source_claims(materials[stage].sources)
       let arithmetic = @wire.program_claim_arithmetic(claims)
