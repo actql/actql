@@ -49,11 +49,15 @@ fn assert_transfer_work_boundary(
 test "window bound reuse requires an applicable transfer through the checked operation" {
   for imported in [true, false] {
     for
-      (kind, step, factor) in [
-        ("sliding", 10, 1L),
-        ("sliding", 20, 1L),
-        ("sliding", 5, 2L),
-        ("fixed", 10, 1L),
+      (kind, step, factor, parameterized) in [
+        ("sliding", 10, 1L, false),
+        ("sliding", 20, 1L, false),
+        ("sliding", 5, 2L, false),
+        ("sliding", 3, 4L, false),
+        ("fixed", 10, 1L, false),
+        ("sliding", 10, 1L, true),
+        ("sliding", 20, 1L, true),
+        ("sliding", 3, 4L, true),
       ] {
       let (text, _, environment, _, limits) = public_input_fixture(
         generated=true,
@@ -76,15 +80,48 @@ test "window bound reuse requires an applicable transfer through the checked ope
         ..limits,
         compilation: {
           ..limits.compilation,
-          structure: { ..limits.compilation.structure, steps: 12, },
+          structure: {
+            ..limits.compilation.structure,
+            steps: 12,
+            parameters: 3,
+          },
         },
+      }
+      let source = if parameterized {
+        source
+        .replace(
+          old="\"params\":{",
+          new="\"params\":{\"window_size\":{\"type\":\"number\",\"nullable\":false,\"default\":10},\"window_step\":{\"type\":\"number\",\"nullable\":false},",
+        )
+        .replace(
+          old="\"size\":10,\"step\":" + step.to_string(),
+          new="\"size\":{\"$param\":\"window_size\"},\"step\":{\"$param\":\"window_step\"}",
+        )
+      } else {
+        source
+      }
+      let supplied = if parameterized {
+        Some(
+          @decode.admit(
+            @source.parse_json("{\"window_step\":" + step.to_string() + "}", {
+              max_input_bytes: 100,
+              max_nodes: 10,
+              max_depth: 10,
+            }).unwrap(),
+            {
+              max_nodes: 10,
+              max_depth: 10,
+              max_string_bytes: 100,
+              max_total_string_bytes: 100,
+            },
+          ).unwrap(),
+        )
+      } else {
+        None
       }
       let parsed = @syntax.parse(source, limits.input, format=Json).unwrap()
       let outcome = @program_check.check_parsed(
-        parsed,
-        environment,
-        None,
-        limits,
+        parsed, environment, supplied, limits,
       )
       let checked = public_checked(outcome)
       let publication = @program_check.unit_publication_at(checked, 1, 0).unwrap()
@@ -118,11 +155,17 @@ test "window bound reuse requires an applicable transfer through the checked ope
         @program_check.check_document(
           source,
           environment,
-          None,
+          supplied,
           limits,
           format=Json,
         ),
       )
+      for unit in 0..<2 {
+        assert_eq(
+          @program_check.unit_definition_cid(checked, unit),
+          @program_check.unit_definition_cid(other, unit),
+        )
+      }
       assert_true(
         @step_bounds.check_target_rows(
           @program_check.unit_pipeline(other, 1).unwrap(),
@@ -133,13 +176,13 @@ test "window bound reuse requires an applicable transfer through the checked ope
         is Err(_),
       )
       assert_true(
-        @program_check.check_parsed(parsed, environment, None, {
+        @program_check.check_parsed(parsed, environment, supplied, {
           ..limits,
           compilation: { ..limits.compilation, work: 0, },
         })
         is Rejected(_),
       )
-      if imported && kind == "sliding" && step == 10 {
+      if imported && kind == "sliding" && step == 10 && !parameterized {
         assert_transfer_work_boundary(parsed, environment, [], limits)
       }
     }
