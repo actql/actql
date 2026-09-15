@@ -52,6 +52,7 @@ fn public_input_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
   analytic_policy? : Bool = false,
+  graph_policy? : Bool = false,
   temporal_join_step? : Int? = None,
 ) -> (
   String,
@@ -97,7 +98,9 @@ fn public_input_fixture(
   ).unwrap()
   // Input envelope CID independently calculated from canonical JSON with Node SHA-256.
   // It is not an expected Program identity computed by the product under test.
-  let environment_cid = if analytic_policy {
+  let environment_cid = if graph_policy {
+    "sha256:0e1e713a191318e1e3a418ca4c104e93dc6d32c9425096eda1a3ad004a7c6792"
+  } else if analytic_policy {
     "sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07"
   } else {
     "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904"
@@ -117,6 +120,14 @@ fn public_input_fixture(
           "\"max_analytic_frame_memberships\":1000,\"max_analytic_input_wire_bytes\":1000,\"max_analytic_output_wire_bytes\":1000,\"max_analytic_partition_wire_bytes\":1000,\"max_artifact_bytes\":1000"
         } else {
           "\"max_artifact_bytes\":1000"
+        },
+      )
+      .replace(
+        old="\"max_graph_input_edges\":1000",
+        new=if graph_policy {
+          "\"max_graph_construction_edges\":1000,\"max_graph_construction_input_rows\":1000,\"max_graph_construction_nodes\":1000,\"max_graph_input_edges\":1000"
+        } else {
+          "\"max_graph_input_edges\":1000"
         },
       ),
     ),
@@ -182,7 +193,7 @@ fn public_input_fixture(
       { text_time: false, veca: false, },
       {
         rela: true,
-        sga: false,
+        sga: graph_policy,
         tea: temporal_join_step is Some(_),
         calendar: false,
         text_rank: false,
