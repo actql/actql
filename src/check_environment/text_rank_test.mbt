@@ -17,6 +17,9 @@ test "lexical selection retains environment and independent byte pin under exact
     physical_equal(text_rank_selection_environment(selected), environment),
   )
   assert_eq(text_rank_selection_cid(selected), pin)
+  let pin_source = text_rank_selection_source(selected)
+  assert_eq(@decode.text(pin_source), Ok(pin))
+  assert_true(physical_equal(pin_source, text_rank_selection_source(selected)))
   assert_true(pin != cid)
   let used = text_rank_selection_work(selected)
   assert_true(read_text_rank_selection(environment, used) is Ok(_))

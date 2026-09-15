@@ -30,6 +30,8 @@ priv enum RequestInventory {
   Parameters(@parameters.MissingNames)
   CapacityPolicy
   TextTimePolicy
+  TextRankSelection
+  TextRankArtifact(@environment.TextRankSelection)
 }
 
 ///|
@@ -37,6 +39,8 @@ pub enum InputRequestKind {
   ParameterValue(@parameters.Declaration)
   HostCapacityPolicy
   HostTextTimePolicy
+  HostTextRankSelection
+  TextRankProfileArtifact(@environment.TextRankSelection)
 }
 
 ///|
@@ -50,7 +54,8 @@ pub struct InputRequest {
 pub fn input_request_count(value : InputRequests) -> Int {
   match value.inventory {
     Parameters(missing) => @parameters.missing_count(missing)
-    CapacityPolicy | TextTimePolicy => 1
+    CapacityPolicy | TextTimePolicy | TextRankSelection | TextRankArtifact(_) =>
+      1
   }
 }
 
@@ -78,6 +83,18 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       HostTextTimePolicy
     }
+    TextRankSelection => {
+      if index != 0 {
+        return None
+      }
+      HostTextRankSelection
+    }
+    TextRankArtifact(selection) => {
+      if index != 0 {
+        return None
+      }
+      TextRankProfileArtifact(selection)
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
@@ -92,6 +109,9 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     HostCapacityPolicy => [Key("host_policy_profile"), Key("capacity")]
     HostTextTimePolicy =>
       [Key("host_policy_profile"), Key("text_time_evaluation")]
+    HostTextRankSelection => [Key("host_policy_profile"), Key("text_rank")]
+    TextRankProfileArtifact(_) =>
+      [Key("host_policy_profile"), Key("text_rank"), Key("profile_bytes_cid")]
   }
 }
 
@@ -100,7 +120,9 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
   match value.kind {
     ParameterValue(declaration) =>
       Some(@parameters.declaration_source(declaration))
-    HostCapacityPolicy | HostTextTimePolicy => None
+    HostCapacityPolicy | HostTextTimePolicy | HostTextRankSelection => None
+    TextRankProfileArtifact(selection) =>
+      Some(@environment.text_rank_selection_source(selection))
   }
 }
 
@@ -131,6 +153,10 @@ fn checking_outcome(
         Source(Checks(Patterns(Timestamp(MissingPolicy(_)))))
         | Source(Checks(Patterns(Regex(MissingPolicy(_)))))
         | Source(Checks(TextBounds(MissingPolicy(_)))) => TextTimePolicy
+        Closure(Operations(Lexical(MissingArtifact(selection)))) =>
+          TextRankArtifact(selection)
+        Closure(Operations(Lexical(MissingProfile(_, _, _)))) =>
+          TextRankSelection
         _ => return rejected(error)
       }
       NeedsInputs({

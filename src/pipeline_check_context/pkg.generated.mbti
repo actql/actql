@@ -2442,11 +2442,11 @@ pub(all) enum OperationLexicalIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironment
-  MissingArtifact
+  MissingArtifact(@check_environment.TextRankSelection)
   Selection(@check_environment.TextRankSelectionIssue)
   MissingProfile(Int, Int, Int)
   ProfileMismatch(Int, Int, Int)
-} derive(Eq, @debug.Debug)
+}
 
 pub struct OperationLexicalResolution {
   stage : Int

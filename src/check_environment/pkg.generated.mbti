@@ -376,6 +376,8 @@ pub fn text_rank_selection_cid(TextRankSelection) -> String
 
 pub fn text_rank_selection_environment(TextRankSelection) -> WireEnvironment
 
+pub fn text_rank_selection_source(TextRankSelection) -> @decode_core.Cursor
+
 pub fn text_rank_selection_work(TextRankSelection) -> Int
 
 pub fn text_time_environment(TextTime) -> WireEnvironment

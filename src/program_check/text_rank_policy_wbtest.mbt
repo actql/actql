@@ -110,7 +110,11 @@ test "lexical publication cannot substitute a profile pin for admitted profile m
       lexical_material=false,
     )
   catch {
-    Closure(Operations(Lexical(MissingArtifact))) => ()
+    Closure(Operations(Lexical(MissingArtifact(selection)))) =>
+      assert_eq(
+        @environment.text_rank_selection_cid(selection),
+        text_profile_fixture_cid(),
+      )
     error => raise error
   } noraise {
     _ => fail("profile CID alone cannot complete lexical publication")

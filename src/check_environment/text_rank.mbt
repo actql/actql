@@ -9,6 +9,7 @@ pub(all) enum TextRankSelectionIssue {
 ///|
 struct TextRankSelection {
   environment : WireEnvironment
+  pin_source : @decode.Cursor
   profile_bytes_cid : String
   work : Int
 }
@@ -66,7 +67,17 @@ pub fn read_text_rank_selection(
       return Err(InvalidComponent)
     }
   }
-  Ok({ environment, profile_bytes_cid: pin, work: max_work - remaining, })
+  Ok({
+    environment,
+    pin_source: @decode.lookup(object, "profile_bytes_cid").unwrap(),
+    profile_bytes_cid: pin,
+    work: max_work - remaining,
+  })
+}
+
+///|
+pub fn text_rank_selection_source(v : TextRankSelection) -> @decode.Cursor {
+  v.pin_source
 }
 
 ///|

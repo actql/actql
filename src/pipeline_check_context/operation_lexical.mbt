@@ -3,11 +3,11 @@ pub(all) enum OperationLexicalIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironment
-  MissingArtifact
+  MissingArtifact(@environment.TextRankSelection)
   Selection(@environment.TextRankSelectionIssue)
   MissingProfile(Int, Int, Int)
   ProfileMismatch(Int, Int, Int)
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct OperationLexicalResolution {
@@ -59,7 +59,7 @@ pub fn check_program_operation_lexical(
       }
       None =>
         match @environment.read_text_rank_selection(environment, b.remaining) {
-          Ok(_) => return Err(MissingArtifact)
+          Ok(selection) => return Err(MissingArtifact(selection))
           Err(MissingSelection) =>
             scalar_spend(
               b,

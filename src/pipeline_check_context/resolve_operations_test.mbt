@@ -9,7 +9,7 @@ test "operation orchestration rejects missing and foreign profile material at it
   }
   assert_true(
     resolve_program_operations(identity, limits)
-    is Err(Lexical(MissingArtifact)),
+    is Err(Lexical(MissingArtifact(_))),
   )
   let profile = lexical_artifact(cells)
   let resolved = resolve_program_operations(

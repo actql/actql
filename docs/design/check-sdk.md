@@ -108,6 +108,19 @@ profiles, invalid patterns and budget failures do not. `input_requests_diagnosti
 retains the original typed failure establishing the frontier, without promising
 that supplementation will satisfy later checks.
 
+A text-rank operation without a selected lexical profile yields
+`HostTextRankSelection`, identifying `/host_policy_profile/text_rank`. A valid
+selection without its admitted artifact yields `TextRankProfileArtifact` instead.
+The latter retains the exact admitted `TextRankSelection`, its original pin
+cursor and environment owner. The caller can pass that selection to
+`admit_text_rank_profile` with the profile bytes and required dependency bytes;
+matching the pin alone does not admit the artifact. Rechecking receives the
+resulting selected profile through the ordinary checking environment.
+Readers do not reparse the selection or rebuild its field index.
+Malformed selections, foreign environments and mismatched profiles remain
+rejections. Selection and artifact requests neither assert backend support nor
+prove that the remaining Program checks will succeed.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

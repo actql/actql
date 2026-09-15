@@ -55,6 +55,8 @@ fn public_input_fixture(
   graph_policy? : Bool = false,
   text_policy? : (String, String)? = None,
   text_profile? : Bool = true,
+  lexical_selection? : (String, String)? = None,
+  lexical_profile? : Bool = false,
   temporal_join_step? : Int? = None,
 ) -> (
   String,
@@ -100,7 +102,9 @@ fn public_input_fixture(
   ).unwrap()
   // Input envelope CID independently calculated from canonical JSON with Node SHA-256.
   // It is not an expected Program identity computed by the product under test.
-  let environment_cid = if text_policy is Some((_, cid)) {
+  let environment_cid = if lexical_selection is Some((_, cid)) {
+    cid
+  } else if text_policy is Some((_, cid)) {
     cid
   } else if graph_policy {
     "sha256:0e1e713a191318e1e3a418ca4c104e93dc6d32c9425096eda1a3ad004a7c6792"
@@ -116,7 +120,10 @@ fn public_input_fixture(
       )
       .replace(
         old="\"version\":\"actql-capacity-host-policy/0.1\"}",
-        new=if text_policy is Some((body, _)) {
+        new=if lexical_selection is Some((body, _)) {
+          "\"version\":\"actql-capacity-host-policy/0.1\"},\"text_rank\":" +
+          body
+        } else if text_policy is Some((body, _)) {
           "\"version\":\"actql-capacity-host-policy/0.1\"},\"text_time_evaluation\":" +
           body
         } else {
@@ -209,7 +216,7 @@ fn public_input_fixture(
         sga: graph_policy,
         tea: temporal_join_step is Some(_),
         calendar: false,
-        text_rank: false,
+        text_rank: lexical_profile,
       },
     ),
     if temporal_join_step is Some(step) {

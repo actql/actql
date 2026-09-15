@@ -134,7 +134,7 @@ test "Program lexical profile resolution visits every producer and retains selec
   assert_true(operation_lexical_at(result, 3) is None)
   assert_true(
     check_program_operation_lexical(cells, None, work, 3)
-    is Err(MissingArtifact),
+    is Err(MissingArtifact(_)),
   )
   let foreign = lexical_artifact(lexical_cells(lexical_host(), true))
   assert_true(
@@ -160,7 +160,7 @@ test "absent lexical selection is allowed only without lexical consumers" {
   let unused = lexical_cells(lexical_host(), false)
   assert_true(
     check_program_operation_lexical(unused, None, 10000000, 0)
-    is Err(MissingArtifact),
+    is Err(MissingArtifact(_)),
   )
   assert_true(
     check_program_operation_lexical(

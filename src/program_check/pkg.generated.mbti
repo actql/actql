@@ -774,6 +774,8 @@ pub enum InputRequestKind {
   ParameterValue(@parameter_binding.Declaration)
   HostCapacityPolicy
   HostTextTimePolicy
+  HostTextRankSelection
+  TextRankProfileArtifact(@check_environment.TextRankSelection)
 }
 
 type InputRequests
