@@ -237,6 +237,16 @@ document byte range. Missing location information stays explicitly absent; it
 is not fabricated as the Program root. Normative failure order is preserved,
 without requiring clients to unpack a preparation-phase wrapper tree.
 
+Location readers preserve the original coordinate representation: a source
+span, a byte offset, a UTF-16 offset or explicit unavailability. Retained-input
+limit failures can identify a source document without identifying an offending
+token. Such failures have no invented root path or zero-length span. Auto-format
+parse alternatives remain separately ordered JSON and YAML locations; neither
+is promoted to a primary failure. Request origins distinguish Parameter
+declarations in the Program from selections in the Check Environment, even if
+both documents have the same source-path label. Reading a location does not
+reparse input; returned paths are caller-owned copies of retained provenance.
+
 ## Consumers and responsibility boundaries
 
 Operation-bound construction belongs with operation-law application, not with

@@ -35,6 +35,7 @@ test "absent Host capacity requests a selection without inventing policy or sour
   }
   assert_eq(@program_check.input_request_count(requests), 1)
   let request = @program_check.input_request_at(requests, 0).unwrap()
+  assert_eq(@program_check.input_request_origin(request), CheckEnvironment)
   assert_true(request.kind is HostCapacityPolicy)
   assert_true(physical_equal(request.program, program))
   assert_true(physical_equal(request.environment, absent))

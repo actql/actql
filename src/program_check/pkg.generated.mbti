@@ -92,7 +92,21 @@ pub fn components_limit_source(ComponentsLimit) -> UnitOperationSource
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
+pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format, DiagnosticLocation)?
+
+pub fn diagnostic_alternative_count(CheckDiagnostic) -> Int
+
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
+
+pub fn diagnostic_location(CheckDiagnostic) -> DiagnosticLocation?
+
+pub fn diagnostic_location_path(DiagnosticLocation) -> Array[@source_value.PathSegment]?
+
+pub fn diagnostic_location_position(DiagnosticLocation) -> @source_value.ParseLocation
+
+pub fn diagnostic_location_source_path(DiagnosticLocation) -> String
+
+pub fn diagnostic_origin(CheckDiagnostic) -> DiagnosticOrigin?
 
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
@@ -175,6 +189,8 @@ pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncoming
 pub fn input_request_at(InputRequests, Int) -> InputRequest?
 
 pub fn input_request_count(InputRequests) -> Int
+
+pub fn input_request_origin(InputRequest) -> DiagnosticOrigin
 
 pub fn input_request_path(InputRequest) -> Array[@source_value.PathSegment]
 
@@ -709,6 +725,16 @@ pub(all) struct CompileValueLimits {
 } derive(Eq, @debug.Debug)
 
 type ComponentsLimit
+
+type DiagnosticLocation
+
+pub(all) enum DiagnosticOrigin {
+  ProgramDocument
+  CheckEnvironment
+  SuppliedValues
+  CapacityEvidence
+  CheckConfiguration
+} derive(Eq, @debug.Debug)
 
 pub struct DirectSourcePolicy {
   request : @sourceview_resolution.ParameterizedRequest

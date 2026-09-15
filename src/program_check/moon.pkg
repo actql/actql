@@ -2,7 +2,6 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/parameter_references" @parameter_refs,
-  "actql/actql/source_value" @source,
 } for "test"
 
 formatter(
@@ -13,6 +12,7 @@ formatter(
 )
 
 import {
+  "actql/actql/source_value" @source,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/graph_typing" @graph,
@@ -56,7 +56,6 @@ import {
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
-  "actql/actql/source_value" @source,
   "moonbitlang/core/debug",
   "actql/actql/sha256" @sha,
 } for "wbtest"

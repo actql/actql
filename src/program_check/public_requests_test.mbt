@@ -31,6 +31,7 @@ test "missing Parameter requests retain type location and exact admitted Program
   }
   assert_eq(@program_check.input_request_count(requests), 1)
   let request = @program_check.input_request_at(requests, 0).unwrap()
+  assert_eq(@program_check.input_request_origin(request), ProgramDocument)
   assert_true(physical_equal(request.program, program))
   guard request.kind is ParameterValue(declaration) else {
     fail("expected Parameter")
