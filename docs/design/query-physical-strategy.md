@@ -26,6 +26,16 @@ of already-recovered code or cancellation of running work. Start and completion
 checks remain mandatory after lookup. Typed entries can retain private payloads;
 the SDK does not inspect SQL, provider names or resource representations.
 
+`CapabilityBundle[A, C]` is a rebuild-time contribution with independently
+optional Acquisition and Compute factories. `install_bundles` validates the
+entire bounded manifest before invoking trusted pure factories, derives capability
+flags from the supplied entrypoints, and gives each factory its exact registration
+in a fresh Host registry. The resulting `InstalledBundles` exposes immutable
+operation installations; it cannot append or replace an implementation. Separate
+Host installations never recover each other's entries. This bootstrap mechanism
+does not load code dynamically or create execution resources; resource bindings
+and input locations remain separate from the module's registration.
+
 `physical_host.prepare_installed_dispatch` resolves the selected registration
 through that installation and prepares the exact completed input ports before
 calling the installed entry. Its context and returned work remain opaque to the

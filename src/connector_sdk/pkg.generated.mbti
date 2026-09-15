@@ -52,7 +52,15 @@ pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_rel
 
 pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
 
+pub fn[A, C] install_bundles(Array[CapabilityBundle[A, C]], Int, Int) -> Result[InstalledBundles[A, C], CapabilityRegistrationIssue]
+
 pub fn[T] install_capability_implementations(CapabilityRegistry, Array[(CapabilityRegistration, T)], Int) -> Result[CapabilityImplementations[T], CapabilityInstallationIssue]
+
+pub fn[A, C] installed_acquisition_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[A]
+
+pub fn[A, C] installed_bundle_registry(InstalledBundles[A, C]) -> CapabilityRegistry
+
+pub fn[A, C] installed_compute_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[C]
 
 pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Result[CapabilityRegistry, CapabilityRegistrationIssue]
 
@@ -83,6 +91,12 @@ pub fn valid_quantity(Int64?) -> Bool
 // Errors
 
 // Types and methods
+pub(all) struct CapabilityBundle[A, C] {
+  name : String
+  acquisition : ((CapabilityRegistry, CapabilityRegistration) -> A)?
+  fixed_compute : ((CapabilityRegistry, CapabilityRegistration) -> C)?
+}
+
 pub(all) struct CapabilityDescription {
   name : String
   acquisition : Bool
@@ -172,6 +186,8 @@ pub enum FixedComputeSelection {
   Deferred
   NoCandidates
 }
+
+type InstalledBundles[A, C]
 
 type PreparedCompute[T]
 
