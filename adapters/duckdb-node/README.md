@@ -548,6 +548,20 @@ are Host admission policy, not measurements of DuckDB allocator bytes or a claim
 that its configured memory limit bounds total process RSS.
 
 Application users normally call `runCapturedStrategy` or the documented example.
+Its serial loop lives in the connector-independent `adapters/host-node` module.
+Local execution and DuckDB fresh/resident execution are installed contributions,
+selected by exact registration handles rather than a Node backend switch.
+The DuckDB contribution owns resident preparation, imports and session cleanup;
+the common MoonBit start/completion checks still enforce reservations and output
+ownership. A fulfilled implementation Promise alone cannot publish a task result.
+
+The Node contribution set is assembled at rebuild time from connector-owned
+`src/connectors/*/node-bundle.json` manifests. After changing a manifest, run
+`node scripts/connector-node-bundles.mjs --write` from the repository root; the
+generated assembly is checked by the adapter test command. This is trusted
+composition, not dynamic plugin loading or an option for applications to replace
+verification. The independent common-loop protocol tests are in
+`adapters/host-node/strategy.test.mjs`; real-provider conformance remains here.
 The following operations are a trusted Host-implementer protocol, not a sequence
 of commands accepted from Program inputs. The low-level resident operations in `host.mjs` are
 `openResidentStrategyEnvironment`, `importResidentStrategyInput` and

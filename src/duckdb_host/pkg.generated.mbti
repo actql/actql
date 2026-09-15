@@ -80,11 +80,15 @@ pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) 
 
 pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
 
+pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
+
 pub fn dispatch_excluded_realizations(StrategyHostDispatch) -> Array[(Int, String, String)]
 
-pub fn dispatch_is_native(TaskDispatch) -> Bool
-
 pub fn dispatch_is_resident(TaskDispatch) -> Bool
+
+pub fn dispatch_local_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
+
+pub fn dispatch_registration(TaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn dispatch_resident_inputs(StrategyHostDispatch, Int) -> Array[(Int, Int64, Int, Int)]?
 

@@ -277,8 +277,28 @@ pub fn dispatch_task(dispatch : TaskDispatch) -> Int {
 }
 
 ///|
-pub fn dispatch_is_native(dispatch : TaskDispatch) -> Bool {
-  dispatch.work is Native(_)
+/// Exact selected registration for transport dispatch, not a backend category.
+pub fn dispatch_registration(
+  dispatch : TaskDispatch,
+) -> @connector.CapabilityRegistration? {
+  @strategy.strategy_registration(
+    @host_driver.dispatch_ticket_revision(dispatch.ticket),
+    @host_driver.dispatch_ticket_task(dispatch.ticket),
+  )
+}
+
+///|
+pub fn dispatch_local_registration(
+  host : StrategyHostDispatch,
+) -> @connector.CapabilityRegistration {
+  host.local_registration
+}
+
+///|
+pub fn dispatch_duckdb_registration(
+  host : StrategyHostDispatch,
+) -> @connector.CapabilityRegistration {
+  host.native_registration
 }
 
 ///|

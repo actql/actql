@@ -774,7 +774,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           // Two new imports plus both task envelopes exceed the remaining
           // transfer budget. Reselection must choose Local B, not erase A's
           // spent transfer to retain the old all-resident placement.
-          assert.equal(hostRuntime.strategyHostNative(task), false);
+          assert.equal(hostRuntime.strategyHostRegistration(task), hostRuntime.strategyHostLocalRegistration(dispatch));
           checked(hostRuntime.strategyHostExecuteLocal(task));
           capture.close();
           continue;

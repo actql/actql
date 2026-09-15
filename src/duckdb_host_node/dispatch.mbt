@@ -16,9 +16,36 @@ pub fn strategy_host_task(task : @host.TaskDispatch) -> Int {
 }
 
 ///|
-#export_name("strategyHostNative")
-pub fn strategy_host_native(task : @host.TaskDispatch) -> Bool {
-  @host.dispatch_is_native(task)
+#export_name("strategyHostRegistration")
+pub fn strategy_host_registration(
+  task : @host.TaskDispatch,
+) -> @connector.CapabilityRegistration? {
+  @host.dispatch_registration(task)
+}
+
+///|
+#export_name("strategyHostLocalRegistration")
+pub fn strategy_host_local_registration(
+  host : @host.StrategyHostDispatch,
+) -> @connector.CapabilityRegistration {
+  @host.dispatch_local_registration(host)
+}
+
+///|
+#export_name("strategyHostDuckdbRegistration")
+pub fn strategy_host_duckdb_registration(
+  host : @host.StrategyHostDispatch,
+) -> @connector.CapabilityRegistration {
+  @host.dispatch_duckdb_registration(host)
+}
+
+///|
+#export_name("strategyHostTaskCompleted")
+pub fn strategy_host_task_completed(
+  host : @host.StrategyHostDispatch,
+  task : Int,
+) -> Bool {
+  @strategy.captured_task_completed(@host.dispatch_run(host), task)
 }
 
 ///|

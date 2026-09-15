@@ -63,6 +63,22 @@ transitively. `scripts/check-core-without-connectors.mjs` copies only the common
 dependency closure into an isolated module and runs the pinned-toolchain check;
 the connector and Node integration suites remain separate verification scopes.
 
+The Node serial loop in `adapters/host-node` uses an immutable installation keyed
+by exact capability registration handles. It neither selects an implementation
+by name nor knows import, database or resident policies. Connector-owned Node
+contributions implement execution and environment finalization; declarations in
+their `node-bundle.json` manifests generate the separate builtin assembly.
+Factories perform no I/O, and the standard composition entry does not accept a
+replacement runtime, verifier or contribution through execution options.
+
+An implementation's fulfilled Promise is not a completion proof. The loop checks
+the common MoonBit DAG's retained completion before recording success. Failure
+stops later starts, preserves independent completed outputs, and retains pending
+cleanup handles until their recovery operation confirms release. Finalizers do
+not retry computation. Closing results attempts all implementation releases and
+the core output close even if one release reports an error. The low-level Node
+coordination API is trusted runtime wiring, not a sandbox for arbitrary plugins.
+
 The captured-input serial runner is an incremental internal implementation.
 Local and DuckDB task completions share an opaque output boundary. DuckDB start
 retains the exact attempt and blocks further task starts until verified completion.

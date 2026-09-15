@@ -5,6 +5,7 @@
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
+    "pretest": "node ../../scripts/connector-node-bundles.mjs",
     "build:host": "cd ../.. && moon build --target js --release src/duckdb_host_node",
     "test": "node --test test/*.test.mjs"
   },

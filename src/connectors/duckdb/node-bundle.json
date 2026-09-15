@@ -1,0 +1,6 @@
+{
+  "strategy": {
+    "module": "adapters/duckdb-node/strategy-bundle.mjs",
+    "export": "duckdbStrategyContribution"
+  }
+}

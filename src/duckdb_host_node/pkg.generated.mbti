@@ -2,6 +2,7 @@
 package "actql/actql/duckdb_host_node"
 
 import {
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
@@ -164,17 +165,21 @@ pub fn strategy_host_close_outputs(@duckdb_host.StrategyHostDispatch) -> Unit
 
 pub fn strategy_host_count(@duckdb_host.StrategyHostDispatch) -> Int
 
+pub fn strategy_host_duckdb_registration(@duckdb_host.StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
+
 pub fn strategy_host_execute_local(@duckdb_host.TaskDispatch) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_explain(@duckdb_host.StrategyHostDispatch, Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@duckdb_host.StrategyHostDispatch) -> Bool
 
-pub fn strategy_host_native(@duckdb_host.TaskDispatch) -> Bool
+pub fn strategy_host_local_registration(@duckdb_host.StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
 pub fn strategy_host_next(@duckdb_host.StrategyHostDispatch) -> @duckdb_host.TaskDispatch? raise NodeHostFailure
 
 pub fn strategy_host_output(@duckdb_host.StrategyHostDispatch, Int) -> @execution_relation.CompletedOutput?
+
+pub fn strategy_host_registration(@duckdb_host.TaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_host_resident(@duckdb_host.TaskDispatch) -> Bool
 
@@ -187,6 +192,8 @@ pub fn strategy_host_stop(@duckdb_host.StrategyHostDispatch) -> Unit
 pub fn strategy_host_take_native(@duckdb_host.TaskDispatch) -> @duckdb_host.StrategyComputeHostConfiguration raise NodeHostFailure
 
 pub fn strategy_host_task(@duckdb_host.TaskDispatch) -> Int
+
+pub fn strategy_host_task_completed(@duckdb_host.StrategyHostDispatch, Int) -> Bool
 
 pub fn strategy_host_usage(@duckdb_host.StrategyHostDispatch) -> Array[Int64]
 

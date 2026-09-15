@@ -1,0 +1,6 @@
+{
+  "strategy": {
+    "module": "adapters/local-node/strategy-bundle.mjs",
+    "export": "localStrategyContribution"
+  }
+}

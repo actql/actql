@@ -84,7 +84,12 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     }
     @mock.close_mock_query_issuer(issuer)
     let dispatch = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
-    assert_true(@dbhost.dispatch_is_native(dispatch))
+    assert_true(
+      physical_equal(
+        @dbhost.dispatch_registration(dispatch).unwrap(),
+        @dbhost.dispatch_duckdb_registration(host),
+      ),
+    )
     assert_eq(@dbhost.dispatch_task(dispatch), 3)
     let setup = @dbhost.take_native_dispatch(dispatch).unwrap()
     let env = if resident {
@@ -452,14 +457,24 @@ test "adaptive join placement charges both ports including self join occurrences
     }).unwrap()
     for _task in [1, 2] {
       let pending = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
-      assert_false(@dbhost.dispatch_is_native(pending))
+      assert_true(
+        physical_equal(
+          @dbhost.dispatch_registration(pending).unwrap(),
+          @dbhost.dispatch_local_registration(host),
+        ),
+      )
       @dbhost.execute_synchronous_dispatch(pending).unwrap()
     }
     let pending = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
     assert_eq(@dbhost.dispatch_task(pending), 3)
     // After both inputs are observed, Local costs 2*(1+2)=6, or
     // 2*(1+1)=4 for a self join. Keeping only the last edge undercounts it.
-    assert_true(@dbhost.dispatch_is_native(pending))
+    assert_true(
+      physical_equal(
+        @dbhost.dispatch_registration(pending).unwrap(),
+        @dbhost.dispatch_duckdb_registration(host),
+      ),
+    )
     @dbhost.stop_strategy_dispatch(host)
   }
 }

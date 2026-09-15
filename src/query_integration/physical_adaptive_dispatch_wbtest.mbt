@@ -94,7 +94,12 @@ test "observed completion revises only the unstarted suffix without resetting re
   assert_true(revised.planning_work > after_a.planning_work)
   @dbhost.execute_synchronous_dispatch(b).unwrap()
   let c = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
-  assert_false(@dbhost.dispatch_is_native(c))
+  assert_true(
+    physical_equal(
+      @dbhost.dispatch_registration(c).unwrap(),
+      @dbhost.dispatch_local_registration(host),
+    ),
+  )
   @dbhost.execute_synchronous_dispatch(c).unwrap()
   assert_true(@dbhost.prepare_next_dispatch(host) is Ok(None))
   assert_eq(@strategy.strategy_history_count(run), 3)
