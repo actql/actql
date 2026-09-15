@@ -1,34 +1,4 @@
 ///|
-// Emits an owned authored restriction, never evidence of observed item counts.
-pub fn unit_group_guard_witness(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> @wire.WireWitness? raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let (source, limit) = owned_group_array_limit(
-    program, stage, step, aggregate, budget,
-  )
-  guard @context.group_array_limit_guard(limit) is Some(value) else {
-    return None
-  }
-  Some(emit_group_guard_witness(source, value, budget))
-}
-
-///|
 // Private preimage constructor. Its caller obtains the source and bound value
 // from the same completed operation closure; callers cannot supply those parts.
 fn emit_group_guard_witness(

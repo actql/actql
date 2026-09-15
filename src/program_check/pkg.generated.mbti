@@ -458,8 +458,6 @@ pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_group_aggregate_source_at(CheckedProgram, Int, Int, Int) -> GroupAggregateSource?
 
-pub fn unit_group_guard_witness(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
-
 pub fn unit_group_limit_at(CheckedProgram, Int, Int) -> GroupLimit?
 
 pub fn unit_group_limit_count(CheckedProgram, Int) -> Int?

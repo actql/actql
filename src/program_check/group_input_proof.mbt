@@ -29,35 +29,6 @@ pub fn group_input_proof_claim(v : GroupInputProof) -> @wire.ProgramProofClaim {
 }
 
 ///|
-fn owned_group_array_limit(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  budget : IdentityBudget,
-) -> (GroupAggregateSource, @context.GroupArrayLimit) raise UnitBuildFailure {
-  guard unit_group_aggregate_source_at(program, stage, step, aggregate)
-    is Some(source) else {
-    raise ForeignOwner
-  }
-  let closure = @context.stage_requirement_operations(requirements(program))
-  for index in 0..<@context.operation_closure_count(closure) {
-    identity_charge(budget, 1)
-    guard @context.operation_closure_at(closure, index)
-      is Some(ExecutionCheck(GroupExecution(check))) &&
-      check.rule is EnforceArrayItems(limit) &&
-      check.site.stage == stage &&
-      physical_equal(check.site.pipeline, source.operation.pipeline) &&
-      check.site.step == step &&
-      physical_equal(@context.group_array_limit_call(limit), source.call) else {
-      continue
-    }
-    return (source, limit)
-  }
-  raise ForeignOwner
-}
-
-///|
 // The input remains a rows witness. This separate law application bounds each
 // array and retains the exact input membership and its prerequisite graph.
 fn group_input_proof(

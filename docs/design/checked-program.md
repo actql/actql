@@ -214,11 +214,12 @@ local limit identity. Its source path is a canonical locator in the authored
 Unit body, with the aggregate name encoded as a JSON string in bracket notation.
 The source locator is distinct from the protected `items`/`bytes` subject:
 one locates the authored restriction, the other identifies its measured scope.
-`unit_group_guard_witness` reads the effective array guard from the same completed
-operation closure, omits a genuinely absent guard and creates the canonical
-author-guard witness. Parameter syntax is not reparsed or defaulted by this reader.
-This individual witness reader covers ordinary array aggregates. String guards
-are retained in the string limit's admitted candidate collection.
+Aggregate guards are retained in the completed limit's admitted candidate
+collection, including non-binding guards. Consumers read its candidate minimum
+and corresponding arithmetic claims to distinguish author guards from Host and
+Program bounds. An absent guard contributes no author-guard candidate. Reading
+these retained witnesses does not reparse Parameters, search the operation
+closure or construct another witness.
 Event bridges, watermarking, business deduplication and sessions are admitted
 through the same source-driven formal constructor, with explicit `events`
 projection before a Relation Result. Session also retains its Relation-input

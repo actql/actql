@@ -54,16 +54,18 @@ test "group guard witnesses retain bound values and omit absent guards" {
       @wire.limit_subject(group_limit_claim(limit)),
       group_aggregate_subject(group_limit_source(limit), 10000),
     )
-    let witness = unit_group_guard_witness(
-      program,
-      1,
-      0,
-      0,
-      max_work=1000000,
-      max_bytes=1000000,
-      max_nodes=10000,
-      max_depth=100,
-    )
+    let claim = group_limit_claim(limit)
+    let minimum = @wire.limit_minimum(claim)
+    let guards : Array[@wire.WireWitness] = []
+    for i in 0..<@derivation.minimum_candidate_count(minimum) {
+      let node = @derivation.minimum_candidate_at(minimum, i).unwrap().node
+      let candidate = @wire.claim_at(@wire.limit_claims(claim), node).unwrap()
+      if @wire.source(candidate) is AuthorGuard(_, _) {
+        guards.push(candidate)
+      }
+    }
+    assert_eq(guards.length(), if expected is None { 0 } else { 1 })
+    let witness = guards.get(0)
     match (expected, witness) {
       (None, None) => ()
       (Some(value), Some(witness)) => {
