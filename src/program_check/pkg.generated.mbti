@@ -199,6 +199,8 @@ pub fn input_request_path(InputRequest) -> Array[@source_value.PathSegment]
 
 pub fn input_request_source(InputRequest) -> @decode_core.Cursor?
 
+pub fn input_requests_diagnostic(InputRequests) -> CheckDiagnostic
+
 pub fn interval_search_limit_cid(IntervalSearchLimit) -> String
 
 pub fn interval_search_limit_proof_at(IntervalSearchLimit, Int, Int) -> ReidentifiedStep?
@@ -771,6 +773,7 @@ pub struct InputRequest {
 pub enum InputRequestKind {
   ParameterValue(@parameter_binding.Declaration)
   HostCapacityPolicy
+  HostTextTimePolicy
 }
 
 type InputRequests

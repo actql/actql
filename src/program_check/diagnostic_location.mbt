@@ -232,6 +232,6 @@ pub fn diagnostic_location_path(
 pub fn input_request_origin(value : InputRequest) -> DiagnosticOrigin {
   match value.kind {
     ParameterValue(_) => ProgramDocument
-    HostCapacityPolicy => CheckEnvironment
+    HostCapacityPolicy | HostTextTimePolicy => CheckEnvironment
   }
 }

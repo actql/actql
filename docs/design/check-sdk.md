@@ -96,9 +96,21 @@ Program checks. Compilation limits neither select this policy nor synthesize its
 execution ceilings. A present but invalid body, a mismatched contract or exhausted
 checking budget remains a rejection, not a request to replace it.
 
+An expression that requires a missing `host_policy_profile.text_time_evaluation`
+component yields a `HostTextTimePolicy` request. The supplied component must
+meet `spec/contracts/actql-expressions.json` at
+`#/schemas/fragment/properties/request/properties/text_time_policy` and the
+ordinary owned text-time admission, pattern, envelope and profile checks.
+Neither policy defaults nor compiler budgets supply execution ceilings.
+Missing-policy failures from timestamp patterns, regular expressions and text
+envelopes share this selection request; malformed policies, unsupported
+profiles, invalid patterns and budget failures do not. `input_requests_diagnostic`
+retains the original typed failure establishing the frontier, without promising
+that supplementation will satisfy later checks.
+
 Requests retain the exact checking environment as well as the admitted Program.
-Parameter paths refer to the Program; the Host capacity path refers to the Check
-Environment. A missing capacity property has no source cursor or byte span: its
+Parameter paths refer to the Program; Host policy paths refer to the Check
+Environment. A missing policy property has no source cursor or byte span: its
 parent object's location is not presented as the missing property's location.
 The caller supplies a newly admitted environment and rechecks; the old request
 is immutable. A Parameter frontier may reveal a later policy frontier only after

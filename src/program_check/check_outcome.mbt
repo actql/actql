@@ -22,18 +22,21 @@ struct InputRequests {
   program : @syntax.Program
   environment : CheckEnvironment
   inventory : RequestInventory
+  diagnostic : CheckDiagnostic
 }
 
 ///|
 priv enum RequestInventory {
   Parameters(@parameters.MissingNames)
   CapacityPolicy
+  TextTimePolicy
 }
 
 ///|
 pub enum InputRequestKind {
   ParameterValue(@parameters.Declaration)
   HostCapacityPolicy
+  HostTextTimePolicy
 }
 
 ///|
@@ -47,7 +50,7 @@ pub struct InputRequest {
 pub fn input_request_count(value : InputRequests) -> Int {
   match value.inventory {
     Parameters(missing) => @parameters.missing_count(missing)
-    CapacityPolicy => 1
+    CapacityPolicy | TextTimePolicy => 1
   }
 }
 
@@ -69,18 +72,26 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       HostCapacityPolicy
     }
+    TextTimePolicy => {
+      if index != 0 {
+        return None
+      }
+      HostTextTimePolicy
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
 
 ///|
 /// Paths are relative to the Program for ParameterValue and to the admitted
-/// Check Environment for HostCapacityPolicy. Missing properties have no span.
+/// Check Environment for Host policies. Missing properties have no span.
 pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
   match value.kind {
     ParameterValue(declaration) =>
       @decode.cursor_path(@parameters.declaration_source(declaration))
     HostCapacityPolicy => [Key("host_policy_profile"), Key("capacity")]
+    HostTextTimePolicy =>
+      [Key("host_policy_profile"), Key("text_time_evaluation")]
   }
 }
 
@@ -89,7 +100,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
   match value.kind {
     ParameterValue(declaration) =>
       Some(@parameters.declaration_source(declaration))
-    HostCapacityPolicy => None
+    HostCapacityPolicy | HostTextTimePolicy => None
   }
 }
 
@@ -99,16 +110,35 @@ fn rejected(cause : LocalConstructionFailure) -> CheckOutcome {
 }
 
 ///|
+/// Retain the failure that established this partial request frontier. Its typed
+/// cause is not a claim that later checks would succeed after supplementation.
+pub fn input_requests_diagnostic(value : InputRequests) -> CheckDiagnostic {
+  value.diagnostic
+}
+
+///|
 fn checking_outcome(
   program : @syntax.Program,
   environment : CheckEnvironment,
   run : () -> CheckedProgram raise LocalConstructionFailure,
 ) -> CheckOutcome {
   Checked(run()) catch {
-    Source(SourceView(Binding(NeedsBindings(missing)))) =>
-      NeedsInputs({ program, environment, inventory: Parameters(missing), })
-    Source(SourceView(Context(Policy(MissingCapacity)))) =>
-      NeedsInputs({ program, environment, inventory: CapacityPolicy, })
-    error => rejected(error)
+    error => {
+      let inventory = match error {
+        Source(SourceView(Binding(NeedsBindings(missing)))) =>
+          Parameters(missing)
+        Source(SourceView(Context(Policy(MissingCapacity)))) => CapacityPolicy
+        Source(Checks(Patterns(Timestamp(MissingPolicy(_)))))
+        | Source(Checks(Patterns(Regex(MissingPolicy(_)))))
+        | Source(Checks(TextBounds(MissingPolicy(_)))) => TextTimePolicy
+        _ => return rejected(error)
+      }
+      NeedsInputs({
+        program,
+        environment,
+        inventory,
+        diagnostic: { cause: error, },
+      })
+    }
   }
 }

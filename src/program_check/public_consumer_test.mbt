@@ -53,6 +53,8 @@ fn public_input_fixture(
   repeated? : Bool = false,
   analytic_policy? : Bool = false,
   graph_policy? : Bool = false,
+  text_policy? : (String, String)? = None,
+  text_profile? : Bool = true,
   temporal_join_step? : Int? = None,
 ) -> (
   String,
@@ -98,7 +100,9 @@ fn public_input_fixture(
   ).unwrap()
   // Input envelope CID independently calculated from canonical JSON with Node SHA-256.
   // It is not an expected Program identity computed by the product under test.
-  let environment_cid = if graph_policy {
+  let environment_cid = if text_policy is Some((_, cid)) {
+    cid
+  } else if graph_policy {
     "sha256:0e1e713a191318e1e3a418ca4c104e93dc6d32c9425096eda1a3ad004a7c6792"
   } else if analytic_policy {
     "sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07"
@@ -109,6 +113,15 @@ fn public_input_fixture(
     @utf8.encode(
       (
         #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+      )
+      .replace(
+        old="\"version\":\"actql-capacity-host-policy/0.1\"}",
+        new=if text_policy is Some((body, _)) {
+          "\"version\":\"actql-capacity-host-policy/0.1\"},\"text_time_evaluation\":" +
+          body
+        } else {
+          "\"version\":\"actql-capacity-host-policy/0.1\"}"
+        },
       )
       .replace(
         old="sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
@@ -190,7 +203,7 @@ fn public_input_fixture(
     program,
     @program_check.checking_environment(
       environment,
-      { text_time: false, veca: false, },
+      { text_time: text_profile && text_policy is Some(_), veca: false, },
       {
         rela: true,
         sga: graph_policy,
