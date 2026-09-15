@@ -1,7 +1,7 @@
 ///|
 priv struct ResidentPendingOutput {
   environment : ResidentEnvironment
-  allocation : ResidentAllocation
+  allocation : @resources.SharedAllocation
   table_name : String
   query : @duckdb.ResidentQuery
   limits : @duckdb_compute.DuckDBComputeLimits
@@ -29,7 +29,8 @@ fn prepare_resident_output(
     Ok(value) => value
     Err(issue) => return Err(NativePreparation(issue))
   }
-  let allocation = match allocate_resident_capacity(env.capacity, bytes) {
+  let allocation = match
+    @resources.allocate_shared_capacity(env.capacity, bytes) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -67,7 +68,9 @@ pub fn captured_resident_cleanup_sql(
   let sql = []
   let tables = []
   for table in pending.environment.tables {
-    guard table is Some(table) && table.committed && !table.allocation.retiring else {
+    guard table is Some(table) &&
+      table.committed &&
+      !@resources.shared_allocation_usage(table.allocation).retiring else {
       continue
     }
     match @resources.charge_planning(run.ledger, run.graph.data.length() + 1) {
@@ -92,7 +95,7 @@ pub fn captured_resident_cleanup_sql(
     }
   }
   for table in tables {
-    retire_resident_capacity(table.allocation)
+    @resources.retire_shared_capacity(table.allocation)
     pending.retired_inputs.push(table)
   }
   pending.cleanup_prepared = true

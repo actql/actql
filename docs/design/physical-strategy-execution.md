@@ -117,6 +117,16 @@ success issuer.
 ## Transfer and execution ownership
 
 `physical_resources` owns the physical ledger, reservations and holdings without
+any connector dependency. Its shared-capacity owner reserves an execution-resource
+envelope once; individual retained copies consume suballocations within it.
+Borrowing returns an opaque one-use token, so returning one borrower twice cannot
+release another borrower's capacity. Retirement rejects new borrowing but releases
+nothing; copy cleanup requires all borrower tokens to have been returned, and
+resource settlement requires all suballocations to have been released. Read-only
+usage snapshots expose capacities and lifecycle facts, not mutable counters or
+the owner's reservation. Connector-specific objects remain outside this ledger.
+
+The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned
 handles: callers can inspect immutable limits, usage, ownership and availability,
 but cannot mutate counters or manufacture a reservation or holding. Settlement

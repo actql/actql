@@ -72,7 +72,7 @@ pub fn start_captured_duckdb_task(
         resident_inputs_match(run, read, task, compute) else {
         return Err(ForeignCandidate)
       }
-      read.environment.capacity.capacity
+      @resources.shared_capacity_usage(read.environment.capacity).capacity
     }
   }
   let started = start_task_execution(
@@ -158,8 +158,8 @@ pub fn start_captured_duckdb_task(
         Err(issue) => {
           // No native work has started: only synchronous admission failed.
           if resident_output is Some(output) {
-            retire_resident_capacity(output.allocation)
-            release_resident_capacity(output.allocation) |> ignore
+            @resources.retire_shared_capacity(output.allocation)
+            @resources.release_shared_capacity(output.allocation) |> ignore
           }
           fail_captured_task(run, task, DuckDB(issue))
           Err(DuckDB(issue))

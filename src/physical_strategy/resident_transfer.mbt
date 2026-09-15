@@ -56,7 +56,7 @@ pub fn begin_resident_transfer(
   if !owns_resident_table(run, table) ||
     table.committed ||
     table.import_started ||
-    table.allocation.retiring ||
+    @resources.shared_allocation_usage(table.allocation).retiring ||
     !resident_environment_available(run, table.environment) {
     return Err(ForeignCandidate)
   }
@@ -73,7 +73,8 @@ pub fn begin_resident_transfer(
   }
   if transfer_bytes > selected.transfer_bytes ||
     scratch_bytes > selected.scratch_bytes ||
-    table.allocation.bytes != selected.table_bytes {
+    @resources.shared_allocation_usage(table.allocation).bytes !=
+    selected.table_bytes {
     return Err(Physical(InvalidCharge))
   }
   let reservation = match

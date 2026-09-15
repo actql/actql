@@ -158,12 +158,14 @@ fn compose_resident_choices(
   let mut rejected = false
   if live && run.resident_environment is Some(env) {
     for i, table in env.tables {
-      if table is Some(table) && table.committed && !table.allocation.retiring {
+      if table is Some(table) &&
+        table.committed &&
+        !@resources.shared_allocation_usage(table.allocation).retiring {
         available[i] = true
-        table_bytes[i] = table.allocation.bytes
+        table_bytes[i] = @resources.shared_allocation_usage(table.allocation).bytes
       }
     }
-    held = env.capacity.allocated
+    held = @resources.shared_capacity_usage(env.capacity).allocated
   }
   let lines = []
   if outstanding_cleanup is Some(cleanup) {

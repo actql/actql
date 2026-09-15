@@ -6,9 +6,15 @@ import {
 }
 
 // Values
+pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
+
+pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
+
 pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
@@ -26,6 +32,8 @@ pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
+pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
+
 pub fn reservation_open(Reservation) -> Bool
 
 pub fn reservation_pending(Reservation) -> Bool
@@ -34,11 +42,23 @@ pub fn reservation_serial(Reservation) -> Int
 
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
 
+pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
+
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
+
+pub fn retire_shared_capacity(SharedAllocation) -> Unit
+
+pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
 
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
+pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
+
+pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
+
+pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
 // Errors
 
@@ -83,6 +103,25 @@ pub(all) struct LedgerUsage {
 } derive(Eq, @debug.Debug)
 
 type Reservation
+
+type SharedAllocation
+
+pub(all) struct SharedAllocationUsage {
+  bytes : Int64
+  readers : Int
+  retiring : Bool
+  released : Bool
+}
+
+type SharedBorrow
+
+type SharedCapacity
+
+pub(all) struct SharedCapacityUsage {
+  capacity : Int64
+  allocated : Int64
+  closing : Bool
+}
 
 // Type aliases
 

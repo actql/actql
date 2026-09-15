@@ -3,13 +3,13 @@
 /// provision confirms the selected profile. No future DB handle is fabricated.
 struct ResidentEnvironment {
   owner : StrategyOfferOwner
-  capacity : ResidentCapacity
+  capacity : @resources.SharedCapacity
   revision : StrategyRevision
   mut ready : Bool
   mut settled : Bool
   tables : Array[ResidentTable?]
   mut next_table : Int
-  allocations : Array[ResidentAllocation]
+  allocations : Array[@resources.SharedAllocation]
   mut importing : Bool
   profile : ResidentProfile?
 }
@@ -40,7 +40,8 @@ pub fn begin_resident_environment(
     database_bytes > envelope.execution_bytes {
     return Err(Physical(InvalidCharge))
   }
-  let capacity = match reserve_resident_capacity(run.ledger, database_bytes) {
+  let capacity = match
+    @resources.reserve_shared_capacity(run.ledger, database_bytes) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -73,7 +74,14 @@ fn owns_resident_environment(
 ///|
 fn resident_provision_pending(run : CapturedDAG) -> Bool {
   run.resident_environment is Some(env) &&
-  ((!env.ready && !env.capacity.closing && !env.settled) || env.importing)
+  (
+    (
+      !env.ready &&
+      !@resources.shared_capacity_usage(env.capacity).closing &&
+      !env.settled
+    ) ||
+    env.importing
+  )
 }
 
 ///|
@@ -87,10 +95,13 @@ pub fn confirm_resident_environment(
   if !owns_resident_environment(run, env) {
     return Err(ForeignCandidate)
   }
-  if run.stopped || env.capacity.closing || env.settled {
+  if run.stopped ||
+    @resources.shared_capacity_usage(env.capacity).closing ||
+    env.settled {
     return Err(Stopped)
   }
-  if env.ready || database_bytes != env.capacity.capacity {
+  if env.ready ||
+    database_bytes != @resources.shared_capacity_usage(env.capacity).capacity {
     return Err(Physical(InvalidCharge))
   }
   guard run.strategy is Some(revision) && physical_equal(revision, env.revision) else {
@@ -108,7 +119,7 @@ pub fn resident_environment_available(
 ) -> Bool {
   owns_resident_environment(run, env) &&
   env.ready &&
-  !env.capacity.closing &&
+  !@resources.shared_capacity_usage(env.capacity).closing &&
   !env.settled
 }
 
@@ -125,7 +136,7 @@ pub fn close_resident_environment(
   if env.settled {
     return Ok(())
   }
-  if !env.capacity.closing {
+  if !@resources.shared_capacity_usage(env.capacity).closing {
     if !env.ready {
       // Failed or abandoned provision is not loss of a previously usable copy.
       // Preserve reservation/cleanup, but never reopen dispatch via reselection.
@@ -136,7 +147,7 @@ pub fn close_resident_environment(
     // and residency assumptions. Existing completions and history survive.
     run.strategy = None
     run.generation += 1
-    close_resident_capacity(env.capacity)
+    @resources.close_shared_capacity(env.capacity)
   } else {
     Ok(())
   }
@@ -153,7 +164,7 @@ pub fn settle_resident_environment(
   if env.settled {
     return Ok(())
   }
-  if !env.capacity.closing {
+  if !@resources.shared_capacity_usage(env.capacity).closing {
     return Err(InvalidCharge)
   }
   if env.importing {
@@ -162,17 +173,17 @@ pub fn settle_resident_environment(
   // Confirmed DB destruction also removes provisional tables whose task failed
   // before publication. Do not orphan their reservations with disposed attempts.
   for allocation in env.allocations {
-    if allocation.readers != 0 {
+    if @resources.shared_allocation_usage(allocation).readers != 0 {
       return Err(InvalidCharge)
     }
   }
   for allocation in env.allocations {
-    if !allocation.released {
-      retire_resident_capacity(allocation)
-      release_resident_capacity(allocation) |> ignore
+    if !@resources.shared_allocation_usage(allocation).released {
+      @resources.retire_shared_capacity(allocation)
+      @resources.release_shared_capacity(allocation) |> ignore
     }
   }
-  match settle_resident_capacity(env.capacity) {
+  match @resources.settle_shared_capacity(env.capacity) {
     Err(issue) => Err(issue)
     Ok(_) => {
       env.settled = true

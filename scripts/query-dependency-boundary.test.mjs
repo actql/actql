@@ -33,7 +33,7 @@ test('physical resource ledger is independent of strategy and connector implemen
   assert.deepEqual(imports('physical_resources'), []);
   assert.ok(imports('physical_strategy').includes('physical_resources'));
   const api = readFileSync('src/physical_resources/pkg.generated.mbti', 'utf8');
-  for (const handle of ['Ledger', 'Reservation', 'Holding']) {
+  for (const handle of ['Ledger', 'Reservation', 'Holding', 'SharedCapacity', 'SharedAllocation', 'SharedBorrow']) {
     assert.match(api, new RegExp(`^type ${handle}$`, 'm'));
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`));
   }

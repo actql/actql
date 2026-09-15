@@ -4,7 +4,7 @@ struct ResidentTable {
   environment : ResidentEnvironment
   producer : Int
   imported : @duckdb.ResidentImport
-  allocation : ResidentAllocation
+  allocation : @resources.SharedAllocation
   mut committed : Bool
   mut import_started : Bool
 }
@@ -16,6 +16,7 @@ struct ResidentRead {
   input : @execution.ProducerRead
   view_sql : String
   mut returned : Bool
+  borrow : @resources.SharedBorrow
 }
 
 ///|
@@ -87,7 +88,8 @@ pub fn prepare_resident_table(
     Ok(value) => value
     Err(issue) => return Err(NativePreparation(issue))
   }
-  let allocation = match allocate_resident_capacity(env.capacity, bytes) {
+  let allocation = match
+    @resources.allocate_shared_capacity(env.capacity, bytes) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -128,12 +130,12 @@ pub fn cancel_resident_table_preparation(
   guard env.allocations.last() is Some(last) else { return Err(InvalidCharge) }
   if table.import_started ||
     table.committed ||
-    table.allocation.retiring ||
+    @resources.shared_allocation_usage(table.allocation).retiring ||
     !physical_equal(last, table.allocation) {
     return Err(InvalidCharge)
   }
-  retire_resident_capacity(table.allocation)
-  match release_resident_capacity(table.allocation) {
+  @resources.retire_shared_capacity(table.allocation)
+  match @resources.release_shared_capacity(table.allocation) {
     Err(issue) => Err(issue)
     Ok(_) => {
       env.tables[table.producer] = None
@@ -161,7 +163,10 @@ pub fn resident_table_at(
   env.tables
   .get(producer)
   .bind(value => value)
-  .filter(table => table.committed && !table.allocation.retiring)
+  .filter(table => {
+    table.committed &&
+    !@resources.shared_allocation_usage(table.allocation).retiring
+  })
 }
 
 ///|
@@ -178,7 +183,8 @@ pub fn confirm_resident_table(
     !resident_environment_available(run, table.environment) {
     return Err(ForeignCandidate)
   }
-  if table.committed || table.allocation.retiring {
+  if table.committed ||
+    @resources.shared_allocation_usage(table.allocation).retiring {
     return Err(NotReady)
   }
   if !@duckdb.resident_import_available(table.imported) {
@@ -224,9 +230,13 @@ pub fn borrow_resident_table(
     Ok(value) => value
     Err(issue) => return Err(NativePreparation(issue))
   }
-  match borrow_resident_capacity(table.environment.capacity, table.allocation) {
+  match
+    @resources.borrow_shared_capacity(
+      table.environment.capacity,
+      table.allocation,
+    ) {
     Err(issue) => Err(Physical(issue))
-    Ok(_) => Ok({ table, input, view_sql, returned: false, })
+    Ok(borrow) => Ok({ table, input, view_sql, borrow, returned: false, })
   }
 }
 
@@ -245,7 +255,7 @@ pub fn resident_read_matches(
   physical_equal(read.input, input) &&
   owns_resident_table(run, read.table) &&
   read.table.committed &&
-  !read.table.allocation.retiring &&
+  !@resources.shared_allocation_usage(read.table.allocation).retiring &&
   resident_environment_available(run, read.table.environment) &&
   @execution.producer_read_available(input)
 }
@@ -257,7 +267,7 @@ pub fn return_resident_read(
   if read.returned {
     return Err(InvalidCharge)
   }
-  match return_resident_capacity(read.table.allocation) {
+  match @resources.return_shared_capacity(read.borrow) {
     Err(issue) => Err(issue)
     Ok(_) => {
       read.returned = true
@@ -274,10 +284,10 @@ pub fn retire_resident_table(
   if !owns_resident_table(run, table) {
     return Err(ForeignOwner)
   }
-  if table.allocation.retiring {
+  if @resources.shared_allocation_usage(table.allocation).retiring {
     return Ok(())
   }
-  retire_resident_capacity(table.allocation)
+  @resources.retire_shared_capacity(table.allocation)
   run.generation += 1
   run.strategy = None
   Ok(())
@@ -292,7 +302,7 @@ pub fn release_resident_table(
   if !owns_resident_table(run, table) {
     return Err(ForeignOwner)
   }
-  match release_resident_capacity(table.allocation) {
+  match @resources.release_shared_capacity(table.allocation) {
     Err(issue) => Err(issue)
     Ok(_) => {
       table.environment.tables[table.producer] = None
