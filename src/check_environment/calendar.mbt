@@ -9,6 +9,7 @@ pub(all) enum CalendarSelectionIssue {
 ///|
 struct CalendarSelection {
   environment : WireEnvironment
+  pin_source : @decode.Cursor
   table_bytes_cid : String
   tzdb_version : String
   work : Int
@@ -79,10 +80,16 @@ pub fn read_calendar_selection(
   }
   Ok({
     environment,
+    pin_source: @decode.lookup(object, "table_bytes_cid").unwrap(),
     table_bytes_cid: pin,
     tzdb_version: release,
     work: max_work - remaining,
   })
+}
+
+///|
+pub fn calendar_selection_source(v : CalendarSelection) -> @decode.Cursor {
+  v.pin_source
 }
 
 ///|

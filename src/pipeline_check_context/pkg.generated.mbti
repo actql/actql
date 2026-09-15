@@ -2294,11 +2294,11 @@ pub(all) enum OperationCalendarIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironment
-  MissingArtifact
+  MissingArtifact(@check_environment.CalendarSelection)
   Selection(@check_environment.CalendarSelectionIssue)
   MissingProfile(Int, Int, Int)
   ProfileMismatch(Int, Int, Int)
-} derive(Eq, @debug.Debug)
+}
 
 pub struct OperationCalendarResolution {
   stage : Int
@@ -3362,6 +3362,9 @@ pub enum SourceViewProgramIssue {
   InvalidLimits
   ForeignEnvironment
   ForeignCalendarEnvironment
+  CalendarSelection(@check_environment.CalendarSelectionIssue)
+  MissingCalendarArtifact(@check_environment.CalendarSelection)
+  MissingCalendarSelection(Int, @pipeline_typing.Issue)
   ForeignSource
   ForeignPartition(Int)
   BudgetExceeded

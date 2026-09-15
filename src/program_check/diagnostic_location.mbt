@@ -119,6 +119,7 @@ pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
 fn diagnostic_pipeline_issue(value : CheckDiagnostic) -> @pipeline.Issue? {
   match value.cause {
     Source(SourceView(Program(Program(Pipeline(_, issue)))))
+    | Source(SourceView(Program(MissingCalendarSelection(_, issue))))
     | Source(SourceView(Program(Program(Order(_, PipelineOrder(issue))))))
     | Source(SourceView(Context(Stages(Guards(_, _, issue))))) => Some(issue)
     _ => None
@@ -235,6 +236,8 @@ pub fn input_request_origin(value : InputRequest) -> DiagnosticOrigin {
     HostCapacityPolicy
     | HostTextTimePolicy
     | HostTextRankSelection
-    | TextRankProfileArtifact(_) => CheckEnvironment
+    | TextRankProfileArtifact(_)
+    | HostCalendarSelection
+    | CalendarProfileArtifact(_) => CheckEnvironment
   }
 }

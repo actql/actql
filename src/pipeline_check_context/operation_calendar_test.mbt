@@ -120,7 +120,7 @@ test "Calendar Program links series and bucket profiles at every producer visit"
   assert_true(operation_calendar_at(result, 6) is None)
   assert_true(
     check_program_operation_calendar(program, None, work, 6)
-    is Err(MissingArtifact),
+    is Err(MissingArtifact(_)),
   )
   let foreign = program_calendar_artifact(
     calendar_program(program_calendar_host()),
@@ -163,7 +163,7 @@ test "Calendar operations cannot rely on an unselected or differently selected t
   ).unwrap()
   assert_true(
     check_program_operation_calendar(unused, None, 10000000, 0)
-    is Err(MissingArtifact),
+    is Err(MissingArtifact(_)),
   )
   assert_true(
     check_program_operation_calendar(

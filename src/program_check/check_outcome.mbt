@@ -32,6 +32,8 @@ priv enum RequestInventory {
   TextTimePolicy
   TextRankSelection
   TextRankArtifact(@environment.TextRankSelection)
+  CalendarSelection
+  CalendarArtifact(@environment.CalendarSelection)
 }
 
 ///|
@@ -41,6 +43,8 @@ pub enum InputRequestKind {
   HostTextTimePolicy
   HostTextRankSelection
   TextRankProfileArtifact(@environment.TextRankSelection)
+  HostCalendarSelection
+  CalendarProfileArtifact(@environment.CalendarSelection)
 }
 
 ///|
@@ -54,8 +58,12 @@ pub struct InputRequest {
 pub fn input_request_count(value : InputRequests) -> Int {
   match value.inventory {
     Parameters(missing) => @parameters.missing_count(missing)
-    CapacityPolicy | TextTimePolicy | TextRankSelection | TextRankArtifact(_) =>
-      1
+    CapacityPolicy
+    | TextTimePolicy
+    | TextRankSelection
+    | TextRankArtifact(_)
+    | CalendarSelection
+    | CalendarArtifact(_) => 1
   }
 }
 
@@ -95,6 +103,18 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       TextRankProfileArtifact(selection)
     }
+    CalendarSelection => {
+      if index != 0 {
+        return None
+      }
+      HostCalendarSelection
+    }
+    CalendarArtifact(selection) => {
+      if index != 0 {
+        return None
+      }
+      CalendarProfileArtifact(selection)
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
@@ -112,6 +132,9 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     HostTextRankSelection => [Key("host_policy_profile"), Key("text_rank")]
     TextRankProfileArtifact(_) =>
       [Key("host_policy_profile"), Key("text_rank"), Key("profile_bytes_cid")]
+    HostCalendarSelection => [Key("host_policy_profile"), Key("calendar")]
+    CalendarProfileArtifact(_) =>
+      [Key("host_policy_profile"), Key("calendar"), Key("table_bytes_cid")]
   }
 }
 
@@ -120,9 +143,14 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
   match value.kind {
     ParameterValue(declaration) =>
       Some(@parameters.declaration_source(declaration))
-    HostCapacityPolicy | HostTextTimePolicy | HostTextRankSelection => None
+    HostCapacityPolicy
+    | HostTextTimePolicy
+    | HostTextRankSelection
+    | HostCalendarSelection => None
     TextRankProfileArtifact(selection) =>
       Some(@environment.text_rank_selection_source(selection))
+    CalendarProfileArtifact(selection) =>
+      Some(@environment.calendar_selection_source(selection))
   }
 }
 
@@ -157,6 +185,12 @@ fn checking_outcome(
           TextRankArtifact(selection)
         Closure(Operations(Lexical(MissingProfile(_, _, _)))) =>
           TextRankSelection
+        Source(SourceView(Program(MissingCalendarArtifact(selection)))) =>
+          CalendarArtifact(selection)
+        Closure(Operations(Calendar(MissingArtifact(selection)))) =>
+          CalendarArtifact(selection)
+        Source(SourceView(Program(MissingCalendarSelection(_, _)))) =>
+          CalendarSelection
         _ => return rejected(error)
       }
       NeedsInputs({

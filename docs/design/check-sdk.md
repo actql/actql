@@ -121,6 +121,18 @@ Malformed selections, foreign environments and mismatched profiles remain
 rejections. Selection and artifact requests neither assert backend support nor
 prove that the remaining Program checks will succeed.
 
+Calendar topology validates the selected component within its preparation
+budget before interpreting a missing profile. An operation that needs Calendar
+semantics without a selection yields `HostCalendarSelection`; the retained
+diagnostic preserves that operation's authored location. A valid selection
+without table material yields `CalendarProfileArtifact`, carrying its exact
+`CalendarSelection`, table byte pin, external tzdb release and original pin cursor.
+The caller uses `admit_calendar_profile` and supplies the resulting owned profile
+to a fresh standard check. Invalid components and foreign profile owners remain
+rejections, not supplementation requests. Topology preparation without Calendar
+operations does not itself require table material; the complete Program's
+profile attachment checks remain a separate boundary.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

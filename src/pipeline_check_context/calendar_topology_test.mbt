@@ -47,9 +47,17 @@ test "Calendar topology selection belongs to the registration Environment" {
     limits,
     calendar=Some(selected),
   ).unwrap()
-  assert_eq(
-    used.work,
-    plain.work + @environment.calendar_selection_work(selection),
+  // Reading a selection and reusing its admitted profile carry the same
+  // bounded selection cost; absent material does not make the scan free.
+  assert_eq(used.work, plain.work)
+  assert_true(
+    prepare_sourceview_program(views, locals, {
+      ..limits,
+      max_work: @sourceviews.pipeline_inputs_work(views) +
+      @environment.calendar_selection_work(selection) -
+      1,
+    })
+    is Err(BudgetExceeded),
   )
   let exact = { ..limits, max_work: used.work, }
   assert_true(

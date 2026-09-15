@@ -34,6 +34,8 @@ pub fn calendar_selection_environment(CalendarSelection) -> WireEnvironment
 
 pub fn calendar_selection_release(CalendarSelection) -> String
 
+pub fn calendar_selection_source(CalendarSelection) -> @decode_core.Cursor
+
 pub fn calendar_selection_work(CalendarSelection) -> Int
 
 pub fn capacity_environment(Capacity) -> WireEnvironment

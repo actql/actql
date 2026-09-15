@@ -30,6 +30,20 @@ test "Calendar selection binds independent byte and external release pins" {
   assert_true(physical_equal(calendar_selection_environment(selection), env))
   assert_eq(calendar_selection_release(selection), "test-fixture")
   let used = calendar_selection_work(selection)
+  // One Host field scan plus lookup, five closed-component operations and
+  // the four supplied strings. This does not derive the expected cost from usage.
+  assert_eq(
+    used,
+    2 +
+    5 +
+    "actql-calendar-selection/0.1".length() +
+    71 +
+    "test-fixture".length() +
+    "actql-calendar-boundaries/0.1".length(),
+  )
+  let pin_source = calendar_selection_source(selection)
+  assert_true(physical_equal(pin_source, calendar_selection_source(selection)))
+  assert_eq(@decode.text(pin_source), Ok(calendar_selection_cid(selection)))
   assert_true(read_calendar_selection(env, used) is Ok(_))
   assert_true(read_calendar_selection(env, used - 1) is Err(BudgetExceeded))
   assert_true(read_calendar_selection(env, -1) is Err(InvalidLimits))

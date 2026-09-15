@@ -66,8 +66,11 @@ test "formal Calendar refuses missing artifact before returning a Program" {
       extra_step_budget=1,
     )
   catch {
-    Source(SourceView(Program(Program(Pipeline(1, issue))))) =>
-      assert_true(issue.kind is @pipeline.Calendar(MissingProfile))
+    Source(SourceView(Program(MissingCalendarArtifact(selection)))) =>
+      assert_eq(
+        @environment.calendar_selection_release(selection),
+        "test-fixture",
+      )
     error => raise error
   } noraise {
     _ => fail("missing Calendar artifact accepted")

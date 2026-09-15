@@ -33,7 +33,7 @@ test "operation orchestration rejects missing and foreign profile material at it
   )
   assert_true(
     resolve_program_operations(calendar_identity, limits)
-    is Err(Calendar(MissingArtifact)),
+    is Err(Calendar(MissingArtifact(_))),
   )
   assert_true(
     resolve_program_operations(

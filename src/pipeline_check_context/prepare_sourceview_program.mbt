@@ -3,6 +3,9 @@ pub enum SourceViewProgramIssue {
   InvalidLimits
   ForeignEnvironment
   ForeignCalendarEnvironment
+  CalendarSelection(@environment.CalendarSelectionIssue)
+  MissingCalendarArtifact(@environment.CalendarSelection)
+  MissingCalendarSelection(Int, @pipeline.Issue)
   ForeignSource
   ForeignPartition(Int)
   BudgetExceeded
@@ -66,8 +69,29 @@ fn prepare_sourceview_program_internal(
   let partition = @sourceviews.inputs(@sourceviews.pipeline_resolution(views))
   let count = @stages.stage_count(source)
   let prior = @sourceviews.pipeline_inputs_work(views)
-  let calendar_work = match calendar {
-    None => 0
+  if prior > limits.max_work {
+    return Err(BudgetExceeded)
+  }
+  let (calendar_work, missing_calendar) = match calendar {
+    None => {
+      let environment = @sourceviews.pipeline_environment(views)
+      match
+        @environment.read_calendar_selection(
+          environment,
+          limits.max_work - prior,
+        ) {
+        Ok(selection) =>
+          (@environment.calendar_selection_work(selection), Some(selection))
+        Err(MissingSelection) =>
+          (
+            @decode.object_length(@environment.host_policy(environment)).unwrap() +
+            1,
+            None,
+          )
+        Err(BudgetExceeded) => return Err(BudgetExceeded)
+        Err(issue) => return Err(CalendarSelection(issue))
+      }
+    }
     Some(profile) => {
       let selection = @environment.selected_calendar_selection(profile)
       if !physical_equal(
@@ -76,7 +100,7 @@ fn prepare_sourceview_program_internal(
         ) {
         return Err(ForeignCalendarEnvironment)
       }
-      @environment.calendar_selection_work(selection)
+      (@environment.calendar_selection_work(selection), None)
     }
   }
   if prior > limits.max_work ||
@@ -116,6 +140,14 @@ fn prepare_sourceview_program_internal(
       calendar_profile=calendar.map(@environment.selected_calendar_profile),
     ) {
     Ok(v) => v
+    Err(Pipeline(stage, issue)) if issue.kind
+      is @pipeline.Calendar(MissingProfile) =>
+      return Err(
+        match missing_calendar {
+          Some(selection) => MissingCalendarArtifact(selection)
+          None => MissingCalendarSelection(stage, issue)
+        },
+      )
     Err(e) => return Err(Program(e))
   }
   let mut remaining = limits.max_work - extra - used.work

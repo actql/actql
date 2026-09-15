@@ -776,6 +776,8 @@ pub enum InputRequestKind {
   HostTextTimePolicy
   HostTextRankSelection
   TextRankProfileArtifact(@check_environment.TextRankSelection)
+  HostCalendarSelection
+  CalendarProfileArtifact(@check_environment.CalendarSelection)
 }
 
 type InputRequests

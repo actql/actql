@@ -3,11 +3,11 @@ pub(all) enum OperationCalendarIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironment
-  MissingArtifact
+  MissingArtifact(@environment.CalendarSelection)
   Selection(@environment.CalendarSelectionIssue)
   MissingProfile(Int, Int, Int)
   ProfileMismatch(Int, Int, Int)
-} derive(Eq, Debug)
+}
 
 ///|
 pub struct OperationCalendarResolution {
@@ -59,7 +59,7 @@ pub fn check_program_operation_calendar(
       }
       None =>
         match @environment.read_calendar_selection(environment, b.remaining) {
-          Ok(_) => return Err(MissingArtifact)
+          Ok(selection) => return Err(MissingArtifact(selection))
           Err(MissingSelection) =>
             scalar_spend(
               b,
