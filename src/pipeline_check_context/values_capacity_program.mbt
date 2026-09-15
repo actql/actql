@@ -5,6 +5,8 @@ priv struct DerivedProgramCapacity {
   work : Int
   bytes : Int
   nodes : Int
+  input_work : Int
+  operand_work : Int
 }
 
 ///|
@@ -13,6 +15,8 @@ fn derive_program_values_capacity(
   inputs : ProgramCapacityInputs,
   max_work : Int,
   metadata : @wire.Limits,
+  max_input_work : Int,
+  max_operand_work : Int,
 ) -> Result[DerivedProgramCapacity, CapacityStageIssue] {
   if max_work < 0 ||
     metadata.max_bytes < 0 ||
@@ -34,6 +38,7 @@ fn derive_program_values_capacity(
   let mut bytes = 0
   let mut nodes = 0
   let materials = []
+  let seeds = []
   let claims : Map[Int, Array[(@pipeline.CheckedPipeline, Array[Int?])]] = Map([])
   let wiring = @stage_results.local_source_wiring(prepared)
   for stage in 0..<count {
@@ -62,13 +67,39 @@ fn derive_program_values_capacity(
     bytes += value.metadata_bytes
     nodes += value.metadata_nodes
     materials.push(value.material)
+    seeds.push(value.bounds)
     let key = @decode.cursor_span(@pipeline.source(pipeline)).start_byte
     match claims.get(key) {
       Some(bucket) => bucket.push((pipeline, value.slots))
       None => claims[key] = [(pipeline, value.slots)]
     }
   }
-  Ok({ inputs: { ..inputs, materials, }, claims, work, bytes, nodes, })
+  let appended = match
+    derive_append_capacity(
+      prepared,
+      materials,
+      seeds,
+      max_work - work,
+      {
+        max_bytes: metadata.max_bytes - bytes,
+        max_nodes: metadata.max_nodes - nodes,
+        max_depth: metadata.max_depth,
+      },
+      max_input_work,
+      max_operand_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Append(issue))
+  }
+  Ok({
+    inputs: { ..inputs, materials: appended.materials, },
+    claims,
+    work: work + appended.work,
+    bytes: bytes + appended.bytes,
+    nodes: nodes + appended.nodes,
+    input_work: appended.input_work,
+    operand_work: appended.operand_work,
+  })
 }
 
 ///|

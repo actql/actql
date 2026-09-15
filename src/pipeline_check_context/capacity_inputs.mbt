@@ -313,6 +313,8 @@ pub fn prepare_local_stage_contexts_from_inputs(
           inputs,
           limits.max_work,
           metadata,
+          limits.max_input_work,
+          limits.max_operand_work,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)
@@ -325,6 +327,10 @@ pub fn prepare_local_stage_contexts_from_inputs(
       (value.inputs, value.work, value.bytes, value.nodes, Some(value.claims))
     None => (inputs, 0, 0, 0, None)
   }
+  let (generated_input_work, generated_operand_work) = match generated {
+    Some(value) => (value.input_work, value.operand_work)
+    None => (0, 0)
+  }
   let (materials, work) = match
     expand_capacity_inputs(prepared, inputs, limits.max_work - generated_work) {
     Ok(value) => value
@@ -334,6 +340,8 @@ pub fn prepare_local_stage_contexts_from_inputs(
     prepare_local_stage_contexts(prepared, materials, selected_policy, {
       ..limits,
       max_work: limits.max_work - work - generated_work,
+      max_input_work: limits.max_input_work - generated_input_work,
+      max_operand_work: limits.max_operand_work - generated_operand_work,
     }) {
     Ok(value) =>
       Ok({

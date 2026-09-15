@@ -1176,6 +1176,13 @@ pub struct AnalyticNumericSlot {
   profile : @numeric_reduction.Profile
 }
 
+pub enum AppendCapacityIssue {
+  BudgetExceeded
+  InvalidGraph
+  Construction(Int, Int, @capacity_program_step.DeriveBoundIssue)
+  Extension(Int, @capacity_witness.ProgramExtensionIssue)
+}
+
 pub struct AppendRowsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1291,6 +1298,7 @@ pub enum CapacityStageIssue {
   InvalidLimits
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
+  Append(AppendCapacityIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded

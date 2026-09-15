@@ -20,6 +20,7 @@ pub enum CapacityStageIssue {
   InvalidLimits
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
+  Append(AppendCapacityIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded

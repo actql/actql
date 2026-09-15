@@ -547,6 +547,7 @@ fn check_application(
   bindings : CountBindings?,
   refine_join : Bool,
   usage? : Array[Int]? = None,
+  aggregate_work? : Int? = None,
 ) -> Result[StepBound, Issue] {
   if max_input_work < 0 {
     return Err(InvalidInputWorkLimit)
@@ -587,7 +588,15 @@ fn check_application(
   }
   let prepared = match
     prepare_bound_inputs(
-      pipeline, step, rule, n, get_input, max_input_work, max_operand_work, usage,
+      pipeline,
+      step,
+      rule,
+      n,
+      get_input,
+      max_input_work,
+      max_operand_work,
+      usage,
+      aggregate_work~,
     ) {
     Ok(v) => v
     Err(e) => return Err(e)

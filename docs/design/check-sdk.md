@@ -250,6 +250,12 @@ reserved per complete artifact. Input traversal, operand preparation and bounded
 CID ordering have separate usage scopes; caller-owned input arrays are not
 retained. Construction establishes no completed observation or execution permit.
 
+`BoundDerivation` retains the operation rule, bindings and admissible operand
+arities. Its constant-time operand reader identifies the exact input target,
+measurement and edge role before inputs are assembled. A retained derivation
+is a request for premises, not a proof. Both constructing a new bound and
+checking a supplied claim still validate the actual owned input occurrences.
+
 The construction entry also accepts an aggregate work ceiling. It reserves
 input/operand work and reference processing from the same remaining amount,
 then bounds complete-artifact node preparation by what remains. Per-scope caps
@@ -273,6 +279,16 @@ application instead of rebuilding the count proof. Repeated imports retain
 their input occurrences without repeating definition-level artifact generation.
 Count evidence does not admit cells, imply uniqueness or discharge runtime
 enforcement obligations.
+
+For Result row-bound demands, append preparation follows actual producer edges
+and existing non-expanding transfers back to available values counts. It
+constructs the existing additive law only when both premises are available.
+Target memoization is scoped to exact Stage pipelines; repeated Result demands
+share construction without deleting operand occurrences. An applicable supplied
+append claim is reused without emitting its metadata again. Closed claim bodies
+may share a CID across producers, but their checked applications and eventual
+Unit-bound references remain distinct. Missing premises are not fabricated as
+Host evidence, and unused append outputs do not trigger proof enumeration.
 
 The standard path owns visit expansion, evidence applicability and preparation
 order for every supported formal-check route. A parallel legacy Program

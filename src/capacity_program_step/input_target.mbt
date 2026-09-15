@@ -14,6 +14,26 @@ fn rule_input_count_valid(rule : Rule, n : Int) -> Bool {
 }
 
 ///|
+fn rule_input_descriptor(
+  rule : Rule,
+  n : Int,
+  i : Int,
+) -> (@arithmetic.BoundUnit, Int) {
+  let unit = match rule {
+    GraphMeasure(_, unit, _, _) | GraphCombine(unit, _) => unit
+    GraphQuery(query) => query.inputs[i].0
+    _ => @arithmetic.Rows
+  }
+  let edge = match rule {
+    GraphMeasure(_, _, edge, _) => edge
+    GraphQuery(query) => query.inputs[i].1
+    QueryTopK(_) if n == 1 => 1
+    _ => i
+  }
+  (unit, edge)
+}
+
+///|
 // The preparation path and the public checker use the same exact edge test.
 // Rejected candidates also return their traversal cost to the caller.
 fn check_input_target_usage(
@@ -27,23 +47,11 @@ fn check_input_target_usage(
 ) -> (Result[Unit, Issue], Int) {
   let mut input_work = 0
   let (input_owner, input_target) = source_target(input)
-  let expected_unit = match rule {
-    GraphMeasure(_, unit, _, _) => unit
-    GraphCombine(unit, _) => unit
-    GraphQuery(query) => query.inputs[i].0
-    _ => @arithmetic.Rows
-  }
+  let (expected_unit, edge) = rule_input_descriptor(rule, n, i)
   if @wire.unit(source_witness(input)) != expected_unit {
     return (Err(InputUnitMismatch(i)), input_work)
   }
   let mut owner = pipeline
-  // Per-query top-k uses the query side for its one-operand bound.
-  let edge = match rule {
-    GraphMeasure(_, _, edge, _) => edge
-    GraphQuery(query) => query.inputs[i].1
-    QueryTopK(_) if n == 1 => 1
-    _ => i
-  }
   let mut target = @pipeline.input_occurrence_at(step, edge).unwrap().target
   while !(physical_equal(owner, input_owner) && target == input_target) {
     let next = match target {

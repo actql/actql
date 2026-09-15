@@ -3,6 +3,7 @@ priv struct ValuesCapacityMaterial {
   material : CapacityMaterial
   // Authored step -> unchanged or appended claim coordinate in this material.
   slots : Array[Int?]
+  bounds : Array[@step_bounds.StepBound?]
   work : Int
   metadata_bytes : Int
   metadata_nodes : Int
@@ -52,6 +53,7 @@ fn derive_values_capacity_material(
     spend(count)
     spend(steps)
     let slots : Array[Int?] = Array::make(steps, None)
+    let bounds : Array[@step_bounds.StepBound?] = Array::make(steps, None)
     let by_subject : Map[String, Array[(Int, @wire.ProgramProofClaim)]] = Map([])
     let mut prior_proofs = 0
     for index in 0..<count {
@@ -85,7 +87,10 @@ fn derive_values_capacity_material(
             // local ordinal. Only reuse applicable evidence; keep every other
             // supplied record for the later owner-aware application checks.
             match @step_bounds.check(pipeline, step, proof) {
-              Ok(_) => slots[step] = Some(index)
+              Ok(bound) => {
+                slots[step] = Some(index)
+                bounds[step] = Some(bound)
+              }
               Err(_) => ()
             }
           }
@@ -105,6 +110,7 @@ fn derive_values_capacity_material(
           bytes += generated.metadata_bytes
           nodes += generated.metadata_nodes
           slots[step] = Some(count + added.length())
+          bounds[step] = Some(generated.bound)
           added.push(@step_bounds.checked_proof(generated.bound))
         }
       }
@@ -140,6 +146,7 @@ fn derive_values_capacity_material(
     Ok({
       material,
       slots,
+      bounds,
       work: max_work - remaining,
       metadata_bytes: bytes,
       metadata_nodes: nodes,

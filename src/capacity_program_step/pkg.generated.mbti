@@ -46,6 +46,8 @@ pub fn bind_parameters(@pipeline_typing.CheckedPipeline, @parameter_binding.Boun
 
 pub fn binding_usage(CountBindings) -> (Int, Int)
 
+pub fn bound_derivation_input_at(BoundDerivation, Int, Int) -> BoundOperand?
+
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int, producers? : Array[Applications]) -> Result[Applications, ApplicationIssue]
@@ -69,6 +71,8 @@ pub fn check_join_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witn
 pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, max_work~ : Int) -> Result[JoinLimit, JoinLimitIssue]
 
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
+
+pub fn check_prepared_bound(BoundDerivation, @capacity_witness.ProgramProofClaim, Array[BoundInput], Int) -> (Result[StepBound, Issue], Int)
 
 pub fn check_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> Result[TargetRows, TargetRowsIssue]
 
@@ -140,6 +144,10 @@ pub fn components_unconsumed_limit_count(ComponentsApplications) -> Int
 
 pub fn derive_bound(@pipeline_typing.CheckedPipeline, Int, Array[BoundInput], DeriveBoundLimits, unit? : @capacity_derivation.BoundUnit, bindings? : CountBindings?, max_work? : Int) -> Result[DerivedBound, DeriveBoundIssue]
 
+pub fn derive_prepared_bound(BoundDerivation, Array[BoundInput], DeriveBoundLimits, max_work? : Int) -> Result[DerivedBound, DeriveBoundIssue]
+
+pub fn forwarded_bound_target(@pipeline_typing.CheckedPipeline, Int, @capacity_derivation.BoundUnit) -> @pipeline_typing.Target?
+
 pub fn guard_application_context(GuardApplications) -> @pipeline_typing.BoundAuthorGuards
 
 pub fn guard_application_count(GuardApplications) -> Int
@@ -201,6 +209,8 @@ pub fn join_unconsumed_limit_count(JoinApplications) -> Int
 pub fn operand_work(StepBound) -> Int
 
 pub fn parameter_values(CountBindings) -> @parameter_binding.BoundValues
+
+pub fn prepare_bound_derivation(@pipeline_typing.CheckedPipeline, Int, unit? : @capacity_derivation.BoundUnit, bindings? : CountBindings?) -> Result[BoundDerivation, Issue]
 
 pub fn prepare_derived_applications(@pipeline_typing.CheckedPipeline, @capacity_witness.ProgramClaims, PreparationLimits, bindings? : CountBindings?, graph_inputs? : @capacity_graph_input.GraphInputs?, sequences? : @capacity_sequence_limit.Applications?, producers? : Array[Applications]) -> Result[Applications, PreparationIssue]
 
@@ -295,9 +305,24 @@ pub(all) enum AsOfSearchIssue {
 
 type AsOfSearchProduct
 
+pub struct BoundDerivation {
+  pipeline : @pipeline_typing.CheckedPipeline
+  index : Int
+  unit : @capacity_derivation.BoundUnit
+  input_count : Int
+  fallback_input_count : Int?
+  // private fields
+}
+
 pub(all) enum BoundInput {
   StepInput(StepBound)
   GraphInput(@capacity_graph_input.InputBound)
+}
+
+pub struct BoundOperand {
+  target : @pipeline_typing.Target
+  unit : @capacity_derivation.BoundUnit
+  edge : Int
 }
 
 pub(all) enum CandidateIssue {

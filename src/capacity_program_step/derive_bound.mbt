@@ -51,19 +51,40 @@ pub fn derive_bound(
     metadata.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if bindings is Some(bound) && !physical_equal(bound.pipeline, pipeline) {
-    return Err(Application(BindingOwnerMismatch))
-  }
-  guard @pipeline.step_at(pipeline, index) is Some(step) else {
-    return Err(Application(MissingStep))
-  }
-  let (law, rule) = match operation_rule(step, bindings, unit) {
+  let derivation = match
+    prepare_bound_derivation(pipeline, index, unit~, bindings~) {
     Ok(v) => v
     Err(e) => return Err(Application(e))
   }
-  if rule_output_unit(rule) != unit {
-    return Err(Application(LawMismatch))
+  derive_prepared_bound(derivation, inputs, limits, max_work~)
+}
+
+///|
+/// Construct from a retained rule without re-reading operation shape or bound
+/// Parameters. Every supplied operand still crosses exact owner/edge checks.
+pub fn derive_prepared_bound(
+  derivation : BoundDerivation,
+  inputs : Array[BoundInput],
+  limits : DeriveBoundLimits,
+  max_work? : Int = 2147483647,
+) -> Result[DerivedBound, DeriveBoundIssue] {
+  let metadata = limits.metadata
+  if max_work < 0 ||
+    limits.max_input_work < 0 ||
+    limits.max_operand_work < 0 ||
+    limits.max_reference_work < 0 ||
+    metadata.max_bytes < 0 ||
+    metadata.max_nodes < 0 ||
+    metadata.max_depth < 0 {
+    return Err(InvalidLimits)
   }
+  let pipeline = derivation.pipeline
+  let index = derivation.index
+  let step = derivation.step
+  let unit = derivation.unit
+  let bindings = derivation.bindings
+  let rule = derivation.rule
+  let law = derivation.law
   let n = inputs.length()
   if !rule_input_count_valid(rule, n) {
     return Err(Application(InputCountMismatch))
