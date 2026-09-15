@@ -28,7 +28,7 @@ pub fn prepare_program_references(
     return Err(InvalidLimits)
   }
   let requests = operations.preparation.sources.capacity.context.rows.requests
-  let stages = requests.inputs.wired.stages
+  let stages = requests.contexts
   let collected = @stages.bound_operations(stages.operations)
   let source = @stages.operations_source(collected)
   let count = @stages.stage_count(source)

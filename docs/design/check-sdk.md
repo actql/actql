@@ -340,6 +340,11 @@ As-of and interval search envelopes demand both checked operand row bounds,
 including operands not needed by an output-count rule. Their existing search
 calculation consumes those bounds without changing the separately selected join
 output-capacity contract or treating a search bound as execution permission.
+Source request construction retains the exact checked Stage context alongside
+request-specific facts. Row-bound selection, source preparation and reference
+construction depend directly on that immutable owner, not on the sequence of
+reconciliation and wiring wrappers used to prepare it. The original reconciled
+inputs remain available where their distinct correspondence checks are needed.
 Construction reads the existing operation-bound plan,
 including its exact row-operand arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a

@@ -33,7 +33,7 @@ pub fn bind_program_sources(
     return Err(ForeignPreparation)
   }
   let requests = preparation.sources.capacity.context.rows.requests
-  let stages = requests.inputs.wired.stages
+  let stages = requests.contexts
   if !physical_equal(stages, references.stages) {
     return Err(ForeignStages)
   }

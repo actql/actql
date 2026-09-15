@@ -36,9 +36,7 @@ fn prepare_source_row_bounds(
     return Err(BudgetExceeded)
   }
   let stages = []
-  let operations = @stages.bound_operations(
-    requests.inputs.wired.stages.operations,
-  )
+  let operations = @stages.bound_operations(requests.contexts.operations)
   for stage in 0..<locations.length() {
     if work >= max_work {
       return Err(BudgetExceeded)
@@ -55,7 +53,7 @@ fn prepare_source_row_bounds(
         @stages.operations_stage_at(operations, stage).unwrap(),
       ),
     )
-    let closure = requests.inputs.wired.stages.contexts[stage].context.capacity
+    let closure = requests.contexts.contexts[stage].context.capacity
     let bounds = []
     let mut traversal = 0
     for index in 0..<count {

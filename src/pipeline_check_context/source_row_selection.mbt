@@ -12,9 +12,7 @@ fn select_source_acquisition_rows(
   if work > max_work {
     return Err(BudgetExceeded)
   }
-  let operations = @stages.bound_operations(
-    requests.inputs.wired.stages.operations,
-  )
+  let operations = @stages.bound_operations(requests.contexts.operations)
   let stages = []
   let memberships = []
   for stage, facts in requests.keyed_facts {
@@ -28,7 +26,7 @@ fn select_source_acquisition_rows(
         @stages.operations_stage_at(operations, stage).unwrap(),
       ),
     )
-    let closure = requests.inputs.wired.stages.contexts[stage].context.capacity
+    let closure = requests.contexts.contexts[stage].context.capacity
     let rows = []
     let owned = []
     let selected_rows : Map[(Bool, Int), @capacity.TargetMembership] = Map([])

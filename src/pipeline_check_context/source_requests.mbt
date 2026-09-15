@@ -16,6 +16,7 @@ pub enum SourceRequestIssue {
 ///|
 struct SourceRequestContexts {
   inputs : ReconciledContexts
+  contexts : StageContexts
   slots : @request_slots.Slots
   parameters : @sourceviews.RequestParameters?
   stages : Array[@sourceviews.PipelineRequests]
@@ -175,6 +176,7 @@ pub fn check_source_requests(
   }
   Ok({
     inputs,
+    contexts: inputs.wired.stages,
     slots,
     parameters,
     stages,
