@@ -377,8 +377,15 @@ attempts; a ledger handle alone is not execution permission or completion eviden
 `duckdb_host.configure_strategy_dispatch` binds a bounded array of generated
 sequences to their exact checked task owners, the owned registry, selected
 consumer capacities and transport/execution limits. Each connector module copies
-its sequence-handle container rather than borrowing mutable caller slots. The
-Host does not retain a duplicate sequence array; task/port topology comes from
+its sequence-handle container rather than borrowing mutable caller slots.
+Configuration dispatch is generated from connector-owned declarations: the
+complete registration subset is checked before invoking pure connector factories,
+and the resulting opaque modules supply their own paired contributions. The
+application supplies typed settings but does not choose construction functions
+through a handwritten backend branch. Configuration failure does not create a
+provider environment or task; any already charged static planning work remains
+consumed.
+The Host does not retain a duplicate sequence array; task/port topology comes from
 the existing checked graph. The next-dispatch operation
 recovers the installed preparation entry by exact registration, never by name or
 registration position. Local and DuckDB preparation entries retain their own

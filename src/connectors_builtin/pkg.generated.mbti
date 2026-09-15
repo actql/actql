@@ -10,9 +10,20 @@ import {
 // Values
 pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_duckdb? : (@actql/actql/connectors/duckdb/driver.DuckDBDispatchModule, (@actql/actql/connectors/duckdb/driver.DuckDBDispatchIssue) -> E, (@actql/actql/connectors/duckdb/driver.DuckDBEstimateIssue) -> E)?, with_local? : (@actql/actql/connectors/local/driver.LocalDispatchModule, (@actql/actql/connectors/local/driver.LocalDispatchIssue) -> E, (@actql/actql/connectors/local/driver.LocalEstimateIssue) -> E)?, with_reference_compute? : (@actql/actql/connectors/reference_compute/driver.NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
 
+pub fn[E] configure_compute_modules(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_duckdb? : (@connector_sdk.CapabilityRegistration, @actql/actql/connectors/duckdb/driver.DuckDBComputeConfiguration, (@actql/actql/connectors/duckdb/driver.DuckDBDispatchIssue) -> E, (@actql/actql/connectors/duckdb/driver.DuckDBEstimateIssue) -> E)?, with_local? : (@connector_sdk.CapabilityRegistration, @actql/actql/connectors/local/driver.LocalComputeConfiguration, (@actql/actql/connectors/local/driver.LocalDispatchIssue) -> E, (@actql/actql/connectors/local/driver.LocalEstimateIssue) -> E)?, with_reference_compute? : (@connector_sdk.CapabilityRegistration, @actql/actql/connectors/reference_compute/driver.NumericComputeConfiguration, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+
+pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]]
+
+pub fn[E] configured_duckdb_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/duckdb/driver.DuckDBDispatchModule?
+
+pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/local/driver.LocalDispatchModule?
+
+pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/reference_compute/driver.NumericComputeContribution?
+
 // Errors
 
 // Types and methods
+type ConfiguredComputeModules[E]
 
 // Type aliases
 

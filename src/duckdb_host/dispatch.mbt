@@ -70,51 +70,50 @@ pub fn configure_strategy_dispatch(
     return Err(InvalidConfiguration)
   }
   let driver = @host_driver.open_dispatch_driver(run)
-  let native_module = match
-    @duckdb_driver.prepare_duckdb_dispatch_module(
+  let modules = match
+    @builtin.configure_compute_modules(
       driver,
-      registry,
-      native_registration,
-      generated,
-      {
-        capacity: limits.capacity,
-        query: limits.native_query,
-        join_validation: limits.join_validation,
-        candidate_work: limits.candidate_work,
-        execution: limits.native,
-        transport: limits.transport,
-      },
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(duckdb_dispatch_issue(issue))
-  }
-  let local_module = match
-    @local_driver.prepare_local_dispatch_module(
-      driver,
-      registry,
-      local_registration,
-      generated,
-      limits.local_execution,
-      limits.guards,
-      limits.candidate_work,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidConfiguration)
-  }
-  let contributions = match
-    @builtin.assemble_compute_contributions(
       registry,
       2,
+      _issue => InvalidConfiguration,
       with_local=Some(
-        (local_module, local_dispatch_issue, local_estimate_issue),
+        (
+          local_registration,
+          {
+            sequences: generated,
+            execution: limits.local_execution,
+            measurement: limits.guards,
+            max_work: limits.candidate_work,
+          },
+          local_dispatch_issue,
+          local_estimate_issue,
+        ),
       ),
       with_duckdb=Some(
-        (native_module, duckdb_dispatch_issue, duckdb_estimate_issue),
+        (
+          native_registration,
+          {
+            sequences: generated,
+            limits: {
+              capacity: limits.capacity,
+              query: limits.native_query,
+              join_validation: limits.join_validation,
+              candidate_work: limits.candidate_work,
+              execution: limits.native,
+              transport: limits.transport,
+            },
+          },
+          duckdb_dispatch_issue,
+          duckdb_estimate_issue,
+        ),
       ),
     ) {
     Ok(value) => value
-    Err(_) => return Err(InvalidConfiguration)
+    Err(issue) => return Err(issue)
   }
+  let local_module = @builtin.configured_local_module(modules).unwrap()
+  let native_module = @builtin.configured_duckdb_module(modules).unwrap()
+  let contributions = @builtin.configured_compute_contributions(modules)
   let runtime = match
     @host_driver.open_compute_host(
       driver,

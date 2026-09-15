@@ -18,6 +18,8 @@ test('independent Compute declaration extends composition without a generator br
   const generated = generateComputeAssembly([...base, entry('reference_compute')]);
   assert.match(generated.source, /with_reference_compute\?/);
   assert.match(generated.source, /\.numeric_compute_contribution\(/);
+  assert.match(generated.source, /\.configure_numeric_compute\(/);
+  assert.match(generated.source, /configured_reference_compute_module/);
   assert.match(generated.manifest, /connectors\/reference_compute\/driver/);
   const code = readFileSync('scripts/connector-compute-bundles.mjs', 'utf8');
   assert.doesNotMatch(code, /duckdb|reference_compute|LocalDispatch|NumericCompute/);
@@ -31,6 +33,8 @@ test('declarations cannot inject code or move implementation ownership into core
     {package: 'actql/actql/connectors/duckdb/driver'},
     {module: 'LocalDispatchModule); abort()'},
     {contribution: 'prepare(); execute'},
+    {configure: 'prepare(); execute'},
+    {configuration: 'Any[Unsafe]'},
     {extra: true},
     {dispatch_error: {package: '../../elsewhere', type: 'Issue'}},
     {estimate_error: {package: good.manifest.package, type: 'Issue', extra: true}},

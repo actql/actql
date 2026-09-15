@@ -8,8 +8,9 @@ libraries. Connector factories provide implementations, not success authority.
 ## Typed Compute composition
 
 Each connector may own a `compute-bundle.json` under `src/connectors/<name>`.
-The declaration identifies its opaque configured module type, exact registration
-accessor, contribution factory and the two diagnostic error types. The factory
+The declaration identifies its configuration type and pure construction function,
+opaque configured module type, exact registration accessor, contribution factory
+and the two diagnostic error types. The contribution factory
 returns `physical_host.ComputeContribution`, pairing pure proposal and preparation
 entrypoints over the same installed module. It must not perform transport or
 construct unchecked completion evidence.
@@ -33,6 +34,16 @@ is checked before contribution construction. The SDK rejects foreign or duplicat
 registrations and a closed registry, snapshots the installation and orders it by
 the Host's registration order. Connector directory order does not become a new
 tie-breaking policy. There is no append or replacement operation.
+
+`configure_compute_modules` accepts typed connector configurations with their
+exact registrations and diagnostic projections. It validates the entire selected
+registration subset before invoking any connector constructor. Construction stays
+inside the owning connector; it may perform bounded static preparation, but not
+provider I/O or task start. The generated opaque result retains the configured
+modules and their fixed contributions. `configured_compute_contributions` feeds
+the common Host, while generated typed module accessors allow the corresponding
+connector to consume its own execution channel. The standard application uses
+this generated construction path; it does not call connector constructors itself.
 
 Pass the assembled installation to `physical_host.open_compute_host` with the
 exact Host registry, fixed-input capacity and bounded inspection limits.

@@ -25,6 +25,19 @@ pub fn numeric_contribution_registration(
 }
 
 ///|
+/// Consume only this configured module's exact typed dispatch channel.
+pub fn[C, E] start_numeric_contribution(
+  configured : NumericComputeContribution,
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[
+  (@numeric.NumericAttempt, @strategy.TaskExecution),
+  @strategy.RunIssue,
+] {
+  start_numeric_dispatch(configured.installed, host, task)
+}
+
+///|
 pub fn[E] numeric_compute_contribution(
   configured : NumericComputeContribution,
   dispatch_issue : (@strategy.RunIssue) -> E,

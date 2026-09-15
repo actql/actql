@@ -23,9 +23,10 @@ export function generateComputeAssembly(entries) {
   const typed = value => `@${alias(value.package)}.${value.type}`;
   for (const {name, manifest: m} of entries) {
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'registration', 'contribution', 'dispatch_error', 'estimate_error']) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch_error', 'estimate_error']) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
-        !typeName(m.module) || !identifier(m.registration) || !identifier(m.contribution)) {
+        !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
+        !identifier(m.registration) || !identifier(m.contribution)) {
       throw new Error('Invalid Compute bundle declaration');
     }
     names.add(name);
@@ -58,8 +59,46 @@ export function generateComputeAssembly(entries) {
       '  if max_entries < 0 { return Err(InvalidLimits) }\n  let mut count = 0\n' + count +
       '  if count > max_entries { return Err(EntryLimit) }\n' +
       '  let entries : Array[(@connector.CapabilityRegistration, @host.ComputeContribution[Unit, E])] = []\n' + collect +
-      '  @connector.install_capability_implementations(registry, entries, max_entries, registry_order=true)\n}\n',
+      '  @connector.install_capability_implementations(registry, entries, max_entries, registry_order=true)\n}\n' + configurationAssembly(entries, alias, typed),
   };
+}
+
+function configurationAssembly(entries, alias, typed) {
+  const fields = entries.map(({name, manifest: m}) =>
+    `  installed_${name} : @${alias(m.package)}.${m.module}?\n`).join('');
+  const parameters = entries.map(({name, manifest: m}) =>
+    `  with_${name}? : (@connector.CapabilityRegistration, @${alias(m.package)}.${m.configuration}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)? = None,\n`).join('');
+  const registrations = entries.map(({name}) =>
+    `  if with_${name} is Some((registration, _, _, _)) { registrations.push((registration, ())) }\n`).join('');
+  const prepare = entries.map(({name, manifest: m}) =>
+    `  let installed_${name} = match with_${name} {\n` +
+    `    None => None\n` +
+    `    Some((registration, configuration, dispatch_issue, estimate_issue)) => {\n` +
+    `      match @${alias(m.package)}.${m.configure}(driver, registry, registration, configuration) {\n` +
+    `        Ok(installed) => Some((installed, dispatch_issue, estimate_issue))\n` +
+    `        Err(issue) => return Err(dispatch_issue(issue))\n` +
+    `      }\n    }\n  }\n`).join('');
+  const passed = entries.map(({name}) => `    with_${name}=installed_${name},\n`).join('');
+  const stored = entries.map(({name}) => `    installed_${name}: installed_${name}.map(value => value.0),\n`).join('');
+  const getters = entries.map(({name, manifest: m}) =>
+    `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}\n}\n`).join('');
+  return '\n///|\nstruct ConfiguredComputeModules[E] {\n' + fields +
+    '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
+    '\n///|\n/// Validate the complete registration subset before invoking any connector factory.\n' +
+    '/// Configuration is synchronous and cannot authorize provider I/O or task start.\n' +
+    'pub fn[E] configure_compute_modules(\n' +
+    '  driver : @host.DispatchDriver,\n  registry : @connector.CapabilityRegistry,\n' +
+    '  max_entries : Int,\n  installation_issue : (@connector.CapabilityInstallationIssue) -> E,\n' +
+    parameters + ') -> Result[ConfiguredComputeModules[E], E] {\n' +
+    '  let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []\n' + registrations +
+    '  match @connector.install_capability_implementations(registry, registrations, max_entries) {\n' +
+    '    Err(issue) => return Err(installation_issue(issue))\n    Ok(_) => ()\n  }\n' +
+    prepare +
+    '  let contributions = match assemble_compute_contributions(registry, max_entries,\n' + passed +
+    '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
+    '  Ok({\n' + stored + '    contributions,\n  })\n}\n' +
+    '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
+    getters;
 }
 
 export function checkComputeAssembly(root, write = false) {

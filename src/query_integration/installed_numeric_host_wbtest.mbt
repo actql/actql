@@ -26,35 +26,44 @@ test "independent numeric and Local bundles use the same installed Host without 
         name: "independent-numeric",
         acquisition: None,
         fixed_compute: Some(fn(registry, registration) {
-          let implementation = @reference_driver.prepare_numeric_dispatch_module(
+          let configured = @builtin.configure_compute_modules(
             driver,
             registry,
-            registration,
-            generated,
-            {
-              max_work: 100,
-              max_entries: 100,
-              max_name_bytes: 10000,
-              values: {
-                max_nodes: 100,
-                max_text_bytes: 100,
-                max_depth: 10,
-                max_work: 100,
-              },
-              physical: measurement,
-              roots: measurement,
-            },
-            limits.native_query.expressions,
+            1,
+            _ => @strategy.RunIssue::ForeignCandidate,
+            with_reference_compute=Some(
+              (
+                registration,
+                {
+                  sequences: generated,
+                  limits: {
+                    max_work: 100,
+                    max_entries: 100,
+                    max_name_bytes: 10000,
+                    values: {
+                      max_nodes: 100,
+                      max_text_bytes: 100,
+                      max_depth: 10,
+                      max_work: 100,
+                    },
+                    physical: measurement,
+                    roots: measurement,
+                  },
+                  expressions: limits.native_query.expressions,
+                  milliseconds: Some(1L),
+                  max_work: 100,
+                },
+                issue => issue,
+                issue => issue,
+              ),
+            ),
           ).unwrap()
-          numeric_installation = Some(
-            @reference_driver.prepare_numeric_contribution(
-              implementation,
-              Some(1L),
-              100,
-            ).unwrap(),
-          )
+          let implementation = @builtin.configured_reference_compute_module(
+            configured,
+          ).unwrap()
+          numeric_installation = Some(implementation)
           fn(host, task) {
-            let (attempt, execution) = @reference_driver.start_numeric_dispatch(
+            let (attempt, execution) = @reference_driver.start_numeric_contribution(
               implementation, host, task,
             ).unwrap()
             if cancel {

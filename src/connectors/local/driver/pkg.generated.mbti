@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn configure_local_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
+
 pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
 
 pub fn estimate_local_installed_offers(LocalDispatchModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
@@ -36,6 +38,13 @@ pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.R
 // Errors
 
 // Types and methods
+pub(all) struct LocalComputeConfiguration {
+  sequences : Array[@execution_relation.GeneratedSequence]
+  execution : @execution_relation.SequenceExecutionLimits
+  measurement : @execution_relation.FixedInputGuardMeasureLimits
+  max_work : Int
+}
+
 pub(all) enum LocalDispatchIssue {
   Configuration(@connector_sdk.FixedComputeIssue)
   Preparation(@local.LocalModuleIssue)

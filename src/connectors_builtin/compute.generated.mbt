@@ -81,3 +81,139 @@ pub fn[E] assemble_compute_contributions(
     registry_order=true,
   )
 }
+
+///|
+struct ConfiguredComputeModules[E] {
+  installed_duckdb : @binding2.DuckDBDispatchModule?
+  installed_local : @binding3.LocalDispatchModule?
+  installed_reference_compute : @binding4.NumericComputeContribution?
+  contributions : @connector.CapabilityImplementations[
+    @host.ComputeContribution[Unit, E],
+  ]
+}
+
+///|
+/// Validate the complete registration subset before invoking any connector factory.
+/// Configuration is synchronous and cannot authorize provider I/O or task start.
+pub fn[E] configure_compute_modules(
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+  max_entries : Int,
+  installation_issue : (@connector.CapabilityInstallationIssue) -> E,
+  with_duckdb? : (
+    @connector.CapabilityRegistration,
+    @binding2.DuckDBComputeConfiguration,
+    (@binding2.DuckDBDispatchIssue) -> E,
+    (@binding2.DuckDBEstimateIssue) -> E,
+  )? = None,
+  with_local? : (
+    @connector.CapabilityRegistration,
+    @binding3.LocalComputeConfiguration,
+    (@binding3.LocalDispatchIssue) -> E,
+    (@binding3.LocalEstimateIssue) -> E,
+  )? = None,
+  with_reference_compute? : (
+    @connector.CapabilityRegistration,
+    @binding4.NumericComputeConfiguration,
+    (@binding5.RunIssue) -> E,
+    (@binding5.RunIssue) -> E,
+  )? = None,
+) -> Result[ConfiguredComputeModules[E], E] {
+  let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
+  if with_duckdb is Some((registration, _, _, _)) {
+    registrations.push((registration, ()))
+  }
+  if with_local is Some((registration, _, _, _)) {
+    registrations.push((registration, ()))
+  }
+  if with_reference_compute is Some((registration, _, _, _)) {
+    registrations.push((registration, ()))
+  }
+  match
+    @connector.install_capability_implementations(
+      registry, registrations, max_entries,
+    ) {
+    Err(issue) => return Err(installation_issue(issue))
+    Ok(_) => ()
+  }
+  let installed_duckdb = match with_duckdb {
+    None => None
+    Some((registration, configuration, dispatch_issue, estimate_issue)) =>
+      match
+        @binding2.configure_duckdb_compute(
+          driver, registry, registration, configuration,
+        ) {
+        Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
+        Err(issue) => return Err(dispatch_issue(issue))
+      }
+  }
+  let installed_local = match with_local {
+    None => None
+    Some((registration, configuration, dispatch_issue, estimate_issue)) =>
+      match
+        @binding3.configure_local_compute(
+          driver, registry, registration, configuration,
+        ) {
+        Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
+        Err(issue) => return Err(dispatch_issue(issue))
+      }
+  }
+  let installed_reference_compute = match with_reference_compute {
+    None => None
+    Some((registration, configuration, dispatch_issue, estimate_issue)) =>
+      match
+        @binding4.configure_numeric_compute(
+          driver, registry, registration, configuration,
+        ) {
+        Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
+        Err(issue) => return Err(dispatch_issue(issue))
+      }
+  }
+  let contributions = match
+    assemble_compute_contributions(
+      registry,
+      max_entries,
+      with_duckdb=installed_duckdb,
+      with_local=installed_local,
+      with_reference_compute=installed_reference_compute,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(installation_issue(issue))
+  }
+  Ok({
+    installed_duckdb: installed_duckdb.map(value => value.0),
+    installed_local: installed_local.map(value => value.0),
+    installed_reference_compute: installed_reference_compute.map(value => {
+      value.0
+    }),
+    contributions,
+  })
+}
+
+///|
+pub fn[E] configured_compute_contributions(
+  value : ConfiguredComputeModules[E],
+) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {
+  value.contributions
+}
+
+///|
+pub fn[E] configured_duckdb_module(
+  value : ConfiguredComputeModules[E],
+) -> @binding2.DuckDBDispatchModule? {
+  value.installed_duckdb
+}
+
+///|
+pub fn[E] configured_local_module(
+  value : ConfiguredComputeModules[E],
+) -> @binding3.LocalDispatchModule? {
+  value.installed_local
+}
+
+///|
+pub fn[E] configured_reference_compute_module(
+  value : ConfiguredComputeModules[E],
+) -> @binding4.NumericComputeContribution? {
+  value.installed_reference_compute
+}

@@ -35,6 +35,8 @@ pub fn compute_failure(@compute.DuckDBComputeIssue) -> @physical_strategy.RunIss
 
 pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits) -> ComputeHostConfiguration
 
+pub fn configure_duckdb_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, DuckDBComputeConfiguration) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
+
 pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
 
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
@@ -115,6 +117,11 @@ pub suberror DuckDBFailure {
 type CapturedDuckDBTask
 
 type ComputeHostConfiguration
+
+pub(all) struct DuckDBComputeConfiguration {
+  sequences : Array[@execution_relation.GeneratedSequence]
+  limits : DuckDBDispatchLimits
+}
 
 pub(all) enum DuckDBDispatchIssue {
   InvalidConfiguration
