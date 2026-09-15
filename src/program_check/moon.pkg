@@ -3,12 +3,14 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/sha256" @sha,
   "actql/actql/parameter_references" @parameter_refs,
+  "actql/actql/text_rank_profile" @lexical,
 } for "test"
 
 formatter(
   ignore: [
     "numeric_profile.generated_wbtest.mbt",
     "text_profile.generated_wbtest.mbt",
+    "text_profile.generated_test.mbt",
   ],
 )
 

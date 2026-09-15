@@ -47,6 +47,7 @@ test "lexical selection and admitted artifact are separate input requests" {
     fail("artifact request")
   }
   assert_eq(@environment.text_rank_selection_cid(retained), pin)
+  assert_eq(pin, text_profile_fixture_cid())
   guard @program_check.diagnostic_cause(
       @program_check.input_requests_diagnostic(artifacts),
     )
@@ -64,6 +65,66 @@ test "lexical selection and admitted artifact are separate input requests" {
       max_depth: 10,
     })
     is Err(_),
+  )
+  let profile = @environment.admit_text_rank_profile(
+    retained,
+    @utf8.encode(text_profile_fixture()),
+    text_profile_blobs(),
+    {
+      max_profile_bytes: 10000,
+      max_dependency_bytes: 1000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+  ).unwrap()
+  assert_true(
+    physical_equal(@environment.selected_text_rank_selection(profile), retained),
+  )
+  let completed_environment = @program_check.checking_environment(
+    @environment.text_rank_selection_environment(retained),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: true, },
+    text_rank=Some(profile),
+  )
+  let checked = public_checked(
+    @program_check.check_parsed(program, completed_environment, None, limits),
+  )
+  assert_eq(@program_check.unit_count(checked), 2)
+  assert_true(
+    @program_check.unit_definition_cid(checked, 0) !=
+    @program_check.unit_definition_cid(checked, 1),
+  )
+  let (_, _, independent, _, _) = public_input_fixture(
+    lexical_profile=true,
+    lexical_selection=Some(
+      (
+        body, "sha256:94600a40d32100a52a629ed772d99c3ae1ff2bd5d166d4e9ad18219502c888b2",
+      ),
+    ),
+  )
+  guard @program_check.check_parsed(program, independent, None, limits)
+    is NeedsInputs(other_requests) else {
+    fail("independent artifact request")
+  }
+  guard @program_check.input_request_at(other_requests, 0).unwrap().kind
+    is TextRankProfileArtifact(other_selection) else {
+    fail("independent selection")
+  }
+  let foreign = @program_check.checking_environment(
+    @environment.text_rank_selection_environment(other_selection),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: true, },
+    text_rank=Some(profile),
+  )
+  guard @program_check.check_parsed(program, foreign, None, limits)
+    is Rejected(foreign_diagnostic) else {
+    fail("foreign profile accepted")
+  }
+  assert_true(
+    @program_check.diagnostic_cause(foreign_diagnostic)
+    is @program_check.LocalConstructionFailure::Closure(
+      Operations(Lexical(ForeignEnvironment))
+    ),
   )
   assert_true(physical_equal(artifact.program, program))
   assert_true(physical_equal(artifact.environment, selected))
