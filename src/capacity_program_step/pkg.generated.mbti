@@ -52,6 +52,8 @@ pub fn binding_usage(CountBindings) -> (Int, Int)
 
 pub fn bound_derivation_input_at(BoundDerivation, Int, Int) -> BoundOperand?
 
+pub fn bound_derivation_reuse_ceiling(BoundDerivation) -> Int64?
+
 pub fn check(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim) -> Result[StepBound, Issue]
 
 pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max_work~ : Int, producers? : Array[Applications]) -> Result[Applications, ApplicationIssue]
@@ -76,7 +78,7 @@ pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_wi
 
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
-pub fn check_prepared_bound(BoundDerivation, @capacity_witness.ProgramProofClaim, Array[BoundInput], Int) -> (Result[StepBound, Issue], Int)
+pub fn check_prepared_bound(BoundDerivation, @capacity_witness.ProgramProofClaim, Array[BoundInput], Int, max_input_work? : Int, max_operand_work? : Int) -> (Result[StepBound, Issue], (Int, Int))
 
 pub fn check_target_rows(@pipeline_typing.CheckedPipeline, @pipeline_typing.Target, StepBound, Int) -> Result[TargetRows, TargetRowsIssue]
 

@@ -94,19 +94,34 @@ pub fn bound_derivation_input_at(
 }
 
 ///|
+/// For these unary rules an input bound at or below this ceiling is already
+/// sufficient through the existing non-expanding transfer. This arithmetic
+/// reader does not establish input applicability or discharge runtime checks.
+pub fn bound_derivation_reuse_ceiling(derivation : BoundDerivation) -> Int64? {
+  match derivation.rule {
+    Clamp(maximum) => Some(maximum)
+    Preserve | Multiply(1L) => Some(9007199254740991L)
+    _ => None
+  }
+}
+
+///|
 /// Check a supplied claim for this retained request and report application
-/// work even on rejection. Integrity admission remains a separate boundary.
+/// input/operand work separately even on rejection. Integrity admission remains
+/// a separate boundary; neither independent allowance replaces aggregate work.
 pub fn check_prepared_bound(
   derivation : BoundDerivation,
   proof : @wire.ProgramProofClaim,
   inputs : Array[BoundInput],
   max_work : Int,
-) -> (Result[StepBound, Issue], Int) {
+  max_input_work? : Int = 2147483647,
+  max_operand_work? : Int = 2147483647,
+) -> (Result[StepBound, Issue], (Int, Int)) {
   if max_work < 0 {
-    return (Err(InvalidInputWorkLimit), 0)
+    return (Err(InvalidInputWorkLimit), (0, 0))
   }
   if @wire.unit(@wire.program_proof_witness(proof)) != derivation.unit {
-    return (Err(LawMismatch), 0)
+    return (Err(LawMismatch), (0, 0))
   }
   let usage = [0, 0]
   let result = check_application(
@@ -115,14 +130,14 @@ pub fn check_prepared_bound(
     proof,
     inputs.length(),
     i => inputs[i],
-    max_work,
-    max_work,
+    max_input_work.min(max_work),
+    max_operand_work.min(max_work),
     derivation.bindings,
     false,
     usage=Some(usage),
     aggregate_work=Some(max_work),
   )
-  (result, usage[0] + usage[1])
+  (result, (usage[0], usage[1]))
 }
 
 ///|

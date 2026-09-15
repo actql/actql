@@ -1,18 +1,19 @@
 ///|
-pub enum AppendCapacityIssue {
+pub enum RowCapacityIssue {
   BudgetExceeded
   InvalidGraph
+  Bindings(Int, @step_bounds.Issue)
   Construction(Int, Int, @step_bounds.DeriveBoundIssue)
   Extension(Int, @wire.ProgramExtensionIssue)
 }
 
 ///|
-priv suberror AppendCapacityStop {
-  AppendCapacityStop(AppendCapacityIssue)
+priv suberror RowCapacityStop {
+  RowCapacityStop(RowCapacityIssue)
 }
 
 ///|
-priv enum AppendBoundState {
+priv enum RowBoundState {
   Unvisited
   Visiting
   Missing
@@ -20,12 +21,13 @@ priv enum AppendBoundState {
 }
 
 ///|
-priv struct AppendCapacityStage {
+priv struct RowCapacityStage {
   pipeline : @pipeline.CheckedPipeline
+  bindings : @step_bounds.CountBindings?
   material : CapacityMaterial
   roots : Array[@pipeline.Target]
-  steps : Array[AppendBoundState]
-  inputs : Array[AppendBoundState]
+  steps : Array[RowBoundState]
+  inputs : Array[RowBoundState]
   known : Map[String, Bool]
   supplied : Map[String, Array[@wire.ProgramProofClaim]]
   added : Array[@wire.ProgramProofClaim]
@@ -33,16 +35,17 @@ priv struct AppendCapacityStage {
 }
 
 ///|
-priv enum AppendCapacityFrame {
+priv enum RowCapacityFrame {
   Visit(Int, @pipeline.Target)
   Forward(Int, @pipeline.Target, Int, @pipeline.Target)
-  Finish(Int, @step_bounds.BoundDerivation, @pipeline.Target, @pipeline.Target)
+  Finish(Int, @step_bounds.BoundDerivation, Array[@pipeline.Target], Bool)
 }
 
 ///|
-priv struct AppendCapacityResult {
+priv struct RowCapacityResult {
   materials : Array[CapacityMaterial]
   work : Int
+  text : Int
   bytes : Int
   nodes : Int
   input_work : Int
@@ -51,9 +54,9 @@ priv struct AppendCapacityResult {
 
 ///|
 // Demand follows actual Result targets through the existing non-expanding
-// transfer rules. Only append creates a new rule here; unavailable premises
+// transfer rules and existing row-bound operand plans. Unavailable premises
 // do not become Host claims. Cache entries retain exact producer handles.
-fn derive_append_capacity(
+fn derive_row_capacity(
   prepared : @stage_results.PreparedLocalSource,
   materials : Array[CapacityMaterial],
   seeds : Array[Array[@step_bounds.StepBound?]],
@@ -61,27 +64,28 @@ fn derive_append_capacity(
   metadata : @wire.Limits,
   max_input_work : Int,
   max_operand_work : Int,
-) -> Result[AppendCapacityResult, AppendCapacityIssue] {
+  count_bindings : CapacityCountBindings,
+  max_text_bytes : Int,
+) -> Result[RowCapacityResult, RowCapacityIssue] {
   let mut remaining = max_work
   let mut bytes = 0
   let mut nodes = 0
   let mut input_work = 0
   let mut operand_work = 0
-  fn spend(n : Int) -> Unit raise AppendCapacityStop {
+  let mut text = 0
+  fn spend(n : Int) -> Unit raise RowCapacityStop {
     if n < 0 || n > remaining {
-      raise AppendCapacityStop(BudgetExceeded)
+      raise RowCapacityStop(BudgetExceeded)
     }
     remaining -= n
   }
-  let stages : Array[AppendCapacityStage] = []
+  let stages : Array[RowCapacityStage] = []
   let owners : Map[Int, Array[Int]] = Map([])
-  fn owner(
-    pipeline : @pipeline.CheckedPipeline,
-  ) -> Int raise AppendCapacityStop {
+  fn owner(pipeline : @pipeline.CheckedPipeline) -> Int raise RowCapacityStop {
     spend(1)
     let key = @decode.cursor_span(@pipeline.source(pipeline)).start_byte
     guard owners.get(key) is Some(bucket) else {
-      raise AppendCapacityStop(InvalidGraph)
+      raise RowCapacityStop(InvalidGraph)
     }
     for stage in bucket {
       spend(1)
@@ -89,9 +93,9 @@ fn derive_append_capacity(
         return stage
       }
     }
-    raise AppendCapacityStop(InvalidGraph)
+    raise RowCapacityStop(InvalidGraph)
   }
-  fn state(stage : Int, target : @pipeline.Target) -> AppendBoundState {
+  fn state(stage : Int, target : @pipeline.Target) -> RowBoundState {
     match target {
       @pipeline.Step(i) => stages[stage].steps[i]
       @pipeline.Input(i) => stages[stage].inputs[i]
@@ -100,7 +104,7 @@ fn derive_append_capacity(
   fn retain(
     stage : Int,
     target : @pipeline.Target,
-    value : AppendBoundState,
+    value : RowBoundState,
   ) -> Unit {
     match target {
       @pipeline.Step(i) => stages[stage].steps[i] = value
@@ -110,7 +114,7 @@ fn derive_append_capacity(
   fn add_closure(
     stage : Int,
     bound : @step_bounds.StepBound,
-  ) -> Unit raise AppendCapacityStop {
+  ) -> Unit raise RowCapacityStop {
     let stack = [bound]
     while !stack.is_empty() {
       spend(1)
@@ -126,7 +130,7 @@ fn derive_append_capacity(
       spend(n)
       for i in 0..<n {
         guard @step_bounds.input_at(bound, i) is Some(input) else {
-          raise AppendCapacityStop(InvalidGraph)
+          raise RowCapacityStop(InvalidGraph)
         }
         stack.push(input)
       }
@@ -145,6 +149,18 @@ fn derive_append_capacity(
       let pipeline = @pipeline.contextual_orders_pipeline(
         @pipeline.contextual_closure_at(orders, 0).unwrap(),
       )
+      let (bindings, used, used_text) = match
+        capacity_count_binding(
+          count_bindings,
+          pipeline,
+          remaining,
+          max_text_bytes - text,
+        ) {
+        Ok(value) => value
+        Err(issue) => raise RowCapacityStop(Bindings(stage, issue))
+      }
+      spend(used)
+      text += used_text
       let steps = @pipeline.step_count(pipeline)
       let inputs = @pipeline.input_count(pipeline)
       spend(steps)
@@ -172,8 +188,7 @@ fn derive_append_capacity(
           let witness = @wire.program_proof_witness(proof)
           let law = @law.name(@wire.law(witness))
           spend(law.length())
-          if law == "actql.bound.append" &&
-            @wire.source(witness) is @wire.Program(subject, _) {
+          if @wire.source(witness) is @wire.Program(subject, _) {
             spend(subject.length())
             match supplied.get(subject) {
               Some(entries) => entries.push(proof)
@@ -184,6 +199,7 @@ fn derive_append_capacity(
       }
       stages.push({
         pipeline,
+        bindings,
         material: materials[stage],
         roots,
         steps: Array::makei(steps, i => {
@@ -213,7 +229,7 @@ fn derive_append_capacity(
             Visit(stage, target) => {
               match state(stage, target) {
                 Found(_) | Missing => continue
-                Visiting => raise AppendCapacityStop(InvalidGraph)
+                Visiting => raise RowCapacityStop(InvalidGraph)
                 Unvisited => ()
               }
               retain(stage, target, Visiting)
@@ -230,20 +246,46 @@ fn derive_append_capacity(
                     None => retain(stage, target, Missing)
                   }
                 @pipeline.Step(index) => {
-                  let step = @pipeline.step_at(pipeline, index).unwrap()
-                  if step.operation is @pipeline.Append(..) {
-                    let derivation = @step_bounds.prepare_bound_derivation(
-                      pipeline, index,
-                    ).unwrap()
-                    let left = @step_bounds.bound_derivation_input_at(
-                        derivation, 2, 0,
-                      ).unwrap().target
-                    let right = @step_bounds.bound_derivation_input_at(
-                        derivation, 2, 1,
-                      ).unwrap().target
-                    stack.push(Finish(stage, derivation, left, right))
-                    stack.push(Visit(stage, right))
-                    stack.push(Visit(stage, left))
+                  let derivation = match
+                    @step_bounds.prepare_bound_derivation(
+                      pipeline,
+                      index,
+                      bindings=stages[stage].bindings,
+                    ) {
+                    Ok(value) => Some(value)
+                    Err(
+                      @step_bounds.UnsupportedOperation
+                      | @step_bounds.UnresolvedCount
+                      | @step_bounds.LawMismatch
+                    ) => None
+                    Err(issue) =>
+                      raise RowCapacityStop(
+                        Construction(stage, index, Application(issue)),
+                      )
+                  }
+                  if derivation is Some(derivation) {
+                    spend(derivation.input_count)
+                    let targets = []
+                    let mut rows_only = true
+                    for i in 0..<derivation.input_count {
+                      let operand = @step_bounds.bound_derivation_input_at(
+                        derivation,
+                        derivation.input_count,
+                        i,
+                      ).unwrap()
+                      if operand.unit != @derivation.Rows {
+                        rows_only = false
+                      }
+                      targets.push(operand.target)
+                    }
+                    if rows_only {
+                      stack.push(Finish(stage, derivation, targets, false))
+                      for i = targets.length() - 1; i >= 0; i = i - 1 {
+                        stack.push(Visit(stage, targets[i]))
+                      }
+                    } else {
+                      retain(stage, target, Missing)
+                    }
                   } else {
                     match
                       @step_bounds.forwarded_bound_target(
@@ -263,16 +305,37 @@ fn derive_append_capacity(
             }
             Forward(stage, target, source, input) =>
               retain(stage, target, state(source, input))
-            Finish(stage, derivation, left, right) => {
-              guard state(stage, left) is Found(l) &&
-                state(stage, right) is Found(r) else {
-                retain(stage, @pipeline.Step(derivation.index), Missing)
+            Finish(stage, derivation, targets, fallback) => {
+              spend(targets.length())
+              let inputs = []
+              for target in targets {
+                if state(stage, target) is Found(bound) {
+                  inputs.push(@step_bounds.StepInput(bound))
+                }
+              }
+              if inputs.length() != targets.length() {
+                if !fallback && derivation.fallback_input_count is Some(n) {
+                  spend(n)
+                  let targets = Array::makei(n, i => {
+                    @step_bounds.bound_derivation_input_at(derivation, n, i).unwrap().target
+                  })
+                  stack.push(Finish(stage, derivation, targets, true))
+                } else {
+                  retain(stage, @pipeline.Step(derivation.index), Missing)
+                }
                 continue
               }
-              let inputs = [
-                @step_bounds.StepInput(l),
-                @step_bounds.StepInput(r),
-              ]
+              if inputs.length() == 1 &&
+                @step_bounds.bound_derivation_reuse_ceiling(derivation)
+                is Some(ceiling) &&
+                inputs[0] is @step_bounds.StepInput(bound) &&
+                @wire.value(
+                  @wire.program_proof_witness(@step_bounds.checked_proof(bound)),
+                ) <=
+                ceiling {
+                retain(stage, @pipeline.Step(derivation.index), Found(bound))
+                continue
+              }
               let subject = @step_bounds.subject_ref(
                 derivation.pipeline,
                 derivation.index,
@@ -286,10 +349,13 @@ fn derive_append_capacity(
                     derivation,
                     proof,
                     inputs,
-                    remaining.min(max_input_work - input_work),
+                    remaining,
+                    max_input_work=max_input_work - input_work,
+                    max_operand_work=max_operand_work - operand_work,
                   )
-                  spend(used)
-                  input_work += used
+                  spend(used.0 + used.1)
+                  input_work += used.0
+                  operand_work += used.1
                   match checked {
                     Ok(bound) => {
                       reused = Some(bound)
@@ -298,7 +364,7 @@ fn derive_append_capacity(
                     Err(
                       @step_bounds.InputWorkLimit
                       | @step_bounds.OperandWorkLimit
-                    ) => raise AppendCapacityStop(BudgetExceeded)
+                    ) => raise RowCapacityStop(BudgetExceeded)
                     Err(_) => ()
                   }
                 }
@@ -325,7 +391,7 @@ fn derive_append_capacity(
                 ) {
                 Ok(value) => value
                 Err(issue) =>
-                  raise AppendCapacityStop(
+                  raise RowCapacityStop(
                     Construction(stage, derivation.index, issue),
                   )
               }
@@ -371,7 +437,10 @@ fn derive_append_capacity(
         let operands = match @wire.derivation(witness) {
           @wire.SourceValue => 0
           @wire.Add(_, _) => 2
-          _ => raise AppendCapacityStop(InvalidGraph)
+          @wire.Preserve(_) | @wire.Multiply(_, _) | @wire.EnforcedCeiling(_) =>
+            1
+          @wire.Clamp(input, _) => if input is Some(_) { 1 } else { 0 }
+          @wire.Minimum(inputs) => inputs.length()
         }
         let extra = @wire.dependencies(witness).length() +
           operands +
@@ -388,19 +457,20 @@ fn derive_append_capacity(
           max_references: references,
         }) {
         Ok(value) => value
-        Err(issue) => raise AppendCapacityStop(Extension(stage, issue))
+        Err(issue) => raise RowCapacityStop(Extension(stage, issue))
       }
       output.push({ ..entry.material, sources, })
     }
     Ok({
       materials: output,
       work: max_work - remaining,
+      text,
       bytes,
       nodes,
       input_work,
       operand_work,
     })
   } catch {
-    AppendCapacityStop(issue) => Err(issue)
+    RowCapacityStop(issue) => Err(issue)
   }
 }

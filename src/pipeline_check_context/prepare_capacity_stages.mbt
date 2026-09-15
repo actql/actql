@@ -20,7 +20,7 @@ pub enum CapacityStageIssue {
   InvalidLimits
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
-  Append(AppendCapacityIssue)
+  RowCapacity(RowCapacityIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -76,21 +76,11 @@ fn prepare_local_stage_contexts_owned(
     (input_owners is Some(v) && v.length() != count) {
     return Err(StageCount)
   }
-  let operations = @stage_results.local_source_operations(prepared)
-  let base = @stages.bindings_usage(operations)
-  let result_usage = @stage_results.usage(
-    @stage_results.local_source_results(prepared),
-  )
-  let result_work = result_usage.work -
-    @stages.operations_usage(@stages.bound_operations(operations)).work
-  if base.work > limits.max_work ||
-    result_work > limits.max_work - base.work ||
-    base.direct_text_bytes > limits.max_text_bytes ||
-    result_usage.text_bytes > limits.max_text_bytes - base.direct_text_bytes {
-    return Err(BudgetExceeded)
+  let (base_work, base_text) = match
+    capacity_preparation_base(prepared, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  let base_work = base.work + result_work
-  let base_text = base.direct_text_bytes + result_usage.text_bytes
   if count > limits.max_work - base_work {
     return Err(BudgetExceeded)
   }
@@ -326,4 +316,29 @@ fn prepare_local_stage_contexts_owned(
     Ok(v) => Ok({ ..v, work: v.work + extra_work, text: v.text + extra_text, })
     Err(e) => Err(Stages(e))
   }
+}
+
+///|
+// One definition of the already prepared prefix. Generation and expansion
+// reserve it before doing new work; final integration includes it exactly once.
+fn capacity_preparation_base(
+  prepared : @stage_results.PreparedLocalSource,
+  limits : CapacityStageLimits,
+) -> Result[(Int, Int), CapacityStageIssue] {
+  let operations = @stage_results.local_source_operations(prepared)
+  let base = @stages.bindings_usage(operations)
+  let result_usage = @stage_results.usage(
+    @stage_results.local_source_results(prepared),
+  )
+  let result_work = result_usage.work -
+    @stages.operations_usage(@stages.bound_operations(operations)).work
+  if base.work > limits.max_work ||
+    result_work > limits.max_work - base.work ||
+    base.direct_text_bytes > limits.max_text_bytes ||
+    result_usage.text_bytes > limits.max_text_bytes - base.direct_text_bytes {
+    return Err(BudgetExceeded)
+  }
+  Ok(
+    (base.work + result_work, base.direct_text_bytes + result_usage.text_bytes),
+  )
 }

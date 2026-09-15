@@ -227,7 +227,14 @@ test "external consumer reads formal Program decisions without private construct
     assert_eq(@program_check.unit_publication_count(program, stage), Some(1))
     let publication = @program_check.unit_publication_at(program, stage, 0).unwrap()
     let selected = @program_check.publication_selection(publication)
-    assert_eq(@context.publication_row_limit_maximum(selected), 1000L)
+    assert_eq(
+      @context.publication_row_limit_maximum(selected),
+      if stage == 0 {
+        1000L
+      } else {
+        1L
+      },
+    )
     let result = @context.publication_row_limit_result(selected)
     assert_eq(result.stage, stage)
     assert_true(

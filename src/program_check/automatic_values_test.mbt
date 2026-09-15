@@ -117,7 +117,13 @@ test "standard values count preserves empty and repeated authored rows" {
       @context.program_identity_capacity_metadata_usage(
         @program_check.source_identity(program),
       ),
-      (606, 22),
+      // Independently encoded values pair606/22; a stricter dependent take
+      // adds842 bytes and26 nodes. The empty input needs no clamp artifact.
+      if expected <= 1L {
+        (606, 22)
+      } else {
+        (1448, 48)
+      },
     )
   }
 }

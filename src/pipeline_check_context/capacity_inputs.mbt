@@ -305,16 +305,32 @@ pub fn prepare_local_stage_contexts_from_inputs(
     limits.max_operand_work < 0 {
     return Err(InvalidLimits)
   }
+  let count_bindings = capacity_count_bindings(
+    @stage_results.local_source_values(prepared),
+  )
+  if !physical_equal(
+      @stages.program(@stage_results.local_source_source(prepared)),
+      inputs.program,
+    ) {
+    return Err(Inputs(ForeignProgram))
+  }
+  let (base_work, base_text) = match
+    capacity_preparation_base(prepared, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let generated = match derived_capacity_limits {
     Some(metadata) =>
       match
-        derive_program_values_capacity(
+        derive_program_capacity(
           prepared,
           inputs,
-          limits.max_work,
+          limits.max_work - base_work,
           metadata,
           limits.max_input_work,
           limits.max_operand_work,
+          count_bindings,
+          limits.max_text_bytes - base_text,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)
@@ -331,8 +347,16 @@ pub fn prepare_local_stage_contexts_from_inputs(
     Some(value) => (value.input_work, value.operand_work)
     None => (0, 0)
   }
+  let generated_text = match generated {
+    Some(value) => value.text
+    None => 0
+  }
   let (materials, work) = match
-    expand_capacity_inputs(prepared, inputs, limits.max_work - generated_work) {
+    expand_capacity_inputs(
+      prepared,
+      inputs,
+      limits.max_work - base_work - generated_work,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Inputs(issue))
   }
@@ -344,15 +368,17 @@ pub fn prepare_local_stage_contexts_from_inputs(
       {
         ..limits,
         max_work: limits.max_work - work - generated_work,
+        max_text_bytes: limits.max_text_bytes - generated_text,
         max_input_work: limits.max_input_work - generated_input_work,
         max_operand_work: limits.max_operand_work - generated_operand_work,
       },
-      capacity_count_bindings(@stage_results.local_source_values(prepared)),
+      count_bindings,
     ) {
     Ok(value) =>
       Ok({
         ..value,
         work: value.work + work + generated_work,
+        text: value.text + generated_text,
         generated_bytes,
         generated_nodes,
         values_claims,

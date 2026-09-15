@@ -376,11 +376,20 @@ fn operation_rule(
     (@relation.Unnest, _) => return Err(UnresolvedCount)
     _ => ()
   }
-  let (law, value) = match @relation.row_operation(operation) {
-    Some(@relation.Take(count~, ..)) => ("actql.bound.take", count)
-    Some(@relation.TopK(count~, ..)) => ("actql.bound.top-k", count)
-    Some(@relation.TopKBy(partition~, count~, ..)) if partition.is_empty() =>
-      ("actql.bound.top-k", count)
+  // Inspect the operation discriminator before a row view. Ranking readers
+  // retain count/partition size without copying potentially large key arrays.
+  let (law, value) = match @relation.operation(operation) {
+    @relation.Take => {
+      guard @relation.row_operation(operation)
+        is Some(@relation.Take(count~, ..)) else {
+        return Err(UnsupportedOperation)
+      }
+      ("actql.bound.take", count)
+    }
+    @relation.TopK =>
+      ("actql.bound.top-k", @relation.top_k_count(operation).unwrap())
+    @relation.TopKBy if @relation.top_k_partition_count(operation) == 0 =>
+      ("actql.bound.top-k", @relation.top_k_count(operation).unwrap())
     _ => return Err(UnsupportedOperation)
   }
   let n = match resolve_count(value, bindings) {

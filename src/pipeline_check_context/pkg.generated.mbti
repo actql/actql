@@ -1176,13 +1176,6 @@ pub struct AnalyticNumericSlot {
   profile : @numeric_reduction.Profile
 }
 
-pub enum AppendCapacityIssue {
-  BudgetExceeded
-  InvalidGraph
-  Construction(Int, Int, @capacity_program_step.DeriveBoundIssue)
-  Extension(Int, @capacity_witness.ProgramExtensionIssue)
-}
-
 pub struct AppendRowsCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1298,7 +1291,7 @@ pub enum CapacityStageIssue {
   InvalidLimits
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
-  Append(AppendCapacityIssue)
+  RowCapacity(RowCapacityIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -3083,6 +3076,14 @@ pub struct RowAssertionCheck {
   step : @pipeline_typing.CheckedStep
   input : @pipeline_typing.Target
   operation : @relation_typing.CheckedOperation
+}
+
+pub enum RowCapacityIssue {
+  BudgetExceeded
+  InvalidGraph
+  Bindings(Int, @capacity_program_step.Issue)
+  Construction(Int, Int, @capacity_program_step.DeriveBoundIssue)
+  Extension(Int, @capacity_witness.ProgramExtensionIssue)
 }
 
 type SelectedPolicyContext

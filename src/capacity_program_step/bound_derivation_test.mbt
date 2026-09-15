@@ -21,13 +21,13 @@ test "supplied retained derivations meter rejected input traversal without rebui
   let (exact, work) = @capacity_program_step.check_prepared_bound(
     request, claim, inputs, 4,
   )
-  assert_eq(work, 4)
+  assert_eq(work, (4, 0))
   assert_eq(bound_id(exact.unwrap()), bound_id(emitted.bound))
   let (short, work) = @capacity_program_step.check_prepared_bound(
     request, claim, inputs, 3,
   )
   assert_true(short is Err(InputWorkLimit))
-  assert_eq(work, 3)
+  assert_eq(work, (3, 0))
   let foreign = @capacity_program_step.derive_bound(
       pipeline("[{\"take\":7}]"),
       0,
@@ -44,7 +44,7 @@ test "supplied retained derivations meter rejected input traversal without rebui
   // The foreign target is never reached: after both import edges and take,
   // the root input has no producer. That unsuccessful lookup is charged too.
   assert_true(rejected is Err(MissingInputProducer(0)))
-  assert_eq(work, 4)
+  assert_eq(work, (4, 0))
 }
 
 ///|
@@ -57,6 +57,10 @@ test "retained bound derivations expose exact operand shapes without weakening a
   assert_eq(take.index, 1)
   assert_eq(take.input_count, 1)
   assert_eq(take.fallback_input_count, Some(0))
+  assert_eq(
+    @capacity_program_step.bound_derivation_reuse_ceiling(take),
+    Some(3L),
+  )
   let operand = @capacity_program_step.bound_derivation_input_at(take, 1, 0).unwrap()
   assert_eq(operand.target, @pipeline.Step(0))
   assert_eq(operand.edge, 0)
@@ -84,6 +88,7 @@ test "retained bound derivations expose exact operand shapes without weakening a
   let append = @capacity_program_step.prepare_bound_derivation(p, 2).unwrap()
   assert_eq(append.input_count, 2)
   assert_eq(append.fallback_input_count, None)
+  assert_eq(@capacity_program_step.bound_derivation_reuse_ceiling(append), None)
   for i in 0..<2 {
     let operand = @capacity_program_step.bound_derivation_input_at(append, 2, i).unwrap()
     assert_eq(operand.target, @pipeline.Step(1))

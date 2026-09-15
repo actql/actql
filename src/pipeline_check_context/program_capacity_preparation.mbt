@@ -3,6 +3,7 @@ priv struct DerivedProgramCapacity {
   inputs : ProgramCapacityInputs
   claims : Map[Int, Array[(@pipeline.CheckedPipeline, Array[Int?])]]
   work : Int
+  text : Int
   bytes : Int
   nodes : Int
   input_work : Int
@@ -10,13 +11,15 @@ priv struct DerivedProgramCapacity {
 }
 
 ///|
-fn derive_program_values_capacity(
+fn derive_program_capacity(
   prepared : @stage_results.PreparedLocalSource,
   inputs : ProgramCapacityInputs,
   max_work : Int,
   metadata : @wire.Limits,
   max_input_work : Int,
   max_operand_work : Int,
+  count_bindings : CapacityCountBindings,
+  max_text_bytes : Int,
 ) -> Result[DerivedProgramCapacity, CapacityStageIssue] {
   if max_work < 0 ||
     metadata.max_bytes < 0 ||
@@ -74,8 +77,8 @@ fn derive_program_values_capacity(
       None => claims[key] = [(pipeline, value.slots)]
     }
   }
-  let appended = match
-    derive_append_capacity(
+  let derived = match
+    derive_row_capacity(
       prepared,
       materials,
       seeds,
@@ -87,18 +90,21 @@ fn derive_program_values_capacity(
       },
       max_input_work,
       max_operand_work,
+      count_bindings,
+      max_text_bytes,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Append(issue))
+    Err(issue) => return Err(RowCapacity(issue))
   }
   Ok({
-    inputs: { ..inputs, materials: appended.materials, },
+    inputs: { ..inputs, materials: derived.materials, },
     claims,
-    work: work + appended.work,
-    bytes: bytes + appended.bytes,
-    nodes: nodes + appended.nodes,
-    input_work: appended.input_work,
-    operand_work: appended.operand_work,
+    work: work + derived.work,
+    text: derived.text,
+    bytes: bytes + derived.bytes,
+    nodes: nodes + derived.nodes,
+    input_work: derived.input_work,
+    operand_work: derived.operand_work,
   })
 }
 

@@ -294,15 +294,24 @@ their input occurrences without repeating definition-level artifact generation.
 Count evidence does not admit cells, imply uniqueness or discharge runtime
 enforcement obligations.
 
-For Result row-bound demands, append preparation follows actual producer edges
-and existing non-expanding transfers back to available values counts. It
-constructs the existing additive law only when both premises are available.
+Result row-bound demand follows actual producer edges and existing
+non-expanding transfers. Construction reads the existing operation-bound plan,
+including its exact row-operand arity and explicitly permitted fallback arity.
+Only available premises or a rule's admitted premise-free case can produce a
+bound. Graph entity measures are not substituted for missing row premises.
+An already sufficient unary input bound is transferred without constructing a
+redundant refinement; a stricter take or an expanding operation creates its own
+bound. Count Parameter interpretation is shared with subsequent application
+checking, and its incremental work/text is charged once.
+
 Target memoization is scoped to exact Stage pipelines; repeated Result demands
-share construction without deleting operand occurrences. An applicable supplied
-append claim is reused without emitting its metadata again. Closed claim bodies
+share construction without deleting operand occurrences. Applicable supplied
+claims are reused without emitting their metadata again. Closed claim bodies
 may share a CID across producers, but their checked applications and eventual
 Unit-bound references remain distinct. Missing premises are not fabricated as
-Host evidence, and unused append outputs do not trigger proof enumeration.
+Host evidence, and unused outputs do not trigger proof enumeration. The prepared
+source prefix is reserved before generation and occurrence expansion; it is
+included once in the integrated usage, not made available again as scratch work.
 
 The standard path owns visit expansion, evidence applicability and preparation
 order for every supported formal-check route. A parallel legacy Program
