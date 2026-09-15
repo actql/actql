@@ -18,7 +18,7 @@ test('Node installation touches only the configured module subset', async () => 
     },
   });
   const options = new Proxy({}, {get() { throw new Error('Absent module read settings'); }});
-  const entries = installStrategyContributions(moon, setup, value => value, {local: options});
+  const entries = await installStrategyContributions(moon, setup, value => value, {local: options});
   assert.equal(entries.length, 1);
   assert.equal(entries[0].registration, registration);
   await entries[0].run(task);
@@ -27,7 +27,7 @@ test('Node installation touches only the configured module subset', async () => 
   assert.ok(Object.isFrozen(entries));
 });
 
-test('empty installation invokes no factory and malformed subsets fail before any factory', () => {
+test('empty installation invokes no factory and malformed subsets fail before any factory', async () => {
   for (const keys of [[], ['local', 'local'], ['local', 'not-installed'], undefined]) {
     let configured = 0;
     const moon = {
@@ -35,9 +35,9 @@ test('empty installation invokes no factory and malformed subsets fail before an
       strategyModule_local_Registration: () => { configured++; return {}; },
     };
     if (Array.isArray(keys) && keys.length === 0) {
-      assert.deepEqual(installStrategyContributions(moon, {}, x => x), []);
+      assert.deepEqual(await installStrategyContributions(moon, {}, x => x), []);
     } else {
-      assert.throws(() => installStrategyContributions(moon, {}, x => x), /unique Node implementation/);
+      await assert.rejects(installStrategyContributions(moon, {}, x => x), /unique Node implementation/);
     }
     assert.equal(configured, 0);
   }

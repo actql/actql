@@ -1,32 +1,50 @@
 # ActQL — Action Query Language
 
-**One program. Across systems. Read, transform, infer, write.**
+**A typed, declarative language for transforming data and taking action across systems.**
 
-Read from Salesforce. Join it with your warehouse. Run an LLM. Write the
-results back. One ActQL program declares the whole job.
+ActQL extends SQL's core idea—describe what you want, let the engine decide
+how to run it—from querying data to computation and action across systems.
 
-The program defines the work. The runtime figures out how and where to
-execute it.
+Read from Salesforce, join it with your warehouse, run an LLM, and write the
+result back—all in one program. ActQL makes the program's types, requirements,
+and external effects explicit before execution, while the runtime decides
+where each operation should run.
 
-That is the deal SQL made inside one database: say what you mean, and the
-engine decides how to run it. ActQL extends that deal to work that spans
-databases and APIs, to graphs, vectors, and event streams, and to the changes
-the program makes.
+ActQL works across databases and APIs, with explicit models for relations,
+graphs, vectors, and event streams. Program meaning is independent of
+execution placement. It gives both humans and agents a constrained,
+inspectable way to express work, while the Host retains authority over which
+external operations may proceed.
 
-Because the program states its meaning, three things follow.
+### Core Principles
 
-**It can be checked before it runs.** The compiler checks the program against
-its contracts before execution. The runtime checks each concrete operation as
-its inputs become available.
+* **Declarative semantics for action:** Describe the work, not the execution
+  procedure. ActQL extends declarative algebra from querying and transforming
+  data to computation and external state changes.
 
-**It can run where the data lives.** Each Connector declares what it can
-compute, so a filter or an aggregation can move to the source, and the rest
-runs in the runtime. Nothing in the program changes.
+* **Statically inspectable effects:** Data, computation, and external actions
+  have explicit semantics. The program's possible reads, computations, and
+  external effects are mechanically inspectable before execution.
 
-**Authorization is programmable.** A program cannot grant itself anything.
-The Host decides whether each external operation may proceed. When a decision
-cannot be made on the spot, a durable Checkpoint holds the Run. If it is
-authorized, execution continues from that same point.
+* **Placement-independent execution:** The same program can be planned across
+  connectors, local runtimes, browsers, or cloud execution without changing
+  its meaning.
+
+### What This Enables
+
+Because ActQL programs have analyzable semantics, they naturally enable:
+
+* **Contract-checked execution:** The compiler checks the program against its
+  contracts before execution. The runtime validates remaining requirements
+  as concrete inputs become available.
+
+* **Capability-driven pushdown:** Each Connector declares what it can compute.
+  The runtime can move filters, aggregations, and other supported operations
+  to the source while preserving the program's meaning.
+
+* **Programmable authorization:** A program cannot grant itself permissions.
+  The Host controls whether external operations may proceed, using durable
+  Checkpoints to pause and resume pending work safely.
 
 ## Quickstart
 

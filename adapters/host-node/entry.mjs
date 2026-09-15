@@ -26,6 +26,6 @@ export async function runCapturedStrategy(setup, options = {}, signal) {
       moon.strategyHostUsage(value).map((count, index) => [usageKeys[index], count]),
     )),
   });
-  const installed = installStrategyContributions(moon, setup, checked, options);
+  const installed = await installStrategyContributions(moon, setup, checked, options);
   return runInstalledStrategy(setup, core, installed, signal);
 }
