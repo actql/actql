@@ -35,7 +35,11 @@ pub fn claim_index(ArithmeticClaims, String) -> Int?
 
 pub fn claim_reference_count(ArithmeticClaims) -> Int
 
+pub fn collect_program_dependencies(Array[ProgramClaims], ClosureLimits, max_work~ : Int) -> Result[ProgramDependencies, ProgramDependencyIssue]
+
 pub fn dependencies(WireWitness) -> Array[String]
+
+pub fn dependency_count(WireWitness) -> Int
 
 pub fn derivation(WireWitness) -> Derivation
 
@@ -75,6 +79,14 @@ pub fn program_claim_proof_at(ProgramClaims, Int) -> ProgramProofClaim?
 
 pub fn program_claim_reference_count(ProgramClaims) -> Int
 
+pub fn program_dependency_claims(ProgramDependencies) -> ProgramClaims
+
+pub fn program_dependency_source_at(ProgramDependencies, Int) -> ProgramClaims?
+
+pub fn program_dependency_source_count(ProgramDependencies) -> Int
+
+pub fn program_dependency_work(ProgramDependencies) -> Int
+
 pub fn program_proof_form(ProgramProofClaim) -> ProgramProofForm
 
 pub fn program_proof_input_at(ProgramProofClaim, Int) -> String?
@@ -90,6 +102,8 @@ pub fn source(WireWitness) -> Source
 pub fn unit(WireWitness) -> @capacity_derivation.BoundUnit
 
 pub fn value(WireWitness) -> Int64
+
+pub fn witness_operand_count(WireWitness) -> Int
 
 // Errors
 
@@ -182,6 +196,18 @@ pub(all) enum ProgramClosureIssue {
   MissingProgramInput(Int, String)
   ProgramOperandMismatch(Int)
   CyclicProgramInputs
+} derive(Eq, @debug.Debug)
+
+type ProgramDependencies
+
+pub(all) enum ProgramDependencyIssue {
+  InvalidLimits
+  BudgetExceeded
+  Arithmetic(ClosureIssue)
+  Program(ProgramClosureIssue)
+  ConflictingIdentity(String)
+  InvalidMinimum(String)
+  Extension(ProgramExtensionIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ProgramExtensionIssue {

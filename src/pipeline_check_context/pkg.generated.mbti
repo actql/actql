@@ -4,6 +4,7 @@ package "actql/actql/pipeline_check_context"
 import {
   "actql/actql/binding_declarations",
   "actql/actql/calendar_typing",
+  "actql/actql/capacity_graph_input",
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_host_witness",
   "actql/actql/capacity_policy",
@@ -3084,6 +3085,8 @@ pub enum RowCapacityIssue {
   Bindings(Int, @capacity_program_step.Issue)
   Construction(Int, Int, @capacity_program_step.DeriveBoundIssue)
   Extension(Int, @capacity_witness.ProgramExtensionIssue)
+  GraphInputs(Int, @capacity_graph_input.Issue)
+  Dependencies(Int, @capacity_witness.ProgramDependencyIssue)
 }
 
 type SelectedPolicyContext

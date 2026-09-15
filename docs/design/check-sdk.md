@@ -284,6 +284,35 @@ reserved per complete artifact. Input traversal, operand preparation and bounded
 CID ordering have separate usage scopes; caller-owned input arrays are not
 retained. Construction establishes no completed observation or execution permit.
 
+Arithmetic dependency collection is distinct from application ownership.
+`capacity_witness.collect_program_dependencies` forms a closed union of admitted
+bodies while retaining the exact source collections, including repeated source
+occurrences. Equal CIDs may share a wire body, not an application or its owner.
+Limit candidates are rebound to the union's arithmetic coordinates without
+changing their wire identity or reissuing admission. Collection visits, retained
+references and graph checks consume bounded work. This union does not establish
+that a Graph input limit applies to a consumer's input: source application,
+selected policy and limit-consumption checks remain scoped to their actual
+producer. A consumer must not interpret an imported limit's local input name as
+one of its own inputs.
+
+Host evidence retains a direct immutable source-admission origin across ordinary
+proof extensions. Comparing that origin does not require following preparation
+history or comparing CIDs. Independently admitting the same closed claim body
+creates a different origin. Origin equality does not replace current claim-table
+correspondence, pipeline applicability, or selected-policy validation; it only
+identifies the original supplied evidence retained by an extended table.
+
+Extended source dependencies distinguish the original local enforcement prefix
+and limit ledger from imported dependency bodies. Preparing Graph inputs requires
+the retained producer Graph checks for every imported source origin, including
+transitive origins. The enclosing application closure registers those exact
+checks alongside the producer operation collections. Imported limits cannot be
+consumed again by local sequence, join, components or traversal applications.
+Equal local step ordinals do not require rebuilding a producer proof in the
+consumer: its checked foreign premises remain attached to the retained producer
+application, and actual input-edge checks still select the applicable owner.
+
 `BoundDerivation` retains the operation rule, bindings and admissible operand
 arities. Its constant-time operand reader identifies the exact input target,
 measurement and edge role before inputs are assembled. A retained derivation

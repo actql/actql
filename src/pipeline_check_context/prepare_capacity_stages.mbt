@@ -140,6 +140,7 @@ fn prepare_local_stage_contexts_owned(
       )
       let claim_count = @wire.claim_count(claims)
       let producers : Array[@step_bounds.Applications] = []
+      let producer_graphs : Array[@capacity.GraphInputs] = []
       let dependency_end = if claim_count == 0 { visit + 1 } else { end }
       if dependency_end - visit - 1 >
         limits.max_work - base_work - extra_work - coverage_work {
@@ -147,6 +148,15 @@ fn prepare_local_stage_contexts_owned(
       }
       extra_work += dependency_end - visit - 1
       for producer in (visit + 1)..<dependency_end {
+        if extra_work == limits.max_work - base_work - coverage_work {
+          return Err(BudgetExceeded)
+        }
+        extra_work += 1
+        producer_graphs.push(
+          @capacity.source_coverage_graph(
+            @capacity.application_coverage_sources(entries[producer].unwrap()),
+          ),
+        )
         producers.push(
           @capacity.source_coverage_program(
             @capacity.application_coverage_sources(entries[producer].unwrap()),
@@ -254,6 +264,7 @@ fn prepare_local_stage_contexts_owned(
           bindings~,
           guards~,
           producers~,
+          producer_graphs~,
         ) {
         Ok(v) => v
         Err(e) => return Err(Capacity(stage, visit, e))

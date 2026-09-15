@@ -144,6 +144,14 @@ pub fn check_consumer_coverage(
     if count > 1 {
       return Err(DuplicateConsumer(i))
     }
+    if i >= @host.source_local_limit_count(checked_sources(graph)) {
+      if count != 0 {
+        return Err(DuplicateConsumer(i))
+      }
+      // This limit belongs to an exact producer graph registered by the
+      // enclosing application closure, not to this local consumer ledger.
+      continue
+    }
     if count == 0 {
       return Err(UnconsumedLimit(i))
     }

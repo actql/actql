@@ -50,6 +50,7 @@ pub fn prepare_application_coverage(
   bindings? : @program.CountBindings? = None,
   guards? : @pipeline.BoundAuthorGuards? = None,
   producers? : Array[@program.Applications] = [],
+  producer_graphs? : Array[GraphInputs] = [],
 ) -> Result[ApplicationCoverage, PreparationIssue] {
   if limits.max_work < 0 ||
     limits.max_name_bytes < 0 ||
@@ -78,10 +79,13 @@ pub fn prepare_application_coverage(
   }
   let mut remaining = limits.max_work - requests.length() * 2
   let graph = match
-    check(pipeline, sources, policy, {
-      max_work: remaining,
-      max_name_bytes: limits.max_name_bytes,
-    }) {
+    @input.check(
+      pipeline,
+      sources,
+      policy,
+      { max_work: remaining, max_name_bytes: limits.max_name_bytes, },
+      producers=producer_graphs,
+    ) {
     Ok(v) => v
     Err(e) => return Err(Graph(e))
   }

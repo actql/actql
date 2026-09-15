@@ -464,6 +464,16 @@ pub fn dependencies(w : WireWitness) -> Array[String] {
 }
 
 ///|
+pub fn dependency_count(w : WireWitness) -> Int {
+  w.dependencies.length()
+}
+
+///|
+pub fn witness_operand_count(w : WireWitness) -> Int {
+  operand_count(w.derivation)
+}
+
+///|
 pub fn derivation(w : WireWitness) -> Derivation {
   match w.derivation {
     Minimum(ids) => Minimum(ids.copy())

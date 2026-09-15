@@ -23,6 +23,7 @@ pub(all) enum ApplicationClosureIssue {
   MissingInputOwner(Int, Int, Int)
   ForeignInputOwner(Int, Int, Int)
   ForeignProducerCollection(Int, Int)
+  ForeignGraphDependency(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -98,6 +99,23 @@ pub fn check_application_closure(
     let expected = @pipeline.contextual_orders_pipeline(
       @pipeline.contextual_closure_at(orders, i).unwrap(),
     )
+    for dependency in 0..<@input.dependency_count(app.sources.graph) {
+      let graph = @input.dependency_at(app.sources.graph, dependency).unwrap()
+      let mut found = false
+      for candidate in applications {
+        if work == max_work {
+          return Err(ProofWorkLimit)
+        }
+        work += 1
+        if physical_equal(graph, candidate.sources.graph) {
+          found = true
+          break
+        }
+      }
+      if !found {
+        return Err(ForeignGraphDependency(i, dependency))
+      }
+    }
     if !physical_equal(expected, checked_pipeline(app.sources.graph)) {
       return Err(ForeignPipeline(i))
     }

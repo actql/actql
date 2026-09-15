@@ -22,5 +22,9 @@ pub fn extend_program_sources(
     count: original.count,
     bytes: original.bytes,
     nodes: original.nodes,
+    origin: original.origin,
+    dependencies: original.dependencies,
+    local_claims: original.local_claims,
+    local_limits: original.local_limits,
   })
 }

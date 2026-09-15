@@ -46,6 +46,7 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
       capacity_count_bindings(@stage_results.local_source_values(prepared)),
       1000000,
       None,
+      sequence_limit_policy(false),
     ).unwrap()
     let claims = @host.source_claims(result.inputs.materials[0].sources)
     let mut node_count = 0
@@ -106,6 +107,7 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
         capacity_count_bindings(@stage_results.local_source_values(prepared)),
         1000000,
         None,
+        sequence_limit_policy(false),
       )
       assert_eq(checked is Ok(_), allowance == result.work)
     }

@@ -24,6 +24,17 @@ struct HostSources {
   count : Int
   bytes : Int
   nodes : Int
+  origin : SourceOrigin
+  dependencies : Array[HostSources]
+  local_claims : Int
+  local_limits : Int
+}
+
+///|
+// Identity of the original admitted evidence set, independent of ordinary proof
+// extension. Pipeline applicability and selected-policy checks remain separate.
+priv struct SourceOrigin {
+  claims : @wire.ProgramClaims
 }
 
 ///|
@@ -93,7 +104,55 @@ pub fn bind_claim_sources(
     count += 1
     sources.push(Some(witness))
   }
-  Ok({ claims, sources, count, bytes, nodes, })
+  Ok({
+    claims,
+    sources,
+    count,
+    bytes,
+    nodes,
+    origin: { claims, },
+    dependencies: [],
+    local_claims: n,
+    local_limits: match @wire.program_claim_mixed(claims) {
+      Some(mixed) => @wire.mixed_limit_count(mixed)
+      None => 0
+    },
+  })
+}
+
+///|
+pub fn source_dependency_count(v : HostSources) -> Int {
+  v.dependencies.length()
+}
+
+///|
+pub fn source_dependency_at(v : HostSources, index : Int) -> HostSources? {
+  v.dependencies.get(index)
+}
+
+///|
+/// Whether an enforced witness lies in the original local source prefix.
+/// Ordinary generated proofs have separate operation application ownership.
+pub fn source_enforcement_is_local(v : HostSources, index : Int) -> Bool {
+  index >= 0 && index < v.local_claims
+}
+
+///|
+pub fn source_local_limit_count(v : HostSources) -> Int {
+  v.local_limits
+}
+
+///|
+/// Exact source admission shared by ordinary proof extensions. This is not
+/// equality of the current claim tables, pipeline ownership, or policy choice.
+pub fn same_source_origin(left : HostSources, right : HostSources) -> Bool {
+  physical_equal(left.origin, right.origin)
+}
+
+///|
+/// Original closed evidence collection; generated ordinary proofs do not alter it.
+pub fn source_origin_claims(v : HostSources) -> @wire.ProgramClaims {
+  v.origin.claims
 }
 
 ///|

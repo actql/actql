@@ -25,6 +25,7 @@ pub(all) enum Issue {
   UnsupportedCandidate(Int, Int)
   CandidateScopeMismatch(Int, Int)
   UnconsumedLimits(Int)
+  ForeignDependency(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -37,6 +38,7 @@ struct GraphInputs {
   work : Int
   names : Int
   remaining : Int
+  dependencies : Array[GraphInputs]
 }
 
 ///|
@@ -47,6 +49,7 @@ pub fn check(
   sources : @host.HostSources,
   policy : @policy.Policy,
   limits : Limits,
+  producers? : Array[GraphInputs] = [],
 ) -> Result[GraphInputs, Issue] {
   if limits.max_work < 0 || limits.max_name_bytes < 0 {
     return Err(InvalidLimits)
@@ -63,6 +66,28 @@ pub fn check(
   let mut work = n * 2 + count
   let mut names = 0
   let mut consumed = 0
+  let dependencies : Array[GraphInputs] = []
+  for i in 0..<@host.source_dependency_count(sources) {
+    if limits.max_work - work < 2 {
+      return Err(BudgetExceeded)
+    }
+    work += 2
+    let origin = @host.source_dependency_at(sources, i).unwrap()
+    let mut matched = None
+    for producer in producers {
+      if work == limits.max_work {
+        return Err(BudgetExceeded)
+      }
+      work += 1
+      if @host.same_source_origin(origin, producer.sources) &&
+        @policy.cid(policy) == @policy.cid(producer.policy) {
+        matched = Some(producer)
+        break
+      }
+    }
+    guard matched is Some(producer) else { return Err(ForeignDependency(i)) }
+    dependencies.push(producer)
+  }
   let inputs : Map[String, Int] = Map([])
   let bindings : Array[(@wire.LimitClaim?, @wire.LimitClaim?)] = Array::make(
     n,
@@ -84,6 +109,9 @@ pub fn check(
   }
   for i in 0..<count {
     guard @wire.mixed_enforced_limit(mixed, i) is Some(limit) else { continue }
+    if !@host.source_enforcement_is_local(sources, i) {
+      continue
+    }
     let witness = @wire.claim_at(claims, i).unwrap()
     let measure = match @law.name(@wire.law(witness)) {
       "actql.bound.graph-input-nodes" => Nodes
@@ -164,8 +192,19 @@ pub fn check(
     witnesses,
     work,
     names,
-    remaining: @wire.mixed_limit_count(mixed) - consumed,
+    remaining: @host.source_local_limit_count(sources) - consumed,
+    dependencies,
   })
+}
+
+///|
+pub fn dependency_count(v : GraphInputs) -> Int {
+  v.dependencies.length()
+}
+
+///|
+pub fn dependency_at(v : GraphInputs, index : Int) -> GraphInputs? {
+  v.dependencies.get(index)
 }
 
 ///|

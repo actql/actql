@@ -215,6 +215,33 @@ pub fn prepare_derived_applications(
             return Err(WorkLimit)
           }
           work += n
+          let mut missing = None
+          for input in 0..<n {
+            let cid = @wire.program_proof_input_at(proof, input).unwrap()
+            if !(@wire.claim_index(arithmetic, cid) is Some(child) &&
+              @wire.program_claim_proof_at(claims, child) is Some(_)) &&
+              !external.contains(cid) {
+              missing = Some(input)
+              break
+            }
+          }
+          if missing is Some(input) {
+            let cid = @wire.cid(@wire.program_proof_witness(proof))
+            guard inherited.get(cid) is Some([StepInput(bound), ..]) else {
+              return Err(MissingDependency(index, input))
+            }
+            // Local source ordinals can coincide across pipelines. This exact
+            // producer application already owns its foreign Graph premises;
+            // do not reconstruct those premises in the consumer's input scope.
+            applications[index] = Some(bound)
+            states[index] = 2
+            ready.push(bound)
+            continue
+          }
+          if n > limits.max_work - work {
+            return Err(WorkLimit)
+          }
+          work += n
           states[index] = 1
           stack.push(Finish(index))
           // Reverse scheduling preserves authored input order, including repeats.

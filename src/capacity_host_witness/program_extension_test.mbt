@@ -26,6 +26,27 @@ test "adding a Program count preserves admitted Host handles and policy owners" 
     { max_witnesses: 100, max_references: 1000, },
   ).unwrap()
   supplied.clear()
+  assert_true(@capacity_host_witness.same_source_origin(original, extended))
+  assert_true(
+    physical_equal(
+      @capacity_host_witness.source_origin_claims(extended),
+      @capacity_host_witness.source_claims(original),
+    ),
+  )
+  // Re-admitting even the exact same closed body is a new source admission.
+  // Body identity must not bridge independently supplied evidence owners.
+  let readmitted = @capacity_host_witness.bind_claim_sources(
+    @capacity_host_witness.source_claims(original),
+    [p],
+    binding_caps(),
+  ).unwrap()
+  assert_true(!@capacity_host_witness.same_source_origin(original, readmitted))
+  let next = @capacity_host_witness.extend_program_sources(extended, [], {
+    max_witnesses: 100,
+    max_references: 1000,
+  }).unwrap()
+  assert_true(@capacity_host_witness.same_source_origin(original, next))
+  assert_true(!@capacity_host_witness.same_source_origin(next, readmitted))
   let old_claims = @capacity_host_witness.source_claims(original)
   let new_claims = @capacity_host_witness.source_claims(extended)
   let count = @wire.claim_count(@wire.program_claim_arithmetic(old_claims))

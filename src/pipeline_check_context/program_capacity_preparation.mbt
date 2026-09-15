@@ -21,6 +21,7 @@ fn derive_program_capacity(
   count_bindings : CapacityCountBindings,
   max_text_bytes : Int,
   sourceviews : @sourceviews.PipelineInputs?,
+  selected_policy : @policy.Policy,
 ) -> Result[DerivedProgramCapacity, CapacityStageIssue] {
   if max_work < 0 ||
     metadata.max_bytes < 0 ||
@@ -94,6 +95,7 @@ fn derive_program_capacity(
       count_bindings,
       max_text_bytes,
       sourceviews,
+      selected_policy,
     ) {
     Ok(value) => value
     Err(issue) => return Err(RowCapacity(issue))

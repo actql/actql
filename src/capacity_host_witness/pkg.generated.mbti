@@ -26,13 +26,27 @@ pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailu
 
 pub fn extend_program_sources(HostSources, Array[@capacity_witness.ProgramProofClaim], @capacity_witness.ClosureLimits) -> Result[HostSources, @capacity_witness.ProgramExtensionIssue]
 
+pub fn extend_source_dependencies(HostSources, Array[HostSources], Array[@capacity_witness.ProgramProofClaim], @capacity_witness.ClosureLimits, max_work~ : Int) -> Result[(HostSources, Int), @capacity_witness.ProgramDependencyIssue]
+
 pub fn law_id(Witness) -> String
+
+pub fn same_source_origin(HostSources, HostSources) -> Bool
 
 pub fn source_at(HostSources, Int) -> Witness?
 
 pub fn source_claims(HostSources) -> @capacity_witness.ProgramClaims
 
 pub fn source_count(HostSources) -> Int
+
+pub fn source_dependency_at(HostSources, Int) -> HostSources?
+
+pub fn source_dependency_count(HostSources) -> Int
+
+pub fn source_enforcement_is_local(HostSources, Int) -> Bool
+
+pub fn source_local_limit_count(HostSources) -> Int
+
+pub fn source_origin_claims(HostSources) -> @capacity_witness.ProgramClaims
 
 pub fn source_usage(HostSources) -> (Int, Int)
 

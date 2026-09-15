@@ -351,6 +351,7 @@ pub fn prepare_local_stage_contexts_from_inputs(
           count_bindings,
           limits.max_text_bytes - base_text,
           sourceviews,
+          selected_policy,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)
