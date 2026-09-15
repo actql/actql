@@ -4,6 +4,9 @@ This is the construction contract for the main-side boundary described in
 [Pure operation checking](pure-operation-checking.md#main-and-lowering-ownership).
 It specifies the orchestration boundary, not a new wire artifact.
 Language and the pinned machine contracts remain authoritative.
+The [Check SDK boundary](check-sdk.md) specifies the embedding-facing inputs,
+outcomes, ownership and accounting responsibilities independently of internal
+preparation phases.
 Existing `pipeline_check_context` results are implementation components of this
 boundary; adding another component is not itself end-to-end completion.
 
