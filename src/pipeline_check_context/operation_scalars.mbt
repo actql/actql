@@ -148,7 +148,7 @@ pub fn check_program_operation_scalars(
   }
   let b = { remaining: max_work - orders.work - 1, }
   let requirements = orders.requirements
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   let entries : Array[OperationScalarResolution] = []
   try {
     for i in 0..<requirements.entries.length() {

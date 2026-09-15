@@ -79,7 +79,7 @@ pub fn collect_window_membership_bounds(
     @carrier.EventValue(_) => "actql.bound.window-events"
     _ => return Err(ForeignEvidence)
   }
-  let stages = owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.requirements.stages
   let closure = stages.contexts[site.stage].context.capacity
   let candidates : Array[WindowMembershipCandidate] = []
   let mut maximum = None

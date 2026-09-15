@@ -159,7 +159,7 @@ pub fn link_program_operation_orders(
     return Err(BudgetExceeded)
   }
   work += 1
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   let links : Array[OperationOrderLink] = []
   let mut previous = (-1, -1, -1)
   let mut indexed = empty_operation_orders()

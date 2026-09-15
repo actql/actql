@@ -15,7 +15,7 @@ fn assertion_consumption_links(
   (Array[AssertionConsumptionLink], Int),
   OperationResolutionIndexIssue,
 ] {
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   let mut work = 0
   let charge = fn() -> Bool {
     if work >= max_work {

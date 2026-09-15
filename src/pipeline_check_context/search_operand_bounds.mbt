@@ -32,7 +32,7 @@ fn collect_search_operand_bounds(
     work += 1
     true
   }
-  let stages = owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.requirements.stages
   let closure = stages.contexts[site.stage].context.capacity
   let candidates : Array[Array[@capacity.TargetMembership]] = [[], []]
   let selected : Array[@step_bounds.TargetRows?] = [None, None]

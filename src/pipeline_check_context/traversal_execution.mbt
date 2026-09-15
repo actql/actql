@@ -90,7 +90,7 @@ fn traversal_limits_candidate(
     )) else {
     return Ok(None)
   }
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   guard stages.contexts.get(site.stage) is Some(stage) &&
     stage.visits.get(site.producer_visit) is Some(visit) &&
     physical_equal(@parameter_slots.pipeline(visit.collected), site.pipeline) &&

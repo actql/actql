@@ -83,7 +83,7 @@ pub fn check_program_operation_ranges(
   }
   let b = { remaining: max_work - fills.work - 1, }
   let requirements = fills.frames.scalars.orders.requirements
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   let entries : Array[OperationRangeResolution] = []
   try {
     for i in 0..<requirements.entries.length() {

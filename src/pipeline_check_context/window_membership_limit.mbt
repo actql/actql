@@ -27,7 +27,7 @@ pub fn link_program_window_membership_limits(
   let states = index.states.copy()
   let mut links = 0
   let mut candidates = 0
-  let stages = index.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = index.requirements.stages
   for i in 0..<count {
     let site = index.requirements.entries[i]
     guard site.requirement

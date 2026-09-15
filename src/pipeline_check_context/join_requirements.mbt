@@ -84,7 +84,7 @@ pub fn link_program_join_requirements(
   if index.work > max_work || count > (max_work - index.work) / 2 {
     return Err(BudgetExceeded)
   }
-  let stages = index.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = index.requirements.stages
   let states = index.states.copy()
   let mut unresolved = index.unresolved
   let mut links = 0

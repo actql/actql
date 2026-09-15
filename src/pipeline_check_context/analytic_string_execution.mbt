@@ -42,7 +42,7 @@ pub fn link_program_analytic_string_limits(
     if edge.role != @pipeline.Primary || edge.target != input {
       return Err(InvalidRequirement)
     }
-    let stages = index.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+    let stages = index.requirements.stages
     let policy = @capacity.application_closure_policy(
       stages.contexts[site.stage].context.capacity,
     )

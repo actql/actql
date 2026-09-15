@@ -182,7 +182,7 @@ pub fn prepare_nest_value_envelope(
     return Err(InvalidLimits)
   }
   let site = items.site
-  let stages = items.owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = items.owner.requirements.stages
   let policy = @capacity.application_closure_policy(
     stages.contexts[site.stage].context.capacity,
   )

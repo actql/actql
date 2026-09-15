@@ -113,7 +113,7 @@ pub fn select_nest_item_limit(
     right.target != child {
     return Err(ForeignEvidence)
   }
-  let stages = owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.requirements.stages
   let closure = stages.contexts[site.stage].context.capacity
   let policy = @capacity.application_closure_policy(closure)
   guard @policy.ceiling(policy, "max_aggregate_array_items") is Some(host) else {

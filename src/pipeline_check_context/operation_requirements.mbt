@@ -20,6 +20,9 @@ pub struct OperationRequirementSite {
 ///|
 struct ProgramOperationRequirements {
   expressions : ProgramExpressionClosure
+  // The collector establishes this exact shared owner once. Consumers need
+  // stage capacity and bindings, not the expression preparation history.
+  stages : StageContexts
   entries : Array[OperationRequirementSite]
   work : Int
 }
@@ -94,7 +97,7 @@ pub fn collect_program_operation_requirements(
       }
     }
   }
-  Ok({ expressions, entries, work, })
+  Ok({ expressions, stages, entries, work, })
 }
 
 ///|

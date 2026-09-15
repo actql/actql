@@ -71,7 +71,7 @@ pub fn check_program_operation_fills(
   }
   let budget = { remaining: max_work - frames.work - 1, }
   let requirements = frames.scalars.orders.requirements
-  let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = requirements.stages
   let entries : Array[OperationFillResolution] = []
   try {
     for i in 0..<requirements.entries.length() {

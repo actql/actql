@@ -152,7 +152,7 @@ fn select_string_limit(
     @relation.aggregate_function(call) is @relation.StringAgg else {
     return Err(InvalidRequirement)
   }
-  let stages = owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.requirements.stages
   let closure = stages.contexts[site.stage].context.capacity
   let policy = @capacity.application_closure_policy(closure)
   let host = @policy.ceiling(policy, "max_aggregate_string_bytes")

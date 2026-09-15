@@ -254,7 +254,7 @@ pub fn index_program_operation_resolutions(
     let candidate = match dedupe_execution_check(requirements.entries[i]) {
       Ok(None) => {
         let site = requirements.entries[i]
-        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let stages = requirements.stages
         let stage = stages.contexts[site.stage]
         if !physical_equal(
             @parameter_slots.pipeline(
@@ -301,7 +301,7 @@ pub fn index_program_operation_resolutions(
     let candidate = match candidate {
       Ok(None) => {
         let site = requirements.entries[i]
-        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let stages = requirements.stages
         let policy = @capacity.application_closure_policy(
           stages.contexts[site.stage].context.capacity,
         )
@@ -312,7 +312,7 @@ pub fn index_program_operation_resolutions(
     let candidate = match candidate {
       Ok(None) => {
         let site = requirements.entries[i]
-        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let stages = requirements.stages
         let policy = @capacity.application_closure_policy(
           stages.contexts[site.stage].context.capacity,
         )
@@ -332,7 +332,7 @@ pub fn index_program_operation_resolutions(
     let candidate = match candidate {
       Ok(None) => {
         let site = requirements.entries[i]
-        let stages = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+        let stages = requirements.stages
         let policy = @capacity.application_closure_policy(
           stages.contexts[site.stage].context.capacity,
         )

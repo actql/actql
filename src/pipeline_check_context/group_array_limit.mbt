@@ -151,7 +151,7 @@ fn select_array_limit(
     @relation.aggregate_function(call) is @relation.ArrayAgg else {
     return Err(InvalidRequirement)
   }
-  let stages = owner.requirements.expressions.identity.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = owner.requirements.stages
   let closure = stages.contexts[site.stage].context.capacity
   let policy = @capacity.application_closure_policy(closure)
   guard @policy.ceiling(policy, "max_aggregate_array_items") is Some(host) else {
