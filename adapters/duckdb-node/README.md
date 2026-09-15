@@ -445,7 +445,11 @@ try {
 }
 ```
 
-This source-checkout entry imports a fixed release build of `duckdb_host_node`.
+This source-checkout entry imports a fixed release build of
+`connectors/duckdb/host_node`. That connector-owned bridge contains acquisition,
+fixed Compute and resident transport operations; it does not import Local
+Compute or standard multi-connector composition. The separate strategy entry
+loads its composition bridge and delegates concrete I/O to this connector.
 It takes no factory, verifier, SQL, or runtime-module override. Configuration and
 consumer application code must use the same pinned MoonBit build; this is not a
 stable serialized ABI or a complete Program/Run Host. `document()` exposes the

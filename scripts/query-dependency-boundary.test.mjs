@@ -119,6 +119,22 @@ test('DuckDB acquisition Host does not depend on Compute composition or Local', 
   assert.doesNotMatch(composition, /NativeHostRun|BroadHostRun|configure_native_host|configure_broad_host/);
 });
 
+test('DuckDB transport bridge is connector-owned and composition does not re-export SQL', () => {
+  const closure = dependencies('connectors/duckdb/host_node');
+  for (const dependency of closure) {
+    assert.doesNotMatch(dependency, /^(duckdb_host|connectors_builtin)$/);
+    assert.doesNotMatch(dependency, /^connectors\/(local|reference_compute)\//);
+  }
+  const bridge = readFileSync('src/connectors/duckdb/host_node/pkg.generated.mbti', 'utf8');
+  assert.match(bridge, /pub fn compute_host_sql/);
+  assert.match(bridge, /pub fn resident_import_sql/);
+  const composition = readFileSync('src/duckdb_host_node/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(composition, /compute_host_sql|native_host_sql|resident_import_sql|NativeNodeRun|ComputeNodeRun/);
+  const entry = readFileSync('adapters/duckdb-node/host.mjs', 'utf8');
+  assert.match(entry, /build\/connectors\/duckdb\/host_node\/host_node\.js/);
+  assert.doesNotMatch(entry, /build\/duckdb_host_node\//);
+});
+
 test('connector SDK has no concrete implementation dependency or public error type', () => {
   for (const dependency of dependencies('connector_sdk')) {
     assert.doesNotMatch(dependency, /^(?:connectors\/|duckdb_|query_planning$|physical_strategy$)/);
@@ -378,7 +394,7 @@ test('DuckDB execution configuration and resource start belong to its connector 
   const driver = readFileSync('src/connectors/duckdb/driver/compute_configuration.mbt', 'utf8');
   assert.match(driver, /start_captured_duckdb_task\(/);
   assert.match(driver, /prepare_resident_inputs\(/);
-  const bridge = readFileSync('src/duckdb_host_node/compute.mbt', 'utf8');
+  const bridge = readFileSync('src/connectors/duckdb/host_node/compute.mbt', 'utf8');
   assert.match(bridge, /@duckdb_driver\.start_configured_strategy_compute_host\(/);
   assert.doesNotMatch(bridge, /@host\.(?:start_configured|configured_strategy)/);
 });

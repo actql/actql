@@ -1,0 +1,189 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/duckdb/host_node"
+
+import {
+  "actql/actql/connectors/duckdb/acquisition",
+  "actql/actql/connectors/duckdb/adapter",
+  "actql/actql/connectors/duckdb/compute",
+  "actql/actql/connectors/duckdb/driver",
+  "actql/actql/connectors/duckdb/host",
+  "actql/actql/encode_core",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn broad_host_abort(BroadNodeRun) -> Unit
+
+pub fn broad_host_accept(BroadNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_attempt(BroadNodeRun) -> @acquisition.DuckDBBroadAttempt
+
+pub fn broad_host_begin(BroadNodeRun, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_bind(BroadNodeRun, @acquisition.DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise NodeHostFailure
+
+pub fn broad_host_close(BroadNodeRun) -> Unit
+
+pub fn broad_host_complete(BroadNodeRun) -> @acquisition.DuckDBBroadObservation raise NodeHostFailure
+
+pub fn broad_host_document(@acquisition.DuckDBBroadObservation) -> String
+
+pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
+
+pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
+
+pub fn broad_host_open(@host.BroadHostConfiguration, String, (@acquisition.DuckDBBroadAttempt) -> Bool) -> BroadNodeRun raise NodeHostFailure
+
+pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn broad_host_sql(BroadNodeRun, Bool) -> String
+
+pub fn compute_host_abort(ComputeNodeRun) -> Unit
+
+pub fn compute_host_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_attempt(ComputeNodeRun) -> @compute.DuckDBComputeAttempt
+
+pub fn compute_host_begin(ComputeNodeRun, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_close(ComputeNodeRun) -> Unit
+
+pub fn compute_host_complete(ComputeNodeRun) -> @execution_relation.CompletedOutput raise NodeHostFailure
+
+pub fn compute_host_count(ComputeNodeRun, Int, Bool) -> Int raise NodeHostFailure
+
+pub fn compute_host_finish(ComputeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn compute_host_import_count(ComputeNodeRun) -> Int
+
+pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool, Int) -> String raise NodeHostFailure
+
+pub fn compute_host_physical_charge(ComputeNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn compute_host_physical_settle(ComputeNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn compute_host_query_parameter_count(ComputeNodeRun) -> Int
+
+pub fn compute_host_sql(ComputeNodeRun, Int, Int) -> String raise NodeHostFailure
+
+pub fn compute_resident_cleanup_sql(ComputeNodeRun) -> Array[String] raise NodeHostFailure
+
+pub fn compute_resident_commit(ComputeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn compute_resident_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn compute_resident_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, @driver.DuckDBResidentInputs) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+
+pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+
+pub fn native_host_abort(NativeNodeRun) -> Unit
+
+pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn native_host_attempt(NativeNodeRun) -> @acquisition.DuckDBNativeAttempt
+
+pub fn native_host_begin(NativeNodeRun, Bool, String) -> Unit raise NodeHostFailure
+
+pub fn native_host_capacity(@host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
+
+pub fn native_host_captured_source(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @execution_query.CapturedInputSource raise NodeHostFailure
+
+pub fn native_host_close(NativeNodeRun) -> Unit
+
+pub fn native_host_complete(NativeNodeRun) -> @acquisition.DuckDBNativeObservation raise NodeHostFailure
+
+pub fn native_host_document(@acquisition.DuckDBNativeObservation) -> String
+
+pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NodeHostFailure
+
+pub fn native_host_open(@host.NativeHostConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> NativeNodeRun raise NodeHostFailure
+
+pub fn native_host_open_dag(NativeNodeRun, @physical_strategy.CheckedDAG, @acquisition.DuckDBNativeObservation) -> @physical_strategy.CapturedDAG raise NodeHostFailure
+
+pub fn native_host_output(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @execution_relation.CompletedOutput raise NodeHostFailure
+
+pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn native_host_physical_charge(NativeNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn native_strategy_host_open(@host.NativeHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
+
+pub fn resident_begin(@physical_strategy.CapturedDAG, Int, Int64) -> @driver.DuckDBResidentStore raise NodeHostFailure
+
+pub fn resident_borrow_setup(@driver.StrategyComputeHostConfiguration, @driver.DuckDBResidentStore, Array[@driver.DuckDBResidentTable], Int, Int, Int) -> @driver.DuckDBResidentInputs raise NodeHostFailure
+
+pub fn resident_cancel_inputs(@driver.DuckDBResidentInputs) -> Unit raise NodeHostFailure
+
+pub fn resident_close(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Bool) -> Unit raise NodeHostFailure
+
+pub fn resident_confirm(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int64) -> Unit raise NodeHostFailure
+
+pub fn resident_has_table(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int) -> Bool
+
+pub fn resident_import_count(@driver.DuckDBResidentTable, Bool) -> Int raise NodeHostFailure
+
+pub fn resident_import_parameter(@driver.DuckDBResidentTable, Int, Int, Int, Int) -> String raise NodeHostFailure
+
+pub fn resident_import_sql(@driver.DuckDBResidentTable, Bool) -> String raise NodeHostFailure
+
+pub fn resident_inputs_sql(@driver.DuckDBResidentInputs) -> Array[String]
+
+pub fn resident_table_at(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
+
+pub fn resident_table_cancel(@physical_strategy.CapturedDAG, @driver.DuckDBResidentTable) -> Unit raise NodeHostFailure
+
+pub fn resident_table_prepare(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int, Int64, Int, Int, Int) -> @driver.DuckDBResidentTable raise NodeHostFailure
+
+pub fn resident_transfer_abort(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure
+
+pub fn resident_transfer_begin(@physical_strategy.CapturedDAG, @driver.DuckDBResidentTable, Int64, Int64) -> @physical_strategy.ResidentTransfer raise NodeHostFailure
+
+pub fn resident_transfer_charge(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Int64) -> Unit raise NodeHostFailure
+
+pub fn resident_transfer_complete(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer) -> Unit raise NodeHostFailure
+
+pub fn resident_transfer_settle(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTransfer, Bool) -> Unit raise NodeHostFailure
+
+// Errors
+pub(all) suberror NodeHostFailure {
+  Host(@host.NativeHostIssue)
+  Broad(@host.BroadHostIssue)
+  Compute(@compute.DuckDBComputeIssue)
+  Strategy(@physical_strategy.RunIssue)
+  Physical(@physical_resources.LedgerIssue)
+  CapturedSource(@execution_query.CapturedSourceIssue)
+  ComputeParameter(@adapter.ValueIssue)
+  Transport(@adapter.TransportColumnIssue)
+  Descriptor(@adapter.ValueIssue)
+  InvalidFields
+  InvalidCommand
+  Encoding(@encode_core.EncodeFailure)
+  Completion(@execution_relation.TrustedOutputIssue)
+}
+
+// Types and methods
+type BroadNodeRun
+
+type ComputeNodeRun
+
+type NativeNodeRun
+
+// Type aliases
+
+// Traits

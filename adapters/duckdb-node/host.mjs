@@ -8,7 +8,7 @@ import { DuckDBTransportError, provisionComputeDatabase, validateLimits } from '
 import { computePhysicalCapacity } from './physical-capacity.mjs';
 import { checked } from './runtime-result.mjs';
 
-const runtimeUrl = new URL('../../_build/js/release/build/duckdb_host_node/duckdb_host_node.js', import.meta.url);
+const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 const residentEnvironments = new WeakMap();

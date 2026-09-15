@@ -267,13 +267,17 @@ The low-level Host startup takes a trusted transport verifier for runtime wiring
 The standard `adapters/duckdb-node/host.mjs` native entry installs that verifier
 privately through the settled transport coordinator. Its configuration retains
 already-owned preparation and limits, without verifier or SQL callbacks. It loads
-the fixed `duckdb_host_node` product module, not a caller-selected runtime or
+the fixed `connectors/duckdb/host_node` product module, not a caller-selected runtime or
 conformance fixture. Neither ordinary Connector registration nor Program inputs
 can replace this wiring. The JS facade decodes raw transport frames using the
 adapter's bounded physical decoders; type interpretation remains in MoonBit.
 Typed failure results use the pinned compiler's JS ABI inside this private
 facade only; this ABI is not a published cross-version Connector contract.
 This restricts the standard entry, not arbitrary malicious code in the Host TCB.
+The connector-owned Node bridge also drives fixed Compute and resident transport.
+It does not depend on Local Compute or the standard multi-connector composition;
+SQL, physical values and session-specific operations are not re-exported by the
+composition bridge.
 
 `BroadHostConfiguration` and `BroadHostRun` provide the corresponding broad
 assembly using the existing one-receipt attempt state machine. The standard

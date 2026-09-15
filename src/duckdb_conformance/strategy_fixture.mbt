@@ -1,5 +1,6 @@
 ///|
-// Conformance preparation only; the Node execution path uses duckdb_host_node.
+// Conformance preparation only; execution uses the standard composition and
+// connector-owned Node bridges, never this package as a transport runtime.
 struct StrategyFixture {
   native : IssuedNativeFixture
   graph : @strategy.CheckedDAG

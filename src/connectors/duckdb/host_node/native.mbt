@@ -12,7 +12,6 @@ pub(all) suberror NodeHostFailure {
   Broad(@acquisition_host.BroadHostIssue)
   Compute(@duckdb_compute.DuckDBComputeIssue)
   Strategy(@strategy.RunIssue)
-  Dispatch(@host.DispatchIssue)
   Physical(@resources.LedgerIssue)
   CapturedSource(@query.CapturedSourceIssue)
   ComputeParameter(@duckdb.ValueIssue)

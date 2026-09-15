@@ -32,7 +32,7 @@ const cases = [
 
 test('typed composite join and count preserve fixed capture across Local fresh and resident DAGs', async () => {
   const exec = promisify(execFile);
-  for (const name of ['duckdb_host_node', 'duckdb_conformance']) {
+  for (const name of ['connectors/duckdb/host_node', 'duckdb_host_node', 'duckdb_conformance']) {
     await exec('moon', ['build', '--target', 'js', '--release', `src/${name}`], { cwd: root });
   }
   const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));

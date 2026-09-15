@@ -3,19 +3,11 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
-  "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connector_sdk" @connector,
-  "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
-  "actql/actql/execution_query" @query,
   "actql/actql/connectors/duckdb/driver" @duckdb_driver,
-  "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/physical_resources" @resources,
   "actql/actql/duckdb_host" @host,
-  "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/lowering_relation" @lower,
-  "actql/actql/decode_core" @decode,
-  "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
   "actql/actql/physical_strategy" @strategy,
 }

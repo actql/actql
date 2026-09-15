@@ -23,6 +23,7 @@ const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
@@ -38,7 +39,7 @@ test('standard native and broad Node Hosts own verification through real capture
   const suppliedLimits = { ...limits, verifier: forbidden, verify: forbidden,
     runtime: { nativeHostOpen: forbidden, broadHostOpen: forbidden }, sql: forbidden };
   // Independent fixed setup stays in conformance. The product entry loads only
-  // duckdb_host_node and cannot receive these test functions as its verifier.
+  // connectors/duckdb/host_node and cannot receive these test functions as its verifier.
   const catalogs = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
@@ -509,7 +510,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     accounted.close();
   }
   const phaseCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(phaseFixture), suppliedLimits);
-  const bridge = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_host_node/duckdb_host_node.js')));
+  const bridge = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
   let phaseRun;
   const accepted = result => { assert.equal(result.$tag, 1); return result._0; };
   try {

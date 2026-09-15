@@ -1,4 +1,11 @@
 ///|
+pub(all) suberror NodeHostFailure {
+  Dispatch(@host.DispatchIssue)
+  InvalidCommand
+  Encoding(@encode.EncodeFailure)
+}
+
+///|
 #export_name("strategyHostNext")
 pub fn strategy_host_next(
   host : @host.StrategyHostDispatch,

@@ -13,6 +13,7 @@ Node dependencies as described in the [adapter guide](../README.md). From the
 repository root:
 
 ```sh
+moon build --target js --release src/connectors/duckdb/host_node
 moon build --target js --release src/duckdb_host_node
 moon build --target js --release src/physical_strategy_example
 node adapters/duckdb-node/examples/physical-strategy.mjs \
