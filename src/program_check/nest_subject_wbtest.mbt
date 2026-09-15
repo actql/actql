@@ -28,15 +28,19 @@ test "nest resource subjects and guard preimages retain their authored Unit owne
     let source = unit_nest_resource_source(unit, unit.pipeline, 1).unwrap()
     let public_source = unit_nest_resource_source_at(checked[0], 0, 1).unwrap()
     assert_true(physical_equal(public_source.nest, source.nest))
-    let public_guard = unit_nest_guard_witness(
-      checked[0],
-      0,
-      1,
-      max_work=1000000,
-      max_bytes=100000,
-      max_nodes=10000,
-      max_depth=100,
-    )
+    let retained = unit_nest_limit_at(checked[0], 0, 0).unwrap()
+    let claim = nest_limits_claim(retained, ChildItems)
+    let minimum = @wire.limit_minimum(claim)
+    let guards : Array[@wire.WireWitness] = []
+    for i in 0..<@derivation.minimum_candidate_count(minimum) {
+      let node = @derivation.minimum_candidate_at(minimum, i).unwrap().node
+      let candidate = @wire.claim_at(@wire.limit_claims(claim), node).unwrap()
+      if @wire.source(candidate) is AuthorGuard(_, _) {
+        guards.push(candidate)
+      }
+    }
+    assert_eq(guards.length(), if expected is None { 0 } else { 1 })
+    let public_guard = guards.get(0)
     assert_eq(public_guard.map(w => @wire.value(w)), expected)
     assert_true(unit_nest_resource_source(unit, units[1].pipeline, 1) is None)
     for invalid in [-1, 0, 2, 2147483647] {

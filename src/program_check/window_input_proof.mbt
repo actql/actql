@@ -7,46 +7,6 @@ struct WindowInputProof {
 }
 
 ///|
-/// Read a closed Program's exact window requirement; never accept caller CIDs.
-pub fn unit_window_input_proof(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  candidate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> WindowInputProof raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  guard program.units.get(stage) is Some(unit) &&
-    unit_operation_source(unit, unit.pipeline, step) is Some(source) else {
-    raise ForeignOwner
-  }
-  let closure = @context.stage_requirement_operations(requirements(program))
-  for i in 0..<@context.operation_closure_count(closure) {
-    identity_charge(budget, 1)
-    guard @context.operation_closure_at(closure, i)
-      is Some(ExecutionCheck(WindowMembershipLimit(limit))) &&
-      limit.site.stage == stage &&
-      limit.site.step == step &&
-      physical_equal(limit.site.pipeline, source.pipeline) else {
-      continue
-    }
-    return window_input_proof(program.units, source, limit, candidate, budget)
-  }
-  raise ForeignOwner
-}
-
-///|
 fn window_input_proof(
   units : Array[BuiltUnit],
   source : UnitOperationSource,

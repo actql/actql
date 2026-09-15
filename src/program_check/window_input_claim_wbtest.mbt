@@ -144,23 +144,8 @@ test "window proof reader cannot fabricate a requirement on an ordinary checked 
     through_check=true,
     checked_results=programs,
   )
-  for (stage, step) in [(0, 0), (-1, 0), (0, -1), (1, 0)] {
-    try
-      unit_window_input_proof(
-        programs[0],
-        stage,
-        step,
-        0,
-        max_work=10000000,
-        max_bytes=1000000,
-        max_nodes=100000,
-        max_depth=100,
-      )
-    catch {
-      UnitBuildFailure::ForeignOwner => ()
-      e => raise e
-    } noraise {
-      _ => fail("window proof invented")
-    }
+  assert_eq(unit_window_limit_count(programs[0], 0), Some(0))
+  for (stage, index) in [(0, 0), (-1, 0), (0, -1), (1, 0)] {
+    assert_true(unit_window_limit_at(programs[0], stage, index) is None)
   }
 }

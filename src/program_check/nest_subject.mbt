@@ -72,44 +72,6 @@ fn nest_resource_subject_with_budget(
 }
 
 ///|
-/// Bounded reconstruction of one authored guard, not runtime enforcement.
-pub fn unit_nest_guard_witness(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> @wire.WireWitness? raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  guard unit_nest_resource_source_at(program, stage, step) is Some(source) else {
-    raise ForeignOwner
-  }
-  let closure = @context.stage_requirement_operations(requirements(program))
-  for index in 0..<@context.operation_closure_count(closure) {
-    identity_charge(budget, 1)
-    guard @context.operation_closure_at(closure, index)
-      is Some(ExecutionCheck(NestItems(selected))) &&
-      selected.site.stage == stage &&
-      selected.site.step == step &&
-      physical_equal(selected.site.pipeline, source.operation.pipeline) else {
-      continue
-    }
-    return emit_nest_guard_witness(source, selected, budget)
-  }
-  raise ForeignOwner
-}
-
-///|
 // The selected restriction and the source must share the original checked
 // occurrence. A matching Unit CID or bound number is not ownership evidence.
 fn emit_nest_guard_witness(

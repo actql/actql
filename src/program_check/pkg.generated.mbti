@@ -480,8 +480,6 @@ pub fn unit_interval_search_limit_at(CheckedProgram, Int, Int) -> IntervalSearch
 
 pub fn unit_interval_search_limit_count(CheckedProgram, Int) -> Int?
 
-pub fn unit_nest_guard_witness(CheckedProgram, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
-
 pub fn unit_nest_limit_at(CheckedProgram, Int, Int) -> NestLimits?
 
 pub fn unit_nest_limit_count(CheckedProgram, Int) -> Int?
@@ -509,8 +507,6 @@ pub fn unit_sequence_limit_count(CheckedProgram, Int) -> Int?
 pub fn unit_traversal_limit_at(CheckedProgram, Int, Int) -> TraversalLimit?
 
 pub fn unit_traversal_limit_count(CheckedProgram, Int) -> Int?
-
-pub fn unit_window_input_proof(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> WindowInputProof raise UnitBuildFailure
 
 pub fn unit_window_limit_at(CheckedProgram, Int, Int) -> WindowLimit?
 

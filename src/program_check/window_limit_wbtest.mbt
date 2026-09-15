@@ -26,6 +26,26 @@ test "formal window limits retain input proofs and producer Unit identity across
     assert_true(physical_equal(limit, unit_window_limit_at(p, 0, 0).unwrap()))
     assert_eq(window_limit_selection(limit).maximum, factor)
     assert_true(window_limit_proof_count(limit) > 0)
+    assert_true(window_limit_proof_at(limit, -1) is None)
+    assert_true(
+      window_limit_proof_at(limit, window_limit_proof_count(limit)) is None,
+    )
+    for candidate in [-1, window_limit_proof_count(limit)] {
+      try
+        window_input_proof(
+          p.units,
+          window_limit_source(limit),
+          window_limit_selection(limit),
+          candidate,
+          { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+        )
+      catch {
+        UnitBuildFailure::ForeignOwner => ()
+        error => raise error
+      } noraise {
+        _ => fail("invalid window input candidate accepted")
+      }
+    }
     let output = @encode.writer(100000, 10000, 100)
     @wire.emit_limit(window_limit_claim(limit), output)
     let text = @encode.finish(output)
@@ -51,15 +71,12 @@ test "formal window limits retain input proofs and producer Unit identity across
         window_input_proof_source(proof).unit_definition_cid,
         unit_definition_cid(p, 0).unwrap(),
       )
-      let rebuilt = unit_window_input_proof(
-        p,
-        0,
-        2,
+      let rebuilt = window_input_proof(
+        p.units,
+        window_limit_source(limit),
+        window_limit_selection(limit),
         i,
-        max_work=10000000,
-        max_bytes=1000000,
-        max_nodes=100000,
-        max_depth=100,
+        { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
       )
       assert_eq(
         @wire.cid(

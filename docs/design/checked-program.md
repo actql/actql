@@ -1714,8 +1714,9 @@ Its four typed resource scopes use the normative `nest` subject namespace,
 independent of generated AoA IDs or ordinary aggregate call names. The authored
 guard uses the Unit-relative `nest.max_items` locator and the selected effective
 value; a separately checked equal-CID operation cannot supply that value.
-`unit_nest_guard_witness` is an explicitly budgeted reconstruction API, not a
-retained-limit reader or evidence that the complete nest limit set is prepared.
+Consumers read the authored guard from the retained child-items limit's candidate
+collection. Guard emission belongs to Program construction and does not require
+a separate consumer-side ownership search or reconstruction.
 
 `prepare_nest_value_envelope` uses that same selection's policy owner to prepare
 two byte scopes: emitted child-array values after aggregation, and all retained
