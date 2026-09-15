@@ -161,9 +161,14 @@ fn select_string_limit(
   match @relation.aggregate_byte_limit(call) {
     Some(@relation.Literal(value)) => guard_value = Some(value)
     Some(@relation.Parameter(name)) => {
-      for
-        resolution in owner.profiles.calendar.lexical.cells.queries.ranges.fills.frames.scalars.entries {
+      // Use the owned resolution index over this operation's contiguous group.
+      // Unrelated Program scalars do not participate in aggregate guards.
+      let first = requirement - site.index
+      for offset in 0..<@pipeline.operation_obligations_count(site.obligations) {
         guard spend() else { return Err(BudgetExceeded) }
+        guard owner.states[first + offset] is Resolved(Scalar(resolution)) else {
+          continue
+        }
         if resolution.site.stage == site.stage &&
           resolution.site.producer_visit == site.producer_visit &&
           physical_equal(resolution.site.pipeline, site.pipeline) &&

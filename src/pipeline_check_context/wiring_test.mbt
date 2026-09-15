@@ -191,7 +191,9 @@ fn wired_inputs_fixture(
     max_direct_text_bytes: 10000,
   }
   let order_limits : @results.OrderCheckLimits = {
-    max_steps: 10,
+    // Include the imported producer visits as well as this pipeline's ten
+    // admitted steps. Tests of individual selector budgets set their own caps.
+    max_steps: 30,
     max_results: 10,
     max_work: 10000,
     max_text_bytes: 10000,

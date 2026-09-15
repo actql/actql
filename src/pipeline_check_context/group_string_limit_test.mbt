@@ -36,6 +36,7 @@ fn string_limit_policy(value : Int64?) -> @policy.Policy raise {
 fn string_limit_fixture(
   ceiling : @policy.Policy,
   guard_text : String,
+  extra_steps? : String = "",
 ) -> ProgramOperationResolutionIndex {
   let profile = match @policy.ceiling(ceiling, "max_aggregate_string_bytes") {
     Some(value) =>
@@ -48,7 +49,9 @@ fn string_limit_fixture(
   }
   let profiles = resolution_profiles(
     operation_order_fixture(
-      "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"assert_rows\":{\"unique_by\":[\"id\"]}},{\"group\":{\"by\":[],\"aggregates\":{\"a\":{\"fn\":\"string_agg\",\"field\":\"x\",\"delimiter\":\",\",\"order_by\":[{\"id\":\"asc\"}]" +
+      "[{\"derive\":{\"x\":\"concat($p, to_string($n))\"}},{\"assert_rows\":{\"unique_by\":[\"id\"]}}," +
+      extra_steps +
+      "{\"group\":{\"by\":[],\"aggregates\":{\"a\":{\"fn\":\"string_agg\",\"field\":\"x\",\"delimiter\":\",\",\"order_by\":[{\"id\":\"asc\"}]" +
       guard_text +
       "}}}}]",
       capacity_policy=ceiling,
@@ -56,6 +59,60 @@ fn string_limit_fixture(
     ),
   )
   index_program_operation_resolutions(profiles, 10000000, 100).unwrap()
+}
+
+///|
+test "aggregate guard reads only its owned operation resolution group" {
+  for extra_count in [0, 1, 4] {
+    let takes = Array::make(
+      extra_count, "{\"take\":{\"count\":{\"$param\":\"n\"},\"offset\":{\"$param\":\"n\"}}},",
+    ).join("")
+    let extra = if extra_count == 0 {
+      ""
+    } else {
+      "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"x\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"id\":1,\"x\":\"a\"}]},\"as\":\"seed\"}," +
+      takes
+    }
+    let owner = string_limit_fixture(
+      string_limit_policy(Some(7L)),
+      ",\"max_bytes\":{\"$param\":\"n\"}",
+      extra_steps=extra,
+    )
+    let mut found = 0
+    for i in 0..<operation_resolution_count(owner) {
+      let site = operation_requirements_at(
+        operation_resolution_requirements(owner),
+        i,
+      ).unwrap()
+      if site.requirement is @pipeline.RelationRequirement(p) &&
+        p.kind is @relation.AggregateEnvelope {
+        let limit = select_group_string_limit(owner, i, 10000000, 2).unwrap()
+        // One selector visit, this group's slots, and the two-unit comparison
+        // of the authored one-unit Parameter name. No other step is scanned.
+        let expected = operation_resolution_work(owner) +
+          1 +
+          @pipeline.operation_obligations_count(site.obligations) +
+          2
+        assert_eq(group_string_limit_work(limit), expected)
+        assert_true(select_group_string_limit(owner, i, expected, 2) is Ok(_))
+        assert_true(
+          select_group_string_limit(owner, i, expected - 1, 2)
+          is Err(BudgetExceeded),
+        )
+        let scalar = group_string_limit_guard_resolution(limit).unwrap()
+        guard operation_resolution_at(owner, scalar.requirement_index)
+          is Some(Resolved(Scalar(retained))) else {
+          abort("retained scalar resolution")
+        }
+        assert_true(physical_equal(scalar, retained))
+        assert_eq(scalar.site.step, site.step)
+        assert_eq(scalar.site.producer_visit, site.producer_visit)
+        assert_eq(group_string_limit_guard(limit), Some(1L))
+        found += 1
+      }
+    }
+    assert_true(found > 0)
+  }
 }
 
 ///|

@@ -26,3 +26,11 @@ test('the dependency guard detects nested owners and wrapped access', () => {
   // The producer may establish a shared owner from its validated input once.
   assert.equal(historyAccess(chain.replace('requirements.', '')), false);
 });
+
+test('aggregate guards consume retained resolution slots, not profile history', () => {
+  for (const name of ['group_array_limit', 'group_string_limit']) {
+    const source = readFileSync(`src/pipeline_check_context/${name}.mbt`, 'utf8');
+    assert.doesNotMatch(source, /\bowner\s*\.\s*profiles\b/u);
+    assert.match(source, /owner\.states\[first \+ offset\]/u);
+  }
+});

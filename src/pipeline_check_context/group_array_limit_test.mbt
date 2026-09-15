@@ -27,6 +27,11 @@ test "array aggregate limits select owned Host and literal or bound guards" {
         )
         if guard_text.contains("$param") {
           let resolution = group_array_limit_guard_resolution(limit).unwrap()
+          guard operation_resolution_at(owner, resolution.requirement_index)
+            is Some(Resolved(Scalar(retained))) else {
+            abort("retained scalar resolution")
+          }
+          assert_true(physical_equal(resolution, retained))
           assert_true(physical_equal(resolution.site.pipeline, site.pipeline))
           assert_eq(resolution.site.stage, site.stage)
           assert_eq(resolution.site.producer_visit, site.producer_visit)
