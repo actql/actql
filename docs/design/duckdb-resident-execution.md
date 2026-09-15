@@ -19,6 +19,22 @@ import of X can serve A and B; a retained A table can serve C. Host validation
 and retained Host results remain mandatory. A DB copy is additional storage,
 not a replacement for the independently completed Host result.
 
+One installed DuckDB implementation may provide multiple run-owned resource
+bindings. Profiles are installed before selection, once per exact binding. The
+Node contribution maps that opaque binding to its environment, not the connector
+name, database contents or producer CID. Different bindings import and reserve
+separately even when they consume the same captured X. A retained output can be
+reused only on the matching environment; the common borrow boundary rejects a
+foreign environment or table before an attempt starts.
+
+Finishing the contribution attempts cleanup for every environment, even when one
+close fails. Unsettled environments remain reachable through its cleanup handle;
+retry performs recovery only. Releasing one environment preserves other bindings'
+resources and independent completed Host outputs. Task diagnostics report actual
+environment creation and import rows/transport separately from Compute transport.
+The command-line example still supplies one resident profile by default when
+resident candidates are enabled; multiple bindings are an explicit Host setup.
+
 ## Planning versus provision
 
 Pure finite candidate comparison can describe an existing environment or a new

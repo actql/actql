@@ -63,6 +63,14 @@ pub fn strategy_host_run(
 }
 
 ///|
+#export_name("strategyHostResourceBinding")
+pub fn strategy_host_resource_binding(
+  task : @host.TaskDispatch,
+) -> @connector.ResourceBinding? {
+  @host.dispatch_resource_binding(task)
+}
+
+///|
 #export_name("strategyHostResidentInputs")
 pub fn strategy_host_resident_inputs(
   host : @host.StrategyHostDispatch,

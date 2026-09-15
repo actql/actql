@@ -185,6 +185,8 @@ pub fn strategy_host_resident(@duckdb_host.TaskDispatch) -> Bool
 
 pub fn strategy_host_resident_inputs(@duckdb_host.StrategyHostDispatch, Int) -> Array[Array[Int64]] raise NodeHostFailure
 
+pub fn strategy_host_resource_binding(@duckdb_host.TaskDispatch) -> @connector_sdk.ResourceBinding?
+
 pub fn strategy_host_run(@duckdb_host.StrategyHostDispatch) -> @physical_strategy.CapturedDAG
 
 pub fn strategy_host_stop(@duckdb_host.StrategyHostDispatch) -> Unit

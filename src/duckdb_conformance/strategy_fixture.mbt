@@ -63,6 +63,7 @@ fn strategy_fixture_create_impl(
   two_receipt_json : String,
   program_json : String,
   join : Bool,
+  multiple_resources? : Bool = false,
 ) -> StrategyFixture {
   try {
     let program = issued_fixture_checked(
@@ -115,28 +116,32 @@ fn strategy_fixture_create_impl(
     let graph = @strategy.prepare_checked_dag(program, owners, 5, 10000).unwrap()
     @dbhost.close_native_host(native.host) // unused fixture issuer, not real Host
     let ledger = @resources.create_ledger({
-      planning_work: if join {
+      planning_work: if join || multiple_resources {
         100000
       } else {
         10000
       },
-      attempts: if join {
+      attempts: if join || multiple_resources {
         20
       } else {
         10
       },
-      holdings: if join {
+      holdings: if join || multiple_resources {
         20
       } else {
         10
       },
-      transfer_bytes: if join {
+      transfer_bytes: if join || multiple_resources {
         1000000L
       } else {
         300000L
       },
       retained_bytes: 32000000L,
-      execution_bytes: 268435456L,
+      execution_bytes: if multiple_resources {
+        536870912L
+      } else {
+        268435456L
+      },
     }).unwrap()
     {
       native,

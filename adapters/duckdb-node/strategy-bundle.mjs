@@ -6,26 +6,54 @@ import { runStrategyHostCompute, openResidentStrategyEnvironment,
 export function duckdbStrategyContribution(moon, setup, checked, options) {
   const limits = Object.freeze({ ...options.transportLimits });
   const imports = Object.freeze({ ...options.importLimits });
-  let environment;
+  const environments = new Map();
+  async function closeEnvironments(entries) {
+    const failures = [];
+    for (const [binding, environment] of entries) {
+      try {
+        await environment.close();
+        environments.delete(binding);
+      } catch (error) { failures.push(error); }
+    }
+    if (failures.length) {
+      // Keep every unsettled environment reachable; one failed close must not
+      // prevent other bindings from being reclaimed.
+      throw Object.assign(new AggregateError(failures, 'ResidentCleanupPending'), {
+        cleanupPending: true,
+        cleanupHandle: Object.freeze({
+          status: () => ({pending: environments.size !== 0}),
+          retry: () => closeEnvironments([...environments]),
+        }),
+      });
+    }
+  }
   return Object.freeze({
     registration: moon.strategyHostDuckdbRegistration(setup),
     async beforeNext() {
-      if (environment && !environment.status().live) {
-        await environment.close();
-        environment = undefined;
-      }
+      await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
     },
     async run(task, signal) {
       const index = moon.strategyHostTask(task);
       const resident = moon.strategyHostResident(task);
       const inputs = [];
       let mapping;
+      let environment;
+      let environmentCreated = false;
+      const imported = [];
       if (resident) {
-        environment ??= await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
+        const binding = moon.strategyHostResourceBinding(task);
+        if (binding == null) throw new Error('MissingResidentResourceBinding');
+        environment = environments.get(binding);
+        if (!environment) {
+          environment = await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
+          environments.set(binding, environment);
+          environmentCreated = true;
+        }
         for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index))) {
           mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
           if (!environment.hasTable(Number(producer))) {
-            await importResidentStrategyInput(environment, Number(producer), bytes, limits, mapping, signal);
+            const result = await importResidentStrategyInput(environment, Number(producer), bytes, limits, mapping, signal);
+            imported.push(Object.freeze({producer: Number(producer), rows: result.importedRows, transport: result.usage}));
           }
           inputs.push(environment.table(Number(producer)));
         }
@@ -38,9 +66,10 @@ export function duckdbStrategyContribution(moon, setup, checked, options) {
         close: () => result.close(),
         diagnostic: Object.freeze({
           realization: resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,
+          preparation: Object.freeze({environmentCreated, imports: Object.freeze(imported)}),
         }),
       });
     },
-    async finish() { if (environment) await environment.close(); },
+    async finish() { await closeEnvironments([...environments]); },
   });
 }

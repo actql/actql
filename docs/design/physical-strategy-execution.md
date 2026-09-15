@@ -358,9 +358,12 @@ the same strategy. New environment capacities are cumulative; serial temporary
 work contributes a peak, not a fictitious shared environment. Outstanding cleanup
 for every existing environment applies independently of the remaining task
 placements, including an all-Local selection. Equal input contents on different
-bindings do not discount transfers. These common capabilities do not imply that
-the standard Node assembly provisions multiple resident environments; its resource
-selection and transport wiring must explicitly supply those bindings.
+bindings do not discount transfers. The DuckDB contribution keeps separate Node
+environments keyed by the exact selected resource binding. Its installation can
+offer multiple bounded resident profiles, but cannot replace a profile for an
+already configured binding. A and B on different bindings import X separately;
+A and C on one live binding may reuse A's retained copy. The common serial Host
+does not interpret those database or import details.
 
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned

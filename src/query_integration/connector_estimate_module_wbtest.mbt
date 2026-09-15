@@ -217,6 +217,24 @@ test "resident estimate installation is owned by the exact connector and run" {
   schedules.clear()
   assert_true(@duckdb_driver.duckdb_resident_estimates_installed(installed))
   assert_false(@duckdb_driver.duckdb_resident_estimates_installed(other))
+  let second_binding = @connector.prepare_resource_binding(
+    registry, registration,
+  ).unwrap()
+  let second_profile = portfolio_profile(run, second_binding, 2L, 2L, 2L)
+  @duckdb_driver.install_duckdb_resident_estimates(
+    installed,
+    second_profile,
+    connector_test_schedules(@duckdb_driver.duckdb_dispatch_work_slots(), 2L),
+  ).unwrap()
+  // A different profile cannot replace the same owned resource's configuration.
+  assert_true(
+    @duckdb_driver.install_duckdb_resident_estimates(
+      installed,
+      portfolio_profile(run, second_binding, 3L, 3L, 3L),
+      connector_test_schedules(@duckdb_driver.duckdb_dispatch_work_slots(), 3L),
+    )
+    is Err(InvalidConfiguration),
+  )
   let capacities = Array::make(3, @strategy.PhysicalEnvelope::{
     transfer_bytes: 100L,
     retained_bytes: 100L,
@@ -237,7 +255,7 @@ test "resident estimate installation is owned by the exact connector and run" {
     wire_bytes: None,
     pairs: None,
   }).unwrap()
-  assert_eq(offers.length(), 2)
+  assert_eq(offers.length(), 3)
   for offer in offers {
     assert_true(@strategy.task_offer_matches(run, 1, registration, offer))
   }

@@ -305,11 +305,18 @@ pub fn dispatch_duckdb_registration(
 
 ///|
 pub fn dispatch_is_resident(dispatch : TaskDispatch) -> Bool {
+  dispatch_resource_binding(dispatch) is Some(_)
+}
+
+///|
+/// The exact selected resource, not a connector name or content identity.
+pub fn dispatch_resource_binding(
+  dispatch : TaskDispatch,
+) -> @connector.ResourceBinding? {
   @strategy.strategy_resident_profile(
     @host_driver.prepared_task_revision(dispatch.prepared),
     @host_driver.prepared_task_index(dispatch.prepared),
-  )
-  is Some(_)
+  ).map(@strategy.resident_profile_resource_binding)
 }
 
 ///|

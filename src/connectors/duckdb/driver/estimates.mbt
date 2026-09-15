@@ -60,7 +60,7 @@ pub fn install_duckdb_resident_estimates(
   profile : @strategy.ResidentProfile,
   schedules : Array[@cost.RateSchedule],
 ) -> Result[Unit, DuckDBEstimateIssue] {
-  if installed.resident_estimates is Some(_) ||
+  if installed.resident_estimates.length() >= installed.limits.candidate_work ||
     schedules.length() > installed.limits.candidate_work ||
     @strategy.strategy_history_count(installed.run) != 0 ||
     schedules.length() != installed.sequences.length() ||
@@ -71,7 +71,15 @@ pub fn install_duckdb_resident_estimates(
     ) {
     return Err(InvalidConfiguration)
   }
-  installed.resident_estimates = Some({ profile, schedules: schedules.copy(), })
+  for existing in installed.resident_estimates {
+    if physical_equal(
+        @strategy.resident_profile_resource_binding(existing.profile),
+        @strategy.resident_profile_resource_binding(profile),
+      ) {
+      return Err(InvalidConfiguration)
+    }
+  }
+  installed.resident_estimates.push({ profile, schedules: schedules.copy(), })
   Ok(())
 }
 
@@ -79,7 +87,7 @@ pub fn install_duckdb_resident_estimates(
 pub fn duckdb_resident_estimates_installed(
   installed : DuckDBDispatchModule,
 ) -> Bool {
-  installed.resident_estimates is Some(_)
+  !installed.resident_estimates.is_empty()
 }
 
 ///|
@@ -132,8 +140,10 @@ fn estimate_duckdb_configuration(
     Err(issue) => return Err(Search(issue))
   }
   let offers = [base]
-  if installed.resident_estimates is Some(resident) &&
-    duckdb_dispatch_rejection(installed, task, resident=true) is None {
+  if duckdb_dispatch_rejection(installed, task, resident=true) is Some(_) {
+    return Ok(offers)
+  }
+  for resident in installed.resident_estimates {
     let lines = match
       @cost.evaluate_rate_schedule(
         resident.schedules[task - 1],

@@ -51,8 +51,7 @@ pub fn configure_resident_dispatch(
   profile : @strategy.ResidentProfile,
   rates : Array[Array[@cost.WorkRate]],
 ) -> Result[Unit, DispatchIssue] {
-  if @duckdb_driver.duckdb_resident_estimates_installed(host.native_module) ||
-    @host_driver.dispatch_driver_pending(host.driver) ||
+  if @host_driver.dispatch_driver_pending(host.driver) ||
     @strategy.strategy_history_count(host.run) != 0 ||
     rates.length() !=
     @strategy.graph_task_count(@strategy.captured_dag_graph(host.run)) - 1 ||

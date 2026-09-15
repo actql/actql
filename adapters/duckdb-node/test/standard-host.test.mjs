@@ -827,6 +827,99 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(fixture.strategyFixtureCid(selectedFixture, 3), hash([{ id: 3 }, { id: 3 }]));
     } finally { result?.close(); selectedCapture.close(); }
   }
+  // One installed implementation, two distinct resource bindings. A/C reuse one
+  // database while B independently imports X into the other database.
+  {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+    const f = fixture.strategyFixtureTwoResourcesCreate(...args, program);
+    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    let result;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      await replaceRows('INSERT INTO records VALUES (99,99)');
+      const setup = fixture.strategyFixtureTwoResourcesDispatch(f);
+      result = await runCapturedStrategy(setup, suppliedLimits, { maxRows: 100, maxCells: 1000 });
+      assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+      assert.deepEqual(result.completed.map(task => task.realization), Array(3).fill('duckdb-resident'));
+      assert.deepEqual(result.completed.map(task => task.preparation.environmentCreated), [true, true, false]);
+      assert.deepEqual(result.completed.map(task => task.preparation.imports.map(value => [value.producer, value.rows])),
+        [[[0, 3]], [[0, 3]], []]);
+      const transferred = result.completed.reduce((sum, task) => sum + BigInt(task.transport.transportBytes)
+        + task.preparation.imports.reduce((bytes, value) => bytes + BigInt(value.transport.transportBytes), 0n), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
+      for (const task of [1, 2, 3]) {
+        assert.equal(fixture.strategyFixtureCid(f, task), hash(task === 2
+          ? [{ id: 3 }, { id: 2 }, { id: 3 }] : [{ id: 3 }, { id: 3 }]));
+      }
+      assert.equal(result.cleanupPending(), false);
+      assert.equal(fixture.strategyFixtureUsage(f, 2), 0n, 'both database reservations were settled');
+      capture.close();
+      assert.equal(fixture.strategyFixtureCanBind(f, 3), true);
+      result.close();
+      assert.equal(fixture.strategyFixtureUsage(f, 4), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 0), transferred, 'close does not refund either import');
+    } finally { result?.close(); capture.close(); }
+  }
+  {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+    const f = fixture.strategyFixtureTwoResourcesCreate(...args, program);
+    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    const environments = [];
+    const outputs = [];
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      const setup = fixture.strategyFixtureTwoResourcesDispatch(f);
+      const mapping = {maxEntries: 1000, maxNameBytes: 10000};
+      const bindings = [];
+      for (const index of [1, 2, 3]) {
+        const task = checked(hostRuntime.strategyHostNext(setup));
+        bindings.push(hostRuntime.strategyHostResourceBinding(task));
+        let environment;
+        if (index < 3) {
+          environment = await openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), index, suppliedLimits);
+          environments.push(environment);
+          await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
+        } else {
+          assert.equal(bindings[2], bindings[0]);
+          assert.notEqual(bindings[1], bindings[0]);
+          environment = environments[0];
+        }
+        const compute = checked(hostRuntime.strategyHostTakeNative(task));
+        if (index === 2) {
+          const attempts = fixture.strategyFixtureUsage(f, 3);
+          const transferred = fixture.strategyFixtureUsage(f, 0);
+          // Equal captured contents on another binding are not this task's copy.
+          await assert.rejects(runResidentStrategyHostCompute(compute, environments[0],
+            [environments[0].table(0)], suppliedLimits, mapping));
+          await assert.rejects(runResidentStrategyHostCompute(compute, environment,
+            [environments[0].table(0)], suppliedLimits, mapping));
+          assert.equal(fixture.strategyFixtureUsage(f, 3), attempts);
+          assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
+        }
+        outputs.push(await runResidentStrategyHostCompute(compute, environment,
+          [environment.table(index === 3 ? 1 : 0)], suppliedLimits, mapping));
+        if (index === 2) {
+          assert.equal(fixture.strategyFixtureUsage(f, 2), 2n * BigInt(suppliedLimits.memoryBytes));
+          await environment.close();
+          assert.equal(fixture.strategyFixtureUsage(f, 2), BigInt(suppliedLimits.memoryBytes));
+          assert.equal(environments[0].status().live, true);
+          assert.equal(environments[0].hasTable(1), true);
+          assert.equal(fixture.strategyFixtureCanBind(f, 2), true);
+        }
+      }
+      assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
+      const transferred = fixture.strategyFixtureUsage(f, 0);
+      await environments[0].close();
+      assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 0), transferred);
+      assert.equal(fixture.strategyFixtureCanBind(f, 3), true);
+    } finally {
+      for (const environment of environments) await environment.close();
+      for (const output of outputs) output.close();
+      capture.close();
+    }
+  }
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
   const captured = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(cancelledFixture), suppliedLimits);
   let first;
   try {

@@ -216,6 +216,10 @@ pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @duckdb_host.Strat
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 
+pub fn strategy_fixture_two_resources_create(String, String, String, String, String, String, String, String, String) -> StrategyFixture
+
+pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @duckdb_host.StrategyHostDispatch
+
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 
 pub fn typed_count_create(String, String, String, String) -> OwnedFixedFixture
