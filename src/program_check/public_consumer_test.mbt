@@ -4,9 +4,49 @@ fn public_program_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
   max_work? : Int = 10000000,
+  document? : Bool = false,
 ) -> @program_check.CheckedProgram raise {
-  let program = @syntax.parse(
-    (
+  let (text, program, environment, evidence, limits) = public_input_fixture(
+    generated~,
+    repeated~,
+  )
+  let limits = {
+    ..limits,
+    compilation: { ..limits.compilation, work: max_work, },
+  }
+  if document {
+    @program_check.check_document_with_evidence(
+      text,
+      environment,
+      None,
+      evidence,
+      limits,
+      format=Json,
+      source_path="fixture.actql",
+    )
+  } else {
+    @program_check.check_parsed_with_evidence(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+    )
+  }
+}
+
+///|
+fn public_input_fixture(
+  generated? : Bool = false,
+  repeated? : Bool = false,
+) -> (
+  String,
+  @syntax.Program,
+  @program_check.CheckEnvironment,
+  Array[@context.StageCapacityInput],
+  @program_check.CheckLimits,
+) {
+  let text = (
       #|{"version":"actql/0.1","id":"public-reader","params":{"n":{"type":"number","default":1}},"stages":[{"id":"producer","inputs":{"rows":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"derive":{"value":"id + $n"},"as":"derived"}],"results":{"out":{"from":"derived","fields":["id","value"]}}},{"id":"consumer","inputs":{"rows":{"result":{"stage":"producer","result":"out"}}},"steps":[{"take":1,"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","value"]}}}],"results":{"out":{"from":{"stage":"consumer","result":"out"}}}}
     )
     .replace(
@@ -24,18 +64,22 @@ fn public_program_fixture(
       } else {
         "{\"take\":1,\"as\":\"selected\"}"
       },
-    ),
-    {
-      source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
-      tree: {
-        max_nodes: 1000,
-        max_depth: 100,
-        max_string_bytes: 10000,
-        max_total_string_bytes: 10000,
-      },
-      max_stages: 2,
+    )
+  let input_limits : @syntax.Limits = {
+    source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },
+    tree: {
+      max_nodes: 1000,
+      max_depth: 100,
+      max_string_bytes: 10000,
+      max_total_string_bytes: 10000,
     },
+    max_stages: 2,
+  }
+  let program = @syntax.parse(
+    text,
+    input_limits,
     format=Json,
+    source_path="fixture.actql",
   ).unwrap()
   // Input envelope CID independently calculated from canonical JSON with Node SHA-256.
   // It is not an expected Program identity computed by the product under test.
@@ -99,10 +143,14 @@ fn public_program_fixture(
   } else {
     sources
   }
-  @program_check.check_with_evidence(
+  (
+    text,
     program,
-    environment,
-    None,
+    @program_check.checking_environment(
+      environment,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ),
     if generated || repeated {
       [
         { stage: "producer", sources, uses: [], },
@@ -111,9 +159,7 @@ fn public_program_fixture(
     } else {
       []
     },
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    { ..public_source_limits(2), work: max_work, },
+    { input: input_limits, compilation: public_source_limits(2), },
   )
 }
 

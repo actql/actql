@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/parameter_references" @parameter_refs,
+  "actql/actql/source_value" @source,
 } for "test"
 
 formatter(

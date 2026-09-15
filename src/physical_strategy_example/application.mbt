@@ -46,20 +46,17 @@ pub fn prepare_application(
   database_schema : String,
   table : String,
 ) -> Application raise {
-  let program = @syntax.parse(
-    program_json,
-    {
-      source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-      tree: {
-        max_nodes: 100000,
-        max_depth: 100,
-        max_string_bytes: 1000000,
-        max_total_string_bytes: 1000000,
-      },
-      max_stages: 5,
+  let input_limits : @syntax.Limits = {
+    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    tree: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1000000,
+      max_total_string_bytes: 1000000,
     },
-    format=Json,
-  ).unwrap()
+    max_stages: 5,
+  }
+  let program = @syntax.parse(program_json, input_limits, format=Json).unwrap()
   let stages = @syntax.stage_count(program)
   if stages != 4 && stages != 5 {
     fail(
@@ -81,14 +78,16 @@ pub fn prepare_application(
   } else {
     []
   }
-  let checked = @program_check.check_with_evidence(
+  let checked = @program_check.check_parsed_with_evidence(
     program,
-    environment,
+    @program_check.checking_environment(
+      environment,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ),
     Some(cursor(parameter_json)),
     evidence,
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    source_limits(10),
+    { input: input_limits, compilation: source_limits(10), },
   )
   if @program_check.unit_count(checked) != stages {
     fail("example requires one unit per stage")

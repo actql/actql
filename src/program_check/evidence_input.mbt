@@ -3,21 +3,21 @@
 /// typed limit uses. The compiler binds these inputs and expands actual producer
 /// occurrences; no visit arrays or mixed-limit ordinals are accepted here.
 /// Evidence binding is part of this call's compilation work, not execution.
-pub fn check_with_evidence(
+pub fn check_parsed_with_evidence(
   program : @syntax.Program,
-  environment : @environment.WireEnvironment,
+  environment : CheckEnvironment,
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
-  expression_profiles : @context.ExpressionProfiles,
-  operation_profiles : @context.PureOperationProfiles,
-  limits : CompileLimits,
-  numeric_profile? : @numeric.Profile? = None,
-  calendar? : @environment.SelectedCalendarProfile? = None,
-  text_rank? : @environment.SelectedTextRankProfile? = None,
+  limits : CheckLimits,
 ) -> CheckedProgram raise LocalConstructionFailure {
-  if !compile_limits_valid(limits) {
+  if !compile_limits_valid(limits.compilation) {
     raise InvalidLimits
   }
+  match @syntax.validate_reuse(program, limits.input) {
+    Ok(_) => ()
+    Err(issue) => raise Program(issue)
+  }
+  let limits = limits.compilation
   let inputs = match
     @context.bind_capacity_inputs(program, evidence, limits.work) {
     Ok(value) => value
@@ -25,19 +25,19 @@ pub fn check_with_evidence(
   }
   check(
     program,
-    environment,
+    environment.wire,
     supplied,
     [],
-    expression_profiles,
-    operation_profiles,
+    environment.expressions,
+    environment.operations,
     compile_source_limits(limits),
     max_work=limits.work - @context.capacity_inputs_work(inputs),
     max_bytes=limits.artifacts.bytes,
     max_nodes=limits.artifacts.nodes,
     max_depth=limits.artifacts.depth,
-    numeric_profile~,
-    calendar~,
-    text_rank~,
+    numeric_profile=environment.numeric,
+    calendar=environment.calendar,
+    text_rank=environment.text_rank,
     capacity_inputs=Some(inputs),
   )
 }

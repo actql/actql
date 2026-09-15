@@ -33,6 +33,24 @@ without fabricating a source span for an aggregate size failure. Semantic
 checking and its current environment, bindings and compile budget still apply;
 successful retention validation alone does not construct a CheckedProgram.
 
+The document and parsed entry points take the same checking environment, values
+and limits. Their explicit-evidence variants use the same semantic checking
+body; ordinary callers need not manufacture an empty evidence inventory.
+The environment retains admitted wire definitions, complete checker profile
+declarations and selected numeric/Calendar/text contracts. Constructing that
+configuration does not admit a Program, authorize I/O or assert backend
+capability. Exact selected-handle applicability is checked during construction.
+
+Input admission and semantic compilation are separate budget domains.
+`CheckLimits.input` bounds the original source bytes/nodes/depth and admitted
+tree/text/stage structure. `CheckLimits.compilation` applies to semantic
+preparation after admission, including evidence binding and artifact emission.
+The document entry actually performs the bounded source admission; the parsed
+entry only checks retained admission measurements before semantic preparation.
+Neither entry estimates parser CPU work from a source span or charges an
+imaginary repeated parse. Source syntax and retention failures keep their
+original typed details, rather than becoming evidence requests.
+
 The checker distinguishes three outcomes:
 
 - A complete opaque CheckedProgram, constructed only after static closure.

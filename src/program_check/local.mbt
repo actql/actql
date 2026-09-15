@@ -1,6 +1,7 @@
 ///|
 pub suberror LocalConstructionFailure {
   InvalidLimits
+  Program(@syntax.SyntaxError)
   CapacityInputs(@context.CapacityInputsIssue)
   Environment(EnvironmentFailure)
   Source(SourceFailure)
