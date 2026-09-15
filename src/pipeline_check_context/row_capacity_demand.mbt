@@ -66,6 +66,7 @@ fn derive_row_capacity(
   max_operand_work : Int,
   count_bindings : CapacityCountBindings,
   max_text_bytes : Int,
+  sourceviews : @sourceviews.PipelineInputs?,
 ) -> Result[RowCapacityResult, RowCapacityIssue] {
   let mut remaining = max_work
   let mut bytes = 0
@@ -167,6 +168,29 @@ fn derive_row_capacity(
       spend(inputs)
       spend(@results.port_count(ports))
       let roots = []
+      let remote_names : Map[String, Bool] = Map([])
+      if sourceviews is Some(views) {
+        guard @sourceviews.pipeline_input_count(views, stage) is Some(count) else {
+          raise RowCapacityStop(InvalidGraph)
+        }
+        spend(count)
+        for index in 0..<count {
+          let name = @sourceviews.pipeline_input_at(views, stage, index).unwrap().0
+          spend(name.length())
+          if name.length() > max_text_bytes - text {
+            raise RowCapacityStop(BudgetExceeded)
+          }
+          text += name.length()
+          remote_names[name] = true
+        }
+      }
+      spend(inputs)
+      let remote_inputs = Array::make(inputs, false)
+      for index in 0..<inputs {
+        let name = @pipeline.input_at(pipeline, index).unwrap().0
+        spend(name.length())
+        remote_inputs[index] = remote_names.contains(name)
+      }
       for i in 0..<@results.port_count(ports) {
         roots.push(
           @results.target(
@@ -182,6 +206,14 @@ fn derive_row_capacity(
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
         guard step.input is Some(input) else { continue }
+        if step.operation is @pipeline.Join(right=@pipeline.Input(index), ..) &&
+          remote_inputs[index] {
+          // Same JoinRight role as source request classification. This demand
+          // is not admission of the keyed request, mode or access policy.
+          spend(1)
+          roots.push(input)
+          continue
+        }
         match step.operation {
           @pipeline.AsOfJoin(right~, ..) | @pipeline.IntervalJoin(right~, ..) => {
             // Search work depends on both operands, independently of whether

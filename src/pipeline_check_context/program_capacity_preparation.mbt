@@ -20,6 +20,7 @@ fn derive_program_capacity(
   max_operand_work : Int,
   count_bindings : CapacityCountBindings,
   max_text_bytes : Int,
+  sourceviews : @sourceviews.PipelineInputs?,
 ) -> Result[DerivedProgramCapacity, CapacityStageIssue] {
   if max_work < 0 ||
     metadata.max_bytes < 0 ||
@@ -92,6 +93,7 @@ fn derive_program_capacity(
       max_operand_work,
       count_bindings,
       max_text_bytes,
+      sourceviews,
     ) {
     Ok(value) => value
     Err(issue) => return Err(RowCapacity(issue))

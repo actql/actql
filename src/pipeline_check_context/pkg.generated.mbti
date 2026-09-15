@@ -708,7 +708,7 @@ pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
 
-pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[StageContexts, CapacityStageIssue]
+pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits, derived_capacity_limits? : @capacity_witness.Limits?, sourceviews? : @sourceview_resolution.PipelineInputs?) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
 

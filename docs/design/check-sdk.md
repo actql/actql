@@ -340,6 +340,13 @@ As-of and interval search envelopes demand both checked operand row bounds,
 including operands not needed by an output-count rule. Their existing search
 calculation consumes those bounds without changing the separately selected join
 output-capacity contract or treating a search bound as execution permission.
+For an ordinary join whose right input is an admitted SourceView registration,
+the compiler also demands the checked left target for keyed acquisition sizing.
+Registration ownership is checked against the same Program and environment;
+name lookup and retained input-role indexing consume preparation budgets.
+This is only a dependency demand. The later keyed request, mode, correlation,
+positive-bound and access-policy checks remain mandatory, and an ordinary Local
+join is not classified as keyed merely because it has a right operand.
 Source request construction retains the exact checked Stage context alongside
 request-specific facts. Row-bound selection, source preparation and reference
 construction depend directly on that immutable owner, not on the sequence of

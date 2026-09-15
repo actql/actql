@@ -297,6 +297,7 @@ pub fn prepare_local_stage_contexts_from_inputs(
   selected_policy : @policy.Policy,
   limits : CapacityStageLimits,
   derived_capacity_limits? : @wire.Limits? = None,
+  sourceviews? : @sourceviews.PipelineInputs? = None,
 ) -> Result[StageContexts, CapacityStageIssue] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
@@ -319,6 +320,24 @@ pub fn prepare_local_stage_contexts_from_inputs(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if sourceviews is Some(views) {
+    let source = @source_inputs.source(
+      @sourceviews.inputs(@sourceviews.pipeline_resolution(views)),
+    )
+    if !physical_equal(@stages.program(source), inputs.program) {
+      return Err(Inputs(ForeignProgram))
+    }
+    guard @stage_results.wiring_local_environment(
+        @stage_results.local_source_wiring(prepared),
+      )
+      is Some(local_environment) &&
+      physical_equal(
+        @sourceviews.pipeline_environment(views),
+        @local_inputs.program_environment(local_environment),
+      ) else {
+      return Err(Inputs(ForeignPipeline))
+    }
+  }
   let generated = match derived_capacity_limits {
     Some(metadata) =>
       match
@@ -331,6 +350,7 @@ pub fn prepare_local_stage_contexts_from_inputs(
           limits.max_operand_work,
           count_bindings,
           limits.max_text_bytes - base_text,
+          sourceviews,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)

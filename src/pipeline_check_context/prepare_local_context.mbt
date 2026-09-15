@@ -173,6 +173,7 @@ pub fn prepare_local_context(
           max_text_bytes: remaining_text,
         },
         derived_capacity_limits~,
+        sourceviews~,
       )
     None =>
       prepare_local_stage_contexts(

@@ -1,4 +1,28 @@
 ///|
+test "capacity demand rejects registrations from another Program" {
+  let remote = []
+  ignore(wired_inputs_fixture(true, remote=Some(remote)))
+  let prepared = prepared_local_source_fixture()
+  let program = @stages.program(@stage_results.local_source_source(prepared))
+  let inputs = bind_capacity_inputs(program, [], 1000).unwrap()
+  assert_true(
+    prepare_local_stage_contexts_from_inputs(
+      prepared,
+      inputs,
+      policy(),
+      local_context_limits().stages,
+      sourceviews=Some(remote[0]),
+      derived_capacity_limits=Some({
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      }),
+    )
+    is Err(Inputs(ForeignProgram)),
+  )
+}
+
+///|
 test "authored capacity inputs expand across repeated imports without caller visits" {
   let prepared = prepared_local_source_fixture(third_stage=true)
   let program = @stages.program(@stage_results.local_source_source(prepared))
