@@ -2,10 +2,7 @@
 priv struct ResidentPendingOutput {
   environment : ResidentEnvironment
   allocation : @resources.SharedAllocation
-  table_name : String
-  query : @duckdb.ResidentQuery
-  limits : @duckdb_compute.DuckDBComputeLimits
-  max_sql_bytes : Int
+  plan : @duckdb_compute.DuckDBResidentOutput
   mut committed : Bool
   mut cleanup_prepared : Bool
   retired_inputs : Array[ResidentTable]
@@ -23,9 +20,13 @@ fn prepare_resident_output(
   if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
     return Err(Physical(HoldingLimit))
   }
-  let table_name = "resident_" + env.next_table.to_string()
-  let query = match
-    @duckdb.prepare_resident_query(query, table_name, max_sql_bytes) {
+  let plan = match
+    @duckdb_compute.prepare_duckdb_resident_output(
+      query,
+      env.next_table,
+      limits,
+      max_sql_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(NativePreparation(issue))
   }
@@ -39,10 +40,7 @@ fn prepare_resident_output(
   Ok({
     environment: env,
     allocation,
-    table_name,
-    query,
-    limits,
-    max_sql_bytes,
+    plan,
     committed: false,
     cleanup_prepared: false,
     retired_inputs: [],
@@ -87,7 +85,10 @@ pub fn captured_resident_cleanup_sql(
     }
     if !needed {
       match
-        @duckdb.resident_import_drop_sql(table.imported, pending.max_sql_bytes) {
+        @duckdb_compute.duckdb_resident_output_cleanup(
+          pending.plan,
+          table.imported,
+        ) {
         Ok(value) => sql.push(value)
         Err(issue) => return Err(NativePreparation(issue))
       }
@@ -108,7 +109,9 @@ pub fn captured_resident_query(
   resource : CapturedDuckDBTask,
 ) -> @duckdb.ResidentQuery? {
   if captured_duckdb_task_matches(run, resource) {
-    resource.resident_output.val.map(value => value.query)
+    resource.resident_output.val.map(value => {
+      @duckdb_compute.duckdb_resident_output_query(value.plan)
+    })
   } else {
     None
   }
@@ -159,24 +162,11 @@ fn publish_resident_output(
     pending.environment.tables[task] is Some(_) {
     return Err(NotReady)
   }
-  let storage = match
-    @execution.prepare_producer_storage(
-      output,
-      pending.limits.metadata_work,
-      pending.limits.completion_name_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Read(issue))
-  }
   let imported = match
-    @duckdb.prepare_resident_import(
-      storage,
-      pending.table_name,
-      pending.limits.completion_entries,
-      pending.max_sql_bytes,
-    ) {
+    @duckdb_compute.bind_duckdb_resident_output(pending.plan, output) {
     Ok(value) => value
-    Err(issue) => return Err(NativePreparation(issue))
+    Err(Read(issue)) => return Err(Read(issue))
+    Err(Preparation(issue)) => return Err(NativePreparation(issue))
   }
   pending.environment.tables[task] = Some({
     environment: pending.environment,

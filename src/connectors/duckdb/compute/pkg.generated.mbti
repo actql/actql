@@ -17,6 +17,8 @@ pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @duckdb_
 
 pub fn bind_duckdb_join_candidate(@connector_sdk.CapabilityRegistration, DuckDBJoinPreparation, @execution_relation.FixedJoinValidationLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
+pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.CompletedOutput) -> Result[@duckdb_adapter.ResidentImport, DuckDBResidentOutputIssue]
+
 pub fn check_duckdb_compute_static(@lowering_relation.BoundPrepared, @duckdb_adapter.NativeQueryLimits) -> Result[Unit, @duckdb_adapter.NativeQueryIssue]
 
 pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
@@ -31,11 +33,17 @@ pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @duckdb_adapter.Fixe
 
 pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
+pub fn duckdb_resident_output_cleanup(DuckDBResidentOutput, @duckdb_adapter.ResidentImport) -> Result[String, @duckdb_adapter.NativeQueryIssue]
+
+pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @duckdb_adapter.ResidentQuery
+
 pub fn duckdb_task_retention_capacity(DuckDBComputeLimits) -> Int64?
 
 pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
 
 pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn prepare_duckdb_resident_output(@duckdb_adapter.FixedQuery, Int, DuckDBComputeLimits, Int) -> Result[DuckDBResidentOutput, @duckdb_adapter.NativeQueryIssue]
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
@@ -75,6 +83,13 @@ pub(all) struct DuckDBComputeLimits {
 }
 
 type DuckDBJoinPreparation
+
+type DuckDBResidentOutput
+
+pub(all) enum DuckDBResidentOutputIssue {
+  Read(@execution_relation.ProducerReadIssue)
+  Preparation(@duckdb_adapter.NativeQueryIssue)
+}
 
 // Type aliases
 

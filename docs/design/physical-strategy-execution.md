@@ -126,6 +126,12 @@ resource settlement requires all suballocations to have been released. Read-only
 usage snapshots expose capacities and lifecycle facts, not mutable counters or
 the owner's reservation. Connector-specific objects remain outside this ledger.
 
+Resident result materialization keeps its physical table name, SQL and storage
+construction limits in a connector-owned opaque plan. The shared output lifecycle
+retains its allocation, commit state and pending input cleanup, and checks exact
+task/input completion before binding the completed storage to that plan. The plan
+alone is not completion evidence or authority to publish a reusable copy.
+
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned
 handles: callers can inspect immutable limits, usage, ownership and availability,

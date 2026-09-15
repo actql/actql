@@ -69,6 +69,17 @@ test('Host join dispatch cannot build SQL or exchange a compiled preparation req
   assert.doesNotMatch(binding, /FixedComputeRequest|ProducerRead/);
 });
 
+test('resident output lifecycle does not own table names or materialization SQL', () => {
+  const source = readFileSync('src/physical_strategy/resident_output.mbt', 'utf8');
+  const state = source.match(/struct ResidentPendingOutput \{([\s\S]*?)\n\}/)?.[1];
+  assert.ok(state);
+  assert.doesNotMatch(state, /table_name|query :|max_sql_bytes|limits :/);
+  assert.doesNotMatch(source, /@duckdb\.(?:prepare_resident_query|prepare_resident_import|resident_import_drop_sql)\b/);
+  const api = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
+  assert.match(api, /^type DuckDBResidentOutput$/m);
+  assert.doesNotMatch(api, /(?:struct|enum) DuckDBResidentOutput\b/);
+});
+
 test('fixed-input engine has no acquisition or query-integration dependency, including tests', () => {
   const forbidden = ['execution_query', 'query_planning', 'query_integration',
     'sourceview_resolution', 'program_check', 'pipeline_check_context'];
