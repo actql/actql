@@ -14,6 +14,7 @@ pub fn[E] local_compute_contribution(
   estimate_issue : (LocalEstimateIssue) -> E,
 ) -> @host.ComputeContribution[Unit, E] {
   {
+    exclusions: max_entries => if max_entries < 0 { None } else { Some([]) },
     prepare: fn(_context, task, revision, request) {
       prepare_local_dispatch(installed, task, revision, request).map_err(
         dispatch_issue,

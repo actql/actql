@@ -11,8 +11,8 @@ Each connector may own a `compute-bundle.json` under `src/connectors/<name>`.
 The declaration identifies its configuration type and pure construction function,
 opaque configured module type, exact registration accessor, contribution factory
 and the two diagnostic error types. The contribution factory
-returns `physical_host.ComputeContribution`, pairing pure proposal and preparation
-entrypoints over the same installed module. It must not perform transport or
+returns `physical_host.ComputeContribution`, providing pure proposal, preparation
+and exclusion-diagnostic entrypoints over the same installed module. It must not perform transport or
 construct unchecked completion evidence.
 
 With the pinned MoonBit tools on `PATH`, regenerate and check the assembly:
@@ -52,6 +52,15 @@ exact Host registry, fixed-input capacity and bounded inspection limits.
 task. The Host internally projects preparation and proposal from the same fixed
 installation. A foreign registry is rejected even for an empty installation.
 Manual fixed strategy selection can use the same Host without an adaptive policy.
+
+`compute_host_exclusions` collects explanations through that same fixed
+installation, in registration order. Its inspection allowance bounds registration
+visits and returned entries; encoding limits separately bound rendered text.
+Connector callbacks must honor the remaining entry allowance. The Host rejects
+unavailable registrations, over-limit responses and targets outside the Compute
+tasks. Realization labels and rejection reasons remain opaque display data, not
+dispatch keys or evidence. Reading diagnostics neither starts tasks nor revises
+selection or resource accounting.
 
 Execution still consumes the connector's typed dispatch channel through the opaque
 `compute_host_dispatch` handle;

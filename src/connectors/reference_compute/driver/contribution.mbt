@@ -44,6 +44,7 @@ pub fn[E] numeric_compute_contribution(
   estimate_issue : (@strategy.RunIssue) -> E,
 ) -> @host.ComputeContribution[Unit, E] {
   {
+    exclusions: max_entries => if max_entries < 0 { None } else { Some([]) },
     prepare: fn(_context, task, revision, request) {
       prepare_numeric_dispatch(configured.installed, task, revision, request).map_err(
         dispatch_issue,

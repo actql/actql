@@ -169,8 +169,9 @@ fn compute_host_issue(
 ///|
 pub fn dispatch_excluded_realizations(
   host : StrategyHostDispatch,
-) -> Array[(Int, String, String)] {
-  @duckdb_driver.duckdb_dispatch_exclusions(host.native_module)
+  max_work : Int,
+) -> Result[Array[(Int, String, String)], @host_driver.ComputeDiagnosticsIssue] {
+  @host_driver.compute_host_exclusions(host.runtime, max_work)
 }
 
 ///|

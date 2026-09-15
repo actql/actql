@@ -7,6 +7,7 @@ import {
   "actql/actql/duckdb_host",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
+  "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
 
@@ -51,6 +52,7 @@ pub fn strategy_host_usage(@duckdb_host.StrategyHostDispatch) -> Array[Int64]
 
 // Errors
 pub(all) suberror NodeHostFailure {
+  Diagnostics(@physical_host.ComputeDiagnosticsIssue)
   Dispatch(@duckdb_host.DispatchIssue)
   InvalidCommand
   Encoding(@encode_core.EncodeFailure)

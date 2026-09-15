@@ -14,6 +14,8 @@ pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.Capabi
 
 pub fn[C, E] compute_host_dispatch(ComputeHost[C, E]) -> DispatchHost[C, E]
 
+pub fn[C, E] compute_host_exclusions(ComputeHost[C, E], Int) -> Result[Array[(Int, String, String)], ComputeDiagnosticsIssue]
+
 pub fn[C, E] compute_host_has_estimates(ComputeHost[C, E]) -> Bool
 
 pub fn[C, E] configure_compute_host_estimates(ComputeHost[C, E], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[Unit, AdaptiveEstimateIssue[E]]
@@ -84,8 +86,16 @@ pub(all) enum AdaptiveEstimateIssue[E] {
 }
 
 pub(all) struct ComputeContribution[C, E] {
+  exclusions : (Int) -> Array[(Int, String, String)]?
   prepare : (C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]
   propose : (Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]
+}
+
+pub(all) enum ComputeDiagnosticsIssue {
+  InvalidLimits
+  Unavailable
+  Limit
+  InvalidTask
 }
 
 type ComputeHost[C, E]

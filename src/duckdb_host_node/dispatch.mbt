@@ -1,5 +1,6 @@
 ///|
 pub(all) suberror NodeHostFailure {
+  Diagnostics(@host_driver.ComputeDiagnosticsIssue)
   Dispatch(@host.DispatchIssue)
   InvalidCommand
   Encoding(@encode.EncodeFailure)
@@ -168,12 +169,16 @@ pub fn strategy_host_explain(
   max_bytes : Int,
   max_nodes : Int,
 ) -> String raise NodeHostFailure {
+  let excluded = match @host.dispatch_excluded_realizations(host, max_nodes) {
+    Ok(value) => value
+    Err(issue) => raise Diagnostics(issue)
+  }
   match
     @strategy.explain_captured_strategy(
       @host.dispatch_run(host),
       max_bytes,
       max_nodes,
-      excluded=@host.dispatch_excluded_realizations(host),
+      excluded~,
     ) {
     Ok(value) => value
     Err(issue) => raise Encoding(issue)

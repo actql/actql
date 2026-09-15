@@ -19,6 +19,8 @@ test('standard preparation and proposals project the same fixed Compute contribu
   assert.match(assembly, /registry_order=true/);
   assert.doesNotMatch(setup, /prepare:\s*fn|propose:\s*fn|"duckdb-resident"/);
   assert.doesNotMatch(setup, /@duckdb_driver\.duckdb_dispatch_rejection\(/);
+  assert.doesNotMatch(setup, /@duckdb_driver\.duckdb_dispatch_exclusions\(/);
+  assert.match(setup, /@host_driver\.compute_host_exclusions\(/);
   const runtime = readFileSync('src/physical_host/compute_host.mbt', 'utf8');
   assert.match(runtime, /project_capability_implementations\([\s\S]*?entry => entry\.prepare/);
   assert.match(runtime, /project_capability_implementations\([\s\S]*?host\.contributions[\s\S]*?entry => entry\.propose/);
@@ -30,6 +32,7 @@ test('standard preparation and proposals project the same fixed Compute contribu
   assert.doesNotMatch(contract, /Local|DuckDB|SQL|Session|connectors\//);
   assert.match(contract, /prepare\s*:/);
   assert.match(contract, /propose\s*:/);
+  assert.match(contract, /exclusions\s*:/);
   for (const name of ['local', 'duckdb']) {
     const owned = readFileSync(`src/connectors/${name}/driver/contribution.mbt`, 'utf8');
     assert.match(owned, /prepare:\s*fn/);

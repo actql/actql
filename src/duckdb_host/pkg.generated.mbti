@@ -8,6 +8,7 @@ import {
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
+  "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
 
@@ -20,7 +21,7 @@ pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sd
 
 pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
-pub fn dispatch_excluded_realizations(StrategyHostDispatch) -> Array[(Int, String, String)]
+pub fn dispatch_excluded_realizations(StrategyHostDispatch, Int) -> Result[Array[(Int, String, String)], @physical_host.ComputeDiagnosticsIssue]
 
 pub fn dispatch_is_resident(TaskDispatch) -> Bool
 

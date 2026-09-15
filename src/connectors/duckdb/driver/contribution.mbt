@@ -14,6 +14,9 @@ pub fn[E] duckdb_compute_contribution(
   estimate_issue : (DuckDBEstimateIssue) -> E,
 ) -> @host.ComputeContribution[Unit, E] {
   {
+    exclusions: max_entries => {
+      duckdb_dispatch_exclusions(installed, max_entries)
+    },
     prepare: fn(_context, task, revision, request) {
       prepare_duckdb_dispatch(installed, task, revision, request).map_err(
         dispatch_issue,
@@ -30,12 +33,19 @@ pub fn[E] duckdb_compute_contribution(
 ///|
 /// Realization labels and static diagnostics belong to this connector. The
 /// common Host displays them without interpreting provider-specific reasons.
-pub fn duckdb_dispatch_exclusions(
+fn duckdb_dispatch_exclusions(
   installed : DuckDBDispatchModule,
-) -> Array[(Int, String, String)] {
+  max_entries : Int,
+) -> Array[(Int, String, String)]? {
+  if max_entries < 0 {
+    return None
+  }
   let excluded = []
   for index in 0..<installed.sequences.length() {
     if duckdb_dispatch_rejection(installed, index + 1) is Some(reason) {
+      if excluded.length() >= max_entries {
+        return None
+      }
       excluded.push(
         (
           index + 1,
@@ -49,9 +59,12 @@ pub fn duckdb_dispatch_exclusions(
     for index in 0..<installed.sequences.length() {
       if duckdb_dispatch_rejection(installed, index + 1, resident=true)
         is Some(reason) {
+        if excluded.length() >= max_entries {
+          return None
+        }
         excluded.push((index + 1, "duckdb-resident", reason))
       }
     }
   }
-  excluded
+  Some(excluded)
 }

@@ -55,8 +55,6 @@ pub fn[E] duckdb_compute_contribution(DuckDBDispatchModule, (DuckDBDispatchIssue
 
 pub fn duckdb_compute_failure(@physical_strategy.RunIssue) -> @compute.DuckDBComputeIssue?
 
-pub fn duckdb_dispatch_exclusions(DuckDBDispatchModule) -> Array[(Int, String, String)]
-
 pub fn duckdb_dispatch_registration(DuckDBDispatchModule) -> @connector_sdk.CapabilityRegistration
 
 pub fn duckdb_dispatch_rejection(DuckDBDispatchModule, Int, resident? : Bool) -> String?

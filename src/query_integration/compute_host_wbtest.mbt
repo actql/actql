@@ -64,6 +64,7 @@ test "Compute Host refresh failure cannot reach preparation or replace the fixed
       (
         registration,
         @host_driver.ComputeContribution::{
+          exclusions: _ => Some([]),
           prepare: fn(
             _context : Unit,
             _task,

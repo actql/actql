@@ -20,7 +20,10 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       dispatch_test_generated(run),
       dispatch_test_limits(),
     ).unwrap()
-    assert_eq(@dbhost.dispatch_excluded_realizations(host).length(), 0)
+    assert_eq(
+      @dbhost.dispatch_excluded_realizations(host, 100).unwrap().length(),
+      0,
+    )
     @strategy.configure_strategy_search(run, {
       max_offers: 8,
       max_strategies: 16,
