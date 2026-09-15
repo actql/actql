@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/local/driver"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
+
+pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
+
+pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[LocalDispatchModule, LocalDispatchIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum LocalDispatchIssue {
+  Configuration(@connector_sdk.FixedComputeIssue)
+  Preparation(@local.LocalModuleIssue)
+  Dispatch(@physical_host.DispatchIssue)
+  Execution(@physical_strategy.RunIssue)
+}
+
+type LocalDispatchModule
+
+// Type aliases
+
+// Traits

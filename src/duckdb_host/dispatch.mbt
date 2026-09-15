@@ -20,9 +20,8 @@ struct StrategyHostDispatch {
   driver : @host_driver.DispatchDriver
   registry : @connector.CapabilityRegistry
   local_registration : @connector.CapabilityRegistration
-  local_module : @local_connector.LocalComputeModule
+  local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
-  local_channel : @host_driver.DispatchChannel[@connector.SynchronousCompute]
   native_channel : @host_driver.DispatchChannel[
     StrategyComputeHostConfiguration,
   ]
@@ -109,15 +108,16 @@ pub fn configure_strategy_dispatch(
       ),
     )
   }
+  let driver = @host_driver.open_dispatch_driver(run)
   let local_module = match
-    @local_connector.prepare_local_compute_module(
+    @local_driver.prepare_local_dispatch_module(
+      driver,
       registry,
       local_registration,
       generated,
       limits.local_execution,
       limits.guards,
       limits.candidate_work,
-      @strategy.graph_task_count(graph) - 1,
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
@@ -133,12 +133,6 @@ pub fn configure_strategy_dispatch(
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
-  }
-  let driver = @host_driver.open_dispatch_driver(run)
-  let local_channel = match
-    @host_driver.open_dispatch_channel(driver, registry, local_registration) {
-    Ok(value) => value
-    Err(issue) => return Err(dispatch_driver_issue(issue))
   }
   let native_channel = match
     @host_driver.open_dispatch_channel(driver, registry, native_registration) {
@@ -163,7 +157,6 @@ pub fn configure_strategy_dispatch(
     local_registration,
     local_module,
     native_registration,
-    local_channel,
     native_channel,
     installation,
     generated: generated.copy(),
@@ -241,20 +234,11 @@ fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
 pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  let compute = match
-    @host_driver.take_installed_task(
-      dispatch.owner.installation,
-      dispatch.prepared,
-      dispatch.owner.local_channel,
-    ) {
-    Err(issue) => return Err(dispatch_driver_issue(issue))
-    Ok(value) => value
-  }
-  @strategy.execute_captured_synchronous_task(
-    dispatch.owner.run,
-    @host_driver.prepared_task_index(dispatch.prepared),
-    compute,
-  ).map_err(issue => Run(issue))
+  @local_driver.execute_local_dispatch(
+    dispatch.owner.local_module,
+    dispatch.owner.installation,
+    dispatch.prepared,
+  ).map_err(local_dispatch_issue)
 }
 
 ///|

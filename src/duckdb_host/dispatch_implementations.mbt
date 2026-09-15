@@ -6,28 +6,12 @@ fn prepare_local_dispatch_work(
   revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
 ) -> Result[@host_driver.DispatchWork, DispatchIssue] {
-  match
-    @local_connector.prepare_local_module_compute(
-      host.local_module,
-      task - 1,
-      request,
-      @strategy.captured_task_join_output_limit(host.run, task).map(limit => {
-        (0, limit)
-      }),
-    ) {
-    Ok(compute) =>
-      @host_driver.stage_dispatch_work(
-        host.local_channel,
-        task,
-        revision,
-        request,
-        compute,
-      ).map_err(dispatch_driver_issue)
-    Err(Candidate(issue)) => Err(Candidate(issue))
-    Err(NotSelected) => Err(ForeignSelection)
-    Err(Capacity) => Err(Run(Physical(InvalidLimits)))
-    Err(Execution(issue)) => Err(Run(Compute(issue)))
-  }
+  @local_driver.prepare_local_dispatch(
+    host.local_module,
+    task,
+    revision,
+    request,
+  ).map_err(local_dispatch_issue)
 }
 
 ///|
@@ -94,4 +78,19 @@ fn prepare_native_dispatch_work(
       ),
     ),
   ).map_err(dispatch_driver_issue)
+}
+
+///|
+fn local_dispatch_issue(
+  issue : @local_driver.LocalDispatchIssue,
+) -> DispatchIssue {
+  match issue {
+    Configuration(_) => InvalidConfiguration
+    Preparation(Candidate(issue)) => Candidate(issue)
+    Preparation(NotSelected) => ForeignSelection
+    Preparation(Capacity) => Run(Physical(InvalidLimits))
+    Preparation(Execution(issue)) => Run(Compute(issue))
+    Dispatch(issue) => dispatch_driver_issue(issue)
+    Execution(issue) => Run(issue)
+  }
 }

@@ -85,38 +85,25 @@ test "independent numeric and Local bundles use the same installed Host without 
         name: "local-implementation",
         acquisition: None,
         fixed_compute: Some(fn(registry, registration) {
-          let implementation = @local_connector.prepare_local_compute_module(
+          let implementation = @local_driver.prepare_local_dispatch_module(
+            driver,
             registry,
             registration,
             generated,
             limits.local_execution,
             limits.guards,
             limits.candidate_work,
-            generated.length(),
           ).unwrap()
-          let channel : @host_driver.DispatchChannel[
-            @connector.SynchronousCompute,
-          ] = @host_driver.open_dispatch_channel(driver, registry, registration).unwrap()
           (
             fn(_context, task, revision, request) {
-              let compute = @local_connector.prepare_local_module_compute(
-                implementation,
-                task - 1,
-                request,
-                None,
-              ).unwrap()
-              @host_driver.stage_dispatch_work(
-                channel, task, revision, request, compute,
+              @local_driver.prepare_local_dispatch(
+                implementation, task, revision, request,
               ).map_err(_ => @strategy.RunIssue::ForeignCandidate)
             },
             fn(host, task) {
-              let compute = @host_driver.take_installed_task(
-                host, task, channel,
-              ).unwrap()
-              @strategy.execute_captured_synchronous_task(
-                run,
-                @host_driver.prepared_task_index(task),
-                compute,
+              @local_driver.execute_local_dispatch(implementation, host, task).map_err(_ => {
+                  @strategy.RunIssue::ForeignCandidate
+                },
               )
             },
           )

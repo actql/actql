@@ -378,6 +378,12 @@ channel, closed registration or stale ticket cannot recover the payload. The
 single slot may replace a stale, unstarted preparation; it cannot contain an
 active attempt or cleanup responsibility. This boundary neither copies row data
 nor creates resources while preparing a dispatch.
+The Local connector's `LocalDispatchModule` owns its sequence installation and
+typed synchronous channel. It validates the exact checked task owners at
+installation, binds the task's selected join ceiling during preparation, and
+executes through the common synchronous reservation/completion boundary. Both
+the standard Host and bundle-based installations call these connector operations;
+they do not recover Local compute payloads or duplicate its preparation logic.
 DuckDB join preparation keeps physical input names and compiled SQL in an opaque
 connector-owned handle. Compilation precedes the Host's preflight-work charge;
 binding and bounded input inspection follow that charge. The second phase uses
