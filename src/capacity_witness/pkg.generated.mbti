@@ -43,6 +43,8 @@ pub fn emit(WireWitness, @encode_core.Writer) -> Unit raise @encode_core.EncodeF
 
 pub fn emit_limit(LimitClaim, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn extend_program_claims(ProgramClaims, Array[ProgramProofClaim], ClosureLimits) -> Result[ProgramClaims, ProgramExtensionIssue]
+
 pub fn law(WireWitness) -> @capacity_law.RegisteredLaw
 
 pub fn limit_cid(LimitClaim) -> String
@@ -180,6 +182,14 @@ pub(all) enum ProgramClosureIssue {
   MissingProgramInput(Int, String)
   ProgramOperandMismatch(Int)
   CyclicProgramInputs
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ProgramExtensionIssue {
+  InvalidLimits
+  BudgetExceeded
+  EnforcedProof(Int)
+  Arithmetic(ClosureIssue)
+  Program(ProgramClosureIssue)
 } derive(Eq, @debug.Debug)
 
 type ProgramProofClaim

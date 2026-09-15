@@ -90,6 +90,20 @@ preflight ownership, reject an unused self-consistent wrong-unit witness and
 exercise missing/duplicate policies, equal-valued distinct policies and exact
 aggregate budget boundaries.
 
+### Adding Program evidence
+
+`extend_program_sources` extends the owned claim graph with ordinary Program
+proofs without reissuing the previously admitted Host witnesses. Existing sparse
+source slots, policy owners and resolved-limit handles retain their identities;
+each appended Program witness has no Host-source slot. The complete extended
+dependency graph is checked before a result is returned, and caller arrays are
+not retained.
+
+Host source usage continues to measure Host artifact admission only. Additional
+Program artifact construction and graph validation must be charged separately
+by the calling construction scope. This operation supplies neither a Host
+attestation for a Program proof nor proof applicability to an actual input edge.
+
 ## Fixed evidence
 
 The portable corpus fixes the 14 original field mappings, wire bytes and CIDs

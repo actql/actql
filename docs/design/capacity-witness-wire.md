@@ -260,3 +260,18 @@ foreign/duplicate bodies and operand mismatches. Synthetic white-box topology
 confirms rejection of a cycle introduced specifically by a Program proof input.
 This completes the implemented internal reference-union check, not external
 source validation, law application, consumer matching or execution permission.
+
+### Extending an owned collection
+
+`extend_program_claims` appends ordinary admitted Program proof bodies and
+checks the complete resulting arithmetic and Program dependency graph. Existing
+witness indices form an unchanged prefix; existing proof and resolved-limit
+handles and enforced-limit associations are retained. An extension cannot add
+an enforced leaf or silently replace an existing witness with an equal CID.
+Duplicate witnesses and unresolved dependencies remain errors.
+
+The closure limits apply to the entire resulting graph, including retained
+limits and repeated proof-input occurrences. Admission and construction of the
+additional artifacts have separate budgets. Retaining a resolved limit does not
+reselect its candidates or assert applicability of a new proof to an operation:
+source, producer and consumer ownership still require their respective checks.
