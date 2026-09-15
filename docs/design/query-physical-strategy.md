@@ -26,6 +26,15 @@ of already-recovered code or cancellation of running work. Start and completion
 checks remain mandatory after lookup. Typed entries can retain private payloads;
 the SDK does not inspect SQL, provider names or resource representations.
 
+`physical_host.prepare_installed_dispatch` resolves the selected registration
+through that installation and prepares the exact completed input ports before
+calling the installed entry. Its context and returned work remain opaque to the
+common driver. After preparation it rechecks registry availability and the
+current checked-ready selection before issuing a single-use dispatch ticket.
+Preparation must not initiate I/O. A ticket is neither a reservation nor a
+completion proof; the common execution admission and publication boundaries
+remain required.
+
 The Local realization is owned by `connectors/local`; DuckDB Compute candidate,
 receiving and completion state is owned by `connectors/duckdb/compute`. The latter
 keeps concrete compiler diagnostics and trusted transport verification separate

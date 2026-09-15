@@ -181,32 +181,21 @@ pub fn prepare_next_dispatch(
   guard @strategy.captured_dag_strategy(host.run) is Some(revision) else {
     return Err(NoStrategy)
   }
-  guard @strategy.strategy_registration(revision, task) is Some(registration) else {
-    return Err(ForeignSelection)
-  }
-  let request = match
-    @host_driver.prepare_dispatch_inputs(
+  match
+    @host_driver.prepare_installed_dispatch(
       host.driver,
+      host.implementations,
+      host,
       task,
       revision,
       host.limits.capacity,
       host.limits.input_entries,
       host.limits.input_name_bytes,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(dispatch_driver_issue(issue))
-  }
-  guard @connector.capability_implementation(host.implementations, registration)
-    is Some(implementation) else {
-    return Err(ForeignSelection)
-  }
-  let work = match implementation(host, task, revision, request) {
-    Ok(work) => work
-    Err(issue) => return Err(issue)
-  }
-  match @host_driver.prepare_dispatch_ticket(host.driver, task, revision) {
-    Err(issue) => Err(dispatch_driver_issue(issue))
-    Ok(ticket) => Ok(Some({ owner: host, ticket, work, }))
+    Err(Dispatch(issue)) => Err(dispatch_driver_issue(issue))
+    Err(MissingImplementation) => Err(ForeignSelection)
+    Err(Implementation(issue)) => Err(issue)
+    Ok((ticket, work)) => Ok(Some({ owner: host, ticket, work, }))
   }
 }
 

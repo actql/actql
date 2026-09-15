@@ -23,6 +23,8 @@ pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyR
 
 pub fn prepare_dispatch_ticket(DispatchDriver, Int, @physical_strategy.StrategyRevision) -> Result[DispatchTicket, DispatchIssue]
 
+pub fn[C, W, E] prepare_installed_dispatch(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[W, E]], C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[(DispatchTicket, W), InstalledDispatchIssue[E]]
+
 pub fn stop_dispatch_driver(DispatchDriver) -> Unit
 
 // Errors
@@ -38,6 +40,12 @@ pub(all) enum DispatchIssue {
 }
 
 type DispatchTicket
+
+pub(all) enum InstalledDispatchIssue[E] {
+  Dispatch(DispatchIssue)
+  MissingImplementation
+  Implementation(E)
+}
 
 // Type aliases
 

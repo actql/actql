@@ -160,7 +160,12 @@ test('prepared dispatch ownership has one common state machine and no connector 
   const bridge = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(bridge, /mut (?:pending|consumed)\s*:/);
   assert.match(bridge, /@host_driver\.consume_dispatch_ticket\(/);
-  assert.match(bridge, /@host_driver\.prepare_dispatch_inputs\(/);
+  assert.match(bridge, /@host_driver\.prepare_installed_dispatch\(/);
+  const installed = readFileSync('src/physical_host/installed_dispatch.mbt', 'utf8');
+  assert.match(installed, /prepare_dispatch_inputs\(/);
+  assert.match(installed, /capability_implementation\(/);
+  assert.match(installed, /prepare_dispatch_ticket\(/);
+  assert.doesNotMatch(installed, /@duckdb|@local_connector|DispatchWork|Native\(/);
   const inputs = readFileSync('src/physical_host/inputs.mbt', 'utf8');
   assert.doesNotMatch(inputs, /GeneratedSequence|@duckdb|@local_connector/);
   const synchronous = bridge.match(/pub fn execute_synchronous_dispatch\([\s\S]*?\n\}/)?.[0];
