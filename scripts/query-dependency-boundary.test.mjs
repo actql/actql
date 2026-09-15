@@ -276,6 +276,23 @@ test('Host join dispatch cannot build SQL or exchange a compiled preparation req
   assert.doesNotMatch(binding, /FixedComputeRequest|ProducerRead/);
 });
 
+test('DuckDB execution configuration and resource start belong to its connector driver', () => {
+  const common = readFileSync('src/duckdb_host/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(common, /^type (?:Strategy)?ComputeHostConfiguration$/m);
+  assert.doesNotMatch(common, /pub fn (?:configure_compute_host|start_configured_compute_host|start_configured_strategy_compute_host|borrow_configured_resident_inputs)\(/);
+  const api = readFileSync('src/connectors/duckdb/driver/pkg.generated.mbti', 'utf8');
+  for (const type of ['ComputeHostConfiguration', 'StrategyComputeHostConfiguration']) {
+    assert.match(api, new RegExp(`^type ${type}$`, 'm'));
+    assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${type}\\b`));
+  }
+  const driver = readFileSync('src/connectors/duckdb/driver/compute_configuration.mbt', 'utf8');
+  assert.match(driver, /start_captured_duckdb_task\(/);
+  assert.match(driver, /prepare_resident_inputs\(/);
+  const bridge = readFileSync('src/duckdb_host_node/compute.mbt', 'utf8');
+  assert.match(bridge, /@duckdb_driver\.start_configured_strategy_compute_host\(/);
+  assert.doesNotMatch(bridge, /@host\.(?:start_configured|configured_strategy)/);
+});
+
 test('resident output lifecycle does not own table names or materialization SQL', () => {
   const source = readFileSync('src/physical_strategy/resident_output.mbt', 'utf8');
   const state = source.match(/struct ResidentPendingOutput \{([\s\S]*?)\n\}/)?.[1];

@@ -57,7 +57,7 @@ test "common native start enforces calculated capacity against selected envelope
   let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   // The offered 100-byte retention is below the concrete completion capacity.
   assert_true(
-    @dbhost.start_configured_strategy_compute_host(
+    @duckdb_driver.start_configured_strategy_compute_host(
       setup,
       _ => false,
       100000L,

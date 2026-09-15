@@ -5,7 +5,7 @@ struct ComputeHostConfiguration {
   choice : @connector.FixedComputeChoice
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute]
   generated : @execution.GeneratedSequence
-  limits : @duckdb_compute.DuckDBComputeLimits
+  limits : @compute.DuckDBComputeLimits
   transport : @duckdb.TransportColumnLimits
 }
 
@@ -14,7 +14,7 @@ pub fn configure_compute_host(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   generated : @execution.GeneratedSequence,
-  limits : @duckdb_compute.DuckDBComputeLimits,
+  limits : @compute.DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
 ) -> ComputeHostConfiguration {
   { choice, prepared, generated, limits, transport, }
@@ -23,12 +23,9 @@ pub fn configure_compute_host(
 ///|
 pub fn start_configured_compute_host(
   setup : ComputeHostConfiguration,
-  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
-) -> Result[
-  @duckdb_compute.DuckDBComputeAttempt,
-  @duckdb_compute.DuckDBComputeIssue,
-] {
-  @duckdb_compute.start_duckdb_compute_attempt(
+  verify : (@compute.DuckDBComputeAttempt) -> Bool,
+) -> Result[@compute.DuckDBComputeAttempt, @compute.DuckDBComputeIssue] {
+  @compute.start_duckdb_compute_attempt(
     setup.choice,
     setup.prepared,
     setup.generated,
@@ -70,13 +67,13 @@ pub fn configured_strategy_compute_ledger(
 ///|
 pub fn start_configured_strategy_compute_host(
   setup : StrategyComputeHostConfiguration,
-  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
+  verify : (@compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident? : @duckdb_driver.DuckDBResidentInputs,
-) -> Result[@duckdb_driver.CapturedDuckDBTask, @strategy.RunIssue] {
+  resident? : DuckDBResidentInputs,
+) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   let c = setup.compute
-  @duckdb_driver.start_captured_duckdb_task(
+  start_captured_duckdb_task(
     setup.graph,
     setup.task,
     c.choice,
@@ -108,14 +105,14 @@ pub fn configured_strategy_compute_transport(
 ///|
 pub fn borrow_configured_resident_inputs(
   setup : StrategyComputeHostConfiguration,
-  env : @duckdb_driver.DuckDBResidentStore,
+  env : DuckDBResidentStore,
   tables : Array[@strategy.ResidentTable],
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
-) -> Result[@duckdb_driver.DuckDBResidentInputs, @strategy.RunIssue] {
+) -> Result[DuckDBResidentInputs, @strategy.RunIssue] {
   let c = setup.compute
-  @duckdb_driver.prepare_resident_inputs(
+  prepare_resident_inputs(
     setup.graph,
     env,
     setup.task,
@@ -125,5 +122,22 @@ pub fn borrow_configured_resident_inputs(
     max_entries,
     max_name_bytes,
     max_sql_bytes,
+  )
+}
+
+///|
+pub fn configured_strategy_retention_capacity(
+  setup : StrategyComputeHostConfiguration,
+) -> Int64? {
+  @compute.duckdb_task_retention_capacity(setup.compute.limits)
+}
+
+///|
+pub fn configured_strategy_scratch_capacity(
+  setup : StrategyComputeHostConfiguration,
+) -> Int64? {
+  @compute.duckdb_task_scratch_capacity(
+    setup.compute.limits,
+    setup.compute.transport,
   )
 }

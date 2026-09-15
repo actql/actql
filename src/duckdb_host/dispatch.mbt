@@ -23,7 +23,7 @@ struct StrategyHostDispatch {
   local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
   native_channel : @host_driver.DispatchChannel[
-    StrategyComputeHostConfiguration,
+    @duckdb_driver.StrategyComputeHostConfiguration,
   ]
   installation : @host_driver.DispatchHost[StrategyHostDispatch, DispatchIssue]
   generated : Array[@execution.GeneratedSequence]
@@ -244,7 +244,7 @@ pub fn execute_synchronous_dispatch(
 ///|
 pub fn take_native_dispatch(
   dispatch : TaskDispatch,
-) -> Result[StrategyComputeHostConfiguration, DispatchIssue] {
+) -> Result[@duckdb_driver.StrategyComputeHostConfiguration, DispatchIssue] {
   @host_driver.take_installed_task(
     dispatch.owner.installation,
     dispatch.prepared,

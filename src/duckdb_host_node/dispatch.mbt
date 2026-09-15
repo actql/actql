@@ -81,7 +81,7 @@ pub fn strategy_host_resident_inputs(
 #export_name("strategyHostTakeNative")
 pub fn strategy_host_take_native(
   task : @host.TaskDispatch,
-) -> @host.StrategyComputeHostConfiguration raise NodeHostFailure {
+) -> @duckdb_driver.StrategyComputeHostConfiguration raise NodeHostFailure {
   match @host.take_native_dispatch(task) {
     Ok(value) => value
     Err(issue) => raise Dispatch(issue)

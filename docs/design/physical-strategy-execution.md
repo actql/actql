@@ -384,6 +384,13 @@ installation, binds the task's selected join ceiling during preparation, and
 executes through the common synchronous reservation/completion boundary. Both
 the standard Host and bundle-based installations call these connector operations;
 they do not recover Local compute payloads or duplicate its preparation logic.
+DuckDB's `ComputeHostConfiguration` and `StrategyComputeHostConfiguration` are
+owned by `connectors/duckdb/driver`. These opaque handles retain its exact
+candidate, generated sequence, result limits and transport configuration.
+Only the connector driver interprets them to borrow resident inputs, calculate
+required scratch/retention, or start through the common resource boundary.
+The standard Host routes the selected handle to that driver rather than owning
+a second configuration or start implementation.
 DuckDB join preparation keeps physical input names and compiled SQL in an opaque
 connector-owned handle. Compilation precedes the Host's preflight-work charge;
 binding and bounded input inspection follow that charge. The second phase uses

@@ -5,7 +5,7 @@ struct OwnedFixedFixture {
   compute : @duckdb.FixedCompute
   local_binding : @connector.PreparedCompute[@execution.GeneratedSequence]
   local_choice : @connector.FixedComputeChoice
-  configuration : @dbhost.ComputeHostConfiguration
+  configuration : @duckdb_driver.ComputeHostConfiguration
   consumer : @execution.GeneratedSequence
   measurement : @execution.FixedProducerMeasurement
   mut measured : @execution.FixedProducerMeasuredOutput?
@@ -174,7 +174,7 @@ fn owned_fixed_from_output(
       compute: @connector.fixed_compute_choice_payload(choice, native).unwrap(),
       local_binding,
       local_choice,
-      configuration: @dbhost.configure_compute_host(
+      configuration: @duckdb_driver.configure_compute_host(
         choice,
         native,
         @connector.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
@@ -268,7 +268,7 @@ pub fn owned_count_create(
 #export_name("ownedFixedConfiguration")
 pub fn owned_fixed_configuration(
   value : OwnedFixedFixture,
-) -> @dbhost.ComputeHostConfiguration {
+) -> @duckdb_driver.ComputeHostConfiguration {
   value.configuration
 }
 

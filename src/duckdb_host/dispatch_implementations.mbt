@@ -66,10 +66,10 @@ fn prepare_native_dispatch_work(
     task,
     revision,
     request,
-    configure_strategy_compute_host(
+    @duckdb_driver.configure_strategy_compute_host(
       host.run,
       task,
-      configure_compute_host(
+      @duckdb_driver.configure_compute_host(
         @duckdb_compute.duckdb_selected_compute_choice(selected),
         @duckdb_compute.duckdb_selected_compute_candidate(selected),
         host.generated[task - 1],

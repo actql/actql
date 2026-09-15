@@ -334,7 +334,7 @@ pub fn strategy_fixture_dispatch(
 pub fn strategy_fixture_compute(
   f : StrategyFixture,
   task : Int,
-) -> @dbhost.StrategyComputeHostConfiguration {
+) -> @duckdb_driver.StrategyComputeHostConfiguration {
   try {
     let request = strategy_fixture_request(f, task)
     let registry = f.registry
@@ -376,10 +376,10 @@ pub fn strategy_fixture_compute(
       f.fragment_json,
       true,
     )
-    @dbhost.configure_strategy_compute_host(
+    @duckdb_driver.configure_strategy_compute_host(
       f.run.unwrap(),
       task,
-      @dbhost.configure_compute_host(
+      @duckdb_driver.configure_compute_host(
         choice,
         candidate,
         generated,

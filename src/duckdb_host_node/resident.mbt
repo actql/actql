@@ -45,7 +45,7 @@ pub fn resident_close(
 ///|
 #export_name("residentBorrowSetup")
 pub fn resident_borrow_setup(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
   env : @duckdb_driver.DuckDBResidentStore,
   tables : Array[@duckdb_driver.DuckDBResidentTable],
   entries : Int,
@@ -53,7 +53,7 @@ pub fn resident_borrow_setup(
   sql : Int,
 ) -> @duckdb_driver.DuckDBResidentInputs raise NodeHostFailure {
   match
-    @host.borrow_configured_resident_inputs(
+    @duckdb_driver.borrow_configured_resident_inputs(
       setup,
       env,
       tables.map(@duckdb_driver.resident_table_handle),

@@ -4,6 +4,7 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/connectors/duckdb/driver" @duckdb_driver,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/local" @local_connector,

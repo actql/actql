@@ -147,7 +147,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         },
       ).unwrap()
       assert_true(
-        @dbhost.borrow_configured_resident_inputs(
+        @duckdb_driver.borrow_configured_resident_inputs(
           setup,
           env,
           [left],
@@ -161,7 +161,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         // The first borrow succeeds; rejecting the second must return it.
         for _ in 0..<3 {
           assert_true(
-            @dbhost.borrow_configured_resident_inputs(
+            @duckdb_driver.borrow_configured_resident_inputs(
               setup,
               env,
               [left, left],
@@ -173,7 +173,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
           )
         }
         assert_true(
-          @dbhost.borrow_configured_resident_inputs(
+          @duckdb_driver.borrow_configured_resident_inputs(
             setup,
             env,
             [right, left],
@@ -184,7 +184,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
           is Err(_),
         )
       }
-      let cancelled = @dbhost.borrow_configured_resident_inputs(
+      let cancelled = @duckdb_driver.borrow_configured_resident_inputs(
         setup,
         env,
         [left, right],
@@ -204,7 +204,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       )
       let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts
       assert_true(
-        @dbhost.start_configured_strategy_compute_host(
+        @duckdb_driver.start_configured_strategy_compute_host(
           setup,
           _ => false,
           100000L,
@@ -217,7 +217,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
         before,
       )
-      @dbhost.borrow_configured_resident_inputs(
+      @duckdb_driver.borrow_configured_resident_inputs(
         setup,
         env,
         [left, right],
@@ -231,7 +231,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       let ledger = @strategy.captured_dag_ledger(run)
       let before = @resources.ledger_usage(ledger)
       assert_true(
-        @dbhost.start_configured_strategy_compute_host(
+        @duckdb_driver.start_configured_strategy_compute_host(
           setup,
           _ => false,
           100000L,
@@ -256,7 +256,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
       continue
     }
-    let attempt = @dbhost.start_configured_strategy_compute_host(
+    let attempt = @duckdb_driver.start_configured_strategy_compute_host(
       setup,
       current => {
         transport.settled is Some(expected) && physical_equal(current, expected)

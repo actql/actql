@@ -10,7 +10,6 @@ import {
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
-  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
 }
@@ -32,8 +31,6 @@ pub fn bind_broad_host_input(BroadHostRun, @acquisition.DuckDBBroadObservation, 
 
 pub fn bind_native_host_input(NativeHostRun, @acquisition.DuckDBNativeObservation, @lowering_relation.BoundPrepared, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[@execution_relation.BoundProducerInput, NativeHostIssue]
 
-pub fn borrow_configured_resident_inputs(StrategyComputeHostConfiguration, @driver.DuckDBResidentStore, Array[@physical_strategy.ResidentTable], Int, Int, Int) -> Result[@driver.DuckDBResidentInputs, @physical_strategy.RunIssue]
-
 pub fn broad_host_attempt(BroadHostRun) -> @acquisition.DuckDBBroadAttempt
 
 pub fn broad_host_metadata(BroadHostRun, Int, Array[(String, @adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, BroadHostIssue]
@@ -50,35 +47,19 @@ pub fn complete_native_host(NativeHostRun, @acquisition.DuckDBNativeCompletionLi
 
 pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
 
-pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits) -> ComputeHostConfiguration
-
 pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
 
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
 pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.ResidentProfile, Array[Array[DispatchRate]]) -> Result[Unit, DispatchIssue]
 
-pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
-
 pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
 
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
-pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
-
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
-
-pub fn configured_strategy_compute_graph(StrategyComputeHostConfiguration) -> (@physical_strategy.CapturedDAG, Int)
-
-pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @physical_resources.Ledger
-
-pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -> @adapter.TransportColumnLimits
-
-pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) -> Int64?
-
-pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
 
 pub fn dispatch_duckdb_registration(StrategyHostDispatch) -> @connector_sdk.CapabilityRegistration
 
@@ -116,17 +97,13 @@ pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, Dispatch
 
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@acquisition.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
-pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> Result[@compute.DuckDBComputeAttempt, @compute.DuckDBComputeIssue]
-
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
-
-pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : @driver.DuckDBResidentInputs) -> Result[@driver.CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], String, Int, @adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
 pub fn stop_strategy_dispatch(StrategyHostDispatch) -> Unit
 
-pub fn take_native_dispatch(TaskDispatch) -> Result[StrategyComputeHostConfiguration, DispatchIssue]
+pub fn take_native_dispatch(TaskDispatch) -> Result[@driver.StrategyComputeHostConfiguration, DispatchIssue]
 
 pub fn verify_native_host(NativeHostRun, @acquisition.DuckDBNativeObservation) -> Bool
 
@@ -150,8 +127,6 @@ pub(all) struct BroadHostLimits {
 }
 
 type BroadHostRun
-
-type ComputeHostConfiguration
 
 pub(all) struct DispatchEstimateProfile {
   local_rates : Array[DispatchRate]
@@ -210,8 +185,6 @@ pub(all) struct NativeHostLimits {
 }
 
 type NativeHostRun
-
-type StrategyComputeHostConfiguration
 
 type StrategyHostDispatch
 

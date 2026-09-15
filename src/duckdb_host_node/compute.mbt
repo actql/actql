@@ -9,9 +9,10 @@ struct ComputeNodeRun {
 ///|
 #export_name("computeStrategyRetentionCapacity")
 pub fn compute_strategy_retention_capacity(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
 ) -> Int64 raise NodeHostFailure {
-  guard @host.configured_strategy_retention_capacity(setup) is Some(bytes) else {
+  guard @duckdb_driver.configured_strategy_retention_capacity(setup)
+    is Some(bytes) else {
     raise Physical(InvalidLimits)
   }
   bytes
@@ -20,9 +21,10 @@ pub fn compute_strategy_retention_capacity(
 ///|
 #export_name("computeStrategyScratchCapacity")
 pub fn compute_strategy_scratch_capacity(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
 ) -> Int64 raise NodeHostFailure {
-  guard @host.configured_strategy_scratch_capacity(setup) is Some(bytes) else {
+  guard @duckdb_driver.configured_strategy_scratch_capacity(setup)
+    is Some(bytes) else {
     raise Physical(InvalidLimits)
   }
   bytes
@@ -31,14 +33,14 @@ pub fn compute_strategy_scratch_capacity(
 ///|
 #export_name("computeHostOpen")
 pub fn compute_host_open(
-  setup : @host.ComputeHostConfiguration,
+  setup : @duckdb_driver.ComputeHostConfiguration,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
 ) -> ComputeNodeRun raise NodeHostFailure {
-  match @host.start_configured_compute_host(setup, verify) {
+  match @duckdb_driver.start_configured_compute_host(setup, verify) {
     Ok(attempt) =>
       {
         attempt,
-        transport: @host.configured_compute_transport(setup),
+        transport: @duckdb_driver.configured_compute_transport(setup),
         strategy: None,
         closed: false,
       }
@@ -49,7 +51,7 @@ pub fn compute_host_open(
 ///|
 #export_name("computeStrategyHostOpen")
 pub fn compute_strategy_host_open(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
@@ -60,7 +62,7 @@ pub fn compute_strategy_host_open(
 ///|
 #export_name("computeResidentStrategyHostOpen")
 pub fn compute_resident_strategy_host_open(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
@@ -77,14 +79,14 @@ pub fn compute_resident_strategy_host_open(
 
 ///|
 fn open_strategy_compute_host(
-  setup : @host.StrategyComputeHostConfiguration,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : @duckdb_driver.DuckDBResidentInputs,
 ) -> ComputeNodeRun raise NodeHostFailure {
   match
-    @host.start_configured_strategy_compute_host(
+    @duckdb_driver.start_configured_strategy_compute_host(
       setup,
       verify,
       transfer_bytes,
@@ -94,11 +96,11 @@ fn open_strategy_compute_host(
     Ok(task_handle) =>
       {
         attempt: @duckdb_driver.captured_duckdb_attempt(task_handle),
-        transport: @host.configured_strategy_compute_transport(setup),
+        transport: @duckdb_driver.configured_strategy_compute_transport(setup),
         strategy: Some(
           (
-            @host.configured_strategy_compute_graph(setup).0,
-            @host.configured_strategy_compute_graph(setup).1,
+            @duckdb_driver.configured_strategy_compute_graph(setup).0,
+            @duckdb_driver.configured_strategy_compute_graph(setup).1,
             task_handle,
           ),
         ),
