@@ -21,6 +21,8 @@ struct SelectedPolicyContext {
   capacity : @environment.Capacity
   lookup : @environment.LookupExecution
   usage : SelectedPolicyUsage
+  generated_bytes : Int
+  generated_nodes : Int
 }
 
 ///|
@@ -83,6 +85,8 @@ pub fn bind_capacity_policy(
     context,
     capacity,
     lookup,
+    generated_bytes: context.wired.stages.generated_bytes,
+    generated_nodes: context.wired.stages.generated_nodes,
     usage: {
       work: before.work + nodes + 1 + lookup_work,
       text_bytes: before.text_bytes + bytes + lookup_bytes,
@@ -112,4 +116,13 @@ pub fn selected_capacity(v : SelectedPolicyContext) -> @environment.Capacity {
 ///|
 pub fn selected_policy_usage(v : SelectedPolicyContext) -> SelectedPolicyUsage {
   v.usage
+}
+
+///|
+/// Complete artifacts constructed by automatic capacity preparation, separate
+/// from policy admission and subsequent source identity hashing.
+pub fn selected_capacity_metadata_usage(
+  v : SelectedPolicyContext,
+) -> (Int, Int) {
+  (v.generated_bytes, v.generated_nodes)
 }

@@ -28,6 +28,7 @@ pub enum ProgramIdentityIssue {
 ///|
 struct ProgramSourceIdentity {
   sources : ProgramSourceChecks
+  contexts : StageContexts
   definition : @program_refs.ProgramDefinition
   definition_cid : String
   parameter_values_cid : String
@@ -187,6 +188,7 @@ pub fn identify_program_sources(
   nodes += parameter_hash.2
   Ok({
     sources,
+    contexts: sources.operations.preparation.profiles.context.selected.context.wired.stages,
     definition,
     definition_cid: "sha256:" + definition_hash.0,
     parameter_values_cid: "sha256:" + parameter_hash.0,
@@ -232,6 +234,13 @@ pub fn program_identity_usage(v : ProgramSourceIdentity) -> (Int, Int, Int) {
 }
 
 ///|
+pub fn program_identity_capacity_metadata_usage(
+  v : ProgramSourceIdentity,
+) -> (Int, Int) {
+  (v.contexts.generated_bytes, v.contexts.generated_nodes)
+}
+
+///|
 /// Return the already checked requests owned by this Program and Stage.
 /// Equal request contents from another preparation do not substitute for ownership.
 pub fn program_identity_stage_requests(
@@ -264,7 +273,7 @@ pub fn program_identity_producer_count(
   v : ProgramSourceIdentity,
   stage : Int,
 ) -> Int? {
-  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = v.contexts
   stages.contexts.get(stage).map(context => context.visits.length())
 }
 
@@ -276,7 +285,7 @@ pub fn program_identity_producer_at(
   stage : Int,
   visit : Int,
 ) -> @pipeline.CheckedPipeline? {
-  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = v.contexts
   stages.contexts
   .get(stage)
   .bind(context => {
@@ -294,7 +303,7 @@ pub fn program_identity_producer_is_local(
   stage : Int,
   visit : Int,
 ) -> Bool? {
-  let stages = v.sources.operations.preparation.profiles.context.selected.context.wired.stages
+  let stages = v.contexts
   guard program_identity_producer_at(v, stage, visit) is Some(pipeline) else {
     return None
   }

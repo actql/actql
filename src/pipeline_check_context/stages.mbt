@@ -17,6 +17,9 @@ struct StageContexts {
   policy : @policy.Policy
   work : Int
   text : Int
+  values_claims : Map[Int, Array[(@pipeline.CheckedPipeline, Array[Int?])]]?
+  generated_bytes : Int
+  generated_nodes : Int
 }
 
 ///|
@@ -101,6 +104,9 @@ pub fn attach_stage_contexts(
     policy: selected_policy,
     work,
     text,
+    values_claims: None,
+    generated_bytes: 0,
+    generated_nodes: 0,
   })
 }
 

@@ -239,6 +239,21 @@ without requiring clients to unpack a preparation-phase wrapper tree.
 
 ## Consumers and responsibility boundaries
 
+Values row-count evidence is prepared once per checked Stage definition before
+capacity applications are expanded across imports. An applicable supplied proof
+is retained; otherwise the compiler constructs the existing count law from the
+checked operation. Other supplied claims are not replaced merely because they
+share a local source ordinal. Their actual producer applicability remains a
+separate owner-aware check.
+
+Complete count-proof and witness artifacts consume aggregate preparation bytes,
+nodes and work before subsequent identity construction. Their claim coordinates
+are retained for later values resource selection, which reads the registered
+application instead of rebuilding the count proof. Repeated imports retain
+their input occurrences without repeating definition-level artifact generation.
+Count evidence does not admit cells, imply uniqueness or discharge runtime
+enforcement obligations.
+
 The standard path owns visit expansion, evidence applicability and preparation
 order for every supported formal-check route. A parallel legacy Program
 construction path is not a compatibility requirement. Independently useful

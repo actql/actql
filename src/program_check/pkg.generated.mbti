@@ -576,6 +576,7 @@ pub suberror LocalConstructionFailure {
 
 pub suberror SourceFailure {
   DeclarationWorkLimit
+  CapacityMetadataBudget
   UnsupportedBindings(@decode_core.Cursor)
   UnsupportedEffects(@decode_core.Cursor)
   Requests(@pipeline_check_context.PrepareSourcesIssue)

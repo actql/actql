@@ -112,14 +112,26 @@ fn construct_local(
     limits,
     calendar~,
     capacity_inputs~,
+    derived_capacity_limits=if capacity_inputs is Some(_) {
+      Some({
+        max_bytes: limits.identity.identity.max_hash_bytes,
+        max_nodes: limits.identity.identity.max_hash_nodes,
+        max_depth: limits.identity.identity.max_depth,
+      })
+    } else {
+      None
+    },
   ) catch {
     e => raise Source(e)
   }
   let (_, bytes, nodes) = @context.program_identity_usage(identity)
+  let (generated_bytes, generated_nodes) = @context.program_identity_capacity_metadata_usage(
+    identity,
+  )
   let remaining = IdentityBudget::{
     work: work_limit,
-    bytes: admission.bytes - bytes,
-    nodes: admission.nodes - nodes,
+    bytes: admission.bytes - bytes - generated_bytes,
+    nodes: admission.nodes - nodes - generated_nodes,
     depth: budget.depth,
   }
   // Closure accounts for the source work prefix once; hashes are incremental

@@ -16,6 +16,7 @@ priv struct SourceLimits {
 ///|
 pub suberror SourceFailure {
   DeclarationWorkLimit
+  CapacityMetadataBudget
   UnsupportedBindings(@decode.Cursor)
   UnsupportedEffects(@decode.Cursor)
   Requests(@context.PrepareSourcesIssue)
@@ -81,6 +82,7 @@ fn prepare_catalog_source(
   limits : SourceLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  derived_capacity_limits? : @wire.Limits? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = match
     @stages.prepare(program, {
@@ -122,6 +124,7 @@ fn prepare_catalog_source(
       limits.context,
       calendar~,
       capacity_inputs~,
+      derived_capacity_limits~,
     ) {
     Ok(v) => v
     Err(e) => raise SourceView(e)
@@ -139,6 +142,25 @@ fn prepare_selected_source(
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
+  let (generated_bytes, generated_nodes) = @context.selected_capacity_metadata_usage(
+    selected,
+  )
+  let identity_limits = limits.identity.identity
+  if generated_bytes > identity_limits.max_hash_bytes ||
+    generated_nodes > identity_limits.max_hash_nodes {
+    raise CapacityMetadataBudget
+  }
+  let limits = {
+    ..limits,
+    identity: {
+      ..limits.identity,
+      identity: {
+        ..identity_limits,
+        max_hash_bytes: identity_limits.max_hash_bytes - generated_bytes,
+        max_hash_nodes: identity_limits.max_hash_nodes - generated_nodes,
+      },
+    },
+  }
   let prepared = match locations {
     Some(locations) =>
       @context.prepare_program_source_acquisitions(

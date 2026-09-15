@@ -702,13 +702,13 @@ pub fn prepare_expression_validation(SelectedPolicyContext, ExpressionValidation
 
 pub fn prepare_incoming_gate(ProgramIncomingLinks, Int, IncomingGateLimits) -> Result[PreparedIncomingGate, IncomingGateIssue]
 
-pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, sourceviews? : @sourceview_resolution.PipelineInputs?, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, capacity_inputs? : ProgramCapacityInputs?) -> Result[SelectedPolicyContext, LocalContextIssue]
+pub fn prepare_local_context(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], LocalContextLimits, sourceviews? : @sourceview_resolution.PipelineInputs?, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, capacity_inputs? : ProgramCapacityInputs?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, LocalContextIssue]
 
 pub fn prepare_local_program_context(@stage_syntax.Program, @decode_core.Cursor?, @check_environment.WireEnvironment, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, max_parameters~ : Int, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[SelectedPolicyContext, LocalProgramContextIssue]
 
 pub fn prepare_local_stage_contexts(@stage_results.PreparedLocalSource, Array[Array[CapacityMaterial]], @capacity_policy.Policy, CapacityStageLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?) -> Result[StageContexts, CapacityStageIssue]
 
-pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits) -> Result[StageContexts, CapacityStageIssue]
+pub fn prepare_local_stage_contexts_from_inputs(@stage_results.PreparedLocalSource, ProgramCapacityInputs, @capacity_policy.Policy, CapacityStageLimits, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[StageContexts, CapacityStageIssue]
 
 pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueEnvelope, NestValueIssue]
 
@@ -736,11 +736,13 @@ pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment
 
 pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_relation_snapshot.Limits) -> Result[SourceStateRequirement?, SourceStateIssue]
 
-pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
+pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
 pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn prepare_values_row_bound(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.Limits) -> Result[ValuesRowBound, ValuesRowLimitIssue]
+
+pub fn program_identity_capacity_metadata_usage(ProgramSourceIdentity) -> (Int, Int)
 
 pub fn program_identity_definition(ProgramSourceIdentity) -> @program_references.ProgramDefinition
 
@@ -915,6 +917,8 @@ pub fn select_nest_item_limit(ProgramOperationResolutionIndex, Int, Int, Int) ->
 pub fn select_publication_row_limit(ProgramPublicationClosure, Int, Int, Int) -> Result[PublicationRowLimit, PublicationRowLimitIssue]
 
 pub fn selected_capacity(SelectedPolicyContext) -> @check_environment.Capacity
+
+pub fn selected_capacity_metadata_usage(SelectedPolicyContext) -> (Int, Int)
 
 pub fn selected_lookup_execution(SelectedPolicyContext) -> @check_environment.LookupExecution
 
@@ -1286,6 +1290,7 @@ pub(all) struct CapacityMaterial {
 pub enum CapacityStageIssue {
   InvalidLimits
   Inputs(CapacityInputsIssue)
+  Values(Int, ValuesCapacityIssue)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -3549,6 +3554,13 @@ pub(all) enum TraversalRule {
   DeduplicatePathIdentities
   OrderTraversalRows
 } derive(Eq, @debug.Debug)
+
+pub enum ValuesCapacityIssue {
+  InvalidLimits
+  BudgetExceeded
+  Count(Int, ValuesRowLimitIssue)
+  Extension(@capacity_witness.ProgramExtensionIssue)
+}
 
 pub(all) enum ValuesMeasurementIssue {
   InvalidRequirement

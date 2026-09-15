@@ -220,6 +220,16 @@ pub fn resolve_program_values_resources(
     }
     remaining -= 1
     work += 1
+    let (retained, lookup_work) = match
+      retained_values_count(
+        index.requirements.stages,
+        site,
+        limits.max_work - work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Rows(i, issue))
+    }
+    work += lookup_work
     meter.nodes = meter.nodes.min(limits.max_work - work)
     let metadata_before = meter.used_nodes
     let wire = match
@@ -244,7 +254,7 @@ pub fn resolve_program_values_resources(
     nodes -= wire.bound.nodes
     work += wire.bound.nodes
     let rows = match
-      resolve_values_row_limit_metered(wire, metadata, Some(meter)) {
+      resolve_values_row_limit_metered(wire, metadata, Some(meter), retained~) {
       Ok(v) => v
       Err(e) => return Err(Rows(i, e))
     }

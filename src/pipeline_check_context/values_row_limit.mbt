@@ -34,6 +34,7 @@ fn resolve_values_row_limit_metered(
   wire : ValuesWireLimit,
   limits : @wire.LimitLimits,
   meter : ValuesMetadataBudget?,
+  retained? : @step_bounds.StepBound? = None,
 ) -> Result[ValuesRowLimit, ValuesRowLimitIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -70,10 +71,25 @@ fn resolve_values_row_limit_metered(
       @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
     }
   }
-  let rows = match
-    prepare_values_row_bound_metered(site.pipeline, site.step, limits, meter) {
-    Ok(v) => v
-    Err(e) => return Err(e)
+  let rows = match retained {
+    Some(bound) => {
+      if !physical_equal(@step_bounds.checked_pipeline(bound), site.pipeline) ||
+        @step_bounds.checked_step(bound) != site.step {
+        return Err(InvalidOwner)
+      }
+      bound
+    }
+    None =>
+      match
+        prepare_values_row_bound_metered(
+          site.pipeline,
+          site.step,
+          limits,
+          meter,
+        ) {
+        Ok(v) => v
+        Err(e) => return Err(e)
+      }
   }
   let witness = @wire.program_proof_witness(@step_bounds.checked_proof(rows))
   let count = @wire.value(witness)

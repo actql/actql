@@ -22,6 +22,7 @@ pub fn prepare_sourceview_context(
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   capacity_inputs? : ProgramCapacityInputs? = None,
+  derived_capacity_limits? : @wire.Limits? = None,
 ) -> Result[SelectedPolicyContext, SourceViewContextIssue] {
   if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
@@ -62,6 +63,7 @@ pub fn prepare_sourceview_context(
       proof_owners~,
       input_owners~,
       capacity_inputs~,
+      derived_capacity_limits~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Context(e))

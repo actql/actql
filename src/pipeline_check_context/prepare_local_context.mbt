@@ -102,10 +102,14 @@ pub fn prepare_local_context(
   proof_owners? : Array[Array[(Int, Int, Int)]]? = None,
   input_owners? : Array[Array[(Int, Int, Int, Int)]]? = None,
   capacity_inputs? : ProgramCapacityInputs? = None,
+  derived_capacity_limits? : @wire.Limits? = None,
 ) -> Result[SelectedPolicyContext, LocalContextIssue] {
   let caps = limits.stages
   if !local_context_limits_valid(limits) {
     return Err(InvalidLimits)
+  }
+  if derived_capacity_limits is Some(_) && capacity_inputs is None {
+    return Err(Stages(Inputs(ConflictingInputs)))
   }
   if capacity_inputs is Some(_) &&
     (
@@ -168,6 +172,7 @@ pub fn prepare_local_context(
           max_work: remaining_work - remote_work,
           max_text_bytes: remaining_text,
         },
+        derived_capacity_limits~,
       )
     None =>
       prepare_local_stage_contexts(

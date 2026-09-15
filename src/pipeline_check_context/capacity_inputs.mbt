@@ -296,6 +296,7 @@ pub fn prepare_local_stage_contexts_from_inputs(
   inputs : ProgramCapacityInputs,
   selected_policy : @policy.Policy,
   limits : CapacityStageLimits,
+  derived_capacity_limits? : @wire.Limits? = None,
 ) -> Result[StageContexts, CapacityStageIssue] {
   if limits.max_work < 0 ||
     limits.max_text_bytes < 0 ||
@@ -304,17 +305,44 @@ pub fn prepare_local_stage_contexts_from_inputs(
     limits.max_operand_work < 0 {
     return Err(InvalidLimits)
   }
+  let generated = match derived_capacity_limits {
+    Some(metadata) =>
+      match
+        derive_program_values_capacity(
+          prepared,
+          inputs,
+          limits.max_work,
+          metadata,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+    None => None
+  }
+  let (inputs, generated_work, generated_bytes, generated_nodes, values_claims) = match
+    generated {
+    Some(value) =>
+      (value.inputs, value.work, value.bytes, value.nodes, Some(value.claims))
+    None => (inputs, 0, 0, 0, None)
+  }
   let (materials, work) = match
-    expand_capacity_inputs(prepared, inputs, limits.max_work) {
+    expand_capacity_inputs(prepared, inputs, limits.max_work - generated_work) {
     Ok(value) => value
     Err(issue) => return Err(Inputs(issue))
   }
   match
     prepare_local_stage_contexts(prepared, materials, selected_policy, {
       ..limits,
-      max_work: limits.max_work - work,
+      max_work: limits.max_work - work - generated_work,
     }) {
-    Ok(value) => Ok({ ..value, work: value.work + work, })
+    Ok(value) =>
+      Ok({
+        ..value,
+        work: value.work + work + generated_work,
+        generated_bytes,
+        generated_nodes,
+        values_claims,
+      })
     Err(issue) => Err(issue)
   }
 }
