@@ -8,21 +8,20 @@ pub fn key_unnest_input(key : KeyedRelation) -> KeyedRelation? {
 }
 
 ///|
+// The optional index is the prepared key extension, not the authored option:
+// an outer singleton can author an index while retaining only its parent key.
 fn unnest_key(
   operation : @relation.CheckedOperation,
   parent : KeyedRelation,
   mapped : KeyedRelation,
+  index : String?,
   b : TransferBudget,
 ) -> KeyedRelation raise Stop {
   let source = @relation.source(operation)
-  guard @relation.reshape(operation)
-    is Some(Unnest(index~, outer~, max_items~, ..)) else {
-    fail(source, InputContractMismatch)
-  }
   spend(b, source, mapped.fields.length() + mapped.aliases.length() + 1)
   let fields = mapped.fields.copy()
   let aliases = mapped.aliases.copy()
-  if !outer && index is Some(name) {
+  if index is Some(name) {
     let field = @row.Unqualified(name)
     charge(b, source, field)
     let contract = @row.lookup(@relation.output_schema(operation), field)
@@ -32,13 +31,6 @@ fn unnest_key(
     let item = plain_key_field(field, contract)
     fields.push(item)
     aliases.push([item])
-  } else {
-    // At most one output occurrence per admitted parent, including the single
-    // synthetic outer row. This is conditional on array-bound admission, not
-    // a claim that a nullable outer index is an identity component.
-    guard outer && max_items is Some(n) && n <= 1L else {
-      fail(source, InputContractMismatch)
-    }
   }
   {
     ..mapped,

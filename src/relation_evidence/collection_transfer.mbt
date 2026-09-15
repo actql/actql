@@ -8,6 +8,8 @@ pub struct KeySetTransfer {
 ///|
 priv enum KeyMapping {
   Keep
+  UnnestParent
+  UnnestIndex(String)
   Project(Map[String, Array[KeyField]])
   Forget
 }
@@ -108,8 +110,11 @@ fn prepare_mapping(
     }
     Unnest =>
       match @relation.reshape(operation) {
-        Some(Unnest(outer=false, index=Some(_), ..)) => Keep
-        Some(Unnest(outer=true, max_items=Some(n), ..)) if n <= 1L => Keep
+        Some(Unnest(outer=false, index=Some(name), ..)) => UnnestIndex(name)
+        // At most one output per admitted parent, including a synthetic outer
+        // row. A nullable outer index is not an identity component.
+        Some(Unnest(outer=true, max_items=Some(n), ..)) if n <= 1L =>
+          UnnestParent
         _ => Forget
       }
     Unpivot => unpivot_mapping(operation, b)
@@ -137,7 +142,7 @@ fn mapped_key(
     for field in group {
       charge(b, source, field.name)
       match mapping {
-        Keep => remaining.push(field)
+        Keep | UnnestParent | UnnestIndex(_) => remaining.push(field)
         Project(names) =>
           if names.get(field_key(field.name)) is Some(mapped) {
             spend(b, source, mapped.length())
@@ -203,12 +208,15 @@ pub fn transfer_keys(
     for key in previous.witnesses {
       if mapped_key(key, mapping, records, source, b) is Some(next) {
         witnesses.push(
-          if @relation.operation(operation) == @relation.Unnest {
-            unnest_key(operation, key, next, b)
-          } else if @relation.operation(operation) == @relation.Unpivot {
-            unpivot_key(operation, key, next, b)
-          } else {
-            next
+          match mapping {
+            UnnestParent => unnest_key(operation, key, next, None, b)
+            UnnestIndex(name) => unnest_key(operation, key, next, Some(name), b)
+            _ =>
+              if @relation.operation(operation) == @relation.Unpivot {
+                unpivot_key(operation, key, next, b)
+              } else {
+                next
+              }
           },
         )
       }
