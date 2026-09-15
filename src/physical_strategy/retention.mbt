@@ -21,15 +21,6 @@ fn task_parents(run : CapturedDAG, task : Int) -> Array[Int] {
 }
 
 ///|
-fn record_task_retention(run : CapturedDAG, task : Int) -> Unit {
-  run.done[task] = true
-  run.resources[task] = Some({
-    holding: None,
-    parents: task_parents(run, task),
-  })
-}
-
-///|
 /// Trusted Host accounting: associate its exact allocation token only after this
 /// task has established success. Task zero is the validated captured root.
 /// Sharing is by owned token, never equal CIDs. The Host must keep this port

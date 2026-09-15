@@ -414,24 +414,25 @@ pub fn execute_captured_local_task(
     ) {
     Ok(completed) => {
       guard captured_task_target(run, task) is Some(target) &&
-        @execution.completed_output(completed, target) is Some(output) &&
-        @execution.completed_output_matches_port(
-          output,
-          run.graph.owners[task],
-          target,
-        ) &&
-        captured_output_inputs_match(run, task, output) else {
+        @execution.completed_output(completed, target) is Some(output) else {
         @resources.release_allocation(run.ledger, holding) |> ignore
         @resources.settle_reservation(run.ledger, reservation) |> ignore
         fail_captured_task(run, task, MissingOutput)
         return Err(MissingOutput)
       }
-      run.completed[task] = Some(output)
-      record_task_retention(run, task)
-      run.resources[task].unwrap().holding = Some(holding)
+      match
+        publish_task_completion(run, task, output, holding, MissingOutput, _ => {
+          Ok(())
+        }) {
+        Err(issue) => {
+          @resources.release_allocation(run.ledger, holding) |> ignore
+          @resources.settle_reservation(run.ledger, reservation) |> ignore
+          fail_captured_task(run, task, issue)
+          return Err(issue)
+        }
+        Ok(_) => ()
+      }
       @resources.settle_reservation(run.ledger, reservation) |> ignore
-      clear_captured_inputs(run, task)
-      run.generation += 1
       Ok(())
     }
     Err(issue) => {

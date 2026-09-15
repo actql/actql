@@ -80,6 +80,11 @@ inputs and produce an already verified engine completion; they cannot settle
 the common ledger by returning success alone. The common completion boundary
 also checks the output's exact bound owner, retained port, fixed-input binding
 identities and current liveness.
+Synchronous Local and asynchronous realizations use the same private output
+installation operation. It validates the completed port and input identities
+before implementation-specific publication, then attaches the owned holding and
+records task success together. Allocation timing and failure cleanup remain with
+the respective execution lifecycle; neither path exposes a holding-less success.
 This port check supplements, rather than replaces, the implementation's exact
 input/attempt/transport evidence validation. Cancellation alone never releases
 execution reservations. Confirmed execution cleanup may release execution

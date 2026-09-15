@@ -202,18 +202,15 @@ pub fn complete_task_execution(
   }
   match (hooks.finish)() {
     Ok(output) => {
-      guard captured_task_target(run, task) is Some(target) &&
-        @execution.completed_output_matches_port(
+      match
+        publish_task_completion(
+          run,
+          task,
           output,
-          run.graph.owners[task],
-          target,
-        ) &&
-        captured_output_inputs_match(run, task, output) else {
-        execution.failed_holding = Some(holding)
-        fail_captured_task(run, task, ForeignCandidate)
-        return Err(ForeignCandidate)
-      }
-      match (hooks.publish)(output) {
+          holding,
+          ForeignCandidate,
+          hooks.publish,
+        ) {
         Err(issue) => {
           execution.failed_holding = Some(holding)
           fail_captured_task(run, task, issue)
@@ -221,13 +218,8 @@ pub fn complete_task_execution(
         }
         Ok(_) => ()
       }
-      run.completed[task] = Some(output)
-      record_task_retention(run, task)
-      run.resources[task].unwrap().holding = Some(holding)
       @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
-      clear_captured_inputs(run, task)
       run.running = None
-      run.generation += 1
       Ok(())
     }
     Err(issue) => {

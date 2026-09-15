@@ -60,6 +60,21 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
   assert.doesNotMatch(api, /pub fn (?:charge_captured_duckdb_transfer|settle_captured_duckdb_native|complete_captured_duckdb_task|close_captured_duckdb_task)\b/);
 });
 
+test('synchronous and asynchronous completion share private retained-output installation', () => {
+  for (const file of ['captured_dag.mbt', 'task_execution.mbt']) {
+    const source = readFileSync(`src/physical_strategy/${file}`, 'utf8');
+    assert.match(source, /publish_task_completion\(/);
+    assert.doesNotMatch(source, /run\.completed\[task\] = Some\(output\)/);
+  }
+  const completion = readFileSync('src/physical_strategy/task_completion.mbt', 'utf8');
+  assert.doesNotMatch(completion, /@(?:duckdb|duckdb_compute|local_connector)\b/);
+  assert.match(completion, /completed_output_matches_port\(/);
+  assert.match(completion, /captured_output_inputs_match\(/);
+  assert.match(completion, /holding_available\(run\.ledger, holding\)/);
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /pub fn publish_task_completion\b/);
+});
+
 test('concrete Compute capacity formula is owned and exported by its connector', () => {
   const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
