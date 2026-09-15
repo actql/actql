@@ -55,13 +55,21 @@ pub fn duckdb_dispatch_rejection(DuckDBDispatchModule, Int, resident? : Bool) ->
 
 pub fn duckdb_dispatch_work_slots() -> Int
 
+pub fn duckdb_resident_estimates_installed(DuckDBDispatchModule) -> Bool
+
+pub fn estimate_duckdb_module_offers(DuckDBEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], DuckDBEstimateIssue]
+
 pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
+
+pub fn install_duckdb_resident_estimates(DuckDBDispatchModule, @physical_strategy.ResidentProfile, Array[@physical_cost.RateSchedule]) -> Result[Unit, DuckDBEstimateIssue]
 
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
 
 pub fn prepare_duckdb_dispatch(DuckDBDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, DuckDBDispatchIssue]
 
 pub fn prepare_duckdb_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], DuckDBDispatchLimits) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
+
+pub fn prepare_duckdb_estimate_module(DuckDBDispatchModule, Array[@physical_cost.RateSchedule], Array[@physical_strategy.PhysicalEnvelope], Int) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue]
 
 pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, DuckDBResidentStore, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[DuckDBResidentInputs, @physical_strategy.RunIssue]
 
@@ -118,6 +126,14 @@ pub(all) struct DuckDBDispatchLimits {
 }
 
 type DuckDBDispatchModule
+
+pub(all) enum DuckDBEstimateIssue {
+  InvalidConfiguration
+  Rate(@physical_cost.RateIssue)
+  Search(@physical_strategy.SearchIssue)
+}
+
+type DuckDBEstimateModule
 
 type DuckDBResidentInputs
 

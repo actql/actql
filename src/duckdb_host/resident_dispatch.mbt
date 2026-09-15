@@ -1,10 +1,4 @@
 ///|
-priv struct ResidentDispatch {
-  profile : @strategy.ResidentProfile
-  rates : Array[@cost.RateSchedule]
-}
-
-///|
 pub fn dispatch_resident_inputs(
   host : StrategyHostDispatch,
   task : Int,
@@ -57,7 +51,7 @@ pub fn configure_resident_dispatch(
   profile : @strategy.ResidentProfile,
   rates : Array[Array[@cost.WorkRate]],
 ) -> Result[Unit, DispatchIssue] {
-  if host.resident is Some(_) ||
+  if @duckdb_driver.duckdb_resident_estimates_installed(host.native_module) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
     @strategy.strategy_history_count(host.run) != 0 ||
     rates.length() !=
@@ -102,6 +96,9 @@ pub fn configure_resident_dispatch(
       Err(issue) => return Err(dispatch_rate_issue(issue))
     }
   }
-  host.resident = Some({ profile, rates: schedules, })
-  Ok(())
+  @duckdb_driver.install_duckdb_resident_estimates(
+    host.native_module,
+    profile,
+    schedules,
+  ).map_err(duckdb_estimate_issue)
 }

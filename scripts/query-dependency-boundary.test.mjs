@@ -16,7 +16,16 @@ test('linear cost schedules are neutral and implementations own their work inven
   assert.doesNotMatch(composition, /\(5, profile\.local_rates\)|\(8, profile\.native_rates\)/);
   assert.doesNotMatch(composition, /fn dispatch_rate_value\b/);
   const proposals = readFileSync('src/duckdb_host/estimate_implementations.mbt', 'utf8');
-  assert.match(proposals, /@cost\.evaluate_rate_schedule\(/);
+  assert.doesNotMatch(proposals, /@cost\.evaluate_rate_schedule\(|policy\.profiles|host\.resident/);
+  for (const owner of ['local', 'duckdb']) {
+    const implementation = readFileSync(`src/connectors/${owner}/driver/estimates.mbt`, 'utf8');
+    assert.match(implementation, /@cost\.evaluate_rate_schedule\(/);
+    assert.doesNotMatch(implementation, /@dbhost|StrategyHostDispatch|DispatchEstimates/);
+  }
+  const state = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
+  assert.doesNotMatch(state, /mut resident\s*:\s*ResidentDispatch/);
+  assert.doesNotMatch(composition, /profiles\s*:\s*Array\[InstalledDispatchEstimateProfile\]/);
+  assert.match(composition, /output_rows_per_mille\s*:\s*Array\[Int\?\]/);
 });
 
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {

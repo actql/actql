@@ -13,6 +13,8 @@ import {
 // Values
 pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
 
+pub fn estimate_local_module_offers(LocalEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
+
 pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
 
 pub fn local_dispatch_work_slots() -> Int
@@ -20,6 +22,8 @@ pub fn local_dispatch_work_slots() -> Int
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
 
 pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[LocalDispatchModule, LocalDispatchIssue]
+
+pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
 // Errors
 
@@ -33,6 +37,14 @@ pub(all) enum LocalDispatchIssue {
 }
 
 type LocalDispatchModule
+
+pub(all) enum LocalEstimateIssue {
+  InvalidConfiguration
+  Rate(@physical_cost.RateIssue)
+  Dispatch(LocalDispatchIssue)
+}
+
+type LocalEstimateModule
 
 // Type aliases
 

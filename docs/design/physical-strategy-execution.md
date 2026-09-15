@@ -713,6 +713,15 @@ owning realization supplies the work inventory, while the common cost library
 checks disjoint coverage and evaluates the same linear rate rules for any
 inventory. Missing coefficients or needed quantities remain unknown, zero
 coefficients do not demand a quantity, and overflow is an explicit failure.
+Each connector's estimate module owns its installed schedules and realization
+capacities. The standard composition captures these modules in registration-bound
+proposal callbacks with a unit context; it does not pass the complete Host or
+mutable planning policy back into candidate generation. Common refresh tracks
+observed cardinality, future-output estimates and bounded search state. DuckDB
+owns the fresh/resident alternatives and the resident profile association, which
+may be installed only before strategy history exists and cannot be replaced after
+installation. No estimate module grants execution, creates a resource, supplies
+a future completed input or relaxes dispatch admission.
 Local reservation envelopes are derived from selected execution limits; native
 envelopes are explicit Host capacities and still checked against actual start
 requirements. Neither is reduced by the forecast. Dispatch refreshes before

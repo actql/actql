@@ -26,7 +26,6 @@ struct StrategyHostDispatch {
   installation : @host_driver.DispatchHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
   mut estimates : DispatchEstimates?
-  mut resident : ResidentDispatch?
 }
 
 ///|
@@ -152,7 +151,6 @@ pub fn configure_strategy_dispatch(
     installation,
     limits,
     estimates: None,
-    resident: None,
   })
 }
 
@@ -203,7 +201,7 @@ pub fn dispatch_excluded_realizations(
       )
     }
   }
-  if host.resident is Some(_) {
+  if @duckdb_driver.duckdb_resident_estimates_installed(host.native_module) {
     for
       index in 0..<(@strategy.graph_task_count(
         @strategy.captured_dag_graph(host.run),

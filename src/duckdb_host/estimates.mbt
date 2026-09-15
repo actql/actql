@@ -7,25 +7,16 @@ pub(all) struct DispatchEstimateProfile {
 }
 
 ///|
-priv struct InstalledDispatchEstimateProfile {
-  local_rates : @cost.RateSchedule
-  native_rates : @cost.RateSchedule
-  native_capacity : @strategy.PhysicalEnvelope
-  output_rows_per_mille : Int?
-}
-
-///|
 priv struct DispatchEstimates {
   root : @query.CapturedSourceStatistics
-  profiles : Array[InstalledDispatchEstimateProfile]
+  output_rows_per_mille : Array[Int?]
   limits : @strategy.SearchLimits
   estimate_work : Int
   implementations : @connector.CapabilityImplementations[
-    (
-      (StrategyHostDispatch, DispatchEstimates),
-      Int,
-      @host_driver.TaskEstimateQuantities,
-    ) -> Result[Array[@strategy.TaskOffer], DispatchIssue],
+    (Unit, Int, @host_driver.TaskEstimateQuantities) -> Result[
+      Array[@strategy.TaskOffer],
+      DispatchIssue,
+    ],
   ]
   mut seen : (Int, Int, @resources.LedgerUsage)?
   mut failure : DispatchIssue?
@@ -63,7 +54,9 @@ pub fn configure_dispatch_estimates(
     Ok(_) => ()
   }
   work -= profiles.length()
-  let installed_profiles : Array[InstalledDispatchEstimateProfile] = []
+  let local_schedules = []
+  let native_schedules = []
+  let capacities = []
   for profile in profiles {
     if profile.output_rows_per_mille is Some(value) &&
       (value < 0 || value > 1000) {
@@ -115,12 +108,28 @@ pub fn configure_dispatch_estimates(
         Ok(schedule) => schedules.push(schedule)
       }
     }
-    installed_profiles.push({
-      local_rates: schedules[0],
-      native_rates: schedules[1],
-      native_capacity: profile.native_capacity,
-      output_rows_per_mille: profile.output_rows_per_mille,
-    })
+    local_schedules.push(schedules[0])
+    native_schedules.push(schedules[1])
+    capacities.push(profile.native_capacity)
+  }
+  let local_policy = match
+    @local_driver.prepare_local_estimate_module(
+      host.local_module,
+      local_schedules,
+      limits.max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(local_estimate_issue(issue))
+  }
+  let native_policy = match
+    @duckdb_driver.prepare_duckdb_estimate_module(
+      host.native_module,
+      native_schedules,
+      capacities,
+      limits.max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(duckdb_estimate_issue(issue))
   }
   match @strategy.configure_strategy_search(host.run, limits) {
     Err(issue) => return Err(Search(issue))
@@ -130,8 +139,22 @@ pub fn configure_dispatch_estimates(
     @connector.install_capability_implementations(
       host.registry,
       [
-        (host.local_registration, estimate_local_task_offers),
-        (host.native_registration, estimate_duckdb_task_offers),
+        (
+          host.local_registration,
+          fn(_context, task, quantities) {
+            @local_driver.estimate_local_module_offers(
+              local_policy, task, quantities,
+            ).map_err(local_estimate_issue)
+          },
+        ),
+        (
+          host.native_registration,
+          fn(_context, task, quantities) {
+            @duckdb_driver.estimate_duckdb_module_offers(
+              native_policy, task, quantities,
+            ).map_err(duckdb_estimate_issue)
+          },
+        ),
       ],
       2,
     ) {
@@ -145,7 +168,7 @@ pub fn configure_dispatch_estimates(
     estimate_work: limits.max_work - work,
     seen: None,
     failure: None,
-    profiles: installed_profiles,
+    output_rows_per_mille: profiles.map(profile => profile.output_rows_per_mille),
   })
   Ok(())
 }
@@ -226,7 +249,7 @@ fn rebuild_dispatch_estimates(
   rows[0] = Some(policy.root.rows.to_int64())
   let offers = []
   for task in 1..<count {
-    let profile = policy.profiles[task - 1]
+    let output_fraction = policy.output_rows_per_mille[task - 1]
     let input_rows = match
       sum_dispatch_quantities(parents[task].map(parent => rows[parent])) {
       Ok(value) => value
@@ -259,7 +282,7 @@ fn rebuild_dispatch_estimates(
       Some(0L)
     }
     rows[task] = match
-      (if join { pairs } else { input_rows }, profile.output_rows_per_mille) {
+      (if join { pairs } else { input_rows }, output_fraction) {
       (Some(value), Some(fraction)) => {
         let f = fraction.to_int64()
         Some(value / 1000L * f + (value % 1000L * f + 999L) / 1000L)
@@ -277,7 +300,7 @@ fn rebuild_dispatch_estimates(
       @host_driver.collect_installed_task_offers(
         host.driver,
         policy.implementations,
-        (host, policy),
+        (),
         task,
         { rows: input_rows, wire_bytes: input_bytes, pairs, },
         policy.limits.max_offers,
