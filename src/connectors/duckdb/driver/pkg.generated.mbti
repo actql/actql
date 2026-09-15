@@ -20,7 +20,7 @@ pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskE
 
 pub fn captured_duckdb_query(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> @adapter.ResidentQuery?
 
-pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @adapter.FixedCompute, Int, Int, Int) -> Result[@physical_strategy.ResidentInputs, @physical_strategy.RunIssue]
+pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[@physical_strategy.ResidentInputs, @physical_strategy.RunIssue]
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
 

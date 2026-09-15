@@ -6,7 +6,7 @@ struct ResidentInputs {
   owner : StrategyOfferOwner
   task : Int
   environment : ResidentEnvironment
-  compute : @duckdb.FixedCompute
+  candidate : @connector.FixedComputeCandidate
   reads : Array[ResidentRead]
   mut claimed : Bool
   mut returned : Bool
@@ -18,7 +18,7 @@ pub fn prepare_resident_inputs(
   env : ResidentEnvironment,
   task : Int,
   tables : Array[ResidentTable],
-  compute : @duckdb.FixedCompute,
+  candidate : @connector.FixedComputeCandidate,
   max_entries : Int,
   max_name_bytes : Int,
   max_representation_bytes : Int,
@@ -31,9 +31,14 @@ pub fn prepare_resident_inputs(
     !resident_environment_available(run, env) {
     return Err(NotReady)
   }
+  let request = @connector.fixed_compute_candidate_request(candidate)
+  if !(graph_task_owner(run.graph, task) is Some(owner) &&
+    physical_equal(owner, @connector.fixed_compute_request_owner(request))) {
+    return Err(ForeignCandidate)
+  }
   guard run.inputs.get(task) is Some(ports) &&
     tables.length() == ports.length() &&
-    tables.length() == @duckdb.fixed_compute_import_count(compute) &&
+    tables.length() == @connector.fixed_compute_request_input_count(request) &&
     !tables.is_empty() else {
     return Err(ForeignCandidate)
   }
@@ -63,8 +68,8 @@ pub fn prepare_resident_inputs(
       }
     }
     reads.push(read)
-    guard @duckdb.fixed_compute_import(compute, port) is Some(imported) &&
-      physical_equal(@duckdb.fixed_import_input(imported), read.input) else {
+    guard @connector.fixed_compute_request_input(request, port) is Some(input) &&
+      physical_equal(input, read.input) else {
       for read in reads {
         return_resident_read(read) |> ignore
       }
@@ -85,7 +90,7 @@ pub fn prepare_resident_inputs(
     owner: run.offer_owner,
     task,
     environment: env,
-    compute,
+    candidate,
     reads,
     claimed: false,
     returned: false,
@@ -97,13 +102,13 @@ fn resident_inputs_match(
   run : CapturedDAG,
   value : ResidentInputs,
   task : Int,
-  compute : @duckdb.FixedCompute,
+  candidate : @connector.FixedComputeCandidate,
 ) -> Bool {
   if value.claimed ||
     value.returned ||
     value.task != task ||
     !physical_equal(value.owner, run.offer_owner) ||
-    !physical_equal(value.compute, compute) {
+    !physical_equal(value.candidate, candidate) {
     return false
   }
   for read in value.reads {

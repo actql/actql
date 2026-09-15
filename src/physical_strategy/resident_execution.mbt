@@ -16,11 +16,11 @@ struct ResidentExecution {
 }
 
 ///|
-pub fn[T] prepare_resident_execution(
+pub fn[T, P] prepare_resident_execution(
   run : CapturedDAG,
   task : Int,
   choice : @connector.FixedComputeChoice,
-  prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
+  prepared : @connector.PreparedCompute[P],
   inputs : ResidentInputs,
   retention : Int64,
   scratch : Int64,
@@ -30,9 +30,13 @@ pub fn[T] prepare_resident_execution(
     RunIssue,
   ],
 ) -> Result[ResidentExecution, RunIssue] {
-  guard @connector.fixed_compute_choice_payload(choice, prepared)
-    is Some(compute) &&
-    resident_inputs_match(run, inputs, task, compute) else {
+  guard @connector.fixed_compute_choice_payload(choice, prepared) is Some(_) &&
+    resident_inputs_match(
+      run,
+      inputs,
+      task,
+      @connector.prepared_compute_candidate(prepared),
+    ) else {
     return Err(ForeignCandidate)
   }
   if retention < 0L || scratch < 0L {
@@ -74,12 +78,7 @@ fn resident_execution_capacity(
         resource.pending is None &&
         resource.inputs.environment.profile is Some(actual) &&
         physical_equal(selected, actual) &&
-        resident_inputs_match(
-          run,
-          resource.inputs,
-          task,
-          resource.inputs.compute,
-        ) else {
+        resident_inputs_match(run, resource.inputs, task, resource.candidate) else {
         return Err(ForeignCandidate)
       }
       if capacity.retained_bytes < resource.retention ||

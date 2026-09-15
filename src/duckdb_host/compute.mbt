@@ -115,16 +115,13 @@ pub fn borrow_configured_resident_inputs(
   max_sql_bytes : Int,
 ) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
   let c = setup.compute
-  guard @connector.fixed_compute_choice_payload(c.choice, c.prepared)
-    is Some(compute) else {
-    return Err(ForeignCandidate)
-  }
   @duckdb_driver.prepare_resident_inputs(
     setup.graph,
     env,
     setup.task,
     tables,
-    compute,
+    c.choice,
+    c.prepared,
     max_entries,
     max_name_bytes,
     max_sql_bytes,

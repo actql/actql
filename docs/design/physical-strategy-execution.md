@@ -253,6 +253,12 @@ compilation resolves input view names; the ordered input-set boundary retains
 the cumulative representation-byte allowance and returns earlier borrowers if
 any later port fails preparation.
 
+The common resident input set is bound to an exact `FixedComputeCandidate`, its
+checked task owner and ordered request input handles, not to a DuckDB query
+payload. Resident execution admission matches that same candidate. The connector
+additionally checks its chosen typed payload and concrete imports before preparing
+receiver views; equal content cannot replace either ownership relationship.
+
 Resident result materialization keeps its physical table name, SQL and storage
 construction limits in a connector-owned opaque plan. The shared output lifecycle
 retains its allocation, commit state and pending input cleanup, and checks exact

@@ -30,21 +30,30 @@ pub fn prepare_resident_inputs(
   environment : @strategy.ResidentEnvironment,
   task : Int,
   tables : Array[@strategy.ResidentTable],
-  compute : @duckdb.FixedCompute,
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
 ) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
+  guard @connector.fixed_compute_choice_payload(choice, prepared)
+    is Some(compute) else {
+    return Err(ForeignCandidate)
+  }
   @strategy.prepare_resident_inputs(
     run,
     environment,
     task,
     tables,
-    compute,
+    @connector.prepared_compute_candidate(prepared),
     max_entries,
     max_name_bytes,
     max_sql_bytes,
     fn(port, imported, input, remaining) {
+      guard @duckdb.fixed_compute_import(compute, port) is Some(fixed) &&
+        physical_equal(@duckdb.fixed_import_input(fixed), input) else {
+        return Err(ForeignCandidate)
+      }
       guard @duckdb.fixed_query_input_table(
           @duckdb.fixed_compute_query(compute),
           port,
