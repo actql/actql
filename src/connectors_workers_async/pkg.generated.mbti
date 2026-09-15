@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors_workers_async"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute/driver",
+  "actql/actql/physical_host",
+  "actql/actql/physical_strategy",
+}
+
+// Values
+pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_reference_compute? : (@driver.NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
+
+pub fn[E] configure_compute_modules(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_reference_compute? : (@connector_sdk.CapabilityRegistration, @driver.NumericComputeConfiguration, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+
+pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]]
+
+pub fn[E] configured_compute_module_keys(ConfiguredComputeModules[E]) -> Array[String]
+
+pub fn[E] configured_host_driver(ConfiguredComputeHost[E]) -> @physical_host.DispatchDriver
+
+pub fn[E] configured_host_modules(ConfiguredComputeHost[E]) -> ConfiguredComputeModules[E]
+
+pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.ComputeHost[Unit, E]
+
+pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @driver.NumericComputeContribution?
+
+pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
+pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
+pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host.ComputeHostIssue[E]]
+
+// Errors
+
+// Types and methods
+type ConfiguredComputeHost[E]
+
+type ConfiguredComputeModules[E]
+
+pub(all) enum ConfiguredDispatchIssue[E] {
+  MissingImplementation
+  Implementation(E)
+}
+
+// Type aliases
+
+// Traits

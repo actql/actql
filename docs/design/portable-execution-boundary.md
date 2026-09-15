@@ -16,6 +16,12 @@ are errors rather than silently ignored edges. Three-target isolated compilation
 and generated-artifact inspection complement source inspection; none alone is
 proof of environment compatibility.
 
+Implicit prelude and builtin imports are part of the external closure. A pinned
+per-package source inventory covers them as well as explicit imports; unknown
+packages and changed sources fail closed. Auditing a runtime support package is
+not permission for arbitrary ambient operations. Source restrictions and the
+reachable generated-code gate remain separate requirements.
+
 ## Composition and Host lifetime
 
 Node and Workers use the same JavaScript strategy coordinator under
@@ -36,6 +42,19 @@ close and cleanup; a failed close does not erase recovery responsibility. A
 cleanup handle describes unresolved recovery, not a lease authorizing a future
 request. Cross-request handles, durable capture and Store are separate contracts.
 Internal task success is not publication of a successful Program or durable Run.
+
+Application preparation and generated Host operations share one linked MoonBit
+runtime instance per invocation. Opaque handles and generated exception tags are
+not a cross-link-unit ABI. The reusable JavaScript Host binds a frozen view of
+that trusted runtime's exports; ordinary request data cannot replace them.
+
+An asynchronous Connector retains its own pending transport state while the
+common Core owns reservation and completion. A cancellation request does not
+prove stopping. Failed stop or cleanup keeps recovery responsibility and reserved
+capacity until confirmation; neither Promise resolution nor an absent rejection
+payload can manufacture a retained successful output. Test-only asynchronous
+composition exercises this boundary without adding I/O to the Local product
+profile.
 
 ## Pinned runtime initialization
 

@@ -1,0 +1,431 @@
+{
+  "version": "0.10.12+1634b282e",
+  "core": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1",
+  "packages": {
+    "abort": {
+      "digest": "da68f24ca9a7bbdfa27e5b4fed1984718719cb8826f0097a275dcba5cad15a31",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [],
+      "files": 3
+    },
+    "array": {
+      "digest": "d472870a958510cbe2c019bb0fd51002a79d2674fa11429451b7761aeb3b7b79",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 3
+    },
+    "bigint": {
+      "digest": "7e90a2f06c85dc7732c6b8a7f7b41e9b3c8f6f0015452b2f1841b799da4a4dea",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/char",
+        "moonbitlang/core/error",
+        "moonbitlang/core/uint",
+        "moonbitlang/core/json",
+        "moonbitlang/core/int16",
+        "moonbitlang/core/uint16",
+        "moonbitlang/core/debug"
+      ],
+      "files": 10
+    },
+    "buffer": {
+      "digest": "4aff8602bd12fad3a61cea86dde026fffc580da6388bd747c8423b5f0f0ced16",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/array",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/float",
+        "moonbitlang/core/int16",
+        "moonbitlang/core/uint16"
+      ],
+      "files": 7
+    },
+    "builtin": {
+      "digest": "c47151d4b46e38761910f92f38f85bc6a77740ef88d2f7a79358a89891b6d379",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [
+        "moonbitlang/core/abort"
+      ],
+      "files": 86
+    },
+    "char": {
+      "digest": "cd69658169740708ef23521c9403f4fd17d212f8abbb1f0cc1b64ef1f305ae01",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 2
+    },
+    "debug": {
+      "digest": "f00f06c08dfcee26b6c1825752aef639087d7ca37b719178a8bb2515f30a46e8",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/double",
+        "moonbitlang/core/float",
+        "moonbitlang/core/int16",
+        "moonbitlang/core/int64",
+        "moonbitlang/core/uint",
+        "moonbitlang/core/uint16",
+        "moonbitlang/core/uint64"
+      ],
+      "files": 8
+    },
+    "double": {
+      "digest": "39657652a9fd4c7d43a86c924c3a487c4c0602d8371bb1955b03989778315119",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 4
+    },
+    "encoding/utf8": {
+      "digest": "7dedc62959067b8b7420a2eb8fce8a633126debec875ba05e64523b4179b6540",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 7
+    },
+    "error": {
+      "digest": "79e2f10747d1195189b3de0d0cf355cdfe679a81f4bd987d3bf55b3f15afc4ba",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 4
+    },
+    "float": {
+      "digest": "06cae26ee84e48e3d759f2d3f5634f46919e3f11b74203b863868b86619c16ae",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/double",
+        "moonbitlang/core/uint"
+      ],
+      "files": 10
+    },
+    "hashmap": {
+      "digest": "6c1b3315cc9af7ba5a369e17910edf39aa3ed161ff917aedf3dd457cc521daf3",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/array",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/test",
+        "moonbitlang/core/int",
+        "moonbitlang/core/json"
+      ],
+      "files": 8
+    },
+    "hashset": {
+      "digest": "adfb75e5370bb6fd60b808022d751f1eac21eb9423e87a109c459f7a35bc36ad",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/array",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/test"
+      ],
+      "files": 6
+    },
+    "immut/sorted_map": {
+      "digest": "ee9b39a9b7c6437f7ec3298073cc80f863ea2102b9aca0046c148929fdca7e4b",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/tuple",
+        "moonbitlang/core/array",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/json",
+        "moonbitlang/core/test"
+      ],
+      "files": 8
+    },
+    "int": {
+      "digest": "aa833404cdc16e7532e2a9ba119d89351af0458a548b83962f4b47e91c1854e9",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/uint"
+      ],
+      "files": 2
+    },
+    "int16": {
+      "digest": "a616d6df39096648422600c752051f09a8378ff4ce22615b5c0a0fa6a22ed1c6",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 3
+    },
+    "int64": {
+      "digest": "78f6eecd93bf1d9e50120e7b10d52c6d921a98e6f24e69b55518ce56fbdd2fbe",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/uint64",
+        "moonbitlang/core/int16"
+      ],
+      "files": 2
+    },
+    "internal/regex_engine/automata": {
+      "digest": "d5304f4a0d348f9d96b56307d06ffe5fb79a7454b80cc8877727505a0f974e79",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/hashset",
+        "moonbitlang/core/immut/sorted_map",
+        "moonbitlang/core/internal/regex_engine/shared_types",
+        "moonbitlang/core/ref"
+      ],
+      "files": 13
+    },
+    "internal/regex_engine/shared_types": {
+      "digest": "7339748a85a6d644abbc40624b7e35ac093cafe12115f6cd806d594912848f33",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/internal/regex_engine/shared_types/rechar_set"
+      ],
+      "files": 9
+    },
+    "internal/regex_engine/shared_types/rechar_set": {
+      "digest": "37d16496835ccf1b4b40718eac881f90a5e590082f641f41e932a173f223cbc7",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 5
+    },
+    "internal/strconv": {
+      "digest": "eb47df2474ca7df956e37d9af23ea2b2db5d501889697f91d34e7f0e0fa34288",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/double",
+        "moonbitlang/core/error",
+        "moonbitlang/core/uint64",
+        "moonbitlang/core/char",
+        "moonbitlang/core/array",
+        "moonbitlang/core/test"
+      ],
+      "files": 11
+    },
+    "json": {
+      "digest": "9c37eeb165e34b6f4803c74d68b2c1f2b3c1fc7e1c11980eb0209dcc3d8d5414",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/array",
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/char",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/double",
+        "moonbitlang/core/float",
+        "moonbitlang/core/internal/strconv",
+        "moonbitlang/core/option",
+        "moonbitlang/core/buffer",
+        "moonbitlang/core/v128"
+      ],
+      "files": 16
+    },
+    "lazy": {
+      "digest": "7745641ece2976e4c341f5698865622b464794686904f645189bf87f66671961",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 4
+    },
+    "list": {
+      "digest": "84ea6472fd99e4a7b0c52ccaef807ca825c5dfec227c5bc680e5fb4e464ab9f3",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/array",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/json"
+      ],
+      "files": 6
+    },
+    "option": {
+      "digest": "86ca28763e1f061cef625611354be6b87f968f2da7d771795e6dd943d38b9281",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 4
+    },
+    "prelude": {
+      "digest": "0e3f9d46acba3f17d22146acbb0f27d42a596b9e407470bbf26805c73be1e7c3",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/bigint",
+        "moonbitlang/core/buffer",
+        "moonbitlang/core/set",
+        "moonbitlang/core/json",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/string",
+        "moonbitlang/core/ref",
+        "moonbitlang/core/lazy",
+        "moonbitlang/core/test"
+      ],
+      "files": 2
+    },
+    "ref": {
+      "digest": "9fa2eab36445a9b513c727ebac6f9abd3a8efe3899dbf9cf001e460e20b4bce6",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 4
+    },
+    "set": {
+      "digest": "b544eca5e2529cd30f68e13c3695310104c19b6ce567684b08634e176faece31",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/int"
+      ],
+      "files": 6
+    },
+    "sorted_set": {
+      "digest": "de4f0097d95ccea2b7af3acd53d84adee2e526291f2f4a90cbca48f9ac64926d",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/option",
+        "moonbitlang/core/test"
+      ],
+      "files": 7
+    },
+    "string": {
+      "digest": "4cc0c0736f2bd11b8c28688361b6761c23264c3a48092b1be387b7d30f754062",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/bigint",
+        "moonbitlang/core/char",
+        "moonbitlang/core/internal/strconv",
+        "moonbitlang/core/string/internal/regex_engine",
+        "moonbitlang/core/string/internal/regex_parser",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/array",
+        "moonbitlang/core/test"
+      ],
+      "files": 13
+    },
+    "string/internal/regex_engine": {
+      "digest": "f733c8e8515426f9ed75632e91c6dd1ef20f008fa6e5383b7e0ca6313b4b35ae",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/list",
+        "moonbitlang/core/hashmap",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/internal/regex_engine/automata",
+        "moonbitlang/core/internal/regex_engine/shared_types",
+        "moonbitlang/core/string/internal/regex_engine/ast",
+        "moonbitlang/core/string/internal/regex_engine/symbol_map"
+      ],
+      "files": 11
+    },
+    "string/internal/regex_engine/ast": {
+      "digest": "dbe772c3177f2ae1a4fd8d2918fc07f7a79a886e295790fb54e4d339cbd5f1a2",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/internal/regex_engine/shared_types"
+      ],
+      "files": 4
+    },
+    "string/internal/regex_engine/symbol_map": {
+      "digest": "4db12c43e8408c20ced057c6f5127301fd6fb9cbd96075db19d1e0f4e85d59bf",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/sorted_set",
+        "moonbitlang/core/internal/regex_engine/shared_types"
+      ],
+      "files": 4
+    },
+    "string/internal/regex_parser": {
+      "digest": "cd6939c499e3333cbbda67ee7b0b0695a361082b7b0931d26b03ad84facf108e",
+      "reason": "In-memory parsing/encoding; test-only imports are not production edges.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/string/internal/regex_engine"
+      ],
+      "files": 7
+    },
+    "test": {
+      "digest": "be015a7338e81e18360a9d4e6334660fb963413f714ce6ffaffbce2c04a3084a",
+      "reason": "Implicit compiler/runtime dependency. Printing is not permitted in product Core; generated JS must contain no console/I/O. Physical hash entropy requires the explicit Host-seed adapter.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug"
+      ],
+      "files": 4
+    },
+    "tuple": {
+      "digest": "dd6aa0c00697f21add9114f0605f8d0685803f6267c5966cfb504cf0c9b41944",
+      "reason": "In-memory collection/value operations; no environment authority granted.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 3
+    },
+    "uint": {
+      "digest": "b8dbdf463a1170dfa927b952d5b6cf38539027b2cbfabedbb1fcc3495c11b8fa",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 3
+    },
+    "uint16": {
+      "digest": "e5e9693954b48666b613a6933b92334379f16473d341f9b2e9d96c3fb0977997",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/int16"
+      ],
+      "files": 2
+    },
+    "uint64": {
+      "digest": "73b74d14c7abb75fbe367c8452d539940bee20583b3b0ab4f459a70fa6365441",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin"
+      ],
+      "files": 2
+    },
+    "v128": {
+      "digest": "2daebd1278d1e5fa461b5de3d9df8c6c4321d13cfac25199574f046d4dc1bfee",
+      "reason": "Exact/in-memory arithmetic or representation conversion; generated target intrinsics are audited.",
+      "dependencies": [
+        "moonbitlang/core/builtin",
+        "moonbitlang/core/debug",
+        "moonbitlang/core/float",
+        "moonbitlang/core/int16",
+        "moonbitlang/core/int64"
+      ],
+      "files": 11
+    }
+  }
+}

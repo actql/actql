@@ -6,12 +6,18 @@ const cwd = fileURLToPath(new URL('../../', import.meta.url));
 function run(command, args) { execFileSync(command,args,{cwd,stdio:'inherit'}); }
 run('node',['scripts/workers-composition.mjs']);
 run('node',['scripts/workers-fixtures.mjs']);
+run('node',['scripts/portable-stdlib.mjs']);
+run('node',['--test','scripts/portable-stdlib.test.mjs']);
 run('moon',['build','--target','js','--release','src/connectors_workers_bridge']);
+run('moon',['build','--target','js','--release','src/connectors_workers_async_bridge']);
 run('moon',['build','--target','js','--release','src/workers_conformance']);
 prepareRuntimeModules();
+run('node',['adapters/workers/build.mjs']);
 run('node',['--test',
   'adapters/workers/runtime.test.mjs',
   'adapters/workers/moon-runtime.test.mjs',
   'adapters/workers/artifact.test.mjs',
+  'adapters/workers/phase-audit.test.mjs',
   'adapters/workers/conformance.test.mjs',
+  'adapters/workers/async-conformance.test.mjs',
 ]);

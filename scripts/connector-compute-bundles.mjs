@@ -184,6 +184,7 @@ pub fn[E] configured_host_driver(value : ConfiguredComputeHost[E]) -> @host.Disp
 }
 
 function estimateAssembly(entries, alias) {
+  if (!entries.some(({manifest}) => manifest.estimate_policy || manifest.resource_policy)) return '';
   return '\n///|\nstruct ConfiguredEstimatePolicy[E] {\n  install : () -> Result[Unit, E]\n}\n' +
     '\n///|\npub fn[E] install_configured_estimate_policy(policy : ConfiguredEstimatePolicy[E]) -> Result[Unit, E] {\n  (policy.install)()\n}\n' +
     entries.flatMap(({name, manifest: m}) => ['estimate', 'resource'].flatMap(kind => {

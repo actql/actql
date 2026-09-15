@@ -77,6 +77,7 @@ fn captured_graph_fixture(
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
+  compute_filter? : String = "id > 2",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -85,6 +86,7 @@ fn captured_graph_fixture(
     dag_join=join,
     self_join~,
     numeric_dag~,
+    compute_filter~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)

@@ -11,9 +11,17 @@ import {
 }
 
 // Values
+pub fn[C, E] begin_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[AsyncNumericExecution, @physical_strategy.RunIssue]
+
+pub fn close_async_numeric(AsyncNumericExecution) -> Unit
+
+pub fn complete_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
+
 pub fn configure_numeric_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, NumericComputeConfiguration) -> Result[NumericComputeContribution, @physical_strategy.RunIssue]
 
 pub fn estimate_numeric_dispatch_offer(NumericDispatchModule, Int, Int64?, Int) -> Result[@physical_strategy.TaskOffer?, @physical_strategy.RunIssue]
+
+pub fn execute_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
 
 pub fn[C, E] execute_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, @physical_strategy.RunIssue]
 
@@ -27,9 +35,13 @@ pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.S
 
 pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
 
+pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
+
 // Errors
 
 // Types and methods
+type AsyncNumericExecution
+
 pub(all) struct NumericComputeConfiguration {
   sequences : Array[@execution_relation.GeneratedSequence]
   limits : @reference_compute.NumericExecutionLimits

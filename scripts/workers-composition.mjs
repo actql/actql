@@ -9,3 +9,8 @@ checkNodeAssembly(root, process.argv.includes('--write'), {
   adapter:'connectors-workers',
 });
 console.log('Local-only Workers Compute composition verified.');
+checkNodeAssembly(root, process.argv.includes('--write'), {
+  names:['reference_compute'], assembly:'connectors_workers_async',
+  bridge:'connectors_workers_async_bridge', adapter:'connectors-workers-async',
+});
+console.log('Independent numeric Workers test composition verified.');

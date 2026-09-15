@@ -98,3 +98,34 @@ test('public checker rejects an undeclared field before Host installation or I/O
     assert.equal(outgoing,0);
   } finally { await runtime.dispose(); }
 });
+
+test('semantic arithmetic failure row slot and expression span survive the Workers boundary', async () => {
+  const {source} = await buildConformance();
+  const runtime = createTestRuntime(source);
+  try {
+    for (const [rows,row] of [[[{id:3},{id:4}],0],[[{id:4},{id:3}],1]]) {
+      for (const hashSeed of [0,73]) {
+        const input = {rows,computeFilter:'10 / (id - 3) > 1',hashSeed};
+        const node = await runCase(input);
+        const response = await runtime.dispatchFetch('http://worker.test/',{
+          method:'POST',body:JSON.stringify(input),
+        });
+        const worker = await response.json();
+        assert.equal(worker.status,'failed');
+        // Task A, step 0, earliest failing input row, scalar slot 0, division
+        // expression byte range [0,13). This expectation is source-authored.
+        assert.deepEqual(worker.arithmetic,[1,0,row,0,0,13]);
+        assert.deepEqual(worker.arithmetic,node.arithmetic);
+        assert.equal(worker.diagnostic,node.diagnostic);
+        assert.equal(worker.cleanupPending,false);
+        assert.deepEqual(worker.finalUsage.slice(4),['0','0','0','0']);
+      }
+    }
+    const response = await runtime.dispatchFetch('http://worker.test/',{
+      method:'POST',body:JSON.stringify({rows:[{id:3}],maxRows:0}),
+    });
+    const failed = await response.json();
+    assert.equal(failed.diagnostic,'common-input-rows');
+    assert.equal(failed.finalUsage[1],'0');
+  } finally { await runtime.dispose(); }
+});

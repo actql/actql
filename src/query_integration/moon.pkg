@@ -7,6 +7,7 @@ import {
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/mock/acquisition" @mock,
   "actql/actql/connectors/reference_compute",
+  "actql/actql/connectors/reference_compute/driver" @reference_driver,
   "actql/actql/connectors/duckdb/driver" @duckdb_driver,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,

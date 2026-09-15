@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {checkWorkersArtifact} from './artifact.mjs';
+import {build} from 'esbuild';
+import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {buildHost} from './build.mjs';
 
 function graph(dependency, options = {}) {
   return {
@@ -36,4 +41,26 @@ test('unresolved and dynamic dependencies cannot escape source and artifact chec
   output.outputs['bundle.mjs'].imports.push({path:'late.mjs',external:true});
   assert.throws(() => checkWorkersArtifact(output, '', ['worker.mjs']), /WorkersUnresolvedOutputImport/);
   checkWorkersArtifact(graph('pure.mjs'), 'const documentation = "node:fs";', ['worker.mjs','pure.mjs']);
+});
+
+test('actual bundler resolution catches a forbidden unused Connector removed from output', async t => {
+  const directory = mkdtempSync(join(tmpdir(),'actql-worker-bundle-negative-'));
+  t.diagnostic(`isolated injection retained: ${directory}`);
+  mkdirSync(join(directory,'adapters/duckdb-node'),{recursive:true});
+  writeFileSync(join(directory,'worker.mjs'),
+    'import {unused} from "./adapters/duckdb-node/unused.mjs"; export const result = 1;');
+  writeFileSync(join(directory,'adapters/duckdb-node/unused.mjs'),'export const unused = "native-addon-marker";');
+  const result = await build({absWorkingDir:directory,entryPoints:['worker.mjs'],
+    bundle:true,platform:'browser',format:'esm',metafile:true,write:false});
+  assert.doesNotMatch(result.outputFiles[0].text,/native-addon-marker/);
+  assert.throws(() => checkWorkersArtifact(result.metafile,result.outputFiles[0].text,Object.keys(result.metafile.inputs)),
+    /Workers(Module|Dependency)Rejected/);
+});
+
+test('product Local-only Host builds separately without conformance or test Connector modules', async t => {
+  const artifact = await buildHost();
+  const modules = Object.keys(artifact.metafile.inputs);
+  assert.ok(modules.includes('adapters/local-node/strategy-bundle.mjs'));
+  assert.ok(modules.every(path => !/conformance|reference|fixture|async_bridge/.test(path)));
+  t.diagnostic(JSON.stringify({profile:'host',bytes:artifact.bytes,gzipBytes:artifact.gzipBytes,modules:modules.length}));
 });

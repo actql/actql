@@ -10,6 +10,7 @@ fn captured_graph_fixture(
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
+  compute_filter? : String = "id > 2",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
     nullable~,
@@ -18,6 +19,7 @@ fn captured_graph_fixture(
     dag_join=join,
     self_join~,
     numeric_dag~,
+    compute_filter~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
@@ -408,6 +410,7 @@ fn query_checked_program_fixture(
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
   acquisition_filter? : String = "id > $minimum",
+  compute_filter? : String = "id > 2",
 ) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -447,6 +450,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
+  let text = text.replace(old="id > 2", new=compute_filter)
   let program = @syntax.parse(
     text,
     {

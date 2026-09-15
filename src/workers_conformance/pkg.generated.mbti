@@ -2,29 +2,147 @@
 package "actql/actql/workers_conformance"
 
 import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute/driver",
   "actql/actql/connectors_workers",
+  "actql/actql/connectors_workers_async",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
+  "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
 
 // Values
+pub fn arithmetic_failure(Scenario) -> Array[Int]
+
+pub fn async_scenario_host(AsyncScenario) -> @connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn async_strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn async_strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
+pub fn async_strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise AsyncHostFailure
+
+pub fn async_strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn async_strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+
+pub fn async_strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise AsyncHostFailure
+
+pub fn async_strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
+
+pub fn async_strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+
+pub fn async_strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
+
+pub fn async_strategy_host_resident_inputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Array[Int64]] raise AsyncHostFailure
+
+pub fn async_strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
+
+pub fn async_strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
+
+pub fn async_strategy_host_stop(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn async_strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
+
+pub fn async_strategy_host_task_completed(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn async_strategy_host_usage(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
+
+pub fn begin_async_probe(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @driver.AsyncNumericExecution raise ProbeFailure
+
+pub fn close_async_probe(@driver.AsyncNumericExecution) -> Unit
+
+pub fn close_async_scenario(AsyncScenario) -> Unit
+
 pub fn close_scenario(Scenario) -> Unit
 
+pub fn complete_async_probe(@driver.AsyncNumericExecution) -> Unit raise ProbeFailure
+
+pub fn execute_async_probe(@driver.AsyncNumericExecution) -> Unit raise ProbeFailure
+
+pub fn failure_text(Error) -> String
+
 pub fn foreign_dispatch() -> Array[Bool] raise
+
+pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
+
+pub fn local_registration(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
 pub fn output_identity(@execution_relation.CompletedOutput) -> String
 
 pub fn output_rows(@execution_relation.CompletedOutput) -> Int
 
-pub fn prepare_scenario(Array[String], Bool, Int) -> Scenario raise
+pub fn prepare_async_scenario() -> AsyncScenario raise
+
+pub fn prepare_scenario(Array[String], Bool, Int, String) -> Scenario raise
+
+pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise AsyncHostFailure
+
+pub fn reference_compute_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
 pub fn reject_invalid_program() -> Bool raise
 
 pub fn scenario_host(Scenario) -> @connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn settle_async_probe(@driver.AsyncNumericExecution) -> Unit raise ProbeFailure
+
+pub fn strategy_host_close_outputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn strategy_host_count(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
+pub fn strategy_host_explain(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
+
+pub fn strategy_host_finished(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn strategy_host_modules(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+
+pub fn strategy_host_next(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
+
+pub fn strategy_host_output(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
+
+pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
+
+pub fn strategy_host_resident_inputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Array[Int64]] raise NodeHostFailure
+
+pub fn strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
+
+pub fn strategy_host_run(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
+
+pub fn strategy_host_stop(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
+
+pub fn strategy_host_task_completed(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn strategy_host_usage(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
+
 // Errors
+pub(all) suberror AsyncHostFailure {
+  Diagnostics(@physical_host.ComputeDiagnosticsIssue)
+  Dispatch(@physical_host.ComputeHostIssue[@physical_strategy.RunIssue])
+  Execution(@physical_strategy.RunIssue)
+  InvalidCommand
+  Encoding(@encode_core.EncodeFailure)
+}
+
+pub(all) suberror NodeHostFailure {
+  Diagnostics(@physical_host.ComputeDiagnosticsIssue)
+  Dispatch(@physical_host.ComputeHostIssue[@physical_strategy.RunIssue])
+  Execution(@physical_strategy.RunIssue)
+  InvalidCommand
+  Encoding(@encode_core.EncodeFailure)
+}
+
+pub suberror ProbeFailure {
+  Run(@physical_strategy.RunIssue)
+}
 
 // Types and methods
+type AsyncScenario
+
 type Scenario
 
 // Type aliases

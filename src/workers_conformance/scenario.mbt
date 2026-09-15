@@ -7,23 +7,35 @@ struct Scenario {
 }
 
 ///|
+priv suberror ScenarioFailure {
+  Local(@local_driver.LocalDispatchIssue)
+  Estimate(@local_driver.LocalEstimateIssue)
+}
+
+///|
 #export_name("prepareWorkersScenario")
 pub fn prepare_scenario(
   rows : Array[String],
   nullable : Bool,
   max_rows : Int,
+  compute_filter : String,
 ) -> Scenario raise {
-  let (run, issuer) = captured_graph_fixture(nullable~, rows=Some(rows), retention={
-    received_wire_bytes: 10000,
-    retained_wire_bytes: 20000,
-    measurement: {
-      max_columns: 10,
-      max_order_work: 1000,
-      max_bytes: 20000,
-      max_nodes: 10000,
-      max_depth: 100,
+  let (run, issuer) = captured_graph_fixture(
+    nullable~,
+    compute_filter~,
+    rows=Some(rows),
+    retention={
+      received_wire_bytes: 10000,
+      retained_wire_bytes: 20000,
+      measurement: {
+        max_columns: 10,
+        max_order_work: 1000,
+        max_bytes: 20000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
     },
-  })
+  )
   let sequences = dispatch_test_generated(run)
   let registry = @connector.prepare_capability_registry(
     [{ name: "in-process", acquisition: false, fixed_compute: true, }],
@@ -50,8 +62,12 @@ pub fn prepare_scenario(
           },
           max_work: 10000,
         },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
+        issue => {
+          @strategy.RunIssue::Implementation(ScenarioFailure::Local(issue))
+        },
+        issue => {
+          @strategy.RunIssue::Implementation(ScenarioFailure::Estimate(issue))
+        },
       ),
     ),
   ).unwrap()
@@ -133,12 +149,40 @@ pub fn output_rows(output : @execution.CompletedOutput) -> Int {
 }
 
 ///|
+#export_name("workersFailureText")
+pub fn failure_text(error : Error) -> String {
+  match error {
+    NodeHostFailure::Dispatch(Dispatch(Dispatch(Candidate(CommonInputRows)))) =>
+      "common-input-rows"
+    _ => error.to_string()
+  }
+}
+
+///|
+#export_name("workersArithmeticFailure")
+pub fn arithmetic_failure(scenario : Scenario) -> Array[Int] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(scenario.installed),
+  )
+  match @strategy.captured_dag_failure(run) {
+    Some((task, Compute(Execution(Rows(step, Evaluation(row, slot, issue)))))) =>
+      if issue.kind is Scalar(ArithmeticFailure) &&
+        @lower.expression_location(issue.expression).range is Some(range) {
+        [task, step, row, slot, range.start, range.end]
+      } else {
+        []
+      }
+    _ => []
+  }
+}
+
+///|
 /// Adversarial use of ordinary public dispatch APIs, not a test-only authority.
 /// Both Runs are constructed inside the same module instance.
 #export_name("workersForeignDispatch")
 pub fn foreign_dispatch() -> Array[Bool] raise {
-  let a = prepare_scenario(["{\"id\":3}"], false, 100)
-  let b = prepare_scenario(["{\"id\":3}"], false, 100)
+  let a = prepare_scenario(["{\"id\":3}"], false, 100, "id > 2")
+  let b = prepare_scenario(["{\"id\":3}"], false, 100, "id > 2")
   let task = @host_driver.prepare_next_compute_task(
       @builtin.configured_host_runtime(a.installed),
       (),

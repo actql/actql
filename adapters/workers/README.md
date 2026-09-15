@@ -50,13 +50,48 @@ independently from literal expected rows, never from product results.
 
 ### Product Host and initialization
 
-`createWorkersHost(hashSeed)` from `host.mjs` creates a Local-only runtime.
+`bindWorkersHost(runtime)` from `host.mjs` binds the generated Local-only Host
+operations to a trusted, invocation-created MoonBit runtime. Application
+preparation and Host operations must be linked into that **same** runtime:
+MoonBit's generated exception tags are link-unit-local. Do not pass handles or
+errors between separately linked instances. The fixture generator projects the
+ordinary generated Host operations into its application link unit for this
+reason; it does not supply a replacement planner or evaluator.
+
+`createWorkersHost(hashSeed)` instantiates the standalone dispatch-only bridge.
+It is a composition primitive, not an API for importing setup handles from
+another runtime. Applications that also prepare checked requests use
+`bindWorkersHost` with their combined application/Host build. This trusted
+assembly is not supplied by Program JSON or by an HTTP request.
+
 `withCapturedStrategy(setup, consume, signal)` allows scoped consumption of
 verified outputs and always closes them and attempts recovery before returning.
 A recovery error retains an explicit `cleanupHandle`; it is not a successful
 response or permission to store handles for a later request. The generated
 composition supplies implementations, not caller-provided verifier callbacks.
 The test-only `conformance.mjs` prepares fixtures; product callers do not import it.
+
+The reference-only asynchronous test profile is separate from the Local product
+profile. Its Connector waits at reservation and computation boundaries, then
+reports stop confirmation before common completion. Cancellation and failed
+cleanup retain the common reservation until a later cleanup confirmation within
+the same invocation. Tests cover cancellation before and after computation,
+cleanup failure and recovery, and interleaved independent Runs. Phase spies
+reject acquire/store/transfer/provision/execute calls during checking, lowering,
+and pure comparison; they observe rather than replace Core admission.
+
+The command also checks `scripts/fixtures/portable-stdlib.json`, an explicit
+inventory of the pinned standard-library production closure, including implicit
+prelude and builtin dependencies. Package names, source digests, toolchain pins
+and reasons are reviewed individually. This is not a blanket claim that every
+standard-library API is pure: Core printing is prohibited, and reachable
+generated code must independently pass the artifact and runtime gates.
+
+Build reports separate `host` (dispatch-only composition) and `conformance`
+(checker, preparation, execution and test probes) sizes, both raw and gzip.
+Neither measurement is a deployment capacity guarantee. The execution fixtures
+use a three-row relation and verify exact failure row, slot and expression span,
+not just matching success values.
 
 Pinned MoonBit's implicit builtin otherwise initializes its physical hash table
 seed through ambient entropy during module loading. `moon-runtime.mjs` accepts

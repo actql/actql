@@ -8,6 +8,7 @@ import {inspectCore, packageImports} from './portable-core.mjs';
 const manifest = 'supported_targets = "+js+wasm+native"\n';
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-portable-negative-'));
+  writeFileSync(join(root,'moon.mod'),'name = "actql/actql"\nsource = "src"\n');
   t.diagnostic(`isolated fixture retained: ${root}`);
   const put = (name, file, text) => {
     const path = join(root, 'src', name);
@@ -80,6 +81,14 @@ test('alternative package metadata cannot be ignored in the audited closure', t 
   const f = fixture(t);
   f.put('root', 'moon.pkg.json', '{"link":{"native":{"cc-link-flags":"-lsocket"}}}');
   assert.throws(f.check,/AmbiguousCoreManifest/);
+});
+
+test('module-level build hooks and alternative roots fail closed', t => {
+  const f = fixture(t);
+  writeFileSync(join(f.root,'moon.mod'),'name = "actql/actql"\noptions(pre_build: "node io.mjs")');
+  assert.throws(f.check,/UnauditedCoreModuleDirective/);
+  writeFileSync(join(f.root,'moon.mod'),'source = "foreign"');
+  assert.throws(f.check,/UnsupportedCoreSourceRoot/);
 });
 
 test('public concrete binding import is rejected; opaque abstract port is allowed', t => {

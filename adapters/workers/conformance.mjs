@@ -1,12 +1,13 @@
 // Test-only preparation and observations. Product Host does not import fixtures.
 import {instantiate} from '../../_build/workers/modules/fixture.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {createWorkersHost} from './host.mjs';
+import {bindWorkersHost} from './host.mjs';
+import {runAsyncCase} from './async-conformance.mjs';
 
-export async function runCase({rows, nullable = false, maxRows = 100, cancel = false, hashSeed = 0, consumeFailure = false}) {
+export async function runCase({rows, nullable = false, maxRows = 100, cancel = false, hashSeed = 0, consumeFailure = false, computeFilter = 'id > 2'}) {
   const fixture = instantiate(hashSeed);
-  const host = createWorkersHost(hashSeed);
-  const scenario = checked(fixture.prepareWorkersScenario(rows.map(row => JSON.stringify(row)), nullable, maxRows));
+  const host = bindWorkersHost(fixture);
+  const scenario = checked(fixture.prepareWorkersScenario(rows.map(row => JSON.stringify(row)), nullable, maxRows, computeFilter));
   const setup = fixture.workersScenarioHost(scenario);
   const abort = new AbortController();
   if (cancel) abort.abort(new Error('test cancellation'));
@@ -31,7 +32,10 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
     if (saved) {
       try { saved.output(1); } catch (failure) { released = failure.code === 'ReleasedStrategy'; }
     }
-    return {status:'failed', cleanupPending:!!error.cleanupHandle?.status().pending,
+    const runtimeFailure = error.errors?.[0]?.cause;
+    const diagnostic = runtimeFailure?.code === 'MoonBitHostFailure'
+      ? fixture.workersFailureText(runtimeFailure.cause) : null;
+    return {status:'failed', diagnostic, arithmetic:fixture.workersArithmeticFailure(scenario), cleanupPending:!!error.cleanupHandle?.status().pending,
       released, finalUsage:host.usage(setup)};
   } finally { fixture.closeWorkersScenario(scenario); }
 }
@@ -46,7 +50,9 @@ export default {
       return Response.json(checked(instantiate(0).workersForeignDispatch()));
     }
     // Promise.all interleaves two distinct owned Runs in the same isolate.
-    const result = Array.isArray(input) ? await Promise.all(input.map(runCase)) : await runCase(input);
+    const result = input.action === 'async-probe' ? await runAsyncCase(input)
+      : Array.isArray(input) ? await Promise.all(input.map(item =>
+        item.action === 'async-probe' ? runAsyncCase(item) : runCase(item))) : await runCase(input);
     // Test transport preserves exact Int64 ledger values; never round to Number.
     return new Response(JSON.stringify(result, (_, value) =>
       typeof value === 'bigint' ? value.toString() : value), {

@@ -7,6 +7,7 @@ priv suberror ReferenceDispatchFailure {
 
 ///|
 struct NumericDispatchModule {
+  driver : @host.DispatchDriver
   context : @host.ComputeAuthorContext
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
@@ -45,7 +46,7 @@ pub fn prepare_numeric_dispatch_module(
     Ok(value) => value
     Err(_) => return Err(Unsupported)
   }
-  Ok({ context, registry, registration, channel, limits, expressions, })
+  Ok({ driver, context, registry, registration, channel, limits, expressions, })
 }
 
 ///|

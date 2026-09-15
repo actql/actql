@@ -68,7 +68,8 @@ export function prepareRuntimeModules() {
   const root = fileURLToPath(new URL('../../',import.meta.url));
   const directory = `${root}_build/workers/modules`;
   mkdirSync(directory,{recursive:true});
-  for (const [name,pkg] of [['bridge','connectors_workers_bridge'],['fixture','workers_conformance']]) {
+  for (const [name,pkg] of [['bridge','connectors_workers_bridge'],['fixture','workers_conformance'],
+    ['async_bridge','connectors_workers_async_bridge']]) {
     const source = readFileSync(`${root}_build/js/release/build/${pkg}/${pkg}.js`,'utf8');
     writeFileSync(`${directory}/${name}.mjs`,explicitSeedRuntime(source));
   }

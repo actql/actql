@@ -122,6 +122,16 @@ function inspectSource(source, path) {
 }
 
 export function inspectCore(root, roots = coreRoots) {
+  if (existsSync(join(root, 'moon.mod.json'))) throw new Error('AmbiguousCoreModule');
+  const module = tokens(readFileSync(join(root,'moon.mod'),'utf8'));
+  const metadata = new Set(['name','version','license','source','preferred_target','supported_targets']);
+  for (let i = 0; i < module.length; i += 3) {
+    const [key,equals,value] = module.slice(i,i+3);
+    if (key?.kind !== 'word' || !metadata.has(key.value) || equals?.value !== '=' || value?.kind !== 'string') {
+      throw new Error('UnauditedCoreModuleDirective');
+    }
+    if (key.value === 'source' && value.value !== 'src') throw new Error('UnsupportedCoreSourceRoot');
+  }
   const packages = new Map(), external = new Map();
   const pending = [...roots];
   while (pending.length) {

@@ -42,11 +42,27 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
+  '_build/workers/modules/async_bridge.mjs',
+  'adapters/connectors-workers/strategy.generated.mjs',
+  'adapters/local-node/strategy-bundle.mjs',
+  'adapters/reference-compute-node/async-probe.mjs',
+  'adapters/host-common/strategy.mjs',
+  'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/runtime-result.mjs',
+  'adapters/workers/host.mjs',
+  'adapters/workers/invocation.mjs',
+  'adapters/workers/async-conformance.mjs',
+  'adapters/workers/phase-audit.mjs',
+  'adapters/workers/conformance.mjs',
+];
+
+export const hostModules = [
+  '_build/workers/modules/bridge.mjs',
   'adapters/connectors-workers/strategy.generated.mjs',
   'adapters/local-node/strategy-bundle.mjs',
   'adapters/host-common/strategy.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',
   'adapters/workers/host.mjs',
-  'adapters/workers/conformance.mjs',
+  'adapters/workers/invocation.mjs',
 ];

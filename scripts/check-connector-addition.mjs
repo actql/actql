@@ -26,7 +26,12 @@ const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
   path.startsWith('src/query_integration/') || path.startsWith('src/connector_conformance/') ||
   path.startsWith('src/duckdb_conformance/') || path.startsWith('adapters/reference-compute-node/') ||
   path.startsWith('adapters/connectors-builtin/');
-const omitted = new Set(['connectors_builtin', 'connectors_builtin_node', 'query_integration', 'connector_conformance', 'duckdb_conformance']);
+// The independent async Workers probe intentionally uses the third connector.
+// It is a separate conformance composition, not part of the two-connector
+// product baseline. Keep the Local-only Workers assembly in that baseline.
+const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
+  'query_integration', 'connector_conformance', 'duckdb_conformance',
+  'workers_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
 cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
 cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
