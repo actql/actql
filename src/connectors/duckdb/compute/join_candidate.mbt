@@ -10,9 +10,7 @@ priv struct DuckDBJoinPreparation {
 
 ///|
 fn compute_input_tables(owner : @lower.BoundPrepared) -> Array[String] {
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
   Array::makei(count, index => {
     if count == 1 {
       "owned_input"

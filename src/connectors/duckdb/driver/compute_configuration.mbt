@@ -4,7 +4,7 @@
 struct ComputeHostConfiguration {
   choice : @connector.FixedComputeChoice
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute]
-  generated : @execution.GeneratedSequence
+  generated : @execution.CompletionPreparation
   limits : @compute.DuckDBComputeLimits
   transport : @duckdb.TransportColumnLimits
 }
@@ -13,7 +13,7 @@ struct ComputeHostConfiguration {
 pub fn configure_compute_host(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
-  generated : @execution.GeneratedSequence,
+  generated : @execution.CompletionPreparation,
   limits : @compute.DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
 ) -> ComputeHostConfiguration {

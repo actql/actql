@@ -48,7 +48,7 @@ struct DuckDBComputeAttempt {
 pub fn start_duckdb_compute_attempt(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
-  generated : @execution.GeneratedSequence,
+  generated : @execution.CompletionPreparation,
   limits : DuckDBComputeLimits,
   transport_matches : (DuckDBComputeAttempt) -> Bool,
 ) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue] {
@@ -66,7 +66,7 @@ pub fn start_duckdb_compute_attempt(
     return Err(ForeignPreparation)
   }
   if !physical_equal(
-      @execution.generated_sequence_owner(generated),
+      @execution.completion_preparation_owner(generated),
       @connector.fixed_compute_request_owner(request),
     ) ||
     @connector.fixed_compute_request_capacity(request).common_fragment

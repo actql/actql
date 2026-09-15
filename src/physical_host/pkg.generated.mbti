@@ -16,7 +16,7 @@ pub fn check_dispatch_idle(DispatchDriver) -> Result[Unit, DispatchIssue]
 
 pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], C, Int, TaskEstimateQuantities, Int, Int) -> Result[Array[@physical_strategy.TaskOffer], InstalledOfferIssue[E]]
 
-pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.GeneratedSequence?
+pub fn compute_author_sequence(ComputeAuthorContext, Int) -> @execution_relation.CompletionPreparation?
 
 pub fn[C, E] compute_host_dispatch(ComputeHost[C, E]) -> DispatchHost[C, E]
 
@@ -52,7 +52,7 @@ pub fn open_dispatch_driver(@physical_strategy.CapturedDAG) -> DispatchDriver
 
 pub fn[C, E] open_dispatch_host(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]], @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[DispatchHost[C, E], DispatchIssue]
 
-pub fn prepare_compute_author_context(DispatchDriver, Array[@execution_relation.GeneratedSequence]) -> Result[ComputeAuthorContext, @connector_sdk.FixedComputeIssue]
+pub fn prepare_compute_author_context(DispatchDriver, Array[@execution_relation.CompletionPreparation]) -> Result[ComputeAuthorContext, @connector_sdk.FixedComputeIssue]
 
 pub fn prepare_dispatch_inputs(DispatchDriver, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeCapacity, Int, Int) -> Result[@connector_sdk.FixedComputeRequest, DispatchIssue]
 

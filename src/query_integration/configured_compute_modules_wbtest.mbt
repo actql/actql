@@ -14,7 +14,7 @@ test "generated configuration rejects invalid registration sets before connector
     max_work: limits.candidate_work,
   }
   let native_config : @duckdb_driver.DuckDBComputeConfiguration = {
-    sequences: generated,
+    sequences: generated.map(@execution.generated_completion_preparation),
     limits: {
       capacity: limits.capacity,
       query: limits.native_query,

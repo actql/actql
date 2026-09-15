@@ -35,8 +35,8 @@ pub fn prepare_numeric_plan(
     return Err(Limit)
   }
   let preparation = @lower.bound_preparation(owner)
-  let pipeline = @lower.pipeline(preparation)
-  if @pipeline.input_count(pipeline) != 1 || @pipeline.step_count(pipeline) != 2 {
+  if @lower.preparation_input_count(preparation) != 1 ||
+    @lower.node_count(preparation) != 2 {
     return Err(Unsupported)
   }
   let filter = match
@@ -81,7 +81,7 @@ pub fn prepare_numeric_plan(
     value.value is @admitted.Number(threshold) else {
     return Err(Unsupported)
   }
-  guard @pipeline.schema_at(pipeline, Input(0)) is Some(schema) else {
+  guard @lower.preparation_input_schema(preparation, 0) is Some(schema) else {
     return Err(Unsupported)
   }
   for field in fields {

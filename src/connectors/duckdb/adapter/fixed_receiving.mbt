@@ -35,10 +35,8 @@ pub fn prepare_fixed_compute_receiving(
   if !fixed_compute_inputs_available(compute) {
     return Err(InputUnavailable)
   }
-  guard @pipeline.schema_at(
-      @lower.pipeline(
-        @lower.bound_preparation(fixed_query_owner(compute.query)),
-      ),
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(fixed_query_owner(compute.query)),
       fixed_query_target(compute.query),
     )
     is Some(schema) else {

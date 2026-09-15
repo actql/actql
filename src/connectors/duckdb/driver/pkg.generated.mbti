@@ -33,7 +33,7 @@ pub fn close_resident_store(@physical_strategy.CapturedDAG, DuckDBResidentStore,
 
 pub fn compute_failure(@compute.DuckDBComputeIssue) -> @physical_strategy.RunIssue
 
-pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits) -> ComputeHostConfiguration
+pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits) -> ComputeHostConfiguration
 
 pub fn configure_duckdb_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, DuckDBComputeConfiguration) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
 
@@ -79,7 +79,7 @@ pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunI
 
 pub fn prepare_duckdb_dispatch(DuckDBDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, DuckDBDispatchIssue]
 
-pub fn prepare_duckdb_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], DuckDBDispatchLimits) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
+pub fn prepare_duckdb_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.CompletionPreparation], DuckDBDispatchLimits) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
 
 pub fn prepare_duckdb_estimate_module(DuckDBDispatchModule, Array[@physical_cost.RateSchedule], Array[@physical_strategy.PhysicalEnvelope], Int) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue]
 
@@ -103,7 +103,7 @@ pub fn resident_table_handle(DuckDBResidentTable) -> @physical_strategy.Resident
 
 pub fn resident_table_import(DuckDBResidentTable) -> @adapter.ResidentImport?
 
-pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
+pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> Result[@compute.DuckDBComputeAttempt, @compute.DuckDBComputeIssue]
 
@@ -123,7 +123,7 @@ type CapturedDuckDBTask
 type ComputeHostConfiguration
 
 pub(all) struct DuckDBComputeConfiguration {
-  sequences : Array[@execution_relation.GeneratedSequence]
+  sequences : Array[@execution_relation.CompletionPreparation]
   limits : DuckDBDispatchLimits
 }
 

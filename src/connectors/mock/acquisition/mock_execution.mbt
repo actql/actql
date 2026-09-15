@@ -140,8 +140,10 @@ fn compute_mock_query(
     return Err(InvalidLimits)
   }
   let query = @query.query_sequence_requirement(strategy.offer.owner)
-  guard @pipeline.schema_at(
-      @sourcequery.query_acquisition_pipeline(query),
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(
+        @query.query_sequence_owner(strategy.offer.owner),
+      ),
       @sourcequery.query_acquisition_input(query),
     )
     is Some(schema) else {

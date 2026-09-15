@@ -110,7 +110,7 @@ test "common input value guard precedes join cardinality in both realizations" {
     let native_result = @duckdb_compute.start_duckdb_compute_attempt(
       native_choice,
       native,
-      generated,
+      @execution.generated_completion_preparation(generated),
       limits,
       _ => false,
     )

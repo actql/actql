@@ -16,12 +16,13 @@ pub fn check_fixed_compute_static(
   tables : Array[String],
   limits : NativeQueryLimits,
 ) -> Result[Unit, NativeQueryIssue] {
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  if tables.length() != @pipeline.input_count(pipeline) || tables.is_empty() {
+  let prepared = @lower.bound_preparation(owner)
+  if tables.length() != @lower.preparation_input_count(prepared) ||
+    tables.is_empty() {
     return Err(UnsupportedShape)
   }
-  let checked = if @pipeline.step_at(pipeline, 0) is Some(step) &&
-    step.operation is @pipeline.Join(_) {
+  let checked = if @lower.node_at(prepared, 0) is Some(node) &&
+    @lower.node_input_target(node, 1) is Some(_) {
     compile_fixed_inner_join(owner, "main", tables, limits).map(_ => ())
   } else if tables.length() == 1 {
     compile_fixed_query(owner, "main", tables[0], limits).map(_ => ())
@@ -35,7 +36,7 @@ pub fn check_fixed_compute_static(
   let mut columns = limits.max_entries
   let mut bytes = limits.max_sql_bytes
   for port in 0..<tables.length() {
-    guard @pipeline.schema_at(pipeline, Input(port)) is Some(schema) else {
+    guard @lower.preparation_input_schema(prepared, port) is Some(schema) else {
       return Err(UnsupportedShape)
     }
     match compile_fixed_import_schema(schema, tables[port], columns, bytes) {

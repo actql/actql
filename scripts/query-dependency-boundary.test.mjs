@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import test from 'node:test';
 import './connector-node-bundles.test.mjs';
+import './backend-semantic-boundary.test.mjs';
 
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);

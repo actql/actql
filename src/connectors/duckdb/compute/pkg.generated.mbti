@@ -61,7 +61,7 @@ pub fn prepare_duckdb_resident_read(@adapter.ResidentImport, @execution_relation
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
-pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
+pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
 
 // Errors
 

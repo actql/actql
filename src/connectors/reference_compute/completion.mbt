@@ -17,7 +17,7 @@ struct CompletedNumericOutput {
 /// requires its reservation and atomic holding attachment before task success.
 /// No caller-supplied verifier or replacement rows are accepted here.
 pub fn complete_numeric_output(
-  generated : @execution.GeneratedSequence,
+  generated : @execution.CompletionPreparation,
   measured : MeasuredNumericOutput,
   max_entries : Int,
   max_name_bytes : Int,

@@ -146,8 +146,11 @@ fn fixed_compute_attempt_fixture(
     choice,
     prepared,
     match generated {
-      Some(generated) => generated
-      None => query_generated(@execution.producer_read_receiver(input))
+      Some(generated) => @execution.generated_completion_preparation(generated)
+      None =>
+        @execution.generated_completion_preparation(
+          query_generated(@execution.producer_read_receiver(input)),
+        )
     },
     limits,
     current => {

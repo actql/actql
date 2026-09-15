@@ -14,7 +14,7 @@ pub(all) struct FixedComputeCapacity {
   contract_cid : String
   max_rows : Int
   max_value_bytes : Int
-  common_fragment : @execution.GeneratedSequence?
+  common_fragment : @lower.SequenceRequirements?
 }
 
 ///|
@@ -53,10 +53,10 @@ pub fn prepare_fixed_compute_request(
   guard inputs.get(0) is Some(first) else { return Err(UnsupportedInputShape) }
   let owner = @execution.producer_read_receiver(first)
   if capacity.common_fragment is Some(sequence) &&
-    !physical_equal(@execution.generated_sequence_owner(sequence), owner) {
+    !physical_equal(@lower.sequence_requirements_owner(sequence), owner) {
     return Err(ForeignPreparation)
   }
-  if @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))) !=
+  if @lower.preparation_input_count(@lower.bound_preparation(owner)) !=
     inputs.length() {
     return Err(UnsupportedInputShape)
   }

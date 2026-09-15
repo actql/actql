@@ -11,7 +11,7 @@ pub(all) struct NumericExecutionLimits {
 ///|
 struct NumericAttempt {
   compute : NumericCompute
-  generated : @execution.GeneratedSequence
+  generated : @execution.CompletionPreparation
   limits : NumericExecutionLimits
   mut started : Bool
   mut closed : Bool
@@ -67,14 +67,14 @@ pub fn numeric_execution_capacity(
 pub fn[E, P] prepare_numeric_execution(
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[NumericCompute],
-  generated : @execution.GeneratedSequence,
+  generated : @execution.CompletionPreparation,
   limits : NumericExecutionLimits,
   issue : (PlanIssue) -> E,
 ) -> Result[@connector.PreparedExecution[NumericAttempt, E, P], PlanIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(compute) &&
     physical_equal(
-      @execution.generated_sequence_owner(generated),
+      @execution.completion_preparation_owner(generated),
       compute.plan.owner,
     ) else {
     return Err(Candidate(NotSelected))

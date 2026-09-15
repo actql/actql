@@ -33,7 +33,7 @@ pub fn prepare_numeric_contribution(NumericDispatchModule, Int64?, Int) -> Resul
 
 pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]
 
-pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
+pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.CompletionPreparation], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
 
 pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
 
@@ -43,7 +43,7 @@ pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_str
 type AsyncNumericExecution
 
 pub(all) struct NumericComputeConfiguration {
-  sequences : Array[@execution_relation.GeneratedSequence]
+  sequences : Array[@execution_relation.CompletionPreparation]
   limits : @reference_compute.NumericExecutionLimits
   expressions : @lowering_relation.ExpressionLimits
   milliseconds : Int64?

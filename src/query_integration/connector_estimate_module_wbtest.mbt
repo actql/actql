@@ -44,7 +44,7 @@ test "connector estimate modules own schedules without Host policy state or call
         driver,
         registry,
         registration,
-        generated,
+        generated.map(@execution.generated_completion_preparation),
         duckdb_dispatch_module_limits(),
       ).unwrap()
       let schedules = connector_test_schedules(
@@ -182,14 +182,18 @@ test "resident estimate installation is owned by the exact connector and run" {
     driver,
     registry,
     registration,
-    dispatch_test_generated(run),
+    dispatch_test_generated(run).map(
+      @execution.generated_completion_preparation,
+    ),
     duckdb_dispatch_module_limits(),
   ).unwrap()
   let other = @duckdb_driver.prepare_duckdb_dispatch_module(
     driver,
     registry,
     registration,
-    dispatch_test_generated(run),
+    dispatch_test_generated(run).map(
+      @execution.generated_completion_preparation,
+    ),
     duckdb_dispatch_module_limits(),
   ).unwrap()
   let binding = @connector.prepare_resource_binding(registry, registration).unwrap()

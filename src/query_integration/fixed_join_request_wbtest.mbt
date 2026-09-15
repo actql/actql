@@ -310,7 +310,7 @@ test "fixed join request binds both captured ports through registered Local sele
   let native_attempt = @duckdb_compute.start_duckdb_compute_attempt(
     native_choice,
     native_candidate,
-    generated,
+    @execution.generated_completion_preparation(generated),
     fixed_compute_attempt_limits(),
     current => {
       native_transport.settled is Some(expected) &&
@@ -343,7 +343,7 @@ test "fixed join request binds both captured ports through registered Local sele
   let unfinished = @duckdb_compute.start_duckdb_compute_attempt(
     native_choice,
     native_candidate,
-    generated,
+    @execution.generated_completion_preparation(generated),
     fixed_compute_attempt_limits(),
     _ => true,
   ).unwrap()
@@ -429,7 +429,7 @@ test "fixed join request binds both captured ports through registered Local sele
     @duckdb_compute.start_duckdb_compute_attempt(
       native_choice,
       native_candidate,
-      generated,
+      @execution.generated_completion_preparation(generated),
       fixed_compute_attempt_limits(),
       _ => true,
     )

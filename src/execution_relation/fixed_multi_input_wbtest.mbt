@@ -109,7 +109,7 @@ test "two fixed producer ports share storage but not admission or measurement cr
   )
   let supplied = inputs.copy()
   let port = prepare_trusted_output_port(
-    generated,
+    generated_completion_preparation(generated),
     Step(0),
     100,
     1000,
@@ -126,7 +126,7 @@ test "two fixed producer ports share storage but not admission or measurement cr
     invalid in [[], [inputs[0]], [inputs[1], inputs[0]], [inputs[0], inputs[0]]] {
     assert_true(
       prepare_trusted_output_port(
-        generated,
+        generated_completion_preparation(generated),
         Step(0),
         100,
         1000,

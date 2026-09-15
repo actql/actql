@@ -190,7 +190,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // settings. The standard entry/bridge are unchanged for the third module.
   const numericProgram = JSON.parse(program);
   numericProgram.stages[3].steps[0].filter = 'id > 2';
-  for (const mode of [0, 1, 2]) {
+  for (const mode of [0, 1, 2, 3]) {
     for (const cancel of [false, true]) {
       await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       const f = fixture.strategyFixtureCreate(...args, JSON.stringify(numericProgram));
@@ -198,24 +198,28 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       let execution;
       try {
         assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
-        const setup = fixture.strategyFixtureModuleSubset(f, mode);
+        const setup = mode === 3 ? fixture.strategyFixtureDuckDBOnly(f) : fixture.strategyFixtureModuleSubset(f, mode);
         const absent = new Proxy({}, {get() { assert.fail('unused Compute provider settings accessed'); }});
         const controller = new AbortController();
+        const settings = mode === 3
+          ? {duckdb: prepareDuckDBStrategyConfiguration({transportLimits: suppliedLimits, importLimits: {maxRows: 100, maxCells: 1000}}), local: absent}
+          : {duckdb: absent};
         if (cancel) controller.abort();
         if (cancel) {
-          await assert.rejects(runCapturedStrategy(setup, {duckdb: absent}, controller.signal), {name:'AbortError'});
+          await assert.rejects(runCapturedStrategy(setup, settings, controller.signal), {name:'AbortError'});
           continue;
         }
-        execution = await runCapturedStrategy(setup, {duckdb: absent}, controller.signal);
+        execution = await runCapturedStrategy(setup, settings, controller.signal);
         assert.equal(execution.status, cancel ? 'host-tasks-failed' : 'host-tasks-completed', String(execution.failure));
         if (cancel) {
           assert.equal(execution.completed.length, 0);
           assert.equal(execution.usage().attempts, 0n);
         } else {
           assert.deepEqual(execution.completed.map(item => item.realization),
-            Array(3).fill(mode === 0 ? 'local' : 'reference-numeric'));
+            Array(3).fill(mode === 0 ? 'local' : mode === 3 ? 'duckdb' : 'reference-numeric'));
           assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
-          assert.equal(execution.usage().transferredBytes, 0n);
+          if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
+          else assert.equal(execution.usage().transferredBytes, 0n);
         }
       } finally { execution?.close(); capture.close(); }
       assert.equal(execution.cleanupPending(), false);

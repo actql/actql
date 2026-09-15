@@ -75,7 +75,9 @@ pub fn configure_subset(
         (
           @connector.capability_registration_at(registry, count - 1).unwrap(),
           {
-            sequences,
+            sequences: sequences.map(
+              @execution.generated_completion_preparation,
+            ),
             limits: {
               max_work: 100,
               max_entries: 100,

@@ -14,7 +14,7 @@ struct DuckDBDispatchModule {
   run : @strategy.CapturedDAG
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
-  sequences : Array[@execution.GeneratedSequence]
+  sequences : Array[@execution.CompletionPreparation]
   limits : DuckDBDispatchLimits
   rejections : Array[(String?, String?)]
   channel : @host.DispatchChannel[StrategyComputeHostConfiguration]
@@ -40,7 +40,7 @@ pub fn prepare_duckdb_dispatch_module(
   driver : @host.DispatchDriver,
   registry : @connector.CapabilityRegistry,
   registration : @connector.CapabilityRegistration,
-  sequences : Array[@execution.GeneratedSequence],
+  sequences : Array[@execution.CompletionPreparation],
   limits : DuckDBDispatchLimits,
 ) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
@@ -57,7 +57,7 @@ pub fn prepare_duckdb_dispatch_module(
   let rejections = []
   for index, sequence in sequences {
     if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
-      physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
+      physical_equal(owner, @execution.completion_preparation_owner(sequence))) {
       return Err(InvalidConfiguration)
     }
     match
@@ -71,12 +71,12 @@ pub fn prepare_duckdb_dispatch_module(
     rejections.push(
       (
         @compute.duckdb_compute_static_rejection(
-          @execution.generated_sequence_owner(sequence),
+          @execution.completion_preparation_owner(sequence),
           limits.capacity,
           limits.query,
         ),
         @compute.duckdb_resident_static_rejection(
-          @execution.generated_sequence_owner(sequence),
+          @execution.completion_preparation_owner(sequence),
         ),
       ),
     )
@@ -146,7 +146,7 @@ pub fn prepare_duckdb_dispatch(
   }
   if !physical_equal(
       @connector.fixed_compute_request_owner(request),
-      @execution.generated_sequence_owner(sequence),
+      @execution.completion_preparation_owner(sequence),
     ) ||
     !(@strategy.captured_dag_strategy(installed.run) is Some(current) &&
     physical_equal(current, revision)) ||

@@ -30,7 +30,7 @@ pub fn start_captured_duckdb_task(
   task : Int,
   choice : @connector.FixedComputeChoice,
   prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
-  generated : @execution.GeneratedSequence,
+  generated : @execution.CompletionPreparation,
   limits : @compute.DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
   transfer_bytes : Int64,

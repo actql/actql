@@ -66,8 +66,8 @@ pub fn check_resident_output_static(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
 ) -> Result[Unit, NativeQueryIssue] {
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  guard @pipeline.schema_at(pipeline, target) is Some(schema) else {
+  let prepared = @lower.bound_preparation(owner)
+  guard @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(UnsupportedShape)
   }
   if !physical_column_names_unique(schema) {

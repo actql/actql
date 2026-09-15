@@ -191,6 +191,8 @@ pub fn strategy_fixture_create(String, String, String, String, String, String, S
 
 pub fn strategy_fixture_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_duckdb_only(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_estimate(StrategyFixture) -> Int64
 
 pub fn strategy_fixture_graph(StrategyFixture) -> @physical_strategy.CheckedDAG

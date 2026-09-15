@@ -3,7 +3,6 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/execution_relation" @execution,

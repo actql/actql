@@ -148,6 +148,10 @@ pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
 
+pub fn node_input_target(PreparedNode, Int) -> @pipeline_typing.Target?
+
+pub fn node_output_schema(PreparedNode) -> @relation_schema.Schema
+
 pub fn operation(PreparedNode) -> String
 
 pub fn order_node_id(PreparedNode) -> String?
@@ -168,11 +172,21 @@ pub fn payload(PreparedNode) -> Payload
 
 pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
 
+pub fn preparation_input_count(Prepared) -> Int
+
+pub fn preparation_input_schema(Prepared, Int) -> @relation_schema.Schema?
+
+pub fn preparation_output_target(Prepared) -> @pipeline_typing.Target?
+
+pub fn preparation_schema_at(Prepared, @pipeline_typing.Target) -> @relation_schema.Schema?
+
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
 pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
 
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
+
+pub fn prepare_fragment_enforcement(FragmentRequest, FragmentRowLimits, Int, Int, Int, Int64?, Bool) -> Result[FragmentEnforcement, SequenceRequirementsIssue]
 
 pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
 
@@ -194,6 +208,8 @@ pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssu
 
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
+pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
+
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
 pub fn projection_node_id(PreparedNode) -> String?
@@ -206,9 +222,25 @@ pub fn root_sequence(RootIndex) -> PreparedSequence
 
 pub fn root_step_range(RootIndex) -> (Int, Int)
 
+pub fn sequence_canonical_node_at(PreparedSequence, Int, Int) -> CanonicalOccurrence?
+
+pub fn sequence_canonical_node_count(PreparedSequence, Int) -> Int?
+
 pub fn sequence_count(PreparedSequence) -> Int
 
 pub fn sequence_owner(PreparedSequence) -> BoundPrepared
+
+pub fn sequence_requirements_fragment_at(SequenceRequirements, Int) -> FragmentEnforcement?
+
+pub fn sequence_requirements_fragment_count(SequenceRequirements) -> Int
+
+pub fn sequence_requirements_join_at(SequenceRequirements, Int) -> (Int, Int64)?
+
+pub fn sequence_requirements_join_count(SequenceRequirements) -> Int
+
+pub fn sequence_requirements_owner(SequenceRequirements) -> BoundPrepared
+
+pub fn sequence_requirements_sequence(SequenceRequirements) -> PreparedSequence
 
 pub fn sequence_step(PreparedSequence, Int) -> PreparedStep?
 
@@ -247,6 +279,12 @@ pub(all) enum BindingIssueKind {
 } derive(Eq, @debug.Debug)
 
 type BoundPrepared
+
+pub struct CanonicalOccurrence {
+  source_step : Int
+  id : String
+  operation : String
+}
 
 pub(all) enum CountGroupIssue {
   NotGroup
@@ -331,6 +369,16 @@ pub struct ExpressionRoot {
   parameter_pointer : String
   expression : Expression
   typed_expression : @expression_typing.TypedExpression
+}
+
+pub struct FragmentEnforcement {
+  request : FragmentRequest
+  logical : FragmentRowLimits
+  measure_bytes : Int
+  measure_nodes : Int
+  measure_depth : Int
+  root_result_bytes : Int64?
+  all_expression_roots : Bool
 }
 
 type FragmentPipeline
@@ -520,6 +568,15 @@ pub(all) struct SequenceLimits {
   max_bindings : Int
   max_name_bytes : Int
   expressions : ExpressionLimits
+}
+
+type SequenceRequirements
+
+pub(all) enum SequenceRequirementsIssue {
+  InvalidLimits
+  ForeignOccurrence
+  DuplicateOccurrence
+  ExceedsRequest
 }
 
 pub struct SourceDemandTest {

@@ -4,13 +4,13 @@
 /// nor arbitrary reservation/settlement authority.
 struct ComputeAuthorContext {
   driver : DispatchDriver
-  sequences : Array[@execution.GeneratedSequence]
+  sequences : Array[@execution.CompletionPreparation]
 }
 
 ///|
 pub fn prepare_compute_author_context(
   driver : DispatchDriver,
-  sequences : Array[@execution.GeneratedSequence],
+  sequences : Array[@execution.CompletionPreparation],
 ) -> Result[ComputeAuthorContext, @connector.FixedComputeIssue] {
   let graph = @strategy.captured_dag_graph(driver.owner.run)
   if sequences.length() != @strategy.graph_task_count(graph) - 1 {
@@ -18,7 +18,7 @@ pub fn prepare_compute_author_context(
   }
   for index, sequence in sequences {
     if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
-      physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
+      physical_equal(owner, @execution.completion_preparation_owner(sequence))) {
       return Err(ForeignPreparation)
     }
   }
@@ -29,7 +29,7 @@ pub fn prepare_compute_author_context(
 pub fn compute_author_sequence(
   context : ComputeAuthorContext,
   task : Int,
-) -> @execution.GeneratedSequence? {
+) -> @execution.CompletionPreparation? {
   context.sequences.get(task - 1)
 }
 

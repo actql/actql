@@ -19,11 +19,12 @@ pub fn prepare_native_scan(
   if max_columns < 0 || max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(query.owner))
-  guard @pipeline.schema_at(pipeline, Input(0)) is Some(input_schema) else {
+  let prepared = @lower.bound_preparation(query.owner)
+  guard @lower.preparation_input_schema(prepared, 0) is Some(input_schema) else {
     return Err(UnsupportedShape)
   }
-  guard @pipeline.schema_at(pipeline, Step(1)) is Some(output_schema) else {
+  guard @lower.preparation_schema_at(prepared, @pipeline.Step(1))
+    is Some(output_schema) else {
     return Err(UnsupportedShape)
   }
   let sql = match

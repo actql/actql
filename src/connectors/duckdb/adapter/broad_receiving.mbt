@@ -25,8 +25,7 @@ pub fn prepare_broad_scan(
 ) -> Result[BroadScan, NativeQueryIssue] {
   let prepared = @lower.bound_preparation(owner)
   guard @lower.input_id(prepared, input_index) is Some(_) &&
-    @pipeline.schema_at(@lower.pipeline(prepared), @pipeline.Input(input_index))
-    is Some(schema) else {
+    @lower.preparation_input_schema(prepared, input_index) is Some(schema) else {
     return Err(UnsupportedShape)
   }
   let sql = match

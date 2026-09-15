@@ -29,7 +29,7 @@ pub fn prepare_numeric_dispatch_module(
   driver : @host.DispatchDriver,
   registry : @connector.CapabilityRegistry,
   registration : @connector.CapabilityRegistration,
-  sequences : Array[@execution.GeneratedSequence],
+  sequences : Array[@execution.CompletionPreparation],
   limits : @numeric.NumericExecutionLimits,
   expressions : @lower.ExpressionLimits,
 ) -> Result[NumericDispatchModule, @numeric.PlanIssue] {
@@ -135,7 +135,7 @@ pub fn estimate_numeric_dispatch_offer(
   }
   match
     @numeric.prepare_numeric_plan(
-      @execution.generated_sequence_owner(sequence),
+      @execution.completion_preparation_owner(sequence),
       installed.limits.max_entries,
       installed.limits.max_name_bytes,
       {

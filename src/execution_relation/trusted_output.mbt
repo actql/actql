@@ -5,7 +5,7 @@
 /// Provider-facing entry points must install their verifier internally.
 /// Verification is synchronous and side-effect-free, including repeated checks.
 struct TrustedOutputPort[P] {
-  generated : GeneratedSequence
+  generated : CompletionPreparation
   target : @pipeline.Target
   id : String
   names : Array[String]
@@ -32,7 +32,7 @@ pub(all) enum TrustedOutputIssue {
 /// neither input rows nor a liveness callback to an upstream result. The installed
 /// verifier must still validate live inputs before sealing successful output.
 pub fn[P] prepare_trusted_output_port(
-  generated : GeneratedSequence,
+  generated : CompletionPreparation,
   target : @pipeline.Target,
   max_entries : Int,
   max_name_bytes : Int,
@@ -42,11 +42,11 @@ pub fn[P] prepare_trusted_output_port(
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
-  let owner = generated_sequence_owner(generated)
+  let owner = completion_preparation_owner(generated)
   let prepared = @lower.bound_preparation(owner)
   let input_bindings = []
   if inputs is Some(inputs) {
-    if inputs.length() != @pipeline.input_count(@lower.pipeline(prepared)) {
+    if inputs.length() != @lower.preparation_input_count(prepared) {
       return Err(ForeignInputs)
     }
     for index, input in inputs {
@@ -61,7 +61,7 @@ pub fn[P] prepare_trusted_output_port(
   guard target is Step(index) &&
     index == @lower.sequence_count(generated.sequence) - 1 &&
     @lower.node_at(prepared, index) is Some(node) &&
-    @pipeline.schema_at(@lower.pipeline(prepared), target) is Some(schema) else {
+    @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(InvalidTarget)
   }
   // This bridge publishes only the completed final target, never intermediate
@@ -106,12 +106,12 @@ pub fn[P] complete_trusted_output(
   proof : P,
 ) -> Result[CompletedOutput, TrustedOutputIssue] {
   guard (port.verify)(proof) is Some(rows) else { return Err(Unverified) }
-  let owner = generated_sequence_owner(port.generated)
+  let owner = completion_preparation_owner(port.generated)
   if !physical_equal(rows.owner, owner) || rows.target != port.target {
     return Err(ForeignOutput)
   }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  guard @pipeline.schema_at(pipeline, port.target) is Some(schema) &&
+  let prepared = @lower.bound_preparation(owner)
+  guard @lower.preparation_schema_at(prepared, port.target) is Some(schema) &&
     physical_equal(schema, rows.schema) else {
     return Err(ForeignOutput)
   }
@@ -130,7 +130,11 @@ pub fn[P] complete_trusted_output(
   let completion : CompletedSequence = {
     contracts: port.generated.contracts,
     sequence: port.generated.sequence,
-    store: ImportedStore(@pipeline.input_count(pipeline), port.target, table),
+    store: ImportedStore(
+      @lower.preparation_input_count(prepared),
+      port.target,
+      table,
+    ),
     _producer_inputs: [],
     input_bindings: port.input_bindings,
     live: Some(live),

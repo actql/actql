@@ -29,15 +29,17 @@ fn materialize_with_roots(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard @pipeline.schema_at(
-      @lower.pipeline(@lower.bound_preparation(plan.owner)),
-      Step(1),
-    )
-    is Some(schema) else {
+  guard @lower.node_at(@lower.bound_preparation(plan.owner), 1) is Some(node) else {
     return Err(Unsupported)
   }
+  let schema = @lower.node_output_schema(node)
   let buffer = match
-    @execution.prepare_admitted_output(plan.owner, Step(1), max_rows, values) {
+    @execution.prepare_admitted_output(
+      plan.owner,
+      @pipeline.Step(1),
+      max_rows,
+      values,
+    ) {
     Ok(buffer) => buffer
     Err(issue) => return Err(Output(issue))
   }

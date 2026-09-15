@@ -94,7 +94,9 @@ pub fn configure_strategy_dispatch(
         (
           native_registration,
           {
-            sequences: generated,
+            sequences: generated.map(
+              @execution.generated_completion_preparation,
+            ),
             limits: {
               capacity: limits.capacity,
               query: limits.native_query,

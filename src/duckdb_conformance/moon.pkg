@@ -4,6 +4,8 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
+  "actql/actql/physical_host",
+  "actql/actql/physical_cost",
   "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/connectors/duckdb/host" @acquisition_host,

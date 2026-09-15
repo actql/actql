@@ -28,9 +28,16 @@ test "DuckDB installed dispatch retains exact sequences and cannot exchange modu
   assert_true(install([]) is Err(InvalidConfiguration))
   let swapped = generated.copy()
   swapped[0] = generated[1]
-  assert_true(install(swapped) is Err(InvalidConfiguration))
-  let implementation = install(generated).unwrap()
-  let other = install(generated).unwrap()
+  assert_true(
+    install(swapped.map(@execution.generated_completion_preparation))
+    is Err(InvalidConfiguration),
+  )
+  let implementation = install(
+    generated.map(@execution.generated_completion_preparation),
+  ).unwrap()
+  let other = install(
+    generated.map(@execution.generated_completion_preparation),
+  ).unwrap()
   generated.clear()
   assert_true(
     @duckdb_driver.duckdb_dispatch_rejection(implementation, 1) is None,
@@ -100,7 +107,9 @@ test "DuckDB preparation rejects foreign input ownership before candidate prefli
     driver,
     registry,
     registration,
-    dispatch_test_generated(run),
+    dispatch_test_generated(run).map(
+      @execution.generated_completion_preparation,
+    ),
     limits,
   ).unwrap()
   let foreign_request = @host_driver.prepare_dispatch_inputs(

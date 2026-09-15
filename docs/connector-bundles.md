@@ -110,9 +110,14 @@ only success or failure; callers do not drive numeric attempts or publish result
 
 ### Basic in-process Compute authors
 
-`physical_host.prepare_compute_author_context` checks generated sequences against
+`physical_host.prepare_compute_author_context` checks neutral `CompletionPreparation` handles against
 the exact checked task owners and retains an immutable handle collection.
-`compute_author_sequence` exposes a task's owned sequence, not mutable DAG state.
+`compute_author_sequence` exposes a task's owned completion preparation, not
+mutable DAG state or Local evaluator contexts. Build it with
+`execution_relation.prepare_completion` from admitted registry contracts and a
+typed semantic sequence. Local's `GeneratedSequence` is not required. See the
+[typed Relation boundary](design/typed-relation-boundary.md) for semantic
+projections, common fragment requirements and storage ownership.
 `charge_compute_author_planning` and `propose_compute_author_work` charge the
 existing cumulative ledger and construct offers for that same run. A basic
 implementation need not traverse the DAG or import the resource ledger package.

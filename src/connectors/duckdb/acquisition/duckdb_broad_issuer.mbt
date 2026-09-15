@@ -129,13 +129,12 @@ fn build_duckdb_broad_records(
     return Err(InvalidLimits)
   }
   let requirement = retained.preparation.requirement
-  let query = @query.query_sequence_requirement(
-    @planning.query_material_owner(
-      @planning.query_requirement_material(requirement),
-    ),
+  let sequence = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
   )
-  guard @pipeline.schema_at(
-      @sourcequery.query_acquisition_pipeline(query),
+  let query = @query.query_sequence_requirement(sequence)
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(@query.query_sequence_owner(sequence)),
       @sourcequery.query_acquisition_input(query),
     )
     is Some(schema) else {

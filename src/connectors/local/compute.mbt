@@ -14,7 +14,7 @@ pub fn local_fixed_compute_candidate(
 ] {
   if @connector.fixed_compute_request_capacity(request).common_fragment
     is Some(common) &&
-    !physical_equal(common, sequence) {
+    !@execution.generated_satisfies_requirements(sequence, common) {
     return Err(ForeignPreparation)
   }
   if !physical_equal(
@@ -49,14 +49,11 @@ pub fn prepare_local_compute_execution(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
-  )
-  let count = @pipeline.step_count(pipeline)
-  let target : @pipeline.Target = if count == 0 {
-    Input(0)
-  } else {
-    Step(count - 1)
+  guard @lower.preparation_output_target(
+      @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+    )
+    is Some(target) else {
+    return Err(UnsupportedInputShape)
   }
   @connector.bind_synchronous_compute(
     choice,
@@ -113,14 +110,11 @@ pub fn execute_local_fixed_compute(
         Err(issue) => return Err(Execution(issue))
       }
   }
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
-  )
-  let count = @pipeline.step_count(pipeline)
-  let target : @pipeline.Target = if count == 0 {
-    Input(0)
-  } else {
-    Step(count - 1)
+  guard @lower.preparation_output_target(
+      @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+    )
+    is Some(target) else {
+    return Err(UnsupportedInputShape)
   }
   @execution.execute_fixed_producers_guarded(
     sequence,

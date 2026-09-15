@@ -4,6 +4,5 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/physical_cost" @cost,
 }

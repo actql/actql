@@ -1,6 +1,6 @@
 ///|
 pub(all) struct NumericComputeConfiguration {
-  sequences : Array[@execution.GeneratedSequence]
+  sequences : Array[@execution.CompletionPreparation]
   limits : @numeric.NumericExecutionLimits
   expressions : @lower.ExpressionLimits
   milliseconds : Int64?

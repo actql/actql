@@ -65,7 +65,7 @@ test "independent numeric bundle executes through common reservation and retaine
     ] = @reference_compute.prepare_numeric_execution(
       choice,
       candidate,
-      generated,
+      @execution.generated_completion_preparation(generated),
       {
         max_work: 100,
         max_entries: 100,

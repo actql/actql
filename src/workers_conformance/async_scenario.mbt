@@ -30,7 +30,7 @@ pub fn prepare_async_scenario() -> AsyncScenario raise {
       (
         @connector.capability_registration_at(registry, 0).unwrap(),
         {
-          sequences,
+          sequences: sequences.map(@execution.generated_completion_preparation),
           limits: {
             max_work: 100,
             max_entries: 100,

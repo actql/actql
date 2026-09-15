@@ -14,8 +14,7 @@ pub fn compile_fixed_query(
   table : String,
   limits : NativeQueryLimits,
 ) -> Result[FixedQuery, NativeQueryIssue] {
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  if @pipeline.step_count(pipeline) == 1 {
+  if @lower.node_count(@lower.bound_preparation(owner)) == 1 {
     compile_fixed_count_group(owner, database_schema, table, limits).map(query => {
       CountGroup(query)
     })

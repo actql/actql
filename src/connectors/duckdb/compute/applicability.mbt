@@ -23,12 +23,11 @@ pub fn duckdb_compute_static_rejection(
 pub fn duckdb_resident_static_rejection(
   owner : @lower.BoundPrepared,
 ) -> String? {
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  match
-    @duckdb.check_resident_output_static(
-      owner,
-      Step(@pipeline.step_count(pipeline) - 1),
-    ) {
+  guard @lower.preparation_output_target(@lower.bound_preparation(owner))
+    is Some(target) else {
+    return Some("unsupported_resident_output_names")
+  }
+  match @duckdb.check_resident_output_static(owner, target) {
     Ok(_) => None
     Err(_) => Some("unsupported_resident_output_names")
   }

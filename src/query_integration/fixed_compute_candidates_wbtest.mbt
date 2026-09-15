@@ -124,7 +124,9 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   )
   let common = @connector.prepare_fixed_compute_request([input], {
     ..capacity,
-    common_fragment: Some(generated),
+    common_fragment: Some(
+      @execution.generated_sequence_requirements(generated, 100).unwrap(),
+    ),
   }).unwrap()
   assert_true(
     @local_connector.local_fixed_compute_candidate(

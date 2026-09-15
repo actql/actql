@@ -144,19 +144,18 @@ fn build_mock_records(
     return Err(InvalidLimits)
   }
   let requirement = retained._requirement
-  let query = @query.query_sequence_requirement(
-    @planning.query_material_owner(
-      @planning.query_requirement_material(requirement),
-    ),
+  let sequence = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
   )
+  let query = @query.query_sequence_requirement(sequence)
   let native = retained.computation.strategy.offer.realization == NativeQuery
   let target = if native {
     @sourcequery.query_acquisition_capture(query)
   } else {
     @sourcequery.query_acquisition_input(query)
   }
-  guard @pipeline.schema_at(
-      @sourcequery.query_acquisition_pipeline(query),
+  guard @lower.preparation_schema_at(
+      @lower.bound_preparation(@query.query_sequence_owner(sequence)),
       target,
     )
     is Some(schema) else {

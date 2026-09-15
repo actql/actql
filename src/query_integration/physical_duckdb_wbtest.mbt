@@ -53,8 +53,11 @@ fn captured_graph_duckdb_try_start(
     choice,
     prepared,
     match generated {
-      Some(value) => value
-      None => query_generated(@execution.producer_read_receiver(input))
+      Some(value) => @execution.generated_completion_preparation(value)
+      None =>
+        @execution.generated_completion_preparation(
+          query_generated(@execution.producer_read_receiver(input)),
+        )
     },
     fixed_compute_attempt_limits(),
     dispatch_test_limits().transport,

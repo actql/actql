@@ -164,7 +164,7 @@ pub(all) struct FixedComputeCapacity {
   contract_cid : String
   max_rows : Int
   max_value_bytes : Int
-  common_fragment : @execution_relation.GeneratedSequence?
+  common_fragment : @lowering_relation.SequenceRequirements?
 }
 
 type FixedComputeChoice

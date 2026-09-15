@@ -35,7 +35,9 @@ test "independent numeric and Local bundles use the same installed Host without 
               (
                 registration,
                 {
-                  sequences: generated,
+                  sequences: generated.map(
+                    @execution.generated_completion_preparation,
+                  ),
                   limits: {
                     max_work: 100,
                     max_entries: 100,

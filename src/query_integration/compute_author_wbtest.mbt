@@ -2,7 +2,13 @@
 test "Compute author context retains exact task owners without exposing mutable DAG state" {
   let (run, _) = captured_graph_fixture()
   let driver = @host_driver.open_dispatch_driver(run)
-  let sequences = dispatch_test_generated(run)
+  let graph = @strategy.captured_dag_graph(run)
+  let sequences = []
+  for task in 1..<@strategy.graph_task_count(graph) {
+    sequences.push(
+      task_test_completion(@strategy.graph_task_owner(graph, task).unwrap()),
+    )
+  }
   let first = sequences[0]
   let context = @host_driver.prepare_compute_author_context(driver, sequences).unwrap()
   sequences.clear()
@@ -22,7 +28,9 @@ test "Compute author context retains exact task owners without exposing mutable 
   assert_true(
     @host_driver.prepare_compute_author_context(
       driver,
-      dispatch_test_generated(other),
+      dispatch_test_generated(other).map(
+        @execution.generated_completion_preparation,
+      ),
     )
     is Err(ForeignPreparation),
   )

@@ -471,7 +471,7 @@ the standard Host and bundle-based installations call these connector operations
 they do not recover Local compute payloads or duplicate its preparation logic.
 DuckDB's `ComputeHostConfiguration` and `StrategyComputeHostConfiguration` are
 owned by `connectors/duckdb/driver`. These opaque handles retain its exact
-candidate, generated sequence, result limits and transport configuration.
+candidate, neutral completion preparation, result limits and transport configuration.
 Only the connector driver interprets them to borrow resident inputs, calculate
 required scratch/retention, or start through the common resource boundary.
 The standard Host routes the selected handle to that driver rather than owning

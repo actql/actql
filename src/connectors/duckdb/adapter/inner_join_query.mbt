@@ -80,18 +80,17 @@ pub fn compile_fixed_inner_join(
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let count = @pipeline.input_count(pipeline)
+  let prepared = @lower.bound_preparation(owner)
+  let count = @lower.preparation_input_count(prepared)
   if count < 1 ||
     count > 2 ||
     tables.length() != count ||
-    @pipeline.step_count(pipeline) != 1 {
+    @lower.node_count(prepared) != 1 {
     return Err(UnsupportedShape)
   }
-  let step = @pipeline.step_at(pipeline, 0).unwrap()
-  guard step.operation is @pipeline.Join(right~, checked~) &&
-    step.input is Some(@pipeline.Input(left_input)) &&
-    right is @pipeline.Input(right_input) else {
+  let node = @lower.node_at(prepared, 0).unwrap()
+  guard @lower.node_input_target(node, 0) is Some(@pipeline.Input(left_input)) &&
+    @lower.node_input_target(node, 1) is Some(@pipeline.Input(right_input)) else {
     return Err(UnsupportedShape)
   }
   let kernel = match
@@ -107,8 +106,8 @@ pub fn compile_fixed_inner_join(
   }
   let profile = @lower.join_kernel_profile(kernel)
   let schemas = [
-    @join.input_schema(checked, @schema.Left),
-    @join.input_schema(checked, @schema.Right),
+    @lower.preparation_input_schema(prepared, left_input).unwrap(),
+    @lower.preparation_input_schema(prepared, right_input).unwrap(),
   ]
   let width = @lower.inner_join_field_count(profile)
   if width == 0 {

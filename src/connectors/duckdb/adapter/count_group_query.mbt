@@ -20,8 +20,8 @@ pub fn compile_fixed_count_group(
     return Err(InvalidLimits)
   }
   let prepared = @lower.bound_preparation(owner)
-  let pipeline = @lower.pipeline(prepared)
-  if @pipeline.input_count(pipeline) != 1 || @pipeline.step_count(pipeline) != 1 {
+  if @lower.preparation_input_count(prepared) != 1 ||
+    @lower.node_count(prepared) != 1 {
     return Err(UnsupportedShape)
   }
   let kernel = match
@@ -41,9 +41,8 @@ pub fn compile_fixed_count_group(
   if Some(@lower.kernel_input(kernel)) != @lower.input_id(prepared, 0) {
     return Err(UnsupportedShape)
   }
-  let checked = @lower.count_group_checked(group)
-  let input = @relation.input_schema(checked)
-  let output = @relation.output_schema(checked)
+  let input = @lower.preparation_input_schema(prepared, 0).unwrap()
+  let output = @lower.node_output_schema(@lower.node_at(prepared, 0).unwrap())
   let width = @schema.field_count(output)
   if width > limits.max_entries {
     return Err(Limit)

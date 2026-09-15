@@ -5,6 +5,7 @@ struct Prepared {
   owner : @pipeline.CheckedPipeline
   nodes : Array[PreparedNode]
   input_ids : Array[String]
+  input_schemas : Array[@schema.Schema]
   usage : Usage
 }
 
@@ -16,6 +17,8 @@ struct PreparedNode {
   aggregation_id : String?
   payload : Payload
   inputs : Array[String]
+  input_targets : Array[@pipeline.Target]
+  output_schema : @schema.Schema
   source : @decode.Cursor
 }
 
@@ -222,6 +225,7 @@ pub fn prepare(
   }
   let nodes : Array[PreparedNode] = []
   let input_ids : Array[String] = []
+  let input_schemas : Array[@schema.Schema] = []
   let used : Map[String, Bool] = Map([])
   let mut work = 0
   let mut references = 0
@@ -239,6 +243,10 @@ pub fn prepare(
     bytes += id.length() // Generated identifiers are ASCII, on every target.
     used[id] = true
     input_ids.push(id)
+    guard @pipeline.schema_at(checked, @pipeline.Input(i)) is Some(schema) else {
+      return Err({ kind: InvalidCheckedWiring, source: root, })
+    }
+    input_schemas.push(schema)
   }
   for i = 0; i < count; i = i + 1 {
     if work >= limits.max_work {
@@ -251,7 +259,7 @@ pub fn prepare(
     guard classify(step.operation) is Some(payload) else {
       return Err({ kind: OperationNotImplemented, source: step.source, })
     }
-    if @pipeline.step_schema(step) is None {
+    guard @pipeline.step_schema(step) is Some(output_schema) else {
       return Err({ kind: InvalidCheckedWiring, source: step.source, })
     }
     let (preferred, arity) = match payload {
@@ -379,6 +387,7 @@ pub fn prepare(
     }
     bytes += id.length()
     let refs : Array[String] = []
+    let input_targets : Array[@pipeline.Target] = []
     let occurrences = @pipeline.input_occurrence_count(step)
     if occurrences != arity {
       return Err({ kind: InvalidCheckedWiring, source: step.source, })
@@ -403,6 +412,7 @@ pub fn prepare(
         return Err({ kind: InvalidCheckedWiring, source: step.source, })
       }
       refs.push(ref_)
+      input_targets.push(occurrence.target)
     }
     used[id] = true
     nodes.push({
@@ -412,6 +422,8 @@ pub fn prepare(
       aggregation_id,
       payload,
       inputs: refs,
+      input_targets,
+      output_schema,
       source: step.source,
     })
   }
@@ -419,6 +431,7 @@ pub fn prepare(
     owner: checked,
     nodes,
     input_ids,
+    input_schemas,
     usage: {
       nodes: count + inputs + expansions,
       references,

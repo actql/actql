@@ -107,7 +107,7 @@ test "native captured output converts without replay and preserves success acros
     is Err(InvalidLimits),
   )
   let unavailable = @execution.prepare_trusted_output_port(
-    generated,
+    @execution.generated_completion_preparation(generated),
     @pipeline.Step(1),
     100,
     10000,
@@ -124,7 +124,7 @@ test "native captured output converts without replay and preserves success acros
   // Even trusted verifier wiring cannot substitute a content-equal preparation
   // for the exact owner of the retained material.
   let foreign_port = @execution.prepare_trusted_output_port(
-    foreign_generated,
+    @execution.generated_completion_preparation(foreign_generated),
     @pipeline.Step(1),
     100,
     10000,
@@ -135,7 +135,7 @@ test "native captured output converts without replay and preserves success acros
   )
   assert_true(
     @execution.prepare_trusted_output_port(
-      generated,
+      @execution.generated_completion_preparation(generated),
       @pipeline.Step(0),
       100,
       10000,

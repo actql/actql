@@ -21,7 +21,9 @@ pub fn complete_duckdb_native_output(
   )
   let port = match
     @execution.prepare_trusted_output_port(
-      @query.query_generated_sequence(query),
+      @execution.generated_completion_preparation(
+        @query.query_generated_sequence(query),
+      ),
       @pipeline.Step(1),
       max_entries,
       max_name_bytes,

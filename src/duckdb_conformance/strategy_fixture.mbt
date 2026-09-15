@@ -386,7 +386,7 @@ pub fn strategy_fixture_compute(
       @duckdb_driver.configure_compute_host(
         choice,
         candidate,
-        generated,
+        @execution.generated_completion_preparation(generated),
         {
           values: issued_native_measure_limits(),
           demand: issued_native_measure_limits(),

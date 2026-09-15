@@ -91,8 +91,8 @@ pub fn compile_native_filter_select(
     return Err(InvalidLimits)
   }
   let preparation = @lower.bound_preparation(owner)
-  let pipeline = @lower.pipeline(preparation)
-  if @pipeline.input_count(pipeline) != 1 || @pipeline.step_count(pipeline) != 2 {
+  if @lower.preparation_input_count(preparation) != 1 ||
+    @lower.node_count(preparation) != 2 {
     return Err(UnsupportedShape)
   }
   let filter = match

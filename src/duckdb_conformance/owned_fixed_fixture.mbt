@@ -177,7 +177,9 @@ fn owned_fixed_from_output(
       configuration: @duckdb_driver.configure_compute_host(
         choice,
         native,
-        @connector.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
+        @execution.generated_completion_preparation(
+          @connector.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
+        ),
         {
           values: issued_native_measure_limits(),
           demand: issued_native_measure_limits(),

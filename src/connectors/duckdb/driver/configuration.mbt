@@ -1,7 +1,7 @@
 ///|
 /// Connector-owned static preparation; no database is created by configuration.
 pub(all) struct DuckDBComputeConfiguration {
-  sequences : Array[@execution.GeneratedSequence]
+  sequences : Array[@execution.CompletionPreparation]
   limits : DuckDBDispatchLimits
 }
 

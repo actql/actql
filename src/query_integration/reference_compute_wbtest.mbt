@@ -176,15 +176,26 @@ test "independent numeric kernel uses checked shape and exact fixed input withou
   ])
   assert_true(
     @reference_compute.complete_numeric_output(
-      foreign_generated, measured, 100, 10000,
+      @execution.generated_completion_preparation(foreign_generated),
+      measured,
+      100,
+      10000,
     )
     is Err(Completion(ForeignInputs)),
   )
   let completed = @reference_compute.complete_numeric_output(
-    generated, measured, 100, 10000,
+    @execution.generated_completion_preparation(generated),
+    measured,
+    100,
+    10000,
   ).unwrap()
   assert_true(
-    @reference_compute.complete_numeric_output(generated, measured, 100, 10000)
+    @reference_compute.complete_numeric_output(
+      @execution.generated_completion_preparation(generated),
+      measured,
+      100,
+      10000,
+    )
     is Err(Unsupported),
   )
   let output = @reference_compute.numeric_completed_output(completed)
@@ -200,7 +211,12 @@ test "independent numeric kernel uses checked shape and exact fixed input withou
   // A pending completion cannot seal after upstream revocation. A successful
   // independent result can still supply a new consumer until its own close.
   assert_true(
-    @reference_compute.complete_numeric_output(generated, pending, 100, 10000)
+    @reference_compute.complete_numeric_output(
+      @execution.generated_completion_preparation(generated),
+      pending,
+      100,
+      10000,
+    )
     is Err(Unsupported),
   )
   assert_true(

@@ -14,7 +14,7 @@ import {
 // Values
 pub fn close_numeric_output(CompletedNumericOutput) -> Unit
 
-pub fn complete_numeric_output(@execution_relation.GeneratedSequence, MeasuredNumericOutput, Int, Int) -> Result[CompletedNumericOutput, PlanIssue]
+pub fn complete_numeric_output(@execution_relation.CompletionPreparation, MeasuredNumericOutput, Int, Int) -> Result[CompletedNumericOutput, PlanIssue]
 
 pub fn execute_numeric_attempt(NumericAttempt) -> Result[Unit, PlanIssue]
 
@@ -38,7 +38,7 @@ pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
 
 pub fn offer_numeric_compute(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, Int, Int, @lowering_relation.ExpressionLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities) -> Result[@connector_sdk.PreparedCompute[NumericCompute], PlanIssue]
 
-pub fn[E, P] prepare_numeric_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[NumericCompute], @execution_relation.GeneratedSequence, NumericExecutionLimits, (PlanIssue) -> E) -> Result[@connector_sdk.PreparedExecution[NumericAttempt, E, P], PlanIssue]
+pub fn[E, P] prepare_numeric_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[NumericCompute], @execution_relation.CompletionPreparation, NumericExecutionLimits, (PlanIssue) -> E) -> Result[@connector_sdk.PreparedExecution[NumericAttempt, E, P], PlanIssue]
 
 pub fn prepare_numeric_plan(@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.ExpressionLimits) -> Result[NumericPlan, PlanIssue]
 
