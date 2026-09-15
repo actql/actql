@@ -27,6 +27,8 @@ pub fn[E] local_compute_contribution(LocalDispatchModule, (LocalDispatchIssue) -
 
 pub fn local_dispatch_registration(LocalDispatchModule) -> @connector_sdk.CapabilityRegistration
 
+pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
+
 pub fn local_dispatch_work_slots() -> Int
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]

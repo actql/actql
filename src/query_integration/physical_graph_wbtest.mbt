@@ -74,6 +74,8 @@ fn captured_graph_fixture(
   join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  sort_take? : Bool = false,
+  join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
@@ -86,6 +88,8 @@ fn captured_graph_fixture(
     dag_join=join,
     self_join~,
     numeric_dag~,
+    sort_take~,
+    join_steps~,
     compute_filter~,
   )
   let sequence = query_checked_sequence(program)
@@ -160,14 +164,7 @@ fn captured_graph_local(
         100,
       ).unwrap()
   }
-  let generated = if @pipeline.step_count(
-      @lower.pipeline(@lower.bound_preparation(owner)),
-    ) ==
-    1 {
-    compute_test_sequence(owner)
-  } else {
-    query_generated(owner)
-  }
+  let generated = task_test_generated(owner)
   let prepared = @local_connector.local_fixed_compute_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     request,
@@ -192,10 +189,7 @@ fn captured_graph_local(
       prepared,
       limits,
       { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
-      join_output_ceiling=@strategy.captured_task_join_output_limit(run, task).map(limit => {
-          (0, limit)
-        },
-      ),
+      join_output_ceiling=@strategy.captured_task_join_output_at(run, task, 0),
     ) {
     Ok(value) => value
     Err(InvalidLimits) => return Err(Physical(InvalidLimits))

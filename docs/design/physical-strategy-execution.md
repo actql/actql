@@ -8,17 +8,21 @@ owned producer/target/receiver ports. Control edges come from checked incoming
 success gates, not from reachability in the data graph. Both must be satisfied.
 Splitting work does not create independent semantic success boundaries.
 
-The execution profile is finite and serial. Each Compute is either
-filter/select, an explicit equikey inner join, or one group with row count/direct-field non-NULL count; aggregate
-expressions, aggregate filters and distinct counts remain unsupported. Its
+The execution profile is finite and serial, with one or two completed input
+ports and one explicit final-step output per Compute. The common DAG does not
+match operation names or demonstration step counts. Realization eligibility
+belongs to each connector. Local can execute its existing supported sequences,
+including sort followed by take; DuckDB retains its bounded filter/select,
+single inner-join and group/count compiler profiles. Aggregate expressions,
+aggregate filters and distinct counts remain unsupported by these profiles. Its
 acceptance graph shares one completed acquisition X between
 A and B, with C reading A. All Stage activation barriers remain mandatory even
 when B has no data dependency on A. A task failure prevents further starts;
 successful independently completed computations are not retroactively revoked.
 Internal success records are not partial successful Program publication.
 
-Each Compute exposes its exact final checked port: step 1 for filter/select,
-step 0 for a single group or inner join. Local and fresh-import DuckDB dispatch
+Each Compute exposes its exact final checked port, independently of operation
+names. Local and fresh-import DuckDB dispatch
 bind every ordered input port, including two references to the same producer.
 Native static eligibility compiles all input schemas before cost comparison;
 runtime preparation binds live inputs and the bounded null/cardinality preflight
@@ -26,7 +30,8 @@ configuration. The actual checks run once at Compute admission, after common
 input guards and before native work. Their explicit work/scratch allowance is
 charged to planning during dispatch preparation; an input guard failure does
 not refund that allowance. The common native start also requires an output ceiling
-no weaker than the checked join claim, before reserving its exact attempt.
+no weaker than every checked join claim at its exact step, before reserving its
+exact attempt. The synchronous start enforces the same rule.
 A checked edge to an intermediate step is not silently
 redirected to the final output. `captured_task_target` supplies this port to Host
 diagnostics, completed statistics and resident imports without manufacturing a
@@ -36,6 +41,34 @@ can remain resident for subsequent filter/select or supported join/count tasks,
 while independently retained Host results supply admission and completion evidence.
 Two-input resident joins bind the exact ordered input set and share only actual
 producer tables. This does not provide general aggregation or numeric reductions.
+
+### Owned task obligations
+
+The frontend's public `requirements → stage_requirement_operations` closure
+already associates each disposition with its original stage, producer visit,
+pipeline and step. `prepare_checked_dag` projects those entries using the
+closure's corresponding requirement inventory, charging its bounded traversal
+to preparation work. It includes only visits identified as local by
+`program_identity_producer_is_local` and checks exact `unit_pipeline` ownership.
+Imported producer prerequisite visits remain frontend-validated dependencies,
+not additional operations of the importing Unit. No ApplicationCoverage search,
+claim reconstruction, content-equality substitution or new canonical Plan is used.
+
+`graph_task_operation_count/at` expose the original read-only occurrences and
+dispositions. Join claims retain their owners; `captured_task_join_output_at`
+enumerates step/ceiling pairs and `captured_task_join_output_limit(run, task,
+step)` looks up one occurrence. Both start protocols require all selected
+ceilings. These are execution obligations, not completed evidence.
+
+Connectors inspect execution obligations before offering work and reject
+unsupported ones; static resolutions are not pending runtime checks. Group,
+window, expansion and other obligation families are not implicitly discharged by
+finding a join limit. The current Local engine can enforce one selected join
+ceiling at any supported step. Multiple join ceilings are retained by the common
+DAG but excluded by Local eligibility until its engine supports them together.
+DuckDB excludes unsupported step sequences through its existing static compiler.
+Neither exclusion triggers an automatic execution retry or changes language
+acceptance. New engine support changes connector eligibility, not DAG templates.
 
 `execution_query.CapturedInputSource` encapsulates an already captured observation
 without depending on a concrete issuer or planner implementation. It exposes

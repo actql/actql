@@ -191,7 +191,7 @@ fn[E] rebuild_adaptive_dispatch(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let join = @strategy.captured_task_join_output_limit(run, task) is Some(_)
+    let join = @strategy.captured_task_join_output_count(run, task).unwrap() > 0
     let pairs = if join {
       let left = rows[parents[task][0]]
       let right = rows[parents[task][parents[task].length() - 1]]

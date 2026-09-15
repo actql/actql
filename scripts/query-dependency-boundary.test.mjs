@@ -6,6 +6,19 @@ import './connector-node-bundles.test.mjs';
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
 
+test('common captured DAG consumes owned obligations without operation templates', () => {
+  const dag = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
+  assert.doesNotMatch(dag, /@relation\.operation|@join\.kind|\.operation\s+is|steps\s*[!=]=\s*[12]/);
+  assert.doesNotMatch(dag, /application_closure_at|join_application_at/);
+  const graph = readFileSync('src/physical_strategy/graph.mbt', 'utf8');
+  assert.match(graph, /stage_requirement_operations/);
+  assert.match(graph, /program_identity_producer_is_local/);
+  assert.match(graph, /physical_equal\(site\.pipeline, pipeline\)/);
+  for (const name of ['relation_typing', 'relation_join_shape', 'capacity_graph_preflight']) {
+    assert.ok(!imports('physical_strategy').includes(name));
+  }
+});
+
 test('standard installation and bridge have no handwritten provider configuration or two-module requirement', () => {
   assert.ok(!existsSync('src/duckdb_host/moon.pkg'));
   assert.ok(!existsSync('src/duckdb_host_node/moon.pkg'));

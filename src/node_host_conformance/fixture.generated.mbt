@@ -7,6 +7,8 @@ fn captured_graph_fixture(
   join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  sort_take? : Bool = false,
+  join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
@@ -19,6 +21,8 @@ fn captured_graph_fixture(
     dag_join=join,
     self_join~,
     numeric_dag~,
+    sort_take~,
+    join_steps~,
     compute_filter~,
   )
   let sequence = query_checked_sequence(program)
@@ -68,35 +72,6 @@ fn compute_test_limits() -> @execution.SequenceExecutionLimits {
 }
 
 ///|
-/// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
-fn compute_test_sequence(
-  owner : @lower.BoundPrepared,
-) -> @execution.GeneratedSequence raise {
-  let sequence = prepared_sequence(owner)
-  let contexts = if @pipeline.step_count(
-      @lower.pipeline(@lower.bound_preparation(owner)),
-    ) ==
-    3 {
-    [sequence_fragment_context(sequence, 1, 2L)]
-  } else {
-    []
-  }
-  let last = @pipeline.step_count(
-      @lower.pipeline(@lower.bound_preparation(owner)),
-    ) -
-    1
-  let node = @lower.node_at(@lower.bound_preparation(owner), last).unwrap()
-  @execution.prepare_generated_sequence(
-    registered_relation_contracts(),
-    sequence,
-    contexts,
-    [@lower.node_id(node)],
-    100000,
-    10000,
-  ).unwrap()
-}
-
-///|
 /// Fixture owner: query_integration/physical_dispatch_wbtest.mbt
 fn dispatch_test_generated(
   run : @strategy.CapturedDAG,
@@ -104,12 +79,7 @@ fn dispatch_test_generated(
   let graph = @strategy.captured_dag_graph(run)
   Array::makei(@strategy.graph_task_count(graph) - 1, index => {
     let owner = @strategy.graph_task_owner(graph, index + 1).unwrap()
-    if @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) ==
-      1 {
-      compute_test_sequence(owner)
-    } else {
-      query_generated(owner)
-    }
+    task_test_generated(owner)
   })
 }
 
@@ -138,6 +108,7 @@ fn input_cursor(text : String) -> @decode.Cursor {
 /// generated from a checked Program or an execution result.
 fn join_graph_capacity_material(
   environment : @environment.WireEnvironment,
+  steps? : Array[Int] = [0],
 ) -> @host.HostSources raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -161,22 +132,25 @@ fn join_graph_capacity_material(
   let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
     host_text +
     "],\"effective_max\":10000,\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:0:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
-  let cid = "sha256:" + @sha.hex(@utf8.encode(body))
-  let resolved = body.replace(
-    old="\"subject_ref\":",
-    new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
-  )
-  let mixed = @wire.check_mixed_claims(
-    [witness],
-    [(@utf8.encode(resolved), cid)],
-    {
-      max_entities: 10,
-      max_references: 20,
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    },
-  ).unwrap()
+  let artifacts = steps.map(step => {
+    let body = body.replace(
+      old="checked-step:0:",
+      new="checked-step:" + step.to_string() + ":",
+    )
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    let resolved = body.replace(
+      old="\"subject_ref\":",
+      new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+    )
+    (@utf8.encode(resolved), cid)
+  })
+  let mixed = @wire.check_mixed_claims([witness], artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
   let claims = @wire.check_mixed_program_claims(mixed, [], {
     max_witnesses: 10,
     max_references: 20,
@@ -409,6 +383,8 @@ fn query_checked_program_fixture(
   dag_join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
+  sort_take? : Bool = false,
+  join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
 ) -> @program_check.CheckedProgram raise {
@@ -418,6 +394,14 @@ fn query_checked_program_fixture(
     text.replace(
       old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new="},{\"id\":\"compute_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}},{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id < 9\"},{\"select\":[\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"]}}}],\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}",
+    )
+  } else {
+    text
+  }
+  let text = if sort_take {
+    text.replace(
+      old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
+      new="{\"sort\":[{\"id\":\"desc\"}]},{\"take\":2,\"as\":\"out\"}",
     )
   } else {
     text
@@ -440,6 +424,19 @@ fn query_checked_program_fixture(
     joined.replace(
       old="}],\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}",
       new="},{\"id\":\"count_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_c\",\"result\":\"r\"}}},\"steps\":[{\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"n\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"count_d\",\"result\":\"r\"}}}}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_join && join_steps != [0] {
+    let start = "{\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}},\"from\":\"l\",\"as\":\"out\"}"
+    let join = "{\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}}"
+    text.replace(
+      old=start,
+      new="{\"filter\":\"id > 0\",\"from\":\"l\"}," +
+        (if join_steps.length() == 2 { join + "}," } else { "" }) +
+        join +
+        ",\"as\":\"out\"}",
     )
   } else {
     text
@@ -507,7 +504,7 @@ fn query_checked_program_fixture(
     max_depth: 0,
   }).unwrap()
   let join_sources = if dag_join {
-    Some(join_graph_capacity_material(environment))
+    Some(join_graph_capacity_material(environment, steps=join_steps))
   } else {
     None
   }
@@ -523,7 +520,9 @@ fn query_checked_program_fixture(
             join_sources is Some(join_sources) {
             {
               sources: join_sources,
-              consumers: [@capacity.Join(step=0, output=0)],
+              consumers: Array::makei(join_steps.length(), i => {
+                @capacity.Join(step=join_steps[i], output=i)
+              }),
             }
           } else {
             { sources, consumers: [], }
@@ -848,6 +847,38 @@ fn strategy_offer(
     strategy_estimates(values),
     { transfer_bytes: None, retained_bytes: None, money_units: None, },
     1000,
+  ).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/task_generated_fixture_wbtest.mbt
+/// Reuse the real Local sequence compiler and its exact expression contexts.
+/// No assumption about a demonstration task's operation count or positions.
+fn task_test_generated(
+  owner : @lower.BoundPrepared,
+) -> @execution.GeneratedSequence raise {
+  let sequence = prepared_sequence(owner)
+  let contexts = []
+  for step in 0..<@lower.sequence_count(sequence) {
+    if @lower.sequence_step(sequence, step) is Some(RowStep(kernel)) {
+      match @lower.kernel_body(kernel) {
+        SnapshotMap(_) | OrderedBindings(_) | Filter(_) =>
+          contexts.push(sequence_fragment_context(sequence, step, 10L))
+        _ => ()
+      }
+    }
+  }
+  let last = @lower.node_at(
+    @lower.bound_preparation(owner),
+    @lower.sequence_count(sequence) - 1,
+  ).unwrap()
+  @execution.prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    contexts,
+    [@lower.node_id(last)],
+    100000,
+    10000,
   ).unwrap()
 }
 

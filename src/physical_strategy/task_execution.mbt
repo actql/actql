@@ -56,8 +56,9 @@ fn[T] start_task_execution(
   if !@connector.prepared_execution_available(prepared) {
     return Err(Compute(NotSelected))
   }
-  if captured_task_join_output_limit(run, task) is Some(required) {
-    guard @connector.prepared_execution_join_output_ceiling(prepared, 0)
+  for (step, claim) in run.join_limits[task] {
+    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+    guard @connector.prepared_execution_join_output_ceiling(prepared, step)
       is Some(actual) &&
       actual <= required else {
       return Err(ForeignCandidate)

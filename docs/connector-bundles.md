@@ -171,8 +171,14 @@ SDK copies the array before retaining it and exposes only per-step lookup, so
 later caller mutation cannot change an admitted preparation. These declarations
 are trusted implementation commitments, not checked capacity claims: the Host
 must still compare them with the original owned task obligations before start.
-The current single-join profile supplies a singleton array; this representation
-alone does not extend the common DAG's accepted operation profile.
+The common DAG compares every occurrence before either synchronous or prepared
+start. It exposes the frontend-owned local Unit obligations through
+`graph_task_operation_count/at`; imported producer visits are not re-executed.
+Connector eligibility must reject unsupported execution checks before offers.
+Local currently supplies at most one selected join ceiling, at its actual step,
+and excludes tasks needing multiple ceilings. DuckDB retains its compiler's
+bounded operation profiles. The DAG itself does not branch on operation names
+or demonstration step counts; Local sort/take uses the standard Host unchanged.
 
 ## Node transport composition
 

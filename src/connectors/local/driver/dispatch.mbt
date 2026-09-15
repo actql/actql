@@ -75,6 +75,9 @@ pub fn estimate_local_dispatch_offer(
   lines : Array[@cost.SerialEstimateLine],
   max_work : Int,
 ) -> Result[@strategy.TaskOffer, LocalDispatchIssue] {
+  if local_dispatch_rejection(installed, task) is Some(_) {
+    return Err(Configuration(ComputeUnsupported))
+  }
   guard @local.local_module_capacity(installed.implementation, task - 1)
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))
@@ -107,14 +110,15 @@ pub fn prepare_local_dispatch(
   revision : @strategy.StrategyRevision,
   request : @connector.FixedComputeRequest,
 ) -> Result[@host.DispatchWork, LocalDispatchIssue] {
+  if local_dispatch_rejection(installed, task) is Some(_) {
+    return Err(Configuration(ComputeUnsupported))
+  }
   let compute = match
     @local.prepare_local_module_compute(
       installed.implementation,
       task - 1,
       request,
-      @strategy.captured_task_join_output_limit(installed.run, task).map(limit => {
-        (0, limit)
-      }),
+      @strategy.captured_task_join_output_at(installed.run, task, 0),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preparation(issue))

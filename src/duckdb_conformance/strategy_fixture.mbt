@@ -458,10 +458,11 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
       candidate,
       issued_execution_limits(100),
       issued_native_measure_limits(),
-      join_output_ceiling=@strategy.captured_task_join_output_limit(
+      join_output_ceiling=@strategy.captured_task_join_output_at(
         f.run.unwrap(),
         task,
-      ).map(limit => (0, limit)),
+        0,
+      ),
     ).unwrap()
     @strategy.execute_captured_synchronous_task(f.run.unwrap(), task, compute)
     is Ok(_)

@@ -5,6 +5,7 @@
 fn join_graph_capacity_material(
   environment : @environment.WireEnvironment,
   stage : String,
+  steps? : Array[Int] = [0],
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -28,22 +29,25 @@ fn join_graph_capacity_material(
   let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
     host_text +
     "],\"effective_max\":10000,\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:0:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
-  let cid = "sha256:" + @sha.hex(@utf8.encode(body))
-  let resolved = body.replace(
-    old="\"subject_ref\":",
-    new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
-  )
-  let mixed = @wire.check_mixed_claims(
-    [witness],
-    [(@utf8.encode(resolved), cid)],
-    {
-      max_entities: 10,
-      max_references: 20,
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    },
-  ).unwrap()
+  let artifacts = steps.map(step => {
+    let body = body.replace(
+      old="checked-step:0:",
+      new="checked-step:" + step.to_string() + ":",
+    )
+    let cid = "sha256:" + @sha.hex(@utf8.encode(body))
+    let resolved = body.replace(
+      old="\"subject_ref\":",
+      new="\"resolved_limit_cid\":\"" + cid + "\",\"subject_ref\":",
+    )
+    (@utf8.encode(resolved), cid)
+  })
+  let mixed = @wire.check_mixed_claims([witness], artifacts, {
+    max_entities: 10,
+    max_references: 20,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }).unwrap()
   let claims = @wire.check_mixed_program_claims(mixed, [], {
     max_witnesses: 10,
     max_references: 20,
@@ -57,6 +61,8 @@ fn join_graph_capacity_material(
   {
     stage,
     sources,
-    uses: [Join(step=0, output=@wire.mixed_limit_at(mixed, 0).unwrap())],
+    uses: Array::makei(steps.length(), i => {
+      Join(step=steps[i], output=@wire.mixed_limit_at(mixed, i).unwrap())
+    }),
   }
 }

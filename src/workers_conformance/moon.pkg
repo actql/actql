@@ -9,7 +9,6 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,

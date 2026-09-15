@@ -46,7 +46,11 @@ pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
-pub fn captured_task_join_output_limit(CapturedDAG, Int) -> Int64?
+pub fn captured_task_join_output_at(CapturedDAG, Int, Int) -> (Int, Int64)?
+
+pub fn captured_task_join_output_count(CapturedDAG, Int) -> Int?
+
+pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
 
@@ -89,6 +93,10 @@ pub fn graph_data_count(CheckedDAG) -> Int
 pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
 
 pub fn graph_task_count(CheckedDAG) -> Int
+
+pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement?
+
+pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
@@ -213,6 +221,7 @@ pub(all) enum GraphIssue {
   ForeignPort(Int, Int)
   UnsupportedIncoming(Int)
   NonDAG(Int)
+  ForeignRequirement(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PhysicalEnvelope {
@@ -306,6 +315,11 @@ type StrategyRevision
 type TaskExecution
 
 type TaskOffer
+
+pub struct TaskOperationRequirement {
+  site : @pipeline_check_context.OperationRequirementSite
+  disposition : @pipeline_check_context.OperationDisposition
+}
 
 type TaskPublication
 

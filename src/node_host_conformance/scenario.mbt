@@ -5,6 +5,32 @@ struct Scenario {
 }
 
 ///|
+#export_name("prepareSortTake")
+pub fn prepare_sort_take() -> Scenario raise {
+  let (run, issuer) = captured_graph_fixture(
+    sort_take=true,
+    retention={
+      received_wire_bytes: 10000,
+      retained_wire_bytes: 10000,
+      measurement: {
+        max_columns: 10,
+        max_order_work: 1000,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 10,
+      },
+    },
+    rows=Some(["{\"id\":2}", "{\"id\":4}", "{\"id\":3}", "{\"id\":4}"]),
+  )
+  let installed = @conformance.configure_subset(
+    run,
+    dispatch_test_generated(run),
+    0,
+  )
+  { installed, issuer, }
+}
+
+///|
 #export_name("prepareSubset")
 pub fn prepare_subset(mode : Int) -> Scenario raise {
   let (run, issuer) = captured_graph_fixture(numeric_dag=true)

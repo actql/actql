@@ -74,6 +74,9 @@ fn estimate_local_configuration(
   guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
+  if local_dispatch_rejection(installed, task) is Some(_) {
+    return Ok([])
+  }
   let lines = match
     @cost.evaluate_rate_schedule(
       schedule,

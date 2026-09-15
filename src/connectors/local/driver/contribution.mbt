@@ -14,7 +14,28 @@ pub fn[E] local_compute_contribution(
   estimate_issue : (LocalEstimateIssue) -> E,
 ) -> @host.ComputeContribution[Unit, E] {
   {
-    exclusions: max_entries => if max_entries < 0 { None } else { Some([]) },
+    exclusions: max_entries => {
+      if max_entries < 0 {
+        return None
+      }
+      let excluded = []
+      let graph = @strategy.captured_dag_graph(installed.run)
+      for task in 1..<@strategy.graph_task_count(graph) {
+        if local_dispatch_rejection(installed, task) is Some(reason) {
+          if excluded.length() >= max_entries {
+            return None
+          }
+          excluded.push(
+            (
+              task,
+              @connector.capability_description(installed.registration).name,
+              reason,
+            ),
+          )
+        }
+      }
+      Some(excluded)
+    },
     prepare: fn(_context, task, revision, request) {
       prepare_local_dispatch(installed, task, revision, request).map_err(
         dispatch_issue,

@@ -37,8 +37,17 @@ an exactly selected Local candidate. It returns an opaque SDK
 Pass the handle to `physical_strategy.execute_captured_synchronous_task(run,
 task, compute)`. The common driver checks selection and input ownership, reserves
 the declared capacity, and installs a verified result with its holding atomically.
-For a join task, bind the checked ceiling returned by
-`captured_task_join_output_limit` to step zero when preparing the execution.
+For a join task, bind the exact `(step, ceiling)` returned by
+`captured_task_join_output_at(run, task, index)`; never substitute step zero.
+The Local engine currently supports one selected join ceiling per invocation.
+Its driver rejects multiple such obligations before candidate comparison.
+
+The common DAG accepts finite checked sequences rather than named operation
+templates. Existing Local sort followed by take can use the same standard Host,
+completion and downstream consumer path. Supply generated sequence contexts for
+the actual expression kernels and retain the final node ID, not a hardcoded
+`select_1`. Static DuckDB incompatibility excludes only that connector's offer;
+it does not reject Local or cause an execution-time fallback.
 
 The execution handle is one-shot. Revoked inputs are rejected before the
 implementation is called, and failure cannot publish a partial task result.

@@ -22,3 +22,19 @@ for (const mode of [0,1,2]) {
   assert.equal(result.usage().reservedExecutionBytes,0n);
 }
 console.log('Local-only, reference-only and mixed standard entry passed without DuckDB dependencies.');
+const sorted = checked(fixture.prepareSortTake());
+let sortedResult;
+try {
+  sortedResult = await runCapturedStrategy(fixture.subsetHost(sorted));
+  assert.equal(sortedResult.status, 'host-tasks-completed');
+  assert.equal(sortedResult.completed.length, 3);
+  for (const task of [1, 3]) {
+    assert.equal(fixture.outputRows(sortedResult.output(task)), 2);
+    assert.equal(fixture.outputValue(sortedResult.output(task)), 4);
+  }
+  assert.equal(sortedResult.usage().transferredBytes, 0n);
+} finally { sortedResult?.close(); fixture.closeSubset(sorted); }
+assert.equal(await sortedResult.cleanup(), true);
+assert.equal(sortedResult.usage().heldBytes, 0n);
+assert.equal(sortedResult.usage().reservedExecutionBytes, 0n);
+console.log('Checked sort/take and downstream consumer passed through the standard Local-only Host.');

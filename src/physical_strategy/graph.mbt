@@ -20,6 +20,15 @@ struct CheckedDAG {
   owners : Array[@lower.BoundPrepared]
   data : Array[DataEdge]
   control : Array[ControlEdge]
+  operations : Array[Array[TaskOperationRequirement]]
+}
+
+///|
+/// Original checked occurrence and disposition. This is not an execution
+/// receipt: every ExecutionCheck must be supported by the chosen connector.
+pub struct TaskOperationRequirement {
+  site : @context.OperationRequirementSite
+  disposition : @context.OperationDisposition
 }
 
 ///|
@@ -34,6 +43,7 @@ pub(all) enum GraphIssue {
   ForeignPort(Int, Int)
   UnsupportedIncoming(Int)
   NonDAG(Int)
+  ForeignRequirement(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -212,7 +222,60 @@ pub fn prepare_checked_dag(
   if count > work {
     return Err(WorkLimit)
   }
-  Ok({ program, owners: owners.copy(), data, control, })
+  work -= count
+  let closure = @context.stage_requirement_operations(
+    @checked.requirements(program),
+  )
+  let inventory = @context.operation_resolution_requirements(
+    @context.operation_closure_index(closure),
+  )
+  let requirements = @context.operation_closure_count(closure)
+  if requirements > work {
+    return Err(WorkLimit)
+  }
+  let operations : Array[Array[TaskOperationRequirement]] = Array::makei(
+    count,
+    _ => [],
+  )
+  for index in 0..<requirements {
+    guard @context.operation_requirements_at(inventory, index) is Some(site) &&
+      @context.operation_closure_at(closure, index) is Some(disposition) &&
+      @context.program_identity_producer_is_local(
+        identity,
+        site.stage,
+        site.producer_visit,
+      )
+      is Some(is_local) else {
+      return Err(ForeignRequirement(index))
+    }
+    // Prerequisite visits validate imported producers; they do not execute
+    // again in the importing Unit. The frontend owns this correspondence.
+    if !is_local {
+      continue
+    }
+    guard @checked.unit_pipeline(program, site.stage) is Some(pipeline) &&
+      physical_equal(site.pipeline, pipeline) &&
+      @pipeline.step_at(pipeline, site.step) is Some(_) else {
+      return Err(ForeignRequirement(index))
+    }
+    operations[site.stage].push({ site, disposition, })
+  }
+  Ok({ program, owners: owners.copy(), data, control, operations, })
+}
+
+///|
+pub fn graph_task_operation_count(graph : CheckedDAG, task : Int) -> Int? {
+  graph.operations.get(task).map(items => items.length())
+}
+
+///|
+/// Only the Unit's local occurrences, retaining the exact frontend owners.
+pub fn graph_task_operation_at(
+  graph : CheckedDAG,
+  task : Int,
+  index : Int,
+) -> TaskOperationRequirement? {
+  graph.operations.get(task).bind(items => items.get(index))
 }
 
 ///|

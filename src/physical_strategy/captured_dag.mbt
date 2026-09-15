@@ -10,7 +10,7 @@ struct CapturedDAG {
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
-  join_limits : Array[@witness.LimitClaim?]
+  join_limits : Array[Array[(Int, @witness.LimitClaim)]]
   inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
@@ -45,8 +45,8 @@ pub(all) enum RunIssue {
 }
 
 ///|
-/// Initial profile: one captured acquisition at unit zero and exactly one
-/// checked data input per unary task, or up to two for inner join. No fresh
+/// Initial profile: one captured acquisition at unit zero, one or two checked
+/// data inputs per task and one final output. No fresh
 /// reads are synthesized. Bindings are indexed by checked receiving port.
 pub fn open_captured_dag(
   graph : CheckedDAG,
@@ -65,7 +65,10 @@ pub fn open_captured_dag(
     return Err(ForeignCapture)
   }
   let seen = Array::make(count, 0)
-  let join_limits : Array[@witness.LimitClaim?] = Array::make(count, None)
+  let join_limits : Array[Array[(Int, @witness.LimitClaim)]] = Array::makei(
+    count,
+    _ => [],
+  )
   for edge in graph.data {
     if edge.consumer == 0 || edge.input < 0 || edge.input > 1 {
       return Err(UnsupportedGraph)
@@ -86,43 +89,17 @@ pub fn open_captured_dag(
       seen[index] != (if input_count == 1 { 1 } else { 3 }) {
       return Err(UnsupportedGraph)
     }
-    let steps = @pipeline.step_count(pipeline)
-    if steps == 1 {
-      let step = @pipeline.step_at(pipeline, 0).unwrap()
-      if step.operation is @pipeline.Join(right~, checked~) {
-        guard @join.kind(checked) == @join.Inner &&
-          step.input is Some(@pipeline.Input(_)) &&
-          right is @pipeline.Input(_) else {
-          return Err(UnsupportedGraph)
-        }
-        guard checked_task_join_limit(graph, index) is Some(limit) else {
-          return Err(UnsupportedGraph)
-        }
-        join_limits[index] = Some(limit)
-        continue
-      }
-      guard step.operation is @pipeline.Unary(group) &&
-        input_count == 1 &&
-        @relation.operation(group) == @relation.Group &&
-        step.input == Some(@pipeline.Input(0)) else {
-        return Err(UnsupportedGraph)
-      }
-      // Exact aggregate support is checked by the selected realization's
-      // compiler. The graph owns ports and dependencies, not a second compiler.
-      continue
-    }
-    if steps != 2 || input_count != 1 {
+    if @pipeline.step_count(pipeline) == 0 {
       return Err(UnsupportedGraph)
     }
-    let first = @pipeline.step_at(pipeline, 0).unwrap()
-    let second = @pipeline.step_at(pipeline, 1).unwrap()
-    guard first.operation is @pipeline.Unary(filter) &&
-      second.operation is @pipeline.Unary(select) &&
-      @relation.operation(filter) == @relation.Filter &&
-      @relation.operation(select) == @relation.Select &&
-      first.input == Some(@pipeline.Input(0)) &&
-      second.input == Some(@pipeline.Step(0)) else {
-      return Err(UnsupportedGraph)
+    // Accept owned tasks, not operation-name templates. Implementations reject
+    // unsupported execution obligations before offering work.
+    for requirement in graph.operations[index] {
+      if requirement.disposition is ExecutionCheck(JoinOutputLimit(check)) {
+        join_limits[index].push(
+          (check.site.step, @step_bounds.join_limit_claim(check.limit)),
+        )
+      }
     }
   }
   // This bounded execution profile exposes one final output per Compute.
@@ -362,8 +339,9 @@ pub fn execute_captured_synchronous_task(
   if !@connector.synchronous_compute_available(compute) {
     return Err(Compute(NotSelected))
   }
-  if captured_task_join_output_limit(run, task) is Some(required) {
-    guard @connector.synchronous_compute_join_output_ceiling(compute, 0)
+  for (step, claim) in run.join_limits[task] {
+    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+    guard @connector.synchronous_compute_join_output_ceiling(compute, step)
       is Some(actual) &&
       actual <= required else {
       return Err(ForeignCandidate)
@@ -537,38 +515,39 @@ fn captured_output_inputs_match(
 /// Read the already-owned application, never reconstruct a limit from a CID or
 /// substitute the Host's execution settings for the selected checked contract.
 /// The selected checked limit, not an estimate inferred from input row counts.
-pub fn captured_task_join_output_limit(run : CapturedDAG, task : Int) -> Int64? {
+pub fn captured_task_join_output_limit(
+  run : CapturedDAG,
+  task : Int,
+  step : Int,
+) -> Int64? {
   run.join_limits
   .get(task)
-  .bind(value => value)
+  .bind(values => {
+    for (position, claim) in values {
+      if position == step {
+        return Some(claim)
+      }
+    }
+    None
+  })
   .map(limit => @derivation.minimum_value(@witness.limit_minimum(limit)))
 }
 
 ///|
-fn checked_task_join_limit(
-  graph : CheckedDAG,
+pub fn captured_task_join_output_count(run : CapturedDAG, task : Int) -> Int? {
+  run.join_limits.get(task).map(items => items.length())
+}
+
+///|
+pub fn captured_task_join_output_at(
+  run : CapturedDAG,
   task : Int,
-) -> @witness.LimitClaim? {
-  let stages = @context.program_reference_stages(
-    @context.program_sources_references(
-      @context.program_identity_sources(@checked.source_identity(graph.program)),
-    ),
-  )
-  guard @context.stage_context_at(stages, task) is Some(bound) else {
-    return None
-  }
-  let closure = @context.checked_capacity(@context.parameter_context(bound))
-  guard @capacity.application_closure_at(closure, 0) is Some(coverage) &&
-    @capacity.consumer_coverage_joins(
-      @capacity.application_coverage_consumers(coverage),
-    )
-    is Some(joins) &&
-    @step_bounds.join_application_at(joins, 0) is Some(limit) &&
-    physical_equal(
-      @step_bounds.join_limit_pipeline(limit),
-      @lower.pipeline(@lower.bound_preparation(graph.owners[task])),
-    ) else {
-    return None
-  }
-  Some(@step_bounds.join_limit_claim(limit))
+  index : Int,
+) -> (Int, Int64)? {
+  run.join_limits
+  .get(task)
+  .bind(items => items.get(index))
+  .map(pair => {
+    (pair.0, @derivation.minimum_value(@witness.limit_minimum(pair.1)))
+  })
 }
