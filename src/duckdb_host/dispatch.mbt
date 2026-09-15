@@ -16,6 +16,7 @@ pub(all) struct TaskDispatchLimits {
 
 ///|
 struct StrategyHostDispatch {
+  modules : @builtin.ConfiguredComputeModules[DispatchIssue]
   run : @strategy.CapturedDAG
   driver : @host_driver.DispatchDriver
   local_registration : @connector.CapabilityRegistration
@@ -128,6 +129,7 @@ pub fn configure_strategy_dispatch(
     Err(issue) => return Err(compute_host_issue(issue))
   }
   Ok({
+    modules,
     run,
     driver,
     local_registration,
@@ -188,22 +190,32 @@ fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
 pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  @local_driver.execute_local_dispatch(
-    dispatch.owner.local_module,
+  @builtin.dispatch_local(
+    dispatch.owner.modules,
     @host_driver.compute_host_dispatch(dispatch.owner.runtime),
     dispatch.prepared,
-  ).map_err(local_dispatch_issue)
+  ).map_err(configured_dispatch_issue)
 }
 
 ///|
 pub fn take_native_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[@duckdb_driver.StrategyComputeHostConfiguration, DispatchIssue] {
-  @duckdb_driver.take_duckdb_dispatch(
-    dispatch.owner.native_module,
+  @builtin.dispatch_duckdb(
+    dispatch.owner.modules,
     @host_driver.compute_host_dispatch(dispatch.owner.runtime),
     dispatch.prepared,
-  ).map_err(duckdb_dispatch_issue)
+  ).map_err(configured_dispatch_issue)
+}
+
+///|
+fn configured_dispatch_issue(
+  issue : @builtin.ConfiguredDispatchIssue[DispatchIssue],
+) -> DispatchIssue {
+  match issue {
+    MissingImplementation => InvalidConfiguration
+    Implementation(issue) => issue
+  }
 }
 
 ///|

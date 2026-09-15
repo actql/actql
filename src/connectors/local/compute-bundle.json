@@ -1,6 +1,8 @@
 {
   "package": "actql/actql/connectors/local/driver",
   "module": "LocalDispatchModule",
+  "dispatch": "execute_local_dispatch",
+  "dispatch_result": "Unit",
   "configuration": "LocalComputeConfiguration",
   "configure": "configure_local_compute",
   "registration": "local_dispatch_registration",

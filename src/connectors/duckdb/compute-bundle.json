@@ -1,6 +1,8 @@
 {
   "package": "actql/actql/connectors/duckdb/driver",
   "module": "DuckDBDispatchModule",
+  "dispatch": "take_duckdb_dispatch",
+  "dispatch_result": {"package":"actql/actql/connectors/duckdb/driver","type":"StrategyComputeHostConfiguration"},
   "configuration": "DuckDBComputeConfiguration",
   "configure": "configure_duckdb_compute",
   "registration": "duckdb_dispatch_registration",

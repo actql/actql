@@ -1,6 +1,8 @@
 {
   "package": "actql/actql/connectors/reference_compute/driver",
   "module": "NumericComputeContribution",
+  "dispatch": "start_numeric_contribution",
+  "dispatch_result": [{"package":"actql/actql/connectors/reference_compute","type":"NumericAttempt"},{"package":"actql/actql/physical_strategy","type":"TaskExecution"}],
   "configuration": "NumericComputeConfiguration",
   "configure": "configure_numeric_compute",
   "registration": "numeric_contribution_registration",

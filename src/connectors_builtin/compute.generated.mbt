@@ -18,8 +18,8 @@ pub fn[E] assemble_compute_contributions(
   )? = None,
   with_reference_compute? : (
     @binding4.NumericComputeContribution,
-    (@binding5.RunIssue) -> E,
-    (@binding5.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
   )? = None,
 ) -> Result[
   @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]],
@@ -84,9 +84,18 @@ pub fn[E] assemble_compute_contributions(
 
 ///|
 struct ConfiguredComputeModules[E] {
-  installed_duckdb : @binding2.DuckDBDispatchModule?
-  installed_local : @binding3.LocalDispatchModule?
-  installed_reference_compute : @binding4.NumericComputeContribution?
+  installed_duckdb : (
+    @binding2.DuckDBDispatchModule,
+    (@binding2.DuckDBDispatchIssue) -> E,
+  )?
+  installed_local : (
+    @binding3.LocalDispatchModule,
+    (@binding3.LocalDispatchIssue) -> E,
+  )?
+  installed_reference_compute : (
+    @binding4.NumericComputeContribution,
+    (@binding6.RunIssue) -> E,
+  )?
   contributions : @connector.CapabilityImplementations[
     @host.ComputeContribution[Unit, E],
   ]
@@ -115,8 +124,8 @@ pub fn[E] configure_compute_modules(
   with_reference_compute? : (
     @connector.CapabilityRegistration,
     @binding4.NumericComputeConfiguration,
-    (@binding5.RunIssue) -> E,
-    (@binding5.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
   )? = None,
 ) -> Result[ConfiguredComputeModules[E], E] {
   let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
@@ -181,10 +190,10 @@ pub fn[E] configure_compute_modules(
     Err(issue) => return Err(installation_issue(issue))
   }
   Ok({
-    installed_duckdb: installed_duckdb.map(value => value.0),
-    installed_local: installed_local.map(value => value.0),
+    installed_duckdb: installed_duckdb.map(value => (value.0, value.1)),
+    installed_local: installed_local.map(value => (value.0, value.1)),
     installed_reference_compute: installed_reference_compute.map(value => {
-      value.0
+      (value.0, value.1)
     }),
     contributions,
   })
@@ -201,19 +210,79 @@ pub fn[E] configured_compute_contributions(
 pub fn[E] configured_duckdb_module(
   value : ConfiguredComputeModules[E],
 ) -> @binding2.DuckDBDispatchModule? {
-  value.installed_duckdb
+  value.installed_duckdb.map(value => value.0)
 }
 
 ///|
 pub fn[E] configured_local_module(
   value : ConfiguredComputeModules[E],
 ) -> @binding3.LocalDispatchModule? {
-  value.installed_local
+  value.installed_local.map(value => value.0)
 }
 
 ///|
 pub fn[E] configured_reference_compute_module(
   value : ConfiguredComputeModules[E],
 ) -> @binding4.NumericComputeContribution? {
-  value.installed_reference_compute
+  value.installed_reference_compute.map(value => value.0)
+}
+
+///|
+pub(all) enum ConfiguredDispatchIssue[E] {
+  MissingImplementation
+  Implementation(E)
+}
+
+///|
+/// Invoke the configured implementation; the connector verifies the exact dispatch ownership.
+pub fn[C, E] dispatch_duckdb(
+  value : ConfiguredComputeModules[E],
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[
+  @binding2.StrategyComputeHostConfiguration,
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_duckdb {
+    None => Err(MissingImplementation)
+    Some((installed, project)) =>
+      @binding2.take_duckdb_dispatch(installed, host, task).map_err(issue => {
+        Implementation(project(issue))
+      })
+  }
+}
+
+///|
+/// Invoke the configured implementation; the connector verifies the exact dispatch ownership.
+pub fn[C, E] dispatch_local(
+  value : ConfiguredComputeModules[E],
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[Unit, ConfiguredDispatchIssue[E]] {
+  match value.installed_local {
+    None => Err(MissingImplementation)
+    Some((installed, project)) =>
+      @binding3.execute_local_dispatch(installed, host, task).map_err(issue => {
+        Implementation(project(issue))
+      })
+  }
+}
+
+///|
+/// Invoke the configured implementation; the connector verifies the exact dispatch ownership.
+pub fn[C, E] dispatch_reference_compute(
+  value : ConfiguredComputeModules[E],
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[
+  (@binding5.NumericAttempt, @binding6.TaskExecution),
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_reference_compute {
+    None => Err(MissingImplementation)
+    Some((installed, project)) =>
+      @binding4.start_numeric_contribution(installed, host, task).map_err(issue => {
+        Implementation(project(issue))
+      })
+  }
 }

@@ -21,16 +21,29 @@ export function generateComputeAssembly(entries) {
     return dependencies.get(path);
   };
   const typed = value => `@${alias(value.package)}.${value.type}`;
+  const resultType = value => value === 'Unit' ? 'Unit'
+    : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch_error', 'estimate_error']) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error']) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
-        !identifier(m.registration) || !identifier(m.contribution)) {
+        !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
       throw new Error('Invalid Compute bundle declaration');
     }
     names.add(name);
     alias(m.package);
+    const results = m.dispatch_result === 'Unit' ? []
+      : Array.isArray(m.dispatch_result) ? m.dispatch_result : [m.dispatch_result];
+    if (Array.isArray(m.dispatch_result) && (results.length < 2 || results.length > 8)) {
+      throw new Error('Invalid Compute result tuple');
+    }
+    for (const result of results) {
+      if (!keys(result, ['package', 'type']) || !packageName(result.package) || !typeName(result.type)) {
+        throw new Error('Invalid Compute result type');
+      }
+      alias(result.package);
+    }
     for (const error of [m.dispatch_error, m.estimate_error]) {
       if (!keys(error, ['package', 'type']) || !packageName(error.package) || !typeName(error.type)) {
         throw new Error('Invalid Compute error projection');
@@ -59,13 +72,13 @@ export function generateComputeAssembly(entries) {
       '  if max_entries < 0 { return Err(InvalidLimits) }\n  let mut count = 0\n' + count +
       '  if count > max_entries { return Err(EntryLimit) }\n' +
       '  let entries : Array[(@connector.CapabilityRegistration, @host.ComputeContribution[Unit, E])] = []\n' + collect +
-      '  @connector.install_capability_implementations(registry, entries, max_entries, registry_order=true)\n}\n' + configurationAssembly(entries, alias, typed),
+      '  @connector.install_capability_implementations(registry, entries, max_entries, registry_order=true)\n}\n' + configurationAssembly(entries, alias, typed, resultType),
   };
 }
 
-function configurationAssembly(entries, alias, typed) {
+function configurationAssembly(entries, alias, typed, resultType) {
   const fields = entries.map(({name, manifest: m}) =>
-    `  installed_${name} : @${alias(m.package)}.${m.module}?\n`).join('');
+    `  installed_${name} : (@${alias(m.package)}.${m.module}, (${typed(m.dispatch_error)}) -> E)?\n`).join('');
   const parameters = entries.map(({name, manifest: m}) =>
     `  with_${name}? : (@connector.CapabilityRegistration, @${alias(m.package)}.${m.configuration}, (${typed(m.dispatch_error)}) -> E, (${typed(m.estimate_error)}) -> E)? = None,\n`).join('');
   const registrations = entries.map(({name}) =>
@@ -79,9 +92,16 @@ function configurationAssembly(entries, alias, typed) {
     `        Err(issue) => return Err(dispatch_issue(issue))\n` +
     `      }\n    }\n  }\n`).join('');
   const passed = entries.map(({name}) => `    with_${name}=installed_${name},\n`).join('');
-  const stored = entries.map(({name}) => `    installed_${name}: installed_${name}.map(value => value.0),\n`).join('');
+  const stored = entries.map(({name}) => `    installed_${name}: installed_${name}.map(value => (value.0, value.1)),\n`).join('');
   const getters = entries.map(({name, manifest: m}) =>
-    `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}\n}\n`).join('');
+    `\n///|\npub fn[E] configured_${name}_module(value : ConfiguredComputeModules[E]) -> @${alias(m.package)}.${m.module}? {\n  value.installed_${name}.map(value => value.0)\n}\n`).join('');
+  const dispatches = entries.map(({name, manifest: m}) =>
+    `\n///|\n/// Invoke the configured implementation; the connector verifies the exact dispatch ownership.\n` +
+    `pub fn[C, E] dispatch_${name}(value : ConfiguredComputeModules[E], host : @host.DispatchHost[C, E], task : @host.PreparedTaskDispatch) -> Result[${resultType(m.dispatch_result)}, ConfiguredDispatchIssue[E]] {\n` +
+    `  match value.installed_${name} {\n` +
+    `    None => Err(MissingImplementation)\n` +
+    `    Some((installed, project)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
+    `  }\n}\n`).join('');
   return '\n///|\nstruct ConfiguredComputeModules[E] {\n' + fields +
     '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
     '\n///|\n/// Validate the complete registration subset before invoking any connector factory.\n' +
@@ -98,7 +118,7 @@ function configurationAssembly(entries, alias, typed) {
     '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
     '  Ok({\n' + stored + '    contributions,\n  })\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
-    getters;
+    getters + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches;
 }
 
 export function checkComputeAssembly(root, write = false) {
@@ -114,7 +134,9 @@ export function checkComputeAssembly(root, write = false) {
   generated.source = execFileSync(formatter, ['-'], {input: generated.source, encoding: 'utf8'});
   generated.manifest = execFileSync(formatter, ['-', '-file-type', 'pkg'], {input: generated.manifest, encoding: 'utf8'});
   for (const {manifest} of entries) {
-    for (const pkg of [manifest.package, manifest.dispatch_error.package, manifest.estimate_error.package]) {
+    const results = manifest.dispatch_result === 'Unit' ? []
+      : Array.isArray(manifest.dispatch_result) ? manifest.dispatch_result : [manifest.dispatch_result];
+    for (const pkg of [manifest.package, manifest.dispatch_error.package, manifest.estimate_error.package, ...results.map(value => value.package)]) {
       if (!existsSync(join(root, 'src', pkg.slice('actql/actql/'.length), 'moon.pkg'))) {
         throw new Error(`Missing declared Compute dependency: ${pkg}`);
       }

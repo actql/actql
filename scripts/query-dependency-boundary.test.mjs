@@ -349,7 +349,12 @@ test('Local installed preparation owns candidate construction and bounded sequen
   assert.match(driver, /@strategy\.execute_captured_synchronous_task\(/);
   const host = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
   assert.doesNotMatch(host, /local_channel|execute_captured_synchronous_task\(/);
-  assert.match(host, /@local_driver\.execute_local_dispatch\(/);
+  assert.match(host, /@builtin\.dispatch_local\(/);
+  assert.match(host, /@builtin\.dispatch_duckdb\(/);
+  assert.doesNotMatch(host, /@local_driver\.execute_local_dispatch\(|@duckdb_driver\.take_duckdb_dispatch\(/);
+  const generated = readFileSync('src/connectors_builtin/compute.generated.mbt', 'utf8');
+  assert.match(generated, /\.execute_local_dispatch\(/);
+  assert.match(generated, /\.take_duckdb_dispatch\(/);
 });
 
 test('concrete Compute capacity formula is owned and exported by its connector', () => {

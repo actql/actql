@@ -63,8 +63,23 @@ test "independent numeric and Local bundles use the same installed Host without 
           ).unwrap()
           numeric_installation = Some(implementation)
           fn(host, task) {
-            let (attempt, execution) = @reference_driver.start_numeric_contribution(
-              implementation, host, task,
+            let before = @resources.ledger_usage(
+              @strategy.captured_dag_ledger(run),
+            )
+            assert_true(
+              @builtin.dispatch_local(configured, host, task)
+              is Err(MissingImplementation),
+            ) catch {
+              _ => abort("absent implementation accepted")
+            }
+            assert_eq(
+              @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+              before,
+            ) catch {
+              _ => abort("absent implementation changed ledger")
+            }
+            let (attempt, execution) = @builtin.dispatch_reference_compute(
+              configured, host, task,
             ).unwrap()
             if cancel {
               @strategy.close_task_execution(run, execution)

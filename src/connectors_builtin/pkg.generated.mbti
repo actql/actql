@@ -3,6 +3,7 @@ package "actql/actql/connectors_builtin"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
@@ -20,10 +21,21 @@ pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @actql/actql/c
 
 pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @actql/actql/connectors/reference_compute/driver.NumericComputeContribution?
 
+pub fn[C, E] dispatch_duckdb(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration, ConfiguredDispatchIssue[E]]
+
+pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
+pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[(@reference_compute.NumericAttempt, @physical_strategy.TaskExecution), ConfiguredDispatchIssue[E]]
+
 // Errors
 
 // Types and methods
 type ConfiguredComputeModules[E]
+
+pub(all) enum ConfiguredDispatchIssue[E] {
+  MissingImplementation
+  Implementation(E)
+}
 
 // Type aliases
 

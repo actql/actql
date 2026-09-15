@@ -10,7 +10,8 @@ libraries. Connector factories provide implementations, not success authority.
 Each connector may own a `compute-bundle.json` under `src/connectors/<name>`.
 The declaration identifies its configuration type and pure construction function,
 opaque configured module type, exact registration accessor, contribution factory
-and the two diagnostic error types. The contribution factory
+and the two diagnostic error types. It also declares the typed execution function
+and its result (`Unit`, a named type, or a bounded tuple of named types). The contribution factory
 returns `physical_host.ComputeContribution`, providing pure proposal, preparation
 and exclusion-diagnostic entrypoints over the same installed module. It must not perform transport or
 construct unchecked completion evidence.
@@ -44,6 +45,11 @@ modules and their fixed contributions. `configured_compute_contributions` feeds
 the common Host, while generated typed module accessors allow the corresponding
 connector to consume its own execution channel. The standard application uses
 this generated construction path; it does not call connector constructors itself.
+Generated `dispatch_<connector>` entrypoints retain the configured module and its
+error projection, reject omitted implementations without starting work, and call
+the connector's exact typed execution channel. They do not erase result types or
+create completion authority. The standard application's execution calls use these
+generated entrypoints rather than manually wiring connector execution functions.
 
 Pass the assembled installation to `physical_host.open_compute_host` with the
 exact Host registry, fixed-input capacity and bounded inspection limits.
