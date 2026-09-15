@@ -12,7 +12,8 @@ struct CapturedDAG {
   resources : Array[TaskRetention?]
   join_limits : Array[@witness.LimitClaim?]
   inputs : Array[Array[@execution.ProducerRead?]]
-  mut running : (Int, @duckdb_compute.DuckDBComputeAttempt)?
+  mut running : (Int, TaskExecution)?
+  executions : Array[TaskExecution?]
   native_resources : Array[NativeTaskResources?]
   mut resident_environment : ResidentEnvironment?
   mut stopped : Bool
@@ -169,6 +170,7 @@ pub fn open_captured_dag(
     stopped: false,
     failure: None,
     running: None,
+    executions: Array::make(count, None),
     native_resources: Array::make(count, None),
     resident_environment: None,
     generation: 0,
@@ -460,9 +462,9 @@ pub fn captured_task_output(
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
-  if run.running is Some((_, attempt)) {
-    // Revocation is not DB-stop acknowledgement. The Host still owns cleanup.
-    @duckdb_compute.abort_duckdb_compute_attempt(attempt)
+  if run.running is Some((_, execution)) {
+    // Revocation is not stop acknowledgement. The Host still owns cleanup.
+    (execution.cancel)()
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)

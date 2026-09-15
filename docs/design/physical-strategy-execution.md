@@ -64,6 +64,18 @@ the run ledger, before send/accept. Only confirmed native cleanup releases unuse
 transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
+The common asynchronous task lifecycle owns the exact task reservation,
+settlement state, provisional holding, successful output installation and final
+disposal. Its running handle is not a concrete connector attempt. Private
+implementation hooks request cancellation, dispose buffers, confirm reusable
+inputs and produce an already verified engine completion; they cannot settle
+the common ledger by returning success alone. The common completion boundary
+also checks the output's exact bound owner, retained port and current liveness.
+This port check supplements, rather than replaces, the implementation's exact
+input/attempt/transport evidence validation. Cancellation alone never releases
+execution reservations. Confirmed execution cleanup may release execution
+capacity while keeping completion scratch and provisional output accounted.
+
 The trusted acquisition transport also forwards physical accounting through both
 broad and two-receipt native coordinators. Metadata and each actual row receipt
 are charged before receiver acceptance. Native session cleanup acknowledgement

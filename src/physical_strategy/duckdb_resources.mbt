@@ -1,13 +1,7 @@
 ///|
 priv struct NativeTaskResources {
   attempt : @duckdb_compute.DuckDBComputeAttempt
-  reservation : @resources.Reservation
-  retention : Int64
-  scratch : Int64
-  mut native_settled : Bool
-  mut disposed : Bool
-  mut failed_holding : @resources.Holding?
-  resident : ResidentInputs?
+  execution : TaskExecution
   resident_output : ResidentPendingOutput?
 }
 
@@ -25,7 +19,7 @@ fn native_task_resource(
 }
 
 ///|
-/// Trusted transport charges the exact run-owned reservation before send/accept.
+/// Concrete attempt lookup delegates physical enforcement to the common driver.
 pub fn charge_captured_duckdb_transfer(
   run : CapturedDAG,
   attempt : @duckdb_compute.DuckDBComputeAttempt,
@@ -34,84 +28,29 @@ pub fn charge_captured_duckdb_transfer(
   guard native_task_resource(run, attempt) is Some((_, resource)) else {
     return Err(ForeignOwner)
   }
-  if resource.disposed || resource.native_settled {
-    return Err(ClosedReservation)
-  }
-  @resources.charge_transfer(run.ledger, resource.reservation, bytes)
+  charge_task_execution_transfer(run, resource.execution, bytes)
 }
 
 ///|
-/// Native stop/cleanup acknowledgement, not cancellation. Completion scratch
-/// and provisional retention remain reserved until completion or disposal.
+/// Actual transport settlement, not a cancellation request.
 pub fn settle_captured_duckdb_native(
   run : CapturedDAG,
   attempt : @duckdb_compute.DuckDBComputeAttempt,
   confirmed : Bool,
 ) -> Result[Unit, @resources.LedgerIssue] {
-  guard native_task_resource(run, attempt) is Some((task, resource)) else {
+  guard native_task_resource(run, attempt) is Some((_, resource)) else {
     return Err(ForeignOwner)
   }
-  if resource.native_settled {
-    return Ok(())
-  }
-  if !confirmed {
-    return @resources.mark_cleanup_pending(run.ledger, resource.reservation)
-  }
-  let result = if resource.disposed {
-    @resources.settle_reservation(run.ledger, resource.reservation)
-  } else {
-    @resources.settle_execution_reservation(
-      run.ledger,
-      resource.reservation,
-      remaining_execution=resource.scratch,
-    )
-  }
-  match result {
-    Err(issue) => Err(issue)
-    Ok(_) => {
-      resource.native_settled = true
-      if resource.resident is Some(read) {
-        // The task connection/transaction really stopped. Shared DB capacity
-        // remains reserved independently through its environment lifetime.
-        return_resident_inputs(read) |> ignore
-      }
-      if resource.disposed {
-        captured_cleanup_confirmed(run, attempt)
-        run.native_resources[task] = None
-      }
-      Ok(())
-    }
-  }
+  settle_task_execution(run, resource.execution, confirmed)
 }
 
 ///|
-/// Dispose owned MoonBit buffers/port. Unconfirmed native reservations remain.
 pub fn close_captured_duckdb_task(
   run : CapturedDAG,
   attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Unit {
-  guard native_task_resource(run, attempt) is Some((task, resource)) else {
+  guard native_task_resource(run, attempt) is Some((_, resource)) else {
     return
   }
-  if resource.disposed {
-    return
-  }
-  if run.running is Some((_, active)) && physical_equal(active, attempt) {
-    stop_captured_dag(run)
-  }
-  resource.disposed = true
-  @duckdb_compute.close_duckdb_compute_attempt(attempt)
-  close_captured_task_output(run, task)
-  if resource.native_settled {
-    if resource.failed_holding is Some(holding) {
-      @resources.release_allocation(run.ledger, holding) |> ignore
-    }
-    if @resources.reservation_open(resource.reservation) {
-      @resources.settle_reservation(run.ledger, resource.reservation) |> ignore
-    }
-    captured_cleanup_confirmed(run, attempt)
-    // Do not retain a closed attempt's input graph after releasing its ledger
-    // responsibility. The caller may still own its diagnostic handle.
-    run.native_resources[task] = None
-  }
+  close_task_execution(run, resource.execution)
 }

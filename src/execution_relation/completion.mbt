@@ -69,6 +69,20 @@ pub fn completed_row_count(output : CompletedOutput) -> Int {
 }
 
 ///|
+/// Inspect an existing completion's exact bound owner and retained target.
+/// This neither constructs evidence nor validates a connector's input/attempt
+/// relationship; that remains the installed completion verifier's obligation.
+pub fn completed_output_matches_port(
+  output : CompletedOutput,
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+) -> Bool {
+  physical_equal(@lower.sequence_owner(output.completion.sequence), owner) &&
+  output.target == target &&
+  completion_is_live(output.completion)
+}
+
+///|
 pub fn completed_column_count(output : CompletedOutput) -> Int {
   IndexedRows::column_count(output.table)
 }

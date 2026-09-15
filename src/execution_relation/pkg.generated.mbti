@@ -79,6 +79,8 @@ pub fn completed_column_name(CompletedOutput, Int) -> String?
 
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
 
+pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]

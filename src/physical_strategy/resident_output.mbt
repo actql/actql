@@ -55,9 +55,9 @@ pub fn captured_resident_cleanup_sql(
   run : CapturedDAG,
   attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Result[Array[String], RunIssue] {
-  guard run.running is Some((task, active)) &&
-    physical_equal(active, attempt) &&
-    native_task_resource(run, attempt) is Some((_, resource)) &&
+  guard native_task_resource(run, attempt) is Some((_, resource)) &&
+    run.running is Some((task, active)) &&
+    physical_equal(active, resource.execution) &&
     resource.resident_output is Some(pending) else {
     return Err(ForeignCandidate)
   }
@@ -119,14 +119,14 @@ pub fn confirm_captured_resident_output(
   if run.stopped {
     return Err(Stopped)
   }
-  guard run.running is Some((_, active)) &&
-    physical_equal(active, attempt) &&
-    native_task_resource(run, attempt) is Some((_, resource)) &&
+  guard native_task_resource(run, attempt) is Some((_, resource)) &&
+    run.running is Some((_, active)) &&
+    physical_equal(active, resource.execution) &&
     resource.resident_output is Some(output) else {
     return Err(ForeignCandidate)
   }
-  if resource.disposed ||
-    !resource.native_settled ||
+  if resource.execution.disposed ||
+    !resource.execution.execution_settled ||
     output.committed ||
     !resident_environment_available(run, output.environment) {
     return Err(NotReady)

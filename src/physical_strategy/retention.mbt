@@ -71,8 +71,8 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
   if !task_done(run, task) {
     return
   }
-  if run.native_resources[task] is Some(native) && !native.disposed {
-    close_captured_duckdb_task(run, native.attempt)
+  if run.executions[task] is Some(execution) && !execution.disposed {
+    close_task_execution(run, execution)
     return
   }
   run.lifetimes[task].live = false
@@ -125,11 +125,11 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
 /// Invoke only after the original Host confirms stopped/cleaned native work.
 fn captured_cleanup_confirmed(
   run : CapturedDAG,
-  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  execution : TaskExecution,
 ) -> Unit {
   if run.stopped &&
     run.running is Some((_, expected)) &&
-    physical_equal(expected, attempt) {
+    physical_equal(expected, execution) {
     run.running = None
     collect_captured_retention(run)
   }

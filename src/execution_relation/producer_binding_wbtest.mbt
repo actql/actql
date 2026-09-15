@@ -23,8 +23,10 @@ test "live producer binding only narrows original liveness and shares storage" {
   assert_true(physical_equal(bound.output.table, source.table))
   assert_true(physical_equal(bound.output.completion.store, completion.store))
   assert_true(completion_is_live(bound.output.completion))
+  assert_true(completed_output_matches_port(bound.output, owner, Step(0)))
   additional_live.val = false
   assert_false(completion_is_live(bound.output.completion))
+  assert_false(completed_output_matches_port(bound.output, owner, Step(0)))
   assert_true(completion_is_live(output.completion))
   additional_live.val = true
   original_live.val = false
@@ -103,6 +105,8 @@ test "producer binding keeps exact receiver producer and target" {
   ).unwrap()
   let receiver = producer_consumer(owner, Step(1))
   let output = completed_output(completion, Step(1)).unwrap()
+  assert_true(completed_output_matches_port(output, owner, Step(1)))
+  assert_false(completed_output_matches_port(output, owner, Step(0)))
   let bound = bind_completed_input(receiver, 0, owner, output).unwrap()
   assert_true(physical_equal(bound.receiver, receiver))
   assert_true(physical_equal(bound.output, output))
@@ -124,6 +128,7 @@ test "producer binding keeps exact receiver producer and target" {
     is Err(NotProducedInput),
   )
   let foreign = row_owner(",{\"select\":[\"a\",\"b\"]}")
+  assert_false(completed_output_matches_port(output, foreign, Step(1)))
   assert_true(
     bind_completed_input(receiver, 0, foreign, output)
     is Err(ProducerOwnerMismatch),
@@ -140,4 +145,5 @@ test "producer binding keeps exact receiver producer and target" {
     bind_completed_input(receiver, 0, rebound, output)
     is Err(ProducerBindingMismatch),
   )
+  assert_false(completed_output_matches_port(output, rebound, Step(1)))
 }

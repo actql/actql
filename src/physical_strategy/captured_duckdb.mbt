@@ -124,18 +124,49 @@ pub fn start_captured_duckdb_task(
       if resident is Some(inputs) {
         inputs.claimed = true
       }
-      run.native_resources[task] = Some({
-        attempt,
+      let execution : TaskExecution = {
+        task,
         reservation,
         retention,
         scratch,
-        native_settled: false,
+        cancel: fn() { @duckdb_compute.abort_duckdb_compute_attempt(attempt) },
+        dispose: fn() { @duckdb_compute.close_duckdb_compute_attempt(attempt) },
+        settled: fn() {
+          if resident is Some(read) {
+            return_resident_inputs(read) |> ignore
+          }
+        },
+        released: fn() { run.native_resources[task] = None },
+        ready: fn() {
+          if resident_output is Some(pending) &&
+            (
+              !pending.committed ||
+              !resident_environment_available(run, pending.environment)
+            ) {
+            Err(NotReady)
+          } else {
+            Ok(())
+          }
+        },
+        finish: fn() {
+          match @duckdb_compute.complete_duckdb_compute_attempt(attempt) {
+            Err(issue) => Err(DuckDB(issue))
+            Ok(output) => Ok(output)
+          }
+        },
+        publish: fn(output) {
+          match resident_output {
+            Some(pending) => publish_resident_output(run, task, pending, output)
+            None => Ok(())
+          }
+        },
+        execution_settled: false,
         disposed: false,
         failed_holding: None,
-        resident,
-        resident_output,
-      })
-      run.running = Some((task, attempt))
+      }
+      run.executions[task] = Some(execution)
+      run.native_resources[task] = Some({ attempt, execution, resident_output, })
+      run.running = Some((task, execution))
       Ok(attempt)
     }
     Err(issue) => {
@@ -162,58 +193,8 @@ pub fn complete_captured_duckdb_task(
   if run.stopped {
     return Err(Stopped)
   }
-  guard run.running is Some((task, expected)) &&
-    physical_equal(expected, attempt) else {
+  guard native_task_resource(run, attempt) is Some((_, resource)) else {
     return Err(ForeignCandidate)
   }
-  guard run.native_resources[task] is Some(resource) &&
-    physical_equal(resource.attempt, attempt) &&
-    !resource.disposed &&
-    resource.native_settled else {
-    return Err(Physical(InvalidCharge))
-  }
-  if resource.resident_output is Some(pending) &&
-    (
-      !pending.committed ||
-      !resident_environment_available(run, pending.environment)
-    ) {
-    return Err(NotReady)
-  }
-  let holding = match
-    @resources.retain_allocation(
-      run.ledger,
-      resource.reservation,
-      resource.retention,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
-  }
-  match @duckdb_compute.complete_duckdb_compute_attempt(attempt) {
-    Ok(output) => {
-      if resource.resident_output is Some(pending) {
-        match publish_resident_output(run, task, pending, output) {
-          Ok(_) => ()
-          Err(issue) => {
-            resource.failed_holding = Some(holding)
-            fail_captured_task(run, task, issue)
-            return Err(issue)
-          }
-        }
-      }
-      run.completed[task] = Some(output)
-      record_task_retention(run, task)
-      run.resources[task].unwrap().holding = Some(holding)
-      @resources.settle_reservation(run.ledger, resource.reservation) |> ignore
-      clear_captured_inputs(run, task)
-      run.running = None
-      run.generation += 1
-      Ok(())
-    }
-    Err(issue) => {
-      // Provisional buffers remain accounted until explicit disposal.
-      resource.failed_holding = Some(holding)
-      fail_captured_task(run, task, DuckDB(issue))
-      Err(DuckDB(issue))
-    }
-  }
+  complete_task_execution(run, resource.execution)
 }
