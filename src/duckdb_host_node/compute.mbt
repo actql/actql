@@ -64,7 +64,7 @@ pub fn compute_resident_strategy_host_open(
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident : @strategy.ResidentInputs,
+  resident : @duckdb_driver.DuckDBResidentInputs,
 ) -> ComputeNodeRun raise NodeHostFailure {
   open_strategy_compute_host(
     setup,
@@ -81,7 +81,7 @@ fn open_strategy_compute_host(
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident? : @strategy.ResidentInputs,
+  resident? : @duckdb_driver.DuckDBResidentInputs,
 ) -> ComputeNodeRun raise NodeHostFailure {
   match
     @host.start_configured_strategy_compute_host(

@@ -73,7 +73,7 @@ pub fn start_configured_strategy_compute_host(
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
-  resident? : @strategy.ResidentInputs,
+  resident? : @duckdb_driver.DuckDBResidentInputs,
 ) -> Result[@duckdb_driver.CapturedDuckDBTask, @strategy.RunIssue] {
   let c = setup.compute
   @duckdb_driver.start_captured_duckdb_task(
@@ -113,7 +113,7 @@ pub fn borrow_configured_resident_inputs(
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
-) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
+) -> Result[@duckdb_driver.DuckDBResidentInputs, @strategy.RunIssue] {
   let c = setup.compute
   @duckdb_driver.prepare_resident_inputs(
     setup.graph,

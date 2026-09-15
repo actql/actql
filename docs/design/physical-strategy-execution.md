@@ -246,12 +246,15 @@ shared capacity; a rejected preparation cannot leave a table registration or
 consume a table ordinal. Reusing equal-content storage from another preparation
 is not accepted as the owned input.
 
-Resident receiver view preparation likewise belongs to the DuckDB driver. The
-common borrower checks the prepared plan's exact import and ProducerRead affinity
-and rechecks environment liveness before acquiring a shared borrow. Connector
-compilation resolves input view names; the ordered input-set boundary retains
-the cumulative representation-byte allowance and returns earlier borrowers if
-any later port fails preparation.
+Resident receiver view preparation likewise belongs to the DuckDB driver. Its
+trusted preparation checks exact import and ProducerRead affinity and measures
+the actual plan bytes. `DuckDBResidentInputs` holds concrete plans and the common
+borrow-set handle without exposing a constructor. The common borrower rechecks
+environment and input liveness before acquiring a shared borrow; it stores no
+view plan. The ordered input-set boundary enforces the cumulative measured-byte
+allowance and returns earlier borrowers if any later port fails preparation.
+These preparation callbacks are trusted connector wiring, not Program-provided
+verification callbacks or permission to perform I/O.
 
 The common resident input set is bound to an exact `FixedComputeCandidate`, its
 checked task owner and ordered request input handles, not to a DuckDB query

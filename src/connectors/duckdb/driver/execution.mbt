@@ -35,7 +35,7 @@ pub fn start_captured_duckdb_task(
   transfer_bytes : Int64,
   native_execution_bytes : Int64,
   verify : (@compute.DuckDBComputeAttempt) -> Bool,
-  resident? : @strategy.ResidentInputs,
+  resident? : DuckDBResidentInputs,
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   guard @compute.duckdb_task_retention_capacity(limits) is Some(retention) &&
     @compute.duckdb_task_scratch_capacity(limits, transport) is Some(scratch) &&
@@ -54,7 +54,7 @@ pub fn start_captured_duckdb_task(
           task,
           choice,
           prepared,
-          inputs,
+          inputs.leases,
           retention,
           scratch,
           fn(ordinal) {

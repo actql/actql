@@ -6,11 +6,14 @@ import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
   "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
 
 // Values
 pub fn borrow_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTable, Int, Int, Int, Int, input_index? : Int, view_name? : String) -> Result[@physical_strategy.ResidentRead, @physical_strategy.RunIssue]
+
+pub fn cancel_resident_inputs(DuckDBResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn captured_duckdb_attempt(CapturedDuckDBTask) -> @compute.DuckDBComputeAttempt
 
@@ -20,16 +23,20 @@ pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskE
 
 pub fn captured_duckdb_query(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> @adapter.ResidentQuery?
 
-pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[@physical_strategy.ResidentInputs, @physical_strategy.RunIssue]
+pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[DuckDBResidentInputs, @physical_strategy.RunIssue]
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
 
-pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : @physical_strategy.ResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
+pub fn resident_inputs_read_plans(DuckDBResidentInputs) -> Array[@compute.DuckDBResidentRead]
+
+pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 // Errors
 
 // Types and methods
 type CapturedDuckDBTask
+
+type DuckDBResidentInputs
 
 // Type aliases
 

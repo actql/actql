@@ -18,10 +18,32 @@ pub fn borrow_resident_table(
     fn(imported, input) {
       @compute.prepare_duckdb_resident_read(
         imported, input, view_name, max_entries, max_sql_bytes,
-      ).map_err(issue => NativePreparation(issue))
+      )
+      .map(_ => ())
+      .map_err(issue => NativePreparation(issue))
     },
     input_index~,
   )
+}
+
+///|
+struct DuckDBResidentInputs {
+  leases : @strategy.ResidentInputs
+  plans : Array[@compute.DuckDBResidentRead]
+}
+
+///|
+pub fn resident_inputs_read_plans(
+  inputs : DuckDBResidentInputs,
+) -> Array[@compute.DuckDBResidentRead] {
+  inputs.plans.copy()
+}
+
+///|
+pub fn cancel_resident_inputs(
+  inputs : DuckDBResidentInputs,
+) -> Result[Unit, @resources.LedgerIssue] {
+  @strategy.cancel_resident_inputs(inputs.leases)
 }
 
 ///|
@@ -35,11 +57,12 @@ pub fn prepare_resident_inputs(
   max_entries : Int,
   max_name_bytes : Int,
   max_sql_bytes : Int,
-) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
+) -> Result[DuckDBResidentInputs, @strategy.RunIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(compute) else {
     return Err(ForeignCandidate)
   }
+  let plans = []
   @strategy.prepare_resident_inputs(
     run,
     environment,
@@ -61,9 +84,19 @@ pub fn prepare_resident_inputs(
         is Some(name) else {
         return Err(ForeignCandidate)
       }
-      @compute.prepare_duckdb_resident_read(
-        imported, input, name, max_entries, remaining,
-      ).map_err(issue => NativePreparation(issue))
+      let plan = match
+        @compute.prepare_duckdb_resident_read(
+          imported, input, name, max_entries, remaining,
+        ) {
+        Ok(plan) => plan
+        Err(issue) => return Err(NativePreparation(issue))
+      }
+      guard @compute.duckdb_resident_read_matches(plan, imported, input) &&
+        @compute.duckdb_resident_read_bytes(plan, remaining) is Some(bytes) else {
+        return Err(ForeignCandidate)
+      }
+      plans.push(plan)
+      Ok(bytes)
     },
-  )
+  ).map(leases => { leases, plans, })
 }

@@ -52,7 +52,7 @@ pub fn resident_borrow_setup(
   entries : Int,
   names : Int,
   sql : Int,
-) -> @strategy.ResidentInputs raise NodeHostFailure {
+) -> @duckdb_driver.DuckDBResidentInputs raise NodeHostFailure {
   match
     @host.borrow_configured_resident_inputs(
       setup, env, tables, entries, names, sql,
@@ -64,8 +64,10 @@ pub fn resident_borrow_setup(
 
 ///|
 #export_name("residentInputsSql")
-pub fn resident_inputs_sql(inputs : @strategy.ResidentInputs) -> Array[String] {
-  @strategy.resident_inputs_read_plans(inputs).map(
+pub fn resident_inputs_sql(
+  inputs : @duckdb_driver.DuckDBResidentInputs,
+) -> Array[String] {
+  @duckdb_driver.resident_inputs_read_plans(inputs).map(
     @duckdb_compute.duckdb_resident_read_sql,
   )
 }
@@ -73,9 +75,9 @@ pub fn resident_inputs_sql(inputs : @strategy.ResidentInputs) -> Array[String] {
 ///|
 #export_name("residentCancelInputs")
 pub fn resident_cancel_inputs(
-  inputs : @strategy.ResidentInputs,
+  inputs : @duckdb_driver.DuckDBResidentInputs,
 ) -> Unit raise NodeHostFailure {
-  match @strategy.cancel_resident_inputs(inputs) {
+  match @duckdb_driver.cancel_resident_inputs(inputs) {
     Ok(_) => ()
     Err(issue) => raise Physical(issue)
   }

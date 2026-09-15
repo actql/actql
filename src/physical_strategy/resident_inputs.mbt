@@ -23,7 +23,7 @@ pub fn prepare_resident_inputs(
   max_name_bytes : Int,
   max_representation_bytes : Int,
   prepare_view : (Int, @duckdb.ResidentImport, @execution.ProducerRead, Int) -> Result[
-    @duckdb_compute.DuckDBResidentRead,
+    Int,
     RunIssue,
   ],
 ) -> Result[ResidentInputs, RunIssue] {
@@ -45,6 +45,7 @@ pub fn prepare_resident_inputs(
   let reads : Array[ResidentRead] = []
   let mut remaining = max_representation_bytes
   for port in 0..<tables.length() {
+    let measured = Ref(0)
     let result = if !physical_equal(tables[port].environment, env) {
       Err(ForeignCandidate)
     } else {
@@ -54,7 +55,11 @@ pub fn prepare_resident_inputs(
         task,
         max_entries,
         max_name_bytes,
-        fn(imported, input) { prepare_view(port, imported, input, remaining) },
+        fn(imported, input) {
+          prepare_view(port, imported, input, remaining).map(bytes => {
+            measured.val = bytes
+          })
+        },
         input_index=port,
       )
     }
@@ -75,15 +80,13 @@ pub fn prepare_resident_inputs(
       }
       return Err(ForeignCandidate)
     }
-    // View SQL is built under the remaining UTF-8 allowance.
-    match @duckdb_compute.duckdb_resident_read_bytes(read.view, remaining) {
-      Some(bytes) => remaining -= bytes
-      None => {
-        for read in reads {
-          return_resident_read(read) |> ignore
-        }
-        return Err(Physical(PlanningLimit))
+    if measured.val < 0 || measured.val > remaining {
+      for read in reads {
+        return_resident_read(read) |> ignore
       }
+      return Err(Physical(PlanningLimit))
+    } else {
+      remaining -= measured.val
     }
   }
   Ok({
@@ -117,13 +120,6 @@ fn resident_inputs_match(
     }
   }
   true
-}
-
-///|
-pub fn resident_inputs_read_plans(
-  value : ResidentInputs,
-) -> Array[@duckdb_compute.DuckDBResidentRead] {
-  value.reads.map(read => read.view)
 }
 
 ///|

@@ -164,15 +164,15 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         10000,
         10000,
       ).unwrap()
-      let sql = @strategy.resident_inputs_read_plans(cancelled).map(
+      let sql = @duckdb_driver.resident_inputs_read_plans(cancelled).map(
         @duckdb_compute.duckdb_resident_read_sql,
       )
       assert_eq(sql.length(), 2)
       assert_true(sql[0].contains("\"owned_input_0\""))
       assert_true(sql[1].contains("\"owned_input_1\""))
-      @strategy.cancel_resident_inputs(cancelled).unwrap()
+      @duckdb_driver.cancel_resident_inputs(cancelled).unwrap()
       assert_true(
-        @strategy.cancel_resident_inputs(cancelled) is Err(InvalidCharge),
+        @duckdb_driver.cancel_resident_inputs(cancelled) is Err(InvalidCharge),
       )
       let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts
       assert_true(
@@ -213,7 +213,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
         is Err(Physical(InvalidCharge)),
       )
       assert_eq(@resources.ledger_usage(ledger), before)
-      @strategy.cancel_resident_inputs(resident_inputs.unwrap()).unwrap()
+      @duckdb_driver.cancel_resident_inputs(resident_inputs.unwrap()).unwrap()
       @strategy.stop_captured_dag(run)
       @strategy.close_captured_task_output(run, 1)
       @strategy.close_captured_task_output(run, 2)
@@ -255,7 +255,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
       assert_eq(after.transferred_bytes, before.transferred_bytes)
       assert_true(
-        @strategy.cancel_resident_inputs(inputs) is Err(InvalidCharge),
+        @duckdb_driver.cancel_resident_inputs(inputs) is Err(InvalidCharge),
       )
     }
     if cancelled {

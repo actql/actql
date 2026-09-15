@@ -14,7 +14,6 @@ struct ResidentTable {
 struct ResidentRead {
   table : ResidentTable
   input : @execution.ProducerRead
-  view : @duckdb_compute.DuckDBResidentRead
   mut returned : Bool
   borrow : @resources.SharedBorrow
 }
@@ -210,7 +209,7 @@ pub fn borrow_resident_table(
   max_entries : Int,
   max_name_bytes : Int,
   prepare_view : (@duckdb.ResidentImport, @execution.ProducerRead) -> Result[
-    @duckdb_compute.DuckDBResidentRead,
+    Unit,
     RunIssue,
   ],
   input_index? : Int = 0,
@@ -228,15 +227,15 @@ pub fn borrow_resident_table(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let view = match prepare_view(table.imported, input) {
-    Ok(value) => value
+  match prepare_view(table.imported, input) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   if run.stopped ||
     !owns_resident_table(run, table) ||
     !table.committed ||
     !resident_environment_available(run, table.environment) ||
-    !@duckdb_compute.duckdb_resident_read_matches(view, table.imported, input) {
+    !@execution.producer_read_available(input) {
     return Err(ForeignCandidate)
   }
   match
@@ -245,7 +244,7 @@ pub fn borrow_resident_table(
       table.allocation,
     ) {
     Err(issue) => Err(Physical(issue))
-    Ok(borrow) => Ok({ table, input, view, borrow, returned: false, })
+    Ok(borrow) => Ok({ table, input, borrow, returned: false, })
   }
 }
 
