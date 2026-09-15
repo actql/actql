@@ -83,68 +83,37 @@ pub fn collect_window_membership_bounds(
   let closure = stages.contexts[site.stage].context.capacity
   let candidates : Array[WindowMembershipCandidate] = []
   let mut maximum = None
-  for
-    visit in 0..<@pipeline.contextual_closure_count(
-      @capacity.application_closure_orders(closure),
+  let (inputs, used) = match
+    collect_target_row_candidates(
+      closure,
+      site.pipeline,
+      execution.input,
+      Some(site.producer_visit),
+      max_work - work,
+      max_candidates,
     ) {
+    Ok(value) => value
+    Err(CandidateBudget) => return Err(BudgetExceeded)
+    Err(_) => return Err(ForeignEvidence)
+  }
+  work += used
+  for membership in inputs {
     guard spend() else { return Err(BudgetExceeded) }
-    let coverage = @capacity.application_closure_at(closure, visit).unwrap()
-    let source = @capacity.application_coverage_sources(coverage)
-    if !physical_equal(
-        site.pipeline,
-        @capacity.checked_pipeline(@capacity.source_coverage_graph(source)),
-      ) {
-      continue
-    }
-    let applications = @capacity.source_coverage_program(source)
-    let claims = @wire.program_claim_arithmetic(
-      @step_bounds.application_claims(applications),
+    let input = @step_bounds.target_rows_value(
+      @capacity.target_membership_rows(membership),
     )
-    for claim in 0..<@wire.claim_count(claims) {
-      guard spend() else { return Err(BudgetExceeded) }
-      guard @step_bounds.application_at(applications, claim) is Some(bound) else {
-        continue
-      }
-      let (result, used) = @step_bounds.check_target_rows_usage(
-        site.pipeline,
-        execution.input,
-        bound,
-        max_work - work,
-      )
-      work += used
-      match result {
-        Ok(rows) => {
-          if candidates.length() == max_candidates {
-            return Err(BudgetExceeded)
-          }
-          let membership = match
-            @capacity.bind_target_membership(closure, rows, visit, claim) {
-            Ok(v) => v
-            Err(_) => return Err(ForeignEvidence)
-          }
-          let input = @step_bounds.target_rows_value(rows)
-          let factor = options.maximum_per_input
-          let product = match window_membership_product(input, factor) {
-            Ok(v) => v
-            Err(e) => return Err(e)
-          }
-          maximum = Some(
-            match maximum {
-              Some(previous) => Int64::min(previous, product)
-              None => product
-            },
-          )
-          candidates.push({ input: membership, maximum: product, })
-        }
-        Err(
-          @step_bounds.WrongUnit
-          | @step_bounds.UnrelatedBound
-          | @step_bounds.MissingProducer
-        ) => ()
-        Err(@step_bounds.WorkLimit) => return Err(BudgetExceeded)
-        Err(_) => return Err(ForeignEvidence)
-      }
+    let product = match
+      window_membership_product(input, options.maximum_per_input) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
+    maximum = Some(
+      match maximum {
+        Some(previous) => Int64::min(previous, product)
+        None => product
+      },
+    )
+    candidates.push({ input: membership, maximum: product, })
   }
   Ok({ owner, requirement, execution, options, law, candidates, maximum, work, })
 }

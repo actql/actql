@@ -182,6 +182,13 @@ fn derive_row_capacity(
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
         guard step.input is Some(input) else { continue }
+        if step.operation is @pipeline.Window(_) {
+          // Membership envelopes consume input counts even if no Result reads
+          // the expanded output. The window-specific factor is resolved later.
+          spend(1)
+          roots.push(input)
+          continue
+        }
         if step.operation is @pipeline.Nest(right=child, ..) {
           // Child rows bound each grouped array; parent rows bound attachment
           // copies. Neither demand depends on publishing the nest output.

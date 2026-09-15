@@ -331,6 +331,11 @@ Nest demands its child input for grouped-array item bounds and its parent input
 for attachment bounds, independently of the published target. Both demands use
 the actual checked operands and share the same target memoization; repeated uses
 do not create another proof or erase a parent/child occurrence.
+Window membership envelopes independently demand their input row bounds.
+Membership selection uses the owned closure's common target-candidate collector,
+including applicable imported producer claims with their original coordinates.
+The window-specific membership factor is applied after that applicability check;
+physical input enumeration is not a count proof or an order witness.
 Construction reads the existing operation-bound plan,
 including its exact row-operand arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a
