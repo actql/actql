@@ -336,6 +336,10 @@ Membership selection uses the owned closure's common target-candidate collector,
 including applicable imported producer claims with their original coordinates.
 The window-specific membership factor is applied after that applicability check;
 physical input enumeration is not a count proof or an order witness.
+As-of and interval search envelopes demand both checked operand row bounds,
+including operands not needed by an output-count rule. Their existing search
+calculation consumes those bounds without changing the separately selected join
+output-capacity contract or treating a search bound as execution permission.
 Construction reads the existing operation-bound plan,
 including its exact row-operand arity and explicitly permitted fallback arity.
 Only available premises or a rule's admitted premise-free case can produce a

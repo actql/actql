@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/sha256" @sha,
   "actql/actql/parameter_references" @parameter_refs,
 } for "test"
 

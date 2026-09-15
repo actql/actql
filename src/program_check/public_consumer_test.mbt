@@ -52,6 +52,7 @@ fn public_input_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
   analytic_policy? : Bool = false,
+  temporal_join_step? : Int? = None,
 ) -> (
   String,
   @syntax.Program,
@@ -179,9 +180,21 @@ fn public_input_fixture(
     @program_check.checking_environment(
       environment,
       { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      {
+        rela: true,
+        sga: false,
+        tea: temporal_join_step is Some(_),
+        calendar: false,
+        text_rank: false,
+      },
     ),
-    if generated || repeated {
+    if temporal_join_step is Some(step) {
+      [
+        public_search_capacity(environment, step) catch {
+          _ => abort("invalid temporal search fixture capacity")
+        },
+      ]
+    } else if generated || repeated {
       [
         { stage: "producer", sources, uses: [], },
         { stage: "consumer", sources: consumer_sources, uses: [], },

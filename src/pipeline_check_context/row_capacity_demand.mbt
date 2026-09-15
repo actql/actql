@@ -182,6 +182,17 @@ fn derive_row_capacity(
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
         guard step.input is Some(input) else { continue }
+        match step.operation {
+          @pipeline.AsOfJoin(right~, ..) | @pipeline.IntervalJoin(right~, ..) => {
+            // Search work depends on both operands, independently of whether
+            // the output count rule needs both or the output is published.
+            spend(2)
+            roots.push(input)
+            roots.push(right)
+            continue
+          }
+          _ => ()
+        }
         if step.operation is @pipeline.Window(_) {
           // Membership envelopes consume input counts even if no Result reads
           // the expanded output. The window-specific factor is resolved later.
