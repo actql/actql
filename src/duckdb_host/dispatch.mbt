@@ -23,6 +23,9 @@ struct StrategyHostDispatch {
   local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
   native_module : @duckdb_driver.DuckDBDispatchModule
+  contributions : @connector.CapabilityImplementations[
+    @host_driver.ComputeContribution[Unit, DispatchIssue],
+  ]
   installation : @host_driver.DispatchHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
   mut estimates : @host_driver.AdaptiveDispatch[DispatchIssue]?
@@ -103,27 +106,50 @@ pub fn configure_strategy_dispatch(
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
   }
-  let implementations = match
+  let contributions = match
     @connector.install_capability_implementations(
       registry,
       [
         (
           local_registration,
-          fn(_context : Unit, task, revision, request) {
-            @local_driver.prepare_local_dispatch(
-              local_module, task, revision, request,
-            ).map_err(local_dispatch_issue)
+          @host_driver.ComputeContribution::{
+            prepare: fn(_context : Unit, task, revision, request) {
+              @local_driver.prepare_local_dispatch(
+                local_module, task, revision, request,
+              ).map_err(local_dispatch_issue)
+            },
+            propose: fn(_context, task, quantities) {
+              @local_driver.estimate_local_installed_offers(
+                local_module, task, quantities,
+              ).map_err(local_estimate_issue)
+            },
           },
         ),
         (
           native_registration,
-          fn(_context : Unit, task, revision, request) {
-            @duckdb_driver.prepare_duckdb_dispatch(
-              native_module, task, revision, request,
-            ).map_err(duckdb_dispatch_issue)
+          @host_driver.ComputeContribution::{
+            prepare: fn(_context : Unit, task, revision, request) {
+              @duckdb_driver.prepare_duckdb_dispatch(
+                native_module, task, revision, request,
+              ).map_err(duckdb_dispatch_issue)
+            },
+            propose: fn(_context, task, quantities) {
+              @duckdb_driver.estimate_duckdb_installed_offers(
+                native_module, task, quantities,
+              ).map_err(duckdb_estimate_issue)
+            },
           },
         ),
       ],
+      2,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidConfiguration)
+  }
+  let implementations = match
+    @connector.project_capability_implementations(
+      contributions,
+      entry => entry.prepare,
       2,
     ) {
     Ok(value) => value
@@ -148,6 +174,7 @@ pub fn configure_strategy_dispatch(
     local_module,
     native_registration,
     native_module,
+    contributions,
     installation,
     limits,
     estimates: None,

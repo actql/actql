@@ -732,6 +732,17 @@ installation. A successful refresh in an unchanged execution state is a no-op;
 a failed refresh stays failed, stops the associated driver and never reopens the
 previous selection. Completed results and cleanup obligations are retained. Both
 standard composition and independent Compute bundles use this common policy.
+
+Compute bundles supply their pure preparation and proposal callbacks together as
+`physical_host.ComputeContribution`. SDK projection derives each entrypoint set
+from the same immutable installation without accepting replacement registrations.
+Order, exact registry ownership and closure are retained by every projection;
+projection neither invokes execution nor authorizes resource allocation. The
+standard Host does not register its proposal implementation set independently
+from preparation. Connector-owned estimate configuration is installed once before
+strategy history exists, bound to the exact dispatch module, and cannot be swapped
+between otherwise equivalent module instances. Configuration retains only immutable
+schedule data, not a back-reference cycle to the dispatch module.
 Local reservation envelopes are derived from selected execution limits; native
 envelopes are explicit Host capacities and still checked against actual start
 requirements. Neither is reduced by the forecast. Dispatch refreshes before

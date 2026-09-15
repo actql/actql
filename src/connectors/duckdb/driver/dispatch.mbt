@@ -19,6 +19,7 @@ struct DuckDBDispatchModule {
   rejections : Array[(String?, String?)]
   channel : @host.DispatchChannel[StrategyComputeHostConfiguration]
   mut resident_estimates : DuckDBResidentEstimates?
+  mut estimate_configuration : DuckDBEstimateConfiguration?
 }
 
 ///|
@@ -94,6 +95,7 @@ pub fn prepare_duckdb_dispatch_module(
     rejections,
     channel,
     resident_estimates: None,
+    estimate_configuration: None,
   })
 }
 

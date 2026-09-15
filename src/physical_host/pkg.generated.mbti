@@ -71,6 +71,11 @@ pub(all) enum AdaptiveEstimateIssue[E] {
   Implementation(E)
 }
 
+pub(all) struct ComputeContribution[C, E] {
+  prepare : (C, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[DispatchWork, E]
+  propose : (Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]
+}
+
 type DispatchChannel[T]
 
 type DispatchDriver

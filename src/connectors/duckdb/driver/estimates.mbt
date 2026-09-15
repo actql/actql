@@ -1,6 +1,11 @@
 ///|
 struct DuckDBEstimateModule {
   installed : DuckDBDispatchModule
+  configuration : DuckDBEstimateConfiguration
+}
+
+///|
+priv struct DuckDBEstimateConfiguration {
   schedules : Array[@cost.RateSchedule]
   capacities : Array[@strategy.PhysicalEnvelope]
   max_work : Int
@@ -41,9 +46,11 @@ pub fn prepare_duckdb_estimate_module(
   }
   Ok({
     installed,
-    schedules: schedules.copy(),
-    capacities: capacities.copy(),
-    max_work,
+    configuration: {
+      schedules: schedules.copy(),
+      capacities: capacities.copy(),
+      max_work,
+    },
   })
 }
 
@@ -81,8 +88,22 @@ pub fn estimate_duckdb_module_offers(
   task : Int,
   quantities : @host.TaskEstimateQuantities,
 ) -> Result[Array[@strategy.TaskOffer], DuckDBEstimateIssue] {
-  let installed = policy.installed
-  guard task > 0 && policy.schedules.get(task - 1) is Some(schedule) else {
+  estimate_duckdb_configuration(
+    policy.installed,
+    policy.configuration,
+    task,
+    quantities,
+  )
+}
+
+///|
+fn estimate_duckdb_configuration(
+  installed : DuckDBDispatchModule,
+  configuration : DuckDBEstimateConfiguration,
+  task : Int,
+  quantities : @host.TaskEstimateQuantities,
+) -> Result[Array[@strategy.TaskOffer], DuckDBEstimateIssue] {
+  guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
   if duckdb_dispatch_rejection(installed, task) is Some(_) {
@@ -104,8 +125,8 @@ pub fn estimate_duckdb_module_offers(
       task,
       installed.registration,
       lines,
-      policy.capacities[task - 1],
-      policy.max_work,
+      configuration.capacities[task - 1],
+      configuration.max_work,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Search(issue))
@@ -129,8 +150,8 @@ pub fn estimate_duckdb_module_offers(
         task,
         installed.registration,
         lines,
-        policy.capacities[task - 1],
-        policy.max_work,
+        configuration.capacities[task - 1],
+        configuration.max_work,
         resident=resident.profile,
       ) {
       Ok(value) => offers.push(value)
@@ -138,4 +159,30 @@ pub fn estimate_duckdb_module_offers(
     }
   }
   Ok(offers)
+}
+
+///|
+pub fn install_duckdb_dispatch_estimates(
+  installed : DuckDBDispatchModule,
+  policy : DuckDBEstimateModule,
+) -> Result[Unit, DuckDBEstimateIssue] {
+  if installed.estimate_configuration is Some(_) ||
+    !physical_equal(installed, policy.installed) ||
+    @strategy.strategy_history_count(installed.run) != 0 {
+    return Err(InvalidConfiguration)
+  }
+  installed.estimate_configuration = Some(policy.configuration)
+  Ok(())
+}
+
+///|
+pub fn estimate_duckdb_installed_offers(
+  installed : DuckDBDispatchModule,
+  task : Int,
+  quantities : @host.TaskEstimateQuantities,
+) -> Result[Array[@strategy.TaskOffer], DuckDBEstimateIssue] {
+  guard installed.estimate_configuration is Some(configuration) else {
+    return Err(InvalidConfiguration)
+  }
+  estimate_duckdb_configuration(installed, configuration, task, quantities)
 }

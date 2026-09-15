@@ -80,3 +80,32 @@ pub fn[T] capability_implementation_registrations(
   }
   Some(installed.entries.map(entry => entry.0))
 }
+
+///|
+/// Project entrypoints from one immutable bundle installation, preserving exact
+/// registration ownership and order. The trusted projector is pure wiring, not
+/// execution; it cannot add registrations or migrate them to another registry.
+pub fn[T, U] project_capability_implementations(
+  installed : CapabilityImplementations[T],
+  project : (T) -> U,
+  max_entries : Int,
+) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue] {
+  if max_entries < 0 {
+    return Err(InvalidLimits)
+  }
+  if installed.entries.length() > max_entries {
+    return Err(EntryLimit)
+  }
+  if !installed.registry.owner.live {
+    return Err(RegistryClosed)
+  }
+  let entries = []
+  for (registration, implementation) in installed.entries {
+    let projected = project(implementation)
+    if !installed.registry.owner.live {
+      return Err(RegistryClosed)
+    }
+    entries.push((registration, projected))
+  }
+  Ok({ registry: installed.registry, entries, })
+}

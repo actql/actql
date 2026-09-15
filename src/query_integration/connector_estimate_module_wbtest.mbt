@@ -65,6 +65,25 @@ test "connector estimate modules own schedules without Host policy state or call
       let policy = @duckdb_driver.prepare_duckdb_estimate_module(
         installed, schedules, capacities, 1000,
       ).unwrap()
+      assert_true(
+        @duckdb_driver.estimate_duckdb_installed_offers(
+          installed, 1, quantities,
+        )
+        is Err(InvalidConfiguration),
+      )
+      @duckdb_driver.install_duckdb_dispatch_estimates(installed, policy).unwrap()
+      assert_true(
+        @duckdb_driver.install_duckdb_dispatch_estimates(installed, policy)
+        is Err(InvalidConfiguration),
+      )
+      assert_eq(
+        @duckdb_driver.estimate_duckdb_installed_offers(
+          installed, 1, quantities,
+        )
+        .unwrap()
+        .length(),
+        1,
+      )
       schedules.clear()
       capacities.clear()
       assert_true(
@@ -100,6 +119,21 @@ test "connector estimate modules own schedules without Host policy state or call
       let policy = @local_driver.prepare_local_estimate_module(
         installed, schedules, 1000,
       ).unwrap()
+      assert_true(
+        @local_driver.estimate_local_installed_offers(installed, 1, quantities)
+        is Err(InvalidConfiguration),
+      )
+      @local_driver.install_local_dispatch_estimates(installed, policy).unwrap()
+      assert_true(
+        @local_driver.install_local_dispatch_estimates(installed, policy)
+        is Err(InvalidConfiguration),
+      )
+      assert_eq(
+        @local_driver.estimate_local_installed_offers(installed, 1, quantities)
+        .unwrap()
+        .length(),
+        1,
+      )
       schedules.clear()
       assert_true(
         @local_driver.estimate_local_module_offers(policy, 4, quantities)
@@ -194,6 +228,10 @@ test "resident estimate installation is owned by the exact connector and run" {
     capacities,
     1000,
   ).unwrap()
+  assert_true(
+    @duckdb_driver.install_duckdb_dispatch_estimates(other, policy)
+    is Err(InvalidConfiguration),
+  )
   let offers = @duckdb_driver.estimate_duckdb_module_offers(policy, 1, {
     rows: None,
     wire_bytes: None,

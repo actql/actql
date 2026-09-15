@@ -13,9 +13,13 @@ import {
 // Values
 pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
 
+pub fn estimate_local_installed_offers(LocalDispatchModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
+
 pub fn estimate_local_module_offers(LocalEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
 
 pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
+
+pub fn install_local_dispatch_estimates(LocalDispatchModule, LocalEstimateModule) -> Result[Unit, LocalEstimateIssue]
 
 pub fn local_dispatch_work_slots() -> Int
 

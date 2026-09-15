@@ -6,6 +6,7 @@ struct LocalDispatchModule {
   registration : @connector.CapabilityRegistration
   implementation : @local.LocalComputeModule
   channel : @host.DispatchChannel[@connector.SynchronousCompute]
+  mut estimate_configuration : LocalEstimateConfiguration?
 }
 
 ///|
@@ -56,7 +57,13 @@ pub fn prepare_local_dispatch_module(
     Ok(value) => value
     Err(issue) => return Err(Dispatch(issue))
   }
-  Ok({ run, registration, implementation, channel, })
+  Ok({
+    run,
+    registration,
+    implementation,
+    channel,
+    estimate_configuration: None,
+  })
 }
 
 ///|

@@ -141,35 +141,31 @@ test "independent numeric and Local bundles use the same installed Host without 
     manifest.clear()
     let registry = @connector.installed_bundle_registry(installed)
     let entries = @connector.installed_compute_implementations(installed)
-    let preparations = [0, 1].map(index => {
-      let registration = @connector.capability_registration_at(registry, index).unwrap()
-      (
-        registration,
-        @connector.capability_implementation(entries, registration).unwrap().0,
-      )
-    })
+    let contributions = @connector.project_capability_implementations(
+      entries,
+      entry => @host_driver.ComputeContribution::{
+        prepare: entry.0,
+        propose: entry.2,
+      },
+      2,
+    ).unwrap()
+    let preparations = @connector.project_capability_implementations(
+      contributions,
+      entry => entry.prepare,
+      2,
+    ).unwrap()
     let host = @host_driver.open_dispatch_host(
       driver,
-      @connector.install_capability_implementations(registry, preparations, 2).unwrap(),
+      preparations,
       limits.capacity,
       100,
       10000,
     ).unwrap()
-    preparations.clear()
-    let proposals = @connector.capability_implementation_registrations(
-        entries, 2,
-      )
-      .unwrap()
-      .map(registration => {
-        (
-          registration,
-          @connector.capability_implementation(entries, registration).unwrap().2,
-        )
-      })
-    let offer_installation = @connector.install_capability_implementations(
-      registry, proposals, 2,
+    let offer_installation = @connector.project_capability_implementations(
+      contributions,
+      entry => entry.propose,
+      2,
     ).unwrap()
-    proposals.clear()
     let policy = @host_driver.open_adaptive_dispatch(
       driver,
       registry,

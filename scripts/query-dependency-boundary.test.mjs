@@ -5,6 +5,19 @@ import test from 'node:test';
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
 
+test('standard preparation and proposals project the same fixed Compute contributions', () => {
+  const setup = readFileSync('src/duckdb_host/dispatch.mbt', 'utf8');
+  const estimates = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
+  assert.match(setup, /ComputeContribution/);
+  assert.match(setup, /project_capability_implementations\([\s\S]*?entry => entry\.prepare/);
+  assert.match(estimates, /project_capability_implementations\([\s\S]*?host\.contributions[\s\S]*?entry => entry\.propose/);
+  assert.doesNotMatch(estimates, /install_capability_implementations\(/);
+  const contract = readFileSync('src/physical_host/contribution.mbt', 'utf8');
+  assert.doesNotMatch(contract, /Local|DuckDB|SQL|Session|connectors\//);
+  assert.match(contract, /prepare\s*:/);
+  assert.match(contract, /propose\s*:/);
+});
+
 test('linear cost schedules are neutral and implementations own their work inventories', () => {
   assert.deepEqual(imports('physical_cost'), []);
   const api = readFileSync('src/physical_cost/pkg.generated.mbti', 'utf8');

@@ -80,6 +80,8 @@ pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> Execu
 
 pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P]) -> (Int, Int64)?
 
+pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
+
 pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
 
 pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]]

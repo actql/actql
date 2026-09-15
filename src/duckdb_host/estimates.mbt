@@ -109,27 +109,10 @@ pub fn configure_dispatch_estimates(
     Err(issue) => return Err(duckdb_estimate_issue(issue))
   }
   let implementations = match
-    @connector.install_capability_implementations(
-      host.registry,
-      [
-        (
-          host.local_registration,
-          fn(_context, task, quantities) {
-            @local_driver.estimate_local_module_offers(
-              local_policy, task, quantities,
-            ).map_err(local_estimate_issue)
-          },
-        ),
-        (
-          host.native_registration,
-          fn(_context, task, quantities) {
-            @duckdb_driver.estimate_duckdb_module_offers(
-              native_policy, task, quantities,
-            ).map_err(duckdb_estimate_issue)
-          },
-        ),
-      ],
-      2,
+    @connector.project_capability_implementations(
+      host.contributions,
+      entry => entry.propose,
+      limits.max_offers,
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
@@ -145,6 +128,28 @@ pub fn configure_dispatch_estimates(
     ) {
     Ok(value) => value
     Err(issue) => return Err(adaptive_estimate_issue(issue))
+  }
+  match
+    @local_driver.install_local_dispatch_estimates(
+      host.local_module,
+      local_policy,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      @host_driver.stop_dispatch_driver(host.driver)
+      return Err(local_estimate_issue(issue))
+    }
+  }
+  match
+    @duckdb_driver.install_duckdb_dispatch_estimates(
+      host.native_module,
+      native_policy,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      @host_driver.stop_dispatch_driver(host.driver)
+      return Err(duckdb_estimate_issue(issue))
+    }
   }
   host.estimates = Some(policy)
   Ok(())

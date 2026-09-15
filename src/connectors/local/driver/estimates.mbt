@@ -1,6 +1,11 @@
 ///|
 struct LocalEstimateModule {
   installed : LocalDispatchModule
+  configuration : LocalEstimateConfiguration
+}
+
+///|
+priv struct LocalEstimateConfiguration {
   schedules : Array[@cost.RateSchedule]
   max_work : Int
 }
@@ -24,7 +29,7 @@ pub fn prepare_local_estimate_module(
     @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) - 1 {
     return Err(InvalidConfiguration)
   }
-  Ok({ installed, schedules: schedules.copy(), max_work, })
+  Ok({ installed, configuration: { schedules: schedules.copy(), max_work, }, })
 }
 
 ///|
@@ -33,7 +38,22 @@ pub fn estimate_local_module_offers(
   task : Int,
   quantities : @host.TaskEstimateQuantities,
 ) -> Result[Array[@strategy.TaskOffer], LocalEstimateIssue] {
-  guard task > 0 && policy.schedules.get(task - 1) is Some(schedule) else {
+  estimate_local_configuration(
+    policy.installed,
+    policy.configuration,
+    task,
+    quantities,
+  )
+}
+
+///|
+fn estimate_local_configuration(
+  installed : LocalDispatchModule,
+  configuration : LocalEstimateConfiguration,
+  task : Int,
+  quantities : @host.TaskEstimateQuantities,
+) -> Result[Array[@strategy.TaskOffer], LocalEstimateIssue] {
+  guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
   }
   let lines = match
@@ -46,7 +66,33 @@ pub fn estimate_local_module_offers(
     Ok(value) => value
     Err(issue) => return Err(Rate(issue))
   }
-  estimate_local_dispatch_offer(policy.installed, task, lines, policy.max_work)
+  estimate_local_dispatch_offer(installed, task, lines, configuration.max_work)
   .map(offer => [offer])
   .map_err(issue => Dispatch(issue))
+}
+
+///|
+pub fn install_local_dispatch_estimates(
+  installed : LocalDispatchModule,
+  policy : LocalEstimateModule,
+) -> Result[Unit, LocalEstimateIssue] {
+  if installed.estimate_configuration is Some(_) ||
+    !physical_equal(installed, policy.installed) ||
+    @strategy.strategy_history_count(installed.run) != 0 {
+    return Err(InvalidConfiguration)
+  }
+  installed.estimate_configuration = Some(policy.configuration)
+  Ok(())
+}
+
+///|
+pub fn estimate_local_installed_offers(
+  installed : LocalDispatchModule,
+  task : Int,
+  quantities : @host.TaskEstimateQuantities,
+) -> Result[Array[@strategy.TaskOffer], LocalEstimateIssue] {
+  guard installed.estimate_configuration is Some(configuration) else {
+    return Err(InvalidConfiguration)
+  }
+  estimate_local_configuration(installed, configuration, task, quantities)
 }
