@@ -1,9 +1,27 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {generateComputeAssembly, checkComputeAssembly} from './connector-compute-bundles.mjs';
 
 const entry = name => ({name, manifest: JSON.parse(readFileSync(`src/connectors/${name}/compute-bundle.json`, 'utf8'))});
+
+test('explicit composition never reads an unselected broken connector manifest', () => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-explicit-composition-'));
+  mkdirSync(join(root, 'src/connectors/local/driver'), {recursive:true});
+  mkdirSync(join(root, 'src/connectors/duckdb'), {recursive:true});
+  writeFileSync(join(root, 'src/connectors/local/compute-bundle.json'), JSON.stringify(entry('local').manifest));
+  writeFileSync(join(root, 'src/connectors/local/driver/moon.pkg'), '');
+  writeFileSync(join(root, 'src/connectors/duckdb/compute-bundle.json'), 'invalid unselected declaration');
+  const options = {names:['local'], directory:'connectors_workers'};
+  assert.equal(checkComputeAssembly(root, true, options), 1);
+  assert.equal(checkComputeAssembly(root, false, options), 1);
+  assert.doesNotMatch(readFileSync(join(root, 'src/connectors_workers/moon.pkg'), 'utf8'), /duckdb|reference_compute/);
+  assert.throws(() => checkComputeAssembly(root, false), /JSON|Unexpected/);
+  assert.throws(() => checkComputeAssembly(root, true, {...options, names:['missing']}), /Missing selected/);
+  assert.throws(() => checkComputeAssembly(root, true, {...options, names:['local', 'local']}), /Invalid explicit/);
+});
 
 test('typed assembly is reproducible from connector declarations', () => {
   assert.equal(checkComputeAssembly(process.cwd()), 3);

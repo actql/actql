@@ -201,12 +201,19 @@ function estimateAssembly(entries, alias) {
     })).join('');
 }
 
-export function checkComputeAssembly(root, write = false) {
+export function checkComputeAssembly(root, write = false, options = {}) {
+  const selected = options.names;
+  if (selected !== undefined && (!Array.isArray(selected) || selected.length === 0 ||
+      new Set(selected).size !== selected.length || !selected.every(identifier))) {
+    throw new Error('Invalid explicit Compute composition');
+  }
   const entries = [];
   for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
+    if (selected && !selected.includes(name)) continue;
     const path = join(root, 'src/connectors', name, 'compute-bundle.json');
     if (existsSync(path)) entries.push({name, manifest: JSON.parse(readFileSync(path, 'utf8'))});
   }
+  if (selected && entries.length !== selected.length) throw new Error('Missing selected Compute manifest');
   const generated = generateComputeAssembly(entries);
   // Use the pinned formatter as a pure stdin/stdout transformation. Check mode
   // never edits the source tree or invokes contribution factories.
@@ -222,7 +229,9 @@ export function checkComputeAssembly(root, write = false) {
       }
     }
   }
-  const directory = join(root, 'src/connectors_builtin');
+  const output = options.directory ?? 'connectors_builtin';
+  if (!identifier(output)) throw new Error('Invalid Compute composition output');
+  const directory = join(root, 'src', output);
   if (write) mkdirSync(directory, {recursive: true});
   for (const [file, source] of [['moon.pkg', generated.manifest], ['compute.generated.mbt', generated.source]]) {
     const path = join(directory, file);

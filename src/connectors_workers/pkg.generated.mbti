@@ -1,0 +1,55 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors_workers"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/local/driver",
+  "actql/actql/physical_host",
+}
+
+// Values
+pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]
+
+pub fn[E] configure_compute_modules(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, Int, (@connector_sdk.CapabilityInstallationIssue) -> E, with_local? : (@connector_sdk.CapabilityRegistration, @driver.LocalComputeConfiguration, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[ConfiguredComputeModules[E], E]
+
+pub fn[E] configured_compute_contributions(ConfiguredComputeModules[E]) -> @connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]]
+
+pub fn[E] configured_compute_module_keys(ConfiguredComputeModules[E]) -> Array[String]
+
+pub fn[E] configured_host_driver(ConfiguredComputeHost[E]) -> @physical_host.DispatchDriver
+
+pub fn[E] configured_host_modules(ConfiguredComputeHost[E]) -> ConfiguredComputeModules[E]
+
+pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.ComputeHost[Unit, E]
+
+pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @driver.LocalDispatchModule?
+
+pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
+pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
+pub fn[E] install_configured_estimate_policy(ConfiguredEstimatePolicy[E]) -> Result[Unit, E]
+
+pub fn local_estimate_work_slots() -> Int
+
+pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host.ComputeHostIssue[E]]
+
+pub fn[E] prepare_local_estimate_policy(ConfiguredComputeModules[E], @driver.LocalEstimateSettings) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]]
+
+// Errors
+
+// Types and methods
+type ConfiguredComputeHost[E]
+
+type ConfiguredComputeModules[E]
+
+pub(all) enum ConfiguredDispatchIssue[E] {
+  MissingImplementation
+  Implementation(E)
+}
+
+type ConfiguredEstimatePolicy[E]
+
+// Type aliases
+
+// Traits
