@@ -14,11 +14,11 @@ pub fn dispatch_resident_inputs(
     return None
   }
   let graph = @strategy.captured_dag_graph(host.run)
-  guard host.generated.get(task - 1) is Some(generated) else { return None }
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return None
+  }
   let count = @pipeline.input_count(
-    @lower.pipeline(
-      @lower.bound_preparation(@execution.generated_sequence_owner(generated)),
-    ),
+    @lower.pipeline(@lower.bound_preparation(owner)),
   )
   let inputs = []
   for port in 0..<count {
@@ -60,7 +60,8 @@ pub fn configure_resident_dispatch(
   if host.resident is Some(_) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
     @strategy.strategy_history_count(host.run) != 0 ||
-    rates.length() != host.generated.length() ||
+    rates.length() !=
+    @strategy.graph_task_count(@strategy.captured_dag_graph(host.run)) - 1 ||
     !@strategy.resident_profile_matches(host.run, profile) ||
     !physical_equal(
       @strategy.resident_profile_registration(profile),

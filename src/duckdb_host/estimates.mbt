@@ -44,7 +44,8 @@ pub fn configure_dispatch_estimates(
 ) -> Result[Unit, DispatchIssue] {
   if host.estimates is Some(_) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
-    profiles.length() != host.generated.length() ||
+    profiles.length() !=
+    @strategy.graph_task_count(@strategy.captured_dag_graph(host.run)) - 1 ||
     limits.max_work < 0 ||
     profiles.length() > limits.max_offers / 2 ||
     limits.max_offers < 0 ||

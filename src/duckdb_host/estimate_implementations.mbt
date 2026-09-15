@@ -36,7 +36,8 @@ fn estimate_duckdb_task_offers(
   quantities : @host_driver.TaskEstimateQuantities,
 ) -> Result[Array[@strategy.TaskOffer], DispatchIssue] {
   let (host, policy) = context
-  if host.native_rejections[task - 1] is Some(_) {
+  if @duckdb_driver.duckdb_dispatch_rejection(host.native_module, task)
+    is Some(_) {
     return Ok([])
   }
   let profile = policy.profiles[task - 1]
@@ -64,7 +65,12 @@ fn estimate_duckdb_task_offers(
   }
   let offers = [base]
   if host.resident is Some(resident) &&
-    host.resident_rejections[task - 1] is None {
+    @duckdb_driver.duckdb_dispatch_rejection(
+      host.native_module,
+      task,
+      resident=true,
+    )
+    is None {
     let lines = match
       dispatch_estimate_lines(
         resident.rates[task - 1],

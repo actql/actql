@@ -1,0 +1,205 @@
+///|
+/// Concrete connector installation, not common Host or source configuration.
+pub(all) struct DuckDBDispatchLimits {
+  capacity : @connector.FixedComputeCapacity
+  query : @duckdb.NativeQueryLimits
+  join_validation : @execution.FixedJoinValidationLimits
+  candidate_work : Int
+  execution : @compute.DuckDBComputeLimits
+  transport : @duckdb.TransportColumnLimits
+}
+
+///|
+struct DuckDBDispatchModule {
+  run : @strategy.CapturedDAG
+  registry : @connector.CapabilityRegistry
+  registration : @connector.CapabilityRegistration
+  sequences : Array[@execution.GeneratedSequence]
+  limits : DuckDBDispatchLimits
+  rejections : Array[(String?, String?)]
+  channel : @host.DispatchChannel[StrategyComputeHostConfiguration]
+}
+
+///|
+pub(all) enum DuckDBDispatchIssue {
+  InvalidConfiguration
+  ForeignSelection
+  Run(@strategy.RunIssue)
+  Candidate(@connector.FixedComputeIssue)
+  NativeCandidate(@compute.DuckDBComputeCandidateIssue)
+  JoinPreparation(@duckdb.FixedJoinInputIssue)
+  Dispatch(@host.DispatchIssue)
+}
+
+///|
+/// Bounded static compilation happens before offers. It consumes the existing
+/// Host planning allowance, but creates no DB, reads no source and starts no task.
+pub fn prepare_duckdb_dispatch_module(
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+  registration : @connector.CapabilityRegistration,
+  sequences : Array[@execution.GeneratedSequence],
+  limits : DuckDBDispatchLimits,
+) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue] {
+  let run = @host.dispatch_driver_run(driver)
+  let graph = @strategy.captured_dag_graph(run)
+  if sequences.length() != @strategy.graph_task_count(graph) - 1 ||
+    limits.candidate_work < 1 ||
+    limits.join_validation.max_rows < 0 ||
+    limits.join_validation.max_work < 0 ||
+    limits.join_validation.max_entries < 0 ||
+    !@connector.capability_registration_matches(registration, registry) ||
+    !@connector.capability_description(registration).fixed_compute {
+    return Err(InvalidConfiguration)
+  }
+  let rejections = []
+  for index, sequence in sequences {
+    if !(@strategy.graph_task_owner(graph, index + 1) is Some(owner) &&
+      physical_equal(owner, @execution.generated_sequence_owner(sequence))) {
+      return Err(InvalidConfiguration)
+    }
+    match
+      @resources.charge_planning(
+        @strategy.captured_dag_ledger(run),
+        limits.candidate_work,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Run(Physical(issue)))
+    }
+    rejections.push(
+      (
+        @compute.duckdb_compute_static_rejection(
+          @execution.generated_sequence_owner(sequence),
+          limits.capacity,
+          limits.query,
+        ),
+        @compute.duckdb_resident_static_rejection(
+          @execution.generated_sequence_owner(sequence),
+        ),
+      ),
+    )
+  }
+  let channel = match
+    @host.open_dispatch_channel(driver, registry, registration) {
+    Ok(value) => value
+    Err(issue) => return Err(Dispatch(issue))
+  }
+  Ok({
+    run,
+    registry,
+    registration,
+    sequences: sequences.copy(),
+    limits,
+    rejections,
+    channel,
+  })
+}
+
+///|
+/// Diagnostics for this exact installation. Runtime owner/liveness/capacity
+/// binding remains mandatory even when static rejection is absent.
+pub fn duckdb_dispatch_rejection(
+  installed : DuckDBDispatchModule,
+  task : Int,
+  resident? : Bool = false,
+) -> String? {
+  guard installed.rejections.get(task - 1) is Some(reasons) else {
+    return Some("invalid_task")
+  }
+  if resident {
+    reasons.1
+  } else {
+    reasons.0
+  }
+}
+
+///|
+pub fn prepare_duckdb_dispatch(
+  installed : DuckDBDispatchModule,
+  task : Int,
+  revision : @strategy.StrategyRevision,
+  request : @connector.FixedComputeRequest,
+) -> Result[@host.DispatchWork, DuckDBDispatchIssue] {
+  guard installed.sequences.get(task - 1) is Some(sequence) else {
+    return Err(ForeignSelection)
+  }
+  if !physical_equal(
+      @connector.fixed_compute_request_owner(request),
+      @execution.generated_sequence_owner(sequence),
+    ) ||
+    !(@strategy.captured_dag_strategy(installed.run) is Some(current) &&
+    physical_equal(current, revision)) ||
+    !(@strategy.strategy_registration(revision, task) is Some(selected) &&
+    physical_equal(selected, installed.registration)) ||
+    !@connector.capability_registration_available(installed.registration) {
+    return Err(ForeignSelection)
+  }
+  if duckdb_dispatch_rejection(installed, task) is Some(_) ||
+    (
+      @strategy.strategy_resident_profile(revision, task) is Some(_) &&
+      duckdb_dispatch_rejection(installed, task, resident=true) is Some(_)
+    ) {
+    return Err(ForeignSelection)
+  }
+  let preparation = match
+    @compute.prepare_duckdb_dispatch_candidate(
+      installed.registry,
+      installed.registration,
+      request,
+      installed.limits.query,
+      installed.limits.join_validation,
+      @strategy.captured_task_join_output_limit(installed.run, task),
+      installed.limits.candidate_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(NativeCandidate(issue))
+  }
+  if @compute.duckdb_dispatch_preflight_work(preparation) is Some(work) {
+    match
+      @resources.charge_planning(
+        @strategy.captured_dag_ledger(installed.run),
+        work,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Run(Physical(issue)))
+    }
+  }
+  let selected = match @compute.bind_duckdb_dispatch_candidate(preparation) {
+    Ok(value) => value
+    Err(Native(JoinPreparation(issue))) => {
+      @strategy.stop_captured_dag(installed.run)
+      return Err(JoinPreparation(issue))
+    }
+    Err(Native(issue)) => return Err(NativeCandidate(issue))
+    Err(Selection(issue)) => return Err(Candidate(issue))
+    Err(NotSelected) => return Err(ForeignSelection)
+  }
+  @host.stage_dispatch_work(
+    installed.channel,
+    task,
+    revision,
+    request,
+    configure_strategy_compute_host(
+      installed.run,
+      task,
+      configure_compute_host(
+        @compute.duckdb_selected_compute_choice(selected),
+        @compute.duckdb_selected_compute_candidate(selected),
+        sequence,
+        installed.limits.execution,
+        installed.limits.transport,
+      ),
+    ),
+  ).map_err(issue => Dispatch(issue))
+}
+
+///|
+pub fn[C, E] take_duckdb_dispatch(
+  installed : DuckDBDispatchModule,
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+) -> Result[StrategyComputeHostConfiguration, DuckDBDispatchIssue] {
+  @host.take_installed_task(host, task, installed.channel).map_err(issue => {
+    Dispatch(issue)
+  })
+}

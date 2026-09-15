@@ -7,6 +7,7 @@ import {
   "actql/actql/connectors/duckdb/compute",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
+  "actql/actql/physical_host",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
@@ -50,9 +51,15 @@ pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) ->
 
 pub fn duckdb_compute_failure(@physical_strategy.RunIssue) -> @compute.DuckDBComputeIssue?
 
+pub fn duckdb_dispatch_rejection(DuckDBDispatchModule, Int, resident? : Bool) -> String?
+
 pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
+
+pub fn prepare_duckdb_dispatch(DuckDBDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, DuckDBDispatchIssue]
+
+pub fn prepare_duckdb_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], DuckDBDispatchLimits) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
 
 pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, DuckDBResidentStore, Int, Array[@physical_strategy.ResidentTable], @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], Int, Int, Int) -> Result[DuckDBResidentInputs, @physical_strategy.RunIssue]
 
@@ -76,6 +83,8 @@ pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBC
 
 pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
+pub fn[C, E] take_duckdb_dispatch(DuckDBDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[StrategyComputeHostConfiguration, DuckDBDispatchIssue]
+
 // Errors
 pub suberror DuckDBFailure {
   Compute(@compute.DuckDBComputeIssue)
@@ -86,6 +95,27 @@ pub suberror DuckDBFailure {
 type CapturedDuckDBTask
 
 type ComputeHostConfiguration
+
+pub(all) enum DuckDBDispatchIssue {
+  InvalidConfiguration
+  ForeignSelection
+  Run(@physical_strategy.RunIssue)
+  Candidate(@connector_sdk.FixedComputeIssue)
+  NativeCandidate(@compute.DuckDBComputeCandidateIssue)
+  JoinPreparation(@adapter.FixedJoinInputIssue)
+  Dispatch(@physical_host.DispatchIssue)
+}
+
+pub(all) struct DuckDBDispatchLimits {
+  capacity : @connector_sdk.FixedComputeCapacity
+  query : @adapter.NativeQueryLimits
+  join_validation : @execution_relation.FixedJoinValidationLimits
+  candidate_work : Int
+  execution : @compute.DuckDBComputeLimits
+  transport : @adapter.TransportColumnLimits
+}
+
+type DuckDBDispatchModule
 
 type DuckDBResidentInputs
 

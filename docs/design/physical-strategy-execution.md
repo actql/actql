@@ -356,11 +356,16 @@ attempts; a ledger handle alone is not execution permission or completion eviden
 
 `duckdb_host.configure_strategy_dispatch` binds a bounded array of generated
 sequences to their exact checked task owners, the owned registry, selected
-consumer capacities and transport/execution limits. It copies the configuration
-array rather than borrowing mutable caller slots. The next-dispatch operation
+consumer capacities and transport/execution limits. Each connector module copies
+its sequence-handle container rather than borrowing mutable caller slots. The
+Host does not retain a duplicate sequence array; task/port topology comes from
+the existing checked graph. The next-dispatch operation
 recovers the installed preparation entry by exact registration, never by name or
 registration position. Local and DuckDB preparation entries retain their own
 compiler and binding rules; a lookup is not permission to start or complete work.
+The installed preparation callbacks capture connector modules, not the enclosing
+Host configuration. Their common invocation context is `Unit`; an implementation
+does not receive another connector's channel, limits or mutable Host policy.
 The common `physical_host.DispatchHost` fixes the preparation installation and
 input-capacity policy. It selects the next checked-ready task from the current
 strategy, binds actual completed inputs, and issues `PreparedTaskDispatch` only
@@ -391,6 +396,12 @@ Only the connector driver interprets them to borrow resident inputs, calculate
 required scratch/retention, or start through the common resource boundary.
 The standard Host routes the selected handle to that driver rather than owning
 a second configuration or start implementation.
+`DuckDBDispatchModule` also owns bounded static compilation, rejection reasons,
+the retained sequence handles and its typed preparation channel. Preparation
+checks the exact request owner, current selection and registration before input
+preflight. A returned configuration is still only prepared work: taking it
+consumes one exact channel ticket, and normal resource/start admission remains
+mandatory. Equal modules or shared registrations cannot exchange staged payloads.
 DuckDB join preparation keeps physical input names and compiled SQL in an opaque
 connector-owned handle. Compilation precedes the Host's preflight-work charge;
 binding and bounded input inspection follow that charge. The second phase uses

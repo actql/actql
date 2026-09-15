@@ -22,13 +22,8 @@ struct StrategyHostDispatch {
   local_registration : @connector.CapabilityRegistration
   local_module : @local_driver.LocalDispatchModule
   native_registration : @connector.CapabilityRegistration
-  native_channel : @host_driver.DispatchChannel[
-    @duckdb_driver.StrategyComputeHostConfiguration,
-  ]
-  installation : @host_driver.DispatchHost[StrategyHostDispatch, DispatchIssue]
-  generated : Array[@execution.GeneratedSequence]
-  native_rejections : Array[String?]
-  resident_rejections : Array[String?]
+  native_module : @duckdb_driver.DuckDBDispatchModule
+  installation : @host_driver.DispatchHost[Unit, DispatchIssue]
   limits : TaskDispatchLimits
   mut estimates : DispatchEstimates?
   mut resident : ResidentDispatch?
@@ -77,38 +72,25 @@ pub fn configure_strategy_dispatch(
     physical_equal(local_registration, native_registration) {
     return Err(InvalidConfiguration)
   }
-  let native_rejections : Array[String?] = []
-  let resident_rejections : Array[String?] = []
-  for index, item in generated {
-    if !physical_equal(
-        @execution.generated_sequence_owner(item),
-        @strategy.graph_task_owner(graph, index + 1).unwrap(),
-      ) {
-      return Err(InvalidConfiguration)
-    }
-    // Bounded compilation against exact checked ownership, before any costs.
-    match
-      @resources.charge_planning(
-        @strategy.captured_dag_ledger(run),
-        limits.candidate_work,
-      ) {
-      Err(issue) => return Err(Run(Physical(issue)))
-      Ok(_) => ()
-    }
-    native_rejections.push(
-      @duckdb_compute.duckdb_compute_static_rejection(
-        @execution.generated_sequence_owner(item),
-        limits.capacity,
-        limits.native_query,
-      ),
-    )
-    resident_rejections.push(
-      @duckdb_compute.duckdb_resident_static_rejection(
-        @execution.generated_sequence_owner(item),
-      ),
-    )
-  }
   let driver = @host_driver.open_dispatch_driver(run)
+  let native_module = match
+    @duckdb_driver.prepare_duckdb_dispatch_module(
+      driver,
+      registry,
+      native_registration,
+      generated,
+      {
+        capacity: limits.capacity,
+        query: limits.native_query,
+        join_validation: limits.join_validation,
+        candidate_work: limits.candidate_work,
+        execution: limits.native,
+        transport: limits.transport,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(duckdb_dispatch_issue(issue))
+  }
   let local_module = match
     @local_driver.prepare_local_dispatch_module(
       driver,
@@ -126,18 +108,27 @@ pub fn configure_strategy_dispatch(
     @connector.install_capability_implementations(
       registry,
       [
-        (local_registration, prepare_local_dispatch_work),
-        (native_registration, prepare_native_dispatch_work),
+        (
+          local_registration,
+          fn(_context : Unit, task, revision, request) {
+            @local_driver.prepare_local_dispatch(
+              local_module, task, revision, request,
+            ).map_err(local_dispatch_issue)
+          },
+        ),
+        (
+          native_registration,
+          fn(_context : Unit, task, revision, request) {
+            @duckdb_driver.prepare_duckdb_dispatch(
+              native_module, task, revision, request,
+            ).map_err(duckdb_dispatch_issue)
+          },
+        ),
       ],
       2,
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
-  }
-  let native_channel = match
-    @host_driver.open_dispatch_channel(driver, registry, native_registration) {
-    Ok(value) => value
-    Err(issue) => return Err(dispatch_driver_issue(issue))
   }
   let installation = match
     @host_driver.open_dispatch_host(
@@ -157,11 +148,8 @@ pub fn configure_strategy_dispatch(
     local_registration,
     local_module,
     native_registration,
-    native_channel,
+    native_module,
     installation,
-    generated: generated.copy(),
-    native_rejections,
-    resident_rejections,
     limits,
     estimates: None,
     resident: None,
@@ -185,7 +173,7 @@ pub fn prepare_next_dispatch(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match @host_driver.prepare_next_installed_task(host.installation, host) {
+  match @host_driver.prepare_next_installed_task(host.installation, ()) {
     Err(NoStrategy) => Err(NoStrategy)
     Err(Dispatch(issue)) => Err(dispatch_driver_issue(issue))
     Err(MissingImplementation) => Err(ForeignSelection)
@@ -199,8 +187,13 @@ pub fn dispatch_excluded_realizations(
   host : StrategyHostDispatch,
 ) -> Array[(Int, String, String)] {
   let excluded = []
-  for index, reason in host.native_rejections {
-    if reason is Some(reason) {
+  for
+    index in 0..<(@strategy.graph_task_count(
+      @strategy.captured_dag_graph(host.run),
+    ) -
+    1) {
+    if @duckdb_driver.duckdb_dispatch_rejection(host.native_module, index + 1)
+      is Some(reason) {
       excluded.push(
         (
           index + 1,
@@ -211,8 +204,17 @@ pub fn dispatch_excluded_realizations(
     }
   }
   if host.resident is Some(_) {
-    for index, reason in host.resident_rejections {
-      if reason is Some(reason) {
+    for
+      index in 0..<(@strategy.graph_task_count(
+        @strategy.captured_dag_graph(host.run),
+      ) -
+      1) {
+      if @duckdb_driver.duckdb_dispatch_rejection(
+          host.native_module,
+          index + 1,
+          resident=true,
+        )
+        is Some(reason) {
         excluded.push((index + 1, "duckdb-resident", reason))
       }
     }
@@ -245,11 +247,11 @@ pub fn execute_synchronous_dispatch(
 pub fn take_native_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[@duckdb_driver.StrategyComputeHostConfiguration, DispatchIssue] {
-  @host_driver.take_installed_task(
+  @duckdb_driver.take_duckdb_dispatch(
+    dispatch.owner.native_module,
     dispatch.owner.installation,
     dispatch.prepared,
-    dispatch.owner.native_channel,
-  ).map_err(dispatch_driver_issue)
+  ).map_err(duckdb_dispatch_issue)
 }
 
 ///|
