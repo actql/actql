@@ -173,20 +173,3 @@ pub fn start_captured_duckdb_task(
       Ok({ attempt, execution, resident_output, })
   }
 }
-
-///|
-/// Exact owned attempt only: cannot accept unrelated successful outputs, even
-/// from the same checked owner and identical input contents. Existing completion
-/// verifies transport, capacity, demand and retention before recording success.
-pub fn complete_captured_duckdb_task(
-  run : CapturedDAG,
-  resource : CapturedDuckDBTask,
-) -> Result[Unit, RunIssue] {
-  if run.stopped {
-    return Err(Stopped)
-  }
-  guard captured_duckdb_task_matches(run, resource) else {
-    return Err(ForeignCandidate)
-  }
-  complete_task_execution(run, resource.execution)
-}

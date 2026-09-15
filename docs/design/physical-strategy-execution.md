@@ -65,6 +65,14 @@ transfer and DB-memory reservations; failure never refunds consumed transfer.
 Task configuration cannot substitute a fresh ledger for a running graph.
 
 The common asynchronous task lifecycle owns the exact task reservation,
+and exposes transfer charging, settlement, completion and close through an opaque
+`TaskExecution`. The handle is created only by common start admission; it cannot
+be constructed from a task number, raw transport attempt, output or callback.
+Every operation rechecks its exact owning run. Concrete transport bridges recover
+their installed execution, but do not provide separate backend-specific lifecycle
+implementations or compatibility wrappers.
+
+The lifecycle also owns
 settlement state, provisional holding, successful output installation and final
 disposal. Its running handle is not a concrete connector attempt. Private
 implementation hooks request cancellation, dispose buffers, confirm reusable

@@ -102,28 +102,53 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   // caller. Neither a foreign DAG nor an unrelated attempt can operate on it.
   let (other_run, _) = captured_graph_fixture()
   assert_true(
-    @strategy.charge_captured_duckdb_transfer(other_run, attempt, 1L)
+    @strategy.charge_task_execution_transfer(
+      other_run,
+      @strategy.captured_duckdb_execution(attempt),
+      1L,
+    )
     is Err(ForeignOwner),
   )
   assert_true(
-    @strategy.settle_captured_duckdb_native(other_run, attempt, true)
+    @strategy.settle_task_execution(
+      other_run,
+      @strategy.captured_duckdb_execution(attempt),
+      true,
+    )
     is Err(ForeignOwner),
   )
   let before_foreign_close = @resources.ledger_usage(ledger)
-  @strategy.close_captured_duckdb_task(other_run, attempt)
+  @strategy.close_task_execution(
+    other_run,
+    @strategy.captured_duckdb_execution(attempt),
+  )
   assert_eq(@resources.ledger_usage(ledger), before_foreign_close)
-  @strategy.charge_captured_duckdb_transfer(run, attempt, 7L).unwrap()
+  @strategy.charge_task_execution_transfer(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+    7L,
+  ).unwrap()
   captured_graph_duckdb_receive(attempt, 1)
   transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
   assert_true(
-    @strategy.complete_captured_duckdb_task(run, attempt)
+    @strategy.complete_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+    )
     is Err(Physical(InvalidCharge)),
   )
   assert_false(@strategy.captured_task_completed(run, 1))
-  @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+  @strategy.settle_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+    true,
+  ).unwrap()
   let before_complete = @resources.ledger_usage(ledger)
   assert_true(before_complete.reserved_execution_bytes > 0L)
-  @strategy.complete_captured_duckdb_task(run, attempt).unwrap()
+  @strategy.complete_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+  ).unwrap()
   let complete = @resources.ledger_usage(ledger)
   assert_eq(complete.holdings, before_complete.holdings + 1)
   assert_eq(complete.held_bytes, before_complete.reserved_retention_bytes)
@@ -131,35 +156,60 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   assert_eq(complete.reserved_execution_bytes, 0L)
   assert_eq(complete.transferred_bytes, 7L)
   assert_true(
-    @strategy.charge_captured_duckdb_transfer(run, attempt, 1L)
+    @strategy.charge_task_execution_transfer(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      1L,
+    )
     is Err(ClosedReservation),
   )
   // Starting B must acquire a new reservation, not reuse A's settled capacity.
   let b = captured_graph_duckdb_start(run, 2, { settled: None, })
   assert_eq(@resources.ledger_usage(ledger).attempts, complete.attempts + 1)
   assert_true(
-    @strategy.complete_captured_duckdb_task(run, attempt)
+    @strategy.complete_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+    )
     is Err(ForeignCandidate),
   )
   @strategy.stop_captured_dag(run)
-  @strategy.close_captured_duckdb_task(run, b)
-  @strategy.settle_captured_duckdb_native(run, b, true).unwrap()
+  @strategy.close_task_execution(run, @strategy.captured_duckdb_execution(b))
+  @strategy.settle_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(b),
+    true,
+  ).unwrap()
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
-  @strategy.close_captured_duckdb_task(run, attempt)
+  @strategy.close_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+  )
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 7L)
   let released = @resources.ledger_usage(ledger)
   // Retaining the closed bridge cannot recover its detached execution.
   assert_true(
-    @strategy.charge_captured_duckdb_transfer(run, attempt, 0L)
+    @strategy.charge_task_execution_transfer(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      0L,
+    )
     is Err(ForeignOwner),
   )
   assert_true(
-    @strategy.settle_captured_duckdb_native(run, attempt, true)
+    @strategy.settle_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      true,
+    )
     is Err(ForeignOwner),
   )
   assert_true(@strategy.captured_resident_query(run, attempt) is None)
-  @strategy.close_captured_duckdb_task(run, attempt)
+  @strategy.close_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+  )
   assert_eq(@resources.ledger_usage(ledger), released)
 }
 
@@ -169,23 +219,49 @@ test "common native cancellation and failed completion preserve staged cleanup a
     let (run, _) = captured_graph_fixture()
     let ledger = @strategy.captured_dag_ledger(run)
     let attempt = captured_graph_duckdb_start(run, 1, { settled: None, })
-    @strategy.charge_captured_duckdb_transfer(run, attempt, 9L).unwrap()
+    @strategy.charge_task_execution_transfer(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      9L,
+    ).unwrap()
     let active = @resources.ledger_usage(ledger)
     if failed_completion {
-      @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+      @strategy.settle_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        true,
+      ).unwrap()
       assert_true(
-        @strategy.complete_captured_duckdb_task(run, attempt) is Err(DuckDB(_)),
+        @strategy.complete_task_execution(
+          run,
+          @strategy.captured_duckdb_execution(attempt),
+        )
+        is Err(DuckDB(_)),
       )
       assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
       assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
     } else {
       @strategy.stop_captured_dag(run)
-      @strategy.settle_captured_duckdb_native(run, attempt, false).unwrap()
-      @strategy.close_captured_duckdb_task(run, attempt)
+      @strategy.settle_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        false,
+      ).unwrap()
+      @strategy.close_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+      )
       assert_eq(@resources.ledger_usage(ledger), active)
-      @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+      @strategy.settle_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        true,
+      ).unwrap()
     }
-    @strategy.close_captured_duckdb_task(run, attempt)
+    @strategy.close_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+    )
     let final_usage = @resources.ledger_usage(ledger)
     assert_eq(final_usage.reserved_execution_bytes, 0L)
     assert_eq(final_usage.reserved_retention_bytes, 0L)

@@ -47,6 +47,17 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
   assert.ok(state);
   assert.doesNotMatch(state, /DuckDBComputeAttempt|NativeTaskResources|native_resources/);
   assert.match(state, /executions : Array\[TaskExecution\?\]/);
+  const api = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  assert.match(api, /^type TaskExecution$/m);
+  assert.doesNotMatch(api, /(?:struct|enum) TaskExecution\b/);
+  for (const name of ['charge_task_execution_transfer', 'settle_task_execution',
+    'complete_task_execution', 'close_task_execution']) {
+    const signature = api.split('\n').find(line => line.startsWith(`pub fn ${name}(`));
+    assert.ok(signature, name);
+    assert.match(signature, /TaskExecution/);
+    assert.doesNotMatch(signature, /CapturedDuckDBTask|DuckDBComputeAttempt/);
+  }
+  assert.doesNotMatch(api, /pub fn (?:charge_captured_duckdb_transfer|settle_captured_duckdb_native|complete_captured_duckdb_task|close_captured_duckdb_task)\b/);
 });
 
 test('concrete Compute capacity formula is owned and exported by its connector', () => {

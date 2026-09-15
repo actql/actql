@@ -2,7 +2,7 @@
 /// One exact run/task execution. Physical lifecycle belongs to the common
 /// driver; the installed implementation owns its private transport state.
 /// Construction is private: callers cannot attach arbitrary completion hooks.
-priv struct TaskExecution {
+struct TaskExecution {
   task : Int
   reservation : @resources.Reservation
   retention : Int64
@@ -115,7 +115,7 @@ fn task_execution_matches(run : CapturedDAG, execution : TaskExecution) -> Bool 
 }
 
 ///|
-fn charge_task_execution_transfer(
+pub fn charge_task_execution_transfer(
   run : CapturedDAG,
   execution : TaskExecution,
   bytes : Int64,
@@ -132,7 +132,7 @@ fn charge_task_execution_transfer(
 ///|
 /// Acknowledgement is supplied by the installed trusted transport, not by
 /// ordinary selection. False retains cleanup responsibility and all capacity.
-fn settle_task_execution(
+pub fn settle_task_execution(
   run : CapturedDAG,
   execution : TaskExecution,
   confirmed : Bool,
@@ -171,7 +171,7 @@ fn settle_task_execution(
 ///|
 /// Verification, result holding and successful DAG completion are one boundary.
 /// No success is exposed if the implementation cannot supply its owned output.
-fn complete_task_execution(
+pub fn complete_task_execution(
   run : CapturedDAG,
   execution : TaskExecution,
 ) -> Result[Unit, RunIssue] {
@@ -239,7 +239,10 @@ fn complete_task_execution(
 }
 
 ///|
-fn close_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit {
+pub fn close_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Unit {
   if !task_execution_matches(run, execution) || execution.disposed {
     return
   }

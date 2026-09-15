@@ -161,7 +161,12 @@ pub fn compute_host_physical_charge(
   bytes : Int64,
 ) -> Unit raise NodeHostFailure {
   if run.strategy is Some((graph, _, task_handle)) {
-    match @strategy.charge_captured_duckdb_transfer(graph, task_handle, bytes) {
+    match
+      @strategy.charge_task_execution_transfer(
+        graph,
+        @strategy.captured_duckdb_execution(task_handle),
+        bytes,
+      ) {
       Ok(_) => ()
       Err(issue) => raise Physical(issue)
     }
@@ -176,7 +181,11 @@ pub fn compute_host_physical_settle(
 ) -> Unit raise NodeHostFailure {
   if run.strategy is Some((graph, _, task_handle)) {
     match
-      @strategy.settle_captured_duckdb_native(graph, task_handle, confirmed) {
+      @strategy.settle_task_execution(
+        graph,
+        @strategy.captured_duckdb_execution(task_handle),
+        confirmed,
+      ) {
       Ok(_) => ()
       Err(issue) => raise Physical(issue)
     }
@@ -329,7 +338,11 @@ pub fn compute_host_complete(
   run : ComputeNodeRun,
 ) -> @execution.CompletedOutput raise NodeHostFailure {
   if run.strategy is Some((graph, task, task_handle)) {
-    match @strategy.complete_captured_duckdb_task(graph, task_handle) {
+    match
+      @strategy.complete_task_execution(
+        graph,
+        @strategy.captured_duckdb_execution(task_handle),
+      ) {
       Err(issue) => raise Strategy(issue)
       Ok(_) => ()
     }
@@ -377,6 +390,9 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
   run.closed = true
   @duckdb_compute.close_duckdb_compute_attempt(run.attempt)
   if run.strategy is Some((graph, _, task_handle)) {
-    @strategy.close_captured_duckdb_task(graph, task_handle)
+    @strategy.close_task_execution(
+      graph,
+      @strategy.captured_duckdb_execution(task_handle),
+    )
   }
 }

@@ -104,10 +104,20 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
             )
             captured_graph_duckdb_receive(attempt, task)
             transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
-            @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
-            @strategy.complete_captured_duckdb_task(run, attempt).unwrap()
+            @strategy.settle_task_execution(
+              run,
+              @strategy.captured_duckdb_execution(attempt),
+              true,
+            ).unwrap()
+            @strategy.complete_task_execution(
+              run,
+              @strategy.captured_duckdb_execution(attempt),
+            ).unwrap()
             assert_true(
-              @strategy.complete_captured_duckdb_task(run, attempt)
+              @strategy.complete_task_execution(
+                run,
+                @strategy.captured_duckdb_execution(attempt),
+              )
               is Err(ForeignCandidate),
             )
             attempts.push(attempt)
@@ -131,7 +141,10 @@ test "checked capture DAG supports every Local DuckDB assignment with independen
           )
         }
         for attempt in attempts {
-          @strategy.close_captured_duckdb_task(run, attempt)
+          @strategy.close_task_execution(
+            run,
+            @strategy.captured_duckdb_execution(attempt),
+          )
         }
       }
     }
@@ -147,7 +160,10 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     let (other_run, _) = captured_graph_fixture()
     let other = captured_graph_duckdb_start(other_run, 1, { settled: None, })
     assert_true(
-      @strategy.complete_captured_duckdb_task(run, other)
+      @strategy.complete_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(other),
+      )
       is Err(ForeignCandidate),
     )
     assert_true(
@@ -166,8 +182,18 @@ test "DAG rejects foreign incomplete revoked and cancelled DuckDB completions" {
     if mode == 1 {
       transport.settled = None
     }
-    @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
-    assert_true(@strategy.complete_captured_duckdb_task(run, attempt) is Err(_))
+    @strategy.settle_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      true,
+    ).unwrap()
+    assert_true(
+      @strategy.complete_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+      )
+      is Err(_),
+    )
     assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
     assert_true(@strategy.next_captured_task(run) is None)
   }

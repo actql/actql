@@ -202,25 +202,44 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     }
     if cancelled {
       let env = env.unwrap()
-      @strategy.charge_captured_duckdb_transfer(run, attempt, 17L).unwrap()
-      @strategy.close_captured_duckdb_task(run, attempt)
+      @strategy.charge_task_execution_transfer(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        17L,
+      ).unwrap()
+      @strategy.close_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+      )
       @strategy.close_resident_environment(run, env).unwrap()
       assert_true(
         @strategy.settle_resident_environment(run, env) is Err(InvalidCharge),
       )
       let ledger = @strategy.captured_dag_ledger(run)
       let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
-      @strategy.settle_captured_duckdb_native(run, attempt, false).unwrap()
+      @strategy.settle_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        false,
+      ).unwrap()
       assert_eq(
         @resources.ledger_usage(ledger).reserved_execution_bytes,
         reserved,
       )
       assert_true(
-        @strategy.complete_captured_duckdb_task(run, attempt) is Err(Stopped),
+        @strategy.complete_task_execution(
+          run,
+          @strategy.captured_duckdb_execution(attempt),
+        )
+        is Err(Stopped),
       )
       assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
       assert_true(@strategy.captured_task_output(run, 2, Step(1)) is Some(_))
-      @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+      @strategy.settle_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+        true,
+      ).unwrap()
       @strategy.settle_resident_environment(run, env).unwrap()
       @strategy.close_captured_task_output(run, 1)
       @strategy.close_captured_task_output(run, 2)
@@ -259,15 +278,29 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     ).unwrap()
     transport.settled = Some(@strategy.captured_duckdb_attempt(attempt))
     assert_true(
-      @strategy.complete_captured_duckdb_task(run, attempt)
+      @strategy.complete_task_execution(
+        run,
+        @strategy.captured_duckdb_execution(attempt),
+      )
       is Err(Physical(InvalidCharge)),
     )
-    @strategy.charge_captured_duckdb_transfer(run, attempt, 17L).unwrap()
-    @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+    @strategy.charge_task_execution_transfer(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      17L,
+    ).unwrap()
+    @strategy.settle_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+      true,
+    ).unwrap()
     if resident {
       @strategy.confirm_captured_resident_output(run, attempt).unwrap()
     }
-    @strategy.complete_captured_duckdb_task(run, attempt).unwrap()
+    @strategy.complete_task_execution(
+      run,
+      @strategy.captured_duckdb_execution(attempt),
+    ).unwrap()
     @strategy.close_captured_task_output(run, 1)
     @strategy.close_captured_task_output(run, 2)
     let count = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()

@@ -56,8 +56,15 @@ test "closed capture stays held until an in-flight native consumer confirms clea
   @strategy.close_captured_task_output(run, 0)
   @strategy.stop_captured_dag(run)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
-  @strategy.close_captured_duckdb_task(run, attempt)
-  @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+  @strategy.close_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+  )
+  @strategy.settle_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+    true,
+  ).unwrap()
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
 }
@@ -199,8 +206,15 @@ test "cancelled native child retains its closed parent until cleanup confirmatio
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 15520000L)
   @strategy.stop_captured_dag(run)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 15520000L)
-  @strategy.close_captured_duckdb_task(run, attempt)
-  @strategy.settle_captured_duckdb_native(run, attempt, true).unwrap()
+  @strategy.close_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+  )
+  @strategy.settle_task_execution(
+    run,
+    @strategy.captured_duckdb_execution(attempt),
+    true,
+  ).unwrap()
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 7760000L)
   assert_true(@strategy.next_captured_task(run) is None)
   assert_true(@strategy.captured_task_output(run, 2, Step(1)) is Some(_))
