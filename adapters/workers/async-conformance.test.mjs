@@ -4,6 +4,31 @@ import {createHash} from 'node:crypto';
 import {buildConformance} from './build.mjs';
 import {createTestRuntime} from './runtime.mjs';
 import {runAsyncCase} from './async-conformance.mjs';
+import {checkWorkersArtifact,conformanceModules} from './artifact.mjs';
+
+test('real planning fetch bypassing phase spies fails the common runtime audit even if caught', async () => {
+  const bundle = await buildConformance();
+  const needle = 'const scenario = audit.during("checking-lowering-installation",';
+  assert.ok(bundle.source.includes(needle),'injection anchor must identify the actual preparation path');
+  const normal = createTestRuntime(bundle.source);
+  const options = {method:'POST',body:JSON.stringify({action:'async-probe',mode:'planning-io'})};
+  let expected;
+  try { expected = await (await normal.dispatchFetch('http://worker.test/',options)).json(); }
+  finally { await normal.dispose(); }
+  for (const caught of [false,true]) {
+    const fetch = 'await fetch("https://must-not-resolve.invalid/")';
+    const operation = caught ? `try { const denied = ${fetch}; if (!denied.ok) throw new Error("denied"); } catch {}` : `${fetch};`;
+    const injected = bundle.source.replace(needle,`if (mode === "planning-io") await audit.during("planning", async () => { ${operation} });\n${needle}`);
+    // No import changed: the separate runtime audit must catch ambient I/O.
+    checkWorkersArtifact(bundle.metafile,injected,conformanceModules);
+    const runtime = createTestRuntime(injected);
+    try {
+      const actual = await (await runtime.dispatchFetch('http://worker.test/',options)).json();
+      assert.deepEqual(actual,expected);
+      assert.equal(runtime.outboundAttempts,1);
+    } finally { await assert.rejects(runtime.dispose(),{code:'UnexpectedOutbound'}); }
+  }
+});
 
 const jsonValue = value => JSON.parse(JSON.stringify(value, (_, item) =>
   typeof item === 'bigint' ? item.toString() : item));
@@ -17,7 +42,7 @@ const zeroRetained = usage => {
 test('asynchronous independent Connector preserves reservation completion and recovery in workerd', async () => {
   const {source} = await buildConformance();
   let outgoing = 0;
-  const runtime = createTestRuntime(source, () => outgoing++);
+  const runtime = createTestRuntime(source, {onOutbound: () => outgoing++});
   try {
     for (const mode of ['complete','cancel','cancel-computed','cleanup-failure']) {
       const node = jsonValue(await runAsyncCase({mode}));

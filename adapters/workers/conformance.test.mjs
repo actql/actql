@@ -3,7 +3,30 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {buildConformance} from './build.mjs';
 import {createTestRuntime} from './runtime.mjs';
-import {runCase} from './conformance.mjs';
+import {runCase, cancellationCase} from './conformance.mjs';
+
+test('immediate and pending-preparation cancellation cannot start Local work on Node or workerd', async () => {
+  const {source} = await buildConformance();
+  const runtime = createTestRuntime(source);
+  try {
+    for (const waiting of [false,true]) {
+      const node = JSON.parse(JSON.stringify(await cancellationCase(waiting),(_,v) => typeof v === 'bigint' ? String(v) : v));
+      const response = await runtime.dispatchFetch('http://worker.test/', {
+        method:'POST',body:JSON.stringify({action:'cancel-before-dispatch',waiting}),
+      });
+      const worker = await response.json();
+      assert.deepEqual(worker,node);
+      assert.equal(worker.failed,true);
+      assert.equal(worker.consumed,0);
+      assert.equal(worker.after[1],'0');
+      assert.equal(worker.after[2],'0');
+      assert.deepEqual(worker.after.slice(4),['0','0','0','0']);
+      assert.equal(worker.cleanupPending,false);
+      assert.equal(worker.prepared,waiting ? 1 : 0);
+      assert.equal(worker.finished,waiting ? 2 : 0);
+    }
+  } finally { await runtime.dispose(); }
+});
 
 const cid = rows => 'sha256:' + createHash('sha256').update(JSON.stringify(rows)).digest('hex');
 const cases = [
@@ -17,7 +40,7 @@ test('product checker through Local selection execution consumer and recovery ag
   const bundle = await buildConformance();
   t.diagnostic(`bundled bytes: ${bundle.bytes}; resolved modules: ${Object.keys(bundle.metafile.inputs).length}`);
   let outgoing = 0;
-  const runtime = createTestRuntime(bundle.source, () => outgoing++);
+  const runtime = createTestRuntime(bundle.source, {onOutbound: () => outgoing++});
   try {
     for (const {input,outputs} of cases) {
       const node = await runCase(input);
@@ -88,7 +111,7 @@ test('same-runtime foreign Run dispatch is refused without consuming the rightfu
 test('public checker rejects an undeclared field before Host installation or I/O', async () => {
   const {source} = await buildConformance();
   let outgoing = 0;
-  const runtime = createTestRuntime(source, () => outgoing++);
+  const runtime = createTestRuntime(source, {onOutbound: () => outgoing++});
   try {
     const response = await runtime.dispatchFetch('http://worker.test/', {
       method:'POST',body:JSON.stringify({action:'invalid-program'}),

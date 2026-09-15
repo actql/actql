@@ -9,7 +9,7 @@ test('real workerd has Node compatibility disabled and rejects outbound traffic'
       const denied = await fetch('https://must-not-resolve.invalid/');
       return Response.json({process:typeof process, Buffer:typeof Buffer, status:denied.status});
     }};
-  `, () => attempts++);
+  `, {onOutbound: () => attempts++, expectedOutbound: 1});
   try {
     const response = await runtime.dispatchFetch('http://worker.test/');
     assert.deepEqual(await response.json(), {process:'undefined', Buffer:'undefined', status:503});
@@ -40,7 +40,7 @@ test('injected module-initialization I/O fails before a Worker can serve a reque
   const runtime = createTestRuntime(`
     const initialized = await fetch('https://must-not-resolve.invalid/');
     export default { fetch() { return new Response(String(initialized.status)); } };
-  `, () => outgoing++);
+  `, {onOutbound: () => outgoing++});
   let startup;
   try {
     await assert.rejects(runtime.ready, error => {
