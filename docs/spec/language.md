@@ -4753,6 +4753,22 @@ projection, provenance and left-major/right-minor order follow ordinary join.
 Semi/anti emit a left occurrence at most once. Input endpoint validation is
 atomic before matching. Candidate-key transfer follows retained pair identity.
 
+<!-- requirement-block: interval-join.candidate-key-transfer -->
+Interval-join candidate-key transfer MUST use the following closed rules, subject
+to retaining a complete mapped key in the output. Semi and anti retain left
+keys only. Inner and left retain every available pair of left and right keys;
+left null-extends the right components without promoting them to non-null.
+Inner and left additionally retain a left key when the equality correlation
+fields cover an entire right candidate key; inner additionally retains a right
+key when they cover an entire left candidate key. Temporal overlap alone does
+not establish this at-most-one condition. These independent-side conclusions
+do not suppress retained pair witnesses for interval joins. Projection must
+retain at least one exact alias per required key component; a missing component
+invalidates that witness. Input-key and endpoint validation remain prerequisites.
+Pair uniqueness with nullable components does not establish eligibility for a
+non-null primary key or canonical-order completion. Full is not an admitted
+interval-join kind and has no transfer rule here.
+
 <!-- requirement-block: interval-join.bounds -->
 An interval join MUST resolve output and search-work ceilings separately,
 using the checked operand product bound where no stronger proof exists.

@@ -4040,6 +4040,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/interval-join.candidate-key-transfer",
+      "statement_sha256": "56c6b5b47e69e0634211ea9d95b80078b43ee3551dd99deb3a68647c18f2b410",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "interval-join",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/interval-join.bounds",
       "statement_sha256": "55af923ac5d2a525302f1b2498af3eca40c14c33c4830c0ff8ae3d510a709a5d",
       "status": "pending",

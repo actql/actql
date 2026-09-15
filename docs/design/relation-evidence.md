@@ -421,6 +421,13 @@ tuple covers a complete right candidate key, and inner can symmetrically
 preserve a right key. A temporal predicate alone does not establish that
 at-most-one condition. Inner/left can retain the complete pair of operand keys.
 Left-join right components remain nullable after transfer.
+Pair witnesses remain available even when equality coverage also proves an
+independent side key. This documents the existing temporal transfer rule rather
+than applying equality join's product-suppression policy to it. Exact projection
+must retain one alias per component; retained nullable pair uniqueness is not
+non-null primary-key or canonical-order eligibility. Full is not an admitted
+temporal kind. The closed normative owner is the interval-join candidate-key
+transfer paragraph in the language specification.
 
 `key_interval_join_producer` and indexed role-tagged dependency accessors retain
 all source witnesses and the checked temporal operation, including endpoint,

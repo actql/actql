@@ -173,16 +173,6 @@ fn join_witness(
 }
 
 ///|
-fn nonnull_component(
-  key : KeyedRelation,
-  b : TransferBudget,
-  source : @decode.Cursor,
-) -> Bool raise Stop {
-  spend(b, source, key.fields.length())
-  key.fields.any(f => f.contract is Some(c) && !c.nullable)
-}
-
-///|
 /// Conditional join-output keys; original producers and cardinality assertions
 /// remain validation dependencies. Every supplied input is bound by identity.
 fn transfer_matched_keys(
@@ -267,22 +257,12 @@ fn transfer_matched_keys(
     // Temporal correlation has its own retained-pair rule.
     let composite = match op {
       Equality(_) => kind == Inner && !lu && !ru
-      Temporal(_) => kind == Inner || kind == Left || kind == Full
+      Temporal(_) => kind == Inner || kind == Left
     }
     if composite {
       for (lp, l) in mapped_left {
         for (rp, r) in mapped_right {
           spend(b, source, 1)
-          // Full-join unmatched rows from opposite sides must not collapse to
-          // the same all-null tuple. A known non-null component on each side
-          // distinguishes both missing-side sentinels.
-          if kind == Full &&
-            (
-              !nonnull_component(lp, b, source) ||
-              !nonnull_component(rp, b, source)
-            ) {
-            continue
-          }
           spend(b, source, l.fields.length() + r.fields.length())
           let fields = l.fields.copy()
           for f in r.fields {
