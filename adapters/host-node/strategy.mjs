@@ -26,10 +26,33 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
   const completed = [];
   const outputs = [];
   const pendingCleanup = new Set();
+  // A release without a recovery handle has no safe implicit retry contract.
+  // Retain its owner and report unknown cleanup rather than forgetting it.
+  const unconfirmedRelease = new Set();
+  let cleanupInFlight;
+  let failed = false;
   let failure;
   let closed = false;
-  const rememberCleanup = error => {
-    if (error?.cleanupHandle?.status().pending) pendingCleanup.add(error.cleanupHandle);
+  const rememberCleanup = (error, releaseOwner) => {
+    const handle = error?.cleanupHandle;
+    if (handle && typeof handle.status === 'function' && typeof handle.retry === 'function') {
+      pendingCleanup.add(handle);
+    } else if (releaseOwner) {
+      unconfirmedRelease.add(releaseOwner);
+    }
+  };
+  const rememberFailure = error => {
+    if (!failed) failure = error;
+    failed = true;
+    rememberCleanup(error);
+  };
+  const cleanupPending = () => {
+    if (unconfirmedRelease.size) return true;
+    for (const handle of pendingCleanup) {
+      try { if (handle.status().pending) return true; }
+      catch { return true; }
+    }
+    return false;
   };
   try {
     const count = core.count(setup);
@@ -50,30 +73,39 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
     }
     if (!core.finished(setup)) throw new StrategyHostError('StrategyNotComplete');
   } catch (error) {
-    failure = error;
-    rememberCleanup(error);
-    core.stop(setup);
+    rememberFailure(error);
+    try { core.stop(setup); }
+    catch (stopError) { rememberCleanup(stopError, core); }
   } finally {
     for (const entry of installed.values()) {
       try { await entry.finish?.(); }
-      catch (error) { failure ??= error; rememberCleanup(error); }
+      catch (error) { rememberFailure(error); }
     }
     active.delete(setup);
   }
   return Object.freeze({
     // Internal task records only, not Program/Run publication or partial success.
-    status: failure === undefined ? 'host-tasks-completed' : 'host-tasks-failed',
+    status: failed ? 'host-tasks-failed' : 'host-tasks-completed',
     failure,
     completed: Object.freeze(completed),
     usage: () => core.usage(setup),
-    cleanupPending: () => [...pendingCleanup].some(handle => handle.status().pending),
-    async cleanup() {
-      // Resource recovery, never another dispatch or a retry of computation.
-      for (const handle of pendingCleanup) {
-        if (handle.status().pending) await handle.retry();
-        if (!handle.status().pending) pendingCleanup.delete(handle);
-      }
-      return pendingCleanup.size === 0;
+    cleanupPending,
+    cleanup() {
+      if (cleanupInFlight) return cleanupInFlight;
+      cleanupInFlight = (async () => {
+        // Attempt every independent recovery even when an earlier one fails.
+        // Only an explicit recovery handle authorizes retry; never run Compute.
+        const errors = [];
+        for (const handle of pendingCleanup) {
+          try {
+            if (handle.status().pending) await handle.retry();
+            if (!handle.status().pending) pendingCleanup.delete(handle);
+          } catch (error) { errors.push(error); }
+        }
+        if (errors.length) throw new AggregateError(errors, 'Strategy cleanup failed');
+        return !cleanupPending();
+      })().finally(() => { cleanupInFlight = undefined; });
+      return cleanupInFlight;
     },
     explain(maxBytes = 65536, maxNodes = 10000) {
       for (const limit of [maxBytes, maxNodes]) {
@@ -93,13 +125,19 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
     close() {
       if (closed) return;
       closed = true;
+      let closeFailed = false;
       let closeFailure;
+      const releaseFailed = (error, owner) => {
+        if (!closeFailed) closeFailure = error;
+        closeFailed = true;
+        rememberCleanup(error, owner);
+      };
       for (const output of outputs) {
-        try { output.close(); } catch (error) { closeFailure ??= error; }
+        try { output.close(); } catch (error) { releaseFailed(error, output); }
       }
       outputs.length = 0;
-      try { core.closeOutputs(setup); } catch (error) { closeFailure ??= error; }
-      if (closeFailure) throw closeFailure;
+      try { core.closeOutputs(setup); } catch (error) { releaseFailed(error, core); }
+      if (closeFailed) throw closeFailure;
     },
   });
 }

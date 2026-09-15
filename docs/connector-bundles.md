@@ -5,6 +5,15 @@ loader, sandbox or a stable public Connector SPI. Common candidate comparison,
 dispatch, reservation, ownership and completion checks remain in the shared
 libraries. Connector factories provide implementations, not success authority.
 
+This version provides implementation contracts for Acquisition and fixed Compute.
+Transfer and Effect remain distinct responsibilities; their author contracts will
+be added when those capabilities are introduced. Adding an implementation of an
+existing capability is different from extending the SDK with a new capability.
+Registration never requires implementing every capability. Existing fixed-data
+transfer, resource reservation and recovery operations support current Compute
+realizations; they are not a finished standalone Transfer or Effect bundle SPI,
+nor a general Cloud resource-provisioning contract.
+
 ## Typed Compute composition
 
 Each connector may own a `compute-bundle.json` under `src/connectors/<name>`.

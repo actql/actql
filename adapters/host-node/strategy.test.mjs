@@ -129,6 +129,114 @@ test('result close attempts every release even if one implementation fails', asy
   assert.throws(() => result.close(), /close/);
   assert.deepEqual(released, [1, 2]);
   assert.equal(f.closed(), 1);
+  assert.equal(result.cleanupPending(), true);
+  assert.equal(await result.cleanup(), false);
+  result.close();
+  assert.deepEqual(released, [1, 2]);
+});
+
+test('reasonless and non-Error failures preserve the first payload across every execution phase', async () => {
+  for (const phase of ['beforeNext', 'run', 'finish']) {
+    for (const payload of [undefined, null, 'first failure']) {
+      const registration = {}, unused = {};
+      const f = fixture([registration, registration]);
+      let runs = 0, finishes = 0;
+      const result = await runInstalledStrategy(f.setup, f.core, [{
+        registration,
+        beforeNext() { if (phase === 'beforeNext') return Promise.reject(payload); },
+        run(task) {
+          runs++;
+          if (phase === 'run') return Promise.reject(payload);
+          f.complete.add(task.index);
+        },
+        finish() { finishes++; if (phase === 'finish') return Promise.reject(payload); },
+      }, {
+        registration: unused,
+        run() { assert.fail('unused'); },
+        finish() { finishes++; throw new Error('secondary'); },
+      }]);
+      assert.equal(result.status, 'host-tasks-failed');
+      assert.equal(result.failure, payload);
+      assert.equal(runs, phase === 'beforeNext' ? 0 : phase === 'run' ? 1 : 2);
+      assert.equal(finishes, 2);
+    }
+  }
+});
+
+test('close recovery retains all handles, attempts every retry and never repeats releases', async () => {
+  const registration = {};
+  const f = fixture([registration, registration]);
+  const pending = [true, true, true], retries = [0, 0, 0], closes = [0, 0, 0];
+  const handles = pending.map((_, i) => ({
+    status: () => ({pending: pending[i]}),
+    async retry() {
+      retries[i]++;
+      if (i === 0 && retries[i] === 1) throw undefined;
+      pending[i] = false;
+    },
+  }));
+  const release = i => { closes[i]++; throw Object.assign(new Error(`close ${i}`), {cleanupHandle: handles[i]}); };
+  f.core.closeOutputs = () => release(2);
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run(task) { f.complete.add(task.index); return {close: () => release(task.index - 1)}; },
+  }]);
+  assert.throws(() => result.close(), /close 0/);
+  assert.throws(() => result.output(1), {code: 'ReleasedStrategy'});
+  assert.deepEqual(closes, [1, 1, 1]);
+  assert.equal(result.cleanupPending(), true);
+  await assert.rejects(result.cleanup(), error => {
+    assert.ok(error instanceof AggregateError);
+    assert.deepEqual(error.errors, [undefined]);
+    return true;
+  });
+  assert.deepEqual(retries, [1, 1, 1]);
+  assert.deepEqual(pending, [true, false, false]);
+  assert.equal(result.cleanupPending(), true);
+  assert.equal(await result.cleanup(), true);
+  assert.equal(result.cleanupPending(), false);
+  result.close();
+  assert.deepEqual(closes, [1, 1, 1]);
+  assert.deepEqual(retries, [2, 1, 1]);
+});
+
+test('reasonless release failure remains unconfirmed without guessing a safe retry', async () => {
+  for (const phase of ['output', 'core']) {
+    const registration = {}, f = fixture([registration]);
+    let closes = 0;
+    if (phase === 'core') f.core.closeOutputs = () => { closes++; throw undefined; };
+    const result = await runInstalledStrategy(f.setup, f.core, [{
+      registration,
+      run(task) {
+        f.complete.add(task.index);
+        return {close() { if (phase === 'output') { closes++; throw undefined; } }};
+      },
+    }]);
+    let threw = false;
+    try { result.close(); } catch (error) { threw = true; assert.equal(error, undefined); }
+    assert.equal(threw, true);
+    assert.equal(result.cleanupPending(), true);
+    assert.equal(await result.cleanup(), false);
+    result.close();
+    assert.equal(closes, 1);
+  }
+});
+
+test('concurrent cleanup calls share the same in-flight recovery', async () => {
+  const registration = {}, f = fixture([registration]);
+  let pending = true, retries = 0, resume;
+  const wait = new Promise(resolve => { resume = resolve; });
+  const handle = {status: () => ({pending}), async retry() { retries++; await wait; pending = false; }};
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run(task) { f.complete.add(task.index); return {close() { throw {cleanupHandle: handle}; }}; },
+  }]);
+  assert.throws(() => result.close());
+  const first = result.cleanup(), second = result.cleanup();
+  assert.equal(first, second);
+  resume();
+  assert.equal(await first, true);
+  assert.equal(retries, 1);
 });
 
 test('cancellation prevents dispatch and still finalizes every installed implementation', async () => {
