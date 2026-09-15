@@ -23,12 +23,15 @@ pub struct DerivedBound {
   metadata_bytes : Int
   metadata_nodes : Int
   reference_work : Int
+  work : Int
 }
 
 ///|
 /// Construct an existing operation law without caller-authored proof JSON.
 /// Inputs are in data-edge order, including repetitions. This does not select
 /// candidate evidence, discharge runtime obligations or authorize execution.
+/// max_work bounds the sum of input/operand work, reference work and complete
+/// metadata nodes. Each independent limit also remains in force.
 pub fn derive_bound(
   pipeline : @pipeline.CheckedPipeline,
   index : Int,
@@ -36,9 +39,11 @@ pub fn derive_bound(
   limits : DeriveBoundLimits,
   unit? : @arithmetic.BoundUnit = @arithmetic.Rows,
   bindings? : CountBindings? = None,
+  max_work? : Int = 2147483647,
 ) -> Result[DerivedBound, DeriveBoundIssue] {
   let metadata = limits.metadata
-  if limits.max_input_work < 0 ||
+  if max_work < 0 ||
+    limits.max_input_work < 0 ||
     limits.max_operand_work < 0 ||
     limits.max_reference_work < 0 ||
     metadata.max_bytes < 0 ||
@@ -64,7 +69,7 @@ pub fn derive_bound(
     return Err(Application(InputCountMismatch))
   }
   // Reserve a linear pass before copying any caller-owned input array.
-  if n > limits.max_reference_work {
+  if n > limits.max_reference_work || n > max_work {
     return Err(ReferenceWorkLimit)
   }
   let prepared = match
@@ -77,6 +82,7 @@ pub fn derive_bound(
       limits.max_input_work,
       limits.max_operand_work,
       None,
+      aggregate_work=Some(max_work - n),
     ) {
     Ok(v) => v
     Err(e) => return Err(Application(e))
@@ -93,11 +99,19 @@ pub fn derive_bound(
     Ok(v) => v
     Err(e) => return Err(Application(e))
   }
-  let sorted = match
-    sort_bound_references(prepared.ids, limits.max_reference_work - n) {
+  let application_work = prepared.input_work + prepared.operand_work
+  let reference_cap = limits.max_reference_work.min(max_work - application_work)
+  let sorted = match sort_bound_references(prepared.ids, reference_cap - n) {
     Ok(v) => v
     Err(e) => return Err(e)
   }
+  // Reserve dependency construction before hashing either artifact. Its
+  // operands were sorted above; insertion of the proof CID needs one pass.
+  if n >= reference_cap - n - sorted.1 {
+    return Err(ReferenceWorkLimit)
+  }
+  let reference_work = n + sorted.1 + n + 1
+  let metadata_work = max_work - application_work - reference_work
   let subject = subject_ref(pipeline, index).unwrap()
   let emit_proof = fn(
     out : @encode.Writer,
@@ -107,7 +121,7 @@ pub fn derive_bound(
   try {
     let measured = @encode.measuring_writer(
       metadata.max_bytes,
-      metadata.max_nodes,
+      metadata.max_nodes.min(metadata_work),
       metadata.max_depth,
     )
     emit_proof(measured)
@@ -129,10 +143,6 @@ pub fn derive_bound(
     emit_proof(proof_out)
     let proof_bytes = @utf8.encode(@encode.finish(proof_out))
     // Dependency sets are unique; proof operands and owned inputs are not.
-    let remaining = limits.max_reference_work - n - sorted.1
-    if sorted.0.length() >= remaining {
-      return Err(ReferenceWorkLimit)
-    }
     let dependencies : Array[String] = []
     let mut inserted = false
     for id in sorted.0 {
@@ -165,7 +175,9 @@ pub fn derive_bound(
       )
     }
     let available_bytes = metadata.max_bytes - proof_size
-    let available_nodes = metadata.max_nodes - proof_nodes
+    let available_nodes = (metadata.max_nodes - proof_nodes).min(
+      metadata_work - proof_nodes,
+    )
     let measure = @encode.measuring_writer(
       available_bytes,
       available_nodes,
@@ -211,7 +223,8 @@ pub fn derive_bound(
       },
       metadata_bytes: proof_size + witness_size,
       metadata_nodes: proof_nodes + witness_nodes,
-      reference_work: n + sorted.1 + n + 1,
+      reference_work,
+      work: application_work + reference_work + proof_nodes + witness_nodes,
     })
   } catch {
     e => Err(Encoding(e))

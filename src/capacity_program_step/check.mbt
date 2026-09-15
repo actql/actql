@@ -709,6 +709,7 @@ fn prepare_bound_inputs(
   max_input_work : Int,
   max_operand_work : Int,
   usage : Array[Int]?,
+  aggregate_work? : Int? = None,
 ) -> Result[PreparedBoundInputs, Issue] {
   let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
     // Five bounded passes: edges, multiset construction, proof comparison,
@@ -719,6 +720,15 @@ fn prepare_bound_inputs(
     n * 5
   } else {
     0
+  }
+  let max_input_work = match aggregate_work {
+    Some(total) => {
+      if operand_work > total {
+        return Err(OperandWorkLimit)
+      }
+      max_input_work.min(total - operand_work)
+    }
+    None => max_input_work
   }
   let ids : Array[String] = []
   if usage is Some(v) {

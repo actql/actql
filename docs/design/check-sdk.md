@@ -250,6 +250,15 @@ reserved per complete artifact. Input traversal, operand preparation and bounded
 CID ordering have separate usage scopes; caller-owned input arrays are not
 retained. Construction establishes no completed observation or execution permit.
 
+The construction entry also accepts an aggregate work ceiling. It reserves
+input/operand work and reference processing from the same remaining amount,
+then bounds complete-artifact node preparation by what remains. Per-scope caps
+still apply independently. Its reported work is the sum of those scopes, not
+an observed CPU cost; a scope cannot reuse work already spent by another one.
+The values-specific preparation adapter retains its complete-artifact scope:
+with no input operands, its sole self-dependency visit is already represented
+in the artifact nodes and is not charged again by that adapter.
+
 Values row-count evidence is prepared once per checked Stage definition before
 capacity applications are expanded across imports. An applicable supplied proof
 is retained; otherwise the compiler constructs the existing count law from the

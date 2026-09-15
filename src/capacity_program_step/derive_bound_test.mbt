@@ -9,6 +9,81 @@ fn derive_limits() -> @capacity_program_step.DeriveBoundLimits {
 }
 
 ///|
+test "derived operation preparation spends one aggregate work budget across its scopes" {
+  let root = pipeline("[{\"take\":7}]")
+  let a = @capacity_program_step.derive_bound(
+    root,
+    0,
+    [],
+    derive_limits(),
+    max_work=24,
+  ).unwrap()
+  // Independent structure: a source proof has seven nodes; the complete take
+  // witness has sixteen, including maximum and self CID. One dependency visit.
+  assert_eq(a.metadata_nodes, 23)
+  assert_eq(a.work, 24)
+  assert_true(
+    @capacity_program_step.derive_bound(
+      root,
+      0,
+      [],
+      derive_limits(),
+      max_work=23,
+    )
+    is Err(_),
+  )
+  let middle = consume(root, @pipeline.Step(0), "[]")
+  let end = consume(
+    middle,
+    @pipeline.Input(0),
+    "[{\"append\":{\"with\":\"prior\"}}]",
+  )
+  let inputs = [@capacity_program_step.StepInput(a.bound), StepInput(a.bound)]
+  // Nine proof nodes plus eighteen complete witness nodes, four import-edge
+  // visits and ten copy/sort/dependency steps. Each scope fits forty, their
+  // sum does not. These expectations do not come from a remaining-work counter.
+  let exact = @capacity_program_step.derive_bound(
+    end,
+    0,
+    inputs,
+    derive_limits(),
+    max_work=41,
+  ).unwrap()
+  assert_eq(exact.metadata_nodes, 27)
+  assert_eq(exact.work, 41)
+  assert_true(
+    @capacity_program_step.derive_bound(
+      end,
+      0,
+      inputs,
+      derive_limits(),
+      max_work=40,
+    )
+    is Err(_),
+  )
+  let broad = @capacity_program_step.derive_bound(
+    end,
+    0,
+    inputs,
+    derive_limits(),
+  ).unwrap()
+  assert_eq(bound_id(exact.bound), bound_id(broad.bound))
+  assert_eq(exact.metadata_bytes, broad.metadata_bytes)
+  for max_work in [-1, 0, 1, 2, 3, 4, 5, 13, 14, 15] {
+    assert_true(
+      @capacity_program_step.derive_bound(
+        end,
+        0,
+        inputs,
+        derive_limits(),
+        max_work~,
+      )
+      is Err(_),
+    )
+  }
+}
+
+///|
 fn assert_derived_application(
   p : @pipeline.CheckedPipeline,
   index : Int,
