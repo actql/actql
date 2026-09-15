@@ -12,6 +12,14 @@ test "keyed distinct expands projection before distinct with collision-checked I
   }
   let projection = @lowering_relation.kernel_distinct_projection(kernel).unwrap()
   assert_true(@lowering_relation.kernel_is_distinct(kernel))
+  // Distinct is not an arbitrary projection constructor. Its prefix is exposed
+  // only through the owned kernel view above.
+  assert_true(
+    @lowering_relation.prepare_projection(
+      @lowering_relation.kernel_checked(kernel),
+    )
+    is None,
+  )
   assert_eq(@lowering_relation.projection_field_count(projection), 1)
   let fields = @lowering_relation.projection_fields(projection)
   assert_eq(

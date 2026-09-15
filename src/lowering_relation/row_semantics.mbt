@@ -10,8 +10,7 @@ struct PreparedProjection {
 pub fn prepare_projection(
   checked : @relation.CheckedOperation,
 ) -> PreparedProjection? {
-  if @relation.operation(checked) == @relation.Select ||
-    @relation.operation(checked) == @relation.Distinct {
+  if @relation.operation(checked) == @relation.Select {
     Some({ checked, })
   } else {
     None
