@@ -246,6 +246,13 @@ shared capacity; a rejected preparation cannot leave a table registration or
 consume a table ordinal. Reusing equal-content storage from another preparation
 is not accepted as the owned input.
 
+Resident receiver view preparation likewise belongs to the DuckDB driver. The
+common borrower checks the prepared plan's exact import and ProducerRead affinity
+and rechecks environment liveness before acquiring a shared borrow. Connector
+compilation resolves input view names; the ordered input-set boundary retains
+the cumulative representation-byte allowance and returns earlier borrowers if
+any later port fails preparation.
+
 Resident result materialization keeps its physical table name, SQL and storage
 construction limits in a connector-owned opaque plan. The shared output lifecycle
 retains its allocation, commit state and pending input cleanup, and checks exact

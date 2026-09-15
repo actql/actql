@@ -209,9 +209,11 @@ pub fn borrow_resident_table(
   task : Int,
   max_entries : Int,
   max_name_bytes : Int,
-  max_sql_bytes : Int,
+  prepare_view : (@duckdb.ResidentImport, @execution.ProducerRead) -> Result[
+    @duckdb_compute.DuckDBResidentRead,
+    RunIssue,
+  ],
   input_index? : Int = 0,
-  view_name? : String = "owned_input",
 ) -> Result[ResidentRead, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -226,16 +228,16 @@ pub fn borrow_resident_table(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let view = match
-    @duckdb_compute.prepare_duckdb_resident_read(
-      table.imported,
-      input,
-      view_name,
-      max_entries,
-      max_sql_bytes,
-    ) {
+  let view = match prepare_view(table.imported, input) {
     Ok(value) => value
-    Err(issue) => return Err(NativePreparation(issue))
+    Err(issue) => return Err(issue)
+  }
+  if run.stopped ||
+    !owns_resident_table(run, table) ||
+    !table.committed ||
+    !resident_environment_available(run, table.environment) ||
+    !@duckdb_compute.duckdb_resident_read_matches(view, table.imported, input) {
+    return Err(ForeignCandidate)
   }
   match
     @resources.borrow_shared_capacity(

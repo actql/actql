@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn borrow_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentTable, Int, Int, Int, Int, input_index? : Int, view_name? : String) -> Result[@physical_strategy.ResidentRead, @physical_strategy.RunIssue]
+
 pub fn captured_duckdb_attempt(CapturedDuckDBTask) -> @compute.DuckDBComputeAttempt
 
 pub fn captured_duckdb_cleanup_sql(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> Result[Array[String], @physical_strategy.RunIssue]
@@ -17,6 +19,8 @@ pub fn captured_duckdb_cleanup_sql(@physical_strategy.CapturedDAG, CapturedDuckD
 pub fn captured_duckdb_execution(CapturedDuckDBTask) -> @physical_strategy.TaskExecution
 
 pub fn captured_duckdb_query(@physical_strategy.CapturedDAG, CapturedDuckDBTask) -> @adapter.ResidentQuery?
+
+pub fn prepare_resident_inputs(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Array[@physical_strategy.ResidentTable], @adapter.FixedCompute, Int, Int, Int) -> Result[@physical_strategy.ResidentInputs, @physical_strategy.RunIssue]
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, @physical_strategy.ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
 

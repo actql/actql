@@ -21,7 +21,11 @@ pub fn prepare_resident_inputs(
   compute : @duckdb.FixedCompute,
   max_entries : Int,
   max_name_bytes : Int,
-  max_sql_bytes : Int,
+  max_representation_bytes : Int,
+  prepare_view : (Int, @duckdb.ResidentImport, @execution.ProducerRead, Int) -> Result[
+    @duckdb_compute.DuckDBResidentRead,
+    RunIssue,
+  ],
 ) -> Result[ResidentInputs, RunIssue] {
   if next_captured_task(run) != Some(task) ||
     !resident_environment_available(run, env) {
@@ -34,29 +38,20 @@ pub fn prepare_resident_inputs(
     return Err(ForeignCandidate)
   }
   let reads : Array[ResidentRead] = []
-  let mut remaining = max_sql_bytes
+  let mut remaining = max_representation_bytes
   for port in 0..<tables.length() {
     let result = if !physical_equal(tables[port].environment, env) {
       Err(ForeignCandidate)
     } else {
-      match
-        @duckdb.fixed_query_input_table(
-          @duckdb.fixed_compute_query(compute),
-          port,
-        ) {
-        None => Err(ForeignCandidate)
-        Some(name) =>
-          borrow_resident_table(
-            run,
-            tables[port],
-            task,
-            max_entries,
-            max_name_bytes,
-            remaining,
-            input_index=port,
-            view_name=name,
-          )
-      }
+      borrow_resident_table(
+        run,
+        tables[port],
+        task,
+        max_entries,
+        max_name_bytes,
+        fn(imported, input) { prepare_view(port, imported, input, remaining) },
+        input_index=port,
+      )
     }
     let read = match result {
       Ok(read) => read

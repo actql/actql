@@ -239,6 +239,10 @@ test('resident borrowers do not store or export concrete view SQL', () => {
   assert.ok(state);
   assert.doesNotMatch(state, /view_sql|String/);
   assert.doesNotMatch(source, /@duckdb\.resident_import_receiver_sql/);
+  assert.doesNotMatch(source, /@duckdb_compute\.prepare_duckdb_resident_read\(/);
+  assert.match(source, /duckdb_resident_read_matches\(view, table.imported, input\)/);
+  const inputSet = readFileSync('src/physical_strategy/resident_inputs.mbt', 'utf8');
+  assert.doesNotMatch(inputSet, /fixed_query_input_table\(|fixed_compute_query\(/);
   const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
   assert.doesNotMatch(core, /pub fn resident_(?:read_view_sql|inputs_view_sql)\b/);
   const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');

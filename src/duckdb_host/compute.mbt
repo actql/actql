@@ -119,7 +119,7 @@ pub fn borrow_configured_resident_inputs(
     is Some(compute) else {
     return Err(ForeignCandidate)
   }
-  @strategy.prepare_resident_inputs(
+  @duckdb_driver.prepare_resident_inputs(
     setup.graph,
     env,
     setup.task,

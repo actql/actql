@@ -24,7 +24,7 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
-pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, Int, input_index? : Int, view_name? : String) -> Result[ResidentRead, RunIssue]
+pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (@adapter.ResidentImport, @execution_relation.ProducerRead) -> Result[@compute.DuckDBResidentRead, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
 
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -104,7 +104,7 @@ pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relati
 
 pub fn[T] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@adapter.ResidentImport, RunIssue]) -> Result[ResidentExecution, RunIssue]
 
-pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
+pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @adapter.FixedCompute, Int, Int, Int, (Int, @adapter.ResidentImport, @execution_relation.ProducerRead, Int) -> Result[@compute.DuckDBResidentRead, RunIssue]) -> Result[ResidentInputs, RunIssue]
 
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 

@@ -3,6 +3,8 @@
 /// or discharge the common driver checks on exact input ownership and liveness.
 struct DuckDBResidentRead {
   sql : String
+  imported : @duckdb.ResidentImport
+  input : @execution.ProducerRead
 }
 
 ///|
@@ -15,7 +17,19 @@ pub fn prepare_duckdb_resident_read(
 ) -> Result[DuckDBResidentRead, @duckdb.NativeQueryIssue] {
   @duckdb.resident_import_receiver_sql(
     imported, input, view_name, max_entries, max_sql_bytes,
-  ).map(sql => { sql, })
+  ).map(sql => { sql, imported, input, })
+}
+
+///|
+pub fn duckdb_resident_read_matches(
+  read : DuckDBResidentRead,
+  imported : @duckdb.ResidentImport,
+  input : @execution.ProducerRead,
+) -> Bool {
+  physical_equal(read.imported, imported) &&
+  physical_equal(read.input, input) &&
+  @duckdb.resident_import_available(imported) &&
+  @execution.producer_read_available(input)
 }
 
 ///|

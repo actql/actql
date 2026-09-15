@@ -171,7 +171,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     run, env, 0, 80L, 1000, 10000, 10000,
   ).unwrap()
   assert_true(
-    @strategy.borrow_resident_table(run, table, 1, 1000, 10000, 10000)
+    @duckdb_driver.borrow_resident_table(run, table, 1, 1000, 10000, 10000)
     is Err(ForeignCandidate),
   )
   let attempts = @resources.ledger_usage(ledger).attempts
@@ -212,8 +212,25 @@ test "resident provision freezes dispatch and search until binding or close" {
     is Err(ForeignCandidate),
   )
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 12L)
-  let read = @strategy.borrow_resident_table(run, table, 1, 1000, 10000, 10000).unwrap()
-  let another = @strategy.borrow_resident_table(
+  assert_true(
+    @strategy.borrow_resident_table(run, table, 1, 1000, 10000, fn(
+      _imported,
+      input,
+    ) {
+      @duckdb_compute.prepare_duckdb_resident_read(
+        rejected.val.unwrap(),
+        input,
+        "owned_input",
+        1000,
+        10000,
+      ).map_err(issue => NativePreparation(issue))
+    })
+    is Err(ForeignCandidate),
+  )
+  let read = @duckdb_driver.borrow_resident_table(
+    run, table, 1, 1000, 10000, 10000,
+  ).unwrap()
+  let another = @duckdb_driver.borrow_resident_table(
     run, table, 1, 1000, 10000, 10000,
   ).unwrap()
   let input = @strategy.captured_task_input(run, 1, 1000, 10000).unwrap()
