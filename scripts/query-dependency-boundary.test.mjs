@@ -58,6 +58,17 @@ test('concrete Compute capacity formula is owned and exported by its connector',
   }
 });
 
+test('Host join dispatch cannot build SQL or exchange a compiled preparation request', () => {
+  const dispatch = readFileSync('src/duckdb_host/dispatch_implementations.mbt', 'utf8');
+  assert.doesNotMatch(dispatch, /@duckdb\.(?:compile_fixed_inner_join|prepare_fixed_join_inputs|prepare_fixed_join_compute)\b/);
+  const api = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
+  assert.match(api, /^type DuckDBJoinPreparation$/m);
+  assert.doesNotMatch(api, /(?:struct|enum) DuckDBJoinPreparation\b/);
+  const binding = api.split('\n').find(line => line.startsWith('pub fn bind_duckdb_join_candidate('));
+  assert.ok(binding);
+  assert.doesNotMatch(binding, /FixedComputeRequest|ProducerRead/);
+});
+
 test('fixed-input engine has no acquisition or query-integration dependency, including tests', () => {
   const forbidden = ['execution_query', 'query_planning', 'query_integration',
     'sourceview_resolution', 'program_check', 'pipeline_check_context'];

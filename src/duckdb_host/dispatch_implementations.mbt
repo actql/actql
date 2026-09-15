@@ -49,8 +49,6 @@ fn prepare_native_dispatch_work(
   request : @connector.FixedComputeRequest,
 ) -> Result[DispatchWork, DispatchIssue] {
   let registration = host.native_registration
-  let owner = @connector.fixed_compute_request_owner(request)
-  let inputs = @connector.fixed_compute_request_inputs(request)
   let generated = host.generated[task - 1]
   let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
@@ -67,14 +65,12 @@ fn prepare_native_dispatch_work(
   let prepared = if @strategy.captured_task_join_output_limit(host.run, task)
     is Some(required) {
     let query = match
-      @duckdb.compile_fixed_inner_join(
-        owner,
-        "main",
-        dispatch_input_tables(owner),
+      @duckdb_compute.compile_duckdb_join_candidate(
+        request,
         host.limits.native_query,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(NativeCandidate(Compilation(issue)))
+      Err(issue) => return Err(NativeCandidate(issue))
     }
     match
       @resources.charge_planning(
@@ -84,37 +80,27 @@ fn prepare_native_dispatch_work(
       Ok(_) => ()
       Err(issue) => return Err(Run(Physical(issue)))
     }
-    let imported = match
-      @duckdb.prepare_fixed_join_inputs(
-        query,
-        inputs,
-        host.limits.join_validation,
-        host.limits.native_query.max_entries,
-        host.limits.native_query.max_sql_bytes,
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        @strategy.stop_captured_dag(host.run)
-        return Err(JoinPreparation(issue))
-      }
-    }
     let ceiling = if required < host.limits.capacity.max_rows.to_int64() {
       required.to_int()
     } else {
       host.limits.capacity.max_rows
     }
-    let compute = match @duckdb.prepare_fixed_join_compute(imported, ceiling) {
-      Ok(value) => value
-      Err(issue) => return Err(NativeCandidate(Compilation(issue)))
+    match
+      @duckdb_compute.bind_duckdb_join_candidate(
+        registration,
+        query,
+        host.limits.join_validation,
+        ceiling,
+        [],
+        quantities,
+        host.limits.candidate_work,
+      ) {
+      Err(JoinPreparation(issue)) => {
+        @strategy.stop_captured_dag(host.run)
+        return Err(JoinPreparation(issue))
+      }
+      result => result
     }
-    @duckdb_compute.duckdb_bound_compute_candidate(
-      registration,
-      request,
-      compute,
-      [],
-      quantities,
-      host.limits.candidate_work,
-    )
   } else {
     @duckdb_compute.duckdb_fixed_compute_candidate(
       registration,

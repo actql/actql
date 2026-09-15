@@ -115,9 +115,8 @@ pub fn configure_strategy_dispatch(
         Some("unsupported_common_fragment")
       } else {
         match
-          @duckdb.check_fixed_compute_static(
+          @duckdb_compute.check_duckdb_compute_static(
             @execution.generated_sequence_owner(item),
-            dispatch_input_tables(@execution.generated_sequence_owner(item)),
             limits.native_query,
           ) {
           Ok(_) => None
@@ -237,20 +236,6 @@ pub fn prepare_next_dispatch(
   let dispatch = { owner: host, task, revision, work, consumed: false, }
   host.pending = Some(dispatch)
   Ok(Some(dispatch))
-}
-
-///|
-fn dispatch_input_tables(owner : @lower.BoundPrepared) -> Array[String] {
-  let count = @pipeline.input_count(
-    @lower.pipeline(@lower.bound_preparation(owner)),
-  )
-  Array::makei(count, index => {
-    if count == 1 {
-      "owned_input"
-    } else {
-      "owned_input_" + index.to_string()
-    }
-  })
 }
 
 ///|

@@ -132,6 +132,12 @@ array rather than borrowing mutable caller slots. The next-dispatch operation
 recovers the installed preparation entry by exact registration, never by name or
 registration position. Local and DuckDB preparation entries retain their own
 compiler and binding rules; a lookup is not permission to start or complete work.
+DuckDB join preparation keeps physical input names and compiled SQL in an opaque
+connector-owned handle. Compilation precedes the Host's preflight-work charge;
+binding and bounded input inspection follow that charge. The second phase uses
+the handle's exact original request, rather than accepting replacement inputs or
+a reconstructed checked owner. A failed input preflight stops the run without
+starting native work or falling back to another candidate.
 The next-dispatch operation
 consults the current whole-strategy revision and checked data/control readiness,
 then binds the actual completed input and validates only the selected realization.

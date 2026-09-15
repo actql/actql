@@ -3,6 +3,7 @@
 pub(all) enum DuckDBComputeCandidateIssue {
   Request(@connector.FixedComputeIssue)
   Compilation(@duckdb.NativeQueryIssue)
+  JoinPreparation(@duckdb.FixedJoinInputIssue)
 }
 
 ///|

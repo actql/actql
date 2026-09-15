@@ -6,6 +6,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
 }
 
@@ -14,7 +15,13 @@ pub fn abort_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
 pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[Unit, DuckDBComputeIssue]
 
+pub fn bind_duckdb_join_candidate(@connector_sdk.CapabilityRegistration, DuckDBJoinPreparation, @execution_relation.FixedJoinValidationLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
+
+pub fn check_duckdb_compute_static(@lowering_relation.BoundPrepared, @duckdb_adapter.NativeQueryLimits) -> Result[Unit, @duckdb_adapter.NativeQueryIssue]
+
 pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
+
+pub fn compile_duckdb_join_candidate(@connector_sdk.FixedComputeRequest, @duckdb_adapter.NativeQueryLimits) -> Result[DuckDBJoinPreparation, DuckDBComputeCandidateIssue]
 
 pub fn complete_duckdb_compute_attempt(DuckDBComputeAttempt) -> Result[@execution_relation.CompletedOutput, DuckDBComputeIssue]
 
@@ -42,6 +49,7 @@ type DuckDBComputeAttempt
 pub(all) enum DuckDBComputeCandidateIssue {
   Request(@connector_sdk.FixedComputeIssue)
   Compilation(@duckdb_adapter.NativeQueryIssue)
+  JoinPreparation(@duckdb_adapter.FixedJoinInputIssue)
 }
 
 pub(all) enum DuckDBComputeIssue {
@@ -65,6 +73,8 @@ pub(all) struct DuckDBComputeLimits {
   completion_entries : Int
   completion_name_bytes : Int
 }
+
+type DuckDBJoinPreparation
 
 // Type aliases
 
