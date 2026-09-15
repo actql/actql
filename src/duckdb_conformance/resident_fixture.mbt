@@ -61,6 +61,7 @@ fn resident_dispatch_fixture(
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     f.run.unwrap(),
+    @connector.capability_registration_at(f.registry, 1).unwrap(),
     134217728L,
     Some(1L),
     Some(cleanup),

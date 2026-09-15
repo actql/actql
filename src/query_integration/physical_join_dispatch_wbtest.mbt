@@ -43,6 +43,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     let native = if resident {
       let profile = @strategy.prepare_resident_profile(
         run,
+        @connector.capability_registration_at(registry, 1).unwrap(),
         20000000L,
         Some(0L),
         Some(0L),

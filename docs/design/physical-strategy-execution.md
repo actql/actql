@@ -143,6 +143,12 @@ The same boundary applies to receiver views: common borrowing retains an opaque
 connector read plan, while concrete transport wiring obtains its SQL. A bounded
 measurement of that plan charges the existing cumulative preparation allowance;
 the common driver does not inspect SQL to decide input identity or reuse rights.
+Each resource profile retains the exact capability registration that can realize
+it, separately from its own profile identity and later provisioned environment.
+Two profiles may belong to the same implementation; identical names and estimates
+do not make their environments interchangeable. Attaching a profile to an offer
+from another registration is rejected before comparison. Creating a profile does
+not provision resources, establish a read view or grant execution permission.
 
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned

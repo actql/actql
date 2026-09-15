@@ -108,7 +108,7 @@ pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relati
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @duckdb_adapter.FixedCompute, Int, Int, Int) -> Result[ResidentInputs, RunIssue]
 
-pub fn prepare_resident_profile(CapturedDAG, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
+pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, Int64?, Int64?, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_table(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[ResidentTable, RunIssue]
 
@@ -123,6 +123,8 @@ pub fn resident_inputs_read_plans(ResidentInputs) -> Array[@compute.DuckDBReside
 pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
 
 pub fn resident_profile_matches(CapturedDAG, ResidentProfile) -> Bool
+
+pub fn resident_profile_registration(ResidentProfile) -> @connector_sdk.CapabilityRegistration
 
 pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.ProducerRead) -> Bool
 

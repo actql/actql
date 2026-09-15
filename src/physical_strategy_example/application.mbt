@@ -357,6 +357,7 @@ pub fn application_dispatch(
   if resident {
     let profile = @strategy.prepare_resident_profile(
       run,
+      @connector.capability_registration_at(app.registry, 1).unwrap(),
       134217728L,
       Some(1L),
       Some(1L),

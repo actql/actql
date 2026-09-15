@@ -11,6 +11,7 @@ pub(all) struct ResidentImportEstimate {
 ///|
 struct ResidentProfile {
   owner : StrategyOfferOwner
+  implementation : @connector.CapabilityRegistration
   database_bytes : Int64
   preparation_ms : Int64?
   cleanup_ms : Int64?
@@ -42,13 +43,27 @@ pub fn resident_profile_matches(
 }
 
 ///|
+/// Implementation identity is separate from this particular resource profile.
+/// Equal connector names or equal capacity estimates do not establish ownership.
+pub fn resident_profile_registration(
+  profile : ResidentProfile,
+) -> @connector.CapabilityRegistration {
+  profile.implementation
+}
+
+///|
 pub fn prepare_resident_profile(
   run : CapturedDAG,
+  implementation : @connector.CapabilityRegistration,
   database_bytes : Int64,
   preparation_ms : Int64?,
   cleanup_ms : Int64?,
   imports : Array[ResidentImportEstimate],
 ) -> Result[ResidentProfile, SearchIssue] {
+  if !@connector.capability_registration_available(implementation) ||
+    !@connector.capability_description(implementation).fixed_compute {
+    return Err(InvalidCapacity)
+  }
   if database_bytes <= 0L || imports.length() != run.graph.owners.length() {
     return Err(InvalidCapacity)
   }
@@ -70,6 +85,7 @@ pub fn prepare_resident_profile(
   }
   Ok({
     owner: run.offer_owner,
+    implementation,
     database_bytes,
     preparation_ms,
     cleanup_ms,
@@ -87,7 +103,8 @@ pub fn resident_task_offer(
   profile : ResidentProfile,
 ) -> Result[TaskOffer, SearchIssue] {
   if !physical_equal(run.offer_owner, offer.owner) ||
-    !physical_equal(run.offer_owner, profile.owner) {
+    !physical_equal(run.offer_owner, profile.owner) ||
+    !physical_equal(offer.registration, profile.implementation) {
     return Err(ForeignOffer(offer.task))
   }
   if offer.capacity.execution_bytes < profile.database_bytes {

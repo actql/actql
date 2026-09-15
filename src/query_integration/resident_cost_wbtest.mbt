@@ -1,4 +1,79 @@
 ///|
+test "resource profiles bind implementation identity without identifying the resource by connector name" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  let same_names = search_registry()
+  let implementation = @connector.capability_registration_at(registry, 1).unwrap()
+  let imports = Array::make(4, @strategy.ResidentImportEstimate::{
+    milliseconds: Some(1L),
+    transfer_bytes: 20L,
+    scratch_bytes: 100L,
+    table_bytes: 80L,
+  })
+  let first = @strategy.prepare_resident_profile(
+    run,
+    implementation,
+    1000L,
+    Some(1L),
+    Some(1L),
+    imports,
+  ).unwrap()
+  let second = @strategy.prepare_resident_profile(
+    run,
+    implementation,
+    1000L,
+    Some(1L),
+    Some(1L),
+    imports,
+  ).unwrap()
+  assert_false(physical_equal(first, second))
+  assert_true(
+    physical_equal(
+      @strategy.resident_profile_registration(first),
+      implementation,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @strategy.resident_profile_registration(second),
+      implementation,
+    ),
+  )
+  let foreign = @strategy.prepare_resident_profile(
+    run,
+    @connector.capability_registration_at(same_names, 1).unwrap(),
+    1000L,
+    Some(1L),
+    Some(1L),
+    imports,
+  ).unwrap()
+  let offers = search_offers(run, registry, [1, 2, 3], Some(1L))
+  // The same run and identical descriptive name/costs do not bind another
+  // registration's resource. A Local offer cannot borrow it either.
+  assert_true(
+    @strategy.resident_task_offer(run, offers[0], first) is Err(ForeignOffer(1)),
+  )
+  assert_true(
+    @strategy.resident_task_offer(run, offers[1], foreign)
+    is Err(ForeignOffer(1)),
+  )
+  @strategy.resident_task_offer(run, offers[1], first).unwrap() |> ignore
+  @strategy.resident_task_offer(run, offers[1], second).unwrap() |> ignore
+  @connector.close_capability_registry(registry)
+  assert_true(
+    @strategy.prepare_resident_profile(
+      run,
+      implementation,
+      1000L,
+      Some(1L),
+      Some(1L),
+      imports,
+    )
+    is Err(InvalidCapacity),
+  )
+}
+
+///|
 test "whole resident strategy counts one environment and one shared X import" {
   verify_resident_cost(64000000L)
 }
@@ -27,6 +102,7 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
   captured_graph_local(run, 1, supplied_registry=Some(registry)).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
+    @connector.capability_registration_at(registry, 1).unwrap(),
     1000L,
     Some(5L),
     if unknown {
@@ -169,6 +245,7 @@ fn verify_resident_cost(
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
+    @connector.capability_registration_at(registry, 1).unwrap(),
     database_bytes,
     Some(3L),
     Some(2L),

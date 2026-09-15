@@ -61,7 +61,11 @@ pub fn configure_resident_dispatch(
     host.pending is Some(_) ||
     @strategy.strategy_history_count(host.run) != 0 ||
     rates.length() != host.generated.length() ||
-    !@strategy.resident_profile_matches(host.run, profile) {
+    !@strategy.resident_profile_matches(host.run, profile) ||
+    !physical_equal(
+      @strategy.resident_profile_registration(profile),
+      host.native_registration,
+    ) {
     return Err(InvalidConfiguration)
   }
   for row in rates {
