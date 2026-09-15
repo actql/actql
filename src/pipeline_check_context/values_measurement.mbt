@@ -19,7 +19,7 @@ pub fn measure_operation_values_rows(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(Int, Int, Int), ValuesMeasurementIssue] {
-  let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
+  let requirements = cells.requirements
   guard requirements.entries.get(requirement_index) is Some(site) else {
     return Err(InvalidRequirement)
   }
@@ -85,7 +85,7 @@ fn resolved_values_cell(
   match @values.cell_at(row, column).unwrap() {
     @values.Literal(value, ..) => Ok((value, next_binding))
     @values.Parameter(_, ..) => {
-      let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
+      let requirements = cells.requirements
       if next_binding >= requirements.entries.length() - requirement_index {
         return Err(ForeignOwner)
       }

@@ -134,7 +134,7 @@ fn resolve_values_wire_limit_metered(
     meter.nodes -= nodes
   }
   // The measurement validates the exact resource occurrence before indexing.
-  let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
+  let requirements = cells.requirements
   let site = requirements.entries[requirement_index]
   let subject = "checked-step:" + site.step.to_string()
   let limits : @wire.Limits = {

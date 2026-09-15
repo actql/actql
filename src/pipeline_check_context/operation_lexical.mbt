@@ -20,6 +20,7 @@ pub struct OperationLexicalResolution {
 
 ///|
 struct ProgramOperationLexical {
+  requirements : ProgramOperationRequirements
   cells : ProgramOperationCells
   profile : @environment.SelectedTextRankProfile?
   entries : Array[OperationLexicalResolution]
@@ -40,10 +41,9 @@ pub fn check_program_operation_lexical(
     return Err(BudgetExceeded)
   }
   let b = { remaining: max_work - cells.work - 1, }
-  let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
-  let policy = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected
-  let environment = @environment.capacity_environment(policy.capacity)
-  let stages = policy.context.wired.stages
+  let requirements = cells.requirements
+  let environment = @environment.capacity_environment(requirements.capacity)
+  let stages = requirements.stages
   let entries : Array[OperationLexicalResolution] = []
   try {
     match profile {
@@ -109,7 +109,7 @@ pub fn check_program_operation_lexical(
         }
       }
     }
-    Ok({ cells, profile, entries, work: max_work - b.remaining, })
+    Ok({ cells, requirements, profile, entries, work: max_work - b.remaining, })
   } catch {
     OperationScalarStop(_) => Err(BudgetExceeded)
   }

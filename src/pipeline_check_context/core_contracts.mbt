@@ -256,7 +256,7 @@ pub fn collect_core_contracts(
     return Err(InvalidLimits)
   }
   if profile_checks is Some(checks) {
-    let owner = checks.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements.expressions.identity
+    let owner = checks.requirements.expressions.identity
     if !physical_equal(owner, identity) {
       return Err(ForeignProfiles)
     }

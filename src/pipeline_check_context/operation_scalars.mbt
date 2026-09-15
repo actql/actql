@@ -27,6 +27,7 @@ pub struct OperationScalarResolution {
 
 ///|
 struct ProgramOperationScalars {
+  requirements : ProgramOperationRequirements
   orders : ProgramOperationOrders
   entries : Array[OperationScalarResolution]
   work : Int
@@ -188,7 +189,7 @@ pub fn check_program_operation_scalars(
       }
       entries.push({ requirement_index: i, site, parameter, value, })
     }
-    Ok({ orders, entries, work: max_work - b.remaining, })
+    Ok({ orders, requirements, entries, work: max_work - b.remaining, })
   } catch {
     OperationScalarStop(issue) => Err(issue)
   }

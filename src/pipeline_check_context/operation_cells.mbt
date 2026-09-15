@@ -18,6 +18,7 @@ pub struct OperationCellResolution {
 
 ///|
 struct ProgramOperationCells {
+  requirements : ProgramOperationRequirements
   queries : ProgramOperationQueries
   entries : Array[OperationCellResolution]
   by_requirement : Map[Int, Int]
@@ -39,7 +40,7 @@ pub fn check_program_operation_cells(
     return Err(BudgetExceeded)
   }
   let b = { remaining: max_work - queries.work - 1, }
-  let requirements = queries.ranges.fills.frames.scalars.orders.requirements
+  let requirements = queries.requirements
   let stages = requirements.stages
   let entries : Array[OperationCellResolution] = []
   let by_requirement : Map[Int, Int] = Map([])
@@ -114,7 +115,13 @@ pub fn check_program_operation_cells(
         parameter,
       })
     }
-    Ok({ queries, entries, by_requirement, work: max_work - b.remaining, })
+    Ok({
+      queries,
+      requirements,
+      entries,
+      by_requirement,
+      work: max_work - b.remaining,
+    })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))

@@ -88,7 +88,7 @@ pub fn index_program_operation_resolutions(
   let frames = fills.frames
   let scalars = frames.scalars
   let orders = scalars.orders
-  let requirements = orders.requirements
+  let requirements = profiles.requirements
   let count = requirements.entries.length()
   if profiles.work >= max_work || count > max_requirements {
     return Err(BudgetExceeded)

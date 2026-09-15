@@ -36,7 +36,7 @@ pub fn check_values_wire_bound(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ValuesWireBound, ValuesWireBoundIssue] {
-  let requirements = cells.queries.ranges.fills.frames.scalars.orders.requirements
+  let requirements = cells.requirements
   guard requirements.entries.get(requirement_index) is Some(site) else {
     return Err(Measurement(InvalidRequirement))
   }

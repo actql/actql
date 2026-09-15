@@ -514,6 +514,31 @@ fn check_operation_closure(
 }
 
 ///|
+test "profile preparation retains the exact original requirement inventory" {
+  let text = scalar_steps(
+    "{\"sort\":[{\"id\":\"asc\"}]},{\"take\":{\"$param\":\"n\"}}",
+  )
+  let first = operation_order_fixture(text)
+  let second = operation_order_fixture(text)
+  assert_true(!physical_equal(first, second))
+  for original in [first, second] {
+    let profiles = resolution_profiles(original)
+    let index = index_program_operation_resolutions(profiles, 10000000, 1000).unwrap()
+    assert_true(
+      physical_equal(operation_resolution_requirements(index), original),
+    )
+    for i in 0..<operation_requirements_count(original) {
+      assert_true(
+        physical_equal(
+          operation_requirements_at(operation_resolution_requirements(index), i).unwrap(),
+          operation_requirements_at(original, i).unwrap(),
+        ),
+      )
+    }
+  }
+}
+
+///|
 test "resolution index covers all static result families with exact occurrence ownership" {
   let seen = Array::make(8, false)
   check_resolution_index(

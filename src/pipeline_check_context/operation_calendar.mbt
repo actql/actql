@@ -20,6 +20,7 @@ pub struct OperationCalendarResolution {
 
 ///|
 struct ProgramOperationCalendar {
+  requirements : ProgramOperationRequirements
   lexical : ProgramOperationLexical
   profile : @environment.SelectedCalendarProfile?
   entries : Array[OperationCalendarResolution]
@@ -40,10 +41,9 @@ pub fn check_program_operation_calendar(
     return Err(BudgetExceeded)
   }
   let b = { remaining: max_work - lexical.work - 1, }
-  let requirements = lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements
-  let policy = requirements.expressions.identity.sources.operations.preparation.profiles.context.selected
-  let environment = @environment.capacity_environment(policy.capacity)
-  let stages = policy.context.wired.stages
+  let requirements = lexical.requirements
+  let environment = @environment.capacity_environment(requirements.capacity)
+  let stages = requirements.stages
   let entries : Array[OperationCalendarResolution] = []
   try {
     match profile {
@@ -116,7 +116,13 @@ pub fn check_program_operation_calendar(
         }
       }
     }
-    Ok({ lexical, profile, entries, work: max_work - b.remaining, })
+    Ok({
+      lexical,
+      requirements,
+      profile,
+      entries,
+      work: max_work - b.remaining,
+    })
   } catch {
     OperationScalarStop(_) => Err(BudgetExceeded)
   }

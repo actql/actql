@@ -20,6 +20,7 @@ pub struct OperationFrameResolution {
 
 ///|
 struct ProgramOperationFrames {
+  requirements : ProgramOperationRequirements
   scalars : ProgramOperationScalars
   entries : Array[OperationFrameResolution]
   work : Int
@@ -62,7 +63,7 @@ pub fn check_program_operation_frames(
     return Err(BudgetExceeded)
   }
   let budget = { remaining: max_work - scalars.work - 1, }
-  let requirements = scalars.orders.requirements
+  let requirements = scalars.requirements
   let stages = requirements.stages
   let entries : Array[OperationFrameResolution] = []
   try {
@@ -119,7 +120,7 @@ pub fn check_program_operation_frames(
         end_parameter,
       })
     }
-    Ok({ scalars, entries, work: max_work - budget.remaining, })
+    Ok({ scalars, requirements, entries, work: max_work - budget.remaining, })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))

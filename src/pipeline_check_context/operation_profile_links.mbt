@@ -19,6 +19,7 @@ pub struct OperationProfileResolution {
 
 ///|
 struct ProgramOperationProfileLinks {
+  requirements : ProgramOperationRequirements
   calendar : ProgramOperationCalendar
   entries : Array[OperationProfileResolution]
   work : Int
@@ -38,9 +39,9 @@ pub fn link_program_operation_profiles(
   if calendar.work >= max_work {
     return Err(BudgetExceeded)
   }
-  let requirements = calendar.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements
-  let checks = requirements.expressions.identity.sources.operations
-  let stages = checks.preparation.profiles.context.selected.context.wired.stages
+  let requirements = calendar.requirements
+  let checks = requirements.profile_checks
+  let stages = requirements.stages
   let entries : Array[OperationProfileResolution] = []
   let mut work = calendar.work + 1
   let mut lexical_index = 0
@@ -109,7 +110,7 @@ pub fn link_program_operation_profiles(
   if lexical_index != calendar.lexical.entries.length() {
     return Err(UnconsumedLexical)
   }
-  Ok({ calendar, entries, work, })
+  Ok({ calendar, requirements, entries, work, })
 }
 
 ///|

@@ -30,7 +30,7 @@ pub fn link_program_incoming(
     limits.max_requirements < 0 {
     return Err(InvalidLimits)
   }
-  let requirements = profiles.calendar.lexical.cells.queries.ranges.fills.frames.scalars.orders.requirements
+  let requirements = profiles.requirements
   let identity = requirements.expressions.identity
   if !physical_equal(identity, incoming.identity) {
     return Err(ForeignIdentity)

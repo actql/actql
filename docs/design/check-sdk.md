@@ -179,6 +179,13 @@ wrappers to recover that information. Phase-specific checked types still record
 what was validated; retaining a narrow shared reference does not make an earlier
 phase a later successful one.
 
+Operation resolution phases retain the same immutable requirement inventory
+directly. That inventory retains its Stage contexts, selected capacity environment
+and checker-profile evidence. Scalar, frame, fill, range, query, cell and profile
+checks do not recover the inventory by traversing their predecessors. Predecessor
+results remain available where their actual resolutions are needed; retaining
+the inventory alone does not establish that any such resolution succeeded.
+
 Shared information is immutable within a construction. No mutable universal
 Context or generic proof constructor replaces operation-specific validation.
 Public boundaries that accept independently built handles reject foreign

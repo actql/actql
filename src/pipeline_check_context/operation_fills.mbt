@@ -18,6 +18,7 @@ pub struct OperationFillResolution {
 
 ///|
 struct ProgramOperationFills {
+  requirements : ProgramOperationRequirements
   frames : ProgramOperationFrames
   entries : Array[OperationFillResolution]
   work : Int
@@ -70,7 +71,7 @@ pub fn check_program_operation_fills(
     return Err(BudgetExceeded)
   }
   let budget = { remaining: max_work - frames.work - 1, }
-  let requirements = frames.scalars.orders.requirements
+  let requirements = frames.requirements
   let stages = requirements.stages
   let entries : Array[OperationFillResolution] = []
   try {
@@ -143,7 +144,7 @@ pub fn check_program_operation_fills(
       }
       entries.push({ requirement_index: i, site, pivot, parameter, target, })
     }
-    Ok({ frames, entries, work: max_work - budget.remaining, })
+    Ok({ frames, requirements, entries, work: max_work - budget.remaining, })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))

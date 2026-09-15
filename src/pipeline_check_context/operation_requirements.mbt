@@ -23,6 +23,8 @@ struct ProgramOperationRequirements {
   // The collector establishes this exact shared owner once. Consumers need
   // stage capacity and bindings, not the expression preparation history.
   stages : StageContexts
+  capacity : @environment.Capacity
+  profile_checks : OperationProfileChecks
   entries : Array[OperationRequirementSite]
   work : Int
 }
@@ -43,8 +45,10 @@ pub fn collect_program_operation_requirements(
     return Err(BudgetExceeded)
   }
   work += 1
-  let preparation = expressions.identity.sources.operations.preparation
-  let stages = preparation.profiles.context.selected.context.wired.stages
+  let profile_checks = expressions.identity.sources.operations
+  let preparation = profile_checks.preparation
+  let capacity = preparation.profiles.context.selected.capacity
+  let stages = expressions.identity.contexts
   let entries : Array[OperationRequirementSite] = []
   for stage in 0..<stages.contexts.length() {
     if work == max_work {
@@ -97,7 +101,7 @@ pub fn collect_program_operation_requirements(
       }
     }
   }
-  Ok({ expressions, stages, entries, work, })
+  Ok({ expressions, stages, capacity, profile_checks, entries, work, })
 }
 
 ///|

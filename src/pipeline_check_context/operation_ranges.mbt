@@ -20,6 +20,7 @@ pub struct OperationRangeResolution {
 
 ///|
 struct ProgramOperationRanges {
+  requirements : ProgramOperationRequirements
   fills : ProgramOperationFills
   entries : Array[OperationRangeResolution]
   work : Int
@@ -82,7 +83,7 @@ pub fn check_program_operation_ranges(
     return Err(BudgetExceeded)
   }
   let b = { remaining: max_work - fills.work - 1, }
-  let requirements = fills.frames.scalars.orders.requirements
+  let requirements = fills.requirements
   let stages = requirements.stages
   let entries : Array[OperationRangeResolution] = []
   try {
@@ -145,7 +146,7 @@ pub fn check_program_operation_ranges(
         end_parameter,
       })
     }
-    Ok({ fills, entries, work: max_work - b.remaining, })
+    Ok({ fills, requirements, entries, work: max_work - b.remaining, })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))

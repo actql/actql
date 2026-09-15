@@ -26,6 +26,7 @@ pub struct OperationQueryResolution {
 
 ///|
 struct ProgramOperationQueries {
+  requirements : ProgramOperationRequirements
   ranges : ProgramOperationRanges
   entries : Array[OperationQueryResolution]
   work : Int
@@ -89,7 +90,7 @@ pub fn check_program_operation_queries(
     return Err(BudgetExceeded)
   }
   let b = { remaining: max_work - ranges.work - 1, }
-  let requirements = ranges.fills.frames.scalars.orders.requirements
+  let requirements = ranges.requirements
   let stages = requirements.stages
   let entries : Array[OperationQueryResolution] = []
   let mut previous : (Int, Int, Int)? = None
@@ -178,7 +179,7 @@ pub fn check_program_operation_queries(
       }
       entries.push({ requirement_index: i, site, query, })
     }
-    Ok({ ranges, entries, work: max_work - b.remaining, })
+    Ok({ ranges, requirements, entries, work: max_work - b.remaining, })
   } catch {
     OperationScalarStop(BudgetExceeded) => Err(BudgetExceeded)
     OperationScalarStop(issue) => Err(Scalar(issue))
