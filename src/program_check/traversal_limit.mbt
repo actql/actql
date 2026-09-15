@@ -49,6 +49,7 @@ fn assemble_traversal_limit(
   source : UnitOperationSource,
   selected : @context.TraversalLimitsCheck,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> TraversalLimit raise UnitBuildFailure {
   guard physical_equal(source.pipeline, selected.site.pipeline) &&
     source.source_ordinal == selected.site.step &&
@@ -114,6 +115,7 @@ fn assemble_traversal_limit(
     ],
     budget,
     output_guard=guard_witness,
+    conversion~,
   )
   { source, selected, paths: limits[0], output: limits[1], proofs, }
 }
@@ -123,6 +125,7 @@ fn prepare_program_traversal_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[TraversalLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -168,7 +171,13 @@ fn prepare_program_traversal_limits(
     guard unit_operation_source(unit, site.pipeline, site.step) is Some(source) else {
       raise ForeignOwner
     }
-    let limit = assemble_traversal_limit(units, source, selected, remaining)
+    let limit = assemble_traversal_limit(
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[site.stage].push(limit)
   }

@@ -5,6 +5,7 @@ fn prepare_program_group_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[GroupLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -35,7 +36,13 @@ fn prepare_program_group_limits(
       raise ForeignOwner
     }
     let source = GroupAggregateSource::{ operation, call, scope: "items", }
-    let limit = assemble_group_array_limit(units, source, selected, remaining)
+    let limit = assemble_group_array_limit(
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[check.site.stage].push(limit)
   }

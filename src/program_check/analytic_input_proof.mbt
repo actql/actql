@@ -104,6 +104,7 @@ fn analytic_input_proof(
   limit : @context.GroupArrayLimit,
   candidate : Int,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> AnalyticInputProof raise UnitBuildFailure {
   guard source.call.function is @relation.Aggregate(aggregate) &&
     @context.group_array_limit_input_law(limit) ==
@@ -150,6 +151,7 @@ fn analytic_input_proof(
     units,
     @step_bounds.target_rows_bound(@capacity.target_membership_rows(membership)),
     remaining,
+    conversion~,
   )
   let subject = analytic_aggregate_subject_with_budget(source, remaining)
   let proof = array_input_claim(

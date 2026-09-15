@@ -49,6 +49,7 @@ fn assemble_components_limit(
   source : UnitOperationSource,
   selected : @context.ComponentsLimitsCheck,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> ComponentsLimit raise UnitBuildFailure {
   guard physical_equal(source.pipeline, selected.site.pipeline) &&
     source.source_ordinal == selected.site.step &&
@@ -99,6 +100,7 @@ fn assemble_components_limit(
     ],
     budget,
     output_guard=guard_witness,
+    conversion~,
   )
   { source, selected, nodes: limits[0], output: limits[1], proofs, }
 }
@@ -108,6 +110,7 @@ fn prepare_program_components_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[ComponentsLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -147,7 +150,13 @@ fn prepare_program_components_limits(
     guard unit_operation_source(unit, site.pipeline, site.step) is Some(source) else {
       raise ForeignOwner
     }
-    let limit = assemble_components_limit(units, source, selected, remaining)
+    let limit = assemble_components_limit(
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[site.stage].push(limit)
   }

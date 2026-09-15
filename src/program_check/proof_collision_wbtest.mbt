@@ -33,12 +33,34 @@ test "persistent append operands distinguish equal local CIDs by owned occurrenc
       [local_bound, producer],
       max_input_work=1000,
     ).unwrap()
-    let converted = reidentify_step_graph(program.units, bound, {
+    let conversion_budget = IdentityBudget::{
       work: 100000000,
       bytes: 10000000,
       nodes: 1000000,
       depth: 100,
-    })
+    }
+    let calls = []
+    let session = proof_conversion(
+      program.units,
+      conversion_budget,
+      on_construct=Some(v => calls.push(v)),
+    )
+    let converted = reidentify_step_graph(
+      program.units,
+      bound,
+      conversion_budget,
+      conversion=Some(session),
+    )
+    for (original, index) in [(local_bound, 0), (producer, 1)] {
+      let reused = reidentify_step_graph(
+        program.units,
+        original,
+        conversion_budget,
+        conversion=Some(session),
+      )
+      assert_true(physical_equal(reused, converted.inputs[index]))
+    }
+    assert_eq(calls.length(), if repeated { 2 } else { 3 })
     assert_eq(converted.inputs.length(), 2)
     let left = @wire.cid(@wire.program_proof_witness(converted.inputs[0].proof))
     let right = @wire.cid(

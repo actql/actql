@@ -67,6 +67,7 @@ fn assemble_interval_search_limit(
   source : UnitOperationSource,
   selected : @context.IntervalSearchCheck,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> IntervalSearchLimit raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, 1)
@@ -137,6 +138,7 @@ fn assemble_interval_search_limit(
         units,
         @step_bounds.target_rows_bound(rows),
         remaining,
+        conversion~,
       )
       let witness = @wire.program_proof_witness(proof.proof)
       if @wire.value(witness) != @step_bounds.target_rows_value(rows) {
@@ -187,6 +189,7 @@ fn prepare_program_interval_search_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[IntervalSearchLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -231,7 +234,11 @@ fn prepare_program_interval_search_limits(
       raise ForeignOwner
     }
     let limit = assemble_interval_search_limit(
-      units, source, selected, remaining,
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
     )
     identity_charge(remaining, 1)
     result[site.stage].push(limit)

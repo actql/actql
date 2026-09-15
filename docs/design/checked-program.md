@@ -1803,6 +1803,19 @@ Paths/spans and embedded-expression ranges remain available for diagnostics.
 Returned collections cannot mutate the sealed result, and large arrays are not
 copied before the caller can apply its preparation budget.
 
+Proof conversion uses one private session per Program construction attempt,
+shared by publication and operation-limit assembly. The session indexes Unit
+owners once and caches converted operation and Graph-input bounds by their exact
+admitted object ownership. Source coordinates and local CIDs are lookup buckets,
+not ownership or persistent identity. Equal-CID bounds from different owners
+remain separate; repeated uses of one bound retain every operand occurrence
+while sharing its constructed result. Lookup, references and each limit emission
+remain charged; a shared hash/admission is charged only when performed. A failed
+conversion invalidates the session, and a failed enclosing construction discards
+it. No mutable session is returned in CheckedProgram or retained across attempts.
+Explicit reconstruction APIs use fresh bounded sessions; ordinary retained
+readers neither rebuild nor incur hidden cross-call cache state.
+
 Analytic limits and their input proofs are retained during construction. Normal
 consumers use `unit_analytic_limit_count/at` followed by
 `analytic_limit_proof_count/at`; these reads neither search the requirement

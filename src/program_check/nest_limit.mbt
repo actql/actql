@@ -98,6 +98,7 @@ fn assemble_nest_limits(
   source : NestResourceSource,
   envelope : @context.NestValueEnvelope,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> NestLimits raise UnitBuildFailure {
   let selected = envelope.items
   // Validates the exact owner even when no authored restriction exists.
@@ -118,6 +119,7 @@ fn assemble_nest_limits(
         @capacity.target_membership_rows(membership),
       ),
       budget,
+      conversion~,
     )
     let proof = array_input_claim(
       input, subject, "actql.bound.array-aggregate-input", budget,
@@ -195,6 +197,7 @@ fn assemble_nest_limits(
         @capacity.target_membership_rows(membership),
       ),
       budget,
+      conversion~,
     )
     parents.push({ membership, input, })
   }
@@ -206,6 +209,7 @@ fn prepare_program_nest_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[NestLimits]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -231,7 +235,13 @@ fn prepare_program_nest_limits(
       is Some(source) else {
       raise ForeignOwner
     }
-    let value = assemble_nest_limits(units, source, check.envelope, remaining)
+    let value = assemble_nest_limits(
+      units,
+      source,
+      check.envelope,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[check.site.stage].push(value)
   }

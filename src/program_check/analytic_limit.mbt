@@ -69,6 +69,7 @@ fn assemble_analytic_array_limit(
   source : AnalyticAggregateSource,
   selected : @context.GroupArrayLimit,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> AnalyticLimit raise UnitBuildFailure {
   let max_depth = budget.depth
   let host = publication_host(@context.group_array_limit_host(selected), budget)
@@ -95,7 +96,14 @@ fn assemble_analytic_array_limit(
   identity_charge(budget, count)
   let mut non_author = @wire.value(host_witness)
   for candidate in 0..<count {
-    let proof = analytic_input_proof(units, source, selected, candidate, budget)
+    let proof = analytic_input_proof(
+      units,
+      source,
+      selected,
+      candidate,
+      budget,
+      conversion~,
+    )
     let witness = @wire.program_proof_witness(proof.proof)
     non_author = Int64::min(non_author, @wire.value(witness))
     candidates.push((@wire.cid(witness), witness))

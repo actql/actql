@@ -39,6 +39,7 @@ fn assemble_window_limit(
   source : UnitOperationSource,
   selected : @context.WindowMembershipLimit,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> WindowLimit raise UnitBuildFailure {
   let execution = @context.window_membership_bound_execution(selected.bounds)
   guard physical_equal(selected.site.pipeline, source.pipeline) &&
@@ -70,7 +71,14 @@ fn assemble_window_limit(
   let count = @context.window_membership_bound_candidate_count(selected.bounds)
   identity_charge(budget, count)
   for candidate in 0..<count {
-    let proof = window_input_proof(units, source, selected, candidate, budget)
+    let proof = window_input_proof(
+      units,
+      source,
+      selected,
+      candidate,
+      budget,
+      conversion~,
+    )
     let witness = @wire.program_proof_witness(proof.proof)
     candidates.push((@wire.cid(witness), witness))
     inputs.push(proof.input)
@@ -94,6 +102,7 @@ fn prepare_program_window_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[WindowLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -134,7 +143,13 @@ fn prepare_program_window_limits(
     guard unit_operation_source(unit, site.pipeline, site.step) is Some(source) else {
       raise ForeignOwner
     }
-    let value = assemble_window_limit(units, source, selected, remaining)
+    let value = assemble_window_limit(
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[site.stage].push(value)
   }

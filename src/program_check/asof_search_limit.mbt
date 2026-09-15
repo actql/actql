@@ -67,6 +67,7 @@ fn assemble_asof_search_limit(
   source : UnitOperationSource,
   selected : @context.AsOfSearchCheck,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> AsOfSearchLimit raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, 1)
@@ -133,6 +134,7 @@ fn assemble_asof_search_limit(
         units,
         @step_bounds.target_rows_bound(rows),
         remaining,
+        conversion~,
       )
       let witness = @wire.program_proof_witness(proof.proof)
       if @wire.value(witness) != @step_bounds.target_rows_value(rows) {
@@ -183,6 +185,7 @@ fn prepare_program_asof_search_limits(
   units : Array[BuiltUnit],
   requirements : @context.StageRequirementClosure,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[Array[AsOfSearchLimit]] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -225,7 +228,13 @@ fn prepare_program_asof_search_limits(
     guard unit_operation_source(unit, site.pipeline, site.step) is Some(source) else {
       raise ForeignOwner
     }
-    let limit = assemble_asof_search_limit(units, source, selected, remaining)
+    let limit = assemble_asof_search_limit(
+      units,
+      source,
+      selected,
+      remaining,
+      conversion~,
+    )
     identity_charge(remaining, 1)
     result[site.stage].push(limit)
   }

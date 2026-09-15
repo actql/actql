@@ -29,6 +29,7 @@ fn prepare_publication_execution(
   budget : IdentityBudget,
   units? : Array[BuiltUnit]? = None,
   producers? : Array[BuiltUnit]? = None,
+  conversion? : ProofConversion? = None,
 ) -> PublicationExecution raise UnitBuildFailure {
   guard unit.publication_rows.get(index) is Some(selection) else {
     raise ForeignOwner
@@ -56,7 +57,12 @@ fn prepare_publication_execution(
     @context.publication_row_limit_host(selection),
     remaining,
   )
-  let proofs = publication_proofs(units.unwrap_or([unit]), selection, remaining)
+  let proofs = publication_proofs(
+    units.unwrap_or([unit]),
+    selection,
+    remaining,
+    conversion~,
+  )
   let rows = prepare_publication_row_artifact(
     unit,
     index,

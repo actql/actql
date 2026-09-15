@@ -41,6 +41,7 @@ fn publication_host(
 fn prepare_unit_publications(
   units : Array[BuiltUnit],
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[BuiltUnit] raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, units.length())
@@ -56,6 +57,7 @@ fn prepare_unit_publications(
           remaining,
           units=Some(units),
           producers=Some(completed),
+          conversion~,
         ),
       )
     }

@@ -166,6 +166,7 @@ pub fn check(
     depth: max_depth,
   }
   check_supported_source(program, budget)
+  let conversions : Array[ProofConversion] = []
   let (identity, requirements, gates, contracts, units) = construct_local(
     program,
     supplied,
@@ -178,7 +179,9 @@ pub fn check(
     numeric_profile~,
     calendar~,
     text_rank~,
+    conversion_out=Some(conversions),
   )
+  let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
     error => raise Units(error)
   }
@@ -197,13 +200,28 @@ pub fn check(
   let input_completeness = prepare_input_completeness(units, budget) catch {
     error => raise Units(error)
   }
-  let nest_limits = prepare_program_nest_limits(units, requirements, budget) catch {
+  let nest_limits = prepare_program_nest_limits(
+    units,
+    requirements,
+    budget,
+    conversion~,
+  ) catch {
     error => raise Units(error)
   }
-  let group_limits = prepare_program_group_limits(units, requirements, budget) catch {
+  let group_limits = prepare_program_group_limits(
+    units,
+    requirements,
+    budget,
+    conversion~,
+  ) catch {
     error => raise Units(error)
   }
-  let window_limits = prepare_program_window_limits(units, requirements, budget) catch {
+  let window_limits = prepare_program_window_limits(
+    units,
+    requirements,
+    budget,
+    conversion~,
+  ) catch {
     error => raise Units(error)
   }
   let sequence_limits = prepare_program_sequence_limits(
@@ -212,27 +230,42 @@ pub fn check(
     error => raise Units(error)
   }
   let components_limits = prepare_program_components_limits(
-    units, requirements, budget,
+    units,
+    requirements,
+    budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }
   let traversal_limits = prepare_program_traversal_limits(
-    units, requirements, budget,
+    units,
+    requirements,
+    budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }
   let interval_search_limits = prepare_program_interval_search_limits(
-    units, requirements, budget,
+    units,
+    requirements,
+    budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }
   let analytic_limits = prepare_program_analytic_limits(
-    units, requirements, budget,
+    units,
+    requirements,
+    budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }
   let asof_search_limits = prepare_program_asof_search_limits(
-    units, requirements, budget,
+    units,
+    requirements,
+    budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }
@@ -265,6 +298,7 @@ pub fn check(
     units,
     units[0].source_execution,
     budget,
+    conversion~,
   ) catch {
     error => raise Units(error)
   }

@@ -22,6 +22,7 @@ fn construct_local(
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
+  conversion_out? : Array[ProofConversion]? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -131,13 +132,23 @@ fn construct_local(
   let units = build_units(contracts, requirements, gates, remaining) catch {
     e => raise Units(e)
   }
-  let units = prepare_unit_publications(units, remaining) catch {
+  let conversion = proof_conversion(units, remaining) catch {
+    e => raise Units(e)
+  }
+  let units = prepare_unit_publications(
+    units,
+    remaining,
+    conversion=Some(conversion),
+  ) catch {
     e => raise Units(e)
   }
   // No partial result or externally visible budget mutation on late failure.
   budget.work = remaining.work
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
+  if conversion_out is Some(output) {
+    output.push(conversion)
+  }
   (identity, requirements, gates, contracts, units)
 }
 

@@ -3,8 +3,15 @@ fn publication_proofs(
   units : Array[BuiltUnit],
   selected : @context.PublicationRowLimit,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[ReidentifiedStep] raise UnitBuildFailure {
   let count = @context.publication_row_limit_program_count(selected)
+  let conversion = Some(
+    match conversion {
+      Some(session) => session
+      None => proof_conversion(units, budget)
+    },
+  )
   identity_charge(budget, count)
   let proofs : Array[ReidentifiedStep] = []
   for i in 0..<count {
@@ -12,7 +19,7 @@ fn publication_proofs(
     let bound = @step_bounds.target_rows_bound(
       @capacity.target_membership_rows(candidate.membership),
     )
-    proofs.push(reidentify_step_graph(units, bound, budget))
+    proofs.push(reidentify_step_graph(units, bound, budget, conversion~))
   }
   proofs
 }

@@ -93,6 +93,7 @@ fn group_input_proof(
   limit : @context.GroupArrayLimit,
   candidate : Int,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> GroupInputProof raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, 1)
@@ -134,6 +135,7 @@ fn group_input_proof(
     units,
     @step_bounds.target_rows_bound(@capacity.target_membership_rows(membership)),
     remaining,
+    conversion~,
   )
   let subject = group_aggregate_subject_with_budget(source, remaining)
   let proof = array_input_claim(

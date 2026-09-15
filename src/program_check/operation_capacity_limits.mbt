@@ -8,6 +8,7 @@ fn assemble_operation_capacity_limits(
   scopes : Array[(@wire.LimitClaim, String, String)],
   budget : IdentityBudget,
   output_guard? : @wire.WireWitness? = None,
+  conversion? : ProofConversion? = None,
 ) -> (Array[@wire.LimitClaim], Array[ReidentifiedStep]) raise UnitBuildFailure {
   let arithmetic = @wire.program_claim_arithmetic(
     @step_bounds.application_claims(applications),
@@ -38,7 +39,12 @@ fn assemble_operation_capacity_limits(
           let proof = match converted.get(node) {
             Some(v) => v
             None => {
-              let value = reidentify_step_graph(units, bound, budget)
+              let value = reidentify_step_graph(
+                units,
+                bound,
+                budget,
+                conversion~,
+              )
               converted[node] = value
               proofs.push(value)
               value

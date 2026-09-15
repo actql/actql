@@ -12,6 +12,7 @@ fn prepare_keyed_input_proofs(
   units : Array[BuiltUnit],
   checks : Array[SourceExecution],
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> Array[KeyedInputProof] raise UnitBuildFailure {
   let out = []
   // Coordinates are local to the already audited Stage closure. Repeated
@@ -57,7 +58,7 @@ fn prepare_keyed_input_proofs(
         proof
       }
       None => {
-        let proof = reidentify_step_graph(units, original, budget)
+        let proof = reidentify_step_graph(units, original, budget, conversion~)
         converted[key] = proof
         proof
       }

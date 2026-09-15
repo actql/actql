@@ -53,6 +53,7 @@ fn window_input_proof(
   limit : @context.WindowMembershipLimit,
   candidate : Int,
   budget : IdentityBudget,
+  conversion? : ProofConversion? = None,
 ) -> WindowInputProof raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   identity_charge(remaining, 1)
@@ -99,6 +100,7 @@ fn window_input_proof(
       @capacity.target_membership_rows(selected.input),
     ),
     remaining,
+    conversion~,
   )
   let proof = window_input_claim(
     input,
