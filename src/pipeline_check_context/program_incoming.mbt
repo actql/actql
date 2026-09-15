@@ -115,9 +115,6 @@ pub fn collect_program_incoming(
     limits.max_requirements < 0 {
     return Err(InvalidLimits)
   }
-  if identity.work > limits.max_work {
-    return Err(BudgetExceeded)
-  }
   let wired = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs.wired
   let wiring = wired.wiring
   let source = @stage_results.wiring_source(wiring)
@@ -129,7 +126,7 @@ pub fn collect_program_incoming(
     return Err(InconsistentSource)
   }
   let b = {
-    work: limits.max_work - identity.work,
+    work: limits.max_work,
     names: limits.max_name_units,
     entries: limits.max_requirements,
   }
@@ -263,6 +260,8 @@ pub fn program_incoming_at(
 }
 
 ///|
+/// Inventory work and name units consumed by this call, excluding identity
+/// construction. Consumers compose this increment once with other preparation.
 pub fn program_incoming_usage(v : ProgramIncomingRequirements) -> (Int, Int) {
   (v.work, v.name_units)
 }

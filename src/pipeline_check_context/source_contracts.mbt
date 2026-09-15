@@ -39,11 +39,10 @@ pub fn collect_source_contracts(
     return Err(InvalidLimits)
   }
   let count = context.wired.stages.contexts.length()
-  if context.usage.work >= limits.max_work ||
-    count > limits.max_work - context.usage.work - 1 {
+  if limits.max_work == 0 || count > limits.max_work - 1 {
     return Err(BudgetExceeded)
   }
-  let mut work = context.usage.work + 1 + count
+  let mut work = 1 + count
   let mut inputs = 0
   let mut references = 0
   let stages = []
@@ -86,11 +85,10 @@ pub fn bind_program_source_contracts(
   if !physical_equal(context, requirements.context) {
     return Err(ForeignContext)
   }
-  let added = requirements.work - context.usage.work
-  if identity.work >= max_work || added > max_work - identity.work - 1 {
+  if max_work == 0 {
     return Err(BudgetExceeded)
   }
-  Ok({ identity, requirements, work: identity.work + added + 1, })
+  Ok({ identity, requirements, work: 1, })
 }
 
 ///|
@@ -101,6 +99,7 @@ pub fn source_contract_context(
 }
 
 ///|
+/// Collection work only; the admitted context is not prepared again.
 pub fn source_contract_usage(v : SourceContractRequirements) -> (Int, Int, Int) {
   (v.work, v.inputs, v.references)
 }
@@ -175,6 +174,7 @@ pub fn program_source_contract_requirements(
 }
 
 ///|
+/// Binding work only; neither input's prior preparation is charged here.
 pub fn program_source_contract_work(v : ProgramSourceContracts) -> Int {
   v.work
 }

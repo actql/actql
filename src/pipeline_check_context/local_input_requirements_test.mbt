@@ -105,8 +105,7 @@ test "prepared Local inputs retain raw admission requirements without assuming p
     let without_inputs = operation_resolution_work(
         incoming_links_resolutions(linked),
       ) +
-      program_incoming_usage(incoming).0 -
-      program_identity_usage(identity).0 +
+      program_incoming_usage(incoming).0 +
       1
     assert_eq(used - without_inputs, 7) // two stages, one input, four name units
     assert_true(

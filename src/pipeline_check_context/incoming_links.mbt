@@ -35,9 +35,9 @@ pub fn link_program_incoming(
   if !physical_equal(identity, incoming.identity) {
     return Err(ForeignIdentity)
   }
-  // Both branches already include identity.work. Count that shared prefix once,
-  // but include all branch-specific work and the joining check itself.
-  let extra = incoming.work - identity.work
+  // The incoming inventory reports new work only. Its identity was already
+  // prepared by the operation branch and is verified above, not charged again.
+  let extra = incoming.work
   if profiles.work >= limits.max_work ||
     extra > limits.max_work - profiles.work - 1 ||
     incoming.name_units > limits.max_name_units ||
@@ -77,7 +77,7 @@ pub fn link_resolved_program_incoming(
   if !physical_equal(identity, incoming.identity) {
     return Err(ForeignIdentity)
   }
-  let extra = incoming.work - identity.work
+  let extra = incoming.work
   if resolutions.work >= limits.max_work ||
     extra > limits.max_work - resolutions.work - 1 ||
     incoming.name_units > limits.max_name_units ||

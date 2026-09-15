@@ -228,13 +228,6 @@ fn core_numeric_contracts(
 }
 
 ///|
-// Bridge the remaining local allowance to helpers that still expose cumulative
-// input-prefix work. Saturate the cap, never overflow or charge the prefix here.
-fn core_contract_phase_limit(prefix : Int, remaining : Int) -> Int {
-  prefix + Int::min(remaining, 2147483647 - prefix)
-}
-
-///|
 /// Collect expression body references and adopted operation laws from every
 /// owned Stage/producer/step and selected Catalog reference. This is not the
 /// complete Unit closure or interface identity. Unsupported selected Catalog
@@ -289,10 +282,7 @@ pub fn collect_core_contracts(
   let context = identity.sources.operations.preparation.sources.capacity.context.rows.requests.inputs
   // Only the remaining Program work may be spent on the source branch.
   // Reserve the owner join before the branch can allocate its inventory.
-  let source_work_limit = core_contract_phase_limit(
-    context.usage.work,
-    limits.max_work - 1,
-  )
+  let source_work_limit = limits.max_work - 1
   let requirements = match
     collect_source_contracts(context, {
       max_work: source_work_limit,
@@ -306,15 +296,15 @@ pub fn collect_core_contracts(
     bind_program_source_contracts(
       identity,
       requirements,
-      core_contract_phase_limit(identity.work, limits.max_work),
+      limits.max_work - requirements.work,
     ) {
     Ok(value) => value
     Err(issue) => return Err(SourceInventory(issue))
   }
-  let used = sources.work - identity.work
+  let used = requirements.work + sources.work
   let incoming = match
     collect_program_incoming(identity, {
-      max_work: core_contract_phase_limit(identity.work, limits.max_work - used),
+      max_work: limits.max_work - used,
       max_name_units: limits.max_work - used,
       max_requirements: limits.max_roots,
     }) {
@@ -327,7 +317,7 @@ pub fn collect_core_contracts(
     bodies: [],
     seen: {},
     dependencies: {},
-    work: used + (incoming.work - identity.work),
+    work: used + incoming.work,
     edges: 0,
     hash_limits,
     hash_bytes: 0,

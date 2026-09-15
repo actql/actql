@@ -278,7 +278,7 @@ fn prepare_owned_closure(
   let values_nodes = values_nodes + metadata_nodes
   let incoming = match
     @context.collect_program_incoming(identity, {
-      max_work: prefix + (ceiling - resolution_work),
+      max_work: ceiling - resolution_work,
       max_name_units: ceiling - resolution_work,
       max_requirements: ceiling - resolution_work,
     }) {

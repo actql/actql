@@ -106,7 +106,7 @@ test "core contract collection preserves owned occurrences and shares dependency
     4 * steps +
     35 +
     26 +
-    (program_incoming_usage(incoming).0 - program_identity_usage(identity).0) +
+    program_incoming_usage(incoming).0 +
     6 +
     4 +
     core_contract_root_count(inventory) +

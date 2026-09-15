@@ -105,7 +105,7 @@ fn check_source_contract_inventory(
   let (work, inputs, references) = source_contract_usage(v)
   assert_eq(inputs, expected_inputs)
   assert_eq(references, refs * expected_inputs)
-  assert_eq(work, reconciled_usage(context).work + 1 + 2 + expected_inputs)
+  assert_eq(work, 1 + 2 + expected_inputs)
   let exact : SourceContractLimits = {
     max_work: work,
     max_inputs: inputs,
@@ -303,7 +303,8 @@ test "source contract inventories join only their original Program identity cont
     physical_equal(program_source_contract_requirements(v), requirements),
   )
   let work = program_source_contract_work(v)
-  assert_eq(work, program_identity_usage(identity).0 + 4)
+  assert_eq(source_contract_usage(requirements).0, 3)
+  assert_eq(work, 1)
   assert_true(
     bind_program_source_contracts(identity, requirements, work) is Ok(_),
   )

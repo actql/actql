@@ -45,7 +45,7 @@ test "incoming and operation branches require the same Program admission owner" 
   )
   assert_true(operation_resolution_unresolved_count(resolutions) > 0)
   let expected = operation_resolution_work(resolutions) +
-    (incoming_work - program_identity_usage(identity).0) +
+    incoming_work +
     1 +
     4 + // two stages, one local declaration and its one-unit name
     2 // one selected snapshot and its one-unit input name
@@ -163,8 +163,7 @@ test "incoming integration retains unexecuted top-tie checks from unused operati
   }
   // The old branch-only allowance cannot conceal the cost of building coverage.
   let prior = operation_profile_links_work(profiles) +
-    program_incoming_usage(incoming).0 -
-    program_identity_usage(identity).0 +
+    program_incoming_usage(incoming).0 +
     1
   assert_true(
     link_program_incoming(profiles, incoming, { ..caps, max_work: prior, })

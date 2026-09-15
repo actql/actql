@@ -97,7 +97,7 @@ test "incoming requirements join exact local identities and checked Result ports
     }
     let (work, names) = program_incoming_usage(v)
     // Every name unit is also aggregate work, independently of the name cap.
-    assert_true(work > program_identity_usage(identity).0 + names)
+    assert_true(work > names)
     let exact : IncomingLimits = {
       max_work: work,
       max_name_units: names,
@@ -109,7 +109,7 @@ test "incoming requirements join exact local identities and checked Result ports
         { ..exact, max_work: work - 1, },
         { ..exact, max_name_units: names - 1, },
         { ..exact, max_requirements: 1, },
-        { ..exact, max_work: program_identity_usage(identity).0, },
+        { ..exact, max_work: 0, },
       ] {
       assert_true(
         collect_program_incoming(identity, short) is Err(BudgetExceeded),
