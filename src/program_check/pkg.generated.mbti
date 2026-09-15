@@ -420,10 +420,6 @@ pub fn traversal_limit_source(TraversalLimit) -> UnitOperationSource
 
 pub fn unit_analytic_aggregate_source_at(CheckedProgram, Int, Int, Int) -> AnalyticAggregateSource?
 
-pub fn unit_analytic_array_limit(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> AnalyticLimit raise UnitBuildFailure
-
-pub fn unit_analytic_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> AnalyticInputProof raise UnitBuildFailure
-
 pub fn unit_analytic_limit_at(CheckedProgram, Int, Int) -> AnalyticLimit?
 
 pub fn unit_analytic_limit_count(CheckedProgram, Int) -> Int?
@@ -462,11 +458,7 @@ pub fn unit_gate_cid_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_group_aggregate_source_at(CheckedProgram, Int, Int, Int) -> GroupAggregateSource?
 
-pub fn unit_group_array_limit(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupLimit raise UnitBuildFailure
-
 pub fn unit_group_guard_witness(CheckedProgram, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> @capacity_witness.WireWitness? raise UnitBuildFailure
-
-pub fn unit_group_input_proof(CheckedProgram, Int, Int, Int, Int, max_work~ : Int, max_bytes~ : Int, max_nodes~ : Int, max_depth~ : Int) -> GroupInputProof raise UnitBuildFailure
 
 pub fn unit_group_limit_at(CheckedProgram, Int, Int) -> GroupLimit?
 

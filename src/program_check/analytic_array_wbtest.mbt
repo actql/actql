@@ -79,16 +79,12 @@ test "formal analytic arrays select an admitted input row proof" {
     }
     assert_eq((short.work, short.bytes, short.nodes), prior)
   }
-  let converted = unit_analytic_input_proof(
-    programs[0],
-    1,
-    2,
+  let converted = analytic_input_proof(
+    programs[0].units,
+    analytic_limit_source(assembled),
+    analytic_limit_selection(assembled),
     0,
-    0,
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
+    { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
   )
   let source = analytic_input_proof_source(converted)
   let retained = analytic_limit_proof_at(assembled, 0).unwrap()
@@ -136,16 +132,12 @@ test "formal analytic arrays select an admitted input row proof" {
   assert_eq(@wire.program_proof_input_at(proof, 0), Some(@wire.cid(input)))
   for candidate in [-1, 1] {
     try {
-      let _ = unit_analytic_input_proof(
-        programs[0],
-        1,
-        2,
-        0,
+      let _ = analytic_input_proof(
+        programs[0].units,
+        analytic_limit_source(assembled),
+        analytic_limit_selection(assembled),
         candidate,
-        max_work=100000000,
-        max_bytes=10000000,
-        max_nodes=1000000,
-        max_depth=100,
+        { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
       )
       fail("invalid candidate admitted")
     } catch {
@@ -154,16 +146,12 @@ test "formal analytic arrays select an admitted input row proof" {
     }
   }
   try {
-    let _ = unit_analytic_input_proof(
-      programs[0],
-      1,
-      2,
+    let _ = analytic_input_proof(
+      programs[0].units,
+      analytic_limit_source(assembled),
+      analytic_limit_selection(assembled),
       0,
-      0,
-      max_work=0,
-      max_bytes=10000000,
-      max_nodes=1000000,
-      max_depth=100,
+      { work: 0, bytes: 10000000, nodes: 1000000, depth: 100, },
     )
     fail("unbudgeted proof conversion")
   } catch {

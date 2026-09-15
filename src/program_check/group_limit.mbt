@@ -32,33 +32,6 @@ pub fn group_limit_proof_at(v : GroupLimit, index : Int) -> GroupInputProof? {
 }
 
 ///|
-/// Reconstruct one owned limit; this is neither runtime enforcement nor a Plan.
-pub fn unit_group_array_limit(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> GroupLimit raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let (source, selected) = owned_group_array_limit(
-    program, stage, step, aggregate, budget,
-  )
-  assemble_group_array_limit(program.units, source, selected, budget)
-}
-
-///|
 fn assemble_group_array_limit(
   units : Array[BuiltUnit],
   source : GroupAggregateSource,

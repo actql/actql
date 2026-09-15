@@ -146,17 +146,17 @@ actual call, and `group_aggregate_subject` renders the normative escaped-name
 reference under an explicit work bound. Callers cannot supply substitute names,
 scope strings or Unit CIDs. This location is not itself a wire proof: persistent
 witness/limit reconstruction and backend enforcement remain separate requirements.
-`unit_group_input_proof` converts one selected array-input candidate from the
-completed Program under shared preparation limits. The result retains the exact
+The formal constructor converts selected array-input candidates under shared
+preparation limits. Each retained proof records the exact
 aggregate occurrence and target membership, the reidentified row-proof graph,
 and a separately admitted `array_items` proof/witness under the aggregate law.
 The input witness remains measured in rows; its dependencies and required checks
 are not erased by the new law application. Indexed scope selection cannot accept
 an independently supplied Unit CID or substitute an equal-valued candidate.
-This reader does not select a new limit, complete runtime checks, or emit the
-aggregate's full resolved-limit envelope with Host and author-guard candidates.
-`unit_group_array_limit` performs that assembly for one owned ordinary-array
-occurrence. It retains the selected Host witness and every authored guard,
+Consumers use `unit_group_limit_count/at` followed by `group_limit_proof_count/at`
+to read these retained results without fresh ownership searches or conversion.
+The constructor also assembles each owned ordinary-array limit occurrence.
+It retains the selected Host witness and every authored guard,
 converts the selected Program candidates and their dependency graphs, and admits
 the resulting arithmetic closure and canonical resolved-limit envelope. The
 effective maximum is checked against all candidates; ties leave an author guard
@@ -1820,16 +1820,17 @@ while sharing its constructed result. Lookup, references and each limit emission
 remain charged; a shared hash/admission is charged only when performed. A failed
 conversion invalidates the session, and a failed enclosing construction discards
 it. No mutable session is returned in CheckedProgram or retained across attempts.
-Explicit reconstruction APIs use fresh bounded sessions; ordinary retained
-readers neither rebuild nor incur hidden cross-call cache state.
+Internal independent reconstruction tests use fresh bounded sessions; ordinary
+retained readers neither rebuild nor incur hidden cross-call cache state.
 
 Analytic limits and their input proofs are retained during construction. Normal
 consumers use `unit_analytic_limit_count/at` followed by
 `analytic_limit_proof_count/at`; these reads neither search the requirement
-closure nor reconstruct the proof graph. `unit_analytic_array_limit` and
-`unit_analytic_input_proof` are explicit bounded reconstruction paths for
-revalidation under fresh conversion limits, not prerequisites for reading a
-completed Program. Their public ownership checks remain in force.
+closure nor reconstruct the proof graph. Array-limit and input-proof assembly
+are constructor responsibilities, not alternative public reading paths. Internal
+assembly checks still reject foreign occurrences, invalid candidates and budget
+exhaustion; removing redundant reconstruction entry points does not remove those
+checks or change the admitted artifacts.
 
 Lowering consumes these decisions without re-resolving names, re-inferring keys
 or order, choosing substitute policy or combining independently supplied checker

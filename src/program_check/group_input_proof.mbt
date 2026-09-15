@@ -29,33 +29,6 @@ pub fn group_input_proof_claim(v : GroupInputProof) -> @wire.ProgramProofClaim {
 }
 
 ///|
-pub fn unit_group_input_proof(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  candidate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> GroupInputProof raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let (source, limit) = owned_group_array_limit(
-    program, stage, step, aggregate, budget,
-  )
-  group_input_proof(program.units, source, limit, candidate, budget)
-}
-
-///|
 fn owned_group_array_limit(
   program : CheckedProgram,
   stage : Int,

@@ -33,69 +33,6 @@ pub fn analytic_input_proof_claim(
 }
 
 ///|
-/// Rebuilds one proof under fresh conversion limits for bounded revalidation.
-/// Normal consumers read the retained proof with analytic_limit_proof_at instead.
-pub fn unit_analytic_input_proof(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  candidate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> AnalyticInputProof raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let (source, limit) = owned_analytic_array_limit(
-    program, stage, step, aggregate, budget,
-  )
-  analytic_input_proof(program.units, source, limit, candidate, budget)
-}
-
-///|
-fn owned_analytic_array_limit(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  budget : IdentityBudget,
-) -> (AnalyticAggregateSource, @context.GroupArrayLimit) raise UnitBuildFailure {
-  guard unit_analytic_aggregate_source_at(program, stage, step, aggregate)
-    is Some(source) else {
-    raise ForeignOwner
-  }
-  guard source.call.function is @relation.Aggregate(aggregate) &&
-    source.scope == "items" else {
-    raise ForeignOwner
-  }
-  let closure = @context.stage_requirement_operations(requirements(program))
-  for index in 0..<@context.operation_closure_count(closure) {
-    identity_charge(budget, 1)
-    guard @context.operation_closure_at(closure, index)
-      is Some(ExecutionCheck(AnalyticExecution(check))) &&
-      check.rule is EnforceArrayItems(call, limit) &&
-      physical_equal(call, source.call) &&
-      check.site.stage == stage &&
-      physical_equal(check.site.pipeline, source.operation.pipeline) &&
-      check.site.step == step &&
-      physical_equal(@context.group_array_limit_call(limit), aggregate) else {
-      continue
-    }
-    return (source, limit)
-  }
-  raise ForeignOwner
-}
-
-///|
 // The input remains a rows witness. This separate law application bounds each
 // array and retains the exact input membership and its prerequisite graph.
 fn analytic_input_proof(

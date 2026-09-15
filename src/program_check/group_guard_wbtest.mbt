@@ -26,16 +26,7 @@ test "group guard witnesses retain bound values and omit absent guards" {
       extra_step_budget=2,
     )
     let program = programs[0]
-    let limit = unit_group_array_limit(
-      program,
-      1,
-      0,
-      0,
-      max_work=10000000,
-      max_bytes=1000000,
-      max_nodes=100000,
-      max_depth=100,
-    )
+    let limit = unit_group_limit_at(program, 1, 0).unwrap()
     assert_eq(group_limit_proof_count(limit), 0)
     let out = @encode.writer(100000, 10000, 100)
     @wire.emit_limit(group_limit_claim(limit), out)

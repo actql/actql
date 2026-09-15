@@ -36,34 +36,6 @@ pub fn analytic_limit_proof_at(
 }
 
 ///|
-/// Reconstruct one owned limit; this is neither runtime enforcement nor a Plan.
-/// Use unit_analytic_limit_at for normal reads of a completed CheckedProgram.
-pub fn unit_analytic_array_limit(
-  program : CheckedProgram,
-  stage : Int,
-  step : Int,
-  aggregate : Int,
-  max_work~ : Int,
-  max_bytes~ : Int,
-  max_nodes~ : Int,
-  max_depth~ : Int,
-) -> AnalyticLimit raise UnitBuildFailure {
-  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
-    raise BudgetExceeded
-  }
-  let budget = IdentityBudget::{
-    work: max_work,
-    bytes: max_bytes,
-    nodes: max_nodes,
-    depth: max_depth,
-  }
-  let (source, selected) = owned_analytic_array_limit(
-    program, stage, step, aggregate, budget,
-  )
-  assemble_analytic_array_limit(program.units, source, selected, budget)
-}
-
-///|
 fn assemble_analytic_array_limit(
   units : Array[BuiltUnit],
   source : AnalyticAggregateSource,

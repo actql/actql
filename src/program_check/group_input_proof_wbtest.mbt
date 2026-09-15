@@ -13,16 +13,7 @@ test "array item proofs preserve row bounds and reject foreign aggregate ownersh
   )
   let program = programs[0]
   let source = unit_group_aggregate_source_at(program, 1, 2, 0).unwrap()
-  let resolved = unit_group_array_limit(
-    program,
-    1,
-    2,
-    0,
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
-  )
+  let resolved = unit_group_limit_at(program, 1, 0).unwrap()
   assert_true(group_limit_proof_count(resolved) > 0)
   let out = @encode.writer(100000, 10000, 100)
   @wire.emit_limit(group_limit_claim(resolved), out)
@@ -71,17 +62,7 @@ test "array item proofs preserve row bounds and reject foreign aggregate ownersh
         @wire.cid(@wire.program_proof_witness(repeated.proof)),
         @wire.cid(@wire.program_proof_witness(converted.proof)),
       )
-      let public_result = unit_group_input_proof(
-        program,
-        1,
-        2,
-        0,
-        candidate,
-        max_work=100000000,
-        max_bytes=10000000,
-        max_nodes=1000000,
-        max_depth=100,
-      )
+      let public_result = group_limit_proof_at(resolved, candidate).unwrap()
       assert_eq(
         @wire.cid(
           @wire.program_proof_witness(group_input_proof_claim(public_result)),
