@@ -33,6 +33,11 @@ pub fn begin_resident_environment(
   guard strategy_resident_profile(revision, task) is Some(profile) else {
     return Err(ForeignCandidate)
   }
+  if !@connector.capability_registration_available(
+      resident_profile_registration(profile),
+    ) {
+    return Err(ForeignCandidate)
+  }
   guard strategy_task_envelope(run, task) is Some(envelope) else {
     return Err(ForeignCandidate)
   }
@@ -95,6 +100,12 @@ pub fn confirm_resident_environment(
   if !owns_resident_environment(run, env) {
     return Err(ForeignCandidate)
   }
+  guard env.profile is Some(profile) &&
+    @connector.capability_registration_available(
+      resident_profile_registration(profile),
+    ) else {
+    return Err(ForeignCandidate)
+  }
   if run.stopped ||
     @resources.shared_capacity_usage(env.capacity).closing ||
     env.settled {
@@ -121,6 +132,15 @@ pub fn resident_environment_available(
   env.ready &&
   !@resources.shared_capacity_usage(env.capacity).closing &&
   !env.settled
+}
+
+///|
+/// Binding identity is diagnostic/ownership context, not proof of availability.
+/// Availability and reservation remain properties of the exact environment.
+pub fn resident_environment_resource_binding(
+  env : ResidentEnvironment,
+) -> @connector.ResourceBinding? {
+  env.profile.map(profile => profile.binding)
 }
 
 ///|

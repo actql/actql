@@ -66,6 +66,8 @@ pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Re
 
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
+pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> Result[ResourceBinding, CapabilityInstallationIssue]
+
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
 
 pub fn[T, E, P] prepared_execution_available(PreparedExecution[T, E, P]) -> Bool
@@ -75,6 +77,8 @@ pub fn[T, E, P] prepared_execution_candidate(PreparedExecution[T, E, P]) -> Fixe
 pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> ExecutionCapacity
 
 pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P]) -> (Int, Int64)?
+
+pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
 
 pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]]
 
@@ -198,6 +202,8 @@ pub(all) struct QueryQuantities {
   retained_bytes : Int64?
   money_units : Int64?
 }
+
+type ResourceBinding
 
 type SynchronousCompute
 

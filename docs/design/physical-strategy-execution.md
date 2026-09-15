@@ -331,12 +331,19 @@ The same boundary applies to receiver views: common borrowing retains the owned
 input lease, while the connector retains its read plan and obtains its SQL. A bounded
 measurement of that plan charges the existing cumulative preparation allowance;
 the common driver does not inspect SQL to decide input identity or reuse rights.
-Each resource profile retains the exact capability registration that can realize
-it, separately from its own profile identity and later provisioned environment.
-Two profiles may belong to the same implementation; identical names and estimates
-do not make their environments interchangeable. Attaching a profile to an offer
-from another registration is rejected before comparison. Creating a profile does
-not provision resources, establish a read view or grant execution permission.
+Each resource profile retains an opaque `connector_sdk.ResourceBinding`, whose
+exact capability registration identifies the implementation. Binding identity,
+cost-profile identity, logical input identity and the later provisioned environment
+are distinct. One implementation may have multiple bindings; equal names, costs
+or content CIDs do not merge them. Creating a binding is pure trusted Host wiring,
+not resource provision, permission to access a source, a read view or a start
+permit. Concrete resource configuration stays with the connector. Attaching a
+profile to an offer from another registration is rejected before comparison.
+The environment retains the selected binding throughout reservation and cleanup.
+Closing its implementation registration rejects new provision and pending
+confirmation, without discharging an existing reservation or rewriting the
+binding needed for recovery. Replacing a released environment with another binding
+cannot recover its old copy; accumulated transfer usage remains charged.
 
 The physical ledger operates without
 depending on a planner, driver or concrete connector. These are opaque owned

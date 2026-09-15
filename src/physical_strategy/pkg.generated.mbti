@@ -104,7 +104,7 @@ pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedCo
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @connector_sdk.FixedComputeCandidate, Int, Int, Int, (Int, ResidentTable, @execution_relation.ProducerRead, Int) -> Result[Int, RunIssue]) -> Result[ResidentInputs, RunIssue]
 
-pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.CapabilityRegistration, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
+pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.ResourceBinding, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
 
@@ -116,11 +116,15 @@ pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physi
 
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
+pub fn resident_environment_resource_binding(ResidentEnvironment) -> @connector_sdk.ResourceBinding?
+
 pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
 
 pub fn resident_profile_matches(CapturedDAG, ResidentProfile) -> Bool
 
 pub fn resident_profile_registration(ResidentProfile) -> @connector_sdk.CapabilityRegistration
+
+pub fn resident_profile_resource_binding(ResidentProfile) -> @connector_sdk.ResourceBinding
 
 pub fn resident_read_matches(CapturedDAG, ResidentRead, @execution_relation.ProducerRead) -> Bool
 

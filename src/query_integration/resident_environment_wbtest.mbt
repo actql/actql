@@ -19,7 +19,10 @@ test "resident provision freezes dispatch and search until binding or close" {
   )
   let profile = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(registry, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
     100L,
     @strategy.prepare_shared_work(
       run,
@@ -57,7 +60,10 @@ test "resident provision freezes dispatch and search until binding or close" {
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(registry, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,
@@ -345,7 +351,10 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(registry, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,

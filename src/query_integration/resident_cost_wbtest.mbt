@@ -17,7 +17,7 @@ test "resource profiles bind implementation identity without identifying the res
   })
   let first = @strategy.prepare_resident_profile(
     run,
-    implementation,
+    @connector.prepare_resource_binding(registry, implementation).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,
@@ -35,7 +35,7 @@ test "resource profiles bind implementation identity without identifying the res
   ).unwrap()
   let second = @strategy.prepare_resident_profile(
     run,
-    implementation,
+    @connector.prepare_resource_binding(registry, implementation).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,
@@ -66,7 +66,10 @@ test "resource profiles bind implementation identity without identifying the res
   )
   let foreign = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(same_names, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      same_names,
+      @connector.capability_registration_at(same_names, 1).unwrap(),
+    ).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,
@@ -99,7 +102,7 @@ test "resource profiles bind implementation identity without identifying the res
   assert_true(
     @strategy.prepare_resident_profile(
       run,
-      implementation,
+      @strategy.resident_profile_resource_binding(first),
       1000L,
       @strategy.prepare_shared_work(
         run,
@@ -148,7 +151,10 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
   captured_graph_local(run, 1, supplied_registry=Some(registry)).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(registry, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
     1000L,
     @strategy.prepare_shared_work(
       run,
@@ -313,7 +319,10 @@ fn verify_resident_cost(
   }).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
-    @connector.capability_registration_at(registry, 1).unwrap(),
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
     database_bytes,
     @strategy.prepare_shared_work(
       run,

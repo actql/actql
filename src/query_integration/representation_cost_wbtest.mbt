@@ -21,7 +21,7 @@ test "shared representation capacity is independent of Host result capacity" {
     }).unwrap()
     let profile = @strategy.prepare_resident_profile(
       run,
-      registration,
+      @connector.prepare_resource_binding(registry, registration).unwrap(),
       1000L,
       @strategy.prepare_shared_work(
         run,

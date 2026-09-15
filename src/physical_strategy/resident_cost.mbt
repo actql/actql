@@ -11,7 +11,7 @@ pub(all) struct ResidentImportEstimate {
 ///|
 struct ResidentProfile {
   owner : StrategyOfferOwner
-  implementation : @connector.CapabilityRegistration
+  binding : @connector.ResourceBinding
   database_bytes : Int64
   preparation : SharedWorkEstimate
   cleanup : SharedWorkEstimate
@@ -48,18 +48,26 @@ pub fn resident_profile_matches(
 pub fn resident_profile_registration(
   profile : ResidentProfile,
 ) -> @connector.CapabilityRegistration {
-  profile.implementation
+  @connector.resource_binding_registration(profile.binding)
+}
+
+///|
+pub fn resident_profile_resource_binding(
+  profile : ResidentProfile,
+) -> @connector.ResourceBinding {
+  profile.binding
 }
 
 ///|
 pub fn prepare_resident_profile(
   run : CapturedDAG,
-  implementation : @connector.CapabilityRegistration,
+  binding : @connector.ResourceBinding,
   database_bytes : Int64,
   preparation : SharedWorkEstimate,
   cleanup : SharedWorkEstimate,
   imports : Array[ResidentImportEstimate],
 ) -> Result[ResidentProfile, SearchIssue] {
+  let implementation = @connector.resource_binding_registration(binding)
   if !@connector.capability_registration_available(implementation) ||
     !@connector.capability_description(implementation).fixed_compute {
     return Err(InvalidCapacity)
@@ -85,7 +93,7 @@ pub fn prepare_resident_profile(
   }
   Ok({
     owner: run.offer_owner,
-    implementation,
+    binding,
     database_bytes,
     preparation,
     cleanup,
@@ -105,7 +113,7 @@ pub fn resident_task_offer(
 ) -> Result[TaskOffer, SearchIssue] {
   if !physical_equal(run.offer_owner, offer.owner) ||
     !physical_equal(run.offer_owner, profile.owner) ||
-    !physical_equal(offer.registration, profile.implementation) {
+    !physical_equal(offer.registration, resident_profile_registration(profile)) {
     return Err(ForeignOffer(offer.task))
   }
   if output_bytes < 0L ||

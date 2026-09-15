@@ -97,7 +97,7 @@ test "shared preparation copy and cleanup inventories compose without charging s
   ).unwrap()
   let profile = @strategy.prepare_resident_profile(
     run,
-    registration,
+    @connector.prepare_resource_binding(registry, registration).unwrap(),
     1000L,
     preparation,
     cleanup,
@@ -179,20 +179,35 @@ test "shared work cannot smuggle another graph owner into a resource profile" {
   })
   assert_true(
     @strategy.prepare_resident_profile(
-      run, registration, 1000L, other, owned, imports,
+      run,
+      @connector.prepare_resource_binding(registry, registration).unwrap(),
+      1000L,
+      other,
+      owned,
+      imports,
     )
     is Err(InvalidCapacity),
   )
   assert_true(
     @strategy.prepare_resident_profile(
-      run, registration, 1000L, owned, other, imports,
+      run,
+      @connector.prepare_resource_binding(registry, registration).unwrap(),
+      1000L,
+      owned,
+      other,
+      imports,
     )
     is Err(InvalidCapacity),
   )
   imports[0] = { ..imports[0], work: other, }
   assert_true(
     @strategy.prepare_resident_profile(
-      run, registration, 1000L, owned, owned, imports,
+      run,
+      @connector.prepare_resource_binding(registry, registration).unwrap(),
+      1000L,
+      owned,
+      owned,
+      imports,
     )
     is Err(InvalidCapacity),
   )
