@@ -214,9 +214,10 @@ test "resident provision freezes dispatch and search until binding or close" {
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 12L)
   assert_true(
     @strategy.borrow_resident_table(run, table, 1, 1000, 10000, fn(
-      imported,
+      table,
       input,
     ) {
+      let imported = @strategy.resident_table_import(table)
       let plan = @duckdb_compute.prepare_duckdb_resident_read(
         rejected.val.unwrap(),
         input,

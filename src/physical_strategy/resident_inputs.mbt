@@ -22,7 +22,7 @@ pub fn prepare_resident_inputs(
   max_entries : Int,
   max_name_bytes : Int,
   max_representation_bytes : Int,
-  prepare_view : (Int, @duckdb.ResidentImport, @execution.ProducerRead, Int) -> Result[
+  prepare_view : (Int, ResidentTable, @execution.ProducerRead, Int) -> Result[
     Int,
     RunIssue,
   ],
@@ -55,8 +55,8 @@ pub fn prepare_resident_inputs(
         task,
         max_entries,
         max_name_bytes,
-        fn(imported, input) {
-          prepare_view(port, imported, input, remaining).map(bytes => {
+        fn(table, input) {
+          prepare_view(port, table, input, remaining).map(bytes => {
             measured.val = bytes
           })
         },

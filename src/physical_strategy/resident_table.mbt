@@ -4,6 +4,7 @@ struct ResidentTable {
   environment : ResidentEnvironment
   producer : Int
   imported : @duckdb.ResidentImport
+  storage : @execution.ProducerStorage
   allocation : @resources.SharedAllocation
   mut committed : Bool
   mut import_started : Bool
@@ -103,6 +104,7 @@ pub fn prepare_resident_storage(
     environment: env,
     producer,
     imported,
+    storage,
     allocation,
     committed: false,
     import_started: false,
@@ -193,7 +195,7 @@ pub fn confirm_resident_table(
     @resources.shared_allocation_usage(table.allocation).retiring {
     return Err(NotReady)
   }
-  if !@duckdb.resident_import_available(table.imported) {
+  if !@execution.producer_storage_available(table.storage) {
     return Err(Read(ProducerUnavailable))
   }
   table.committed = true
@@ -208,7 +210,7 @@ pub fn borrow_resident_table(
   task : Int,
   max_entries : Int,
   max_name_bytes : Int,
-  prepare_view : (@duckdb.ResidentImport, @execution.ProducerRead) -> Result[
+  prepare_view : (ResidentTable, @execution.ProducerRead) -> Result[
     Unit,
     RunIssue,
   ],
@@ -227,7 +229,15 @@ pub fn borrow_resident_table(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match prepare_view(table.imported, input) {
+  // Receiver/producer ownership is a common contract, not an adapter's
+  // optional view-compilation check. This only builds a bounded index mapping;
+  // it neither copies rows nor re-admits their values.
+  match
+    @execution.producer_storage_projection(table.storage, input, max_entries) {
+    Ok(_) => ()
+    Err(issue) => return Err(Read(issue))
+  }
+  match prepare_view(table, input) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -235,6 +245,7 @@ pub fn borrow_resident_table(
     !owns_resident_table(run, table) ||
     !table.committed ||
     !resident_environment_available(run, table.environment) ||
+    !@execution.producer_storage_available(table.storage) ||
     !@execution.producer_read_available(input) {
     return Err(ForeignCandidate)
   }
@@ -260,6 +271,7 @@ pub fn resident_read_matches(
   read.table.committed &&
   !@resources.shared_allocation_usage(read.table.allocation).retiring &&
   resident_environment_available(run, read.table.environment) &&
+  @execution.producer_storage_available(read.table.storage) &&
   @execution.producer_read_available(input)
 }
 

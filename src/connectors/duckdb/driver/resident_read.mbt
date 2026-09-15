@@ -15,7 +15,8 @@ pub fn borrow_resident_table(
     task,
     max_entries,
     max_name_bytes,
-    fn(imported, input) {
+    fn(table, input) {
+      let imported = @strategy.resident_table_import(table)
       @compute.prepare_duckdb_resident_read(
         imported, input, view_name, max_entries, max_sql_bytes,
       )
@@ -72,7 +73,8 @@ pub fn prepare_resident_inputs(
     max_entries,
     max_name_bytes,
     max_sql_bytes,
-    fn(port, imported, input, remaining) {
+    fn(port, table, input, remaining) {
+      let imported = @strategy.resident_table_import(table)
       guard @duckdb.fixed_compute_import(compute, port) is Some(fixed) &&
         physical_equal(@duckdb.fixed_import_input(fixed), input) else {
         return Err(ForeignCandidate)

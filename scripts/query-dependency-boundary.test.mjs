@@ -221,7 +221,7 @@ test('resident output lifecycle does not own table names or materialization SQL'
   assert.ok(state);
   assert.doesNotMatch(state, /table_name|query :|max_sql_bytes|limits :/);
   assert.doesNotMatch(source, /DuckDBResidentOutput|@duckdb_compute|ResidentQuery|FixedQuery/);
-  assert.match(source, /resident_import_matches_output\(imported, output\)/);
+  assert.match(source, /producer_storage_matches_output\(storage, output\)/);
   const preparation = readFileSync('src/physical_strategy/resident_execution.mbt', 'utf8');
   assert.doesNotMatch(preparation, /DuckDBComputeLimits|TransportColumnLimits|@duckdb_compute|fixed_compute_query/);
   const commonApi = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
@@ -245,7 +245,10 @@ test('resident borrowers do not store or export concrete view SQL', () => {
   assert.doesNotMatch(source, /@duckdb\.resident_import_receiver_sql/);
   assert.doesNotMatch(source, /@duckdb_compute\.prepare_duckdb_resident_read\(/);
   assert.doesNotMatch(source, /DuckDBResidentRead|@duckdb_compute/);
+  assert.match(source, /producer_storage_projection\(table\.storage, input, max_entries\)/);
+  assert.match(source, /prepare_view : \(ResidentTable, @execution\.ProducerRead\)/);
   const inputSet = readFileSync('src/physical_strategy/resident_inputs.mbt', 'utf8');
+  assert.doesNotMatch(inputSet, /@duckdb\b|ResidentImport/);
   assert.doesNotMatch(inputSet, /fixed_query_input_table\(|fixed_compute_query\(/);
   assert.doesNotMatch(inputSet, /DuckDBResidentRead|@duckdb_compute/);
   assert.doesNotMatch(inputSet, /@duckdb\.(?:FixedCompute|fixed_compute_import|fixed_import_input)/);

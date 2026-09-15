@@ -14,6 +14,14 @@ pub fn resident_import_available(value : ResidentImport) -> Bool {
 }
 
 ///|
+/// Exact immutable storage association; this is not a consumer binding.
+pub fn resident_import_storage(
+  value : ResidentImport,
+) -> @execution.ProducerStorage {
+  value.storage
+}
+
+///|
 pub fn resident_import_matches_storage(
   value : ResidentImport,
   storage : @execution.ProducerStorage,

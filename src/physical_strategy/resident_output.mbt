@@ -174,13 +174,15 @@ fn publish_resident_output(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !@duckdb.resident_import_matches_output(imported, output) {
+  let storage = @duckdb.resident_import_storage(imported)
+  if !@execution.producer_storage_matches_output(storage, output) {
     return Err(ForeignCandidate)
   }
   pending.environment.tables[task] = Some({
     environment: pending.environment,
     producer: task,
     imported,
+    storage,
     allocation: pending.allocation,
     committed: true,
     import_started: true,

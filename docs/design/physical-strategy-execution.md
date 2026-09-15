@@ -249,9 +249,13 @@ is not accepted as the owned input.
 Resident receiver view preparation likewise belongs to the DuckDB driver. Its
 trusted preparation checks exact import and ProducerRead affinity and measures
 the actual plan bytes. `DuckDBResidentInputs` holds concrete plans and the common
-borrow-set handle without exposing a constructor. The common borrower rechecks
-environment and input liveness before acquiring a shared borrow; it stores no
-view plan. The ordered input-set boundary enforces the cumulative measured-byte
+borrow-set handle without exposing a constructor. View callbacks receive the
+common table handle, not a DuckDB import. Before invoking them, the common borrower
+resolves the input against the table's exact `ProducerStorage`, rejecting a
+different producer allocation even if its contents match. This bounded metadata
+projection performs no row copy or value re-admission. The common borrower also
+rechecks environment, storage and input liveness before acquiring a shared borrow;
+it stores no view plan. The ordered input-set boundary enforces the cumulative measured-byte
 allowance and returns earlier borrowers if any later port fails preparation.
 These preparation callbacks are trusted connector wiring, not Program-provided
 verification callbacks or permission to perform I/O.
@@ -274,8 +278,8 @@ construction limits in a connector-owned opaque plan. The shared output lifecycl
 retains its allocation, commit state and pending input cleanup, and checks exact
 task/input completion before binding the completed storage to that plan. The plan
 alone is not completion evidence or authority to publish a reusable copy.
-The same boundary applies to receiver views: common borrowing retains an opaque
-connector read plan, while concrete transport wiring obtains its SQL. A bounded
+The same boundary applies to receiver views: common borrowing retains the owned
+input lease, while the connector retains its read plan and obtains its SQL. A bounded
 measurement of that plan charges the existing cumulative preparation allowance;
 the common driver does not inspect SQL to decide input identity or reuse rights.
 Each resource profile retains the exact capability registration that can realize
