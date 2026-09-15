@@ -18,6 +18,8 @@ pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 
 pub fn[T] capability_implementation(CapabilityImplementations[T], CapabilityRegistration) -> T?
 
+pub fn[T] capability_implementation_registrations(CapabilityImplementations[T], Int) -> Array[CapabilityRegistration]?
+
 pub fn capability_registration_at(CapabilityRegistry, Int) -> CapabilityRegistration?
 
 pub fn capability_registration_available(CapabilityRegistration) -> Bool

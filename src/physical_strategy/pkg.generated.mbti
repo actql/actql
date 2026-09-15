@@ -180,6 +180,8 @@ pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
 
 pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
 
+pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
+
 // Errors
 
 // Types and methods

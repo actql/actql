@@ -92,5 +92,6 @@ fn local_dispatch_issue(
     Preparation(Execution(issue)) => Run(Compute(issue))
     Dispatch(issue) => dispatch_driver_issue(issue)
     Execution(issue) => Run(issue)
+    Search(issue) => Search(issue)
   }
 }

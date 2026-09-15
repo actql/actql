@@ -9,6 +9,8 @@ import {
 // Values
 pub fn check_dispatch_idle(DispatchDriver) -> Result[Unit, DispatchIssue]
 
+pub fn[C, E] collect_installed_task_offers(DispatchDriver, @connector_sdk.CapabilityImplementations[(C, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], C, Int, TaskEstimateQuantities, Int, Int) -> Result[Array[@physical_strategy.TaskOffer], InstalledOfferIssue[E]]
+
 pub fn consume_dispatch_ticket(DispatchDriver, DispatchTicket) -> Result[Unit, DispatchIssue]
 
 pub fn dispatch_driver_pending(DispatchDriver) -> Bool
@@ -76,7 +78,21 @@ pub(all) enum InstalledDispatchIssue[E] {
   Implementation(E)
 }
 
+pub(all) enum InstalledOfferIssue[E] {
+  InvalidLimits
+  Unavailable
+  OfferLimit
+  ForeignOffer
+  Implementation(E)
+}
+
 type PreparedTaskDispatch
+
+pub(all) struct TaskEstimateQuantities {
+  rows : Int64?
+  wire_bytes : Int64?
+  pairs : Int64?
+}
 
 // Type aliases
 

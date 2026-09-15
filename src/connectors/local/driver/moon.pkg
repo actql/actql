@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/physical_cost" @cost,
   "actql/actql/connectors/local",
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host,

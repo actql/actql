@@ -12,6 +12,8 @@ pub fn execute_local_fixed_compute(@connector_sdk.FixedComputeChoice, @connector
 
 pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
+pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn prepare_local_compute_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?) -> Result[@connector_sdk.SynchronousCompute, @connector_sdk.FixedComputeIssue]
 
 pub fn prepare_local_compute_module(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int) -> Result[LocalComputeModule, @connector_sdk.FixedComputeIssue]

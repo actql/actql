@@ -67,3 +67,16 @@ pub fn[T] capability_implementation(
   }
   None
 }
+
+///|
+/// Snapshot of this immutable installation's exact registrations. Identity is
+/// retained after closure; actual implementation lookup still checks liveness.
+pub fn[T] capability_implementation_registrations(
+  installed : CapabilityImplementations[T],
+  max_entries : Int,
+) -> Array[CapabilityRegistration]? {
+  if max_entries < 0 || installed.entries.length() > max_entries {
+    return None
+  }
+  Some(installed.entries.map(entry => entry.0))
+}

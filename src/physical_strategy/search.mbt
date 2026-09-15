@@ -185,6 +185,21 @@ priv struct SearchWork {
 }
 
 ///|
+/// Ownership projection for installed offer collection, not selection or start
+/// authority. Equal task contents or registration descriptions are insufficient.
+pub fn task_offer_matches(
+  run : CapturedDAG,
+  task : Int,
+  registration : @connector.CapabilityRegistration,
+  offer : TaskOffer,
+) -> Bool {
+  physical_equal(run.offer_owner, offer.owner) &&
+  task == offer.task &&
+  physical_equal(registration, offer.registration) &&
+  @connector.capability_registration_available(registration)
+}
+
+///|
 fn search_charge(work : SearchWork, amount : Int) -> Result[Unit, SearchIssue] {
   if amount > work.remaining {
     return Err(Ledger(PlanningLimit))

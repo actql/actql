@@ -23,6 +23,13 @@ priv struct DispatchEstimates {
   profiles : Array[DispatchEstimateProfile]
   limits : @strategy.SearchLimits
   estimate_work : Int
+  implementations : @connector.CapabilityImplementations[
+    (
+      (StrategyHostDispatch, DispatchEstimates),
+      Int,
+      @host_driver.TaskEstimateQuantities,
+    ) -> Result[Array[@strategy.TaskOffer], DispatchIssue],
+  ]
   mut seen : (Int, Int, @resources.LedgerUsage)?
   mut failure : DispatchIssue?
 }
@@ -114,7 +121,20 @@ pub fn configure_dispatch_estimates(
     Err(issue) => return Err(Search(issue))
     Ok(_) => ()
   }
+  let implementations = match
+    @connector.install_capability_implementations(
+      host.registry,
+      [
+        (host.local_registration, estimate_local_task_offers),
+        (host.native_registration, estimate_duckdb_task_offers),
+      ],
+      2,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidConfiguration)
+  }
   host.estimates = Some({
+    implementations,
     root,
     limits,
     estimate_work: limits.max_work - work,
@@ -299,87 +319,24 @@ fn rebuild_dispatch_estimates(
     if @strategy.captured_task_completed(run, task) {
       continue
     }
-    guard @execution.generated_sequence_capacity(
-        host.generated[task - 1],
-        host.limits.local_execution,
-        host.limits.guards,
-      )
-      is Some(local_capacity) else {
-      return Err(InvalidConfiguration)
-    }
-    let local_envelope : @strategy.PhysicalEnvelope = {
-      transfer_bytes: 0L,
-      retained_bytes: local_capacity.retained_bytes,
-      execution_bytes: local_capacity.execution_bytes,
-    }
-    for
-      (slots, rates, registration, capacity) in [
-        (5, profile.local_rates, host.local_registration, local_envelope),
-        (
-          8,
-          profile.native_rates,
-          host.native_registration,
-          profile.native_capacity,
-        ),
-      ] {
-      if slots == 8 && host.native_rejections[task - 1] is Some(_) {
-        continue
-      }
-      let lines = match
-        dispatch_estimate_lines(rates, input_rows, input_bytes, pairs) {
-        Ok(lines) => lines
-        Err(issue) => return Err(issue)
-      }
-      match
-        @strategy.prepare_task_offer(
-          run,
-          task,
-          registration,
-          slots,
-          lines,
-          capacity,
-          policy.limits.max_work,
-        ) {
-        Ok(offer) => offers.push(offer)
-        Err(issue) => return Err(Search(issue))
-      }
-    }
-    if host.resident is Some(resident) &&
-      host.resident_rejections[task - 1] is None &&
-      host.native_rejections[task - 1] is None {
-      let lines = match
-        dispatch_estimate_lines(
-          resident.rates[task - 1],
-          input_rows,
-          input_bytes,
-          pairs,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      let base = match
-        @strategy.prepare_task_offer(
-          run,
-          task,
-          host.native_registration,
-          8,
-          lines,
-          profile.native_capacity,
-          policy.limits.max_work,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Search(issue))
-      }
-      match
-        @strategy.resident_task_offer(
-          run,
-          base,
-          resident.profile,
-          profile.native_capacity.retained_bytes,
-        ) {
-        Ok(value) => offers.push(value)
-        Err(issue) => return Err(Search(issue))
-      }
+    match
+      @host_driver.collect_installed_task_offers(
+        host.driver,
+        policy.implementations,
+        (host, policy),
+        task,
+        { rows: input_rows, wire_bytes: input_bytes, pairs, },
+        policy.limits.max_offers,
+        policy.limits.max_offers - offers.length(),
+      ) {
+      Ok(proposed) =>
+        for offer in proposed {
+          offers.push(offer)
+        }
+      Err(Implementation(issue)) => return Err(issue)
+      Err(OfferLimit) => return Err(Search(OfferLimit))
+      Err(InvalidLimits) => return Err(InvalidConfiguration)
+      Err(Unavailable) | Err(ForeignOffer) => return Err(ForeignSelection)
     }
   }
   match @strategy.revise_strategy(run, offers, host.registry, None) {

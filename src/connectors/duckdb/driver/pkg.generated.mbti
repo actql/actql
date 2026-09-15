@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
   "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
@@ -48,6 +49,8 @@ pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) 
 pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
 
 pub fn duckdb_compute_failure(@physical_strategy.RunIssue) -> @compute.DuckDBComputeIssue?
+
+pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn preparation_failure(@adapter.NativeQueryIssue) -> @physical_strategy.RunIssue
 

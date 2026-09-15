@@ -293,6 +293,21 @@ test('DuckDB execution configuration and resource start belong to its connector 
   assert.doesNotMatch(bridge, /@host\.(?:start_configured|configured_strategy)/);
 });
 
+test('installed offer collection does not select providers by work inventory', () => {
+  const common = readFileSync('src/physical_host/installed_offers.mbt', 'utf8');
+  assert.doesNotMatch(common, /DuckDB|duckdb|Local|resident|work_slots/);
+  assert.match(common, /capability_implementation\(installed, registration\)/);
+  assert.match(common, /@strategy\.task_offer_matches\(/);
+  const policy = readFileSync('src/duckdb_host/estimates.mbt', 'utf8');
+  const rebuild = policy.match(/fn rebuild_dispatch_estimates\([\s\S]*?\n\}/)?.[0];
+  assert.ok(rebuild);
+  assert.match(rebuild, /collect_installed_task_offers\(/);
+  assert.doesNotMatch(rebuild, /native_registration|local_registration|slots ==|generated_sequence_capacity\(/);
+  const local = readFileSync('src/connectors/local/driver/dispatch.mbt', 'utf8');
+  assert.match(local, /@local\.local_module_capacity\(/);
+  assert.match(local, /@strategy\.prepare_task_offer\(/);
+});
+
 test('resident output lifecycle does not own table names or materialization SQL', () => {
   const source = readFileSync('src/physical_strategy/resident_output.mbt', 'utf8');
   const state = source.match(/struct ResidentPendingOutput \{([\s\S]*?)\n\}/)?.[1];

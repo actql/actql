@@ -3,6 +3,7 @@
 /// Host transports only registration-bound work; it never unwraps Local state.
 struct LocalDispatchModule {
   run : @strategy.CapturedDAG
+  registration : @connector.CapabilityRegistration
   implementation : @local.LocalComputeModule
   channel : @host.DispatchChannel[@connector.SynchronousCompute]
 }
@@ -13,6 +14,7 @@ pub(all) enum LocalDispatchIssue {
   Preparation(@local.LocalModuleIssue)
   Dispatch(@host.DispatchIssue)
   Execution(@strategy.RunIssue)
+  Search(@strategy.SearchIssue)
 }
 
 ///|
@@ -54,7 +56,35 @@ pub fn prepare_local_dispatch_module(
     Ok(value) => value
     Err(issue) => return Err(Dispatch(issue))
   }
-  Ok({ run, implementation, channel, })
+  Ok({ run, registration, implementation, channel, })
+}
+
+///|
+/// The connector owns its work inventory and capacity formula. Common planning
+/// only collects the resulting owned offer and composes its declared work.
+pub fn estimate_local_dispatch_offer(
+  installed : LocalDispatchModule,
+  task : Int,
+  lines : Array[@cost.SerialEstimateLine],
+  max_work : Int,
+) -> Result[@strategy.TaskOffer, LocalDispatchIssue] {
+  guard @local.local_module_capacity(installed.implementation, task - 1)
+    is Some(capacity) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  @strategy.prepare_task_offer(
+    installed.run,
+    task,
+    installed.registration,
+    5,
+    lines,
+    {
+      transfer_bytes: 0L,
+      retained_bytes: capacity.retained_bytes,
+      execution_bytes: capacity.execution_bytes,
+    },
+    max_work,
+  ).map_err(issue => Search(issue))
 }
 
 ///|

@@ -5,11 +5,14 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
   "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
 
 // Values
+pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
+
 pub fn[C, E] execute_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, LocalDispatchIssue]
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
@@ -24,6 +27,7 @@ pub(all) enum LocalDispatchIssue {
   Preparation(@local.LocalModuleIssue)
   Dispatch(@physical_host.DispatchIssue)
   Execution(@physical_strategy.RunIssue)
+  Search(@physical_strategy.SearchIssue)
 }
 
 type LocalDispatchModule

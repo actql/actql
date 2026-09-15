@@ -645,8 +645,20 @@ remain on the same ledger across revisions. Compare remaining additional cost
 against the same state, not one plan's original total against another's remainder.
 Bound revisions and search work; unchanged state does not trigger repeated search.
 
+The common Host collects future-task offers from an immutable installation of
+proposal callbacks. Each callback receives the task and known/unknown input
+quantities and may propose zero or more representations. Collection preserves
+installation/alternative order, bounds the total offers, and rechecks exact
+run, task and registration ownership and registration liveness after callbacks.
+It does not recognize provider names, work-slot counts or representation kinds.
+The caller's bounded estimation pass accounts for planning work; proposal
+callbacks must not start I/O. An offer is neither a future input CID nor a permit
+to bypass later capacity or completed-input admission.
+
 The standard dispatch can install a bounded declarative estimate profile before
-its first search. Rates cover the five Local or eight DuckDB work slots, using
+its first search. Its composition supplies Local and DuckDB proposal entries;
+the Local connector calculates its actual sequence capacity and five-slot offer,
+and the DuckDB driver constructs fresh/reusable eight-slot offers. Rates use
 explicit fixed, per-input-row, per-canonical-wire-byte and per-potential-pair
 time coefficients. Input quantities sum all port occurrences rather than keeping
 one parent; identical content is not a fresh-import transfer discount. A join's

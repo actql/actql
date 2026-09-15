@@ -98,3 +98,18 @@ pub fn prepare_local_module_compute(
     Err(issue) => Err(Execution(issue))
   }
 }
+
+///|
+/// Capacity for the module's actual fixed sequence and selected limits, not an
+/// estimate derived from output cardinality or an exported mutable sequence.
+pub fn local_module_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed.sequences.get(slot) is Some(sequence) else { return None }
+  @execution.generated_sequence_capacity(
+    sequence,
+    installed.execution,
+    installed.measurement,
+  )
+}
