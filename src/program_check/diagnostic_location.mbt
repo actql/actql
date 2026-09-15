@@ -25,6 +25,9 @@ struct DiagnosticLocation {
 /// None means no domain projection is available for this cause; the original
 /// typed cause is still retained. Domains are never guessed from file labels.
 pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
+  if search_request_parts(value.cause) is Some(_) {
+    return Some(ProgramDocument)
+  }
   if diagnostic_pipeline_issue(value) is Some(issue) {
     return Some(
       if issue.kind == @pipeline.InvalidLimits {
@@ -72,6 +75,9 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
 /// Location extraction does not reparse input or allocate a path during
 /// rejection. Ambiguous auto-format failures have alternatives, not a primary.
 pub fn diagnostic_location(value : CheckDiagnostic) -> DiagnosticLocation? {
+  if search_request_parts(value.cause) is Some((source, _, _)) {
+    return Some({ position: Cursor(source), })
+  }
   if diagnostic_pipeline_issue(value) is Some(issue) {
     if issue.kind == @pipeline.InvalidLimits {
       return None
@@ -237,6 +243,7 @@ pub fn input_request_origin(value : InputRequest) -> DiagnosticOrigin {
     ParameterValue(_)
     | NumericReductionProfile(_)
     | AggregateStringByteLimit(_) => ProgramDocument
+    TemporalSearchInputRows(_, _) => ProgramDocument
     HostCapacityPolicy
     | HostTextTimePolicy
     | HostTextRankSelection

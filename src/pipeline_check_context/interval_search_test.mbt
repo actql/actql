@@ -165,7 +165,7 @@ test "interval search cannot replace missing operand evidence with a Host output
   assert_eq(found, 1)
   assert_true(
     link_program_interval_search_limits(index, 10000000, 2, 2)
-    is Err(MissingSearchBound),
+    is Err(MissingSearchBound(_)),
   )
   assert_true(
     collect_interval_search_bounds(index, -1, 10000000, 2)

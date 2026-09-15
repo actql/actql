@@ -4,7 +4,7 @@ pub enum AsOfSearchLimitIssue {
   InvalidRequirement
   ForeignEvidence
   BudgetExceeded
-  MissingSearchBound
+  MissingSearchBound(AsOfSearchBounds)
   Overflow
 }
 
@@ -127,7 +127,7 @@ pub fn link_program_asof_search_limits(
     work += bounds.work - index.work
     candidates += bounds.candidates[0].length() + bounds.candidates[1].length()
     guard bounds.product is Some(product) else {
-      return Err(MissingSearchBound)
+      return Err(MissingSearchBound(bounds))
     }
     states[i] = Execution(AsOfSearch({ site, bounds, product, }))
     links += 1

@@ -1242,7 +1242,7 @@ pub enum AsOfSearchLimitIssue {
   InvalidRequirement
   ForeignEvidence
   BudgetExceeded
-  MissingSearchBound
+  MissingSearchBound(AsOfSearchBounds)
   Overflow
 }
 
@@ -2005,7 +2005,7 @@ pub enum IntervalSearchLimitIssue {
   InvalidRequirement
   ForeignEvidence
   BudgetExceeded
-  MissingSearchBound
+  MissingSearchBound(IntervalSearchBounds)
   Overflow
 }
 

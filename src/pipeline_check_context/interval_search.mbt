@@ -4,7 +4,7 @@ pub enum IntervalSearchLimitIssue {
   InvalidRequirement
   ForeignEvidence
   BudgetExceeded
-  MissingSearchBound
+  MissingSearchBound(IntervalSearchBounds)
   Overflow
 }
 
@@ -135,7 +135,7 @@ pub fn link_program_interval_search_limits(
     work += bounds.work - index.work
     candidates += bounds.candidates[0].length() + bounds.candidates[1].length()
     guard bounds.product is Some(product) else {
-      return Err(MissingSearchBound)
+      return Err(MissingSearchBound(bounds))
     }
     let start = i - site.index
     let mut matched = 0

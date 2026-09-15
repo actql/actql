@@ -221,7 +221,7 @@ test "formal interval refuses missing search proof without returning partial Pro
     false
   } catch {
     LocalConstructionFailure::Closure(
-      ConstructionFailure::IntervalSearch(MissingSearchBound)
+      ConstructionFailure::IntervalSearch(MissingSearchBound(_))
     ) => true
     _ => false
   }

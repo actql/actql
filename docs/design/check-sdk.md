@@ -157,6 +157,19 @@ Invalid guards, unresolved bindings, foreign occurrences and exhausted budgets
 are not capacity requests. The request establishes only this known shortage,
 not the validity of the rest of the Program.
 
+`TemporalSearchInputRows` identifies an as-of or interval search occurrence and
+the left or right operand for which candidate collection found no applicable
+finite row bound. When both are absent, requests are returned left then right.
+The original failed collector and its owned candidate memberships remain in
+the diagnostic; reading the request does not rerun proof search. A caller can
+supply applicable admitted evidence through the advanced evidence entry, or
+change and readmit the Program so an existing count rule supplies the bound.
+Authored positions locate the requirement but never establish evidence ownership.
+Rechecking validates the actual input edges and recomputes the product under the
+existing rules. A join output ceiling, publication ceiling or physical budget
+is not an input-row proof. Overflow, foreign evidence, invalid occurrences and
+compilation exhaustion remain rejections; no partial CheckedProgram is returned.
+
 Requests retain the exact checking environment as well as the admitted Program.
 Parameter paths refer to the Program; Host policy paths refer to the Check
 Environment. A missing policy property has no source cursor or byte span: its

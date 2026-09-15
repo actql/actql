@@ -780,6 +780,7 @@ pub enum InputRequestKind {
   CalendarProfileArtifact(@check_environment.CalendarSelection)
   NumericReductionProfile(@decode_core.Cursor)
   AggregateStringByteLimit(@decode_core.Cursor)
+  TemporalSearchInputRows(@decode_core.Cursor, SearchInputSide)
 }
 
 type InputRequests
@@ -965,6 +966,11 @@ pub struct PublicationSourcePolicy {
 type ReidentifiedGraphInput
 
 type ReidentifiedStep
+
+pub(all) enum SearchInputSide {
+  Left
+  Right
+} derive(Eq, @debug.Debug)
 
 type SequenceLimit
 

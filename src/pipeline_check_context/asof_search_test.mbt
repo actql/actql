@@ -142,7 +142,7 @@ test "asof search cannot use an output ceiling as missing operand evidence" {
   assert_eq(found, 1)
   assert_true(
     link_program_asof_search_limits(index, 10000000, 1, 2)
-    is Err(MissingSearchBound),
+    is Err(MissingSearchBound(_)),
   )
   assert_true(
     collect_asof_search_bounds(index, -1, 10000000, 2)

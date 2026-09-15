@@ -36,7 +36,14 @@ priv enum RequestInventory {
   CalendarArtifact(@environment.CalendarSelection)
   NumericProfile(@decode.Cursor)
   AggregateStringLimit(@decode.Cursor)
+  SearchRows(@decode.Cursor, Bool, Bool)
 }
+
+///|
+pub(all) enum SearchInputSide {
+  Left
+  Right
+} derive(Eq, Debug)
 
 ///|
 pub enum InputRequestKind {
@@ -49,6 +56,7 @@ pub enum InputRequestKind {
   CalendarProfileArtifact(@environment.CalendarSelection)
   NumericReductionProfile(@decode.Cursor)
   AggregateStringByteLimit(@decode.Cursor)
+  TemporalSearchInputRows(@decode.Cursor, SearchInputSide)
 }
 
 ///|
@@ -62,6 +70,8 @@ pub struct InputRequest {
 pub fn input_request_count(value : InputRequests) -> Int {
   match value.inventory {
     Parameters(missing) => @parameters.missing_count(missing)
+    SearchRows(_, left, right) =>
+      (if left { 1 } else { 0 }) + (if right { 1 } else { 0 })
     CapacityPolicy
     | TextTimePolicy
     | TextRankSelection
@@ -133,6 +143,16 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       AggregateStringByteLimit(source)
     }
+    SearchRows(source, left, right) => {
+      let side = if index == 0 && left {
+        Left
+      } else if right && index == (if left { 1 } else { 0 }) {
+        Right
+      } else {
+        return None
+      }
+      TemporalSearchInputRows(source, side)
+    }
   }
   Some({ program: value.program, environment: value.environment, kind, })
 }
@@ -155,6 +175,7 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
       [Key("host_policy_profile"), Key("calendar"), Key("table_bytes_cid")]
     NumericReductionProfile(source) => @decode.cursor_path(source)
     AggregateStringByteLimit(source) => @decode.cursor_path(source)
+    TemporalSearchInputRows(source, _) => @decode.cursor_path(source)
   }
 }
 
@@ -173,6 +194,7 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
       Some(@environment.calendar_selection_source(selection))
     NumericReductionProfile(source) => Some(source)
     AggregateStringByteLimit(source) => Some(source)
+    TemporalSearchInputRows(source, _) => Some(source)
   }
 }
 
@@ -239,7 +261,12 @@ fn checking_outcome(
           }
           NumericProfile(source)
         }
-        _ => return rejected(error)
+        _ => {
+          guard search_request_parts(error) is Some((source, left, right)) else {
+            return rejected(error)
+          }
+          SearchRows(source, left, right)
+        }
       }
       NeedsInputs({
         program,

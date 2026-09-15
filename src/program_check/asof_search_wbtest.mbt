@@ -226,7 +226,7 @@ test "formal asof refuses missing search proof without returning partial Program
     false
   } catch {
     LocalConstructionFailure::Closure(
-      ConstructionFailure::AsOfSearch(MissingSearchBound)
+      ConstructionFailure::AsOfSearch(MissingSearchBound(_))
     ) => true
     _ => false
   }
