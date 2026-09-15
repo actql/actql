@@ -55,13 +55,13 @@ fn issued_native_create_impl(
       checked_override~,
     )
     let requirement = @planning.duckdb_query_requirement(preparation)
-    let registry = @planning.prepare_capability_registry(
+    let registry = @connector.prepare_capability_registry(
       [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
       1,
       6,
     ).unwrap()
     let candidate = @planning.duckdb_native_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 0).unwrap(),
       preparation,
       [
         {

@@ -1,6 +1,6 @@
 ///|
 pub fn mock_acquisition_candidate(
-  registration : CapabilityRegistration,
+  registration : @connector.CapabilityRegistration,
   requirement : QueryRequirement,
   offer : QueryOffer,
 ) -> Result[PreparedAcquisition[QueryOffer], QueryPlanningIssue] {

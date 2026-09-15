@@ -3,8 +3,8 @@
 /// the transport asks the shared adapter for one parameter at a time.
 struct OwnedFixedFixture {
   compute : @duckdb.FixedCompute
-  local_binding : @planning.PreparedCompute[@execution.GeneratedSequence]
-  local_choice : @planning.FixedComputeChoice
+  local_binding : @connector.PreparedCompute[@execution.GeneratedSequence]
+  local_choice : @connector.FixedComputeChoice
   configuration : @dbhost.ComputeHostConfiguration
   consumer : @execution.GeneratedSequence
   measurement : @execution.FixedProducerMeasurement
@@ -70,13 +70,13 @@ fn owned_fixed_from_output(
       ).unwrap()
       @execution.prepare_producer_read(receiver, bound, 100, 10000).unwrap()
     })
-    let request = @planning.prepare_fixed_compute_request(inputs, {
+    let request = @connector.prepare_fixed_compute_request(inputs, {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 100,
       max_value_bytes: 10000,
       common_fragment: None,
     }).unwrap()
-    let registry = @planning.prepare_capability_registry(
+    let registry = @connector.prepare_capability_registry(
       [
         { name: "local", acquisition: false, fixed_compute: true, },
         { name: "duckdb", acquisition: true, fixed_compute: true, },
@@ -84,13 +84,13 @@ fn owned_fixed_from_output(
       2,
       11,
     ).unwrap()
-    let quantities : @planning.QueryQuantities = {
+    let quantities : @connector.QueryQuantities = {
       transfer_bytes: None,
       retained_bytes: None,
       money_units: None,
     }
-    let local_binding = @planning.local_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+    let local_binding = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
       request,
       fixture_generated(
         receiver,
@@ -128,8 +128,8 @@ fn owned_fixed_from_output(
         100,
         10000,
       ).unwrap()
-      @planning.duckdb_bound_compute_candidate(
-        @planning.capability_registration_at(registry, 1).unwrap(),
+      @duckdb_compute.duckdb_bound_compute_candidate(
+        @connector.capability_registration_at(registry, 1).unwrap(),
         request,
         @duckdb.prepare_fixed_join_compute(imported, 100).unwrap(),
         [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
@@ -137,8 +137,8 @@ fn owned_fixed_from_output(
         100,
       ).unwrap()
     } else {
-      @planning.duckdb_fixed_compute_candidate(
-        @planning.capability_registration_at(registry, 1).unwrap(),
+      @duckdb_compute.duckdb_fixed_compute_candidate(
+        @connector.capability_registration_at(registry, 1).unwrap(),
         request,
         "owned_input",
         compilation,
@@ -147,12 +147,12 @@ fn owned_fixed_from_output(
         100,
       ).unwrap()
     }
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
         [
-          @planning.prepared_compute_candidate(local_binding),
-          @planning.prepared_compute_candidate(native),
+          @connector.prepared_compute_candidate(local_binding),
+          @connector.prepared_compute_candidate(native),
         ],
         None,
         100,
@@ -160,10 +160,10 @@ fn owned_fixed_from_output(
       is Proposed(choice) else {
       abort("fixed candidate choice")
     }
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
-        [@planning.prepared_compute_candidate(local_binding)],
+        [@connector.prepared_compute_candidate(local_binding)],
         None,
         100,
       ).unwrap()
@@ -171,13 +171,13 @@ fn owned_fixed_from_output(
       abort("local reference choice")
     }
     {
-      compute: @planning.fixed_compute_choice_payload(choice, native).unwrap(),
+      compute: @connector.fixed_compute_choice_payload(choice, native).unwrap(),
       local_binding,
       local_choice,
       configuration: @dbhost.configure_compute_host(
         choice,
         native,
-        @planning.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
+        @connector.fixed_compute_choice_payload(local_choice, local_binding).unwrap(),
         {
           values: issued_native_measure_limits(),
           demand: issued_native_measure_limits(),
@@ -215,7 +215,7 @@ fn owned_fixed_from_output(
           },
           target=@duckdb.fixed_query_target(
             @duckdb.fixed_compute_query(
-              @planning.fixed_compute_choice_payload(choice, native).unwrap(),
+              @connector.fixed_compute_choice_payload(choice, native).unwrap(),
             ),
           ),
         ),
@@ -565,7 +565,7 @@ pub fn owned_fixed_rows(value : OwnedFixedFixture) -> String {
 ///|
 #export_name("ownedFixedLocalCid")
 pub fn owned_fixed_local_cid(value : OwnedFixedFixture) -> String {
-  guard @planning.execute_local_fixed_compute(
+  guard @local_connector.execute_local_fixed_compute(
       value.local_choice,
       value.local_binding,
       issued_execution_limits(100),

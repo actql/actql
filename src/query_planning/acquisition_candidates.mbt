@@ -9,9 +9,9 @@ struct PreparedAcquisition[T] {
 ///|
 struct AcquisitionCandidate {
   requirement : QueryRequirement
-  registration : CapabilityRegistration
+  registration : @connector.CapabilityRegistration
   duration : @cost.DurationEstimate
-  quantities : QueryQuantities
+  quantities : @connector.QueryQuantities
 }
 
 ///|
@@ -29,16 +29,16 @@ pub enum AcquisitionSelection {
 
 ///|
 fn[T] bind_acquisition_candidate(
-  registration : CapabilityRegistration,
+  registration : @connector.CapabilityRegistration,
   requirement : QueryRequirement,
   payload : T,
   duration : @cost.DurationEstimate,
-  quantities : QueryQuantities,
+  quantities : @connector.QueryQuantities,
 ) -> Result[PreparedAcquisition[T], QueryPlanningIssue] {
-  if !registration.owner.live {
+  if !@connector.capability_registration_available(registration) {
     return Err(CapabilityClosed)
   }
-  if !registration.description.acquisition {
+  if !@connector.capability_description(registration).acquisition {
     return Err(AcquisitionUnsupported)
   }
   Ok({
@@ -61,7 +61,9 @@ pub fn[T] acquisition_choice_payload(
   choice : AcquisitionChoice,
   prepared : PreparedAcquisition[T],
 ) -> T? {
-  if prepared.candidate.registration.owner.live &&
+  if @connector.capability_registration_available(
+      prepared.candidate.registration,
+    ) &&
     physical_equal(choice.candidate, prepared.candidate) {
     Some(prepared.payload)
   } else {
@@ -74,7 +76,7 @@ pub fn[T] acquisition_choice_payload(
 /// remain pending. No I/O or fallback is performed. All candidates belong to
 /// the exact same requirement, not just an equal canonical CID.
 pub fn choose_acquisition_candidate(
-  registry : CapabilityRegistry,
+  registry : @connector.CapabilityRegistry,
   requirement : QueryRequirement,
   candidates : Array[AcquisitionCandidate],
   host_priority : Array[Int]?,
@@ -91,7 +93,10 @@ pub fn choose_acquisition_candidate(
     if !physical_equal(candidates[i].requirement, requirement) {
       return Err(ForeignQuery(i))
     }
-    if !capability_registration_matches(candidates[i].registration, registry) {
+    if !@connector.capability_registration_matches(
+        candidates[i].registration,
+        registry,
+      ) {
       return Err(ForeignCapability(i))
     }
     durations.push(candidates[i].duration)
@@ -129,7 +134,7 @@ pub fn acquisition_choice_reason(
 ///|
 pub fn acquisition_candidate_registration(
   candidate : AcquisitionCandidate,
-) -> CapabilityRegistration {
+) -> @connector.CapabilityRegistration {
   candidate.registration
 }
 
@@ -143,6 +148,6 @@ pub fn acquisition_candidate_duration(
 ///|
 pub fn acquisition_candidate_quantities(
   candidate : AcquisitionCandidate,
-) -> QueryQuantities {
+) -> @connector.QueryQuantities {
   candidate.quantities
 }

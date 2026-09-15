@@ -1,6 +1,6 @@
 ///|
 priv struct NativeTaskResources {
-  attempt : @planning.DuckDBComputeAttempt
+  attempt : @duckdb_compute.DuckDBComputeAttempt
   reservation : @resources.Reservation
   retention : Int64
   scratch : Int64
@@ -14,7 +14,7 @@ priv struct NativeTaskResources {
 ///|
 fn native_task_resource(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> (Int, NativeTaskResources)? {
   for task, value in run.native_resources {
     if value is Some(value) && physical_equal(value.attempt, attempt) {
@@ -28,7 +28,7 @@ fn native_task_resource(
 /// Trusted transport charges the exact run-owned reservation before send/accept.
 pub fn charge_captured_duckdb_transfer(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
   bytes : Int64,
 ) -> Result[Unit, @resources.LedgerIssue] {
   guard native_task_resource(run, attempt) is Some((_, resource)) else {
@@ -45,7 +45,7 @@ pub fn charge_captured_duckdb_transfer(
 /// and provisional retention remain reserved until completion or disposal.
 pub fn settle_captured_duckdb_native(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
   confirmed : Bool,
 ) -> Result[Unit, @resources.LedgerIssue] {
   guard native_task_resource(run, attempt) is Some((task, resource)) else {
@@ -88,7 +88,7 @@ pub fn settle_captured_duckdb_native(
 /// Dispose owned MoonBit buffers/port. Unconfirmed native reservations remain.
 pub fn close_captured_duckdb_task(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Unit {
   guard native_task_resource(run, attempt) is Some((task, resource)) else {
     return
@@ -100,7 +100,7 @@ pub fn close_captured_duckdb_task(
     stop_captured_dag(run)
   }
   resource.disposed = true
-  @planning.close_duckdb_compute_attempt(attempt)
+  @duckdb_compute.close_duckdb_compute_attempt(attempt)
   close_captured_task_output(run, task)
   if resource.native_settled {
     if resource.failed_holding is Some(holding) {

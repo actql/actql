@@ -51,7 +51,7 @@ test "enumeration Overflow revokes dispatch and cannot be retried by correcting 
       @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(registry, 0).unwrap(),
+        @connector.capability_registration_at(registry, 0).unwrap(),
         1,
         [{ work_slots: [0], milliseconds: Some(9223372036854775807L), }],
         { transfer_bytes: 0L, retained_bytes: 100L, execution_bytes: 1000L, },

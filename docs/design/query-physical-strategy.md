@@ -6,6 +6,23 @@ canonical acquisition nor introduces a semantic Run, Invocation, approval or
 commit scope. Its `QueryStrategy` is a Host-private proposal for the same query.
 It is not a public Connector SPI or runnable Plan.
 
+`connector_sdk` owns bounded capability registrations, fixed-input requests,
+selected consumer capacities and typed candidate/payload bindings. It depends
+only on common execution, lowering and cost contracts. SQL compiler diagnostics
+do not appear in its error types. `bind_compute_candidate` validates registration
+and the bounded cost inventory; it creates a proposal, not permission to start or
+proof of completion. A choice recovers only its exact prepared payload, and
+registry closure prevents subsequent recovery without revoking independently
+completed outputs. Input accessors retain exact producer handles; the input-array
+snapshot cannot mutate owned ports or copy/re-admit the underlying rows.
+
+The Local realization is owned by `connectors/local`; DuckDB Compute candidate,
+receiving and completion state is owned by `connectors/duckdb/compute`. The latter
+keeps concrete compiler diagnostics and trusted transport verification separate
+from the common request. Existing engine completion ports still verify the exact
+retained output before it can be consumed. These package APIs are internal
+composition interfaces, not a dynamically loaded or sandboxed plugin ABI.
+
 Package-public functions enable repository-internal composition across MoonBit
 packages; they are not a stable provider extension API. The reusable boundaries
 are owned checked requirements, pure candidate comparison, completed-input

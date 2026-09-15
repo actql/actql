@@ -66,30 +66,33 @@ test "fixed join request binds both captured ports through registered Local sele
     ).unwrap()
     @execution.prepare_producer_read(receiver, bound, 100, 1000).unwrap()
   })
-  let capacity : @planning.FixedComputeCapacity = {
+  let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 2,
     max_value_bytes: 100,
     common_fragment: None,
   }
   assert_true(
-    @planning.prepare_fixed_compute_request([], capacity)
+    @connector.prepare_fixed_compute_request([], capacity)
     is Err(UnsupportedInputShape),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request([inputs[0]], capacity)
+    @connector.prepare_fixed_compute_request([inputs[0]], capacity)
     is Err(UnsupportedInputShape),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request([inputs[1], inputs[0]], capacity)
+    @connector.prepare_fixed_compute_request([inputs[1], inputs[0]], capacity)
     is Err(UnsupportedInputShape),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request([inputs[0], inputs[0]], capacity)
+    @connector.prepare_fixed_compute_request([inputs[0], inputs[0]], capacity)
     is Err(UnsupportedInputShape),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request(inputs, { ..capacity, max_rows: 1, })
+    @connector.prepare_fixed_compute_request(inputs, {
+      ..capacity,
+      max_rows: 1,
+    })
     is Err(CommonInputRows),
   )
   let short_attempt = @planning.prepare_issued_mock_query_attempt(
@@ -119,7 +122,7 @@ test "fixed join request binds both captured ports through registered Local sele
   ).unwrap()
   // The first input fits; checking only it would miss the second input's limit.
   assert_true(
-    @planning.prepare_fixed_compute_request([short, inputs[1]], {
+    @connector.prepare_fixed_compute_request([short, inputs[1]], {
       ..capacity,
       max_rows: 1,
     })
@@ -135,21 +138,21 @@ test "fixed join request binds both captured ports through registered Local sele
     1000,
   ).unwrap()
   assert_true(
-    @planning.prepare_fixed_compute_request([inputs[0], foreign], capacity)
+    @connector.prepare_fixed_compute_request([inputs[0], foreign], capacity)
     is Err(ForeignPreparation),
   )
-  let request = @planning.prepare_fixed_compute_request(inputs, capacity).unwrap()
+  let request = @connector.prepare_fixed_compute_request(inputs, capacity).unwrap()
   assert_true(
-    physical_equal(@planning.fixed_compute_request_owner(request), receiver),
+    physical_equal(@connector.fixed_compute_request_owner(request), receiver),
   )
-  assert_eq(@planning.fixed_compute_request_input_count(request), 2)
-  assert_true(@planning.fixed_compute_request_input(request, -1) is None)
-  assert_true(@planning.fixed_compute_request_input(request, 2) is None)
+  assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+  assert_true(@connector.fixed_compute_request_input(request, -1) is None)
+  assert_true(@connector.fixed_compute_request_input(request, 2) is None)
   let right = inputs[1]
   inputs[1] = inputs[0]
   assert_true(
     physical_equal(
-      @planning.fixed_compute_request_input(request, 1).unwrap(),
+      @connector.fixed_compute_request_input(request, 1).unwrap(),
       right,
     ),
   )
@@ -261,7 +264,7 @@ test "fixed join request binds both captured ports through registered Local sele
     )
     is Err(Validation(InputMismatch)),
   )
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [
       { name: "local", acquisition: false, fixed_compute: true, },
       { name: "duckdb", acquisition: false, fixed_compute: true, },
@@ -269,13 +272,13 @@ test "fixed join request binds both captured ports through registered Local sele
     2,
     20,
   ).unwrap()
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
   }
-  let candidate = @planning.local_fixed_compute_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+  let candidate = @local_connector.local_fixed_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
     request,
     generated,
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
@@ -285,20 +288,20 @@ test "fixed join request binds both captured ports through registered Local sele
   let native_compute = @duckdb.prepare_fixed_join_compute(native_inputs, 2).unwrap()
   assert_eq(@duckdb.fixed_compute_import_count(native_compute), 2)
   assert_true(@duckdb.fixed_compute_import(native_compute, 2) is None)
-  let native_candidate = @planning.duckdb_bound_compute_candidate(
-    @planning.capability_registration_at(registry, 1).unwrap(),
+  let native_candidate = @duckdb_compute.duckdb_bound_compute_candidate(
+    @connector.capability_registration_at(registry, 1).unwrap(),
     request,
     native_compute,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
     quantities,
     100,
   ).unwrap()
-  guard @planning.choose_fixed_compute_candidate(
+  guard @connector.choose_fixed_compute_candidate(
       registry,
       request,
       [
-        @planning.prepared_compute_candidate(candidate),
-        @planning.prepared_compute_candidate(native_candidate),
+        @connector.prepared_compute_candidate(candidate),
+        @connector.prepared_compute_candidate(native_candidate),
       ],
       None,
       100,
@@ -307,7 +310,7 @@ test "fixed join request binds both captured ports through registered Local sele
     abort("native join candidate")
   }
   let native_transport : FixedComputeTestTransport = { settled: None, }
-  let native_attempt = @planning.start_duckdb_compute_attempt(
+  let native_attempt = @duckdb_compute.start_duckdb_compute_attempt(
     native_choice,
     native_candidate,
     generated,
@@ -317,19 +320,21 @@ test "fixed join request binds both captured ports through registered Local sele
       physical_equal(current, expected)
     },
   ).unwrap()
-  @planning.begin_duckdb_compute_result(native_attempt, [
+  @duckdb_compute.begin_duckdb_compute_result(native_attempt, [
     ("left", @duckdb.Float64),
     ("right", @duckdb.Float64),
   ]).unwrap()
   for bits in ["[\"4008000000000000\"]", "[\"4000000000000000\"]"] {
-    @planning.receive_duckdb_compute_chunk(native_attempt, 1, [
+    @duckdb_compute.receive_duckdb_compute_chunk(native_attempt, 1, [
       input_cursor(bits),
       input_cursor(bits),
     ]).unwrap()
   }
-  @planning.finish_duckdb_compute_result(native_attempt).unwrap()
+  @duckdb_compute.finish_duckdb_compute_result(native_attempt).unwrap()
   native_transport.settled = Some(native_attempt)
-  let native_output = @planning.complete_duckdb_compute_attempt(native_attempt).unwrap()
+  let native_output = @duckdb_compute.complete_duckdb_compute_attempt(
+    native_attempt,
+  ).unwrap()
   for (row, expected) in [(0, 3.0), (1, 2.0)] {
     for column in 0..<2 {
       assert_true(
@@ -338,14 +343,14 @@ test "fixed join request binds both captured ports through registered Local sele
       )
     }
   }
-  let unfinished = @planning.start_duckdb_compute_attempt(
+  let unfinished = @duckdb_compute.start_duckdb_compute_attempt(
     native_choice,
     native_candidate,
     generated,
     fixed_compute_attempt_limits(),
     _ => true,
   ).unwrap()
-  @planning.begin_duckdb_compute_result(unfinished, [
+  @duckdb_compute.begin_duckdb_compute_result(unfinished, [
     ("left", @duckdb.Float64),
     ("right", @duckdb.Float64),
   ]).unwrap()
@@ -371,8 +376,8 @@ test "fixed join request binds both captured ports through registered Local sele
     @duckdb.finish_fixed_compute_receiving(receiving) is Err(InvalidState),
   )
   assert_true(
-    @planning.duckdb_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 1).unwrap(),
+    @duckdb_compute.duckdb_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 1).unwrap(),
       request,
       "input",
       native_compile_limits(),
@@ -380,12 +385,12 @@ test "fixed join request binds both captured ports through registered Local sele
       quantities,
       100,
     )
-    is Err(UnsupportedInputShape),
+    is Err(Request(UnsupportedInputShape)),
   )
-  guard @planning.choose_fixed_compute_candidate(
+  guard @connector.choose_fixed_compute_candidate(
       registry,
       request,
-      [@planning.prepared_compute_candidate(candidate)],
+      [@connector.prepared_compute_candidate(candidate)],
       None,
       100,
     ).unwrap()
@@ -398,7 +403,7 @@ test "fixed join request binds both captured ports through registered Local sele
     max_nodes: 1000,
     max_depth: 100,
   }
-  let completed = @planning.execute_local_fixed_compute(
+  let completed = @local_connector.execute_local_fixed_compute(
     choice,
     candidate,
     compute_test_limits(),
@@ -416,14 +421,15 @@ test "fixed join request binds both captured ports through registered Local sele
   }
   @planning.close_mock_query_issuer(issuer)
   assert_true(
-    @planning.finish_duckdb_compute_result(unfinished)
+    @duckdb_compute.finish_duckdb_compute_result(unfinished)
     is Err(Receiving(InputUnavailable)),
   )
   assert_true(
-    @planning.complete_duckdb_compute_attempt(unfinished) is Err(InvalidState),
+    @duckdb_compute.complete_duckdb_compute_attempt(unfinished)
+    is Err(InvalidState),
   )
   assert_true(
-    @planning.start_duckdb_compute_attempt(
+    @duckdb_compute.start_duckdb_compute_attempt(
       native_choice,
       native_candidate,
       generated,
@@ -439,11 +445,11 @@ test "fixed join request binds both captured ports through registered Local sele
     ),
   )
   assert_true(
-    @planning.prepare_fixed_compute_request(inputs, capacity)
+    @connector.prepare_fixed_compute_request(inputs, capacity)
     is Err(InputUnavailable),
   )
   assert_true(
-    @planning.execute_local_fixed_compute(
+    @local_connector.execute_local_fixed_compute(
       choice,
       candidate,
       compute_test_limits(),
@@ -475,7 +481,7 @@ test "fixed join request binds both captured ports through registered Local sele
     ),
     2,
   )
-  @planning.close_duckdb_compute_attempt(native_attempt)
+  @duckdb_compute.close_duckdb_compute_attempt(native_attempt)
   assert_true(
     @execution.bind_completed_input(
       downstream_owner, 0, receiver, native_output,

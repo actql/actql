@@ -14,8 +14,8 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     let host = @dbhost.configure_strategy_dispatch(
       run,
       registry,
-      @planning.capability_registration_at(registry, 0).unwrap(),
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       dispatch_test_generated(run),
       dispatch_test_limits(),
     ).unwrap()
@@ -30,7 +30,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
     let native = @strategy.prepare_task_offer(
       run,
       3,
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       8,
       [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
       {
@@ -234,7 +234,7 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       )
       continue
     }
-    let compute = @planning.duckdb_compute_attempt_plan(attempt)
+    let compute = @duckdb_compute.duckdb_compute_attempt_plan(attempt)
     assert_eq(@duckdb.fixed_compute_import_count(compute), 2)
     for port in [0, 1] {
       let read = @duckdb.fixed_import_input(
@@ -243,11 +243,13 @@ test "shared dispatch binds both completed join inputs and enforces native reser
       assert_eq(@execution.producer_read_input_index(read), port)
     }
     assert_eq(@duckdb.fixed_compute_join_output_ceiling(compute), Some(100))
-    @planning.begin_duckdb_compute_result(attempt, [("id", @duckdb.Float64)]).unwrap()
-    @planning.receive_duckdb_compute_chunk(attempt, 1, [
+    @duckdb_compute.begin_duckdb_compute_result(attempt, [
+      ("id", @duckdb.Float64),
+    ]).unwrap()
+    @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
       input_cursor("[\"4008000000000000\"]"),
     ]).unwrap()
-    @planning.finish_duckdb_compute_result(attempt).unwrap()
+    @duckdb_compute.finish_duckdb_compute_result(attempt).unwrap()
     transport.settled = Some(attempt)
     assert_true(
       @strategy.complete_captured_duckdb_task(run, attempt)

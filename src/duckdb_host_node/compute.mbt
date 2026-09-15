@@ -1,6 +1,6 @@
 ///|
 struct ComputeNodeRun {
-  attempt : @planning.DuckDBComputeAttempt
+  attempt : @duckdb_compute.DuckDBComputeAttempt
   transport : @duckdb.TransportColumnLimits
   strategy : (@strategy.CapturedDAG, Int)?
   mut closed : Bool
@@ -32,7 +32,7 @@ pub fn compute_strategy_scratch_capacity(
 #export_name("computeHostOpen")
 pub fn compute_host_open(
   setup : @host.ComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
 ) -> ComputeNodeRun raise NodeHostFailure {
   match @host.start_configured_compute_host(setup, verify) {
     Ok(attempt) =>
@@ -50,7 +50,7 @@ pub fn compute_host_open(
 #export_name("computeStrategyHostOpen")
 pub fn compute_strategy_host_open(
   setup : @host.StrategyComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
 ) -> ComputeNodeRun raise NodeHostFailure {
@@ -61,7 +61,7 @@ pub fn compute_strategy_host_open(
 #export_name("computeResidentStrategyHostOpen")
 pub fn compute_resident_strategy_host_open(
   setup : @host.StrategyComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident : @strategy.ResidentInputs,
@@ -78,7 +78,7 @@ pub fn compute_resident_strategy_host_open(
 ///|
 fn open_strategy_compute_host(
   setup : @host.StrategyComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : @strategy.ResidentInputs,
@@ -177,7 +177,7 @@ pub fn compute_host_physical_settle(
 #export_name("computeHostAttempt")
 pub fn compute_host_attempt(
   run : ComputeNodeRun,
-) -> @planning.DuckDBComputeAttempt {
+) -> @duckdb_compute.DuckDBComputeAttempt {
   run.attempt
 }
 
@@ -189,7 +189,7 @@ pub fn compute_host_count(
   columns : Bool,
 ) -> Int raise NodeHostFailure {
   guard @duckdb.fixed_compute_import(
-      @planning.duckdb_compute_attempt_plan(run.attempt),
+      @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
       port,
     )
     is Some(imported) else {
@@ -206,7 +206,7 @@ pub fn compute_host_count(
 #export_name("computeHostImportCount")
 pub fn compute_host_import_count(run : ComputeNodeRun) -> Int {
   @duckdb.fixed_compute_import_count(
-    @planning.duckdb_compute_attempt_plan(run.attempt),
+    @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
   )
 }
 
@@ -217,7 +217,7 @@ pub fn compute_host_sql(
   kind : Int,
   port : Int,
 ) -> String raise NodeHostFailure {
-  let compute = @planning.duckdb_compute_attempt_plan(run.attempt)
+  let compute = @duckdb_compute.duckdb_compute_attempt_plan(run.attempt)
   guard @duckdb.fixed_compute_import(compute, port) is Some(imported) else {
     raise InvalidCommand
   }
@@ -238,7 +238,7 @@ pub fn compute_host_parameter(
   predicate : Bool,
   port : Int,
 ) -> String raise NodeHostFailure {
-  let compute = @planning.duckdb_compute_attempt_plan(run.attempt)
+  let compute = @duckdb_compute.duckdb_compute_attempt_plan(run.attempt)
   let parameter = if predicate {
     guard @duckdb.fixed_query_parameter(
         @duckdb.fixed_compute_query(compute),
@@ -277,7 +277,7 @@ pub fn compute_host_begin(
   fields : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @planning.begin_duckdb_compute_result(
+    @duckdb_compute.begin_duckdb_compute_result(
       run.attempt,
       transport_fields(run.transport, fields),
     ) {
@@ -294,7 +294,7 @@ pub fn compute_host_accept(
   data : String,
 ) -> Unit raise NodeHostFailure {
   match
-    @planning.receive_duckdb_compute_chunk(
+    @duckdb_compute.receive_duckdb_compute_chunk(
       run.attempt,
       rows,
       chunk_columns(run.transport, data),
@@ -307,7 +307,7 @@ pub fn compute_host_accept(
 ///|
 #export_name("computeHostFinish")
 pub fn compute_host_finish(run : ComputeNodeRun) -> Unit raise NodeHostFailure {
-  match @planning.finish_duckdb_compute_result(run.attempt) {
+  match @duckdb_compute.finish_duckdb_compute_result(run.attempt) {
     Ok(_) => ()
     Err(issue) => raise Compute(issue)
   }
@@ -325,7 +325,7 @@ pub fn compute_host_complete(
     }
     let target = @duckdb.fixed_query_target(
       @duckdb.fixed_compute_query(
-        @planning.duckdb_compute_attempt_plan(run.attempt),
+        @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
       ),
     )
     guard @strategy.captured_task_output(graph, task, target) is Some(output) else {
@@ -333,7 +333,7 @@ pub fn compute_host_complete(
     }
     return output
   }
-  match @planning.complete_duckdb_compute_attempt(run.attempt) {
+  match @duckdb_compute.complete_duckdb_compute_attempt(run.attempt) {
     Ok(value) => value
     Err(issue) => raise Compute(issue)
   }
@@ -344,7 +344,7 @@ pub fn compute_host_complete(
 pub fn compute_host_query_parameter_count(run : ComputeNodeRun) -> Int {
   @duckdb.fixed_query_parameter_count(
     @duckdb.fixed_compute_query(
-      @planning.duckdb_compute_attempt_plan(run.attempt),
+      @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
     ),
   )
 }
@@ -355,7 +355,7 @@ pub fn compute_host_abort(run : ComputeNodeRun) -> Unit {
   if run.strategy is Some((graph, _)) {
     @strategy.stop_captured_dag(graph)
   }
-  @planning.abort_duckdb_compute_attempt(run.attempt)
+  @duckdb_compute.abort_duckdb_compute_attempt(run.attempt)
 }
 
 ///|
@@ -365,7 +365,7 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
     return
   }
   run.closed = true
-  @planning.close_duckdb_compute_attempt(run.attempt)
+  @duckdb_compute.close_duckdb_compute_attempt(run.attempt)
   if run.strategy is Some((graph, _)) {
     @strategy.close_captured_duckdb_task(graph, run.attempt)
   }

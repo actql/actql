@@ -56,7 +56,7 @@ test "resident provision freezes dispatch and search until binding or close" {
     let base = @strategy.prepare_task_offer(
       run,
       task,
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       1,
       [{ work_slots: [0], milliseconds: Some(1L), }],
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
@@ -255,7 +255,7 @@ test "aborted resident import cannot publish after cleanup or reopen dispatch" {
     let offer = @strategy.prepare_task_offer(
       run,
       task,
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       1,
       [{ work_slots: [0], milliseconds: Some(1L), }],
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },

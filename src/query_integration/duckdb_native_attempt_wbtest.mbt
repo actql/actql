@@ -3,7 +3,7 @@ fn native_candidate_fixture(
   ceiling? : Int = 100,
   rows? : Int = 2,
 ) -> (
-  @planning.CapabilityRegistry,
+  @connector.CapabilityRegistry,
   @planning.QueryRequirement,
   @planning.DuckDBQueryPreparation,
 ) raise {
@@ -17,7 +17,7 @@ fn native_candidate_fixture(
     { max_rows: rows, max_value_bytes: ceiling, },
     query_material_limits(),
   ).unwrap()
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
     1,
     6,
@@ -41,7 +41,7 @@ fn native_selected_attempt(
 ) -> @planning.DuckDBNativeAttempt raise {
   let (registry, requirement, prepared) = native_candidate_fixture(rows~)
   let candidate = @planning.duckdb_native_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 0).unwrap(),
     prepared,
     [
       {
@@ -202,8 +202,8 @@ test "native selected attempt keeps common output guard and exact receipt owner"
 ///|
 test "native and broad candidates share comparison without dropping either receipt cost" {
   let (registry, requirement, prepared) = native_candidate_fixture()
-  let registration = @planning.capability_registration_at(registry, 0).unwrap()
-  let quantities : @planning.QueryQuantities = {
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
@@ -320,7 +320,7 @@ test "native and broad candidates share comparison without dropping either recei
   let (tiny_registry, _, tiny) = native_candidate_fixture(ceiling=4)
   assert_true(
     @planning.duckdb_native_candidate(
-      @planning.capability_registration_at(tiny_registry, 0).unwrap(),
+      @connector.capability_registration_at(tiny_registry, 0).unwrap(),
       tiny,
       [],
       quantities,

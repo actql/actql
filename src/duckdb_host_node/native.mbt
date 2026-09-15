@@ -10,7 +10,7 @@ struct NativeNodeRun {
 pub(all) suberror NodeHostFailure {
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)
-  Compute(@planning.DuckDBComputeIssue)
+  Compute(@duckdb_compute.DuckDBComputeIssue)
   Strategy(@strategy.RunIssue)
   Dispatch(@host.DispatchIssue)
   Physical(@resources.LedgerIssue)

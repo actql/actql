@@ -47,7 +47,7 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
     let native = @strategy.prepare_task_offer(
       run,
       task,
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       1,
       [{ work_slots: [0], milliseconds: Some(1L), }],
       { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
@@ -58,7 +58,7 @@ fn verify_existing_cleanup(state : String, unknown : Bool) -> Unit raise {
       @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(registry, 0).unwrap(),
+        @connector.capability_registration_at(registry, 0).unwrap(),
         1,
         [{ work_slots: [0], milliseconds: Some(10L), }],
         { transfer_bytes: 0L, retained_bytes: 100L, execution_bytes: 1000L, },
@@ -184,7 +184,7 @@ fn verify_resident_cost(
     let base = @strategy.prepare_task_offer(
       run,
       task,
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
       1,
       [{ work_slots: [0], milliseconds: Some(1L), }],
       {

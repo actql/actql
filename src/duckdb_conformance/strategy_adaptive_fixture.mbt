@@ -110,7 +110,7 @@ pub fn strategy_fixture_history_placement(
     is Some(revision) else {
     return "missing"
   }
-  let native_reg = @planning.capability_registration_at(f.registry, 1).unwrap()
+  let native_reg = @connector.capability_registration_at(f.registry, 1).unwrap()
   let out = StringBuilder()
   for task in 1..<4 {
     guard @strategy.strategy_registration(revision, task) is Some(registration) else {

@@ -61,7 +61,7 @@ test "strategy explanation snapshots disjoint work lines and preserves unknown a
       @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(registry, 0).unwrap(),
+        @connector.capability_registration_at(registry, 0).unwrap(),
         5,
         lines,
         {

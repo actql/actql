@@ -4,7 +4,7 @@
 // rows are fixed independently in the Node test, never derived from this output.
 test "registered DuckDB transport command fixture from completed capture" {
   let input = duckdb_captured_input(filter="id > 2")
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [
       { name: "local", acquisition: false, fixed_compute: true, },
       { name: "duckdb", acquisition: true, fixed_compute: true, },
@@ -12,27 +12,27 @@ test "registered DuckDB transport command fixture from completed capture" {
     2,
     11,
   ).unwrap()
-  let request = @planning.prepare_fixed_compute_request([input], {
+  let request = @connector.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
     common_fragment: None,
   }).unwrap()
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
   }
-  let local_binding = @planning.local_fixed_compute_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+  let local_binding = @local_connector.local_fixed_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
     request,
     query_generated(@execution.producer_read_receiver(input)),
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(20L), }],
     quantities,
     100,
   ).unwrap()
-  let native_binding = @planning.duckdb_fixed_compute_candidate(
-    @planning.capability_registration_at(registry, 1).unwrap(),
+  let native_binding = @duckdb_compute.duckdb_fixed_compute_candidate(
+    @connector.capability_registration_at(registry, 1).unwrap(),
     request,
     "owned_input",
     native_compile_limits(),
@@ -40,12 +40,12 @@ test "registered DuckDB transport command fixture from completed capture" {
     quantities,
     100,
   ).unwrap()
-  guard @planning.choose_fixed_compute_candidate(
+  guard @connector.choose_fixed_compute_candidate(
       registry,
       request,
       [
-        @planning.prepared_compute_candidate(local_binding),
-        @planning.prepared_compute_candidate(native_binding),
+        @connector.prepared_compute_candidate(local_binding),
+        @connector.prepared_compute_candidate(native_binding),
       ],
       None,
       100,
@@ -54,9 +54,9 @@ test "registered DuckDB transport command fixture from completed capture" {
     abort("expected native proposal")
   }
   assert_true(
-    @planning.fixed_compute_choice_reason(choice) is EstimatedFastest(1, 10L),
+    @connector.fixed_compute_choice_reason(choice) is EstimatedFastest(1, 10L),
   )
-  let compute = @planning.fixed_compute_choice_payload(choice, native_binding).unwrap()
+  let compute = @connector.fixed_compute_choice_payload(choice, native_binding).unwrap()
   let imported = @duckdb.fixed_compute_import(compute, 0).unwrap()
   let query = @duckdb.fixed_compute_query(compute)
   assert_true(

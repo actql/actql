@@ -1,0 +1,67 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/duckdb/compute"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/decode_core",
+  "actql/actql/duckdb_adapter",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
+}
+
+// Values
+pub fn abort_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
+
+pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @duckdb_adapter.PhysicalType)]) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
+
+pub fn complete_duckdb_compute_attempt(DuckDBComputeAttempt) -> Result[@execution_relation.CompletedOutput, DuckDBComputeIssue]
+
+pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @duckdb_adapter.FixedCompute, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
+
+pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @duckdb_adapter.FixedCompute
+
+pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
+
+pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
+
+// Errors
+
+// Types and methods
+type DuckDBComputeAttempt
+
+pub(all) enum DuckDBComputeCandidateIssue {
+  Request(@connector_sdk.FixedComputeIssue)
+  Compilation(@duckdb_adapter.NativeQueryIssue)
+}
+
+pub(all) enum DuckDBComputeIssue {
+  NotSelected
+  ForeignPreparation
+  InvalidState
+  UnverifiedTransport
+  Guard(@execution_relation.FixedInputGuardIssue)
+  JoinValidation(@execution_relation.RowIssue)
+  Receiving(@duckdb_adapter.FixedComputeReceivingIssue)
+  Demand(@duckdb_adapter.NativeDemandIssue)
+  Completion(@execution_relation.TrustedOutputIssue)
+}
+
+pub(all) struct DuckDBComputeLimits {
+  values : @execution_relation.FixedInputGuardMeasureLimits
+  demand : @execution_relation.FixedInputGuardMeasureLimits
+  physical : @duckdb_adapter.PhysicalResultLimits
+  retention : @execution_relation.ValueLimits
+  metadata_work : Int
+  completion_entries : Int
+  completion_name_bytes : Int
+}
+
+// Type aliases
+
+// Traits

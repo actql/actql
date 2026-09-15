@@ -4,7 +4,7 @@ priv struct ResidentPendingOutput {
   allocation : ResidentAllocation
   table_name : String
   query : @duckdb.ResidentQuery
-  limits : @planning.DuckDBComputeLimits
+  limits : @duckdb_compute.DuckDBComputeLimits
   max_sql_bytes : Int
   mut committed : Bool
   mut cleanup_prepared : Bool
@@ -17,7 +17,7 @@ fn prepare_resident_output(
   env : ResidentEnvironment,
   query : @duckdb.FixedQuery,
   bytes : Int64,
-  limits : @planning.DuckDBComputeLimits,
+  limits : @duckdb_compute.DuckDBComputeLimits,
   max_sql_bytes : Int,
 ) -> Result[ResidentPendingOutput, RunIssue] {
   if env.next_table >= @resources.ledger_limits(run.ledger).holdings {
@@ -53,7 +53,7 @@ fn prepare_resident_output(
 /// DROP executes inside this task's transaction after its reads have finished.
 pub fn captured_resident_cleanup_sql(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Result[Array[String], RunIssue] {
   guard run.running is Some((task, active)) &&
     physical_equal(active, attempt) &&
@@ -102,7 +102,7 @@ pub fn captured_resident_cleanup_sql(
 ///|
 pub fn captured_resident_query(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> @duckdb.ResidentQuery? {
   native_task_resource(run, attempt).bind(pair => {
     pair.1.resident_output.map(value => value.query)
@@ -114,7 +114,7 @@ pub fn captured_resident_query(
 /// Host receiving/guard validation must also succeed before task publication.
 pub fn confirm_captured_resident_output(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)

@@ -3,7 +3,30 @@ import {readFileSync, readdirSync} from 'node:fs';
 import test from 'node:test';
 
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
-const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"/]+)"/g)].map(m => m[1]);
+const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
+
+const dependencies = name => {
+  const seen = new Set();
+  const pending = imports(name);
+  while (pending.length) {
+    const dependency = pending.pop();
+    if (seen.has(dependency)) continue;
+    seen.add(dependency);
+    pending.push(...imports(dependency));
+  }
+  return [...seen];
+};
+
+test('connector SDK has no concrete implementation dependency or public error type', () => {
+  for (const dependency of dependencies('connector_sdk')) {
+    assert.doesNotMatch(dependency, /^(?:connectors\/|duckdb_|query_planning$|physical_strategy$)/);
+  }
+  const api = readFileSync('src/connector_sdk/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(api, /(?:DuckDB|NativeQueryIssue|query_planning)/);
+  for (const type of ['CapabilityRegistry', 'CapabilityRegistration', 'FixedComputeRequest', 'FixedComputeCandidate']) {
+    assert.match(api, new RegExp(`^type ${type}$`, 'm'));
+  }
+});
 
 test('physical resource ledger is independent of strategy and connector implementations', () => {
   assert.deepEqual(imports('physical_resources'), []);

@@ -32,7 +32,7 @@ pub(all) struct PhysicalEnvelope {
 struct TaskOffer {
   owner : StrategyOfferOwner
   task : Int
-  registration : @planning.CapabilityRegistration
+  registration : @connector.CapabilityRegistration
   duration : @cost.DurationEstimate
   capacity : PhysicalEnvelope
   work_slots : Int
@@ -122,7 +122,7 @@ pub fn configure_strategy_search(
 pub fn prepare_task_offer(
   run : CapturedDAG,
   task : Int,
-  registration : @planning.CapabilityRegistration,
+  registration : @connector.CapabilityRegistration,
   work_slots : Int,
   lines : Array[@cost.SerialEstimateLine],
   capacity : PhysicalEnvelope,
@@ -131,7 +131,7 @@ pub fn prepare_task_offer(
   if task < 1 || task >= run.graph.owners.length() || task_done(run, task) {
     return Err(ForeignOffer(task))
   }
-  if !@planning.capability_description(registration).fixed_compute {
+  if !@connector.capability_description(registration).fixed_compute {
     return Err(CapabilityUnavailable(task))
   }
   if capacity.transfer_bytes < 0L ||
@@ -204,7 +204,7 @@ fn search_charge(work : SearchWork, amount : Int) -> Result[Unit, SearchIssue] {
 pub fn revise_strategy(
   run : CapturedDAG,
   offers : Array[TaskOffer],
-  registry : @planning.CapabilityRegistry,
+  registry : @connector.CapabilityRegistry,
   host_priority : Array[Int]?,
 ) -> Result[StrategyDecision, SearchIssue] {
   guard run.search is Some(limits) else { return Err(NotConfigured) }
@@ -250,7 +250,7 @@ pub fn revise_strategy(
       task_done(run, offer.task) {
       return Err(ForeignOffer(i))
     }
-    if !@planning.capability_registration_matches(offer.registration, registry) {
+    if !@connector.capability_registration_matches(offer.registration, registry) {
       return Err(CapabilityUnavailable(i))
     }
     groups[offer.task].push(offer)
@@ -504,7 +504,7 @@ pub fn revise_strategy(
 fn strategy_candidate_matches(
   run : CapturedDAG,
   task : Int,
-  candidate : @planning.FixedComputeCandidate,
+  candidate : @connector.FixedComputeCandidate,
 ) -> Bool {
   if run.search is None {
     return true
@@ -515,7 +515,7 @@ fn strategy_candidate_matches(
   }
   physical_equal(
     offer.registration,
-    @planning.fixed_compute_candidate_registration(candidate),
+    @connector.fixed_compute_candidate_registration(candidate),
   )
 }
 
@@ -535,7 +535,7 @@ pub fn strategy_usage_before(
 pub fn strategy_registration(
   revision : StrategyRevision,
   task : Int,
-) -> @planning.CapabilityRegistration? {
+) -> @connector.CapabilityRegistration? {
   revision.choices
   .get(task)
   .bind(value => value)

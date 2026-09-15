@@ -19,13 +19,15 @@ test "fixed global count completion uses its own target and preserves common gua
       supplied_input=Some(input),
       generated=Some(compute_test_sequence(owner)),
     )
-    @planning.begin_duckdb_compute_result(attempt, [("n", @duckdb.Float64)]).unwrap()
-    @planning.receive_duckdb_compute_chunk(attempt, 1, [
+    @duckdb_compute.begin_duckdb_compute_result(attempt, [
+      ("n", @duckdb.Float64),
+    ]).unwrap()
+    @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
       input_cursor(expected_wire),
     ]).unwrap()
-    @planning.finish_duckdb_compute_result(attempt).unwrap()
+    @duckdb_compute.finish_duckdb_compute_result(attempt).unwrap()
     transport.settled = Some(attempt)
-    let output = @planning.complete_duckdb_compute_attempt(attempt).unwrap()
+    let output = @duckdb_compute.complete_duckdb_compute_attempt(attempt).unwrap()
     assert_eq(@execution.completed_row_count(output), 1)
     assert_true(
       @execution.completed_cell(output, 0, 0) is Some(Number(n)) &&
@@ -44,7 +46,7 @@ test "fixed global count completion uses its own target and preserves common gua
       produced=[binding],
     ).unwrap()
     let downstream = @execution.completed_output(completed, Step(0)).unwrap()
-    @planning.close_duckdb_compute_attempt(attempt)
+    @duckdb_compute.close_duckdb_compute_attempt(attempt)
     assert_true(
       @execution.bind_completed_input(receiver, 0, owner, output)
       is Err(ProducerUnavailable),

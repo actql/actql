@@ -2,19 +2,19 @@
 /// Trusted application preparation. No connection, source grant or SQL string
 /// is accepted; the selected candidate already owns its fixed producer input.
 struct ComputeHostConfiguration {
-  choice : @planning.FixedComputeChoice
-  prepared : @planning.PreparedCompute[@duckdb.FixedCompute]
+  choice : @connector.FixedComputeChoice
+  prepared : @connector.PreparedCompute[@duckdb.FixedCompute]
   generated : @execution.GeneratedSequence
-  limits : @planning.DuckDBComputeLimits
+  limits : @duckdb_compute.DuckDBComputeLimits
   transport : @duckdb.TransportColumnLimits
 }
 
 ///|
 pub fn configure_compute_host(
-  choice : @planning.FixedComputeChoice,
-  prepared : @planning.PreparedCompute[@duckdb.FixedCompute],
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   generated : @execution.GeneratedSequence,
-  limits : @planning.DuckDBComputeLimits,
+  limits : @duckdb_compute.DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
 ) -> ComputeHostConfiguration {
   { choice, prepared, generated, limits, transport, }
@@ -23,9 +23,12 @@ pub fn configure_compute_host(
 ///|
 pub fn start_configured_compute_host(
   setup : ComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
-) -> Result[@planning.DuckDBComputeAttempt, @planning.DuckDBComputeIssue] {
-  @planning.start_duckdb_compute_attempt(
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
+) -> Result[
+  @duckdb_compute.DuckDBComputeAttempt,
+  @duckdb_compute.DuckDBComputeIssue,
+] {
+  @duckdb_compute.start_duckdb_compute_attempt(
     setup.choice,
     setup.prepared,
     setup.generated,
@@ -67,11 +70,11 @@ pub fn configured_strategy_compute_ledger(
 ///|
 pub fn start_configured_strategy_compute_host(
   setup : StrategyComputeHostConfiguration,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : @strategy.ResidentInputs,
-) -> Result[@planning.DuckDBComputeAttempt, @strategy.RunIssue] {
+) -> Result[@duckdb_compute.DuckDBComputeAttempt, @strategy.RunIssue] {
   let c = setup.compute
   @strategy.start_captured_duckdb_task(
     setup.graph,
@@ -112,7 +115,7 @@ pub fn borrow_configured_resident_inputs(
   max_sql_bytes : Int,
 ) -> Result[@strategy.ResidentInputs, @strategy.RunIssue] {
   let c = setup.compute
-  guard @planning.fixed_compute_choice_payload(c.choice, c.prepared)
+  guard @connector.fixed_compute_choice_payload(c.choice, c.prepared)
     is Some(compute) else {
     return Err(ForeignCandidate)
   }

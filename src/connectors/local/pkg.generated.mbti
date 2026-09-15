@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/local"
+
+import {
+  "actql/actql/connector_sdk",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_cost",
+}
+
+// Values
+pub fn execute_local_fixed_compute(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, measurement~ : @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?) -> Result[@execution_relation.CompletedSequence, @connector_sdk.FixedComputeIssue]
+
+pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -1,6 +1,6 @@
 ///|
 struct FixedComputeTestTransport {
-  mut settled : @planning.DuckDBComputeAttempt?
+  mut settled : @duckdb_compute.DuckDBComputeAttempt?
 }
 
 ///|
@@ -19,13 +19,16 @@ test "DuckDB Compute seals independent output only after live upstream validatio
     transport.settled = Some(attempt)
     if close_before_completion {
       close_upstream()
-      assert_true(@planning.complete_duckdb_compute_attempt(attempt) is Err(_))
       assert_true(
-        @planning.complete_duckdb_compute_attempt(attempt) is Err(InvalidState),
+        @duckdb_compute.complete_duckdb_compute_attempt(attempt) is Err(_),
+      )
+      assert_true(
+        @duckdb_compute.complete_duckdb_compute_attempt(attempt)
+        is Err(InvalidState),
       )
       continue
     }
-    let output = @planning.complete_duckdb_compute_attempt(attempt).unwrap()
+    let output = @duckdb_compute.complete_duckdb_compute_attempt(attempt).unwrap()
     let owner = @execution.producer_read_receiver(input)
     let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
     let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
@@ -47,7 +50,7 @@ test "DuckDB Compute seals independent output only after live upstream validatio
       @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
     )
     transport.settled = Some(attempt)
-    @planning.close_duckdb_compute_attempt(attempt)
+    @duckdb_compute.close_duckdb_compute_attempt(attempt)
     assert_true(
       @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
     )
@@ -72,7 +75,7 @@ test "DuckDB Compute seals independent output only after live upstream validatio
 }
 
 ///|
-fn fixed_compute_attempt_limits() -> @planning.DuckDBComputeLimits {
+fn fixed_compute_attempt_limits() -> @duckdb_compute.DuckDBComputeLimits {
   {
     values: { max_work: 100, max_bytes: 100, max_nodes: 100, max_depth: 10, },
     demand: { max_work: 100, max_bytes: 100, max_nodes: 100, max_depth: 10, },
@@ -97,28 +100,28 @@ fn fixed_compute_attempt_limits() -> @planning.DuckDBComputeLimits {
 ///|
 fn fixed_compute_attempt_fixture(
   transport : FixedComputeTestTransport,
-  limits : @planning.DuckDBComputeLimits,
+  limits : @duckdb_compute.DuckDBComputeLimits,
   ceiling? : Int = 5,
   supplied_input? : @execution.ProducerRead? = None,
   generated? : @execution.GeneratedSequence? = None,
-) -> (@planning.DuckDBComputeAttempt, @execution.ProducerRead) raise {
+) -> (@duckdb_compute.DuckDBComputeAttempt, @execution.ProducerRead) raise {
   let input = match supplied_input {
     Some(input) => input
     None => duckdb_captured_input(filter="id > 2")
   }
-  let request = @planning.prepare_fixed_compute_request([input], {
+  let request = @connector.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 2,
     max_value_bytes: ceiling,
     common_fragment: None,
   }).unwrap()
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [{ name: "duckdb", acquisition: false, fixed_compute: true, }],
     1,
     6,
   ).unwrap()
-  let prepared = @planning.duckdb_fixed_compute_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+  let prepared = @duckdb_compute.duckdb_fixed_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
     request,
     "fixed",
     native_compile_limits(),
@@ -126,17 +129,17 @@ fn fixed_compute_attempt_fixture(
     { transfer_bytes: None, retained_bytes: None, money_units: None, },
     100,
   ).unwrap()
-  guard @planning.choose_fixed_compute_candidate(
+  guard @connector.choose_fixed_compute_candidate(
       registry,
       request,
-      [@planning.prepared_compute_candidate(prepared)],
+      [@connector.prepared_compute_candidate(prepared)],
       None,
       100,
     ).unwrap()
     is Proposed(choice) else {
     abort("fixed proposal")
   }
-  let attempt = @planning.start_duckdb_compute_attempt(
+  let attempt = @duckdb_compute.start_duckdb_compute_attempt(
     choice,
     prepared,
     match generated {
@@ -156,13 +159,13 @@ fn fixed_compute_attempt_fixture(
 
 ///|
 fn fixed_compute_attempt_receive(
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Unit {
-  @planning.begin_duckdb_compute_result(attempt, [("id", @duckdb.Float64)]).unwrap()
-  @planning.receive_duckdb_compute_chunk(attempt, 1, [
+  @duckdb_compute.begin_duckdb_compute_result(attempt, [("id", @duckdb.Float64)]).unwrap()
+  @duckdb_compute.receive_duckdb_compute_chunk(attempt, 1, [
     input_cursor("[\"4008000000000000\"]"),
   ]).unwrap()
-  @planning.finish_duckdb_compute_result(attempt).unwrap()
+  @duckdb_compute.finish_duckdb_compute_result(attempt).unwrap()
 }
 
 ///|
@@ -174,13 +177,14 @@ test "selected fixed Compute verifies guards and transport before real completio
   )
   fixed_compute_attempt_receive(attempt)
   transport.settled = Some(attempt)
-  let output = @planning.complete_duckdb_compute_attempt(attempt).unwrap()
+  let output = @duckdb_compute.complete_duckdb_compute_attempt(attempt).unwrap()
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
   assert_true(
-    @planning.complete_duckdb_compute_attempt(attempt) is Err(InvalidState),
+    @duckdb_compute.complete_duckdb_compute_attempt(attempt)
+    is Err(InvalidState),
   )
-  @planning.abort_duckdb_compute_attempt(attempt) // successful result is preserved
+  @duckdb_compute.abort_duckdb_compute_attempt(attempt) // successful result is preserved
   let owner = @execution.producer_read_receiver(input)
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
   let bound = @execution.bind_completed_input(receiver, 0, owner, output).unwrap()
@@ -193,7 +197,7 @@ test "selected fixed Compute verifies guards and transport before real completio
   ).unwrap()
   let downstream = @execution.completed_output(completed, @pipeline.Step(0)).unwrap()
   assert_true(@execution.completed_cell(downstream, 0, 0) is Some(Number(3)))
-  @planning.close_duckdb_compute_attempt(attempt)
+  @duckdb_compute.close_duckdb_compute_attempt(attempt)
   transport.settled = None
   assert_true(
     @execution.bind_completed_input(receiver, 0, owner, output) is Err(_),
@@ -219,10 +223,13 @@ test "fixed Compute cannot turn incomplete foreign or failed attempts into compl
     fixed_compute_attempt_limits(),
   )
   assert_true(
-    @planning.complete_duckdb_compute_attempt(unfinished) is Err(InvalidState),
+    @duckdb_compute.complete_duckdb_compute_attempt(unfinished)
+    is Err(InvalidState),
   )
   assert_true(
-    @planning.begin_duckdb_compute_result(unfinished, [("id", @duckdb.Float64)])
+    @duckdb_compute.begin_duckdb_compute_result(unfinished, [
+      ("id", @duckdb.Float64),
+    ])
     is Err(InvalidState),
   )
   let (attempt, input) = fixed_compute_attempt_fixture(
@@ -232,12 +239,13 @@ test "fixed Compute cannot turn incomplete foreign or failed attempts into compl
   fixed_compute_attempt_receive(attempt)
   transport.settled = Some(unfinished)
   assert_true(
-    @planning.complete_duckdb_compute_attempt(attempt)
+    @duckdb_compute.complete_duckdb_compute_attempt(attempt)
     is Err(UnverifiedTransport),
   )
   transport.settled = Some(attempt)
   assert_true(
-    @planning.complete_duckdb_compute_attempt(attempt) is Err(InvalidState),
+    @duckdb_compute.complete_duckdb_compute_attempt(attempt)
+    is Err(InvalidState),
   )
   assert_true(@execution.producer_read_available(input))
   for ceiling in [4, 5] {
@@ -254,14 +262,15 @@ test "fixed Compute cannot turn incomplete foreign or failed attempts into compl
     )
     fixed_compute_attempt_receive(failed)
     transport.settled = Some(failed)
-    let result = @planning.complete_duckdb_compute_attempt(failed)
+    let result = @duckdb_compute.complete_duckdb_compute_attempt(failed)
     if ceiling == 4 {
       assert_true(result is Err(Demand(Predicate(ValueBytes))))
     } else {
       assert_true(result is Err(Guard(Measurement(Output, 0, 0, _))))
     }
     assert_true(
-      @planning.complete_duckdb_compute_attempt(failed) is Err(InvalidState),
+      @duckdb_compute.complete_duckdb_compute_attempt(failed)
+      is Err(InvalidState),
     )
     assert_true(@execution.producer_read_available(input))
   }

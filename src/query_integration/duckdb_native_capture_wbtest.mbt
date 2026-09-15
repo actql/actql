@@ -11,7 +11,7 @@ priv struct NativeIssuerFixture {
 fn native_issuer_fixture() -> NativeIssuerFixture raise {
   let (registry, requirement, prepared) = native_candidate_fixture()
   let candidate = @planning.duckdb_native_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 0).unwrap(),
     prepared,
     [
       {

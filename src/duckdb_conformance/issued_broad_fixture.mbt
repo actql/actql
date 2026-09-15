@@ -228,13 +228,13 @@ pub fn issued_broad_create(
       output_rows,
     )
     let requirement = @planning.duckdb_query_requirement(preparation)
-    let registry = @planning.prepare_capability_registry(
+    let registry = @connector.prepare_capability_registry(
       [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
       1,
       6,
     ).unwrap()
     let candidate = @planning.duckdb_broad_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 0).unwrap(),
       preparation,
       [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
       { transfer_bytes: None, retained_bytes: None, money_units: None, },

@@ -2,7 +2,7 @@
 struct Application {
   acquisition : @dbhost.NativeHostConfiguration
   graph : @strategy.CheckedDAG
-  registry : @planning.CapabilityRegistry
+  registry : @connector.CapabilityRegistry
   generated : Array[@execution.GeneratedSequence]
 }
 
@@ -180,7 +180,7 @@ pub fn prepare_application(
     10,
     native_query_limits(),
   ).unwrap()
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [
       { name: "local", acquisition: false, fixed_compute: true, },
       { name: "duckdb", acquisition: true, fixed_compute: true, },
@@ -189,7 +189,7 @@ pub fn prepare_application(
     100,
   ).unwrap()
   let candidate = @planning.duckdb_native_candidate(
-    @planning.capability_registration_at(registry, 1).unwrap(),
+    @connector.capability_registration_at(registry, 1).unwrap(),
     preparation,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], milliseconds: None, }],
     { transfer_bytes: None, retained_bytes: None, money_units: None, },
@@ -294,8 +294,8 @@ pub fn application_dispatch(
   let dispatch = @dbhost.configure_strategy_dispatch(
     run,
     app.registry,
-    @planning.capability_registration_at(app.registry, 0).unwrap(),
-    @planning.capability_registration_at(app.registry, 1).unwrap(),
+    @connector.capability_registration_at(app.registry, 0).unwrap(),
+    @connector.capability_registration_at(app.registry, 1).unwrap(),
     app.generated,
     dispatch_limits(),
   ).unwrap()

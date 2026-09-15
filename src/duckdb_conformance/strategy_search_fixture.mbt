@@ -28,7 +28,7 @@ pub fn strategy_fixture_replan(
       let offer = @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(f.registry, index).unwrap(),
+        @connector.capability_registration_at(f.registry, index).unwrap(),
         if native {
           8
         } else {
@@ -81,7 +81,7 @@ pub fn strategy_fixture_placement(f : StrategyFixture, task : Int) -> String {
     @strategy.strategy_registration(revision, task) is Some(registration) else {
     return "unselected"
   }
-  @planning.capability_description(registration).name
+  @connector.capability_description(registration).name
 }
 
 ///|

@@ -128,7 +128,7 @@ fn captured_graph_local(
   run : @strategy.CapturedDAG,
   task : Int,
   limits? : @execution.SequenceExecutionLimits = compute_test_limits(),
-  supplied_registry? : @planning.CapabilityRegistry? = None,
+  supplied_registry? : @connector.CapabilityRegistry? = None,
 ) -> Result[Unit, @strategy.RunIssue] raise {
   let owner = @strategy.graph_task_owner(
     @strategy.captured_dag_graph(run),
@@ -140,7 +140,7 @@ fn captured_graph_local(
   let inputs = Array::makei(input_count, port => {
     @strategy.captured_task_input(run, task, 100, 10000, input_index=port).unwrap()
   })
-  let request = @planning.prepare_fixed_compute_request(inputs, {
+  let request = @connector.prepare_fixed_compute_request(inputs, {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 10000,
@@ -149,7 +149,7 @@ fn captured_graph_local(
   let registry = match supplied_registry {
     Some(registry) => registry
     None =>
-      @planning.prepare_capability_registry(
+      @connector.prepare_capability_registry(
         [{ name: "local", acquisition: false, fixed_compute: true, }],
         1,
         100,
@@ -163,18 +163,18 @@ fn captured_graph_local(
   } else {
     query_generated(owner)
   }
-  let prepared = @planning.local_fixed_compute_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+  let prepared = @local_connector.local_fixed_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
     request,
     generated,
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(5L), }],
     { transfer_bytes: Some(0L), retained_bytes: None, money_units: None, },
     100,
   ).unwrap()
-  guard @planning.choose_fixed_compute_candidate(
+  guard @connector.choose_fixed_compute_candidate(
       registry,
       request,
-      [@planning.prepared_compute_candidate(prepared)],
+      [@connector.prepared_compute_candidate(prepared)],
       None,
       100,
     ).unwrap()

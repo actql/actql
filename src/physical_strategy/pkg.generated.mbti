@@ -2,6 +2,8 @@
 package "actql/actql/physical_strategy"
 
 import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/compute",
   "actql/actql/duckdb_adapter",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
@@ -38,9 +40,9 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
-pub fn captured_resident_cleanup_sql(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Array[String], RunIssue]
+pub fn captured_resident_cleanup_sql(CapturedDAG, @compute.DuckDBComputeAttempt) -> Result[Array[String], RunIssue]
 
-pub fn captured_resident_query(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> @duckdb_adapter.ResidentQuery?
+pub fn captured_resident_query(CapturedDAG, @compute.DuckDBComputeAttempt) -> @duckdb_adapter.ResidentQuery?
 
 pub fn captured_root_statistics(CapturedDAG) -> @query_planning.CapturedSourceStatistics?
 
@@ -54,33 +56,33 @@ pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execu
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
-pub fn charge_captured_duckdb_transfer(CapturedDAG, @query_planning.DuckDBComputeAttempt, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+pub fn charge_captured_duckdb_transfer(CapturedDAG, @compute.DuckDBComputeAttempt, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn close_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Unit
+pub fn close_captured_duckdb_task(CapturedDAG, @compute.DuckDBComputeAttempt) -> Unit
 
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
 pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn complete_captured_duckdb_task(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
+pub fn complete_captured_duckdb_task(CapturedDAG, @compute.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
 
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 
-pub fn confirm_captured_resident_output(CapturedDAG, @query_planning.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
+pub fn confirm_captured_resident_output(CapturedDAG, @compute.DuckDBComputeAttempt) -> Result[Unit, RunIssue]
 
 pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> Result[Unit, RunIssue]
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
 
-pub fn duckdb_task_retention_capacity(@query_planning.DuckDBComputeLimits) -> Int64?
+pub fn duckdb_task_retention_capacity(@compute.DuckDBComputeLimits) -> Int64?
 
-pub fn duckdb_task_scratch_capacity(@query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
+pub fn duckdb_task_scratch_capacity(@compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
 
-pub fn execute_captured_local_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
+pub fn execute_captured_local_task(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, RunIssue]
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
@@ -110,7 +112,7 @@ pub fn prepare_resident_profile(CapturedDAG, Int64, Int64?, Int64?, Array[Reside
 
 pub fn prepare_resident_table(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, Int) -> Result[ResidentTable, RunIssue]
 
-pub fn prepare_task_offer(CapturedDAG, Int, @query_planning.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -138,15 +140,15 @@ pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physic
 
 pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @query_planning.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
+pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
-pub fn settle_captured_duckdb_native(CapturedDAG, @query_planning.DuckDBComputeAttempt, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+pub fn settle_captured_duckdb_native(CapturedDAG, @compute.DuckDBComputeAttempt, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn start_captured_duckdb_task(CapturedDAG, Int, @query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@query_planning.DuckDBComputeAttempt) -> Bool, resident? : ResidentInputs) -> Result[@query_planning.DuckDBComputeAttempt, RunIssue]
+pub fn start_captured_duckdb_task(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : ResidentInputs) -> Result[@compute.DuckDBComputeAttempt, RunIssue]
 
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
@@ -158,7 +160,7 @@ pub fn strategy_history_at(CapturedDAG, Int) -> StrategyRevision?
 
 pub fn strategy_history_count(CapturedDAG) -> Int
 
-pub fn strategy_registration(StrategyRevision, Int) -> @query_planning.CapabilityRegistration?
+pub fn strategy_registration(StrategyRevision, Int) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_report_at(CapturedDAG, Int) -> StrategyAssessment?
 
@@ -240,8 +242,8 @@ pub(all) enum RunIssue {
   Capture(@query_planning.CapturedSourceIssue)
   Binding(@execution_relation.ProducerBindingIssue)
   Read(@execution_relation.ProducerReadIssue)
-  Compute(@query_planning.FixedComputeIssue)
-  DuckDB(@query_planning.DuckDBComputeIssue)
+  Compute(@connector_sdk.FixedComputeIssue)
+  DuckDB(@compute.DuckDBComputeIssue)
   NativePreparation(@duckdb_adapter.NativeQueryIssue)
   Physical(@physical_resources.LedgerIssue)
 }

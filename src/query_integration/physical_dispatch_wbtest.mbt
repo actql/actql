@@ -50,8 +50,8 @@ fn dispatch_test_generated(
 test "dispatch requires exact generated owners and consumes checked-ready tasks once" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()
-  let local_reg = @planning.capability_registration_at(registry, 0).unwrap()
-  let native_reg = @planning.capability_registration_at(registry, 1).unwrap()
+  let local_reg = @connector.capability_registration_at(registry, 0).unwrap()
+  let native_reg = @connector.capability_registration_at(registry, 1).unwrap()
   let generated = dispatch_test_generated(run)
   let (foreign, _) = captured_graph_fixture()
   assert_true(
@@ -115,8 +115,8 @@ test "a replaced unstarted strategy invalidates a prepared dispatch without star
   let host = @dbhost.configure_strategy_dispatch(
     run,
     registry,
-    @planning.capability_registration_at(registry, 0).unwrap(),
-    @planning.capability_registration_at(registry, 1).unwrap(),
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 1).unwrap(),
     dispatch_test_generated(run),
     dispatch_test_limits(),
   ).unwrap()

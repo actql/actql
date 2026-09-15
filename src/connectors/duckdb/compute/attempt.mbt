@@ -23,10 +23,10 @@ pub(all) enum DuckDBComputeIssue {
 }
 
 ///|
-/// Host-private attempt. The verifier is trusted runtime wiring, never a
+/// Connector-owned attempt. The verifier is trusted runtime wiring, never a
 /// callback provided by a Program or ordinary capability registration.
 struct DuckDBComputeAttempt {
-  request : FixedComputeRequest
+  request : @connector.FixedComputeRequest
   compute : @duckdb.FixedCompute
   port : @execution.TrustedOutputPort[DuckDBComputeAttempt]
   limits : DuckDBComputeLimits
@@ -46,32 +46,39 @@ struct DuckDBComputeAttempt {
 
 ///|
 pub fn start_duckdb_compute_attempt(
-  choice : FixedComputeChoice,
-  prepared : PreparedCompute[@duckdb.FixedCompute],
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   generated : @execution.GeneratedSequence,
   limits : DuckDBComputeLimits,
   transport_matches : (DuckDBComputeAttempt) -> Bool,
 ) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue] {
-  guard fixed_compute_choice_payload(choice, prepared) is Some(compute) else {
+  guard @connector.fixed_compute_choice_payload(choice, prepared)
+    is Some(compute) else {
     return Err(NotSelected)
   }
-  let request = prepared.candidate.request
-  if !@duckdb.fixed_compute_inputs_match(compute, request.inputs) {
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
+  )
+  if !@duckdb.fixed_compute_inputs_match(
+      compute,
+      @connector.fixed_compute_request_inputs(request),
+    ) {
     return Err(ForeignPreparation)
   }
   if !physical_equal(
       @execution.generated_sequence_owner(generated),
-      request.owner,
+      @connector.fixed_compute_request_owner(request),
     ) ||
-    request.capacity.common_fragment is Some(_) {
+    @connector.fixed_compute_request_capacity(request).common_fragment
+    is Some(_) {
     return Err(ForeignPreparation)
   }
   let measurement = match
     @execution.prepare_fixed_producer_measurement(
-      request.inputs,
+      @connector.fixed_compute_request_inputs(request),
       @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
-      max_rows=request.capacity.max_rows,
-      max_value_bytes=request.capacity.max_value_bytes,
+      max_rows=@connector.fixed_compute_request_capacity(request).max_rows,
+      max_value_bytes=@connector.fixed_compute_request_capacity(request).max_value_bytes,
       limits.values,
     ) {
     Ok(value) => value
@@ -129,8 +136,12 @@ pub fn begin_duckdb_compute_result(
     @duckdb.prepare_fixed_compute_receiving(
       value.compute,
       fields,
-      if value.request.capacity.max_rows < value.limits.physical.max_rows {
-        { ..value.limits.physical, max_rows: value.request.capacity.max_rows, }
+      if @connector.fixed_compute_request_capacity(value.request).max_rows <
+        value.limits.physical.max_rows {
+        {
+          ..value.limits.physical,
+          max_rows: @connector.fixed_compute_request_capacity(value.request).max_rows,
+        }
       } else {
         value.limits.physical
       },
@@ -218,15 +229,15 @@ fn verified_compute_rows(
       demand,
       value.compute,
       receipt,
-      value.request.capacity.max_value_bytes,
+      @connector.fixed_compute_request_capacity(value.request).max_value_bytes,
     ) &&
     @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) &&
     @execution.fixed_producer_measurement_matches(
       measured,
-      value.request.inputs,
+      @connector.fixed_compute_request_inputs(value.request),
       rows,
-      value.request.capacity.max_rows,
-      value.request.capacity.max_value_bytes,
+      @connector.fixed_compute_request_capacity(value.request).max_rows,
+      @connector.fixed_compute_request_capacity(value.request).max_value_bytes,
     ) else {
     return None
   }
@@ -257,7 +268,7 @@ fn complete_duckdb_compute_impl(
   if !(value.transport_matches)(value) {
     return Err(UnverifiedTransport)
   }
-  let capacity = value.request.capacity
+  let capacity = @connector.fixed_compute_request_capacity(value.request)
   value.demand = Some(
     match
       @duckdb.measure_fixed_compute_demand(

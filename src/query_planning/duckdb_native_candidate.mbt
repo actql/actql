@@ -50,10 +50,10 @@ pub(all) enum DuckDBNativeCandidateIssue {
 
 ///|
 pub fn duckdb_native_candidate(
-  registration : CapabilityRegistration,
+  registration : @connector.CapabilityRegistration,
   prepared : DuckDBQueryPreparation,
   estimates : Array[@cost.SerialEstimateLine],
-  quantities : QueryQuantities,
+  quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[
   PreparedAcquisition[DuckDBNativePreparation],
@@ -63,9 +63,9 @@ pub fn duckdb_native_candidate(
     Ok(value) => value
     Err(issue) => return Err(Unsupported(issue))
   }
-  if !valid_quantity(quantities.transfer_bytes) ||
-    !valid_quantity(quantities.retained_bytes) ||
-    !valid_quantity(quantities.money_units) {
+  if !@connector.valid_quantity(quantities.transfer_bytes) ||
+    !@connector.valid_quantity(quantities.retained_bytes) ||
+    !@connector.valid_quantity(quantities.money_units) {
     return Err(Planning(NegativeQuantity))
   }
   let duration = match @cost.assess_serial(11, estimates, max_entries) {

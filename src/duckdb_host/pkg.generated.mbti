@@ -2,6 +2,8 @@
 package "actql/actql/duckdb_host"
 
 import {
+  "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/compute",
   "actql/actql/decode_core",
   "actql/actql/duckdb_adapter",
   "actql/actql/execution_relation",
@@ -46,7 +48,7 @@ pub fn complete_native_host(NativeHostRun, @query_planning.DuckDBNativeCompletio
 
 pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBQueryPreparation], BroadHostLimits) -> BroadHostConfiguration
 
-pub fn configure_compute_host(@query_planning.FixedComputeChoice, @query_planning.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @query_planning.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> ComputeHostConfiguration
+pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], @execution_relation.GeneratedSequence, @compute.DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> ComputeHostConfiguration
 
 pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
 
@@ -56,7 +58,7 @@ pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.Resi
 
 pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
 
-pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @query_planning.CapabilityRegistry, @query_planning.CapabilityRegistration, @query_planning.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
+pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]
 
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
@@ -108,11 +110,11 @@ pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, Dispatch
 
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@query_planning.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
-pub fn start_configured_compute_host(ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> Result[@query_planning.DuckDBComputeAttempt, @query_planning.DuckDBComputeIssue]
+pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> Result[@compute.DuckDBComputeAttempt, @compute.DuckDBComputeIssue]
 
 pub fn start_configured_native_host(NativeHostConfiguration, String, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
-pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : @physical_strategy.ResidentInputs) -> Result[@query_planning.DuckDBComputeAttempt, @physical_strategy.RunIssue]
+pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : @physical_strategy.ResidentInputs) -> Result[@compute.DuckDBComputeAttempt, @physical_strategy.RunIssue]
 
 pub fn start_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@query_planning.DuckDBNativePreparation], String, Int, @duckdb_adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits, (@query_planning.DuckDBNativeAttempt) -> Bool) -> Result[NativeHostRun, NativeHostIssue]
 
@@ -159,7 +161,8 @@ pub(all) enum DispatchIssue {
   PendingTask
   StaleTask
   Run(@physical_strategy.RunIssue)
-  Candidate(@query_planning.FixedComputeIssue)
+  Candidate(@connector_sdk.FixedComputeIssue)
+  NativeCandidate(@compute.DuckDBComputeCandidateIssue)
   Search(@physical_strategy.SearchIssue)
   EstimateOverflow
   JoinPreparation(@duckdb_adapter.FixedJoinInputIssue)
@@ -212,12 +215,12 @@ pub(all) struct TaskDispatchLimits {
   input_entries : Int
   input_name_bytes : Int
   candidate_work : Int
-  capacity : @query_planning.FixedComputeCapacity
+  capacity : @connector_sdk.FixedComputeCapacity
   local_execution : @execution_relation.SequenceExecutionLimits
   guards : @execution_relation.FixedInputGuardMeasureLimits
   native_query : @duckdb_adapter.NativeQueryLimits
   join_validation : @execution_relation.FixedJoinValidationLimits
-  native : @query_planning.DuckDBComputeLimits
+  native : @compute.DuckDBComputeLimits
   transport : @duckdb_adapter.TransportColumnLimits
 }
 

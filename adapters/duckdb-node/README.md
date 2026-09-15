@@ -119,7 +119,7 @@ only; by itself it is neither a validated runnable offer nor source-access
 authorization. Candidate validation, Host authorization before access and
 settled execution evidence before publication remain separate requirements.
 
-`prepare_capability_registry` creates bounded, owned Host registrations. Pass
+`connector_sdk.prepare_capability_registry` creates bounded, owned Host registrations. Pass
 an acquisition-enabled registration to `mock_acquisition_candidate` or
 `duckdb_broad_candidate`, then pass `prepared_acquisition_candidate(prepared)`
 to the same `choose_acquisition_candidate(registry, requirement, ...)` comparison.
@@ -135,6 +135,13 @@ retry a failed native query as a broad scan.
 Registry names are diagnostic, not source authority or semantic identity. An
 equal declaration in another registry is rejected. Closing a registry blocks new proposals/recovery without
 releasing completed upstream observations.
+
+Fixed-input request, capacity and choice APIs belong to `connector_sdk`.
+Local candidate/execution functions belong to `connectors/local`; DuckDB Compute
+candidate/attempt functions belong to `connectors/duckdb/compute`. These replace
+their former `query_planning` locations without forwarding compatibility APIs.
+DuckDB candidate failures retain concrete `Compilation` diagnostics or a wrapped
+common `Request` failure, rather than adding SQL errors to the common request type.
 
 For completed inputs, `prepare_fixed_compute_request([ProducerRead, ...], capacity)`
 binds the exact receiving owner and every checked input port, in port order,

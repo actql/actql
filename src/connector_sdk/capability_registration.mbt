@@ -91,6 +91,13 @@ pub fn capability_description(
 }
 
 ///|
+pub fn capability_registration_available(
+  value : CapabilityRegistration,
+) -> Bool {
+  value.owner.live
+}
+
+///|
 pub fn capability_registration_matches(
   value : CapabilityRegistration,
   registry : CapabilityRegistry,

@@ -52,48 +52,48 @@ test "common input value guard precedes join cardinality in both realizations" {
   ).unwrap()
   let compute = @duckdb.prepare_fixed_join_compute(imported, 100).unwrap()
   let registry = search_registry()
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
   }
   for ceiling in [0, 100] {
-    let request = @planning.prepare_fixed_compute_request(inputs, {
+    let request = @connector.prepare_fixed_compute_request(inputs, {
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: 2,
       max_value_bytes: ceiling,
       common_fragment: None,
     }).unwrap()
-    let local_candidate = @planning.local_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+    let local_candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
       request,
       generated,
       [],
       quantities,
       100,
     ).unwrap()
-    let native = @planning.duckdb_bound_compute_candidate(
-      @planning.capability_registration_at(registry, 1).unwrap(),
+    let native = @duckdb_compute.duckdb_bound_compute_candidate(
+      @connector.capability_registration_at(registry, 1).unwrap(),
       request,
       compute,
       [],
       quantities,
       100,
     ).unwrap()
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
-        [@planning.prepared_compute_candidate(local_candidate)],
+        [@connector.prepared_compute_candidate(local_candidate)],
         Some([0]),
         100,
       ).unwrap()
       is Proposed(local_choice) else {
       abort("local choice")
     }
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
-        [@planning.prepared_compute_candidate(native)],
+        [@connector.prepared_compute_candidate(native)],
         Some([0]),
         100,
       ).unwrap()
@@ -101,13 +101,13 @@ test "common input value guard precedes join cardinality in both realizations" {
       abort("native choice")
     }
     let limits = fixed_compute_attempt_limits()
-    let local_result = @planning.execute_local_fixed_compute(
+    let local_result = @local_connector.execute_local_fixed_compute(
       local_choice,
       local_candidate,
       compute_test_limits(),
       measurement=limits.values,
     )
-    let native_result = @planning.start_duckdb_compute_attempt(
+    let native_result = @duckdb_compute.start_duckdb_compute_attempt(
       native_choice,
       native,
       generated,

@@ -31,13 +31,13 @@ fn adaptive_profiles() -> Array[@dbhost.DispatchEstimateProfile] {
 ///|
 fn adaptive_host(
   run : @strategy.CapturedDAG,
-  registry : @planning.CapabilityRegistry,
+  registry : @connector.CapabilityRegistry,
 ) -> @dbhost.StrategyHostDispatch raise {
   @dbhost.configure_strategy_dispatch(
     run,
     registry,
-    @planning.capability_registration_at(registry, 0).unwrap(),
-    @planning.capability_registration_at(registry, 1).unwrap(),
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 1).unwrap(),
     dispatch_test_generated(run),
     dispatch_test_limits(),
   ).unwrap()
@@ -59,8 +59,8 @@ test "observed completion revises only the unstarted suffix without resetting re
   profiles[0].local_rates[0].work_slots[0] = 99
   @dbhost.refresh_dispatch_estimates(host).unwrap()
   let first = @strategy.strategy_history_at(run, 0).unwrap()
-  let native_reg = @planning.capability_registration_at(registry, 1).unwrap()
-  let local_reg = @planning.capability_registration_at(registry, 0).unwrap()
+  let native_reg = @connector.capability_registration_at(registry, 1).unwrap()
+  let local_reg = @connector.capability_registration_at(registry, 0).unwrap()
   assert_true(
     physical_equal(
       @strategy.strategy_registration(first, 3).unwrap(),

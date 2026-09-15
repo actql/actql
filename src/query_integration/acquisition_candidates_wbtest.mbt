@@ -1,6 +1,6 @@
 ///|
 test "common acquisition comparison preserves provider binding and unknown costs" {
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [
       { name: "mock", acquisition: true, fixed_compute: false, },
       { name: "duckdb", acquisition: true, fixed_compute: true, },
@@ -9,8 +9,8 @@ test "common acquisition comparison preserves provider binding and unknown costs
     3,
     15,
   ).unwrap()
-  let mock_registration = @planning.capability_registration_at(registry, 0).unwrap()
-  let duckdb_registration = @planning.capability_registration_at(registry, 1).unwrap()
+  let mock_registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let duckdb_registration = @connector.capability_registration_at(registry, 1).unwrap()
   let checked = query_checked_program_fixture()
   let sequence = query_checked_sequence(checked)
   let material = @planning.prepare_query_material(
@@ -30,7 +30,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     10,
     native_compile_limits(),
   ).unwrap()
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
@@ -153,7 +153,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
   assert_true(
     @planning.acquisition_choice_payload(choice, broad_binding) is None,
   )
-  let foreign_registry = @planning.prepare_capability_registry(
+  let foreign_registry = @connector.prepare_capability_registry(
     [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
     1,
     6,
@@ -168,7 +168,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     )
     is Err(ForeignCapability(0)),
   )
-  let local_registration = @planning.capability_registration_at(registry, 2).unwrap()
+  let local_registration = @connector.capability_registration_at(registry, 2).unwrap()
   assert_true(
     @planning.mock_acquisition_candidate(
       local_registration, requirement, mock_offer,
@@ -225,7 +225,7 @@ test "common acquisition comparison preserves provider binding and unknown costs
     guard_measure=Some(query_guard_physical()),
   ).unwrap()
   assert_eq(@planning.mock_query_output_rows(computed), 2)
-  @planning.close_capability_registry(registry)
+  @connector.close_capability_registry(registry)
   assert_true(
     @planning.acquisition_choice_payload(choice, equal_binding) is None,
   )

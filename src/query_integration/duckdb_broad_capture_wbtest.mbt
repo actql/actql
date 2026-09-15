@@ -18,13 +18,13 @@ fn broad_issuer_fixture() -> BroadIssuerFixture raise {
     { max_rows: 2, max_value_bytes: 100, },
     query_material_limits(),
   ).unwrap()
-  let registry = @planning.prepare_capability_registry(
+  let registry = @connector.prepare_capability_registry(
     [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
     1,
     6,
   ).unwrap()
   let prepared = @planning.duckdb_broad_candidate(
-    @planning.capability_registration_at(registry, 0).unwrap(),
+    @connector.capability_registration_at(registry, 0).unwrap(),
     @planning.prepare_duckdb_query(
       requirement,
       "main",

@@ -104,7 +104,7 @@ pub fn explain_captured_strategy(
           @encode.key(w, "capability")
           @encode.string_value(
             w,
-            @planning.capability_description(offer.registration).name,
+            @connector.capability_description(offer.registration).name,
           )
           @encode.key(w, "estimated_milliseconds")
           emit_strategy_duration(w, offer.duration)

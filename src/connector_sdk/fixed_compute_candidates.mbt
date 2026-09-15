@@ -26,7 +26,10 @@ pub enum FixedComputeSelection {
 }
 
 ///|
-fn[T] bind_compute_candidate(
+/// Connector-author SDK: binds a typed private payload after common registration
+/// and cost checks. This creates a proposal only, not start permission or output
+/// evidence. The realization must still validate its payload against the request.
+pub fn[T] bind_compute_candidate(
   registration : CapabilityRegistration,
   request : FixedComputeRequest,
   payload : T,

@@ -1,41 +1,48 @@
 ///|
-/// Serial inventory: preparation, receiving admission, computation, retained
+/// Local connector inventory: preparation, receiving admission, computation, retained
 /// output, cleanup. The existing driver still enforces selected fragment limits.
 pub fn local_fixed_compute_candidate(
-  registration : CapabilityRegistration,
-  request : FixedComputeRequest,
+  registration : @connector.CapabilityRegistration,
+  request : @connector.FixedComputeRequest,
   sequence : @execution.GeneratedSequence,
   estimates : Array[@cost.SerialEstimateLine],
-  quantities : QueryQuantities,
+  quantities : @connector.QueryQuantities,
   max_entries : Int,
-) -> Result[PreparedCompute[@execution.GeneratedSequence], FixedComputeIssue] {
-  if request.capacity.common_fragment is Some(common) &&
+) -> Result[
+  @connector.PreparedCompute[@execution.GeneratedSequence],
+  @connector.FixedComputeIssue,
+] {
+  if @connector.fixed_compute_request_capacity(request).common_fragment
+    is Some(common) &&
     !physical_equal(common, sequence) {
     return Err(ForeignPreparation)
   }
   if !physical_equal(
       @execution.generated_sequence_owner(sequence),
-      request.owner,
+      @connector.fixed_compute_request_owner(request),
     ) {
     return Err(ForeignPreparation)
   }
-  bind_compute_candidate(
+  @connector.bind_compute_candidate(
     registration, request, sequence, 5, estimates, quantities, max_entries,
   )
 }
 
 ///|
 pub fn execute_local_fixed_compute(
-  choice : FixedComputeChoice,
-  prepared : PreparedCompute[@execution.GeneratedSequence],
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
   limits : @execution.SequenceExecutionLimits,
   measurement~ : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
-) -> Result[@execution.CompletedSequence, FixedComputeIssue] {
-  guard fixed_compute_choice_payload(choice, prepared) is Some(sequence) else {
+) -> Result[@execution.CompletedSequence, @connector.FixedComputeIssue] {
+  guard @connector.fixed_compute_choice_payload(choice, prepared)
+    is Some(sequence) else {
     return Err(NotSelected)
   }
-  let request = prepared.candidate.request
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
+  )
   let sequence = match join_output_ceiling {
     None => sequence
     Some((step, ceiling)) =>
@@ -45,7 +52,9 @@ pub fn execute_local_fixed_compute(
         Err(issue) => return Err(Execution(issue))
       }
   }
-  let pipeline = @lower.pipeline(@lower.bound_preparation(request.owner))
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+  )
   let count = @pipeline.step_count(pipeline)
   let target : @pipeline.Target = if count == 0 {
     Input(0)
@@ -54,15 +63,15 @@ pub fn execute_local_fixed_compute(
   }
   @execution.execute_fixed_producers_guarded(
     sequence,
-    request.inputs,
+    @connector.fixed_compute_request_inputs(request),
     target,
     limits,
-    max_rows=request.capacity.max_rows,
-    max_value_bytes=request.capacity.max_value_bytes,
+    max_rows=@connector.fixed_compute_request_capacity(request).max_rows,
+    max_value_bytes=@connector.fixed_compute_request_capacity(request).max_value_bytes,
     measurement,
   ).map_err(issue => {
     match issue {
-      Execution(failure) => FixedComputeIssue::Execution(failure)
+      Execution(failure) => @connector.FixedComputeIssue::Execution(failure)
       _ => Guard(issue)
     }
   })

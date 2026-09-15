@@ -2,6 +2,7 @@
 package "actql/actql/duckdb_host_node"
 
 import {
+  "actql/actql/connectors/duckdb/compute",
   "actql/actql/duckdb_adapter",
   "actql/actql/duckdb_host",
   "actql/actql/encode_core",
@@ -43,7 +44,7 @@ pub fn compute_host_abort(ComputeNodeRun) -> Unit
 
 pub fn compute_host_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure
 
-pub fn compute_host_attempt(ComputeNodeRun) -> @query_planning.DuckDBComputeAttempt
+pub fn compute_host_attempt(ComputeNodeRun) -> @compute.DuckDBComputeAttempt
 
 pub fn compute_host_begin(ComputeNodeRun, String) -> Unit raise NodeHostFailure
 
@@ -57,7 +58,7 @@ pub fn compute_host_finish(ComputeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn compute_host_import_count(ComputeNodeRun) -> Int
 
-pub fn compute_host_open(@duckdb_host.ComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
+pub fn compute_host_open(@duckdb_host.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool, Int) -> String raise NodeHostFailure
 
@@ -75,9 +76,9 @@ pub fn compute_resident_commit(ComputeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn compute_resident_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
-pub fn compute_resident_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64, @physical_strategy.ResidentInputs) -> ComputeNodeRun raise NodeHostFailure
+pub fn compute_resident_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, @physical_strategy.ResidentInputs) -> ComputeNodeRun raise NodeHostFailure
 
-pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@query_planning.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
+pub fn compute_strategy_host_open(@duckdb_host.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_strategy_retention_capacity(@duckdb_host.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
 
@@ -191,7 +192,7 @@ pub fn strategy_host_usage(@duckdb_host.StrategyHostDispatch) -> Array[Int64]
 pub(all) suberror NodeHostFailure {
   Host(@duckdb_host.NativeHostIssue)
   Broad(@duckdb_host.BroadHostIssue)
-  Compute(@query_planning.DuckDBComputeIssue)
+  Compute(@compute.DuckDBComputeIssue)
   Strategy(@physical_strategy.RunIssue)
   Dispatch(@duckdb_host.DispatchIssue)
   Physical(@physical_resources.LedgerIssue)

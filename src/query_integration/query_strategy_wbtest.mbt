@@ -331,7 +331,7 @@ test "query strategy rejects foreign ownership duplicate costs and physical prep
     @planning.choose_query_strategy(owner, [native], None, 1)
     is Err(Cost(PlanningLimit)),
   )
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: Some(2L),
     retained_bytes: Some(9L),
     money_units: None,

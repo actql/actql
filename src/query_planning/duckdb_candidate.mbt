@@ -30,15 +30,15 @@ pub fn duckdb_broad_work_at(index : Int) -> DuckDBBroadWork? {
 
 ///|
 pub fn duckdb_broad_candidate(
-  registration : CapabilityRegistration,
+  registration : @connector.CapabilityRegistration,
   prepared : DuckDBQueryPreparation,
   estimates : Array[@cost.SerialEstimateLine],
-  quantities : QueryQuantities,
+  quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[PreparedAcquisition[DuckDBQueryPreparation], QueryPlanningIssue] {
-  if !valid_quantity(quantities.transfer_bytes) ||
-    !valid_quantity(quantities.retained_bytes) ||
-    !valid_quantity(quantities.money_units) {
+  if !@connector.valid_quantity(quantities.transfer_bytes) ||
+    !@connector.valid_quantity(quantities.retained_bytes) ||
+    !@connector.valid_quantity(quantities.money_units) {
     return Err(NegativeQuantity)
   }
   match @cost.assess_serial(8, estimates, max_entries) {

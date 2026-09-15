@@ -4,7 +4,7 @@ struct StrategyFixture {
   native : IssuedNativeFixture
   graph : @strategy.CheckedDAG
   ledger : @resources.Ledger
-  registry : @planning.CapabilityRegistry
+  registry : @connector.CapabilityRegistry
   mut search_configured : Bool
   mut selected : @strategy.StrategyRevision?
   registry_json : String
@@ -142,7 +142,7 @@ fn strategy_fixture_create_impl(
       native,
       graph,
       ledger,
-      registry: @planning.prepare_capability_registry(
+      registry: @connector.prepare_capability_registry(
         [
           { name: "local", acquisition: false, fixed_compute: true, },
           { name: "duckdb", acquisition: false, fixed_compute: true, },
@@ -240,9 +240,9 @@ pub fn strategy_fixture_run(f : StrategyFixture) -> @strategy.CapturedDAG {
 fn strategy_fixture_request(
   f : StrategyFixture,
   task : Int,
-) -> @planning.FixedComputeRequest {
+) -> @connector.FixedComputeRequest {
   let input = @strategy.captured_task_input(f.run.unwrap(), task, 100, 10000).unwrap()
-  @planning.prepare_fixed_compute_request([input], {
+  @connector.prepare_fixed_compute_request([input], {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
     max_value_bytes: 1000,
@@ -272,8 +272,8 @@ pub fn strategy_fixture_dispatch(
   @dbhost.configure_strategy_dispatch(
     f.run.unwrap(),
     f.registry,
-    @planning.capability_registration_at(f.registry, 0).unwrap(),
-    @planning.capability_registration_at(f.registry, 1).unwrap(),
+    @connector.capability_registration_at(f.registry, 0).unwrap(),
+    @connector.capability_registration_at(f.registry, 1).unwrap(),
     generated,
     {
       input_entries: 100,
@@ -338,8 +338,8 @@ pub fn strategy_fixture_compute(
   try {
     let request = strategy_fixture_request(f, task)
     let registry = f.registry
-    let candidate = @planning.duckdb_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 1).unwrap(),
+    let candidate = @duckdb_compute.duckdb_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 1).unwrap(),
       request,
       "owned_input",
       {
@@ -357,10 +357,10 @@ pub fn strategy_fixture_compute(
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       100,
     ).unwrap()
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
-        [@planning.prepared_compute_candidate(candidate)],
+        [@connector.prepared_compute_candidate(candidate)],
         None,
         100,
       ).unwrap()
@@ -369,7 +369,7 @@ pub fn strategy_fixture_compute(
     }
     let generated = fixture_generated(
       @execution.producer_read_receiver(
-        @planning.fixed_compute_request_input(request, 0).unwrap(),
+        @connector.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
       f.values_json,
@@ -424,25 +424,25 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
     let registry = f.registry
     let generated = fixture_generated(
       @execution.producer_read_receiver(
-        @planning.fixed_compute_request_input(request, 0).unwrap(),
+        @connector.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
       f.values_json,
       f.fragment_json,
       true,
     )
-    let candidate = @planning.local_fixed_compute_candidate(
-      @planning.capability_registration_at(registry, 0).unwrap(),
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
       request,
       generated,
       [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       100,
     ).unwrap()
-    guard @planning.choose_fixed_compute_candidate(
+    guard @connector.choose_fixed_compute_candidate(
         registry,
         request,
-        [@planning.prepared_compute_candidate(candidate)],
+        [@connector.prepared_compute_candidate(candidate)],
         None,
         100,
       ).unwrap()

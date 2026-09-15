@@ -5,21 +5,21 @@ pub(all) struct TaskDispatchLimits {
   input_entries : Int
   input_name_bytes : Int
   candidate_work : Int
-  capacity : @planning.FixedComputeCapacity
+  capacity : @connector.FixedComputeCapacity
   local_execution : @execution.SequenceExecutionLimits
   guards : @execution.FixedInputGuardMeasureLimits
   native_query : @duckdb.NativeQueryLimits
   join_validation : @execution.FixedJoinValidationLimits
-  native : @planning.DuckDBComputeLimits
+  native : @duckdb_compute.DuckDBComputeLimits
   transport : @duckdb.TransportColumnLimits
 }
 
 ///|
 struct StrategyHostDispatch {
   run : @strategy.CapturedDAG
-  registry : @planning.CapabilityRegistry
-  local_registration : @planning.CapabilityRegistration
-  native_registration : @planning.CapabilityRegistration
+  registry : @connector.CapabilityRegistry
+  local_registration : @connector.CapabilityRegistration
+  native_registration : @connector.CapabilityRegistration
   generated : Array[@execution.GeneratedSequence]
   native_rejections : Array[String?]
   resident_rejections : Array[String?]
@@ -41,8 +41,8 @@ struct TaskDispatch {
 ///|
 priv enum DispatchWork {
   Local(
-    @planning.FixedComputeChoice,
-    @planning.PreparedCompute[@execution.GeneratedSequence]
+    @connector.FixedComputeChoice,
+    @connector.PreparedCompute[@execution.GeneratedSequence]
   )
   Native(StrategyComputeHostConfiguration)
 }
@@ -55,7 +55,8 @@ pub(all) enum DispatchIssue {
   PendingTask
   StaleTask
   Run(@strategy.RunIssue)
-  Candidate(@planning.FixedComputeIssue)
+  Candidate(@connector.FixedComputeIssue)
+  NativeCandidate(@duckdb_compute.DuckDBComputeCandidateIssue)
   Search(@strategy.SearchIssue)
   EstimateOverflow
   JoinPreparation(@duckdb.FixedJoinInputIssue)
@@ -64,9 +65,9 @@ pub(all) enum DispatchIssue {
 ///|
 pub fn configure_strategy_dispatch(
   run : @strategy.CapturedDAG,
-  registry : @planning.CapabilityRegistry,
-  local_registration : @planning.CapabilityRegistration,
-  native_registration : @planning.CapabilityRegistration,
+  registry : @connector.CapabilityRegistry,
+  local_registration : @connector.CapabilityRegistration,
+  native_registration : @connector.CapabilityRegistration,
   generated : Array[@execution.GeneratedSequence],
   limits : TaskDispatchLimits,
 ) -> Result[StrategyHostDispatch, DispatchIssue] {
@@ -78,8 +79,8 @@ pub fn configure_strategy_dispatch(
     limits.join_validation.max_rows < 0 ||
     limits.join_validation.max_work < 0 ||
     limits.join_validation.max_entries < 0 ||
-    !@planning.capability_registration_matches(local_registration, registry) ||
-    !@planning.capability_registration_matches(native_registration, registry) ||
+    !@connector.capability_registration_matches(local_registration, registry) ||
+    !@connector.capability_registration_matches(native_registration, registry) ||
     physical_equal(local_registration, native_registration) {
     return Err(InvalidConfiguration)
   }
@@ -200,18 +201,18 @@ pub fn prepare_next_dispatch(
     inputs.push(input)
   }
   let request = match
-    @planning.prepare_fixed_compute_request(inputs, host.limits.capacity) {
+    @connector.prepare_fixed_compute_request(inputs, host.limits.capacity) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
   }
-  let quantities : @planning.QueryQuantities = {
+  let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,
     retained_bytes: None,
     money_units: None,
   }
   let work = if physical_equal(registration, host.local_registration) {
     let candidate = match
-      @planning.local_fixed_compute_candidate(
+      @local_connector.local_fixed_compute_candidate(
         registration,
         request,
         generated,
@@ -223,10 +224,10 @@ pub fn prepare_next_dispatch(
       Err(issue) => return Err(Candidate(issue))
     }
     let choice = match
-      @planning.choose_fixed_compute_candidate(
+      @connector.choose_fixed_compute_candidate(
         host.registry,
         request,
-        [@planning.prepared_compute_candidate(candidate)],
+        [@connector.prepared_compute_candidate(candidate)],
         Some([0]),
         host.limits.candidate_work,
       ) {
@@ -253,7 +254,7 @@ pub fn prepare_next_dispatch(
           host.limits.native_query,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(Candidate(Compilation(issue)))
+        Err(issue) => return Err(NativeCandidate(Compilation(issue)))
       }
       match
         @resources.charge_planning(
@@ -285,9 +286,9 @@ pub fn prepare_next_dispatch(
       let compute = match
         @duckdb.prepare_fixed_join_compute(imported, ceiling) {
         Ok(value) => value
-        Err(issue) => return Err(Candidate(Compilation(issue)))
+        Err(issue) => return Err(NativeCandidate(Compilation(issue)))
       }
-      @planning.duckdb_bound_compute_candidate(
+      @duckdb_compute.duckdb_bound_compute_candidate(
         registration,
         request,
         compute,
@@ -296,7 +297,7 @@ pub fn prepare_next_dispatch(
         host.limits.candidate_work,
       )
     } else {
-      @planning.duckdb_fixed_compute_candidate(
+      @duckdb_compute.duckdb_fixed_compute_candidate(
         registration,
         request,
         "owned_input",
@@ -308,13 +309,13 @@ pub fn prepare_next_dispatch(
     }
     let candidate = match prepared {
       Ok(value) => value
-      Err(issue) => return Err(Candidate(issue))
+      Err(issue) => return Err(NativeCandidate(issue))
     }
     let choice = match
-      @planning.choose_fixed_compute_candidate(
+      @connector.choose_fixed_compute_candidate(
         host.registry,
         request,
-        [@planning.prepared_compute_candidate(candidate)],
+        [@connector.prepared_compute_candidate(candidate)],
         Some([0]),
         host.limits.candidate_work,
       ) {
@@ -367,7 +368,7 @@ pub fn dispatch_excluded_realizations(
       excluded.push(
         (
           index + 1,
-          @planning.capability_description(host.native_registration).name,
+          @connector.capability_description(host.native_registration).name,
           reason,
         ),
       )

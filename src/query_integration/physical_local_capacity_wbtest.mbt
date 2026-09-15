@@ -92,7 +92,7 @@ test "Local working capacity and selected strategy envelope are enforced before 
     @strategy.prepare_task_offer(
       run,
       index + 1,
-      @planning.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 0).unwrap(),
       5,
       [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
       { transfer_bytes: 0L, retained_bytes: 0L, execution_bytes: 0L, },

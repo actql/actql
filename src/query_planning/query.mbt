@@ -28,22 +28,13 @@ pub(all) enum QueryTask {
 } derive(Eq, Debug)
 
 ///|
-/// Non-time quantities remain separate and do not become hard bounds. The
-/// money unit is Host-context-specific; it is never added to bytes or latency.
-pub(all) struct QueryQuantities {
-  transfer_bytes : Int64?
-  retained_bytes : Int64?
-  money_units : Int64?
-}
-
-///|
 /// Immutable planning data. All shared requirements remain pending: a cost
 /// choice is not authority, execution evidence, capture or a runnable Plan.
 struct QueryOffer {
   owner : @query.QuerySequence
   realization : QueryRealization
   duration : @cost.DurationEstimate
-  quantities : QueryQuantities
+  quantities : @connector.QueryQuantities
 }
 
 ///|
@@ -97,14 +88,6 @@ pub fn query_work_at(realization : QueryRealization, index : Int) -> QueryWork? 
 }
 
 ///|
-fn valid_quantity(value : Int64?) -> Bool {
-  match value {
-    None => true
-    Some(n) => n >= 0L
-  }
-}
-
-///|
 /// Offer only the two known mock implementations of an already checked local
 /// query. NativeQuery means complete source-side query semantics, not a weak
 /// prefilter. No caller-supplied coverage/completion boolean is accepted.
@@ -114,15 +97,15 @@ pub fn offer_mock_query(
   owner : @query.QuerySequence,
   realization : QueryRealization,
   estimates : Array[@cost.SerialEstimateLine],
-  quantities : QueryQuantities,
+  quantities : @connector.QueryQuantities,
   max_entries : Int,
 ) -> Result[QueryOffer, QueryPlanningIssue] {
   if max_entries < 0 {
     return Err(InvalidLimits)
   }
-  if !valid_quantity(quantities.transfer_bytes) ||
-    !valid_quantity(quantities.retained_bytes) ||
-    !valid_quantity(quantities.money_units) {
+  if !@connector.valid_quantity(quantities.transfer_bytes) ||
+    !@connector.valid_quantity(quantities.retained_bytes) ||
+    !@connector.valid_quantity(quantities.money_units) {
     return Err(NegativeQuantity)
   }
   match
@@ -179,7 +162,7 @@ pub fn query_offer_duration(v : QueryOffer) -> @cost.DurationEstimate {
 }
 
 ///|
-pub fn query_offer_quantities(v : QueryOffer) -> QueryQuantities {
+pub fn query_offer_quantities(v : QueryOffer) -> @connector.QueryQuantities {
   v.quantities
 }
 

@@ -4,16 +4,16 @@
 pub fn start_captured_duckdb_task(
   run : CapturedDAG,
   task : Int,
-  choice : @planning.FixedComputeChoice,
-  prepared : @planning.PreparedCompute[@duckdb.FixedCompute],
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@duckdb.FixedCompute],
   generated : @execution.GeneratedSequence,
-  limits : @planning.DuckDBComputeLimits,
+  limits : @duckdb_compute.DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
   transfer_bytes : Int64,
   native_execution_bytes : Int64,
-  verify : (@planning.DuckDBComputeAttempt) -> Bool,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   resident? : ResidentInputs,
-) -> Result[@planning.DuckDBComputeAttempt, RunIssue] {
+) -> Result[@duckdb_compute.DuckDBComputeAttempt, RunIssue] {
   if run.stopped {
     return Err(Stopped)
   }
@@ -33,13 +33,13 @@ pub fn start_captured_duckdb_task(
     }
     _ => return Err(ForeignCandidate)
   }
-  let request = @planning.fixed_compute_candidate_request(
-    @planning.prepared_compute_candidate(prepared),
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
   )
   if !strategy_candidate_matches(
       run,
       task,
-      @planning.prepared_compute_candidate(prepared),
+      @connector.prepared_compute_candidate(prepared),
     ) {
     return Err(ForeignCandidate)
   }
@@ -47,7 +47,7 @@ pub fn start_captured_duckdb_task(
     return Err(ForeignCandidate)
   }
   if captured_task_join_output_limit(run, task) is Some(required) {
-    guard @planning.fixed_compute_choice_payload(choice, prepared)
+    guard @connector.fixed_compute_choice_payload(choice, prepared)
       is Some(compute) &&
       @duckdb.fixed_compute_join_output_ceiling(compute) is Some(actual) &&
       actual.to_int64() <= required else {
@@ -65,7 +65,7 @@ pub fn start_captured_duckdb_task(
   let database = match resident {
     None => 0L
     Some(read) => {
-      guard @planning.fixed_compute_choice_payload(choice, prepared)
+      guard @connector.fixed_compute_choice_payload(choice, prepared)
         is Some(compute) &&
         resident_inputs_match(run, read, task, compute) else {
         return Err(ForeignCandidate)
@@ -94,7 +94,7 @@ pub fn start_captured_duckdb_task(
   let resident_output = match resident {
     None => None
     Some(read) => {
-      guard @planning.fixed_compute_choice_payload(choice, prepared)
+      guard @connector.fixed_compute_choice_payload(choice, prepared)
         is Some(compute) else {
         @resources.settle_reservation(run.ledger, reservation) |> ignore
         return Err(ForeignCandidate)
@@ -117,7 +117,7 @@ pub fn start_captured_duckdb_task(
     }
   }
   match
-    @planning.start_duckdb_compute_attempt(
+    @duckdb_compute.start_duckdb_compute_attempt(
       choice, prepared, generated, limits, verify,
     ) {
     Ok(attempt) => {
@@ -157,7 +157,7 @@ pub fn start_captured_duckdb_task(
 /// verifies transport, capacity, demand and retention before recording success.
 pub fn complete_captured_duckdb_task(
   run : CapturedDAG,
-  attempt : @planning.DuckDBComputeAttempt,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -188,7 +188,7 @@ pub fn complete_captured_duckdb_task(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  match @planning.complete_duckdb_compute_attempt(attempt) {
+  match @duckdb_compute.complete_duckdb_compute_attempt(attempt) {
     Ok(output) => {
       if resource.resident_output is Some(pending) {
         match publish_resident_output(run, task, pending, output) {

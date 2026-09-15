@@ -34,7 +34,6 @@ pub(all) enum FixedComputeIssue {
   PlanningLimit
   NegativeQuantity
   Cost(@cost.CostIssue)
-  Compilation(@duckdb.NativeQueryIssue)
   Execution(@execution.SequenceRunIssue)
   Guard(@execution.FixedInputGuardIssue)
 }
@@ -101,6 +100,15 @@ pub fn fixed_compute_request_input(
 ///|
 pub fn fixed_compute_request_input_count(request : FixedComputeRequest) -> Int {
   request.inputs.length()
+}
+
+///|
+/// Snapshot only the bounded immutable input handles. The caller cannot replace
+/// owned ports; retained row storage is shared without copying or re-admission.
+pub fn fixed_compute_request_inputs(
+  request : FixedComputeRequest,
+) -> Array[@execution.ProducerRead] {
+  request.inputs.copy()
 }
 
 ///|

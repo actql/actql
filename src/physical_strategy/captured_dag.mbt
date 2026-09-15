@@ -12,7 +12,7 @@ struct CapturedDAG {
   resources : Array[TaskRetention?]
   join_limits : Array[@witness.LimitClaim?]
   inputs : Array[Array[@execution.ProducerRead?]]
-  mut running : (Int, @planning.DuckDBComputeAttempt)?
+  mut running : (Int, @duckdb_compute.DuckDBComputeAttempt)?
   native_resources : Array[NativeTaskResources?]
   mut resident_environment : ResidentEnvironment?
   mut stopped : Bool
@@ -39,8 +39,8 @@ pub(all) enum RunIssue {
   Capture(@planning.CapturedSourceIssue)
   Binding(@execution.ProducerBindingIssue)
   Read(@execution.ProducerReadIssue)
-  Compute(@planning.FixedComputeIssue)
-  DuckDB(@planning.DuckDBComputeIssue)
+  Compute(@connector.FixedComputeIssue)
+  DuckDB(@duckdb_compute.DuckDBComputeIssue)
   NativePreparation(@duckdb.NativeQueryIssue)
   Physical(@resources.LedgerIssue)
 }
@@ -339,8 +339,8 @@ pub fn captured_task_input(
 pub fn execute_captured_local_task(
   run : CapturedDAG,
   task : Int,
-  choice : @planning.FixedComputeChoice,
-  prepared : @planning.PreparedCompute[@execution.GeneratedSequence],
+  choice : @connector.FixedComputeChoice,
+  prepared : @connector.PreparedCompute[@execution.GeneratedSequence],
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[Unit, RunIssue] {
@@ -350,20 +350,20 @@ pub fn execute_captured_local_task(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
-  let request = @planning.fixed_compute_candidate_request(
-    @planning.prepared_compute_candidate(prepared),
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
   )
   if !strategy_candidate_matches(
       run,
       task,
-      @planning.prepared_compute_candidate(prepared),
+      @connector.prepared_compute_candidate(prepared),
     ) {
     return Err(ForeignCandidate)
   }
   if !captured_request_inputs_match(run, task, request) {
     return Err(ForeignCandidate)
   }
-  guard @planning.fixed_compute_choice_payload(choice, prepared)
+  guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(generated) else {
     return Err(Compute(NotSelected))
   }
@@ -403,7 +403,7 @@ pub fn execute_captured_local_task(
     }
   }
   match
-    @planning.execute_local_fixed_compute(
+    @local_connector.execute_local_fixed_compute(
       choice,
       prepared,
       limits,
@@ -462,7 +462,7 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
   if run.running is Some((_, attempt)) {
     // Revocation is not DB-stop acknowledgement. The Host still owns cleanup.
-    @planning.abort_duckdb_compute_attempt(attempt)
+    @duckdb_compute.abort_duckdb_compute_attempt(attempt)
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)
@@ -507,15 +507,15 @@ fn clear_captured_inputs(run : CapturedDAG, task : Int) -> Unit {
 fn captured_request_inputs_match(
   run : CapturedDAG,
   task : Int,
-  request : @planning.FixedComputeRequest,
+  request : @connector.FixedComputeRequest,
 ) -> Bool {
   let ports = run.inputs[task]
-  if @planning.fixed_compute_request_input_count(request) != ports.length() {
+  if @connector.fixed_compute_request_input_count(request) != ports.length() {
     return false
   }
   for port in 0..<ports.length() {
     guard ports[port] is Some(actual) &&
-      @planning.fixed_compute_request_input(request, port) is Some(expected) &&
+      @connector.fixed_compute_request_input(request, port) is Some(expected) &&
       physical_equal(actual, expected) else {
       return false
     }

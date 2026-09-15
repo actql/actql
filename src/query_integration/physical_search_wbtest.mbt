@@ -1,6 +1,6 @@
 ///|
-fn search_registry() -> @planning.CapabilityRegistry {
-  @planning.prepare_capability_registry(
+fn search_registry() -> @connector.CapabilityRegistry {
+  @connector.prepare_capability_registry(
     [
       { name: "local", acquisition: false, fixed_compute: true, },
       { name: "duckdb", acquisition: false, fixed_compute: true, },
@@ -13,7 +13,7 @@ fn search_registry() -> @planning.CapabilityRegistry {
 ///|
 fn search_offers(
   run : @strategy.CapturedDAG,
-  registry : @planning.CapabilityRegistry,
+  registry : @connector.CapabilityRegistry,
   tasks : Array[Int],
   transfer_ms : Int64?,
 ) -> Array[@strategy.TaskOffer] {
@@ -23,7 +23,7 @@ fn search_offers(
       @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(registry, 0).unwrap(),
+        @connector.capability_registration_at(registry, 0).unwrap(),
         5,
         [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }],
         {
@@ -38,7 +38,7 @@ fn search_offers(
       @strategy.prepare_task_offer(
         run,
         task,
-        @planning.capability_registration_at(registry, 1).unwrap(),
+        @connector.capability_registration_at(registry, 1).unwrap(),
         8,
         [
           { work_slots: [0, 2, 3, 5, 6, 7], milliseconds: Some(1L), },
@@ -76,7 +76,7 @@ test "whole strategy includes transfer costs and revises only after new completi
     assert_true(
       physical_equal(
         @strategy.strategy_registration(first, task).unwrap(),
-        @planning.capability_registration_at(registry, 0).unwrap(),
+        @connector.capability_registration_at(registry, 0).unwrap(),
       ),
     )
   }
@@ -110,7 +110,7 @@ test "whole strategy includes transfer costs and revises only after new completi
   assert_true(
     physical_equal(
       @strategy.strategy_registration(second, 3).unwrap(),
-      @planning.capability_registration_at(registry, 1).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
     ),
   )
   assert_true(
@@ -184,7 +184,7 @@ test "search limits and duplicate work cannot be bypassed by another revision" {
     @strategy.prepare_task_offer(
       run,
       1,
-      @planning.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 0).unwrap(),
       1,
       [
         { work_slots: [0], milliseconds: Some(1L), },
