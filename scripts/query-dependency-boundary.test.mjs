@@ -49,6 +49,15 @@ test('DAG execution storage does not maintain a backend attempt lookup table', (
   assert.match(state, /executions : Array\[TaskExecution\?\]/);
 });
 
+test('concrete Compute capacity formula is owned and exported by its connector', () => {
+  const core = readFileSync('src/physical_strategy/pkg.generated.mbti', 'utf8');
+  const connector = readFileSync('src/connectors/duckdb/compute/pkg.generated.mbti', 'utf8');
+  for (const name of ['duckdb_task_retention_capacity', 'duckdb_task_scratch_capacity']) {
+    assert.doesNotMatch(core, new RegExp(`pub fn ${name}\\b`));
+    assert.match(connector, new RegExp(`pub fn ${name}\\b`));
+  }
+});
+
 test('fixed-input engine has no acquisition or query-integration dependency, including tests', () => {
   const forbidden = ['execution_query', 'query_planning', 'query_integration',
     'sourceview_resolution', 'program_check', 'pipeline_check_context'];

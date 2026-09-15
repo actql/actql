@@ -24,6 +24,10 @@ pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @duckdb_adapter.Fixe
 
 pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @duckdb_adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@duckdb_adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
+pub fn duckdb_task_retention_capacity(DuckDBComputeLimits) -> Int64?
+
+pub fn duckdb_task_scratch_capacity(DuckDBComputeLimits, @duckdb_adapter.TransportColumnLimits) -> Int64?
+
 pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDBComputeIssue]
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]

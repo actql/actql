@@ -2,7 +2,7 @@
 /// Capacity for bounded MoonBit decoding, admitted batches and post-DB checks.
 /// It remains reserved after native cleanup until completion/failed disposal.
 pub fn duckdb_task_scratch_capacity(
-  limits : @duckdb_compute.DuckDBComputeLimits,
+  limits : DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
 ) -> Int64? {
   let nodes = [

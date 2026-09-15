@@ -54,8 +54,10 @@ pub fn start_captured_duckdb_task(
       return Err(ForeignCandidate)
     }
   }
-  guard duckdb_task_retention_capacity(limits) is Some(retention) &&
-    duckdb_task_scratch_capacity(limits, transport) is Some(scratch) &&
+  guard @duckdb_compute.duckdb_task_retention_capacity(limits)
+    is Some(retention) &&
+    @duckdb_compute.duckdb_task_scratch_capacity(limits, transport)
+    is Some(scratch) &&
     transfer_bytes > 0L &&
     native_execution_bytes > 0L &&
     native_execution_bytes <= 9223372036854775807L - scratch else {

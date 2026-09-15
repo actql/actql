@@ -1,9 +1,7 @@
 ///|
 /// Declared Host container/encoding capacity, not observed process heap bytes.
 /// Bounds come from the immutable admission and completion limits actually used.
-pub fn duckdb_task_retention_capacity(
-  limits : @duckdb_compute.DuckDBComputeLimits,
-) -> Int64? {
+pub fn duckdb_task_retention_capacity(limits : DuckDBComputeLimits) -> Int64? {
   let counts = [
     limits.retention.max_nodes,
     limits.physical.max_rows,
