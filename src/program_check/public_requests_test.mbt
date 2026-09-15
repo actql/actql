@@ -32,7 +32,9 @@ test "missing Parameter requests retain type location and exact admitted Program
   assert_eq(@program_check.input_request_count(requests), 1)
   let request = @program_check.input_request_at(requests, 0).unwrap()
   assert_true(physical_equal(request.program, program))
-  let ParameterValue(declaration) = request.kind
+  guard request.kind is ParameterValue(declaration) else {
+    fail("expected Parameter")
+  }
   assert_eq(declaration.name, "n")
   assert_true(declaration.parameter_type.contract.shape is Number)
   assert_false(@parameters.has_default(declaration))
@@ -43,7 +45,10 @@ test "missing Parameter requests retain type location and exact admitted Program
   ])
   assert_eq(@decode.cursor_span(source).source_path, "requests.actql")
   assert_true(@decode.cursor_span(source).start_byte > 0)
-  let ParameterValue(again) = @program_check.input_request_at(requests, 0).unwrap().kind
+  guard @program_check.input_request_at(requests, 0).unwrap().kind
+    is ParameterValue(again) else {
+    fail("expected Parameter")
+  }
   assert_true(physical_equal(again, declaration))
   assert_true(@program_check.input_request_at(requests, -1) is None)
   assert_true(@program_check.input_request_at(requests, 1) is None)
@@ -106,7 +111,10 @@ test "invalid inputs unsupported paths and exhausted work are not external reque
     fail("valid supplied n must leave a request for m")
   }
   assert_eq(@program_check.input_request_count(missing), 1)
-  let ParameterValue(m) = @program_check.input_request_at(missing, 0).unwrap().kind
+  guard @program_check.input_request_at(missing, 0).unwrap().kind
+    is ParameterValue(m) else {
+    fail("expected Parameter")
+  }
   assert_eq(m.name, "m")
   let invalid = @program_check.check_document(
     text,

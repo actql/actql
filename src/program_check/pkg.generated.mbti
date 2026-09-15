@@ -18,6 +18,7 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
+  "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -177,6 +178,10 @@ pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncoming
 pub fn input_request_at(InputRequests, Int) -> InputRequest?
 
 pub fn input_request_count(InputRequests) -> Int
+
+pub fn input_request_path(InputRequest) -> Array[@source_value.PathSegment]
+
+pub fn input_request_source(InputRequest) -> @decode_core.Cursor?
 
 pub fn interval_search_limit_cid(IntervalSearchLimit) -> String
 
@@ -746,11 +751,13 @@ pub struct InputCompletenessRequirement {
 
 pub struct InputRequest {
   program : @stage_syntax.Program
+  environment : CheckEnvironment
   kind : InputRequestKind
 }
 
 pub enum InputRequestKind {
   ParameterValue(@parameter_binding.Declaration)
+  HostCapacityPolicy
 }
 
 type InputRequests

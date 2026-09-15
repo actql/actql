@@ -88,6 +88,22 @@ A changed declaration is checked afresh, so a value valid for an earlier
 request does not bypass the current type or constraints. Rejected outcomes
 retain the original typed failure independently of request interpretation.
 
+An absent `host_policy_profile.capacity` yields a `HostCapacityPolicy` selection
+request. Its acceptance condition is admission of the selected complete
+`actql-capacity-host-policy/0.1` body under
+`spec/contracts/actql-capacity-host-policy.json#/schema`, followed by the ordinary
+Program checks. Compilation limits neither select this policy nor synthesize its
+execution ceilings. A present but invalid body, a mismatched contract or exhausted
+checking budget remains a rejection, not a request to replace it.
+
+Requests retain the exact checking environment as well as the admitted Program.
+Parameter paths refer to the Program; the Host capacity path refers to the Check
+Environment. A missing capacity property has no source cursor or byte span: its
+parent object's location is not presented as the missing property's location.
+The caller supplies a newly admitted environment and rechecks; the old request
+is immutable. A Parameter frontier may reveal a later policy frontier only after
+the supplied Parameter passes admission.
+
 Existing runtime obligations remain runtime obligations when their contracts
 permit that phase. A statically required fact cannot instead be deferred to
 execution. Runtime checks retain their subjects, phases, dependencies and

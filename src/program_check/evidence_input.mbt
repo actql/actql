@@ -10,7 +10,7 @@ pub fn check_parsed_with_evidence(
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
 ) -> CheckOutcome {
-  checking_outcome(program, () => {
+  checking_outcome(program, environment, () => {
     construct_parsed(program, environment, supplied, evidence, limits)
   })
 }
