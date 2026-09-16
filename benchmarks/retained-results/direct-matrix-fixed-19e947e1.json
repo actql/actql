@@ -1,0 +1,3858 @@
+{
+  "scope": "fixed-source-functional-diagnostic-not-performance-acceptance",
+  "revision": "19e947e19c8140ce2c64efb398df3f28ca79b503",
+  "dirty": "",
+  "sourceStamp": "da17a8ce13e5a1cf158a1f136c4a594482ea0022073a4978177bdad61e0dfcb9",
+  "selection": {
+    "resident": true,
+    "nativeMilliseconds": "1"
+  },
+  "initialPlacement": "separate fixture database; no preexisting resident copies",
+  "calibration": "existing example estimates, not yet evidence-calibrated",
+  "retentionBytes": "1073741824",
+  "completed": 27,
+  "total": 27,
+  "rawReportsDirectory": "/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-direct-matrix-zyw8t0",
+  "notes": [
+    "Native read counts are invocations, not OS-level page-read measurements.",
+    "Logical verification and hashing still run per consumer.",
+    "No independent equivalent-obligation timing leg or calibrated candidate estimates.",
+    "Peak retention is ledger reservation, not measured process memory."
+  ],
+  "outcomes": [
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 552.3424170000001,
+      "cleanupMs": 0.9381250000000136,
+      "expectedRowsCid": "sha256:a97275822627f0f9b0541f5d9b48f68c92e68903f2c4489ff07b2210490ed754",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90411",
+        "receivedBytes": "17624"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 20,
+        "elapsedMs": 552.434667,
+        "baseline": {
+          "rss": 78086144,
+          "heapTotal": 18235392,
+          "heapUsed": 12267576,
+          "external": 2400597,
+          "arrayBuffers": 106076
+        },
+        "last": {
+          "rss": 136151040,
+          "heapTotal": 55148544,
+          "heapUsed": 40034264,
+          "external": 14712484,
+          "arrayBuffers": 12397564
+        },
+        "observedPeak": {
+          "rss": 136151040,
+          "heapTotal": 55148544,
+          "heapUsed": 40034264,
+          "external": 14712484,
+          "arrayBuffers": 12397564
+        },
+        "peakAboveBaseline": {
+          "rss": 58064896,
+          "heapTotal": 36913152,
+          "heapUsed": 27766688,
+          "external": 12311887,
+          "arrayBuffers": 12291488
+        }
+      },
+      "usage": {
+        "planning_work": 1823,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "6153",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.976875000000007,
+                "representation": "verified-file-native-read",
+                "fileBytes": 21,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.313791999999978
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 2.0167920000000095,
+                "representation": "verified-file-native-read",
+                "fileBytes": 21,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5321250000000077
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.774249999999995,
+                "representation": "verified-file-native-read",
+                "fileBytes": 21,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5257080000000087
+          }
+        }
+      ],
+      "rawReportSha256": "bc712c467d5faa36faa65c7d830183f9d0d3ae4369b6a50463da145af0c9d353"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 425.045791,
+      "cleanupMs": 0.5437079999999241,
+      "expectedRowsCid": "sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90459",
+        "receivedBytes": "17670"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 21,
+        "elapsedMs": 425.09450000000004,
+        "baseline": {
+          "rss": 136298496,
+          "heapTotal": 55148544,
+          "heapUsed": 42077640,
+          "external": 14734245,
+          "arrayBuffers": 12411845
+        },
+        "last": {
+          "rss": 148471808,
+          "heapTotal": 75071488,
+          "heapUsed": 47662448,
+          "external": 14728387,
+          "arrayBuffers": 12405987
+        },
+        "observedPeak": {
+          "rss": 148471808,
+          "heapTotal": 75071488,
+          "heapUsed": 47662448,
+          "external": 14734245,
+          "arrayBuffers": 12411845
+        },
+        "peakAboveBaseline": {
+          "rss": 12173312,
+          "heapTotal": 19922944,
+          "heapUsed": 5584808,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1823,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "40596",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.316750000000013,
+                "representation": "verified-file-native-read",
+                "fileBytes": 23,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.216542000000004
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 2.0057500000000346,
+                "representation": "verified-file-native-read",
+                "fileBytes": 23,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4872079999999528
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 2.5372919999999795,
+                "representation": "verified-file-native-read",
+                "fileBytes": 23,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5990419999999972
+          }
+        }
+      ],
+      "rawReportSha256": "629390d40a5b38436882fb477a2afe7ec1b5a4e1628f3f00ad8f26d8c6fc1010"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 445.691417,
+      "cleanupMs": 0.6913750000001073,
+      "expectedRowsCid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90507",
+        "receivedBytes": "17728"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 23,
+        "elapsedMs": 445.74237500000004,
+        "baseline": {
+          "rss": 150241280,
+          "heapTotal": 75071488,
+          "heapUsed": 49499264,
+          "external": 14742676,
+          "arrayBuffers": 12420276
+        },
+        "last": {
+          "rss": 158253056,
+          "heapTotal": 77168640,
+          "heapUsed": 45796760,
+          "external": 14736594,
+          "arrayBuffers": 12414194
+        },
+        "observedPeak": {
+          "rss": 158253056,
+          "heapTotal": 77168640,
+          "heapUsed": 49499264,
+          "external": 14742676,
+          "arrayBuffers": 12420276
+        },
+        "peakAboveBaseline": {
+          "rss": 8011776,
+          "heapTotal": 2097152,
+          "heapUsed": 0,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1801,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "384950",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.2917919999999867,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.2094999999999914
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.6660830000000146,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4850410000000238
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 2.0931249999999864,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5876250000000027
+          }
+        }
+      ],
+      "rawReportSha256": "0a481c67f52c7f5005e3181b02402b59e440607f0d0c13daa9d04124bea3c482"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 698.9463339999998,
+      "cleanupMs": 0.6704169999998157,
+      "expectedRowsCid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90556",
+        "receivedBytes": "17783"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 35,
+        "elapsedMs": 698.9934589999998,
+        "baseline": {
+          "rss": 158269440,
+          "heapTotal": 77168640,
+          "heapUsed": 47423496,
+          "external": 14750906,
+          "arrayBuffers": 12428506
+        },
+        "last": {
+          "rss": 159760384,
+          "heapTotal": 78741504,
+          "heapUsed": 43889432,
+          "external": 14744909,
+          "arrayBuffers": 12422509
+        },
+        "observedPeak": {
+          "rss": 159760384,
+          "heapTotal": 78741504,
+          "heapUsed": 47423496,
+          "external": 14750906,
+          "arrayBuffers": 12428506
+        },
+        "peakAboveBaseline": {
+          "rss": 1490944,
+          "heapTotal": 1572864,
+          "heapUsed": 0,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "3828161",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.593666999999982,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.1808750000000146
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.6850839999999607,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4512080000000651
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.7638749999999845,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5143749999999727
+          }
+        }
+      ],
+      "rawReportSha256": "d2399d66dde2c73ab95c850585945caa6e1a842846ab25ec2577ebeb1dbb931b"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 3177.580417,
+      "cleanupMs": 0.7160830000002534,
+      "expectedRowsCid": "sha256:3bc0996f10e802f59fee0f5322eeaa302d19b49a6f06fc47fdbe23356d3dc96d",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90596",
+        "receivedBytes": "17828"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 153,
+        "elapsedMs": 3177.685958,
+        "baseline": {
+          "rss": 159825920,
+          "heapTotal": 79003648,
+          "heapUsed": 45331264,
+          "external": 14759254,
+          "arrayBuffers": 12436854
+        },
+        "last": {
+          "rss": 161169408,
+          "heapTotal": 80052224,
+          "heapUsed": 57055472,
+          "external": 14753383,
+          "arrayBuffers": 12430983
+        },
+        "observedPeak": {
+          "rss": 161169408,
+          "heapTotal": 80052224,
+          "heapUsed": 57055472,
+          "external": 14759254,
+          "arrayBuffers": 12436854
+        },
+        "peakAboveBaseline": {
+          "rss": 1343488,
+          "heapTotal": 1048576,
+          "heapUsed": 11724208,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "38260196",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.3173750000000837,
+                "representation": "verified-file-native-read",
+                "fileBytes": 29,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.1149999999997817
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.534917000000405,
+                "representation": "verified-file-native-read",
+                "fileBytes": 29,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.46108300000014424
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.900749999999789,
+                "representation": "verified-file-native-read",
+                "fileBytes": 29,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.518666999999823
+          }
+        }
+      ],
+      "rawReportSha256": "c7d4c0391d00ec9be7d98778b65f5cf36cdde83b26a4f15e1b628efc6c6f126c"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1449.1212500000001,
+      "cleanupMs": 0.6252919999997175,
+      "expectedRowsCid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "96685",
+        "receivedBytes": "17874"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 71,
+        "elapsedMs": 1449.1603340000001,
+        "baseline": {
+          "rss": 161349632,
+          "heapTotal": 80314368,
+          "heapUsed": 47378928,
+          "external": 14537655,
+          "arrayBuffers": 12215255
+        },
+        "last": {
+          "rss": 163102720,
+          "heapTotal": 82149376,
+          "heapUsed": 55355352,
+          "external": 14773676,
+          "arrayBuffers": 12451276
+        },
+        "observedPeak": {
+          "rss": 163102720,
+          "heapTotal": 82149376,
+          "heapUsed": 55355352,
+          "external": 14773676,
+          "arrayBuffers": 12451276
+        },
+        "peakAboveBaseline": {
+          "rss": 1753088,
+          "heapTotal": 1835008,
+          "heapUsed": 7976424,
+          "external": 236021,
+          "arrayBuffers": 236021
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "12177089",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.3242499999998927,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.0362079999999878
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.5039160000001175,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4345410000000811
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.808708999999908,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.48654199999987213
+          }
+        }
+      ],
+      "rawReportSha256": "e1560c87aadfc5761805facedfe30aec5d2673dc85b4a2e449782a141194e160"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 10078.76525,
+      "cleanupMs": 0.6083330000001297,
+      "expectedRowsCid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "96725",
+        "receivedBytes": "17919"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 483,
+        "elapsedMs": 10078.813375,
+        "baseline": {
+          "rss": 163119104,
+          "heapTotal": 82149376,
+          "heapUsed": 58658040,
+          "external": 14788055,
+          "arrayBuffers": 12465655
+        },
+        "last": {
+          "rss": 125255680,
+          "heapTotal": 43614208,
+          "heapUsed": 40085144,
+          "external": 2404393,
+          "arrayBuffers": 81993
+        },
+        "observedPeak": {
+          "rss": 164823040,
+          "heapTotal": 83722240,
+          "heapUsed": 58658040,
+          "external": 14788055,
+          "arrayBuffers": 12465655
+        },
+        "peakAboveBaseline": {
+          "rss": 1703936,
+          "heapTotal": 1572864,
+          "heapUsed": 0,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "121727472",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.1364580000008573,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.043041999999332
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.6737919999995938,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4200829999990674
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.5190000000002328,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4465830000008282
+          }
+        }
+      ],
+      "rawReportSha256": "32df86259b88b82e77a9acec2cb8669d450b9a636bb835ce84adb26f9ae96b99"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 923.1750410000022,
+      "cleanupMs": 0.5396250000012515,
+      "expectedRowsCid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90604",
+        "receivedBytes": "17839"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 45,
+        "elapsedMs": 923.2189169999983,
+        "baseline": {
+          "rss": 126517248,
+          "heapTotal": 43614208,
+          "heapUsed": 40268376,
+          "external": 2376175,
+          "arrayBuffers": 41225
+        },
+        "last": {
+          "rss": 136052736,
+          "heapTotal": 53575680,
+          "heapUsed": 44093816,
+          "external": 2593324,
+          "arrayBuffers": 270924
+        },
+        "observedPeak": {
+          "rss": 136052736,
+          "heapTotal": 53575680,
+          "heapUsed": 44093816,
+          "external": 2593324,
+          "arrayBuffers": 270924
+        },
+        "peakAboveBaseline": {
+          "rss": 9535488,
+          "heapTotal": 9961472,
+          "heapUsed": 3825440,
+          "external": 217149,
+          "arrayBuffers": 229699
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "10464951",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.136875000000032,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.059415999999942
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.7865840000000617,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.510791999999924
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.4785410000000638,
+                "representation": "verified-file-native-read",
+                "fileBytes": 25,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.6123329999999214
+          }
+        }
+      ],
+      "rawReportSha256": "53a43676beb12b54902dfcdd9fdf498680635eeca9ed687b1b743e7178796d24"
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 5414.951459,
+      "cleanupMs": 0.684000000001106,
+      "expectedRowsCid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+      "rows": 2,
+      "controlTransport": {
+        "submittedBytes": "90644",
+        "receivedBytes": "17895"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 260,
+        "elapsedMs": 5415.050374999999,
+        "baseline": {
+          "rss": 136069120,
+          "heapTotal": 53575680,
+          "heapUsed": 45511064,
+          "external": 2607679,
+          "arrayBuffers": 285279
+        },
+        "last": {
+          "rss": 144572416,
+          "heapTotal": 64061440,
+          "heapUsed": 41946272,
+          "external": 2579296,
+          "arrayBuffers": 256896
+        },
+        "observedPeak": {
+          "rss": 144572416,
+          "heapTotal": 64061440,
+          "heapUsed": 50056664,
+          "external": 2607679,
+          "arrayBuffers": 285279
+        },
+        "peakAboveBaseline": {
+          "rss": 8503296,
+          "heapTotal": 10485760,
+          "heapUsed": 4545600,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "104628162",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 3.0308329999998023,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.030416999999943
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.9564170000003287,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.4836249999998472
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2,
+                "milliseconds": 1.9282920000005106,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2,
+                "validationCells": 2,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.540541000000303
+          }
+        }
+      ],
+      "rawReportSha256": "bdec08e8282a5d5f8ceed5d34a73607aca213ea39bf85882740e8899c6523026"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 456.57566699999734,
+      "cleanupMs": 0.7410840000011376,
+      "expectedRowsCid": "sha256:dd365facceb289f236a8c82763a2e158255661bcb29091363b2c3510360e78e4",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93547",
+        "receivedBytes": "22608"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 23,
+        "elapsedMs": 456.6209999999992,
+        "baseline": {
+          "rss": 144605184,
+          "heapTotal": 64061440,
+          "heapUsed": 43830936,
+          "external": 2593665,
+          "arrayBuffers": 271265
+        },
+        "last": {
+          "rss": 144883712,
+          "heapTotal": 55934976,
+          "heapUsed": 45696480,
+          "external": 2603222,
+          "arrayBuffers": 280822
+        },
+        "observedPeak": {
+          "rss": 144883712,
+          "heapTotal": 64061440,
+          "heapUsed": 45696480,
+          "external": 2603222,
+          "arrayBuffers": 280822
+        },
+        "peakAboveBaseline": {
+          "rss": 278528,
+          "heapTotal": 0,
+          "heapUsed": 1865544,
+          "external": 9557,
+          "arrayBuffers": 9557
+        }
+      },
+      "usage": {
+        "planning_work": 31706,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "39328",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 6.027791999999977,
+                "representation": "verified-file-native-read",
+                "fileBytes": 981,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 100,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 2.4970410000000243
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 2.810791999999992,
+                "representation": "verified-file-native-read",
+                "fileBytes": 981,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 100,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.5852080000000228
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 2.44237499999997,
+                "representation": "verified-file-native-read",
+                "fileBytes": 981,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 100,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 100,
+                "milliseconds": 2.051750000000027,
+                "representation": "verified-file-native-read",
+                "fileBytes": 981,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 100,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 2.9969580000000065
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 200,
+                "milliseconds": 2.7984160000000315,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1961,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 200,
+                "validationCells": 200,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5448750000000473
+          }
+        }
+      ],
+      "rawReportSha256": "aee41f991112e7afb6fbb7c5b2165956e057efb0aa5dc47acbdbad342eeb6aac"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 491.29141700000037,
+      "cleanupMs": 0.9469170000011218,
+      "expectedRowsCid": "sha256:a370b831f8e630dcdc2488f0d8661782a6c3810b5f4f0d505d543927f44abe07",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93632",
+        "receivedBytes": "22737"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 25,
+        "elapsedMs": 491.3276250000017,
+        "baseline": {
+          "rss": 144883712,
+          "heapTotal": 55934976,
+          "heapUsed": 47279000,
+          "external": 2620612,
+          "arrayBuffers": 298212
+        },
+        "last": {
+          "rss": 148209664,
+          "heapTotal": 65110016,
+          "heapUsed": 42655632,
+          "external": 2595224,
+          "arrayBuffers": 272824
+        },
+        "observedPeak": {
+          "rss": 148209664,
+          "heapTotal": 65110016,
+          "heapUsed": 47279000,
+          "external": 2620612,
+          "arrayBuffers": 298212
+        },
+        "peakAboveBaseline": {
+          "rss": 3325952,
+          "heapTotal": 9175040,
+          "heapUsed": 0,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 262106,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "381851",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 13.954040999999961,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 1000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 6.112459000000001
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 6.035042000000033,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 1000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 3.0408329999999637
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 4.413542000000007,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 1000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 1000,
+                "milliseconds": 4.40625,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 1000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 5.509832999999958
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2000,
+                "milliseconds": 5.201750000000004,
+                "representation": "verified-file-native-read",
+                "fileBytes": 21561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2000,
+                "validationCells": 2000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.40949999999998
+          }
+        }
+      ],
+      "rawReportSha256": "ce8efbeb453fb547bbca297bac27aff264af9593c56924bb21aeb724f9b4cb97"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 675.4546669999982,
+      "cleanupMs": 0.8858330000002752,
+      "expectedRowsCid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93706",
+        "receivedBytes": "22892"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 34,
+        "elapsedMs": 675.492083000001,
+        "baseline": {
+          "rss": 148307968,
+          "heapTotal": 65110016,
+          "heapUsed": 44490616,
+          "external": 2612666,
+          "arrayBuffers": 290266
+        },
+        "last": {
+          "rss": 148422656,
+          "heapTotal": 65110016,
+          "heapUsed": 44360408,
+          "external": 2611897,
+          "arrayBuffers": 289497
+        },
+        "observedPeak": {
+          "rss": 148422656,
+          "heapTotal": 65110016,
+          "heapUsed": 51170496,
+          "external": 2612666,
+          "arrayBuffers": 290266
+        },
+        "peakAboveBaseline": {
+          "rss": 114688,
+          "heapTotal": 0,
+          "heapUsed": 6679880,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 2566022,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "3915340",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 31.088458000000003,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 24.545166999999992
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 19.429709000000003,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 20.61129199999999
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 17.392166999999972,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 10000,
+                "milliseconds": 17.360165999999936,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 37.76179100000002
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 20000,
+                "milliseconds": 31.430667000000085,
+                "representation": "verified-file-native-read",
+                "fileBytes": 235561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 20000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.52475000000004
+          }
+        }
+      ],
+      "rawReportSha256": "9c08fbff7a182c88c0494bb8917bdf4b410e1a1ea04b5b7064143aab9e952847"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 2626.4534999999996,
+      "cleanupMs": 2.028542000000016,
+      "expectedRowsCid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93780",
+        "receivedBytes": "23026"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 127,
+        "elapsedMs": 2626.493374999998,
+        "baseline": {
+          "rss": 148422656,
+          "heapTotal": 65110016,
+          "heapUsed": 45737296,
+          "external": 2629427,
+          "arrayBuffers": 307027
+        },
+        "last": {
+          "rss": 148520960,
+          "heapTotal": 65372160,
+          "heapUsed": 45841192,
+          "external": 2612144,
+          "arrayBuffers": 289744
+        },
+        "observedPeak": {
+          "rss": 148520960,
+          "heapTotal": 65372160,
+          "heapUsed": 45841192,
+          "external": 2629427,
+          "arrayBuffers": 307027
+        },
+        "peakAboveBaseline": {
+          "rss": 98304,
+          "heapTotal": 262144,
+          "heapUsed": 103896,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 25606002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "40328267",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 183.93891699999995,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 194.63270799999987
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 174.45083299999988,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 188.7522080000001
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 150.1746659999999,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 100000,
+                "milliseconds": 151.72145799999998,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 381.8006250000003
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 200000,
+                "milliseconds": 305.70212500000025,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2555561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 200000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.6274160000002666
+          }
+        }
+      ],
+      "rawReportSha256": "40140e30e7413facab0e50937a9dbab18c37c3c28d79e59f0bea23f95cfeaace"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 22168.886042,
+      "cleanupMs": 4.4496670000007725,
+      "expectedRowsCid": "sha256:19f8080403b11f153516dc6e32ef3d2aa8fc64e1929c70d38d77d71049e32d1a",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93842",
+        "receivedBytes": "23143"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 1062,
+        "elapsedMs": 22168.923084000002,
+        "baseline": {
+          "rss": 148520960,
+          "heapTotal": 65372160,
+          "heapUsed": 47220240,
+          "external": 2629750,
+          "arrayBuffers": 307350
+        },
+        "last": {
+          "rss": 145457152,
+          "heapTotal": 82411520,
+          "heapUsed": 43338984,
+          "external": 2595915,
+          "arrayBuffers": 273515
+        },
+        "observedPeak": {
+          "rss": 157614080,
+          "heapTotal": 82411520,
+          "heapUsed": 53068224,
+          "external": 2629750,
+          "arrayBuffers": 307350
+        },
+        "peakAboveBaseline": {
+          "rss": 9093120,
+          "heapTotal": 17039360,
+          "heapUsed": 5847984,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 256006002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "415257868",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 1651.9540420000003,
+                "representation": "verified-file-native-read",
+                "fileBytes": 13777781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 1000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1820.124167
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 1649.3017499999987,
+                "representation": "verified-file-native-read",
+                "fileBytes": 13777781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 1000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1989.181958000001
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 1632.3382920000004,
+                "representation": "verified-file-native-read",
+                "fileBytes": 13777781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 1000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 1000000,
+                "milliseconds": 1493.6750410000004,
+                "representation": "verified-file-native-read",
+                "fileBytes": 13777781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 1000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 3714.503541
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 2000000,
+                "milliseconds": 3083.4617499999986,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27555561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 2000000,
+                "validationCells": 2000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.342833000002429
+          }
+        }
+      ],
+      "rawReportSha256": "750fe38fc013634045d712d99892bbe1ab0beb919b594f947e0e1c925b352660"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1758.4033749999944,
+      "cleanupMs": 0.848666999998386,
+      "expectedRowsCid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "99916",
+        "receivedBytes": "23066"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 84,
+        "elapsedMs": 1758.4807910000018,
+        "baseline": {
+          "rss": 145457152,
+          "heapTotal": 82411520,
+          "heapUsed": 47705232,
+          "external": 2613577,
+          "arrayBuffers": 291177
+        },
+        "last": {
+          "rss": 145801216,
+          "heapTotal": 57507840,
+          "heapUsed": 44246512,
+          "external": 2373015,
+          "arrayBuffers": 50615
+        },
+        "observedPeak": {
+          "rss": 145801216,
+          "heapTotal": 82411520,
+          "heapUsed": 47705232,
+          "external": 2613577,
+          "arrayBuffers": 291177
+        },
+        "peakAboveBaseline": {
+          "rss": 344064,
+          "heapTotal": 0,
+          "heapUsed": 0,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 81926002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "15707479",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 28.997915999999805,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 24.374499999999898
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 23.304583999999977,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 23.89058299999988
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 19.804624999999987,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 10000,
+                "milliseconds": 18.904958999999963,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 43.734958000000006
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 20000,
+                "milliseconds": 36.921749999999975,
+                "representation": "verified-file-native-read",
+                "fileBytes": 235561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 20000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.5492090000000189
+          }
+        }
+      ],
+      "rawReportSha256": "9b052948517263d7ccfc5fb713db7374c9fc75b3532fdaab08f6c4f9fbe7f781"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 13018.264333999992,
+      "cleanupMs": 2.0724170000030426,
+      "expectedRowsCid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "99978",
+        "receivedBytes": "23201"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 624,
+        "elapsedMs": 13018.330084000001,
+        "baseline": {
+          "rss": 145801216,
+          "heapTotal": 57507840,
+          "heapUsed": 47282568,
+          "external": 2390582,
+          "arrayBuffers": 68182
+        },
+        "last": {
+          "rss": 146210816,
+          "heapTotal": 66420736,
+          "heapUsed": 43035040,
+          "external": 2604569,
+          "arrayBuffers": 285682
+        },
+        "observedPeak": {
+          "rss": 146210816,
+          "heapTotal": 66420736,
+          "heapUsed": 50313744,
+          "external": 2604569,
+          "arrayBuffers": 285682
+        },
+        "peakAboveBaseline": {
+          "rss": 409600,
+          "heapTotal": 8912896,
+          "heapUsed": 3031176,
+          "external": 213987,
+          "arrayBuffers": 217500
+        }
+      },
+      "usage": {
+        "planning_work": 819206002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "158227578",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 192.8722089999992,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 215.6114579999994
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 190.6122919999998,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 217.78358299999854
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 165.86404100000073,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 100000,
+                "milliseconds": 170.73354199999994,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 431.8161249999994
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 200000,
+                "milliseconds": 342.88995800000157,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2555561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 200000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.6848750000008295
+          }
+        }
+      ],
+      "rawReportSha256": "e9633ff6a220cdbb59d76544da932ff6da5f61fb9c58062c8c4ef4d758e2d7dd"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1222.779416999998,
+      "cleanupMs": 0.8502500000031432,
+      "expectedRowsCid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93827",
+        "receivedBytes": "23014"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 60,
+        "elapsedMs": 1222.8163329999952,
+        "baseline": {
+          "rss": 146210816,
+          "heapTotal": 66420736,
+          "heapUsed": 44839928,
+          "external": 2622232,
+          "arrayBuffers": 303345
+        },
+        "last": {
+          "rss": 146210816,
+          "heapTotal": 58032128,
+          "heapUsed": 44495680,
+          "external": 2600359,
+          "arrayBuffers": 281472
+        },
+        "observedPeak": {
+          "rss": 146210816,
+          "heapTotal": 66420736,
+          "heapUsed": 47243648,
+          "external": 2622232,
+          "arrayBuffers": 303345
+        },
+        "peakAboveBaseline": {
+          "rss": 0,
+          "heapTotal": 0,
+          "heapUsed": 2403720,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 81926002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "13995341",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 33.31170899999995,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 24.201458000000002
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 20.369375000000105,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 22.11995899999988
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 19.01370800000018,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 10000,
+                "milliseconds": 20.21054100000015,
+                "representation": "verified-file-native-read",
+                "fileBytes": 117781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 10000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 42.25045800000021
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 20000,
+                "milliseconds": 33.628791999999976,
+                "representation": "verified-file-native-read",
+                "fileBytes": 235561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 20000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.6594590000001972
+          }
+        }
+      ],
+      "rawReportSha256": "548e9675fa2855de72bd1eb2de7ac58c6b0171e5f391eb064700114cf259d172"
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 7563.677582999997,
+      "cleanupMs": 1.9800839999952586,
+      "expectedRowsCid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+      "rows": 1,
+      "controlTransport": {
+        "submittedBytes": "93889",
+        "receivedBytes": "23153"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 364,
+        "elapsedMs": 7563.713667000004,
+        "baseline": {
+          "rss": 146210816,
+          "heapTotal": 58032128,
+          "heapUsed": 46002448,
+          "external": 2617906,
+          "arrayBuffers": 299019
+        },
+        "last": {
+          "rss": 145833984,
+          "heapTotal": 65896448,
+          "heapUsed": 42701800,
+          "external": 2592384,
+          "arrayBuffers": 273497
+        },
+        "observedPeak": {
+          "rss": 146227200,
+          "heapTotal": 66420736,
+          "heapUsed": 48746112,
+          "external": 2617906,
+          "arrayBuffers": 299019
+        },
+        "peakAboveBaseline": {
+          "rss": 16384,
+          "heapTotal": 8388608,
+          "heapUsed": 2743664,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 819206002,
+        "attempts": 6,
+        "holdings": 5,
+        "transferred_bytes": "141128268",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 178.6942910000007,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 195.11133400000017
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 173.58587499999976,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 192.979875
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 151.6631670000006,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              },
+              {
+                "input": 1,
+                "rows": 100000,
+                "milliseconds": 158.14716700000008,
+                "representation": "verified-file-native-read",
+                "fileBytes": 1277781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 100000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 384.91841699999986
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 200000,
+                "milliseconds": 294.43466699999954,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2555561,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 200000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 0.6844160000000556
+          }
+        }
+      ],
+      "rawReportSha256": "63a385d8fce1ac7a3703d110592997453c3b1ef9bcbbbe45683cbe0b2c44f946"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 393.9719580000092,
+      "cleanupMs": 0.6695420000032755,
+      "expectedRowsCid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+      "rows": 100,
+      "controlTransport": {
+        "submittedBytes": "90266",
+        "receivedBytes": "17439"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 20,
+        "elapsedMs": 394.0095410000067,
+        "baseline": {
+          "rss": 145833984,
+          "heapTotal": 65896448,
+          "heapUsed": 44468608,
+          "external": 2610017,
+          "arrayBuffers": 291130
+        },
+        "last": {
+          "rss": 145850368,
+          "heapTotal": 57507840,
+          "heapUsed": 46217360,
+          "external": 2583548,
+          "arrayBuffers": 264661
+        },
+        "observedPeak": {
+          "rss": 145850368,
+          "heapTotal": 65896448,
+          "heapUsed": 46217360,
+          "external": 2610017,
+          "arrayBuffers": 291130
+        },
+        "peakAboveBaseline": {
+          "rss": 16384,
+          "heapTotal": 0,
+          "heapUsed": 1748752,
+          "external": 0,
+          "arrayBuffers": 0
+        }
+      },
+      "usage": {
+        "planning_work": 1821,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "46375",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 4.950207999999975,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2281,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 200,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 2.832125000000019
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 3.074957999999981,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2281,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 200,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.7624170000000277
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100,
+                "milliseconds": 3.1457919999999717,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2281,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100,
+                "validationCells": 200,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1.8104580000000396
+          }
+        }
+      ],
+      "rawReportSha256": "77b5570b2928a59448a62f839343764e86331d685ae83d01b6c0ccae2601d1c0"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 470.6117079999967,
+      "cleanupMs": 0.7355830000014976,
+      "expectedRowsCid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+      "rows": 1000,
+      "controlTransport": {
+        "submittedBytes": "90324",
+        "receivedBytes": "17536"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 24,
+        "elapsedMs": 470.6585420000047,
+        "baseline": {
+          "rss": 145850368,
+          "heapTotal": 57507840,
+          "heapUsed": 46211352,
+          "external": 2597848,
+          "arrayBuffers": 49435
+        },
+        "last": {
+          "rss": 145850368,
+          "heapTotal": 57507840,
+          "heapUsed": 47337808,
+          "external": 2583734,
+          "arrayBuffers": 264847
+        },
+        "observedPeak": {
+          "rss": 145850368,
+          "heapTotal": 57507840,
+          "heapUsed": 47337808,
+          "external": 2597848,
+          "arrayBuffers": 264847
+        },
+        "peakAboveBaseline": {
+          "rss": 0,
+          "heapTotal": 0,
+          "heapUsed": 1126456,
+          "external": 0,
+          "arrayBuffers": 215412
+        }
+      },
+      "usage": {
+        "planning_work": 1821,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "456826",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 13.403500000000008,
+                "representation": "verified-file-native-read",
+                "fileBytes": 24781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 2000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 8.68591600000002
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 8.751082999999994,
+                "representation": "verified-file-native-read",
+                "fileBytes": 24781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 2000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 4.847290999999984
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000,
+                "milliseconds": 5.786541999999997,
+                "representation": "verified-file-native-read",
+                "fileBytes": 24781,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000,
+                "validationCells": 2000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 4.2676250000000095
+          }
+        }
+      ],
+      "rawReportSha256": "e9a041e7cd94d8cafda4b0d8475d25318db3ddb87073cccd963bf6f746c53186"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 704.6970410000067,
+      "cleanupMs": 0.8357499999983702,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "rows": 10000,
+      "controlTransport": {
+        "submittedBytes": "90383",
+        "receivedBytes": "17622"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 35,
+        "elapsedMs": 704.7463750000024,
+        "baseline": {
+          "rss": 145850368,
+          "heapTotal": 65896448,
+          "heapUsed": 46927216,
+          "external": 2376532,
+          "arrayBuffers": 57645
+        },
+        "last": {
+          "rss": 145899520,
+          "heapTotal": 66682880,
+          "heapUsed": 42036152,
+          "external": 2567460,
+          "arrayBuffers": 248573
+        },
+        "observedPeak": {
+          "rss": 145899520,
+          "heapTotal": 66682880,
+          "heapUsed": 50657296,
+          "external": 2567460,
+          "arrayBuffers": 248573
+        },
+        "peakAboveBaseline": {
+          "rss": 49152,
+          "heapTotal": 786432,
+          "heapUsed": 3730080,
+          "external": 190928,
+          "arrayBuffers": 190928
+        }
+      },
+      "usage": {
+        "planning_work": 1799,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "4610921",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 44.42570899999998,
+                "representation": "verified-file-native-read",
+                "fileBytes": 258007,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 41.723167000000046
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 34.13116600000001,
+                "representation": "verified-file-native-read",
+                "fileBytes": 258007,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 35.654584
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 31.660583000000088,
+                "representation": "verified-file-native-read",
+                "fileBytes": 258007,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 33.74566699999991
+          }
+        }
+      ],
+      "rawReportSha256": "3d9c6a9cc416c918f91299afe0b7664b8073ac2daaf40690dc91497a3536c2b5"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 3010.6641250000102,
+      "cleanupMs": 2.2006660000042757,
+      "expectedRowsCid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+      "rows": 100000,
+      "controlTransport": {
+        "submittedBytes": "90442",
+        "receivedBytes": "17721"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 145,
+        "elapsedMs": 3010.7258750000037,
+        "baseline": {
+          "rss": 145915904,
+          "heapTotal": 66682880,
+          "heapUsed": 43155240,
+          "external": 2360112,
+          "arrayBuffers": 41225
+        },
+        "last": {
+          "rss": 145932288,
+          "heapTotal": 66682880,
+          "heapUsed": 48403112,
+          "external": 2584052,
+          "arrayBuffers": 265165
+        },
+        "observedPeak": {
+          "rss": 145932288,
+          "heapTotal": 66682880,
+          "heapUsed": 48403112,
+          "external": 2584052,
+          "arrayBuffers": 265165
+        },
+        "peakAboveBaseline": {
+          "rss": 16384,
+          "heapTotal": 0,
+          "heapUsed": 5247872,
+          "external": 223940,
+          "arrayBuffers": 223940
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "46691108",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 327.832625,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2680439,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 335.51633300000003
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 302.63474999999994,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2680439,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 345.342666
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 304.5728750000003,
+                "representation": "verified-file-native-read",
+                "fileBytes": 2680439,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 372.016709
+          }
+        }
+      ],
+      "rawReportSha256": "731fdd668245aaf41d0130bf3f152364ebad1448bb6499e690daeb8595b72f65"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 25215.887082999994,
+      "cleanupMs": 3.1502919999911683,
+      "expectedRowsCid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+      "rows": 1000000,
+      "controlTransport": {
+        "submittedBytes": "90492",
+        "receivedBytes": "17847"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 1209,
+        "elapsedMs": 25215.934458999996,
+        "baseline": {
+          "rss": 145932288,
+          "heapTotal": 66682880,
+          "heapUsed": 49894160,
+          "external": 2368322,
+          "arrayBuffers": 49435
+        },
+        "last": {
+          "rss": 147767296,
+          "heapTotal": 81362944,
+          "heapUsed": 43775992,
+          "external": 2567854,
+          "arrayBuffers": 248967
+        },
+        "observedPeak": {
+          "rss": 147767296,
+          "heapTotal": 83460096,
+          "heapUsed": 53548648,
+          "external": 2567854,
+          "arrayBuffers": 248967
+        },
+        "peakAboveBaseline": {
+          "rss": 1835008,
+          "heapTotal": 16777216,
+          "heapUsed": 3654488,
+          "external": 199532,
+          "arrayBuffers": 199532
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "472893731",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 2999.4902919999995,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27804845,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 2000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 3281.0622079999994
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 2999.333125000001,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27804845,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 2000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 3305.9664169999996
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 1000000,
+                "milliseconds": 2943.5516659999994,
+                "representation": "verified-file-native-read",
+                "fileBytes": 27804845,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 1000000,
+                "validationCells": 2000000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 3236.907958
+          }
+        }
+      ],
+      "rawReportSha256": "301af217800024d10dae58edecf0cde6115c186935846cdd76f69e931038a52f"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 8927.270875000002,
+      "cleanupMs": 1.8647500000079162,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "rows": 10000,
+      "controlTransport": {
+        "submittedBytes": "100434",
+        "receivedBytes": "17816"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 428,
+        "elapsedMs": 8927.320583000008,
+        "baseline": {
+          "rss": 148750336,
+          "heapTotal": 49905664,
+          "heapUsed": 41680224,
+          "external": 2360112,
+          "arrayBuffers": 41225
+        },
+        "last": {
+          "rss": 148783104,
+          "heapTotal": 65372160,
+          "heapUsed": 43981720,
+          "external": 2587590,
+          "arrayBuffers": 268703
+        },
+        "observedPeak": {
+          "rss": 148783104,
+          "heapTotal": 65372160,
+          "heapUsed": 46417880,
+          "external": 2587590,
+          "arrayBuffers": 268703
+        },
+        "peakAboveBaseline": {
+          "rss": 32768,
+          "heapTotal": 15466496,
+          "heapUsed": 4737656,
+          "external": 227478,
+          "arrayBuffers": 227478
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "135054791",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 998.955833,
+                "representation": "verified-file-native-read",
+                "fileBytes": 6275800,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 640000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1092.6438330000005
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 1017.9471670000003,
+                "representation": "verified-file-native-read",
+                "fileBytes": 6275800,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 640000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1095.305875
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 1009.9343330000002,
+                "representation": "verified-file-native-read",
+                "fileBytes": 6275800,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 640000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 1100.570917
+          }
+        }
+      ],
+      "rawReportSha256": "59b340e4eb647c59a250cbc04b8d05ce95bfee12447f5681bcdddfbabfdd9758"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 88049.4975,
+      "cleanupMs": 7.917458000010811,
+      "expectedRowsCid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+      "rows": 100000,
+      "controlTransport": {
+        "submittedBytes": "100484",
+        "receivedBytes": "17948"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 4205,
+        "elapsedMs": 88049.54724999999,
+        "baseline": {
+          "rss": 148815872,
+          "heapTotal": 56983552,
+          "heapUsed": 46515536,
+          "external": 2360112,
+          "arrayBuffers": 41225
+        },
+        "last": {
+          "rss": 148848640,
+          "heapTotal": 66420736,
+          "heapUsed": 48919312,
+          "external": 2587824,
+          "arrayBuffers": 268937
+        },
+        "observedPeak": {
+          "rss": 148848640,
+          "heapTotal": 66420736,
+          "heapUsed": 48919312,
+          "external": 2587824,
+          "arrayBuffers": 268937
+        },
+        "peakAboveBaseline": {
+          "rss": 32768,
+          "heapTotal": 9437184,
+          "heapUsed": 2403776,
+          "external": 227712,
+          "arrayBuffers": 227712
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "1350957058",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 10210.239292000002,
+                "representation": "verified-file-native-read",
+                "fileBytes": 62859016,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 6400000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 10642.198917000002
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 11764.506999999998,
+                "representation": "verified-file-native-read",
+                "fileBytes": 62859016,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 6400000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 11426.646707999993
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 10821.222959000006,
+                "representation": "verified-file-native-read",
+                "fileBytes": 62859016,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 6400000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 11220.631249999991
+          }
+        }
+      ],
+      "rawReportSha256": "61c43701a6c9c1356bb9ce0ab2ed31270ca0196f0904df625b2d58725691cce4"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 5308.524708000012,
+      "cleanupMs": 2.028249999973923,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "rows": 10000,
+      "controlTransport": {
+        "submittedBytes": "90499",
+        "receivedBytes": "17790"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 255,
+        "elapsedMs": 5308.576000000001,
+        "baseline": {
+          "rss": 148848640,
+          "heapTotal": 51740672,
+          "heapUsed": 43505640,
+          "external": 2360112,
+          "arrayBuffers": 41225
+        },
+        "last": {
+          "rss": 148865024,
+          "heapTotal": 58032128,
+          "heapUsed": 45248128,
+          "external": 2401187,
+          "arrayBuffers": 82300
+        },
+        "observedPeak": {
+          "rss": 148865024,
+          "heapTotal": 58032128,
+          "heapUsed": 47897104,
+          "external": 2563080,
+          "arrayBuffers": 243684
+        },
+        "peakAboveBaseline": {
+          "rss": 16384,
+          "heapTotal": 6291456,
+          "heapUsed": 4391464,
+          "external": 202968,
+          "arrayBuffers": 202459
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "146636233",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 583.1272079999999,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10488891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 666.3963750000003
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 550.4756670000002,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10488891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 642.083916
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 10000,
+                "milliseconds": 565.2503750000001,
+                "representation": "verified-file-native-read",
+                "fileBytes": 10488891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 10000,
+                "validationCells": 20000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 629.6882499999992
+          }
+        }
+      ],
+      "rawReportSha256": "6fb32e3ef9e35598c571de8b6099d7de976542b3eeaff342caccc5ff999a9129"
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 54147.24354199998,
+      "cleanupMs": 24.814290999958757,
+      "expectedRowsCid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+      "rows": 100000,
+      "controlTransport": {
+        "submittedBytes": "90549",
+        "receivedBytes": "17915"
+      },
+      "controlMemory": {
+        "scope": "sampled-controller-process-memory",
+        "status": "observed",
+        "intervalMs": 20,
+        "samples": 2581,
+        "elapsedMs": 54147.30000000002,
+        "baseline": {
+          "rss": 148865024,
+          "heapTotal": 58032128,
+          "heapUsed": 45796680,
+          "external": 2374247,
+          "arrayBuffers": 55360
+        },
+        "last": {
+          "rss": 125026304,
+          "heapTotal": 66682880,
+          "heapUsed": 45801736,
+          "external": 2567927,
+          "arrayBuffers": 249040
+        },
+        "observedPeak": {
+          "rss": 148865024,
+          "heapTotal": 66682880,
+          "heapUsed": 46192784,
+          "external": 2567927,
+          "arrayBuffers": 249040
+        },
+        "peakAboveBaseline": {
+          "rss": 0,
+          "heapTotal": 8650752,
+          "heapUsed": 396104,
+          "external": 193680,
+          "arrayBuffers": 193680
+        }
+      },
+      "usage": {
+        "planning_work": 1779,
+        "attempts": 5,
+        "holdings": 4,
+        "transferred_bytes": "1466941828",
+        "uncertain_transfer_bytes": "0",
+        "reserved_transfer_bytes": "0",
+        "held_bytes": "0",
+        "reserved_retention_bytes": "0",
+        "reserved_execution_bytes": "0",
+        "peak_retention_bytes": "1073741824"
+      },
+      "tasks": [
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 5750.929791999999,
+                "representation": "verified-file-native-read",
+                "fileBytes": 104988891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 6882.063708999998
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 5846.353665999999,
+                "representation": "verified-file-native-read",
+                "fileBytes": 104988891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 7038.039542000002
+          }
+        },
+        {
+          "realization": "duckdb",
+          "phases": {
+            "inputs": [
+              {
+                "input": 0,
+                "rows": 100000,
+                "milliseconds": 5508.694834000002,
+                "representation": "verified-file-native-read",
+                "fileBytes": 104988891,
+                "physicalIntegrityPasses": 1,
+                "nativeFileReads": 1,
+                "validationRows": 100000,
+                "validationCells": 200000,
+                "logicalCidPasses": 1,
+                "storedRowJsonDecodes": 0,
+                "parameterInsertRows": 0
+              }
+            ],
+            "queryAndReceiveMilliseconds": 10053.971916999995
+          }
+        }
+      ],
+      "rawReportSha256": "2db4390d0724244bf3e3aa65c9c4f50e117cb50fe50d9a506b92c95888267670"
+    }
+  ]
+}

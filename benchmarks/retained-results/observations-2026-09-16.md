@@ -1026,3 +1026,26 @@ after the initial integrity scan. The Store now invokes installed read admission
 before opening/hashing, and the adapter charges integrity plus native read there.
 Negative tests show budget rejection wins even over a nonexistent file path,
 does not enter native use, and cannot charge through a foreign consumer handle.
+
+### Fixed-source follow-up at 19e947e1
+
+`direct-matrix-fixed-19e947e1.json` records a second full run at clean
+`19e947e19c8140ce2c64efb398df3f28ca79b503`, with unchanged source fingerprints
+before/after every case. All 27 passed final identity and cleanup checks, and
+all 21 large cases used native file input on every Compute port. Physical read
+admission occurred before the integrity/native reads. The artifact includes
+per-port work, intervals, control traffic/memory, ledger usage and hashes of
+the raw per-case reports. Ledger peak retention is a reservation quantity,
+not a resident-set-size measurement. Native file read counts are invocations,
+not instrumented OS page reads.
+
+Fixed-source diagnostic examples: million-row narrow join/count 22.169 s;
+million-row narrow reuse 25.216 s; numeric-64/100000 reuse 88.049 s;
+text-1024/100000 reuse 54.147 s. Differences from exploratory timings are not
+paired ratios or evidence of a regression threshold being met/violated.
+
+This closes one fixed-source 27-case functional/direct-input coverage check,
+not Q7's calibrated selection requirement or formal performance acceptance.
+The file/row choice is currently made inside the selected fresh DuckDB transport;
+separate representation-aware cost evidence remains necessary. Independent
+equivalent-obligation assembly, proof reuse and direct output are still open.

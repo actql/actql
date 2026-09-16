@@ -1,5 +1,15 @@
 # Retained execution completion audit
 
+Latest bounded follow-up: clean `19e947e1` passed all 27 registered cases with
+unchanged 1 GiB retention and existing timeouts. All 21 large cases used native
+file input without parameter INSERT on every Compute port, through the standard
+Host and existing candidate selection. See `direct-matrix-fixed-19e947e1.json`
+for the fixed-source observations. This is not calibrated cost selection or
+performance acceptance: current example estimates, repeated consumer identity
+scans, output conversion, the independent equivalent-obligation comparator and
+formal paired measurements remain open. The broad regression checkpoint below
+is historical and is not silently attributed to this new SHA.
+
 This is an incremental audit, not a completion certificate. The original base
 was `b87584fed46217659589315c1f819994dc0cfe77`. The implementation checkpoint is
 `de86a96fdd74f1f6cc2463924428d2e4de19a4d0`; use that checkpoint, not the original
