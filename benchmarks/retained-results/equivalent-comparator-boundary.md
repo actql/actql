@@ -77,8 +77,13 @@ retained result. These are benchmark tokens, not production completion evidence.
 The current tests cover nine small workload/layout combinations, order,
 duplicates, NULL, Unicode, column-order permutation, nonfinite physical values,
 guard exhaustion, poisoned streams, cumulative measurement budgets, an invalid
-source value excluded by the filter, cancellation before start, and Store
-cleanup. The independent column-order test caught a schema/transport index
+source value excluded by the filter, cancellation before start and during a
+real second output writer, and Store cleanup. Independent settlement attempts
+rollback, connection close, instance close, Store revocation and Store cleanup
+even if an earlier action fails. Injected settlement failures preserve both the
+execution cause and every failed cleanup phase and cannot yield a successful
+sample. This does not yet certify real native-close or filesystem-failure
+recovery. The independent column-order test caught a schema/transport index
 confusion during development, before acceptance use.
 
 Still required before equivalence approval:
@@ -88,7 +93,8 @@ Still required before equivalence approval:
 - Combined live DB-copy and file retention admission, not only the Store limit.
 - Acquisition evidence metadata construction/validation parity.
 - Transfer and logical-work accounting equivalence.
-- Broader ownership, cancellation-during-work and cleanup-failure fixtures.
+- Broader ownership, cancellation at other execution phases and actual resource
+  cleanup-failure fixtures (beyond injected settlement actions).
 - All 27 cases, followed by the registered alternating-pair experiment.
 
 Do not turn a successful prototype run or its lower elapsed time into a 1.25

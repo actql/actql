@@ -7,6 +7,7 @@ import {physicalType, exportPhysicalValue} from '../physical-values.mjs';
 import {assertBoundedVectorRuntime, boundedVectorItem} from '../bounded-vector.mjs';
 import {checked} from '../runtime-result.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
+import {settleObligationRun} from './obligation-settlement.mjs';
 
 const runtime = new URL('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js',
   import.meta.url);
@@ -150,16 +151,17 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   finally {
     signal.removeEventListener('abort', interrupt);
     const cleanupStarted = performance.now();
-    try {
-      if (transaction) await connection.run('ROLLBACK');
-    } catch (error) { primary ??= error; }
-    try { connection?.closeSync(); instance?.closeSync(); }
-    catch (error) { primary ??= error; }
-    store.close();
-    try { await store.cleanup(); assert.equal(store.status().cleanupPending, false); }
-    catch (error) { primary ??= error; }
+    await settleObligationRun(primary, [
+      ['rollback', async () => { if (transaction) await connection.run('ROLLBACK'); }],
+      ['connection-close', () => connection?.closeSync()],
+      ['instance-close', () => instance?.closeSync()],
+      ['store-revoke', () => store.close()],
+      ['store-cleanup', async () => {
+        await store.cleanup();
+        assert.equal(store.status().cleanupPending, false);
+      }],
+    ]);
     if (report) report.cleanupMs = performance.now() - cleanupStarted;
   }
-  if (primary !== undefined) throw primary;
   return Object.freeze(report);
 }

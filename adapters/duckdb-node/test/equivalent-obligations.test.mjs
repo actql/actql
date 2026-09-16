@@ -6,6 +6,7 @@ import {mkdtemp, readdir, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {setTimeout as delay} from 'node:timers/promises';
 import {DuckDBInstance} from '@duckdb/node-api';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {runEquivalentObligations} from '../bench/equivalent-obligations.mjs';
@@ -49,5 +50,35 @@ test('independent assembly validates hashes and holds every named boundary witho
         assert((await readdir(directory)).every(name => name.endsWith('.duckdb')));
       }
     }
+    // Observe a real second output writer, not an elapsed-time assumption:
+    // source validation and the first independently held result already exist.
+    const fixture = retainedCase(workloads[2], 'narrow', 10000);
+    const database = join(directory, 'cancel-source.duckdb');
+    await promisify(execFile)(process.execPath, [fileURLToPath(new URL('../bench/create-retained-source.mjs', import.meta.url)),
+      database, fixture.workload, fixture.layout, String(fixture.rows)]);
+    const controller = new AbortController();
+    let finished = false, observedWriter = false;
+    const outcome = runEquivalentObligations(fixture, database, directory, controller.signal)
+      .then(value => ({value}), error => ({error})).finally(() => { finished = true; });
+    while (!finished) {
+      const stores = (await readdir(directory)).filter(name => name.startsWith('actql-retained-'));
+      for (const name of stores) {
+        const files = await readdir(join(directory, name)).catch(error => {
+          if (error.code === 'ENOENT') return [];
+          throw error;
+        });
+        if (files.includes('body-1')) {
+          observedWriter = true;
+          controller.abort(Error('cancel during second output'));
+          break;
+        }
+      }
+      await delay(1);
+    }
+    const result = await outcome;
+    assert.equal(observedWriter, true, 'must cancel actual in-flight output');
+    assert(result.error, 'cancelled run must not return a timing sample');
+    assert((await readdir(directory)).every(name => name.endsWith('.duckdb')),
+      'cancelled partial and completed holdings must be reclaimed on run teardown');
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
