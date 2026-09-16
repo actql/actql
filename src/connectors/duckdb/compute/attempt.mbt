@@ -28,6 +28,7 @@ pub(all) enum DuckDBComputeIssue {
 /// Connector-owned attempt. The verifier is trusted runtime wiring, never a
 /// callback provided by a Program or ordinary capability registration.
 struct DuckDBComputeAttempt {
+  generated : @execution.CompletionPreparation
   request : @connector.FixedComputeRequest
   compute : @duckdb.FixedCompute
   port : @execution.TrustedOutputPort[DuckDBComputeAttempt]
@@ -149,6 +150,7 @@ pub fn start_duckdb_compute_attempt(
     Err(issue) => return Err(Completion(issue))
   }
   Ok({
+    generated,
     request,
     compute,
     port,

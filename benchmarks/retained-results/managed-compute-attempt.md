@@ -45,3 +45,7 @@ input-plus-output budget exhaustion. No new-profile performance claim is made.
 Verification passed: all 275 `query_integration` tests on JS, Wasm and native;
 the installed Node Host deny-warning check; cross-target public interfaces;
 full documentation/contract checks; formatting and whitespace checks.
+
+The subsequent [Node completion integration](managed-node-completion.md) connects
+this verifier to actual native transport, Store retention and common managed
+completion. Its remaining production-dispatch/profile gaps are recorded separately.

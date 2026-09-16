@@ -90,6 +90,10 @@ pub fn compute_host_input_stream_verify(ComputeNodeRun, Int, String, @execution_
 
 pub fn compute_host_input_values_reuse(ComputeNodeRun, Int) -> Bool
 
+pub fn compute_host_managed_output_begin(ComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
+
+pub fn compute_host_managed_prepare(ComputeNodeRun, @execution_relation.ManagedExecutionProfile, () -> Bool) -> @compute.ManagedDuckDBCompletion[Int] raise NodeHostFailure
+
 pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool, Int) -> String raise NodeHostFailure
@@ -138,11 +142,17 @@ pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfigurat
 
 pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
+pub fn managed_completed_available(@execution_relation.ManagedCompletedOutput[Int]) -> Bool
+
 pub fn managed_output_accept(ManagedNodeOutput, Int, String) -> Unit raise NodeHostFailure
 
 pub fn managed_output_available(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_cancel(ManagedNodeOutput) -> Unit
+
+pub fn managed_output_complete_compute(ManagedNodeOutput, @compute.ManagedDuckDBCompletion[Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
+
+pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
@@ -151,6 +161,8 @@ pub fn managed_output_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHo
 pub fn managed_output_open(@execution_relation.ManagedOutputValues, String, @adapter.PhysicalResultLimits, @adapter.TransportColumnLimits, Int) -> ManagedNodeOutput raise NodeHostFailure
 
 pub fn managed_output_retain(ManagedNodeOutput, Int64, () -> Bool) -> Unit raise NodeHostFailure
+
+pub fn managed_output_verify_compute(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
 pub fn native_host_abort(NativeNodeRun) -> Unit
 

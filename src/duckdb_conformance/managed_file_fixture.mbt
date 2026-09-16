@@ -1,4 +1,16 @@
 ///|
+#export_name("managedFileProfile")
+pub fn managed_file_profile(
+  body : String,
+) -> @execution.ManagedExecutionProfile raise {
+  @execution.admit_managed_execution_profile(fixture_contract(body), {
+    max_body_bytes: 100000,
+    max_body_nodes: 10000,
+    max_body_depth: 100,
+  }).unwrap()
+}
+
+///|
 /// Fixed checked schema and limits only. The Node test uses the product Host
 /// receiver; this fixture cannot issue storage or execution evidence.
 #export_name("managedFileValues")

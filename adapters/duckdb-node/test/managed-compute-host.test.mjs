@@ -1,0 +1,127 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {mkdtemp, readFile, rmdir} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {checked} from '../runtime-result.mjs';
+import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
+import {createLocalRetainedStore} from '../../store-local/files.mjs';
+
+const root = fileURLToPath(new URL('../../..', import.meta.url));
+const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
+  maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+  maxChunkRows: 2, maxChunkBytes: 4096, memoryBytes: 128 * 1024 * 1024, threads: 1};
+const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
+  [name, type.id, type.precision == null ? null : String(type.precision),
+    type.scale == null ? null : String(type.scale)]));
+
+test('managed selected Compute verifies actual DuckDB transport and exact physical holding without output CID', async () => {
+  const exec = promisify(execFile);
+  for (const target of ['connectors/duckdb/host_node', 'duckdb_conformance']) {
+    await exec('moon', ['build', '--target', 'js', '--release', `src/${target}`], {cwd: root});
+  }
+  const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
+  const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
+  const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
+  const contracts = [...source.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
+  const profile = fixture.managedFileProfile(await readFile(join(root,
+    'spec/contracts/actql-managed-retained-execution.json'), 'utf8'));
+  const pipeline = JSON.stringify([
+    {values: {schema: {id: {type: 'number', nullable: false}, amount: {type: 'string', nullable: true}},
+      rows: [{id: 3, amount: '日本語'}, {id: 1, amount: 'unused'},
+        {id: 4, amount: null}, {id: 3, amount: '日本語'}]}, as: 'seed'},
+    {select: ['id', 'amount']},
+  ]);
+  for (const empty of [false, true]) for (const revoke of ['none', 'transport', 'policy']) {
+    const configured = fixture.typedFixedCreate(pipeline, empty ? 'id > 9' : 'id > 2', ...contracts);
+    const directory = await mkdtemp(join(tmpdir(), 'actql-managed-compute-'));
+    const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 65536, maxFrameBytes: 4096});
+    let result, output, run, attempt, port, consume, completed;
+    try {
+      run = checked(moon.computeHostOpen(fixture.ownedFixedConfiguration(configured),
+        current => current === attempt && matchesFixedCompute(result, port, consume)));
+      attempt = moon.computeHostAttempt(run);
+      // Installed test Host policy: this invocation asks only for managed
+      // retained reading, not legacy publication or another demanded identity.
+      let authorized = true;
+      assert.throws(() => checked(moon.computeHostManagedPrepare(run, profile, () => false)));
+      const completion = checked(moon.computeHostManagedPrepare(run, profile, () => authorized));
+      port = Object.freeze({
+        importCount: () => moon.computeHostImportCount(run),
+        rowCount: index => Number(checked(moon.computeHostCount(run, index, false))),
+        columnCount: index => Number(checked(moon.computeHostCount(run, index, true))),
+        createSql: index => checked(moon.computeHostSql(run, 0, index)),
+        insertSql: index => checked(moon.computeHostSql(run, 1, index)),
+        parameter: (index, row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false, index))),
+        querySql: () => checked(moon.computeHostSql(run, 2, 0)),
+        queryParameters: () => Array.from({length: moon.computeHostQueryParameterCount(run)},
+          (_, index) => JSON.parse(checked(moon.computeHostParameter(run, 0, index, true, 0)))),
+      });
+      const writer = store.reserve(65536);
+      await writer.start();
+      const begin = fields => output ??= checked(moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)));
+      const observed = [];
+      consume = async chunk => {
+        begin(chunk.fields);
+        checked(moon.managedOutputAccept(output, chunk.rowCount, JSON.stringify(chunk.columns)));
+        // Fixture-only physical frame codec, not a registered public Artifact.
+        // Values are native transport columns, not canonical logical row JSON.
+        await writer.appendBytes(Buffer.from(JSON.stringify({rows: chunk.rowCount, columns: chunk.columns}) + '\n'));
+        observed.push(...chunk.columns[0]);
+      };
+      result = await runFixedCompute(port, limits, {maxRows: 4, maxCells: 8}, consume);
+      begin(result.value.fields);
+      checked(moon.managedOutputFinish(output));
+      const body = await writer.sealPhysical();
+      checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
+      assert.deepEqual(observed, empty ? [] : ['日本語', null, '日本語']);
+      assert.equal(moon.managedOutputComputeVerified(output), false);
+      assert.equal(moon.managedOutputAvailable(output), true, 'holding is not execution proof');
+      if (revoke === 'transport') {
+        releaseFixedCompute(result);
+        assert.throws(() => checked(moon.managedOutputVerifyCompute(output)));
+        assert.equal(moon.managedOutputAvailable(output), false);
+        assert.equal(body.available(), true, 'revocation is not physical cleanup');
+      } else {
+        checked(moon.managedOutputVerifyCompute(output));
+        assert.equal(moon.managedOutputComputeVerified(output), true);
+        assert.equal(checked(moon.managedOutputMeasurements(output))[0], empty ? 0 : 3);
+        assert.throws(() => checked(moon.computeHostComplete(run)), 'old completion cannot consume managed output');
+        const foreignRun = checked(moon.computeHostOpen(fixture.ownedFixedConfiguration(configured), () => false));
+        try {
+          const foreignCompletion = checked(moon.computeHostManagedPrepare(foreignRun, profile, () => true));
+          assert.throws(() => checked(moon.managedOutputCompleteCompute(output, foreignCompletion)),
+            'equal setup cannot authorize another attempt output');
+          assert.equal(moon.managedOutputComputeVerified(output), true, 'foreign port failure must not revoke the actual attempt');
+        } finally { moon.computeHostClose(foreignRun); }
+        if (revoke === 'policy') {
+          authorized = false;
+          assert.throws(() => checked(moon.managedOutputCompleteCompute(output, completion)));
+          authorized = true;
+          assert.throws(() => checked(moon.managedOutputCompleteCompute(output, completion)),
+            'failed completion cannot revive when policy changes back');
+          assert.equal(moon.managedOutputComputeVerified(output), false);
+          continue;
+        }
+        completed = checked(moon.managedOutputCompleteCompute(output, completion));
+        assert.equal(moon.managedCompletedAvailable(completed), true);
+        assert.throws(() => checked(moon.managedOutputCompleteCompute(output, completion)), 'completion is single use');
+        releaseFixedCompute(result);
+        assert.equal(moon.managedOutputComputeVerified(output), false);
+        assert.equal(moon.managedCompletedAvailable(completed), true, 'sealed independent output is not a live input verification');
+      }
+    } finally {
+      if (output) moon.managedOutputCancel(output);
+      if (completed) assert.equal(moon.managedCompletedAvailable(completed), false);
+      if (run) moon.computeHostClose(run);
+      if (result) releaseFixedCompute(result);
+      store.close(); await store.cleanup();
+      assert.equal(store.status().cleanupPending, false);
+      assert.equal(store.status().reservedBytes, 0);
+      await rmdir(directory);
+    }
+  }
+});

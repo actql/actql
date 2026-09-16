@@ -111,6 +111,17 @@ test('managed Node transport rejection is terminal and cannot be followed by ret
   }
 });
 
+test('value-only managed holding cannot masquerade as selected Compute execution', async () => {
+  const modules = await managedFixture(), {runtime} = modules;
+  const admitted = openManaged(modules);
+  checked(runtime.managedOutputFinish(admitted));
+  checked(runtime.managedOutputRetain(admitted, 0n, () => true));
+  assert.equal(runtime.managedOutputAvailable(admitted), true);
+  assert.equal(runtime.managedOutputComputeVerified(admitted), false);
+  assert.throws(() => checked(runtime.managedOutputVerifyCompute(admitted)));
+  assert.equal(runtime.managedOutputAvailable(admitted), false);
+});
+
 test('real Parquet invalid later value and cancelled reception cannot issue retained value evidence', async () => {
   const modules = await managedFixture(), {runtime} = modules;
   const database = await DuckDBInstance.create(':memory:');
