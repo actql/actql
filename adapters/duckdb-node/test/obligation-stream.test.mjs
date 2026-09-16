@@ -12,14 +12,14 @@ test.before(async () => {
   moon = await import('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js');
 });
 const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
-function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget,
+function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget, records = false,
   names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]} = {}) {
   return checked(moon.obligationBegin(names, kinds, nullable,
     {max_rows: 10, max_cells: 30, max_nodes: 1000, max_text_bytes: 10000},
     {max_columns: 3, max_order_work: 1000, max_bytes: 10000, max_nodes: 1000, max_depth: 10},
     {max_bytes: 10000, max_nodes: 1000, max_columns: 3, max_rows: 10, max_text_bytes: 10000},
     budget ?? checked(moon.obligationBudget(work, 10000, 1000, 10, ceiling)),
-    false, retain, identity, 10000));
+    records, retain, identity, 10000));
 }
 
 test('shared canonical encoding retains order duplicates NULL and Unicode independently of column order', () => {
@@ -103,5 +103,22 @@ test('future consumer demand failure does not retroactively fail its producer', 
     // five bytes, exceeding this consumer's four-byte limit.
     assert.throws(() => checked(moon.obligationComparisonFinish(demand, 0)));
     assert.throws(() => checked(moon.obligationComparisonFinish(demand, 0)));
+  }
+});
+
+test('source record guards wait for complete admission, including invalid later batches', () => {
+  for (const invalidTail of [false, true]) {
+    const stream = begin({records: true, ceiling: 1});
+    // The full record exceeds one byte, but it remains provisional: a later
+    // source value must still be admitted before selecting the guard failure.
+    checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"],["x"]]'));
+    if (invalidTail) {
+      assert.throws(() => checked(moon.obligationAppend(stream, 1,
+        '[["7ff0000000000000"],["x"]]')));
+    } else {
+      checked(moon.obligationAppend(stream, 1, '[["4000000000000000"],["y"]]'));
+    }
+    assert.throws(() => checked(moon.obligationFinish(stream)));
+    assert.throws(() => checked(moon.obligationFinish(stream)));
   }
 });

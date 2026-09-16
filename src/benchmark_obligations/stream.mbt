@@ -19,6 +19,7 @@ struct ObligationStream {
   mut open : Bool
   mut finished : Bool
   comparisons : Array[(Int, ComparisonSlot)]
+  mut record_guard_issue : ObligationFailure?
 }
 
 ///|
@@ -195,6 +196,7 @@ pub fn obligation_begin(
       open: true,
       finished: false,
       comparisons: [],
+      record_guard_issue: None,
     }
   } catch {
     issue => raise Encoding(issue)
@@ -297,7 +299,18 @@ pub fn obligation_append(
   }
   try {
     for row in 0..<rows {
-      measure_row(stream, batch, row)
+      if stream.records {
+        // Acquisition admits the complete selected scan before reporting its
+        // record guard. Keep decoding later batches under physical limits so
+        // an excluded invalid value is not hidden by an earlier guard failure.
+        if stream.record_guard_issue is None {
+          measure_row(stream, batch, row) catch {
+            issue => stream.record_guard_issue = Some(issue)
+          }
+        }
+      } else {
+        measure_row(stream, batch, row)
+      }
       for (column, comparison) in stream.comparisons {
         if comparison.issue is None {
           match
@@ -348,6 +361,9 @@ pub fn obligation_finish(
     raise Closed
   }
   stream.open = false
+  if stream.record_guard_issue is Some(issue) {
+    raise issue
+  }
   try {
     @encode.end_array(stream.writer)
     let tail = if stream.retain {

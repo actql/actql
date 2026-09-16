@@ -85,6 +85,14 @@ operand/predicate quantities and physical measurement usage. This connects
 comparison measurement, not the remaining logical-work charging, acquisition
 evidence metadata or full failure-precedence equivalence.
 
+Source record guard failures are now deferred until complete source admission,
+as in `native_validation_stream.mbt`. Later batches still undergo bounded
+physical/value admission and identity encoding. A later invalid value can thus
+reject the scan instead of being hidden by an earlier record-size guard.
+No content receipt is issued after a deferred guard failure. The regression
+covers both a valid tail (guard failure at finish) and a nonfinite later value
+(admission failure during append); other failure-order combinations remain open.
+
 The current tests cover nine small workload/layout combinations, order,
 duplicates, NULL, Unicode, column-order permutation, nonfinite physical values,
 guard exhaustion, poisoned streams, cumulative measurement budgets, an invalid
