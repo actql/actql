@@ -21,7 +21,8 @@ test('baseline ledger adaptation leaves native offers and execution logic unchan
   const wide = adaptBaselineAcquisitionLedger(application, 2560000, 64);
   assert.equal(dispatch(wide.source), dispatch(application));
   assert.equal(wide.source.replace(/\d+/g, '#'), application.replace(/\d+/g, '#'));
-  assert(wide.source.includes('source_limits(64)'));
+  assert(wide.source.includes('source_limits(10)'));
+  assert(!wide.source.includes('source_limits(64)'));
   assert(wide.source.includes('    table,\n    64,\n    native_query_limits(),'));
 });
 test('baseline receiver adaptation preserves original dispatch and query logic', () => {

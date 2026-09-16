@@ -879,3 +879,25 @@ establish equivalent obligations. That comparator is still unimplemented.
 The baseline capacity decision requested above is still pending. Neither the
 acceptance thresholds nor the registered failure treatment were changed during
 this verification pass. Linux and remote CI were not executed.
+
+## Follow-up: correct the baseline source-limits argument
+
+Reading `limits_and_generation.mbt` showed that `source_limits(10)` takes a
+stage count, not a source column count. The wide adaptation had unnecessarily
+raised it to 64. That edit has been removed; the actual DuckDB query-mapping
+column bound still becomes 64, while source topology remains byte-for-byte
+unchanged. The regression now requires `source_limits(10)` for the wide case.
+
+Rebuilding the same isolated baseline with this correction still verifies
+numeric-64/10000 through acquisition, three Compute tasks, independent final CID
+and cleanup (1393.514 ms diagnostic execution, 0.420 ms cleanup). All 20 benchmark
+helper tests pass. This corrects the earlier characterization of source checking;
+it does not change runtime algorithms, fixture identities or acceptance limits.
+
+A separate diagnostic of narrow join/count at 100 source rows in this archive
+fails before any Compute completion with transport `Rows`. The unchanged Compute
+receiver has 100 rows total, while the old row-wise INSERTs consume response rows
+before the query output is read. This acquisition-only archive is not a valid
+join baseline profile. Future capacity matching must distinguish protocol
+acknowledgments from logical input/output counts rather than treating this as a
+join semantic failure or dropping the case from comparison.

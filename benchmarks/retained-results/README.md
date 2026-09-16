@@ -304,7 +304,7 @@ generated text. Flat-row value allowances scale with the scan; completion-record
 and two-row capture metadata retain their original limits. Giving every metadata
 object the cumulative multi-task value allowance would distort the comparison.
 
-Selective wide inputs additionally scale source checking, source mapping,
+Selective wide inputs additionally scale source column mapping,
 receiver columns and metadata matching work. Pass the fixture's field count as
 the third argument to the application transformation; Compute stays id-only with
 its original column bound. Numeric-64/10000 has completed through this assembly.

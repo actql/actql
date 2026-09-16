@@ -34,15 +34,14 @@ export function adaptBaselineAcquisitionLedger(source, receiverBytes, sourceColu
     .replace(execution, '    execution_bytes: 4294967296L,');
   let output = source.slice(0, start) + adapted + source.slice(end);
   const columns = Math.max(10, sourceColumns);
-  // Both are assembly capacity arguments. Keep output/Compute width unchanged:
+  // Only this query argument is a source column capacity. source_limits(10)
+  // takes a stage count, so it must stay unchanged. Keep Compute width unchanged:
   // the selective fixture publishes only id, irrespective of source width.
-  const checkWidth = '    source_limits(10),';
   const queryWidth = '    table,\n    10,\n    native_query_limits(),';
-  if (output.split(checkWidth).length !== 2 || output.split(queryWidth).length !== 2) {
+  if (output.split(queryWidth).length !== 2) {
     throw Error('AmbiguousBaselineSourceColumns');
   }
-  output = output.replace(checkWidth, `    source_limits(${columns}),`)
-    .replace(queryWidth, `    table,\n    ${columns},\n    native_query_limits(),`);
+  output = output.replace(queryWidth, `    table,\n    ${columns},\n    native_query_limits(),`);
   return Object.freeze({source: output,
     transferBytes: bytes, sourceColumns: columns, originalSha256: baselineApplicationSha256});
 }
