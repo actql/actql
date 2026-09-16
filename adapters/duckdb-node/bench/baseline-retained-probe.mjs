@@ -16,11 +16,15 @@ import {baselinePublicEntry} from './baseline-public-entry.mjs';
 const baselineRoot = process.env.ACTQL_RETAINED_BASELINE_ROOT;
 if (!baselineRoot) throw Error('ACTQL_RETAINED_BASELINE_ROOT must name an independently verified baseline build');
 const profile = process.env.ACTQL_BASELINE_PROFILE ?? 'unchanged-example';
-if (!['unchanged-example', 'received-row-envelope', 'received-transport-envelope'].includes(profile)) throw Error('InvalidBaselineProfile');
+if (!['unchanged-example', 'received-row-envelope', 'received-transport-envelope', 'small-join-envelope'].includes(profile)) throw Error('InvalidBaselineProfile');
 const runExample = profile !== 'unchanged-example' ? await baselinePublicEntry(baselineRoot)
   : (await import(pathToFileURL(resolve(baselineRoot,
     'adapters/duckdb-node/examples/physical-strategy.mjs')).href)).runExample;
 const {cases, scope} = selectReadinessCases(retainedMatrix(), process.env.ACTQL_RETAINED_CASE);
+if (profile === 'small-join-envelope' && (cases.length !== 1 ||
+    cases[0].id !== 'fixed-join-count-shrinking-intermediate/narrow/100')) {
+  throw Error('UnsupportedBaselineSmallJoinCase');
+}
 console.log(JSON.stringify({kind: 'baseline-capability-diagnostic', scope, profile,
   baselineRoot: resolve(baselineRoot), caseCount: cases.length, performanceAcceptance: false,
   provenance: 'caller must verify the source tree and build against experiment.baselineRevision'}));
@@ -48,6 +52,7 @@ for (const fixture of cases) {
     const started = performance.now();
     result = await runExample({database, program, environment: environmentFile,
       environmentCid: environment.cid, parameters, nativeMilliseconds: '1',
+      smallJoin: profile === 'small-join-envelope',
       receivedRows: Math.max(100, fixture.fields.length + fixture.rows + fixture.cardinalities.capture,
         3 * fixture.limits.intermediateRows),
       ...(profile === 'received-transport-envelope' ? {

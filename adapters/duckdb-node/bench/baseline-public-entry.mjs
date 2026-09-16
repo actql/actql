@@ -1,5 +1,5 @@
 // Benchmark assembly over old public APIs, not a modified baseline runtime.
-// Only the acquisition receiver envelope is supplied by this diagnostic.
+// Capacity profiles are explicit; runtime algorithms are loaded from baseline.
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -22,7 +22,8 @@ export async function baselinePublicEntry(baselineRoot) {
   const adopted = JSON.parse(adoptedText);
   return async ({database, program, environment, environmentCid, parameters,
     nativeMilliseconds, signal, receivedRows, receivedCells = 1000,
-    receivedBytes = 100000, receivedColumns = 10}) => {
+    receivedBytes = 100000, receivedColumns = 10, smallJoin = false}) => {
+    if (typeof smallJoin !== 'boolean') throw TypeError('InvalidBaselineSmallJoin');
     if (!Number.isSafeInteger(receivedRows) || receivedRows < 100 || receivedRows > 2147483647) {
       throw TypeError('InvalidBaselineReceivedRows');
     }
@@ -37,10 +38,11 @@ export async function baselinePublicEntry(baselineRoot) {
     const limits = {maxRows: receivedRows, maxCells: receivedCells, maxTransportBytes: receivedBytes,
       maxSqlBytes: 10000, maxParameters: 10, maxColumns: Math.max(10, receivedColumns),
       memoryBytes: 128 * 1024 * 1024, threads: 1};
-    // Acquisition may scan much more than it captures. Keep Compute's original
-    // declared envelope; increasing acquisition transport must not silently
-    // enlarge a selected Compute offer or bypass its capacity check.
-    const computeLimits = {...limits, maxRows: 100, maxCells: 1000, maxTransportBytes: 100000, maxColumns: 10};
+    // Acquisition scaling alone keeps Compute unchanged. The separately named
+    // small-join profile covers INSERT acknowledgments and a 200-row input;
+    // matching MoonBit assembly limits must already be installed in the archive.
+    const computeLimits = {...limits, maxRows: smallJoin ? 600 : 100,
+      maxCells: 1000, maxTransportBytes: 100000, maxColumns: 10};
     const [programText, environmentText, parameterText] = await Promise.all(
       [program, environment, parameters].map(path => readFile(path, 'utf8')));
     const prepared = runtime.checked(app.prepareApplication(programText, environmentText, environmentCid,
@@ -55,7 +57,7 @@ export async function baselinePublicEntry(baselineRoot) {
       const setup = runtime.checked(app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), false));
       execution = await driver.runCapturedStrategy(setup,
         {duckdb: configuration.prepareDuckDBStrategyConfiguration({transportLimits: computeLimits,
-          importLimits: {maxRows: 100, maxCells: 1000}})}, signal);
+          importLimits: {maxRows: smallJoin ? 200 : 100, maxCells: 1000}})}, signal);
       return {execution, capture, report: {status: execution.status, completed: execution.completed,
         failure: execution.failure?.code ?? (execution.failure ? 'HostFailure' : null),
         internal_output_cids: execution.completed.map(({task}) =>

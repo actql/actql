@@ -325,6 +325,26 @@ Compute transport and import bounds remain those of the original example.
 The patch changes six numeric receiver literals only. It is not a general
 capacity-matched baseline for wide, large-output or join cases.
 
+### Small baseline join profile
+
+`baseline-small-join.mjs` adapts only the exact pinned `host_limits.mbt` and
+`limits_and_generation.mbt` assembly sources for narrow join/count at 100 source
+rows. The `.mbt.txt` generation snapshot is pinned archival evidence. The pure
+transformation changes numeric allowances only: combined acquisition receiving,
+the 200-row intermediate result and downstream fragment input. Source topology,
+operators, join obligation derivation and algorithms stay unchanged. Apply it to
+a separate baseline archive and rebuild all three JS entries.
+
+Run that archive using `ACTQL_BASELINE_PROFILE=small-join-envelope` with exact
+`ACTQL_RETAINED_CASE=fixed-join-count-shrinking-intermediate/narrow/100`. The
+profile rejects every other case, including an unfiltered matrix. Its Node
+Compute receiver allows 600 protocol response rows (two 200-row imports plus
+200 output rows), but the logical input/output limit stays 200. The independent
+cell ceiling remains 1000 and the byte/engine ceilings stay at their old defaults.
+No selected offer or reservation check is bypassed. This profile has completed
+all four Compute tasks, verified the expected final CID and cleaned up; it is
+not a general join-scale adapter or a formal timing comparison.
+
 ### Resident phase diagnostics
 
 Resident Compute reports sequential wall-clock intervals in each task's `phases`:

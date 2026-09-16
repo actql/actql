@@ -901,3 +901,22 @@ before the query output is read. This acquisition-only archive is not a valid
 join baseline profile. Future capacity matching must distinguish protocol
 acknowledgments from logical input/output counts rather than treating this as a
 join semantic failure or dropping the case from comparison.
+
+## Follow-up: old-runtime narrow/100 join runs through completion
+
+A new isolated `b87584fe` archive at `/tmp/actql-baseline-join-l7SeZX` uses the
+small-join capacity transformation. Its original first attempt failed physical
+`RowLimit`: the acquisition receiver's allowance must cover validation and
+selected rows together. Raising that assembly allowance to 204, and separately
+allowing the 200-row join result and downstream input, resolves the refusal.
+Compute's Node envelope includes INSERT acknowledgment rows without counting
+them as logical output. No runtime algorithm or canonical contract changed.
+
+With `small-join-envelope`, the exact registered narrow/100 case completes
+acquisition and all four Compute tasks, verifies the independent final CID and
+cleans up. The one diagnostic was 261.954 ms execution / 0.456 ms cleanup, not
+a paired acceptance sample. The transformation requires pinned source hashes,
+keeps topology unchanged and is tested as numeric-only. The CLI rejects other
+cases rather than pretending these small bounds scale to the full matrix.
+The benchmark helper suite now has 21 passing tests. Larger join baselines,
+equivalent-obligations comparison and the pending capacity decision remain open.
