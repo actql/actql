@@ -52,8 +52,9 @@ The Q1–Q11 agreement is recorded in
 [the design review](../../docs/design/physical-result-contract-review.md).
 The following remain required, not implied complete by this experiment:
 
-- Register the new profile and precise obligation/identity/evidence contracts
-  with dependent pins and independent fixtures, preserving old contracts.
+- Connect the now registered managed-retained profile and its pinned
+  obligation/identity/evidence contract to runtime admission and execution,
+  preserving old contracts. Registration alone does not complete this work.
 - Implement finite inclusion and view-preservation rules, bounded composition,
   failure-selection requirements and subject-limited issuance authority.
 - Connect supported projection/filter/derive/sort/take chains, repeated

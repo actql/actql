@@ -1,9 +1,13 @@
 # Physical result identity and completion: contract review
 
-This records the agreed Q1–Q11 design, not a registered execution profile or
-permission to omit fields required by current contracts. It reviews the contracts at main
-`3820ea1119997ba6194905e0336c11f472e6dd96`. No profile identifier, wire shape or
-pin is assigned here. The direction is physical files/chunks plus a manifest
+This records the agreed Q1–Q11 design, not runtime conformance or permission
+to omit fields required by existing contracts. Its compatibility baseline is main
+`3820ea1119997ba6194905e0336c11f472e6dd96`. The normative owner is now
+[managed retained execution](../spec/execution.md#managed-retained-execution),
+with the explicit `actql-managed-retained-execution/0.1` profile and pinned
+[machine contract](../../spec/contracts/actql-managed-retained-execution.json).
+Managed handles are not a new portable completion wire; the closed diagnostic
+identity state alone grants no authority. The direction is physical files/chunks plus a manifest
 for stored results, with logical content identity requested separately. These
 contracts apply equally to one row, two rows and large inputs; size affects
 physical placement and cost, not required guarantees.
@@ -172,13 +176,15 @@ and bytes to equal the canonical row receipt. Those are concrete integration
 points to replace with verified representation binding, not comparisons to
 delete without replacement.
 
-Before registering a profile, specify together: managed completion/observation,
-physical manifest and conversion admission, Result read authority, identity
-capabilities, measurement laws and the legacy dependency-closure bridge. Define
-closed wire shapes only for data that actually crosses a boundary; never treat
-a schema-valid record as owned execution evidence. Register normative exceptions,
-machine contracts, dependency pins and independent fixtures together. The old
-contract bodies/preimages are not silently relaxed.
+The registered profile specifies managed completion/observation, physical
+manifest and conversion admission, Result read authority, identity capabilities,
+measurement laws and the legacy dependency-closure bridge together. Runtime
+support still requires connecting those obligations to the concrete integration
+points above. Closed wire shapes cover physical manifests and diagnostic state,
+not portable ownership: a schema-valid record is not owned execution evidence.
+Normative exceptions, machine contracts, dependency pins and independent shape
+fixtures are coordinated; runtime and proof evidence remain separate acceptance
+requirements. The old contract bodies/preimages are not silently relaxed.
 
 Fixtures must cover empty results; repeated/reordered/missing chunks; corrupt
 payload and metadata; equal bytes with foreign owner/attempt; mutation/generation

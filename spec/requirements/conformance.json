@@ -301,7 +301,7 @@
     },
     {
       "requirement_id": "actql.conformance/contract-owner-index",
-      "statement_sha256": "295900968b3cd0c3d6d7642b2e1e1a09a530b893c9ecc241a7ed013379237f28",
+      "statement_sha256": "708d33b3f7b19618ae7d50f6ec86252a22f9db5b7c88d2d2c01416d2b22c844d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

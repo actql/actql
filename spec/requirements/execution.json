@@ -3,6 +3,171 @@
   "document_id": "actql.execution",
   "requirements": [
     {
+      "requirement_id": "actql.execution/managed-retained.selection",
+      "statement_sha256": "3164e941352744668782f20fdb978912b7499e9bf5c4057ffe23604187fcd028",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.completion",
+      "statement_sha256": "7de4e3043c74a9b1fc4404a3cb353c328e54b0c4d111d269cf8961c386e3fe66",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.identity",
+      "statement_sha256": "3af013aed9946ce34f8e210b1a9f1c5336a503f9048127f559dd1ecc846c380b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.identity-state",
+      "statement_sha256": "b9ce73962e2e7afb461df38a47b5c38e8ed90bc69d637952ad09f21cc4e0fc37",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.physical-manifest",
+      "statement_sha256": "3e433280b34ed65b621f08e59f33db873ba7bd0fa4e336a198b059bcadf76f3a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.capabilities",
+      "statement_sha256": "681ac8c5e41fcae2f755501c03a333783cb0b9cd7f60c6d5fc9f9369a60ca968",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.evidence",
+      "statement_sha256": "629aae0afae84b870bdd3e4801dcde00e7fd8ed1bc9f19388e7871ae0d924465",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.failure",
+      "statement_sha256": "7fcb6731991186574fbdbddb10a40ac732a4af085a2e7b1939478a2d41b78c92",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.fallback",
+      "statement_sha256": "89fc0e96fd453d1aa94fea349edfba3c9753e7de7fb6ca49443ef8c94018e54f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.quantities",
+      "statement_sha256": "0624852efe9acb8da6b914809cd25236e29160e149b694cb59b68c1d8e35bca3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.use",
+      "statement_sha256": "a5b1d6689d536d20965e36884c6482db317839c356c324be942f4ae3cfbc7d3f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.release",
+      "statement_sha256": "dde5cb4a6b7abe9d3c2c7f95e10b254c3cb22f8c73d6697728bc4533b0ec0665",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.relocation",
+      "statement_sha256": "46ee659e38e2bdd0c9ac3ee95fe88e93b17239309938b3bf6bab1d92f200dcf5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.issuance",
+      "statement_sha256": "74d635c2cfc7da528c95dd679b7a0d30352c1240d7309ac9b0fb7209c0caf766",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.conformance",
+      "statement_sha256": "a3cea1171c60b8b6f0420311536560515a87e47f7dccaa9b9144c8affa2da9e9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/capture-and-replay.consumer-capacity",
       "statement_sha256": "22f221abe44c4d261938eaeeaf0adda98fb7298fe4f6f1a8958c54ff73452f44",
       "status": "pending",
@@ -92,7 +257,7 @@
     },
     {
       "requirement_id": "actql.execution/capture-and-replay.given-the-same-canonical-plan-captured-observations-and-semantic-contracts",
-      "statement_sha256": "333d71bcadd59678f788a8e30fe98d2443b889c20e18d45e9aa5f3c5fca81873",
+      "statement_sha256": "74aefcb0e835c4270ff5b7dec65db6b87e419f00688b743d17a514aec82cbdbc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

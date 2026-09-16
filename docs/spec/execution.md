@@ -18,6 +18,7 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 
 - [Terms](#execution-terms)
 - [Run execution](#effects-and-execution)
+- [Managed retained execution profile](#managed-retained-execution)
 - [Capture, execution, and replay](#capture-and-replay)
 - [Program and stage execution](#stage-execution)
 - [Numeric observation capture](#numeric-observation)
@@ -96,6 +97,165 @@ Continuation uses the same Run and its captured outputs, with the existing
 Resolution and dispatch-time revalidation rules ([Checkpoints and Resolutions](#checkpoints)). Delivery failure does
 not undo a successful Run or authorize replay of its Effects; retry delivery
 against the materialized Results instead.
+
+<a id="managed-retained-execution"></a>
+
+### Managed retained execution profile
+
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json# sha256:161b405aa85064521a44076212bb266d93f166fa1b383ca8948a87923d797527 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/identity_status sha256:6e7214696a897447a4e6210f97dfc60530ba98353fc7915082fb3a02c1a23352 -->
+<!-- machine-import: ../../spec/contracts/actql-managed-retained-execution.json#/schemas/physical_manifest sha256:335f62ce6abd4d68cc79130d3e2ca3af800d03ffc40d359f5af1d856e34fd850 -->
+
+The [managed retained execution contract](../../spec/contracts/actql-managed-retained-execution.json)
+defines `actql-managed-retained-execution/0.1`. It separates a completed,
+retained logical value from establishment of its content identity. It applies
+equally to one, two or many rows. This is an explicit alternative completion
+contract, not an interpretation that removes required fields from existing
+acquisition observations, process-evidence records, captured Invocations,
+Result Artifacts, Manifests or Run Receipts. Those content-addressed contracts
+and their preimages remain unchanged.
+
+<!-- requirement-block: managed-retained.selection -->
+A Host MUST select this profile explicitly through an admitted execution API,
+derive obligations from checked semantics, adopted laws/proof assumptions,
+consumers, publication contracts, policy and requested capabilities before
+candidate comparison, and preserve those obligations across physical choices.
+The scope is one managed Run including accepted local execution-process
+delegation; arbitrary remote workers, cross-Run evidence reuse and restart
+restoration are outside this profile. No new authored Program syntax selects
+an issuer or asserts successful verification.
+
+<!-- requirement-block: managed-retained.completion -->
+Managed completion MUST establish the exact producer, attempt, input bindings,
+output port, immutable material generation and logical view, together with
+required semantic execution, validation, guards, authorization, holding,
+publication conditions and admitted capabilities. Unrequested future replay or
+conversion is not promised. A managed read handle is not an old Result Artifact
+or content-addressed Invocation, even when their represented values are equal.
+
+<!-- requirement-block: managed-retained.identity -->
+Implementations MUST establish each required logical identity in its unchanged
+adopted preimage domain by the obligation's deadline, preserve logical meaning
+independently of physical format, and leave unrequired identity unestablished
+without automatic background generation. An identity may remain unestablished
+throughout the result's lifetime. CID-dependent tie breaks, selectors and
+publication are deadlines; an implementation hash or physical manifest does
+not substitute for that CID. Equal content never merges separate occurrences,
+attempts, authorization or access evidence.
+
+<!-- requirement-block: managed-retained.identity-state -->
+Identity state MUST distinguish establishment from availability of its exact
+source, separately for each subject and domain, including discarded validation
+receipts versus retained selected output. The pinned `identity_status` schema
+is a closed diagnostic representation, not transportable authority. A retained
+source does not promise sufficient future authorization, resources or decoder
+support; an established CID does not promise that the data remains readable.
+
+<!-- requirement-block: managed-retained.physical-manifest -->
+File/chunk representations MUST bind the pinned closed physical-manifest shape
+to accepted conversion/execution evidence, verify exact stored-byte digests
+and lengths at the storage/transfer boundary or reuse valid immutable-generation
+evidence, and verify that codec-decoded row counts sum without overflow to the
+manifest count. The manifest CID hashes its complete canonical JSON UTF-8 with
+no self-CID; chunk CIDs hash exact bytes. Codec, schema and logical-view contract
+pins define decoding and interpretation, and the chunk array defines ordered
+concatenation, including repeated chunk occurrences. Empty output can have no
+chunks. Metadata integrity alone establishes neither logical correctness nor
+authorization. A managed resident table or memory result needs no forced
+export solely to obtain a physical hash.
+
+<!-- requirement-block: managed-retained.capabilities -->
+Known requirements MUST be resolved before irreversible discard by establishing
+the required identities/evidence or retaining their exact sources, whereas an
+unknown later request receives additional admission against current source,
+authority, holding, implementation and remaining budget. Ordinary failure of
+that added request leaves prior valid completion intact. Detected corruption
+instead revokes the affected representation. Conversion to a legacy contract
+checks its complete required dependency evidence, not only the final Result
+CID; Effect eligibility follows its particular contract, not a profile-wide ban.
+
+<!-- requirement-block: managed-retained.evidence -->
+Evidence reuse MUST match the exact material generation, ordered view, scope,
+value interpretation, measurement unit, contract and authorized issuance
+binding, using the registered finite inclusion and view rules with bounded
+composition along actual checked transformations. Initial rules include
+identical contracts, nullability, registered numeric intervals, same-unit
+count/size bounds, projection/rename/copy, checked row selection/permutation
+and unchanged derive columns. New values receive their necessary validation
+and measurement, including reusable validated join/group output. Predicate
+evaluation and required ordering are not discharged by input value evidence.
+
+<!-- requirement-block: managed-retained.failure -->
+Reuse MUST preserve specified demand, phase, failure precedence, logical
+location and operation atomicity, adding inspection when a summary proves a
+violation but cannot select the required diagnostic. Insufficient evidence is
+neither success nor violation. Universal success transfers to an exact subset;
+violation somewhere in a larger scope does not. Physical discovery order and
+the old implementation's unnecessary costs are not semantic requirements.
+Input admission scope is not narrowed by the consumer's own later filter.
+
+<!-- requirement-block: managed-retained.fallback -->
+Concrete reuse admission MUST occur before its consumer starts, with allowed
+ordinary validation fallback using remaining resources when rules or evidence
+are insufficient or reuse exploration reaches its own sublimit. Exhausted
+global budgets, confirmed violations, corruption and authority loss are not
+optimization misses; they cannot be hidden by resetting budgets or silently
+retrying a failed consumer on another backend.
+
+<!-- requirement-block: managed-retained.quantities -->
+Implementations MUST preserve selected logical value-size and per-consumer
+charge obligations while accounting separately for actual physical work,
+memory, storage and transfer, permitting compatible exact measurements or
+registered safe bounds to avoid repeated measurement. Canonical top-level
+value bytes are not compressed file bytes and do not require whole row-array
+JSON materialization. A skipped physical operation is not reported as executed.
+
+<!-- requirement-block: managed-retained.use -->
+Dispatch MUST acquire a pin on the exact generation, current use authority and
+required resources with a defined outcome against concurrent reclamation.
+Each consumer releases its own hold; completion of computation does not end a
+promised Result retention period. Availability, use-authority expiry and
+retention-prohibition deadlines remain distinct. Ordinary timeout stops new
+use/publication and requests cancellation; strict stop/deletion deadlines
+require a capable candidate rather than reinterpretation as ordinary timeout.
+
+<!-- requirement-block: managed-retained.release -->
+Cancellation and revocation MUST prevent stale session/delegate/attempt
+responses from restoring completion or publication and retain resource
+responsibility until access termination and physical reclamation are confirmed.
+Finite renewable leases are permitted but a renewable-lease service is not
+required. A valid independent protected copy has its own policy and holding
+conditions, not an unconditional dependency on the source's continued lease.
+
+<!-- requirement-block: managed-retained.relocation -->
+Physical relocation MUST preserve logical values, order, multiplicity and
+admitted capabilities through an adopted conversion rule that issues new
+generation-bound evidence, retaining the source until the destination is
+committed and charging overlap plus workspace. It does not relabel old evidence
+or redo the logical computation. Required provenance need not retain unused
+ancestor buffers. Failure preserves the original valid result and provisional
+cleanup responsibility.
+
+<!-- requirement-block: managed-retained.issuance -->
+Host adoption MUST restrict issuance to registered implementation revision,
+contract, evidence kinds/rules, representations and conditions, then grant
+task/attempt/subject-limited capabilities; Core checks these bindings and
+required completion conditions while the adopted implementation remains
+responsible for actual content operations and resource reports. Fixed
+registration and managed delegation suffice; this is not native sandboxing,
+PKI or proof of issuer truth. Third-party implementations of existing rules
+use Host adoption without backend-name branches in common Core.
+
+<!-- requirement-block: managed-retained.conformance -->
+Conformance claims MUST distinguish contract registration, limited formal
+models and their assumptions, machine-checked bridges where existing theorem
+coverage is claimed, independent implementation tests, and performance results.
+Initial runtime acceptance covers ordinary supported transformation chains and
+multiple consumers, repeated validated join/group output, and managed delegation
+through use/cancellation/reclamation, including positive reuse without repeated
+full conversion. Existing same-obligation benchmarks and new-profile benchmarks
+are separate; neither a schema test nor a lower hash count establishes runtime
+or performance conformance.
 
 <a id="capture-and-replay"></a>
 
@@ -193,7 +353,8 @@ shared, but its pre-effect and final instances have distinct CIDs. An artifact
 MUST NOT require a future artifact's CID in its own hash preimage.
 
 <!-- requirement-block: capture-and-replay.given-the-same-canonical-plan-captured-observations-and-semantic-contracts capture-and-replay.delivery-bytes-must-also-be-stable-when-the-result-artifact -->
-Given the same canonical Plan, captured observations, and semantic contracts,
+For the content-addressed capture/replay contract, given the same canonical
+Plan, captured observations, and semantic contracts,
 executions MUST produce the same logical Result CID for every named Result,
 independently of compiler or runtime implementation.
 Delivery bytes MUST also be stable when the Result Artifact and serialization

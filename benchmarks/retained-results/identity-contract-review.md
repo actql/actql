@@ -2,6 +2,20 @@
 
 ## Latest approved direction — 2026-09-16
 
+### Shared-contract registration on the implementation branch
+
+The [execution specification](../../docs/spec/execution.md#managed-retained-execution)
+now registers `actql-managed-retained-execution/0.1` and its pinned
+[machine contract](../../spec/contracts/actql-managed-retained-execution.json)
+on this branch. This follows the Q1–Q11 agreement, not the withdrawn contract.
+Main has not been changed by this registration. The profile covers a managed
+Run and accepted local process delegation, not only one OS process. It leaves
+existing acquisition and Artifact wire intact. Diagnostic identity-state JSON
+does not carry completion authority. Runtime conformance and the separate
+new-profile measurements remain unfinished; earlier statements below about
+the absence of an identifier describe the earlier main checkout, not this
+branch's current contract state.
+
 ### Resumption clarification: managed Run scope and quantity-specific duties
 
 The user explicitly reaffirmed the new-contract decision after relaying a main

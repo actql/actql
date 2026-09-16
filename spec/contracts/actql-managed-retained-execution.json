@@ -1,0 +1,157 @@
+{
+  "version": "actql-managed-retained-execution-contract/0.1",
+  "profile": "actql-managed-retained-execution/0.1",
+  "dependencies": {
+    "fixed_compute_capacity": {
+      "path": "spec/contracts/actql-fixed-compute-capacity.json",
+      "pointer": "",
+      "cid": "sha256:18acad6522ba361fe72b0de47e6ec7bf808423afe3e222739235d5101d72d88c"
+    }
+  },
+  "scope": {
+    "included": ["one_managed_run", "accepted_local_execution_process_delegation"],
+    "excluded": ["arbitrary_remote_worker", "cross_run_evidence_reuse", "restart_evidence_restoration"],
+    "size_condition": "none"
+  },
+  "selection": {
+    "authority": "explicit_host_api_profile_selection_not_program_evidence_assertion",
+    "known_requirements": "derive_before_candidate_comparison_and_before_irreversible_discard",
+    "sources": ["checked_semantics", "adopted_laws_and_proof_assumptions", "consumer", "publication_contract", "host_policy", "requested_capabilities"],
+    "concrete_reuse": "after_producer_completion_before_consumer_dispatch",
+    "planner": "choose_how_to_satisfy_never_remove_requirements"
+  },
+  "completion": {
+    "required": ["exact_inputs_and_output_port", "producer_and_attempt", "meaning_and_demanded_failures", "input_validation_scope", "logical_guards_and_charges", "current_authorization", "immutable_material_generation_and_view", "holding_and_publication_obligations", "admitted_capabilities"],
+    "unrequested_future_conversion": "not_guaranteed",
+    "logical_content_identity": "establish_only_when_required_by_selected_obligations_otherwise_may_remain_unestablished_for_entire_lifetime",
+    "record_identity": "distinct_from_content_identity_and_from_other_attempts",
+    "portable_wire": "none_opaque_handles_and_authenticated_delegation_not_json_authority"
+  },
+  "identity": {
+    "preimages": "existing_adopted_domain_preimages_unchanged",
+    "domains": ["logical_row", "ordered_rows", "logical_relation"],
+    "subjects": ["received_validation_rows", "received_native_rows", "acquisition_output", "task_output", "named_result"],
+    "physical_identity": "exact_bytes_and_manifest_not_logical_content_identity",
+    "required_deadlines": ["before_cid_dependent_operation", "before_required_publication", "before_discard_if_later_required_and_no_exact_source_retained"],
+    "late_admission": ["exact_source", "current_authority", "holding", "implementation", "remaining_budget"],
+    "late_failure": "reject_added_request_preserve_prior_valid_completion",
+    "corruption": "revoke_affected_representation_not_ordinary_late_request_failure",
+    "legacy_bridge": "satisfy_target_contract_and_all_required_dependency_evidence_no_final_result_only_substitution"
+  },
+  "evidence": {
+    "binding": ["contract", "issuer_capability", "task", "attempt", "input_binding", "output_port", "material_generation", "logical_view", "scope", "value_interpretation", "measurement_unit"],
+    "outcomes": ["satisfied", "violation_with_required_diagnostic", "insufficient"],
+    "inclusion_rules": ["identical_contract", "nullability", "registered_numeric_domain_interval", "same_unit_count_bound", "same_unit_value_size_bound"],
+    "view_rules": ["exact_view", "projection", "rename", "exact_column_copy", "checked_row_selection", "checked_row_permutation", "derive_unchanged_columns"],
+    "composition": "bounded_along_actual_checked_transformations_no_general_proof_search",
+    "new_values": "validate_and_measure_once_then_reusable_including_join_and_group_output",
+    "subset": "universal_success_transfers_violation_somewhere_does_not",
+    "fallback": "ordinary_validation_with_remaining_budget_before_consumer_dispatch",
+    "forbidden_fallback": ["reset_global_budget", "hide_confirmed_violation", "ignore_revocation_or_corruption", "silent_retry_after_consumer_failure"]
+  },
+  "failure": {
+    "preserve": ["specified_demand", "specified_phase", "specified_precedence", "logical_location", "operation_atomicity"],
+    "not_preserved": ["incidental_physical_discovery_order", "unnecessary_copy_or_hash_cost"],
+    "insufficient_diagnostic": "inspect_missing_information_before_reporting_no_undemanded_evaluation"
+  },
+  "resources": {
+    "logical_value_bytes": "selected_canonical_top_level_value_measure_not_physical_file_bytes",
+    "logical_consumer_charges": "apply_each_use_even_when_measurement_evidence_reused",
+    "physical": "actual_work_memory_storage_transfer_and_safe_reservations_in_separate_scopes",
+    "reuse": "exact_compatible_measurement_or_registered_safe_bound_no_mandatory_row_json_materialization",
+    "relocation": "charge_source_destination_and_workspace_overlap_keep_source_until_destination_committed"
+  },
+  "physical_manifest": {
+    "cid": "sha256_of_canonical_JSON_UTF8_of_complete_manifest_no_self_cid",
+    "chunk_cid": "sha256_of_exact_stored_bytes",
+    "sequence": "concatenate_codec_decoded_chunk_rows_in_manifest_array_order_preserving_duplicate_chunk_occurrences",
+    "counts": "checked_sum_chunk_row_counts_equals_manifest_row_count_verify_each_chunk_byte_length_and_row_count",
+    "view": "pinned_schema_and_logical_view_contracts_define_value_interpretation_projection_and_logical_order",
+    "authority": "manifest_integrity_is_not_execution_or_conversion_evidence",
+    "empty": "zero_rows_may_have_no_chunks_nonzero_rows_require_chunks",
+    "resident": "managed_memory_or_table_may_use_owned_generation_binding_without_forced_export"
+  },
+  "lifecycle": {
+    "dispatch": "acquire_exact_generation_pin_current_use_authority_and_resources_before_dispatch",
+    "consumers": "independent_use_handles_release_each_without_waiting_for_whole_run",
+    "deadlines": ["availability", "use_authority", "retention_prohibition"],
+    "timeout": "stop_new_use_and_publication_cancel_then_confirm_stop_and_reclamation",
+    "strict_deadline": "admit_only_candidates_meeting_requested_stop_or_deletion_guarantee",
+    "renewable_lease_service": "not_required",
+    "late_response": "cannot_revive_revoked_use_or_attempt",
+    "result_holding": "survives_run_compute_end_for_promised_duration",
+    "relocation": "new_generation_evidence_through_adopted_preservation_rule_not_relabelled_old_evidence",
+    "ancestry": "retain_required_provenance_not_unneeded_ancestor_material"
+  },
+  "issuance": {
+    "adoption": "fixed_host_registration_of_implementation_revision_contract_evidence_kinds_rules_representations_and_conditions",
+    "capability": "limited_to_exact_task_attempt_subject_and_evidence_kinds",
+    "core": "verify_authority_bindings_applicability_and_completion",
+    "implementation": "trusted_for_actual_validation_measurement_conversion_and_resource_reports",
+    "third_party": "allowed_through_host_adoption_of_existing_rules_without_core_backend_name_branches",
+    "non_claims": ["native_code_sandbox", "independent_proof_of_issuer_truth", "universal_certification", "pki_service"]
+  },
+  "conformance": {
+    "proof": "declare_model_assumptions_and_trusted_boundary_machine_check_new_bridges_where_existing_theorem_coverage_is_claimed",
+    "paths": ["projection_filter_derive_sort_take_multiple_consumers", "validated_join_or_group_output_repeated_use", "managed_delegate_hold_use_cancel_reclaim"],
+    "performance": "old_same_obligation_and_new_profile_experiments_separate_include_preparation_holding_cleanup_and_repeated_work_counters"
+  },
+  "schemas": {
+    "physical_manifest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "schema_contract_cid", "view_contract_cid", "codec_contract_cid", "row_count", "chunks"],
+      "properties": {
+        "version": {"const": "actql-managed-physical-manifest/0.1"},
+        "schema_contract_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "view_contract_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "codec_contract_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "row_count": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "chunks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cid", "byte_length", "row_count"],
+            "properties": {
+              "cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              "byte_length": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+              "row_count": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+            }
+          }
+        }
+      }
+    },
+    "identity_status": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Diagnostic state only; this JSON is not an issuance capability or completion proof.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["domain", "subject", "state", "source"],
+          "properties": {
+            "domain": {"enum": ["logical_row", "ordered_rows", "logical_relation"]},
+            "subject": {"type": "string", "minLength": 1},
+            "state": {"const": "unestablished"},
+            "source": {"enum": ["retained", "unavailable"]}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["domain", "subject", "state", "source", "canonical_contract_cid", "cid"],
+          "properties": {
+            "domain": {"enum": ["logical_row", "ordered_rows", "logical_relation"]},
+            "subject": {"type": "string", "minLength": 1},
+            "state": {"const": "established"},
+            "source": {"enum": ["retained", "unavailable"]},
+            "canonical_contract_cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+          }
+        }
+      ]
+    }
+  }
+}

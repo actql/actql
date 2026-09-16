@@ -1,0 +1,18 @@
+{
+  "version": "actql-managed-retained-identity-status-fixtures/0.1",
+  "purpose": "Closed diagnostic shape only, not execution or issuance authority",
+  "cases": [
+    {"id": "unestablished-retained", "accepted": true, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished", "source": "retained"}},
+    {"id": "discarded-validation", "accepted": true, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished", "source": "unavailable"}},
+    {"id": "established-retained", "accepted": true, "value": {"domain": "logical_relation", "subject": "attempt-a/result", "state": "established", "source": "retained", "canonical_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}},
+    {"id": "identity-without-data", "accepted": true, "value": {"domain": "logical_row", "subject": "attempt-a/row-1", "state": "established", "source": "unavailable", "canonical_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}},
+    {"id": "unestablished-dummy-cid", "accepted": false, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished", "source": "retained", "cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}},
+    {"id": "unestablished-null-cid", "accepted": false, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished", "source": "retained", "cid": null}},
+    {"id": "established-without-cid", "accepted": false, "value": {"domain": "logical_relation", "subject": "attempt-a/result", "state": "established", "source": "retained", "canonical_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}},
+    {"id": "missing-source-axis", "accepted": false, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished"}},
+    {"id": "physical-domain-is-not-logical", "accepted": false, "value": {"domain": "physical_chunk", "subject": "attempt-a/result", "state": "unestablished", "source": "retained"}},
+    {"id": "caller-cannot-add-authority", "accepted": false, "value": {"domain": "ordered_rows", "subject": "attempt-a/validation", "state": "unestablished", "source": "retained", "validated": true}},
+    {"id": "empty-subject", "accepted": false, "value": {"domain": "ordered_rows", "subject": "", "state": "unestablished", "source": "retained"}},
+    {"id": "noncanonical-digest-text", "accepted": false, "value": {"domain": "logical_relation", "subject": "attempt-a/result", "state": "established", "source": "retained", "canonical_contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "cid": "file-id-1"}}
+  ]
+}

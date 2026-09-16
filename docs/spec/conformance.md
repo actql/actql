@@ -439,6 +439,7 @@ implementation package is not a conformance requirement.
 | Lookup acquisition identities | [Lookup identity registry](../../spec/contracts/actql-lookup-identities.json): the five Lookup Evidence CID roles, pre-Invocation Relation, typed keys, batch partition and attempt receipt, with supporting order/scope/request/slot schemas. Specification tests do not attest lookup runtime conformance. |
 | Closed regex grammar and AST | [Regex grammar](../../spec/grammar/actql-regex-0.1.ebnf) and [AST schema](../../spec/grammar/actql-regex-ast-0.1.schema.json). |
 | Predicate consumer capacity | [Consumer capacity contract](../../spec/contracts/actql-consumer-capacity.json), owned by [Machine contracts](protocols/contracts.md#machine-contracts); consumer bodies and schemas bind its exact canonical CID, not merely its version name. |
+| Managed retained execution | [Managed retained execution contract](../../spec/contracts/actql-managed-retained-execution.json), owned by [Managed retained execution](execution.md#managed-retained-execution); explicit alternative completion with unchanged legacy artifact obligations. Contract registration and runtime conformance are separate. |
 | Closed timestamp-pattern grammar and AST | [Timestamp grammar](../../spec/grammar/actql-timestamp-pattern-0.1.ebnf) and [AST schema](../../spec/grammar/actql-timestamp-pattern-ast-0.1.schema.json). |
 
 Normative prose and machine contracts describe the same design.

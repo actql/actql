@@ -42,7 +42,10 @@ This document owns result-artifact, result-manifest, result-delivery, store-admi
 
 ### Result Artifacts and Manifest
 
-Each published named Result emits `actql-result-artifact/0.1`. Its closed shape
+Each named Result published under this protocol emits `actql-result-artifact/0.1`.
+The explicitly selected [managed retained execution profile](../execution.md#managed-retained-execution)
+can instead expose an owned read handle; that handle is not this Artifact and
+conversion into this protocol retains all requirements below. Its closed shape
 is:
 
 <!-- requirement-block: result-artifacts.resultartifact -->
