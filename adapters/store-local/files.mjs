@@ -22,17 +22,25 @@ export function localRetainedStoreAvailable(store) {
   return storeOwners.get(store)?.available() === true;
 }
 
-export function validateLocalStoreConfiguration({ parentDirectory, capacityBytes, maxFrameBytes, maxEntries = 1024 }) {
+export function validateLocalStoreConfiguration({ parentDirectory, capacityBytes, maxFrameBytes,
+  maxEntries = 1024, maxReadersPerBody = 1, maxReadBufferBytes }) {
   // Pure validation precedes file creation/reservation.
   if (typeof parentDirectory !== 'string' || !parentDirectory.length ||
       !quantity(capacityBytes) || !quantity(maxEntries) || maxEntries === 0 ||
       !quantity(maxFrameBytes) || maxFrameBytes === 0 ||
-      maxFrameBytes > 16 * 1024 * 1024) fail('InvalidStoreLimits');
-  return Object.freeze({parentDirectory, capacityBytes, maxFrameBytes, maxEntries});
+      maxFrameBytes > 16 * 1024 * 1024 || !quantity(maxReadersPerBody) ||
+      maxReadersPerBody === 0) fail('InvalidStoreLimits');
+  // Preserve the existing one-reader-per-body default, with an explicit global
+  // byte reservation for simultaneous verifier buffers when sharing is enabled.
+  const readCapacity = maxReadBufferBytes === undefined ? maxFrameBytes * maxEntries : maxReadBufferBytes;
+  if (!quantity(readCapacity)) fail('InvalidStoreLimits');
+  return Object.freeze({parentDirectory, capacityBytes, maxFrameBytes, maxEntries,
+    maxReadersPerBody, maxReadBufferBytes: readCapacity});
 }
 
 export async function createLocalRetainedStore(options) {
-  const {parentDirectory, capacityBytes, maxFrameBytes, maxEntries} = validateLocalStoreConfiguration(options);
+  const {parentDirectory, capacityBytes, maxFrameBytes, maxEntries, maxReadersPerBody,
+    maxReadBufferBytes} = validateLocalStoreConfiguration(options);
   const directory = await mkdtemp(join(parentDirectory, 'actql-retained-'));
   const entries = new Set();
   const owner = Object.freeze({});
@@ -44,6 +52,7 @@ export async function createLocalRetainedStore(options) {
   let closed = false;
   let removed = false;
   let cleanupInFlight;
+  let activeReaders = 0, reservedReadBufferBytes = 0;
 
   const releaseEntry = async entry => {
     if (entry.released) return true;
@@ -84,6 +93,8 @@ export async function createLocalRetainedStore(options) {
     admittedWriteBytes,
     uncertainWriteBytes,
     delegatedWriteBytes,
+    activeReaders,
+    reservedReadBufferBytes,
     holdings: [...entries].filter(e => e.sealed && !e.revoked).length,
     cleanupPending: [...entries].some(e => e.revoked && !e.released) || (closed && !removed),
   });
@@ -104,6 +115,20 @@ export async function createLocalRetainedStore(options) {
     const revoke = () => { entry.revoked = true; };
     const active = () => {
       if (closed || entry.revoked || entry.released) fail('RetainedUnavailable');
+    };
+    const acquireRead = () => {
+      active();
+      if (entry.readers >= maxReadersPerBody) fail('StoreReaderBusy');
+      const bytes = Math.min(maxFrameBytes, Math.max(1, entry.bytes));
+      if (bytes > maxReadBufferBytes - reservedReadBufferBytes) fail('StoreReadCapacity');
+      entry.readers++; activeReaders++; reservedReadBufferBytes += bytes;
+      let released = false;
+      return () => {
+        if (released) return false;
+        released = true;
+        entry.readers--; activeReaders--; reservedReadBufferBytes -= bytes;
+        return true;
+      };
     };
     const cleanupHandle = Object.freeze({
       status: () => Object.freeze({ pending: entry.revoked && !entry.released }),
@@ -190,18 +215,17 @@ export async function createLocalRetainedStore(options) {
         delegateRead(session) {
           active();
           if (typeof session !== 'string' || !session.length || session.length > 256) fail('InvalidStoreSession');
-          if (entry.readers) fail('StoreReaderBusy');
           const descriptor = Object.freeze({
             version: 'actql-local-file-read/0.1', session, token: randomUUID(),
             path: entry.path, device: entry.identity.dev, inode: entry.identity.ino,
             bytes: entry.bytes, cid: entry.cid, maxFrameBytes,
           });
-          entry.readers++;
+          const release = acquireRead();
           let settled = false;
           const settle = () => {
             if (settled) return false;
             settled = true;
-            entry.readers--;
+            release();
             return true;
           };
           const verifyReport = report => {
@@ -233,15 +257,12 @@ export async function createLocalRetainedStore(options) {
         async consume(accept, signal) {
           active();
           if (typeof accept !== 'function') fail('InvalidStoreReader');
-          // No queued reader/byte buffers. Conversion can request its own bounded
-          // representation if it needs concurrent physical readers.
-          if (entry.readers) fail('StoreReaderBusy');
           signal?.throwIfAborted();
-          entry.readers++;
-          const hash = createHash('sha256');
-          const buffer = Buffer.alloc(Math.min(maxFrameBytes, Math.max(1, entry.bytes)));
-          let position = 0;
+          const release = acquireRead();
           try {
+            const hash = createHash('sha256');
+            const buffer = Buffer.alloc(Math.min(maxFrameBytes, Math.max(1, entry.bytes)));
+            let position = 0;
             while (position < entry.bytes) {
               active();
               signal?.throwIfAborted();
@@ -268,7 +289,7 @@ export async function createLocalRetainedStore(options) {
             active();
             signal?.throwIfAborted();
             return Object.freeze({ bytes: position, cid: entry.cid });
-          } finally { entry.readers--; }
+          } finally { release(); }
         },
       });
       bodyOwners.set(body, owner);

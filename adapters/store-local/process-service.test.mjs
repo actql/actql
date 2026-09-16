@@ -7,9 +7,9 @@ import {createHash} from 'node:crypto';
 import {startManagedExecution} from '../host-node/process-channel.mjs';
 import {createProcessRetainedStore} from './process-service.mjs';
 
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-control-store-service-'));
-  const store = createProcessRetainedStore({parentDirectory, capacityBytes: 200, maxFrameBytes: 100, maxEntries: 2});
+  const store = createProcessRetainedStore({parentDirectory, capacityBytes: 200, maxFrameBytes: 100, maxEntries: 2, ...options});
   const channel = await startManagedExecution({
     entry: new URL('./process-service-fixture.mjs', import.meta.url), run: 'independent-store',
     frames: {maxBytes: 4096, maxNodes: 100, maxDepth: 10},
@@ -39,6 +39,29 @@ test('selected process writes into a control-owned Store and sealed bytes surviv
   await body.consume(chunk => received.push(Buffer.from(chunk)));
   assert.equal(Buffer.concat(received).toString('utf8'), '[{"id":3}]');
   assert.equal(store.status().admittedWriteBytes, 10);
+});
+
+test('managed process holds two distinct reads and confirmed exit releases only the remaining read', async t => {
+  const {store, channel} = await fixture(t, {maxReadersPerBody: 2, maxReadBufferBytes: 20});
+  await channel.request({command: 'write', output: 'shared'});
+  const opened = await channel.request({command: 'open-read-pair', output: 'shared'});
+  assert.notEqual(opened.tokens[0], opened.tokens[1]);
+  assert.equal(store.status().activeReaders, 2);
+  assert.equal(store.status().reservedReadBufferBytes, 20);
+  const first = await channel.request({command: 'finish-one-read', output: 'shared'});
+  assert.equal(first.bytes, 10);
+  assert.equal(store.status().activeReaders, 1);
+  assert.equal(store.status().reservedReadBufferBytes, 10);
+  store.body('shared').close();
+  await store.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 10);
+  await assert.rejects(channel.request({command: 'crash-reader'}),
+    error => ['ExecutionExited', 'ExecutionChannelClosed'].includes(error.code));
+  await channel.close();
+  await store.cleanupHandle.retry();
+  assert.equal(store.status().activeReaders, 0);
+  assert.equal(store.status().reservedReadBufferBytes, 0);
+  assert.equal(store.status().reservedBytes, 0);
 });
 
 test('unstarted invalid Store request is correctable without creating resources', async t => {

@@ -17,9 +17,9 @@ const chunk = body => ({cid: body.cid, byte_length: body.bytes, row_count: 1});
 const canonical = value => Array.isArray(value) ? value.map(canonical) :
   value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
 
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-manifest-'));
-  const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 100, maxFrameBytes: 4});
+  const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 100, maxFrameBytes: 4, ...options});
   t.after(async () => { store.close(); await store.cleanup(); await rmdir(directory); });
   const bodies = [];
   for (const text of ['α\n', 'b\n']) {
@@ -171,4 +171,35 @@ test('empty result still requires an exact live Store and cancellation is checke
   await assert.rejects(consumePhysicalManifestFiles({}, manifest([]), [], expected, limits, 'session', read), {code: 'ForeignPhysicalManifestHolding'});
   store.close();
   await assert.rejects(consumePhysicalManifestFiles(store, manifest([]), [], expected, limits, 'session', read), {code: 'ForeignPhysicalManifestHolding'});
+});
+
+test('two manifest consumers hold the same generation independently within reader capacity', {timeout: 3000}, async t => {
+  const {store, bodies} = await fixture(t, {maxReadersPerBody: 2, maxReadBufferBytes: 10});
+  const input = manifest(bodies.map(chunk));
+  let release, bothEntered, entered = 0;
+  const gate = new Promise(resolve => { release = resolve; });
+  const ready = new Promise(resolve => { bothEntered = resolve; });
+  const consume = session => consumePhysicalManifestFiles(store, input, bodies, expected, limits,
+    session, async (_file, index) => {
+      if (index === 0) {
+        if (++entered === 2) bothEntered();
+        await gate;
+      }
+      return 1;
+    });
+  const first = consume('first'), second = consume('second');
+  try {
+    await ready;
+    assert.equal(store.status().activeReaders, 4);
+    assert.equal(store.status().reservedReadBufferBytes, 10);
+    release();
+    const results = await Promise.all([first, second]);
+    assert.deepEqual(results.map(value => value.rowCount), [2, 2]);
+    assert.equal(results[0].manifestCid, results[1].manifestCid);
+    assert.equal(store.status().activeReaders, 0);
+    assert.equal(store.status().reservedReadBufferBytes, 0);
+    assert.equal(store.status().reservedBytes, 5);
+  } finally {
+    release(); await Promise.allSettled([first, second]);
+  }
 });

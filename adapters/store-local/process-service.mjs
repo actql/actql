@@ -31,7 +31,7 @@ export function createProcessRetainedStore(options) {
       }
       exact(owner); signal.throwIfAborted();
       const writer = store.reserve(bytes);
-      const entry = {writer, descriptor: undefined, body: undefined, read: undefined};
+      const entry = {writer, descriptor: undefined, body: undefined, reads: new Map()};
       outputs.set(output, entry);
       try {
         await writer.start();
@@ -53,15 +53,17 @@ export function createProcessRetainedStore(options) {
     }
     if (request.command === 'read' && Object.keys(request).sort().join(',') === 'command,output') {
       const entry = outputs.get(request.output);
-      if (!entry?.body || entry.read) fail('RetainedUnavailable');
-      entry.read = entry.body.delegateRead(identity.session);
-      return entry.read.descriptor;
+      if (!entry?.body || entry.reads.size >= limits.maxReadersPerBody) fail('RetainedUnavailable');
+      const read = entry.body.delegateRead(identity.session);
+      entry.reads.set(read.descriptor.token, read);
+      return read.descriptor;
     }
     if (request.command === 'read-finish' && Object.keys(request).sort().join(',') === 'command,output,report') {
       const entry = outputs.get(request.output);
-      if (!entry?.read) fail('ForeignStoreReadReport');
-      const result = entry.read.finish(request.report);
-      entry.read = undefined;
+      const read = entry?.reads.get(request.report?.token);
+      if (!read) fail('ForeignStoreReadReport');
+      const result = read.finish(request.report);
+      entry.reads.delete(request.report.token);
       return result;
     }
     fail('InvalidStoreRequest');
@@ -77,7 +79,8 @@ export function createProcessRetainedStore(options) {
           // Actual exit is the only fallback for a missing writer-close report.
           // Independently sealed outputs are not revoked by this event.
           if (!entry.body) entry.writer.confirmDelegatedStopped();
-          if (entry.read) { entry.read.confirmStopped(); entry.read = undefined; }
+          for (const read of entry.reads.values()) read.confirmStopped();
+          entry.reads.clear();
         }
       });
       observed.catch(() => {});
