@@ -10,6 +10,17 @@ const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')
 const usage = value => Object.fromEntries(Object.entries(value).map(([key, v]) =>
   [key, typeof v === 'bigint' ? v.toString() : v]));
 
+// Exported for failure-path tests; never creates a successful timing sample.
+export async function closeRetainedSample(result, finalTask) {
+  const started = performance.now();
+  await result.close();
+  assert.equal(result.cleanupHandle.status().pending, false);
+  // Failed runs may not have published this task at all.
+  const completion = result.completion(finalTask);
+  if (completion) assert.equal(completion.retained, false);
+  return performance.now() - started;
+}
+
 export async function runRetainedComparator(fixture, contracts, database, directory, options = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options), 'InvalidComparatorOptions');
   assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds'].includes(key)),
@@ -36,7 +47,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       elapsed = performance.now() - started;
     } finally { memoryReport = memory.stop(); }
     assert.equal(memoryReport.status, 'observed');
-    assert.equal(result.report.status, 'host-tasks-completed');
+    assert.equal(result.report.status, 'host-tasks-completed', JSON.stringify(result.report));
     assert.equal(result.process().exited, true);
     assert.equal(result.completion(config.finalTask)?.retained, true);
     const descriptor = result.completion(config.finalTask).descriptor;
@@ -52,6 +63,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       sourceDefinitionHash: hash(fixture.createSourceSql),
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,
+      explanation: result.report.explanation,
       includes: ['Host-preparation', 'child-start', 'acquisition', 'validation', 'Compute',
         'required-identities', 'independent-holding', 'child-exit'],
       excludes: ['build', 'source-setup', 'independent-oracle', 'fresh-reader'],
@@ -59,11 +71,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
   } finally {
     memory.stop();
     if (result) {
-      const cleanupStarted = performance.now();
-      await result.close();
-      assert.equal(result.cleanupHandle.status().pending, false);
-      assert.equal(result.completion(config.finalTask).retained, false);
-      cleanupMs = performance.now() - cleanupStarted;
+      cleanupMs = await closeRetainedSample(result, config.finalTask);
     }
   }
   return Object.freeze({...report, cleanupMs, status: 'completed'});

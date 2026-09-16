@@ -7,7 +7,22 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
-import {runRetainedComparator} from '../bench/retained-comparator.mjs';
+import {runRetainedComparator, closeRetainedSample} from '../bench/retained-comparator.mjs';
+
+test('sample cleanup permits missing completion but never unconfirmed release', async () => {
+  let closed = 0;
+  const result = {close: async () => { closed++; },
+    cleanupHandle: {status: () => ({pending: false})}, completion: () => undefined};
+  assert(await closeRetainedSample(result, 3) >= 0);
+  assert.equal(closed, 1);
+  await assert.rejects(closeRetainedSample({...result,
+    cleanupHandle: {status: () => ({pending: true})}}, 3), {code: 'ERR_ASSERTION'});
+  await assert.rejects(closeRetainedSample({...result,
+    completion: () => ({retained: true})}, 3), {code: 'ERR_ASSERTION'});
+  const failure = Error('close failed');
+  await assert.rejects(closeRetainedSample({...result,
+    close: async () => { throw failure; }}, 3), error => error === failure);
+});
 
 test('retained comparator rejects invalid selection before preparing or executing', async () => {
   for (const options of [null, [], {resident: 'true'}, {nativeMilliseconds: '-1'},

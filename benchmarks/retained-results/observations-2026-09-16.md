@@ -920,3 +920,47 @@ keeps topology unchanged and is tested as numeric-only. The CLI rejects other
 cases rather than pretending these small bounds scale to the full matrix.
 The benchmark helper suite now has 21 passing tests. Larger join baselines,
 equivalent-obligations comparison and the pending capacity decision remain open.
+
+## Q7 selection diagnostic: resident capacity must not contaminate fresh offers
+
+The capacity decision above was subsequently approved in
+`acceptance-addendum-2026-09-16.md`; it is no longer awaiting approval. Neither
+that approval nor this diagnostic establishes performance acceptance.
+
+At `5937c155`, enabling resident alternatives with the unchanged supplied
+`nativeMilliseconds: "1"` produced these observations for retained downstream
+reuse:
+
+- narrow/10000 completed in 1077.953 ms, with 1.168 ms cleanup. All three tasks
+  selected fresh DuckDB and each imported 10000 rows. This is not direct-path
+  selection evidence.
+- numeric-64/10000 failed before any Compute task, with `no_feasible` and
+  `retention_limit` on every candidate. The all-fresh estimate alone requested
+  8,302,369,152 retained bytes under the unchanged 1 GiB limit. This is a
+  declared reservation, not measured memory consumption.
+
+The example reused a full DB-copy bound for fresh and resident estimates whenever
+resident alternatives were enabled. The fix uses the streamed completion bound
+for fresh offers. The connector independently adds the actual start-time DB-copy
+minimum to resident offers, without lowering their capacity requirements or
+raising any Run limit. A three-target regression checks that fresh remains
+selectable while the undersized resident environment is still rejected.
+
+With this correction, the same numeric-64/10000 case and default estimates
+completed through three fresh tasks: 13730.013 ms execution, 19.979 ms cleanup.
+Each task still imported 10000 rows. Input intervals were 2526.048, 2408.730 and
+2437.463 ms; their included INSERT intervals were 549.843, 522.072 and 532.879 ms.
+Query/receive intervals were 1138.976, 1100.182 and 1111.261 ms. The independent
+final CID and cleanup checks passed. These are single working-tree diagnostics,
+not alternating paired measurements or calibrated selection evidence.
+
+This restores feasibility in that configuration; it does **not** satisfy Q7 for
+the case. Required next work remains direct physical representation access and
+justified normal selection, rather than row JSON reconstruction and reinsertion.
+The 21-case scope, original fixtures and performance thresholds are unchanged.
+
+The diagnostic also exposed a reporting bug: final cleanup dereferenced a final
+completion even when no task had completed, masking the real capacity failure
+with a TypeError. Cleanup now permits an absent final completion, still rejects
+unconfirmed release, and preserves the execution report. The product timing leg
+also retains the strategy explanation instead of reporting only chosen tasks.

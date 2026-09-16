@@ -369,6 +369,10 @@ not a general join-scale adapter or a formal timing comparison.
 
 ### Resident phase diagnostics
 
+The [equivalent-comparator boundary](equivalent-comparator-boundary.md) lists
+the semantic components that may be shared and the execution assembly that
+must remain independent. It does not mark that comparator implemented.
+
 Resident Compute reports sequential wall-clock intervals in each task's `phases`:
 input verification, view preparation, result materialization, receiving the
 result, finalization (including awaited independent holding), and temporary SQL
