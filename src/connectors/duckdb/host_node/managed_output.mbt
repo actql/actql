@@ -64,6 +64,43 @@ pub fn managed_output_complete_compute(
 }
 
 ///|
+/// Installed strategy success boundary for an acquisition-fed task. The
+/// managed completion is published to the common DAG with its exact body
+/// holding; no legacy CID-bearing output is synthesized. Managed predecessor
+/// inputs use a separate entry once their dispatch preparation is installed.
+#export_name("managedOutputCompleteStrategyCompute")
+pub fn managed_output_complete_strategy_compute(
+  value : ManagedNodeOutput,
+  completion : @duckdb_compute.ManagedDuckDBCompletion[Int],
+) -> @execution.ManagedCompletedOutput[Int] raise NodeHostFailure {
+  guard value.receiver is Compute(run, _) &&
+    run.strategy is Some((graph, _, task_handle)) &&
+    !run.closed else {
+    raise InvalidCommand
+  }
+  let completed = managed_output_complete_compute(value, completion)
+  match
+    @strategy.complete_managed_task_execution(
+      graph,
+      @duckdb_driver.captured_duckdb_execution(task_handle),
+      completed,
+      allocation?=value.material_allocation,
+    ) {
+    Err(issue) => {
+      managed_output_cancel(value)
+      @strategy.stop_captured_dag(graph)
+      raise Strategy(issue)
+    }
+    Ok(_) => {
+      // The graph now owns the body holding. The output still owns its Store
+      // availability and measurement-index allocation until explicit revoke.
+      value.material_allocation = None
+      completed
+    }
+  }
+}
+
+///|
 #export_name("managedCompletedAvailable")
 pub fn managed_completed_available(
   value : @execution.ManagedCompletedOutput[Int],

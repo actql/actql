@@ -499,6 +499,20 @@ pub fn strategy_fixture_next(f : StrategyFixture) -> Int {
 }
 
 ///|
+#export_name("strategyFixtureManagedOutputMatches")
+pub fn strategy_fixture_managed_output_matches(
+  f : StrategyFixture,
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  guard f.run is Some(run) &&
+    @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
 #export_name("strategyFixtureConsume")
 pub fn strategy_fixture_consume(
   f : StrategyFixture,

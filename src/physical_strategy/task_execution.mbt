@@ -22,7 +22,9 @@ struct TaskExecution {
 /// that allocation is no longer reachable by any admitted consumer.
 struct TaskRetainedAllocation {
   owner : CapturedDAG
+  execution : TaskExecution
   holding : @resources.Holding
+  bytes : Int64
   mut live : Bool
 }
 
@@ -205,7 +207,7 @@ pub fn retain_task_execution_allocation(
   }
   match @resources.retain_allocation(run.ledger, execution.reservation, bytes) {
     Err(issue) => Err(issue)
-    Ok(holding) => Ok({ owner: run, holding, live: true, })
+    Ok(holding) => Ok({ owner: run, execution, holding, bytes, live: true, })
   }
 }
 

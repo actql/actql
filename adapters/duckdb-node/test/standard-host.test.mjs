@@ -925,10 +925,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     let attempt;
     let port;
     let consume;
+    const managedProfile = accepted(fixture.managedFileProfile(await readFile(join(root,
+      'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
+    let managedCompletion;
     managedLedgerRun = accepted(bridge.computeManagedRetainedStrategyHostOpen(
       setup, current => current === attempt && matchesFixedCompute(managedLedgerResult, port, consume),
       100000n, 134217728n, 100000n, () => true, 4));
     attempt = bridge.computeHostAttempt(managedLedgerRun);
+    managedCompletion = accepted(
+      bridge.computeHostManagedPrepare(managedLedgerRun, managedProfile, () => true));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n + indexBytes);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
@@ -985,9 +990,24 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, true));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
       'native settlement must not release a live managed body or its index');
+    accepted(bridge.managedOutputVerifyCompute(managedLedgerOutput));
+    const managedCompleted = accepted(
+      bridge.managedOutputCompleteStrategyCompute(managedLedgerOutput, managedCompletion));
+    assert.equal(bridge.managedCompletedAvailable(managedCompleted), true);
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 1, managedCompleted), true);
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 2,
+      'managed success advances the common DAG without manufacturing a legacy output');
+    assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
+      'legacy completion cannot consume an already published managed task');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
+      'managed graph publication settles unused retention reservation');
     bridge.managedOutputCancel(managedLedgerOutput);
-    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n,
-      'body and index holdings are returned only when managed output is revoked');
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 1, managedCompleted), false,
+      'revoked material cannot be rebound through the stored occurrence');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
+      'revocation releases the index but graph ownership keeps the body holding');
     bridge.computeHostClose(managedLedgerRun);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);

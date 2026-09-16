@@ -93,6 +93,10 @@ test "managed completion requires execution verification and exact output rather
         )
         assert_true(managed_completed_output_matches_material(output, material))
         assert_true(managed_completed_same_occurrence(output, output))
+        let reference = managed_completed_reference(output)
+        assert_true(managed_completed_reference_available(reference))
+        assert_true(managed_completed_reference_matches(reference, output))
+        assert_eq(managed_completed_output_storage_bytes(output), Some(0L))
         let another_port = prepare_managed_completion_port(
           profile,
           preparation,
@@ -103,12 +107,16 @@ test "managed completion requires execution verification and exact output rather
         ).unwrap()
         let another = complete_managed_output(another_port, ()).unwrap()
         assert_false(managed_completed_same_occurrence(output, another))
+        assert_false(managed_completed_reference_matches(reference, another))
         assert_eq(
           managed_completed_profile_cid(output),
           managed_execution_profile_cid(profile),
         )
         live.val = false
         assert_false(managed_completed_output_available(output))
+        assert_false(managed_completed_reference_available(reference))
+        assert_false(managed_completed_reference_matches(reference, output))
+        assert_true(managed_completed_output_storage_bytes(output) is None)
         assert_eq(managed_completed_output_row_count(output), 0)
       }
     }

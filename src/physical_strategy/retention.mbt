@@ -84,6 +84,7 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
     run.source = None
   }
   run.completed[task] = None
+  run.managed_completed[task] = None
   // A cached binding is not a started consumer. Drop our revoked aliases;
   // an in-flight native attempt keeps its input until cleanup is confirmed.
   for edge in run.graph.data {

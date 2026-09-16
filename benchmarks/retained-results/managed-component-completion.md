@@ -57,9 +57,11 @@ use-site identities. An independent downstream holding can therefore survive
 upstream release. Legacy and managed input arrays cannot be partially mixed to
 bypass a missing receiving port. Mixed-family dispatch is not implemented yet.
 
-This is still a common-library **component** boundary. It does not yet connect
-managed output to `CapturedDAG`, managed consumer dispatch, named
-Result publication, an actual DuckDB execution-proof issuer or the Local path.
+This was initially a common-library **component** boundary. The later
+[managed graph publication](managed-graph-publication.md) connects an actual
+acquisition-fed DuckDB strategy task to `CapturedDAG` without a legacy output.
+Managed consumer dispatch, named Result publication and the Local path remain
+open.
 It does not derive all requirements from a Program or replace the scoped Host
 implementation registry. Those integrations must supply the real verifier and
 admitted obligations before using the new type; a test verifier is not an

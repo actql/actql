@@ -251,7 +251,15 @@ pub fn[T] managed_completed_output_matches_port(ManagedCompletedOutput[T], @lowe
 
 pub fn[T] managed_completed_output_row_count(ManagedCompletedOutput[T]) -> Int
 
+pub fn[T] managed_completed_output_storage_bytes(ManagedCompletedOutput[T]) -> Int64?
+
 pub fn[T] managed_completed_profile_cid(ManagedCompletedOutput[T]) -> String
+
+pub fn[T] managed_completed_reference(ManagedCompletedOutput[T]) -> ManagedCompletionReference
+
+pub fn managed_completed_reference_available(ManagedCompletionReference) -> Bool
+
+pub fn[T] managed_completed_reference_matches(ManagedCompletionReference, ManagedCompletedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCompletedOutput[T]) -> Bool
 
@@ -296,6 +304,8 @@ pub fn[T] managed_producer_read_column_measurement(ManagedProducerRead[T], Int) 
 pub fn[T] managed_producer_read_input_index(ManagedProducerRead[T]) -> Int
 
 pub fn[T] managed_producer_read_matches_material(ManagedProducerRead[T], ManagedRetainedOutput[T]) -> Bool
+
+pub fn[T] managed_producer_read_matches_reference(ManagedProducerRead[T], ManagedCompletionReference) -> Bool
 
 pub fn[T] managed_producer_read_material(ManagedProducerRead[T]) -> ManagedRetainedOutput[T]?
 
@@ -750,6 +760,8 @@ pub(all) struct ManagedColumnMeasurement {
 type ManagedCompletedOutput[T]
 
 type ManagedCompletionPort[P, T]
+
+type ManagedCompletionReference
 
 type ManagedComputedView[T]
 

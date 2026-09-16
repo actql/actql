@@ -36,7 +36,8 @@ installed Store boundary so both transitions remain visible:
 | rejected 100,001-byte body | 1 | 768 | unchanged |
 | sealed body retained | 1 | 768 + 321 | stream base + 100,000 - 321 |
 | native execution settled | 1 | 768 + 321 | unchanged |
-| managed output cancel | 1 | 0 | stream base + 100,000 - 321 |
+| managed graph publication | 1 | 768 + 321 | 0 |
+| managed output cancel | 1 | 321 | 0 |
 | task close after settlement | 1 | 0 | 0 |
 
 The same run executes the actual selected DuckDB query, receives its output
@@ -47,8 +48,9 @@ base to accept a 100,001-byte body. Neither exact allocation is released by
 native settlement alone.
 
 This closes the managed body's and retained index's reservation/holding
-boundaries before graph publication. Ownership transfer into production
-managed graph completion is still pending. This does **not**
+boundaries and transfers body ownership into the first common
+[managed graph publication](managed-graph-publication.md). Managed downstream
+dispatch is still pending. This does **not**
 yet account for selection occurrence arrays, copied summaries, permutation
 maps or copy-overlap scratch, and it does not switch the production standard
 strategy entry to the new managed completion profile. Those remain separate

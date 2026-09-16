@@ -107,3 +107,104 @@ fn publish_task_completion(
   run.generation += 1
   Ok(())
 }
+
+///|
+/// New-profile success boundary. It consumes an exact managed completion and
+/// the already-admitted retained-body allocation without manufacturing a
+/// legacy `CompletedOutput` or calling the legacy finisher. Resident-table
+/// publication is deliberately excluded until it has an equivalent managed
+/// ownership bridge.
+pub fn[T] complete_managed_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  output : @execution.ManagedCompletedOutput[T],
+  allocation? : TaskRetainedAllocation,
+  managed_inputs? : Array[@execution.ManagedProducerRead[T]],
+) -> Result[Unit, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  guard run.running is Some((task, active)) &&
+    physical_equal(active, execution) &&
+    task_execution_matches(run, execution) else {
+    return Err(ForeignCandidate)
+  }
+  if execution.disposed ||
+    !execution.execution_settled ||
+    execution.resident is Some(_) {
+    return Err(Physical(InvalidCharge))
+  }
+  let hooks = execution.hooks.unwrap()
+  match (hooks.ready)() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard captured_task_target(run, task) is Some(target) &&
+    @execution.managed_completed_output_matches_port(
+      output,
+      run.graph.owners[task],
+      target,
+    ) else {
+    return Err(ForeignCandidate)
+  }
+  let input_matches = match managed_inputs {
+    Some(inputs) =>
+      captured_managed_inputs_match(run, task, inputs) &&
+      @execution.managed_completed_output_matches_managed_inputs(output, inputs)
+    None => {
+      let inputs = []
+      for input in run.inputs[task] {
+        guard input is Some(input) else { return Err(ForeignCandidate) }
+        inputs.push(input)
+      }
+      @execution.managed_completed_output_matches_inputs(output, inputs)
+    }
+  }
+  if !input_matches {
+    return Err(ForeignCandidate)
+  }
+  guard @execution.managed_completed_output_storage_bytes(output)
+    is Some(storage_bytes) else {
+    return Err(MissingOutput)
+  }
+  let holding = if storage_bytes == 0L {
+    if allocation is Some(_) {
+      return Err(Physical(InvalidCharge))
+    }
+    None
+  } else {
+    guard allocation is Some(owned) &&
+      owned.live &&
+      physical_equal(owned.owner, run) &&
+      physical_equal(owned.execution, execution) &&
+      owned.bytes == storage_bytes &&
+      @resources.holding_available(run.ledger, owned.holding) else {
+      return Err(Physical(InvalidCharge))
+    }
+    Some(owned.holding)
+  }
+  if run.stopped || !@execution.managed_completed_output_available(output) {
+    return Err(if run.stopped { Stopped } else { MissingOutput })
+  }
+  if allocation is Some(owned) {
+    // Ownership moves to the graph's retained task resource. The old Host
+    // token can no longer release it independently.
+    owned.live = false
+  }
+  execution.retained_bytes = None
+  run.resources[task] = Some({
+    holding,
+    release_confirmed: fn() { true },
+    parents: task_parents(run, task),
+  })
+  run.completed[task] = None
+  run.managed_completed[task] = Some(
+    @execution.managed_completed_reference(output),
+  )
+  run.done[task] = true
+  clear_captured_inputs(run, task)
+  run.generation += 1
+  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+  run.running = None
+  Ok(())
+}

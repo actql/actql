@@ -38,6 +38,8 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
@@ -69,6 +71,8 @@ pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
+
+pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
 
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 

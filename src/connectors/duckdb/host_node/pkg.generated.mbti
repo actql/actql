@@ -180,6 +180,8 @@ pub fn managed_output_complete_compute(ManagedNodeOutput, @compute.ManagedDuckDB
 
 pub fn managed_output_complete_input(ManagedNodeOutput, @compute.ManagedInputDuckDBCompletion[Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
 
+pub fn managed_output_complete_strategy_compute(ManagedNodeOutput, @compute.ManagedDuckDBCompletion[Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
+
 pub fn managed_output_complete_view(ManagedNodeOutput, @execution_relation.ManagedCompletionPort[(@execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedRetainedOutput[Int]), Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
 
 pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool

@@ -198,3 +198,14 @@ pub fn[T] managed_producer_read_matches_material(
   physical_equal(input.output.material, material) &&
   managed_producer_read_available(input)
 }
+
+///|
+/// Common graph scheduling compares the exact completed occurrence without
+/// learning or serializing the representation payload.
+pub fn[T] managed_producer_read_matches_reference(
+  input : ManagedProducerRead[T],
+  reference : ManagedCompletionReference,
+) -> Bool {
+  managed_completed_reference_matches(reference, input.output) &&
+  managed_producer_read_available(input)
+}

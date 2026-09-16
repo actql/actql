@@ -292,6 +292,8 @@ pub fn strategy_fixture_ledger(StrategyFixture) -> @physical_resources.Ledger
 
 pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
+pub fn strategy_fixture_managed_output_matches(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
+
 pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_next(StrategyFixture) -> Int

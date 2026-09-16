@@ -55,11 +55,14 @@ independently verified profile identity propagation; this test now covers it.
 
 ## Remaining work
 
-The physical transport-frame codec remains fixture-only. The normal production
-DAG, finite filter/take/sort/derive evidence transfer, repeated join/group paths,
-Local integration, accepted process delegation, and full 27-case/1 GiB performance
-acceptance remain required. This count integration is a concrete completion path,
-not closure of those requirements or a performance result.
+The physical transport-frame codec remains fixture-only. The later
+[managed graph publication](managed-graph-publication.md) connects one actual
+acquisition-fed strategy task to the common DAG, but managed downstream request
+preparation and dispatch are still incomplete. Finite filter/take/sort/derive
+evidence transfer, repeated join/group paths, Local integration, accepted
+process delegation, and full 27-case/1 GiB performance acceptance remain
+required. This count integration is a concrete completion path, not closure of
+those requirements or a performance result.
 
 Verification passed: 275 query-integration tests on each of JS, Wasm and native;
 six real native/physical-manifest tests (including the parameterized managed

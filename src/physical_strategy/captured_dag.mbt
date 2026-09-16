@@ -7,6 +7,7 @@ struct CapturedDAG {
   mut source : @query.CapturedInputSource?
   ledger : @resources.Ledger
   completed : Array[@execution.CompletedOutput?]
+  managed_completed : Array[@execution.ManagedCompletionReference?]
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
@@ -130,6 +131,7 @@ pub fn open_captured_dag(
     ),
     ledger,
     completed: Array::make(count, None),
+    managed_completed: Array::make(count, None),
     done: Array::make(count, false),
     lifetimes,
     resources,
@@ -432,6 +434,29 @@ pub fn captured_task_output(
 }
 
 ///|
+/// Match the exact managed completed occurrence owned by this graph task.
+/// This grants no read pin or use authority; the typed output is still checked
+/// when preparing each downstream use-site.
+pub fn[T] captured_managed_task_output_matches(
+  run : CapturedDAG,
+  task : Int,
+  target : @pipeline.Target,
+  output : @execution.ManagedCompletedOutput[T],
+) -> Bool {
+  if captured_task_target(run, task) != Some(target) ||
+    !run.lifetimes[task].live {
+    return false
+  }
+  run.managed_completed
+  .get(task)
+  .bind(value => value)
+  .map(reference => {
+    @execution.managed_completed_reference_matches(reference, output)
+  })
+  .unwrap_or(false)
+}
+
+///|
 /// Stops new work without revoking independent successful calculation results or
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
@@ -513,6 +538,46 @@ fn captured_output_inputs_match(
     inputs.push(input)
   }
   @execution.completed_output_matches_inputs(output, inputs)
+}
+
+///|
+/// A managed downstream use must name the exact graph edge and exact managed
+/// producer occurrence. Equal values, profile pins or physical bytes do not
+/// make another output an input of this task.
+fn[T] captured_managed_inputs_match(
+  run : CapturedDAG,
+  task : Int,
+  inputs : Array[@execution.ManagedProducerRead[T]],
+) -> Bool {
+  if task <= 0 ||
+    task >= run.inputs.length() ||
+    inputs.length() != run.inputs[task].length() {
+    return false
+  }
+  for port, input in inputs {
+    if !physical_equal(
+        @execution.managed_producer_read_receiver(input),
+        run.graph.owners[task],
+      ) ||
+      @execution.managed_producer_read_input_index(input) != port {
+      return false
+    }
+    let mut selected : DataEdge? = None
+    for edge in run.graph.data {
+      if edge.consumer == task && edge.input == port {
+        selected = Some(edge)
+        break
+      }
+    }
+    guard selected is Some(edge) &&
+      edge.producer > 0 &&
+      run.managed_completed.get(edge.producer).bind(value => value)
+      is Some(reference) &&
+      @execution.managed_producer_read_matches_reference(input, reference) else {
+      return false
+    }
+  }
+  true
 }
 
 ///|

@@ -32,6 +32,16 @@ struct ManagedCompletedOutput[T] {
 }
 
 ///|
+/// Type-erased occurrence reference for common scheduling and lifetime
+/// ownership. It is not content identity, a portable handle, read authority or
+/// a replacement for the typed completed output. Only a verified managed
+/// completion can create it.
+struct ManagedCompletionReference {
+  identity : Ref[Unit]
+  available : () -> Bool
+}
+
+///|
 pub fn[P, T] prepare_managed_completion_port(
   profile : ManagedExecutionProfile,
   preparation : CompletionPreparation,
@@ -199,6 +209,43 @@ pub fn[T] managed_completed_output_available(
   output : ManagedCompletedOutput[T],
 ) -> Bool {
   (output.material.available)()
+}
+
+///|
+/// Common schedulers retain only this occurrence reference. The concrete
+/// representation remains owned by the installed Host and must be supplied at
+/// each typed consumer boundary.
+pub fn[T] managed_completed_reference(
+  output : ManagedCompletedOutput[T],
+) -> ManagedCompletionReference {
+  {
+    identity: output.identity,
+    available: fn() { managed_completed_output_available(output) },
+  }
+}
+
+///|
+pub fn managed_completed_reference_available(
+  reference : ManagedCompletionReference,
+) -> Bool {
+  (reference.available)()
+}
+
+///|
+pub fn[T] managed_completed_reference_matches(
+  reference : ManagedCompletionReference,
+  output : ManagedCompletedOutput[T],
+) -> Bool {
+  physical_equal(reference.identity, output.identity) &&
+  managed_completed_reference_available(reference) &&
+  managed_completed_output_available(output)
+}
+
+///|
+pub fn[T] managed_completed_output_storage_bytes(
+  output : ManagedCompletedOutput[T],
+) -> Int64? {
+  managed_retained_output_storage_bytes(output.material)
 }
 
 ///|

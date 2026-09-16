@@ -78,6 +78,9 @@ test "managed completed values bind checked projections without legacy identitie
       receiver, 0, owner, output, 1000, 10000,
     ).unwrap()
     assert_false(managed_producer_read_same_binding(input, another))
+    let reference = managed_completed_reference(output)
+    assert_true(managed_producer_read_matches_reference(input, reference))
+    assert_true(managed_producer_read_matches_reference(another, reference))
     assert_true(
       physical_equal(
         managed_producer_read_material(input).unwrap(),
@@ -86,6 +89,7 @@ test "managed completed values bind checked projections without legacy identitie
     )
     live.val = false
     assert_false(managed_producer_read_available(input))
+    assert_false(managed_producer_read_matches_reference(input, reference))
     assert_true(managed_producer_read_material(input) is None)
     assert_true(
       prepare_managed_producer_read(receiver, 0, owner, output, 1000, 10000)
