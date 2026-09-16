@@ -722,13 +722,9 @@ fn create_application_dispatch(
           let streamed = @duckdb_compute.duckdb_stream_retention_capacity(
             limits,
           ).unwrap()
-          // This estimate also supplies the resident offer's output-copy
-          // ceiling. Neither copy capacity nor independent metadata may vanish.
-          if resident && full > streamed {
-            full
-          } else {
-            streamed
-          }
+          // The connector adds its DB-copy minimum only to resident offers.
+          // Fresh execution retains no DB copy after the task completes.
+          streamed
         } else {
           full
         }

@@ -29,7 +29,8 @@ test('explicit data profiles select resident reuse with independent retained out
   try {
     const cases = workloads.map(workload => retainedCase(workload, 'narrow', 1000));
     cases.push(retainedCase(workloads[2], 'numeric-64', 1000),
-      retainedCase(workloads[2], 'text-1024', 1000));
+      retainedCase(workloads[2], 'text-1024', 1000),
+      retainedCase(workloads[2], 'numeric-64', 10000));
     for (const [index, fixture] of cases.entries()) {
       const database = join(directory, `source-${index}.duckdb`);
       await promisify(execFile)(process.execPath,

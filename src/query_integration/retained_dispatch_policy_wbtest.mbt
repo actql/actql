@@ -205,3 +205,74 @@ test "retained output policy contributes file work and capacity before selection
     )
   }
 }
+
+///|
+test "resident copy minimum does not inflate the fresh retained offer" {
+  for alternative in [0, 1] {
+    let (run, _) = captured_graph_fixture()
+    let registry = search_registry()
+    let registration = @connector.capability_registration_at(registry, 1).unwrap()
+    let installed = @duckdb_driver.prepare_duckdb_dispatch_module(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      registration,
+      dispatch_test_generated(run).map(
+        @execution.generated_completion_preparation,
+      ),
+      duckdb_dispatch_module_limits(),
+    ).unwrap()
+    @duckdb_driver.configure_duckdb_retained_output(installed, 50L, Some(0L)).unwrap()
+    @duckdb_driver.install_duckdb_resident_estimates(
+      installed,
+      portfolio_profile(
+        run,
+        @connector.prepare_resource_binding(registry, registration).unwrap(),
+        0L,
+        0L,
+        0L,
+      ),
+      connector_test_schedules(@duckdb_driver.duckdb_dispatch_work_slots(), 19L),
+    ).unwrap()
+    let policy = @duckdb_driver.prepare_duckdb_estimate_module(
+      installed,
+      connector_test_schedules(@duckdb_driver.duckdb_dispatch_work_slots(), 19L),
+      Array::make(3, @strategy.PhysicalEnvelope::{
+        transfer_bytes: 100L,
+        retained_bytes: 100L,
+        execution_bytes: 2000L,
+      }),
+      1000,
+    ).unwrap()
+    let offers = Array::makei(3, index => {
+      let candidates = @duckdb_driver.estimate_duckdb_module_offers(
+        policy,
+        index + 1,
+        { rows: None, wire_bytes: None, pairs: None, },
+      ).unwrap()
+      assert_eq(candidates.length(), 2)
+      candidates[alternative]
+    })
+    @strategy.configure_strategy_search(run, {
+      max_offers: 3,
+      max_strategies: 1,
+      max_work: 10000,
+      max_revisions: 1,
+    }).unwrap()
+    let result = @strategy.revise_strategy(run, offers, registry, Some([0])).unwrap()
+    if alternative == 0 {
+      assert_true(result is Selected(_))
+      assert_eq(
+        @strategy.strategy_task_envelope(run, 1).unwrap().retained_bytes,
+        150L,
+      )
+    } else {
+      // This fixture's 1000-byte DB cannot hold the real copy allowance.
+      // Metadata alone must not authorize resident execution.
+      assert_true(result is NoFeasible)
+    }
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+      0,
+    )
+  }
+}
