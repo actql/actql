@@ -87,6 +87,8 @@ pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
 
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
 
+pub fn[P, T] cancel_managed_output_retention_port(ManagedOutputRetentionPort[P, T]) -> Bool
+
 pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
 
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
@@ -233,6 +235,12 @@ pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
 
+pub fn[T] managed_retained_output_matches(ManagedRetainedOutput[T], ManagedOutputValueReceipt) -> Bool
+
+pub fn[T] managed_retained_output_payload(ManagedRetainedOutput[T]) -> T?
+
+pub fn[T] managed_retained_output_storage_bytes(ManagedRetainedOutput[T]) -> Int64?
+
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
@@ -270,6 +278,8 @@ pub fn prepare_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
+
+pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
@@ -342,6 +352,8 @@ pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
+pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
 
 pub fn retained_completion_can_handoff(RetainedCompletionEvidence, CompletedOutput) -> Bool
 
@@ -620,6 +632,16 @@ pub(all) enum LogicalMeasureIssue {
   WireMeasureFailure
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ManagedOutputRetentionIssue {
+  Closed
+  Unverified
+  ForeignReceipt
+  InvalidStorageBytes
+  Unavailable
+} derive(Eq, @debug.Debug)
+
+type ManagedOutputRetentionPort[P, T]
+
 pub(all) enum ManagedOutputValueIssue {
   Admission(CaptureIssue)
   Guard(FixedInputGuardIssue)
@@ -629,6 +651,8 @@ pub(all) enum ManagedOutputValueIssue {
 type ManagedOutputValueReceipt
 
 type ManagedOutputValues
+
+type ManagedRetainedOutput[T]
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits

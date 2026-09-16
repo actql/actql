@@ -3,6 +3,7 @@
 /// This is provisional content evidence, not execution, retention, permission,
 /// or a substitute for any required logical identity.
 struct ManagedOutputValues {
+  identity : Ref[Unit]
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   buffer : AdmittedRowBuffer
@@ -21,6 +22,7 @@ struct ManagedOutputValues {
 /// Separate from the old CID-bearing receipt: no missing/dummy CID can enter an
 /// old completion through this type. No data buffers or source handles escape.
 struct ManagedOutputValueReceipt {
+  identity : Ref[Unit]
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   schema : @schema.Schema
@@ -58,6 +60,7 @@ pub fn prepare_managed_output_values(
     Err(issue) => return Err(Admission(issue))
   }
   Ok({
+    identity: Ref(()),
     owner,
     target,
     buffer: output.buffer,
@@ -198,6 +201,7 @@ pub fn finish_managed_output_values(
   }
   let budget = stream.buffer.budget
   Ok({
+    identity: stream.identity,
     owner: stream.owner,
     target: stream.target,
     schema: stream.buffer.schema,

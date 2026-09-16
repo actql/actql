@@ -57,3 +57,39 @@ It must also connect the finite view-transfer rules and the Local path. No
 throughput ratio, new-profile end-to-end success, or 1 GiB / 27-case performance
 gate completion is claimed here. The per-value measuring work remains real;
 only row-array encoding/hashing is absent from this admission path.
+
+## Scoped retention binding
+
+`ManagedOutputRetentionPort` is installed by trusted Host wiring before a value
+stream receives its first row. The stream now owns an opaque per-admission
+identity, which its completed receipt preserves. The retention port accepts only
+that exact identity: equal owner, target, rows or schema from another reception
+cannot substitute. There is no string token or content-hash identity comparison.
+
+The proof-typed verifier supplies the receipt, typed representation payload,
+physical storage quantity and that generation's availability check. The adopted
+implementation is responsible for the actual immutable material/value/order
+correspondence; Core checks scoped receipt identity, nonnegative storage quantity,
+availability and one-use issuance. This is a trusted content-binding boundary,
+not an independent proof of the verifier's truth or a completed Host registry.
+
+Issuance is consumed before invoking the verifier. Reentrant issuance fails;
+cancellation during either verification or availability checking prevents
+issuance. Unverified, foreign, unavailable and negative-size results cannot be
+retried through the consumed port. Already issued material has its own lifetime;
+it retains no upstream buffers or verifier. Store cleanup remains the owner's
+responsibility, including failed verification.
+
+The new handle is deliberately distinct from both old CID-bearing retention and
+common completion. Payload lookup is not consumer admission: actual pin, current
+use authority and resource reservation still have to precede dispatch. Installed
+Store/worker wiring must enforce that boundary; a liveness check alone is not an
+atomic acquisition. Live Store/worker integration and end-to-end performance
+measurement remain outstanding.
+
+Retention-binding verification: `execution_relation` 416 tests passed on each of
+JS, Wasm and native, including three new tests covering exact/foreign reception,
+unverified/invalid/unavailable material, one-use issuance, reentrancy and callback
+cancellation. Cross-target public interfaces, documentation/contracts and
+formatting checks passed. These tests use installed test verifiers; they do not
+establish the correctness of a live Store or DuckDB verifier.
