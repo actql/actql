@@ -860,3 +860,22 @@ time ratio for these cases, or define a separate larger-capacity experiment for
 both paths. No change to the registered matrix, budget, thresholds or failure
 treatment has been made. The equivalent-obligations comparator remains a
 separate unfinished implementation regardless of that decision.
+
+## Follow-up: portable and document audit at 137cb8be
+
+The Workers verifier passed its artifact/dependency checks and 24 actual workerd
+runtime tests. `check:docs` and cross-target generated API verification also
+passed; generated tracked files remained unchanged. These checks do not expand
+the local process-retention guarantee into remote execution or durable recovery.
+
+Review of the installed managed test confirms both DuckDB-to-Local and
+Local-to-DuckDB selection with retained outputs, exact completion custody and
+final independent CID checks. Fresh-process readmission remains a separately
+tested read/bind path, not Compute continuation. No broader recovery claim is
+made. The direct retained Compute entry is available for comparator reuse, but
+its non-strategy entry omits DAG physical reservation; using it alone would not
+establish equivalent obligations. That comparator is still unimplemented.
+
+The baseline capacity decision requested above is still pending. Neither the
+acceptance thresholds nor the registered failure treatment were changed during
+this verification pass. Linux and remote CI were not executed.
