@@ -95,6 +95,8 @@ pub fn[P, T] cancel_managed_output_retention_port(ManagedOutputRetentionPort[P, 
 
 pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
 
+pub fn[P, T] cancel_managed_view_output_port(ManagedViewOutputPort[P, T]) -> Bool
+
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
 
 pub fn cancel_retained_producer_scan(RetainedProducerScan) -> Bool
@@ -184,6 +186,8 @@ pub fn finish_fixed_producer_measurement(FixedProducerMeasurement, AdmittedOutpu
 pub fn finish_fixed_producer_stream_measurement(FixedProducerMeasurement, AdmittedOutputStreamReceipt) -> Result[FixedProducerStreamMeasuredOutput, FixedInputGuardIssue]
 
 pub fn finish_managed_output_values(ManagedOutputValues) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue]
+
+pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
 
 pub fn finish_retained_content_read(RetainedContentRead) -> Result[AdmittedOutputStreamReceipt, RetainedContentReadIssue]
 
@@ -346,6 +350,8 @@ pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
+
+pub fn[P, T] prepare_managed_view_output_port(ManagedViewPlan[T], ManagedOutputValues, (P) -> ManagedViewOutputFacts?) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
 
 pub fn[T] prepare_managed_view_plan(ManagedProducerRead[T], Array[@lowering_relation.PreparedKernel], Int, Int, Int) -> Result[ManagedViewPlan[T], ManagedViewIssue]
 
@@ -768,6 +774,23 @@ pub(all) enum ManagedViewIssue {
   InvalidPath
   UnsupportedKernel
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ManagedViewOutputFacts {
+  rows : Int
+  columns : Array[ManagedColumnMeasurement]
+  admission_usage : ValueUsage
+}
+
+pub(all) enum ManagedViewOutputIssue {
+  Closed
+  ForeignBinding
+  Unverified
+  InconsistentFacts
+  OutputRepresentationRequired
+  Values(ManagedOutputValueIssue)
+}
+
+type ManagedViewOutputPort[P, T]
 
 type ManagedViewPlan[T]
 
