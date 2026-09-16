@@ -122,6 +122,7 @@ test('retained benchmark shapes execute in a managed process and retain exact re
       // It is not a sample for the preregistered performance comparison.
       console.log('retained-benchmark', JSON.stringify({phase: 'verified', matrix, case: fixture.id,
         diagnosticMilliseconds: performance.now() - started,
+        controlTransport: result.process().transport,
         tasks: result.report.completed}));
     } catch (error) {
       console.log('retained-benchmark', JSON.stringify({phase: 'failed', matrix, case: fixture.id,

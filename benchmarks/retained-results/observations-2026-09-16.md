@@ -432,3 +432,32 @@ registered profiles: its shipped example has fixed small input/column/transport
 caps and no parameterized managed-retention entrance. Do not retrofit the new
 algorithm into that baseline, label a different implementation as baseline, or
 drop unsupported cases to obtain a passing comparison.
+
+## Follow-up: actual controller/executor wire volume
+
+The installed process channel now counts every received byte and every frame
+submitted to its outgoing stream, including configuration, protocol envelopes,
+accounting and Store/completion messages. Counts are monotonic decimal strings
+backed by integer counters, not estimates or logical budget charges. Submission
+is not a delivery acknowledgement. A rejected oversized request is not sent or
+counted; invalid incoming frames still contribute received bytes.
+
+Two registered narrow retained-reuse cases passed with independent result CID,
+process exit, retained-file survival and explicit cleanup checks:
+
+| Source rows | Controller submitted bytes | Controller received bytes | Inclusive diagnostic elapsed |
+| --- | ---: | ---: | ---: |
+| 100 | 90,292 | 16,718 | 671.7 ms |
+| 1,000,000 | 90,518 | 17,078 | 46,469.9 ms |
+
+The source grew 10,000-fold while this channel's traffic grew only by small
+metadata differences. This is measured evidence for these two cases, not a
+general memory bound or proof that all possible messages exclude row payloads.
+The million-row case still reports 143,078,424 connector transport bytes per
+Compute: data-side work was not eliminated by keeping it off the controller.
+Elapsed time includes source setup and cleanup, is a single diagnostic run, and
+must not be used as a formal paired timing sample or a speedup claim.
+
+Process-channel/capacity tests passed 31/31, including exact UTF-8 envelope byte
+counts, immutable snapshots and unsent-request exclusion. The shared retained
+boundary suite passed 77/77. No identity definition or resource admission changed.

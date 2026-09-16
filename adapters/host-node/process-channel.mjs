@@ -55,6 +55,13 @@ export async function startManagedExecution(configuration, signal) {
     stdio: ['ignore', 'ignore', 'ignore', 'pipe'],
   });
   const stream = child.stdio[3];
+  // Diagnostic wire counts, not logical transfer admission or delivery receipts.
+  // Count attempted writes and every received byte, including rejected frames.
+  let submittedBytes = 0n, receivedBytes = 0n;
+  const writeFrame = (frame, callback) => {
+    submittedBytes += BigInt(frame.byteLength);
+    return stream.write(frame, callback);
+  };
   let exited = false;
   let stopped = false;
   let ready = false;
@@ -96,7 +103,7 @@ export async function startManagedExecution(configuration, signal) {
     let frame;
     try { frame = encodeProcessFrame(message, frames); }
     catch (error) { reject(error); return; }
-    stream.write(frame, error => error ? reject(error) : resolve());
+    writeFrame(frame, error => error ? reject(error) : resolve());
   });
   const stop = () => {
     if (exited || stopped) return;
@@ -187,7 +194,10 @@ export async function startManagedExecution(configuration, signal) {
       current.resolve(message.body);
     }
   });
-  stream.on('data', chunk => { try { reader.feed(chunk); } catch (error) { broken(error); } });
+  stream.on('data', chunk => {
+    receivedBytes += BigInt(chunk.byteLength);
+    try { reader.feed(chunk); } catch (error) { broken(error); }
+  });
   stream.on('error', error => broken(failure('ExecutionChannelFailure', error)));
   stream.on('end', () => {
     try { reader.end(); } catch (error) { broken(error); }
@@ -213,7 +223,7 @@ export async function startManagedExecution(configuration, signal) {
   signal?.addEventListener('abort', abort, { once: true });
   startTimer = setTimeout(() => broken(failure('ExecutionStartupTimeout')), startupMs);
   if (signal?.aborted) abort();
-  else stream.write(hello, error => { if (error) broken(failure('ExecutionChannelFailure', error)); });
+  else writeFrame(hello, error => { if (error) broken(failure('ExecutionChannelFailure', error)); });
   await readyPromise;
   if (signal?.aborted) {
     abort();
@@ -223,7 +233,8 @@ export async function startManagedExecution(configuration, signal) {
   return Object.freeze({
     identity: () => Object.freeze({ session, run }),
     status: () => Object.freeze({ ready, stopped, exited, pending: !exited || servicePending(),
-      requests: sequence, hostCalls, exit: exitValue }),
+      requests: sequence, hostCalls, exit: exitValue,
+      transport: Object.freeze({submittedBytes: submittedBytes.toString(), receivedBytes: receivedBytes.toString()}) }),
     cleanupHandle,
     async request(body, requestSignal) {
       requestSignal?.throwIfAborted();
@@ -245,7 +256,7 @@ export async function startManagedExecution(configuration, signal) {
         requestSignal?.addEventListener('abort', onAbort, { once: true });
       });
       sequence = next;
-      stream.write(frame, error => { if (error) broken(failure('ExecutionChannelFailure', error)); });
+      writeFrame(frame, error => { if (error) broken(failure('ExecutionChannelFailure', error)); });
       return result;
     },
     async close() {

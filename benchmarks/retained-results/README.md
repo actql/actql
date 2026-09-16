@@ -53,6 +53,14 @@ timings. INSERT time is part of each input interval; preparation and receiving
 callbacks are parts of command time. Do not sum overlapping intervals. Counters
 distinguish actual statement executions from SQL preparations, so preparation
 reuse cannot be mistaken for fewer imported rows or shared transfer.
+`controlTransport` separately reports the process channel's submitted and received
+wire bytes as decimal strings. These include envelopes, configuration, accounting,
+Store requests and completion metadata, not only result descriptors. Submitted
+bytes count writes handed to the stream, not acknowledged delivery; received
+bytes include invalid frames. Neither counter grants logical transfer budget or
+proves that a payload contains no rows. Keep these separate from connector data
+transport and from memory measurements. Failed requests rejected before encoding
+do not count as submitted bytes.
 The registered run is a readiness gate, not performance sampling; the default
 smoke does not prove the larger cases executable.
 

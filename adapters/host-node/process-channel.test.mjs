@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareManagedExecution, startManagedExecution } from './process-channel.mjs';
+import {encodeProcessFrame, executionProtocol} from './process-frames.mjs';
 
 const configuration = () => ({
   entry: new URL('./process-fixture.mjs', import.meta.url), run: 'owned-run',
@@ -42,6 +43,29 @@ test('invalid request is correctable without consuming the sequence', async t =>
   await assert.rejects(channel.request({ command: 'echo', value: 'x'.repeat(5000) }), { code: 'FrameByteLimit' });
   assert.equal(channel.status().requests, 0);
   assert.equal((await channel.request({ command: 'echo', value: 1 })).value, 1);
+});
+
+test('control wire counters include exact UTF8 envelopes but not rejected unsent requests', async t => {
+  const config = configuration();
+  const channel = await startManagedExecution(config);
+  t.after(() => channel.close());
+  const {session, run} = channel.identity();
+  const bytes = (kind, sequence, body) => BigInt(encodeProcessFrame(
+    {protocol: executionProtocol, session, run, kind, sequence, body}, config.frames).byteLength);
+  const initial = channel.status().transport;
+  assert.equal(BigInt(initial.submittedBytes), bytes('hello', 0, null));
+  assert.equal(BigInt(initial.receivedBytes), bytes('ready', 0, null));
+  await assert.rejects(channel.request({command: 'echo', value: 'x'.repeat(5000)}), {code: 'FrameByteLimit'});
+  assert.deepEqual(channel.status().transport, initial);
+  const request = {command: 'echo', value: '日本語🙂'};
+  const response = await channel.request(request);
+  const after = channel.status().transport;
+  assert.equal(BigInt(after.submittedBytes), bytes('hello', 0, null) + bytes('execute', 1, request));
+  assert.equal(BigInt(after.receivedBytes), bytes('ready', 0, null) + bytes('reply', 1, response));
+  await channel.close();
+  assert.equal(BigInt(channel.status().transport.submittedBytes),
+    BigInt(after.submittedBytes) + bytes('stop', 1, null));
+  assert.equal(initial.submittedBytes, String(bytes('hello', 0, null)), 'status snapshots remain immutable');
 });
 
 test('undefined rejection is failure and prevents another dispatch', async t => {
