@@ -62,7 +62,11 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
       }
       batchRows = batch.rows;
     }
-    imports.push({ rows, columns, batchRows });
+    const direct = port.prepareDirectInput?.(input);
+    if (direct !== undefined && (typeof direct.run !== 'function' || typeof direct.path !== 'string')) {
+      throw new DuckDBTransportError('InvalidDirectImport');
+    }
+    imports.push({ rows, columns, batchRows, direct });
   }
   return withComputeDatabase(limits, async session => {
     retainSession(session);
@@ -71,7 +75,14 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
     for (let input = 0; input < imports.length; input++) {
       const inputStarted = performance.now();
       let insertMilliseconds = 0;
-      const { rows, columns, batchRows } = imports[input];
+      const { rows, columns, batchRows, direct } = imports[input];
+      if (direct) {
+        await direct.run(session);
+        signal?.throwIfAborted();
+        inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+          representation: 'verified-file-native-read', parameterInsertRows: 0}));
+        continue;
+      }
       await session.command(port.createSql(input), [], discard);
       const insert = port.insertSql(input);
       const write = async (sql, parameters) => {
@@ -117,7 +128,7 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
     return Object.freeze({ fields, importedRows, importedCells,
       diagnostics: Object.freeze({inputs: Object.freeze(inputTimings),
         queryAndReceiveMilliseconds: performance.now() - outputStarted}) });
-  }, signal, accounting);
+  }, signal, accounting, imports.filter(input => input.direct).map(input => input.direct.path));
 }
 
 // Transport provenance only. The MoonBit completion issuer must independently

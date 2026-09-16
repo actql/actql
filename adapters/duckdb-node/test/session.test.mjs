@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { fork } from 'node:child_process';
@@ -21,6 +22,30 @@ async function rows(session, sql, parameters = []) {
   return result;
 }
 const hasCode = code => error => error.code === code;
+
+test('native file grants permit exact files while external access remains disabled', async () => {
+  const directory = await mkdtemp(join(tmpdir(), "actql-file-grant-'"));
+  const allowed = join(directory, 'allowed.json'), denied = join(directory, 'denied.json');
+  try {
+    await writeFile(allowed, '[{"id":1},{"id":2}]');
+    await writeFile(denied, '[{"id":3}]');
+    const query = 'SELECT id FROM read_json(?, columns={id: \'DOUBLE\'}, format=\'array\')';
+    const parameter = path => [{type: {id: 'VARCHAR'}, value: path}];
+    const result = await withComputeDatabase(limits, async session => {
+      assert.deepEqual(await rows(session, "SELECT current_setting('enable_external_access')"), [[false]]);
+      return rows(session, query, parameter(allowed));
+    }, undefined, undefined, [allowed]);
+    assert.deepEqual(result.value, [['3ff0000000000000'], ['4000000000000000']]);
+    await assert.rejects(withComputeDatabase(limits, session => rows(session, query, parameter(denied)),
+      undefined, undefined, [allowed]), /Permission Error/);
+    await assert.rejects(withComputeDatabase(limits, session => rows(session, query, parameter(allowed))),
+      /Permission Error/);
+    for (const grants of [['relative'], ['https://example.test/data'], [allowed, allowed, allowed], [directory + '/*']]) {
+      await assert.rejects(withComputeDatabase(limits, () => { throw Error('must not start'); },
+        undefined, undefined, grants), {code: 'InvalidInputFileGrant'});
+    }
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
 
 test('falsy receiver and body failures cannot become successful sessions', async () => {
   for (const reason of [undefined, null, false, 0, '']) {

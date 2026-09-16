@@ -34,6 +34,7 @@ test('direct file access requires the exact live consumer before and after nativ
   let live = true, calls = 0;
   registerRetainedInput(material, value => live && value === input, {
     async consume() {},
+    nativeFilePath() { return '/trusted-fixture'; },
     async withVerifiedFile(use) { calls++; return use({path: '/trusted-fixture'}); },
   }, {maxFrameBytes: 10, wire: {max_bytes: 10}});
   assert.equal(retainedInputSupportsFile(material, input), true);

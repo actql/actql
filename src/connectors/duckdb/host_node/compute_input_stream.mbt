@@ -1,4 +1,25 @@
 ///|
+#export_name("computeHostInputFileSql")
+pub fn compute_host_input_file_sql(
+  run : ComputeNodeRun,
+  port : Int,
+  wire : @execution.RowWireLimits,
+  max_row_bytes : Int,
+  max_sql_bytes : Int,
+) -> (String, String)? {
+  if run.closed {
+    return None
+  }
+  @duckdb_compute.duckdb_compute_input_file_sql(
+    run.attempt,
+    port,
+    wire,
+    max_row_bytes,
+    max_sql_bytes,
+  )
+}
+
+///|
 #export_name("computeHostInputRead")
 pub fn compute_host_input_read(
   run : ComputeNodeRun,

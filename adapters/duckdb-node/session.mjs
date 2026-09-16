@@ -71,7 +71,7 @@ async function cancellationBoundary(start, limits, signal, accounting) {
   throw failure;
 }
 
-async function usingSession(path, readonly, suppliedLimits, body, signal, accounting, shared) {
+async function usingSession(path, readonly, suppliedLimits, body, signal, accounting, shared, inputFiles = []) {
   const limits = validateLimits(suppliedLimits);
   const bounded = boundedTransport(limits);
   if (bounded) assertBoundedVectorRuntime();
@@ -330,10 +330,19 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   };
   try {
     assertLive();
-    instance = shared?.instance ?? await createInstance(path, readonly, limits);
+    instance = shared?.instance ?? await createInstance(path, readonly, limits, inputFiles);
     assertLive();
     connection = await instance.connect();
     assertLive();
+    if (inputFiles.length) {
+      // List settings are not accepted by the pinned C configuration setter.
+      // Configure before exposing the private connection to any task SQL, then
+      // irreversibly disable general external access for this instance.
+      await connection.run(`SET allowed_paths = [${inputFiles.map(path => `'${path.replaceAll("'", "''")}'`).join(',')}]`);
+      assertLive();
+      await connection.run('SET enable_external_access = false');
+      assertLive();
+    }
     await connection.run('BEGIN TRANSACTION');
     transaction = true;
     assertLive();
@@ -388,12 +397,12 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   return Object.freeze({ value: result, usage: Object.freeze({ ...usage }) });
 }
 
-function createInstance(path, readonly, limits) {
+function createInstance(path, readonly, limits, inputFiles = []) {
   return DuckDBInstance.create(path, {
     access_mode: readonly ? 'READ_ONLY' : 'READ_WRITE',
     threads: String(limits.threads), memory_limit: `${limits.memoryBytes}B`,
     max_temp_directory_size: '0B', preserve_insertion_order: 'true',
-    enable_external_access: 'false', autoinstall_known_extensions: 'false',
+    enable_external_access: inputFiles.length ? 'true' : 'false', autoinstall_known_extensions: 'false',
     autoload_known_extensions: 'false', allow_unsigned_extensions: 'false',
   });
 }
@@ -482,6 +491,13 @@ export async function withSourceDatabase(grant, limits, body, signal, accounting
   return cancellationBoundary(fixedLimits => usingSession(path, true, fixedLimits, body, signal, accounting), limits, signal, accounting);
 }
 
-export async function withComputeDatabase(limits, body, signal, accounting) {
-  return cancellationBoundary(fixedLimits => usingSession(':memory:', false, fixedLimits, body, signal, accounting), limits, signal, accounting);
+export async function withComputeDatabase(limits, body, signal, accounting, suppliedFiles = []) {
+  // Trusted transport wiring, never a Program path. Freeze before any await;
+  // admit exact files only, not directories, globs, URLs or external access.
+  if (!Array.isArray(suppliedFiles) || suppliedFiles.length > 2 || suppliedFiles.some(path =>
+    typeof path !== 'string' || !isAbsolute(path) || /[\u0000*?\[\]]/.test(path) ||
+    Buffer.byteLength(path, 'utf8') > limits.maxSqlBytes)) throw new DuckDBTransportError('InvalidInputFileGrant');
+  const inputFiles = Object.freeze([...new Set(suppliedFiles)]);
+  return cancellationBoundary(fixedLimits => usingSession(':memory:', false, fixedLimits, body, signal, accounting,
+    undefined, inputFiles), limits, signal, accounting);
 }

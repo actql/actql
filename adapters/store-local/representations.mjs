@@ -30,7 +30,16 @@ export function retainedInputContract(material, input) {
 // Capability discovery is not permission to use a path. The exact input grant
 // is checked again on both sides of the awaited native read below.
 export function retainedInputSupportsFile(material, input) {
-  return typeof admitted(material, input).body.withVerifiedFile === 'function';
+  const body = admitted(material, input).body;
+  return typeof body.withVerifiedFile === 'function' && typeof body.nativeFilePath === 'function';
+}
+
+// Installed transport allowlist only; content remains provisional until the
+// borrowed read verifies it. Neither path nor this lookup grants completion.
+export function retainedInputFilePath(material, input) {
+  const body = admitted(material, input).body;
+  if (typeof body.nativeFilePath !== 'function') throw new TypeError('UnsupportedRetainedFileAccess');
+  return body.nativeFilePath();
 }
 
 export async function withRetainedInputFile(material, input, use, signal) {

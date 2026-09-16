@@ -964,3 +964,33 @@ completion even when no task had completed, masking the real capacity failure
 with a TypeError. Cleanup now permits an absent final completion, still rejects
 unconfirmed release, and preserves the execution report. The product timing leg
 also retains the strategy explanation instead of reporting only chosen tasks.
+
+### Native retained-file input diagnostic
+
+The standard fresh DuckDB Compute path can now read an exactly borrowed managed
+file using generated `read_json` SQL, instead of reconstructing each stored row
+in JavaScript/MoonBit and producing INSERT parameters. This is physical parsing,
+not proof reuse: the resulting table still passes the common ordered identity,
+typed-value, demand and consumer-guard scan. The initial profile supports numeric,
+Boolean and text columns; unsupported schemas retain the explicit row path.
+Only the exact files are allowlisted before disabling general external access.
+The Store borrow checks physical integrity and unchanged material before accepting
+the callback result. Output remains canonical row JSON; this is not direct output.
+
+With resident alternatives enabled and the unchanged default estimate of 1 ms,
+`retained-large-output-downstream-reuse/numeric-64/10000` completed in 9042.736 ms,
+plus 7.340 ms cleanup, under the same 1 GiB limit. All three tasks selected fresh
+DuckDB with `verified-file-native-read` and zero parameter INSERT rows. Input
+intervals were 1012.567, 988.567 and 985.486 ms; query/receive intervals were
+1079.038, 1100.207 and 1080.349 ms. Independent final CID and cleanup checks passed.
+This is one working-tree diagnostic, not a paired speed ratio, calibrated cost
+selection proof, or a performance acceptance result. An earlier invocation used
+the join/count oracle against the existing reuse source and failed the final CID
+assertion; that mismatched-fixture invocation is not a timing sample.
+
+Validation for this increment: retained native-input MoonBit tests passed three
+tests on each target; real session tests passed 20; standard retained timing-leg
+tests passed three; resident data-profile test passed one; retained boundary
+tests passed 84; semantic dependency tests passed four. Generated interfaces
+match across targets. All 21 direct cases, independent equivalent-obligation
+comparison and formal performance acceptance remain outstanding.

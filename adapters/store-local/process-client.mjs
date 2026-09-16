@@ -25,7 +25,7 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
   if (typeof output !== 'string' || !output.length || output.length > 256 ||
       !Number.isSafeInteger(capacityBytes) || capacityBytes < 0 ||
       !Number.isSafeInteger(maxFrameBytes) || maxFrameBytes < 1 || maxFrameBytes > 16777216) throw new RetainedFileError('InvalidStoreLimits');
-  let reserved = false, closed = false, writer, writerStopped = true, readers = 0, sealed = false;
+  let reserved = false, closed = false, writer, writerStopped = true, readers = 0, sealed = false, filePath;
   const active = () => {
     signal?.throwIfAborted();
     if (closed) throw new RetainedFileError('RetainedUnavailable');
@@ -47,6 +47,7 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
           }
           active();
           writer = await openDelegatedFile(descriptor, signal);
+          filePath = descriptor.path;
           writerStopped = false;
         },
         async append(text) { active(); await writer.append(text); },
@@ -83,6 +84,7 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
           };
           const body = Object.freeze({
             available: () => sealed && !closed,
+            nativeFilePath() { active(); return filePath; },
             close() { closed = true; },
             async consume(accept, readSignal) {
               return read(async descriptor => ({

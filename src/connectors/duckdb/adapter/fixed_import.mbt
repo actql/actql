@@ -4,6 +4,7 @@
 /// Host-owned Compute database and its receiving admission/resource checks.
 struct FixedImport {
   input : @execution.ProducerRead
+  table : String
   create_sql : String
   insert_sql : String
   columns : Int
@@ -26,7 +27,7 @@ pub fn prepare_fixed_import(
   match compile_fixed_import_schema(schema, table, max_columns, max_sql_bytes) {
     Err(issue) => Err(issue)
     Ok((create_sql, insert_sql, columns)) =>
-      Ok({ input, create_sql, insert_sql, columns, })
+      Ok({ input, table, create_sql, insert_sql, columns, })
   }
 }
 

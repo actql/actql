@@ -1,4 +1,33 @@
 ///|
+pub fn duckdb_compute_input_file_sql(
+  value : DuckDBComputeAttempt,
+  port : Int,
+  wire : @execution.RowWireLimits,
+  max_row_bytes : Int,
+  max_sql_bytes : Int,
+) -> (String, String)? {
+  guard value.live &&
+    value.receiving is None &&
+    @duckdb.fixed_compute_import(value.compute, port) is Some(imported) else {
+    return None
+  }
+  // Compile without starting consumer measurement/join streams. Two-input
+  // execution must still begin and finish each stream in its original order.
+  let capacity = @connector.fixed_compute_request_capacity(value.request)
+  guard @duckdb.prepare_fixed_import_stream(
+      imported,
+      capacity.max_rows,
+      value.limits.retention,
+      wire,
+      max_row_bytes,
+    )
+    is Ok(stream) else {
+    return None
+  }
+  @duckdb.fixed_import_file_sql(stream, max_row_bytes, max_sql_bytes)
+}
+
+///|
 /// Readiness before native query execution, not an SQL transport receipt.
 pub fn prepare_duckdb_compute_input_physical(
   value : DuckDBComputeAttempt,

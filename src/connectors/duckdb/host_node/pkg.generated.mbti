@@ -64,6 +64,8 @@ pub fn compute_host_import_batch(ComputeNodeRun, Int, Int, Int, Int) -> (Int, St
 
 pub fn compute_host_import_count(ComputeNodeRun) -> Int
 
+pub fn compute_host_input_file_sql(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int, Int) -> (String, String)?
+
 pub fn compute_host_input_material(@execution_relation.ProducerRead) -> @execution_relation.RetainedOutputMaterial?
 
 pub fn compute_host_input_physical_accept(ComputeNodeRun, Int, @adapter.PhysicalResult, Int, String) -> Unit raise NodeHostFailure

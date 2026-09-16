@@ -59,6 +59,8 @@ test('installed retained timing leg verifies every workload and independently re
       assert.equal(report.scope, 'managed-host-cycle-diagnostic');
       assert.deepEqual(report.selection, {resident: false, nativeMilliseconds: '1'});
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
+      assert(report.tasks.every(task => task.phases.inputs.every(input =>
+        input.representation === 'verified-file-native-read' && input.parameterInsertRows === 0)));
       assert.equal(report.controlMemory.status, 'observed');
       assert(BigInt(report.controlTransport.receivedBytes) > 0n);
       assert(report.executionMs > 0 && report.cleanupMs >= 0);

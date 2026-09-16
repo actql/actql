@@ -16,7 +16,8 @@ import {retainedProcessStore} from './retained-configuration.mjs';
 import { importRetainedRows } from '../store-local/import.mjs';
 import { createRetainedRowFrames } from '../store-local/row-frames.mjs';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
-  retainedStorageBody, retainedStorageContract} from '../store-local/representations.mjs';
+  retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
+  withRetainedInputFile, retainedInputFilePath} from '../store-local/representations.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
@@ -308,6 +309,13 @@ export async function runRetainedStrategyHostCompute(setup, limits, importLimits
 
 async function runHostCompute(setup, limits, importLimits, signal, strategy, resident, retained, outputKey) {
   const moon = await loadRuntime();
+  const startedInputStreams = new Set();
+  const beginInputStream = (port, wire, maxFrameBytes) => {
+    if (!startedInputStreams.has(port)) {
+      checked(moon.computeHostInputStreamBegin(run, port, wire, maxFrameBytes));
+      startedInputStreams.add(port);
+    }
+  };
   // Freeze the same values used by both reservation and actual transport. A
   // caller mutating its limits during an await cannot enlarge the execution.
   limits = Object.freeze({ ...limits });
@@ -351,6 +359,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   }) : undefined;
   let began = false;
   let residentInputBytes = 0;
+  let directInputBytes = 0;
   const retainedCleanup = Object.freeze({
     status: () => ({ pending: (store?.status().cleanupPending ?? false) || (disposed && cleanupRun !== undefined) }),
     retry: async () => {
@@ -380,6 +389,40 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       return Object.freeze({rows: batchRows, sql});
     },
     parameter: (port, row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false, port))),
+    prepareDirectInput(port) {
+      const input = checked(moon.computeHostInputRead(run, port));
+      const material = moon.computeHostInputMaterial(input);
+      if (material == null || !retainedInputSupportsFile(material, input)) return undefined;
+      const {wire, maxFrameBytes} = retainedInputContract(material, input);
+      if (maxFrameBytes > limits.maxTransportBytes) throw new DuckDBTransportError('RetainedFrameLimit');
+      const sql = moon.computeHostInputFileSql(run, port, wire, maxFrameBytes, limits.maxSqlBytes);
+      if (sql == null) return undefined; // Unsupported before native I/O, not retry.
+      const path = retainedInputFilePath(material, input);
+      if (/[\u0000*?\[\]]/.test(path)) return undefined;
+      return Object.freeze({path, run: async session => {
+        beginInputStream(port, wire, maxFrameBytes);
+        inputReadUnconfirmed = true;
+        await withRetainedInputFile(material, input, async file => {
+          if (file.path !== path) throw new DuckDBTransportError('ForeignRetainedFile');
+          // Physical integrity scan plus native file read. Logical per-consumer
+          // measurements are separately charged by the typed scan below.
+          checked(moon.computeHostPhysicalCharge(run, BigInt(file.bytes) * 2n));
+          directInputBytes += file.bytes * 2;
+          await session.command(sql._0, [{type: {id: 'VARCHAR'}, value: file.path}], () => {});
+          let physical;
+          const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
+          const fields = await session.command(sql._1, [], chunk => {
+            signal?.throwIfAborted();
+            begin(chunk.fields);
+            checked(moon.computeHostInputPhysicalAccept(run, port, physical,
+              rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+          });
+          begin(fields);
+          checked(moon.computeHostInputStreamFinish(run, port));
+        }, signal);
+        inputReadUnconfirmed = false;
+      }});
+    },
     async verifyResidentInput(port, session) {
       const sql = moon.residentInputScanSql(resident.inputs, port, limits.maxSqlBytes);
       if (sql == null) return false;
@@ -387,7 +430,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       const material = moon.computeHostInputMaterial(input);
       if (material == null) return false;
       const {wire, maxFrameBytes} = retainedInputContract(material, input);
-      checked(moon.computeHostInputStreamBegin(run, port, wire, maxFrameBytes));
+      beginInputStream(port, wire, maxFrameBytes);
       let physical;
       const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
       const fields = await session.command(sql, [], chunk => {
@@ -424,7 +467,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
           await accept(parameters);
         }
       });
-      checked(moon.computeHostInputStreamBegin(run, port, wire, maxFrameBytes));
+      beginInputStream(port, wire, maxFrameBytes);
       try {
         inputReadUnconfirmed = true;
         await consumeRetainedInput(material, input, chunk => {
@@ -520,8 +563,8 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
     let closed = false;
     return Object.freeze({
       usage: Object.freeze({...result.usage,
-        transportBytes: result.usage.transportBytes + residentInputBytes,
-        residentInputBytes}),
+        transportBytes: result.usage.transportBytes + residentInputBytes + directInputBytes,
+        residentInputBytes, directInputBytes}),
       physicalCapacity: capacity === undefined ? undefined : Object.freeze({
         ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
       }),

@@ -136,6 +136,17 @@ test "retained fixed import demand uses exact decoded input and single receiving
       native_completion_limits().receipts,
       1000,
     ).unwrap()
+    assert_eq(
+      @duckdb.fixed_import_file_sql(stream, 1000, 10000),
+      Some(
+        (
+          "CREATE TEMP TABLE \"streamed\" AS SELECT * FROM read_json(?, format='array', records=true, auto_detect=false, columns={\"id\": 'DOUBLE'}, maximum_object_size=1000, ignore_errors=false)",
+          "SELECT * FROM \"streamed\" ORDER BY rowid",
+        ),
+      ),
+    )
+    assert_true(@duckdb.fixed_import_file_sql(stream, 1000, 1) is None)
+    assert_true(@duckdb.fixed_import_file_sql(stream, 0, 10000) is None)
     @duckdb.attach_fixed_import_demand(stream, compute, ceiling, physical).unwrap()
     assert_true(@duckdb.fixed_import_verified_demand(stream) is None)
     let native_input = @duckdb.prepare_fixed_import_physical(

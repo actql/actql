@@ -35,6 +35,8 @@ pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @co
 
 pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @adapter.FixedCompute
 
+pub fn duckdb_compute_input_file_sql(DuckDBComputeAttempt, Int, @execution_relation.RowWireLimits, Int, Int) -> (String, String)?
+
 pub fn duckdb_compute_inputs_ready(DuckDBComputeAttempt) -> Bool
 
 pub fn duckdb_compute_static_rejection(@lowering_relation.BoundPrepared, @connector_sdk.FixedComputeCapacity, @adapter.NativeQueryLimits) -> String?

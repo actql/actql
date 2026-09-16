@@ -136,6 +136,8 @@ pub fn fixed_import_column_count(FixedImport) -> Int
 
 pub fn fixed_import_create_sql(FixedImport) -> String
 
+pub fn fixed_import_file_sql(FixedImportStream, Int, Int) -> (String, String)?
+
 pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
 
 pub fn fixed_import_insert_sql(FixedImport) -> String
