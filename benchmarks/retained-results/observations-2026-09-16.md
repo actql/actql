@@ -823,3 +823,40 @@ was 1329.507 ms execution / 0.428 ms cleanup. This is not a paired timing or a
 performance acceptance result. Wide 100000-row, text, join and large-output
 baseline execution still need verification/adaptation; equivalent-obligations
 and formal paired comparisons remain unfinished.
+
+## Follow-up: baseline comparison has an irreducible capacity conflict
+
+At `c4ef5099`, JS 4328, Wasm 4327 and native 4327 MoonBit tests passed, as did
+all 77 retained storage/process boundary tests. These reruns include the current
+resident data-profile product changes. They do not establish formal performance
+acceptance or remote CI success.
+
+The new baseline feasibility audit ties its lower-bound derivation to exact
+`b87584fe` receiver and native-capacity source snapshots. The receiver's counters
+accumulate across the whole validation scan; the old capacity formula reserves
+each physical row/cell/text bound twice. Even omitting nodes, wire, metadata and
+all other output storage, the per-shape lower bounds are:
+
+| Input | Minimum declared retention bytes |
+| --- | ---: |
+| narrow / 1000000 | 1536000000 |
+| numeric-64 / 100000 | 3328000000 |
+| text-1024 / 100000 | 1792000000 |
+
+These exceed the 1073741824-byte retention ceiling for each of the three
+workloads: nine registered cases cannot fit. This is a source-derived necessary
+reservation, not a timing sample or RSS observation. Unlike the earlier overly
+conservative adapter settings, it cannot be fixed by tightening assembly bounds.
+The audit reports `not-ruled-out`, never `passed`, for the other 18 cases.
+
+The audit CLI exits 1 as intended; all 20 benchmark helper tests pass, including
+the source-hash and lower-bound regressions. The two `.mbt.txt` snapshots are
+archival evidence only, not product implementations, and allow shallow CI to
+check the evidence without fetching history.
+
+An acceptance decision is now required for the impossible baseline comparisons:
+retain the ceiling and explicitly report baseline capacity refusal instead of a
+time ratio for these cases, or define a separate larger-capacity experiment for
+both paths. No change to the registered matrix, budget, thresholds or failure
+treatment has been made. The equivalent-obligations comparator remains a
+separate unfinished implementation regardless of that decision.

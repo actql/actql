@@ -134,6 +134,30 @@ has no timing samples or performance acceptance result.
 
 ## Paired timing assessment
 
+First check whether the unchanged baseline's reservation policy can admit the
+registered dataset under the comparison's one-GiB retention ceiling:
+
+```sh
+node benchmarks/retained-results/baseline-feasibility.mjs
+```
+
+This command intentionally exits nonzero: nine cases already exceed the ceiling
+using only a lower bound on mandatory reservation. It verifies exact archived
+receiver/capacity source hashes and reports every case. It excludes positive
+node, wire and metadata terms, so `not-ruled-out` is not execution readiness.
+The declared reservation is not measured RSS. In particular, numeric-64/100000
+needs at least 3328000000 bytes before those omitted terms. Numeric fixture values
+require no text payload; text-1024 includes the two mandated string allowances.
+
+No capacity-only adaptation can make those cases fit without changing the old
+runtime's accounting policy or the experiment ceiling. The benchmark cannot
+provide a finite baseline timing ratio for them as currently specified. Treating
+capacity refusal as a reported comparison outcome, or registering a separate
+larger-capacity experiment for both paths, requires an explicit acceptance
+decision. Neither is silently adopted here; failed cases and thresholds stay
+unchanged. This audit is not a performance pass and does not implement the
+equivalent-obligations comparator.
+
 To diagnose the unchanged baseline's capacity before attempting timings, first
 independently extract and release-build `experiment.baselineRevision` with the
 pinned toolchain and DuckDB dependency, then run:
