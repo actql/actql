@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
+import {exportPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
@@ -16,6 +17,7 @@ const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   maxChunkRows: 2, maxChunkBytes: 4096, memoryBytes: 128 * 1024 * 1024, threads: 1};
+const profileCid = 'sha256:161b405aa85064521a44076212bb266d93f166fa1b383ca8948a87923d797527';
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));
@@ -29,19 +31,19 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
   const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
   const contracts = [...source.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
-  const profile = fixture.managedFileProfile(await readFile(join(root,
-    'spec/contracts/actql-managed-retained-execution.json'), 'utf8'));
+  const profile = checked(fixture.managedFileProfile(await readFile(join(root,
+    'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
   const pipeline = JSON.stringify([
     {values: {schema: {id: {type: 'number', nullable: false}, amount: {type: 'string', nullable: true}},
       rows: [{id: 3, amount: '日本語'}, {id: 1, amount: 'unused'},
         {id: 4, amount: null}, {id: 3, amount: '日本語'}]}, as: 'seed'},
     {select: ['id', 'amount']},
   ]);
-  for (const empty of [false, true]) for (const revoke of ['none', 'transport', 'policy']) {
+  for (const empty of [false, true]) for (const revoke of ['none', 'transport', 'policy', 'completion-input']) {
     const configured = fixture.typedFixedCreate(pipeline, empty ? 'id > 9' : 'id > 2', ...contracts);
     const directory = await mkdtemp(join(tmpdir(), 'actql-managed-compute-'));
     const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 65536, maxFrameBytes: 4096});
-    let result, output, run, attempt, port, consume, completed;
+    let result, output, run, attempt, port, consume, completed, downstreamOutput, downstreamCompleted;
     try {
       run = checked(moon.computeHostOpen(fixture.ownedFixedConfiguration(configured),
         current => current === attempt && matchesFixedCompute(result, port, consume)));
@@ -109,6 +111,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           continue;
         }
         completed = checked(moon.managedOutputCompleteCompute(output, completion));
+        assert.equal(moon.managedCompletedProfileCid(completed), profileCid);
         assert.equal(moon.managedCompletedAvailable(completed), true);
         assert.throws(() => checked(moon.managedOutputCompleteCompute(output, completion)), 'completion is single use');
         releaseFixedCompute(result);
@@ -166,6 +169,21 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           fixture.ownedFixedManagedCountInput(configured, completed)), false,
         'same output is not the same receiving use');
         const [createSql, querySql] = fixture.managedFixedQuerySql(nativeQuery);
+        let nativeSettled = false;
+        let downstreamAuthorized = true;
+        let invalidateInputOnAuthorization = false;
+        const downstreamPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+          () => {
+            if (invalidateInputOnAuthorization) moon.managedOutputCancel(output);
+            return downstreamAuthorized;
+          },
+          () => {
+            if (nativeSettled && revoke === 'completion-input') invalidateInputOnAuthorization = true;
+            return nativeSettled && fixture.managedFixedQueryMatches(nativeQuery, countInput);
+          }));
+        downstreamOutput = checked(moon.managedOutputOpen(moon.managedInputOutputValues(downstreamPort),
+          JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
+          fixture.managedFileTransportLimits(), 100));
         const database = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
         const connection = await database.connect();
         try {
@@ -187,12 +205,87 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           assert.deepEqual(rows, [{n: empty ? 0 : 3}]);
           assert.equal(integrityBytes, body.bytes);
           assert.equal(store.status().activeReaders, 0);
+          // Only this awaited exact native query supplies the downstream values.
+          const columns = [[exportPhysicalValue(rows[0].n, {id: 'DOUBLE'})]];
+          checked(moon.managedOutputAccept(downstreamOutput, 1, JSON.stringify(columns)));
+          checked(moon.managedOutputFinish(downstreamOutput));
+          assert.deepEqual(checked(moon.managedOutputReusedMeasurements(downstreamOutput)),
+            empty ? [2, 1, 1] : [8, 27, 4]);
+          const downstreamWriter = store.reserve(4096);
+          await downstreamWriter.start();
+          await downstreamWriter.appendBytes(Buffer.from(JSON.stringify({rows: 1, columns}) + '\n'));
+          const downstreamBody = await downstreamWriter.sealPhysical();
+          checked(moon.managedOutputRetain(downstreamOutput, BigInt(downstreamBody.bytes),
+            () => downstreamBody.available()));
+          for (const failure of ['transport', 'policy', 'cancel', 'reentrant']) {
+            let allowed = true, settled = false, rejectPort;
+            rejectPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+              () => allowed, () => {
+                if (failure === 'reentrant') moon.managedInputCompletionCancel(rejectPort);
+                return failure !== 'transport' || settled;
+              }));
+            const rejected = checked(moon.managedOutputOpen(moon.managedInputOutputValues(rejectPort),
+              JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
+              fixture.managedFileTransportLimits(), 100));
+            try {
+              checked(moon.managedOutputAccept(rejected, 1, JSON.stringify(columns)));
+              checked(moon.managedOutputFinish(rejected));
+              checked(moon.managedOutputRetain(rejected, BigInt(downstreamBody.bytes),
+                () => downstreamBody.available()));
+              if (failure === 'policy') allowed = false;
+              if (failure === 'cancel') assert.equal(moon.managedInputCompletionCancel(rejectPort), true);
+              assert.throws(() => checked(moon.managedOutputCompleteInput(rejected, rejectPort)), failure);
+              allowed = true; settled = true;
+              assert.throws(() => checked(moon.managedOutputCompleteInput(rejected, rejectPort)),
+                'failed admission cannot revive');
+            } finally { moon.managedOutputCancel(rejected); }
+          }
+          // The same output cannot complete a separately prepared consumer ledger.
+          const foreignPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+            () => true, () => true));
+          assert.throws(() => checked(moon.managedOutputCompleteInput(downstreamOutput, foreignPort)));
+          nativeSettled = true;
+          if (revoke === 'completion-input') {
+            assert.throws(() => checked(moon.managedOutputCompleteInput(downstreamOutput, downstreamPort)),
+              'final authorization cannot revoke input yet publish success');
+            assert.throws(() => checked(moon.managedOutputCompleteInput(downstreamOutput, downstreamPort)));
+            continue;
+          }
+          downstreamCompleted = checked(moon.managedOutputCompleteInput(downstreamOutput, downstreamPort));
+          assert.equal(moon.managedCompletedProfileCid(downstreamCompleted), profileCid);
+          assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true);
+          assert.throws(() => checked(moon.managedOutputCompleteInput(downstreamOutput, downstreamPort)));
+          // Completion preserves binding history, not a lease on ancestors.
+          moon.managedOutputCancel(output);
+          body.close();
+          await store.cleanup();
+          assert.equal(body.available(), false);
+          assert.equal(store.status().reservedBytes, downstreamBody.bytes,
+            'ancestor bytes are physically reclaimed before downstream use ends');
+          assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true);
+          downstreamAuthorized = false;
+          nativeSettled = false;
+          assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true,
+            'settled independent holding does not borrow the prior attempt');
+          const countMaterial = moon.managedOutputMaterial(downstreamOutput);
+          const countCodec = `sha256:${'6'.repeat(64)}`;
+          registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
+            store, downstreamBody, countCodec);
+          for (let reader = 0; reader < 2; reader++) {
+            const countRead = fixture.managedCountRead(nativeQuery, downstreamCompleted);
+            const frame = await withManagedInputFile(countMaterial, countRead, countCodec, () => true,
+              async file => JSON.parse(await readFile(file.path, 'utf8')));
+            assert.deepEqual(frame, {rows: 1, columns});
+            assert.equal(store.status().activeReaders, 0);
+          }
         } finally { connection.closeSync(); database.closeSync(); }
         moon.managedOutputCancel(output);
         assert.equal(fixture.managedFixedQueryMatches(nativeQuery, countInput), false,
           'prepared SQL does not preserve authority after material revocation');
       }
     } finally {
+      if (downstreamOutput) moon.managedOutputCancel(downstreamOutput);
+      if (downstreamCompleted) assert.equal(moon.managedCompletedAvailable(downstreamCompleted), false);
       if (output) moon.managedOutputCancel(output);
       if (completed) assert.equal(moon.managedCompletedAvailable(completed), false);
       if (run) moon.computeHostClose(run);

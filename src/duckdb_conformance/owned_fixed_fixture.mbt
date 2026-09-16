@@ -473,6 +473,75 @@ pub fn managed_fixed_query_sql(
 }
 
 ///|
+#export_name("managedCountCompletion")
+pub fn managed_count_completion(
+  query : @duckdb.ManagedFixedQuery[Int],
+  profile : @execution.ManagedExecutionProfile,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  authorize : () -> Bool,
+  transport : (@execution.ManagedOutputValueReceipt) -> Bool,
+) -> @duckdb_compute.ManagedInputDuckDBCompletion[Int] raise {
+  let generated = fixture_generated(
+    @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
+    registry_json,
+    values_json,
+    fragment_json,
+    false,
+  )
+  @duckdb_compute.prepare_managed_input_duckdb_completion(
+    query,
+    @execution.generated_completion_preparation(generated),
+    profile,
+    {
+      values: {
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+      demand: {
+        max_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+      physical: managed_file_physical_limits(),
+      retention: {
+        max_work: 10000,
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 100,
+      },
+      metadata_work: 10000,
+      completion_entries: 1000,
+      completion_name_bytes: 10000,
+    },
+    100,
+    10000,
+    authorize,
+    transport,
+  ).unwrap()
+}
+
+///|
+#export_name("managedCountRead")
+pub fn managed_count_read(
+  query : @duckdb.ManagedFixedQuery[Int],
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  let native = @duckdb.managed_fixed_query_query(query)
+  let owner = @duckdb.fixed_query_owner(native)
+  let reader = issued_fixture_consumer(
+    owner,
+    steps="[{\"select\":[\"n\"]}]",
+    target=@duckdb.fixed_query_target(native),
+  )
+  @execution.prepare_managed_producer_read(reader, 0, owner, output, 100, 10000).unwrap()
+}
+
+///|
 #export_name("ownedFixedRetainedCid")
 pub fn owned_fixed_retained_cid(
   value : OwnedFixedFixture,

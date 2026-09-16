@@ -184,6 +184,8 @@ pub fn managed_fixed_compute_demand_usage(ManagedFixedComputeDemand) -> FixedCom
 
 pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
 
+pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation.ManagedProducerRead[T]
+
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
 
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery

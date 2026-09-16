@@ -69,6 +69,48 @@ pub fn managed_completed_available(
 }
 
 ///|
+#export_name("managedCompletedProfileCid")
+pub fn managed_completed_profile_cid(
+  value : @execution.ManagedCompletedOutput[Int],
+) -> String {
+  @execution.managed_completed_profile_cid(value)
+}
+
+///|
+#export_name("managedInputOutputValues")
+pub fn managed_input_output_values(
+  completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
+) -> @execution.ManagedOutputValues {
+  @duckdb_compute.managed_input_duckdb_output_values(completion)
+}
+
+///|
+#export_name("managedOutputCompleteInput")
+pub fn managed_output_complete_input(
+  value : ManagedNodeOutput,
+  completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
+) -> @execution.ManagedCompletedOutput[Int] raise NodeHostFailure {
+  guard value.valid.val &&
+    value.receipt is Some(receipt) &&
+    value.material is Some(material) else {
+    raise InvalidCommand
+  }
+  match
+    @duckdb_compute.complete_managed_input_duckdb(completion, receipt, material) {
+    Ok(completed) => completed
+    Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
+#export_name("managedInputCompletionCancel")
+pub fn managed_input_completion_cancel(
+  completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
+) -> Bool {
+  @duckdb_compute.cancel_managed_input_duckdb_completion(completion)
+}
+
+///|
 #export_name("managedOutputMaterial")
 pub fn managed_output_material(
   value : ManagedNodeOutput,
@@ -326,4 +368,19 @@ pub fn managed_output_measurements(
     receipt,
   )
   [@execution.managed_output_value_row_count(receipt), work, bytes, nodes]
+}
+
+///|
+/// Combined logical ledger for a managed-input output. This is not physical
+/// CPU/IO usage and must not be reported as repeated work actually performed.
+#export_name("managedOutputReusedMeasurements")
+pub fn managed_output_reused_measurements(
+  value : ManagedNodeOutput,
+) -> Array[Int] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) &&
+    @execution.managed_output_value_managed_measurement_usage(receipt)
+    is Some((work, bytes, nodes)) else {
+    raise InvalidCommand
+  }
+  [work, bytes, nodes]
 }

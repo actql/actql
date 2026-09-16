@@ -33,10 +33,11 @@ material invalidates the prepared query's binding. Store pins return to zero.
 
 The physical frame codec is still fixture-only. This test does not register a
 general JSON, Parquet or Arrow representation and does not demonstrate arbitrary
-view decoding. It also does not issue common completion for the downstream count
-output: production managed-input attempt/demand/output admission is still to be
-connected. Its count result is an independent native test observation, not an
-ActQL ResultArtifact. Full filter/derive/sort/take chains, Local execution and
+view decoding. At this increment the count result was only an independent native
+test observation. The subsequent [downstream completion connection](managed-downstream-completion.md)
+adds common managed completion and independent holding; production dispatch is
+still incomplete, and this is not an ActQL ResultArtifact.
+Full filter/derive/sort/take chains, Local execution and
 managed process delegation remain required by the original goal.
 
 No performance acceptance is inferred from this small fixture. The registered

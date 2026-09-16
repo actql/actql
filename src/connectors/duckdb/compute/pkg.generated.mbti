@@ -29,11 +29,15 @@ pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.Com
 
 pub fn cancel_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Unit
 
+pub fn[T] cancel_managed_input_duckdb_completion(ManagedInputDuckDBCompletion[T]) -> Bool
+
 pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
 pub fn complete_duckdb_compute_attempt(DuckDBComputeAttempt) -> Result[@execution_relation.CompletedOutput, DuckDBComputeIssue]
 
 pub fn[T] complete_managed_duckdb_compute_attempt(ManagedDuckDBCompletion[T], ManagedDuckDBComputeOutput, @execution_relation.ManagedRetainedOutput[T]) -> Result[@execution_relation.ManagedCompletedOutput[T], DuckDBComputeIssue]
+
+pub fn[T] complete_managed_input_duckdb(ManagedInputDuckDBCompletion[T], @execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedRetainedOutput[T]) -> Result[@execution_relation.ManagedCompletedOutput[T], DuckDBComputeIssue]
 
 pub fn drain_duckdb_compute_stream_row(DuckDBComputeAttempt) -> Result[String?, DuckDBComputeIssue]
 
@@ -85,6 +89,8 @@ pub fn finish_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Resul
 
 pub fn managed_duckdb_compute_output_values(ManagedDuckDBComputeOutput) -> @execution_relation.ManagedOutputValues
 
+pub fn[T] managed_input_duckdb_output_values(ManagedInputDuckDBCompletion[T]) -> @execution_relation.ManagedOutputValues
+
 pub fn prepare_duckdb_compute_input_physical(DuckDBComputeAttempt, Int, Array[(String, @adapter.PhysicalType)]) -> Result[@adapter.PhysicalResult, DuckDBComputeIssue]
 
 pub fn prepare_duckdb_dispatch_candidate(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.NativeQueryLimits, @execution_relation.FixedJoinValidationLimits, Int64?, Int) -> Result[DuckDBDispatchPreparation, DuckDBComputeCandidateIssue]
@@ -94,6 +100,8 @@ pub fn prepare_duckdb_resident_output(@adapter.FixedQuery, Int, DuckDBComputeLim
 pub fn prepare_duckdb_resident_read(@adapter.ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[DuckDBResidentRead, @adapter.NativeQueryIssue]
 
 pub fn[T] prepare_managed_duckdb_completion(DuckDBComputeAttempt, @execution_relation.ManagedExecutionProfile, () -> Bool) -> Result[ManagedDuckDBCompletion[T], DuckDBComputeIssue]
+
+pub fn[T] prepare_managed_input_duckdb_completion(@adapter.ManagedFixedQuery[T], @execution_relation.CompletionPreparation, @execution_relation.ManagedExecutionProfile, DuckDBComputeLimits, Int, Int, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> Result[ManagedInputDuckDBCompletion[T], DuckDBComputeIssue]
 
 pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
@@ -174,6 +182,8 @@ type DuckDBSelectedCompute
 type ManagedDuckDBCompletion[T]
 
 type ManagedDuckDBComputeOutput
+
+type ManagedInputDuckDBCompletion[T]
 
 // Type aliases
 

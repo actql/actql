@@ -63,6 +63,13 @@ pub fn[T] managed_fixed_query_query(value : ManagedFixedQuery[T]) -> FixedQuery 
 }
 
 ///|
+pub fn[T] managed_fixed_query_input(
+  value : ManagedFixedQuery[T],
+) -> @execution.ManagedProducerRead[T] {
+  value.input
+}
+
+///|
 pub fn[T] managed_fixed_query_create_sql(
   value : ManagedFixedQuery[T],
 ) -> String {

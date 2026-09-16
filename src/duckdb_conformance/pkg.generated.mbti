@@ -4,6 +4,7 @@ package "actql/actql/duckdb_conformance"
 import {
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
+  "actql/actql/connectors/duckdb/compute",
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors_builtin",
@@ -128,6 +129,10 @@ pub fn issued_native_retained_input(IssuedNativeFixture, @execution_relation.Com
 pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_verify(IssuedNativeFixture) -> Bool
+
+pub fn managed_count_completion(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedExecutionProfile, String, String, String, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> @compute.ManagedInputDuckDBCompletion[Int] raise
+
+pub fn managed_count_read(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn managed_file_physical_limits() -> @adapter.PhysicalResultLimits
 
