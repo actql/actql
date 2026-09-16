@@ -27,6 +27,9 @@ pub fn begin_duckdb_compute_stream_result(
   max_batch_bytes : Int,
   max_chunk_rows : Int,
 ) -> Result[Unit, DuckDBComputeIssue] {
+  if value.managed {
+    return Err(InvalidState)
+  }
   if value.stream_transport is Some(bound) &&
     (
       max_batch_bytes <= 0 ||

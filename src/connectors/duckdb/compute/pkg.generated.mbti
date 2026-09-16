@@ -21,9 +21,13 @@ pub fn begin_duckdb_compute_result(DuckDBComputeAttempt, Array[(String, @adapter
 
 pub fn begin_duckdb_compute_stream_result(DuckDBComputeAttempt, Array[(String, @adapter.PhysicalType)], @execution_relation.RowWireLimits, Int, Int) -> Result[Unit, DuckDBComputeIssue]
 
+pub fn begin_managed_duckdb_compute_output(DuckDBComputeAttempt, Array[(String, @adapter.PhysicalType)]) -> Result[ManagedDuckDBComputeOutput, DuckDBComputeIssue]
+
 pub fn bind_duckdb_dispatch_candidate(DuckDBDispatchPreparation) -> Result[DuckDBSelectedCompute, DuckDBDispatchIssue]
 
 pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.CompletedOutput) -> Result[@adapter.ResidentImport, DuckDBResidentOutputIssue]
+
+pub fn cancel_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Unit
 
 pub fn close_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
@@ -75,6 +79,10 @@ pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDB
 
 pub fn finish_duckdb_compute_stream_result(DuckDBComputeAttempt) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String), DuckDBComputeIssue]
 
+pub fn finish_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Result[@execution_relation.ManagedOutputValueReceipt, DuckDBComputeIssue]
+
+pub fn managed_duckdb_compute_output_values(ManagedDuckDBComputeOutput) -> @execution_relation.ManagedOutputValues
+
 pub fn prepare_duckdb_compute_input_physical(DuckDBComputeAttempt, Int, Array[(String, @adapter.PhysicalType)]) -> Result[@adapter.PhysicalResult, DuckDBComputeIssue]
 
 pub fn prepare_duckdb_dispatch_candidate(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.NativeQueryLimits, @execution_relation.FixedJoinValidationLimits, Int64?, Int) -> Result[DuckDBDispatchPreparation, DuckDBComputeCandidateIssue]
@@ -87,6 +95,8 @@ pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_cor
 
 pub fn receive_duckdb_compute_stream_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
+pub fn receive_managed_duckdb_compute_output(ManagedDuckDBComputeOutput, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
+
 pub fn retained_duckdb_compute_bytes(DuckDBComputeAttempt) -> Int64?
 
 pub fn reuse_duckdb_compute_input_identity(DuckDBComputeAttempt, Int, @execution_relation.RetainedScanReuse) -> Bool
@@ -97,7 +107,11 @@ pub fn stage_retained_duckdb_compute_material(DuckDBComputeAttempt, @execution_r
 
 pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool, retained_required? : Bool, stream_transport? : @adapter.TransportColumnLimits) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]
 
+pub fn[T] verified_managed_duckdb_compute_material(ManagedDuckDBComputeOutput, @execution_relation.ManagedRetainedOutput[T]) -> @execution_relation.ManagedRetainedOutput[T]?
+
 pub fn verify_duckdb_compute_input_chunk(DuckDBComputeAttempt, Int, @adapter.PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn verify_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Result[Unit, DuckDBComputeIssue]
 
 // Errors
 
@@ -121,6 +135,7 @@ pub(all) enum DuckDBComputeIssue {
   Demand(@adapter.NativeDemandIssue)
   Completion(@execution_relation.TrustedOutputIssue)
   InputStream(@adapter.FixedImportStreamIssue)
+  ManagedValues(@adapter.ManagedPhysicalOutputIssue)
 }
 
 pub(all) struct DuckDBComputeLimits {
@@ -151,6 +166,8 @@ pub(all) enum DuckDBResidentOutputIssue {
 type DuckDBResidentRead
 
 type DuckDBSelectedCompute
+
+type ManagedDuckDBComputeOutput
 
 // Type aliases
 

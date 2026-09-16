@@ -21,6 +21,7 @@ pub(all) enum DuckDBComputeIssue {
   Demand(@duckdb.NativeDemandIssue)
   Completion(@execution.TrustedOutputIssue)
   InputStream(@duckdb.FixedImportStreamIssue)
+  ManagedValues(@duckdb.ManagedPhysicalOutputIssue)
 }
 
 ///|
@@ -55,6 +56,7 @@ struct DuckDBComputeAttempt {
   mut pending_material : @execution.RetainedOutputMaterial?
   retained_live : Ref[Bool]
   mut live : Bool
+  mut managed : Bool
 }
 
 ///|
@@ -176,6 +178,7 @@ pub fn start_duckdb_compute_attempt(
     pending_material: None,
     retained_live: Ref(true),
     live: true,
+    managed: false,
   })
 }
 
@@ -191,7 +194,8 @@ pub fn begin_duckdb_compute_result(
   value : DuckDBComputeAttempt,
   fields : Array[(String, @duckdb.PhysicalType)],
 ) -> Result[Unit, DuckDBComputeIssue] {
-  if value.retained_required ||
+  if value.managed ||
+    value.retained_required ||
     !duckdb_compute_inputs_ready(value) ||
     value.receiving is Some(_) {
     return Err(InvalidState)
@@ -316,7 +320,7 @@ fn verified_compute_rows(
 pub fn complete_duckdb_compute_attempt(
   value : DuckDBComputeAttempt,
 ) -> Result[@execution.CompletedOutput, DuckDBComputeIssue] {
-  if !value.live || value.completed {
+  if !value.live || value.completed || value.managed {
     return Err(InvalidState)
   }
   if value.streaming {
