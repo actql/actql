@@ -90,7 +90,8 @@ Still required before equivalence approval:
 
 - Matched execution-process/cold and warm timing boundaries.
 - Complete expression-demand/guard failure parity and its negative fixtures.
-- Combined live DB-copy and file retention admission, not only the Store limit.
+- Independent file-plus-metadata retention and shared DB-plus-scratch execution
+  admission, not only the Store limit or the engine's configured memory limit.
 - Acquisition evidence metadata construction/validation parity.
 - Transfer and logical-work accounting equivalence.
 - Broader ownership, cancellation at other execution phases and actual resource
@@ -99,3 +100,28 @@ Still required before equivalence approval:
 
 Do not turn a successful prototype run or its lower elapsed time into a 1.25
 comparison result until this list is closed with inspected evidence.
+
+## Resource-domain correction
+
+The earlier phrase "combined DB-copy and file retention" was inaccurate if read
+as adding both to the 1 GiB independent-retention ceiling. Product
+`physical_resources/shared_capacity.mbt:reserve_shared_capacity` reserves an
+execution resource; its table allocations are suballocations, not additional
+Host retained allocations. `physical_strategy/resident_execution.mbt` separately
+checks the independent output holding. This is existing product behavior, not
+a relaxation of the experiment.
+
+The comparator must therefore account independently for:
+
+- The unchanged 1 GiB retained-output limit: files and retained completion
+  metadata, with reservation before writing and settlement after completion.
+- The unchanged 4 GiB execution limit: the shared DB resource, live table copies
+  within it, and simultaneous semantic/transport scratch outside that resource.
+  Table suballocations are not counted twice as independent holdings.
+
+The current prototype reports Store reservations and the configured DuckDB
+memory ceiling explicitly but marks resource conformance incomplete. An engine
+setting alone neither reserves the external JS/MoonBit scratch nor proves a
+whole-process RSS bound. Likewise, file-only Store accounting does not account
+for completion metadata. These gaps must close before equivalent-obligation
+acceptance; the reporting correction alone does not close them.

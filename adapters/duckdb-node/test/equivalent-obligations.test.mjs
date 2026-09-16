@@ -36,6 +36,10 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.stages.length, workload === workloads[1] ? 5 : 4);
       assert.equal(result.acceptanceEligible, false);
       assert(result.missing.length > 0);
+      assert.equal(result.capacity.independentRetention.limitBytes, 1073741824);
+      assert.equal(result.capacity.independentRetention.fileReservedBytes, result.holding.reservedBytes);
+      assert.equal(result.capacity.execution.limitBytes, fixture.limits.executionMemoryBytes);
+      assert.equal(result.capacity.conformance, 'incomplete');
       assert((await readdir(directory)).every(name => /^source-\d-[a-z0-9-]+.duckdb$/.test(name)));
       if (i === 0 && layout === 'narrow') {
         // Row zero is excluded by the acquisition predicate, but full scan

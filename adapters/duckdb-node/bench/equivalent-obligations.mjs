@@ -144,8 +144,16 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       comparator: 'independent-obligation-assembly', executionMs, validationMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
       holding: store.status(),
+      capacity: {
+        independentRetention: {limitBytes: 1073741824, fileReservedBytes: store.status().reservedBytes,
+          scope: 'Store files only; completion metadata not yet accounted'},
+        execution: {limitBytes: l.executionMemoryBytes, configuredEngineBytes: l.executionMemoryBytes,
+          scope: 'DB copies belong to execution capacity; JS/semantic scratch not yet reserved'},
+        conformance: 'incomplete',
+      },
       missing: ['matched process/cold timing boundaries', 'complete expression-demand/guard failure parity',
-        'combined DB-copy/file retention admission', 'acquisition evidence metadata parity',
+        'independent file-plus-metadata retention and shared DB-plus-scratch execution admission',
+        'acquisition evidence metadata parity',
         'transfer/work accounting equivalence', 'complete negative conformance fixtures']};
   } catch (error) { primary = error; }
   finally {
