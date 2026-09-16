@@ -68,6 +68,7 @@ fn[T : IndexedRows] measure_input_values(
   phase : FixedInputGuardPhase,
   budget : FixedInputGuardBudget,
   column_usage? : Array[(Int, Int)],
+  column_maxima? : Array[Int],
 ) -> Result[Unit, FixedInputGuardIssue] {
   for row in 0..<rows.row_count() {
     if budget.work <= 0 {
@@ -103,6 +104,9 @@ fn[T : IndexedRows] measure_input_values(
         // Subtotals cannot overflow: the enclosing successful budget bounds
         // their nonnegative sum. Publish only with the complete verified scan.
         totals[column] = (bytes + usage.0, nodes + usage.1)
+      }
+      if column_maxima is Some(maxima) {
+        maxima[column] = Int::max(maxima[column], usage.0)
       }
     }
   }

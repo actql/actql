@@ -247,6 +247,10 @@ pub fn managed_output_value_fixed_measurement_matches(ManagedOutputValueReceipt,
 
 pub fn managed_output_value_fixed_measurement_usage(ManagedOutputValueReceipt) -> (Int, Int, Int)?
 
+pub fn managed_output_value_managed_measurement_matches(ManagedOutputValueReceipt, ManagedProducerMeasurement) -> Bool
+
+pub fn managed_output_value_managed_measurement_usage(ManagedOutputValueReceipt) -> (Int, Int, Int)?
+
 pub fn managed_output_value_measurement(ManagedOutputValueReceipt) -> (Int, Int, Int)
 
 pub fn managed_output_value_receipt_matches(ManagedOutputValueReceipt, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
@@ -258,6 +262,8 @@ pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schem
 pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
+
+pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
 pub fn[T] managed_producer_read_available(ManagedProducerRead[T]) -> Bool
 
@@ -340,6 +346,10 @@ pub fn prepare_retained_content_read(CompletionPreparation, RetainedCompletionDe
 pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedProducerScan, CompletedImportIssue]
 
 pub fn prepare_retained_storage_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
+
+pub fn prepare_reused_managed_output_values(ManagedProducerMeasurement, ValueLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+
+pub fn[T] prepare_reused_managed_producer_measurement(Array[ManagedProducerRead[T]], @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits, Int) -> Result[ManagedProducerMeasurement, FixedInputGuardIssue]
 
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
@@ -701,6 +711,8 @@ pub(all) enum ManagedOutputValueIssue {
 type ManagedOutputValueReceipt
 
 type ManagedOutputValues
+
+type ManagedProducerMeasurement
 
 type ManagedProducerRead[T]
 

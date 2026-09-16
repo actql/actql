@@ -10,6 +10,9 @@ struct ManagedOutputValues {
   measurement : FixedInputGuardBudget
   initial : FixedInputGuardMeasureLimits
   producer : FixedProducerMeasurement?
+  managed_producer : ManagedProducerMeasurement?
+  column_usage : Array[(Int, Int)]
+  column_maxima : Array[Int]
   max_value_bytes : Int
   max_rows : Int
   mut rows : Int
@@ -30,6 +33,10 @@ struct ManagedOutputValueReceipt {
   usage : ValueUsage
   measured : (Int, Int, Int)
   fixed_measurement : (Ref[Bool], (Int, Int, Int))?
+  managed_measurement : (Ref[Bool], (Int, Int, Int))?
+  column_usage : Array[(Int, Int)]
+  column_maxima : Array[Int]
+  measured_depth : Int
 }
 
 ///|
@@ -72,6 +79,9 @@ pub fn prepare_managed_output_values(
     },
     initial: measurement,
     producer: None,
+    managed_producer: None,
+    column_usage: Array::make(@schema.field_count(output.buffer.schema), (0, 0)),
+    column_maxima: Array::make(@schema.field_count(output.buffer.schema), 0),
     max_value_bytes,
     max_rows,
     rows: 0,
@@ -142,6 +152,8 @@ pub fn append_managed_output_values(
         stream.max_value_bytes,
         Output,
         stream.measurement,
+        column_usage=stream.column_usage,
+        column_maxima=stream.column_maxima,
       ) {
       Ok(_) => ()
       Err(issue) =>
@@ -196,6 +208,25 @@ pub fn finish_managed_output_values(
       )
     }
   }
+  let managed_measurement = match stream.managed_producer {
+    None => None
+    Some(producer) => {
+      if producer.identity.val || producer.live.any(check => !check()) {
+        return Err(Guard(ForeignInput))
+      }
+      producer.identity.val = true
+      Some(
+        (
+          producer.identity,
+          (
+            producer.initial.max_work - producer.budget.work,
+            producer.initial.max_bytes - producer.budget.bytes,
+            producer.initial.max_nodes - producer.budget.nodes,
+          ),
+        ),
+      )
+    }
+  }
   if stream.issue is Some(issue) {
     return Err(Guard(issue))
   }
@@ -213,6 +244,10 @@ pub fn finish_managed_output_values(
       stream.initial.max_nodes - stream.measurement.nodes,
     ),
     fixed_measurement,
+    managed_measurement,
+    column_usage: stream.column_usage.copy(),
+    column_maxima: stream.column_maxima.copy(),
+    measured_depth: stream.measurement.depth,
   })
 }
 

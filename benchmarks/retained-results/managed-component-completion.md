@@ -95,3 +95,7 @@ JS, Wasm and native; cross-target public interfaces; full `npm run check:docs`;
 formatting and whitespace checks. The frontend semantic-boundary gate remains
 unchanged: both input families call the existing ownership boundary, rather than
 granting a new frontend-traversal exception to the managed reader.
+
+The subsequent [managed input measurement increment](managed-input-measurement.md)
+adds reusable per-column quantities and a shared input/output ledger. It does not
+yet supply the backend execution verifier or consumer dispatch described above.
