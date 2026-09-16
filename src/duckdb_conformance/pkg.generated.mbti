@@ -137,6 +137,12 @@ pub fn managed_file_transport_limits() -> @adapter.TransportColumnLimits
 
 pub fn managed_file_values() -> @execution_relation.ManagedOutputValues
 
+pub fn managed_fixed_query(@execution_relation.ManagedProducerRead[Int]) -> @adapter.ManagedFixedQuery[Int]
+
+pub fn managed_fixed_query_matches(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedProducerRead[Int]) -> Bool
+
+pub fn managed_fixed_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
+
 pub fn metadata(@adapter.NativeReceiving, Int, String, String) -> Bool
 
 pub fn owned_count_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
@@ -158,6 +164,8 @@ pub fn owned_fixed_create(IssuedNativeFixture, @execution_relation.CompletedOutp
 pub fn owned_fixed_finish(OwnedFixedFixture) -> Bool
 
 pub fn owned_fixed_local_cid(OwnedFixedFixture) -> String
+
+pub fn owned_fixed_managed_count_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn owned_fixed_managed_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]?
 

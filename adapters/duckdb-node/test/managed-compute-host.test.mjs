@@ -6,6 +6,7 @@ import {mkdtemp, readFile, rmdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {DuckDBInstance} from '@duckdb/node-api';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
@@ -154,6 +155,42 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           assert.equal(moon.managedCompletedAvailable(completed), true,
             'failed additional use does not undo prior completion');
         }
+        // Compile the receiving operation from its actual checked owner, not
+        // test-authored aggregate SQL or a fabricated legacy CID input.
+        const countInput = fixture.ownedFixedManagedCountInput(configured, completed);
+        assert.deepEqual(fixture.ownedFixedManagedInputUsage(configured, countInput),
+          empty ? [0, 0, 0, 0] : [3, 6, 26, 3]);
+        const nativeQuery = fixture.managedFixedQuery(countInput);
+        assert.equal(fixture.managedFixedQueryMatches(nativeQuery, countInput), true);
+        assert.equal(fixture.managedFixedQueryMatches(nativeQuery,
+          fixture.ownedFixedManagedCountInput(configured, completed)), false,
+        'same output is not the same receiving use');
+        const [createSql, querySql] = fixture.managedFixedQuerySql(nativeQuery);
+        const database = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
+        const connection = await database.connect();
+        try {
+          await connection.run(createSql);
+          let integrityBytes = 0;
+          const rows = await withManagedInputFile(material, countInput, codec,
+            () => fixture.managedFixedQueryMatches(nativeQuery, countInput), async file => {
+              assert.equal(store.status().activeReaders, 1);
+              if (!empty) {
+                // Fixture-only frame decoder inside DuckDB. No JS cell decode
+                // or parameter INSERT, and no second Core value admission.
+                const path = `'${file.path.replaceAll("'", "''")}'`;
+                await connection.run(`INSERT INTO managed_input SELECT unnest(columns[1])
+                  FROM read_json(${path}, format='newline_delimited',
+                    columns={rows: 'BIGINT', columns: 'VARCHAR[][]'})`);
+              }
+              return (await connection.runAndReadAll(querySql)).getRowObjects();
+            }, undefined, bytes => { integrityBytes += bytes; });
+          assert.deepEqual(rows, [{n: empty ? 0 : 3}]);
+          assert.equal(integrityBytes, body.bytes);
+          assert.equal(store.status().activeReaders, 0);
+        } finally { connection.closeSync(); database.closeSync(); }
+        moon.managedOutputCancel(output);
+        assert.equal(fixture.managedFixedQueryMatches(nativeQuery, countInput), false,
+          'prepared SQL does not preserve authority after material revocation');
       }
     } finally {
       if (output) moon.managedOutputCancel(output);

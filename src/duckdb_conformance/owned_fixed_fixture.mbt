@@ -417,6 +417,62 @@ pub fn owned_fixed_managed_input_usage(
 }
 
 ///|
+#export_name("ownedFixedManagedCountInput")
+pub fn owned_fixed_managed_count_input(
+  value : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  let query = @duckdb.fixed_compute_query(value.compute)
+  let owner = @duckdb.fixed_query_owner(query)
+  let receiver = issued_fixture_consumer(
+    owner,
+    steps="[{\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+    target=@duckdb.fixed_query_target(query),
+  )
+  @execution.prepare_managed_producer_read(
+    receiver, 0, owner, output, 100, 10000,
+  ).unwrap()
+}
+
+///|
+#export_name("managedFixedQuery")
+pub fn managed_fixed_query(
+  input : @execution.ManagedProducerRead[Int],
+) -> @duckdb.ManagedFixedQuery[Int] {
+  @duckdb.prepare_managed_fixed_query(input, "managed_input", {
+    max_entries: 100,
+    max_sql_bytes: 10000,
+    expressions: {
+      max_nodes: 1000,
+      max_work: 10000,
+      max_depth: 100,
+      max_literal_nodes: 1000,
+      max_literal_text_bytes: 10000,
+    },
+  }).unwrap()
+}
+
+///|
+#export_name("managedFixedQueryMatches")
+pub fn managed_fixed_query_matches(
+  query : @duckdb.ManagedFixedQuery[Int],
+  input : @execution.ManagedProducerRead[Int],
+) -> Bool {
+  @duckdb.managed_fixed_query_matches(query, input)
+}
+
+///|
+#export_name("managedFixedQuerySql")
+pub fn managed_fixed_query_sql(
+  query : @duckdb.ManagedFixedQuery[Int],
+) -> Array[String] {
+  [
+    @duckdb.managed_fixed_query_create_sql(query),
+    @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query)),
+  ]
+}
+
+///|
 #export_name("ownedFixedRetainedCid")
 pub fn owned_fixed_retained_cid(
   value : OwnedFixedFixture,

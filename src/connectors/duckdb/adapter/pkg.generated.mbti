@@ -182,6 +182,12 @@ pub fn managed_fixed_compute_demand_matches(ManagedFixedComputeDemand, FixedComp
 
 pub fn managed_fixed_compute_demand_usage(ManagedFixedComputeDemand) -> FixedComputeDemandUsage
 
+pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
+
+pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
+
+pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
+
 pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_fixed_compute_stream_demand(FixedCompute, FixedComputeStreamReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeStreamDemand, NativeDemandIssue]
@@ -277,6 +283,8 @@ pub fn prepare_fixed_import_stream(FixedImport, Int, @execution_relation.ValueLi
 pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_join_inputs(NativeInnerJoin, Array[@execution_relation.ProducerRead], @execution_relation.FixedJoinValidationLimits, Int, Int) -> Result[FixedJoinInputs, FixedJoinInputIssue]
+
+pub fn[T] prepare_managed_fixed_query(@execution_relation.ManagedProducerRead[T], String, NativeQueryLimits) -> Result[ManagedFixedQuery[T], NativeQueryIssue]
 
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 
@@ -434,6 +442,8 @@ pub enum FixedQuery {
 }
 
 type ManagedFixedComputeDemand
+
+type ManagedFixedQuery[T]
 
 type ManagedPhysicalOutput
 

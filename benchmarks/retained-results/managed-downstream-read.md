@@ -40,10 +40,12 @@ authorizes an arbitrary logical view.
 
 ## Remaining scope
 
-This is a checked **read consumer**, not a downstream DuckDB operation or Local
-kernel. The fixture reads its physical transport frames, which remain a
-fixture-only codec rather than a registered public representation. Native
-managed-input query compilation/dispatch, finite row-transform evidence
+This increment established a checked **read consumer**. The subsequent
+[managed native query connection](managed-downstream-query.md) also executes a
+checked count consumer in DuckDB. Neither establishes a downstream Local kernel
+or the full production managed-input dispatch. The physical transport frames
+remain a fixture-only codec rather than a registered public representation.
+Finite row-transform evidence
 transfer, production requirement derivation and registered physical codecs
 remain. The full initial-profile conformance paths and performance gates are
 not complete. There is no new performance claim in this increment.
