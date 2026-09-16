@@ -50,6 +50,11 @@ fn hex_bits(text : String, width : Int) -> UInt64? {
     return None
   }
   let mut value = 0UL
+  // Accumulate eight nibbles in a machine word before widening. In the JS
+  // target UInt64 uses BigInt: widening every nibble allocates for every digit
+  // of every floating-point cell. This preserves the exact bits and syntax.
+  let mut word = 0U
+  let mut digits = 0
   for i in 0..<width {
     let c = text[i].to_int()
     let digit = if c >= 48 && c <= 57 {
@@ -59,7 +64,16 @@ fn hex_bits(text : String, width : Int) -> UInt64? {
     } else {
       return None
     }
-    value = (value << 4) | digit.to_uint64()
+    word = (word << 4) | digit.reinterpret_as_uint()
+    digits += 1
+    if digits == 8 {
+      value = (value << 32) | word.to_uint64()
+      word = 0U
+      digits = 0
+    }
+  }
+  if digits > 0 {
+    value = (value << (digits * 4)) | word.to_uint64()
   }
   Some(value)
 }
