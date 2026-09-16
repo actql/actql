@@ -5,6 +5,7 @@ struct ComputeNodeRun {
   strategy : (@strategy.CapturedDAG, Int, @duckdb_driver.CapturedDuckDBTask)?
   mut closed : Bool
   stream_owner : Ref[Bool]
+  managed_storage_bytes : Int64?
   managed_index_cells : Int?
   managed_index_bytes : Int64
 }
@@ -49,6 +50,7 @@ pub fn compute_host_open(
         strategy: None,
         closed: false,
         stream_owner: Ref(true),
+        managed_storage_bytes: None,
         managed_index_cells: None,
         managed_index_bytes: 0L,
       }
@@ -190,6 +192,11 @@ fn open_strategy_compute_host(
         ),
         closed: false,
         stream_owner: Ref(true),
+        managed_storage_bytes: if managed_index is Some(_) {
+          retained_storage.map(value => value.0)
+        } else {
+          None
+        },
         managed_index_cells: managed_index.map(value => value.0),
         managed_index_bytes: managed_index.map(value => value.1).unwrap_or(0L),
       }

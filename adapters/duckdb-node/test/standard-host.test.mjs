@@ -969,10 +969,25 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       {maxRows: 100, maxCells: 1000}, consume);
     accepted(bridge.managedOutputFinish(managedLedgerOutput));
     assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 2);
+    assert.throws(() => accepted(
+      bridge.managedOutputRetain(managedLedgerOutput, 100001n, () => true)));
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes,
+      'the stream base cannot enlarge the separately admitted file ceiling');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
+      baseRetention + 100000n);
+    const managedBodyBytes = 321n;
+    accepted(bridge.managedOutputRetain(managedLedgerOutput, managedBodyBytes, () => true));
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
+      'sealed managed body and measurement index own distinct task holdings');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
+      baseRetention + 100000n - managedBodyBytes,
+      'exact body bytes move from the admitted file ceiling into a holding');
     accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, true));
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
+      'native settlement must not release a live managed body or its index');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n,
-      'index holding is returned only when its managed output is revoked');
+      'body and index holdings are returned only when managed output is revoked');
     bridge.computeHostClose(managedLedgerRun);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);

@@ -15,7 +15,7 @@ metadata capacity accounting follows from that fixture's successful execution.
 | `managed_view_selection_measurements` | Reads the source index; arbitrary permutations require temporary duplicate-detection metadata. |
 | computed view preparation | Uses the same independent index, including slots for new values; admission/encoding scratch is additional. |
 | successful view issuance | Index moves into the output receipt; its lifetime is not just the executor's running time. |
-| `managedOutputRetain` in the Node fixture | Receives `body.bytes`, i.e. physical file bytes. This does not include the MoonBit index or selection metadata. |
+| `managedOutputRetain` in the Node fixture | Receives `body.bytes`, i.e. physical file bytes. The managed retained strategy entry now converts that exact count from its admitted file ceiling into a task-ledger holding before issuing material. This does not include the separate MoonBit index or selection metadata. |
 
 The existing `physical_resources` ledger already separates reserved execution,
 reserved retention and held allocations. Its cleanup-pending and settlement
@@ -23,11 +23,13 @@ operations distinguish cancellation from acknowledged reclamation. It should
 remain the accounting owner; a separate metadata quota must not silently enlarge
 the selected physical allowance.
 
-The fixed index's retained connection is now implemented for the managed
-retained DuckDB strategy entry: reservation precedes execution, exact enable
-creates a separate holding from the same task reservation, and output
-revocation clears the index before releasing that holding. The remaining
-connection concerns occurrence arrays, summaries, maps and copy overlap.
+The retained body and fixed index connections are now implemented for the
+managed retained DuckDB strategy entry: reservation precedes execution, exact
+Store body bytes and exact index capacity create separate holdings from the
+same task reservation, and output revocation clears the index before releasing
+both holdings. The remaining connection concerns occurrence arrays, summaries,
+maps and copy overlap, plus transfer of the body holding into production
+managed graph completion.
 Preparation temporaries and retained indexes have different release times.
 Dropping a reference or marking the body file unavailable is not proof that all
 metadata allocation has been reclaimed. Entry count, canonical value bytes and

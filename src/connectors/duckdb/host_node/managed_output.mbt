@@ -8,6 +8,7 @@ struct ManagedNodeOutput {
   retention : @execution.ManagedOutputRetentionPort[ManagedNodeHolding, Int]
   mut receipt : @execution.ManagedOutputValueReceipt?
   mut material : @execution.ManagedRetainedOutput[Int]?
+  mut material_allocation : @strategy.TaskRetainedAllocation?
   mut index_allocation : @strategy.TaskRetainedAllocation?
   mut open : Bool
   valid : Ref[Bool]
@@ -227,6 +228,7 @@ pub fn managed_view_output_open(
     retention,
     receipt: None,
     material: None,
+    material_allocation: None,
     index_allocation: None,
     open: true,
     valid: Ref(true),
@@ -274,6 +276,7 @@ pub fn managed_selected_output_open(
     retention,
     receipt: None,
     material: None,
+    material_allocation: None,
     index_allocation: None,
     open: true,
     valid: Ref(true),
@@ -382,6 +385,7 @@ fn managed_node_output(
     retention,
     receipt: None,
     material: None,
+    material_allocation: None,
     index_allocation: None,
     open: true,
     valid: Ref(true),
@@ -434,6 +438,10 @@ pub fn managed_output_cancel(value : ManagedNodeOutput) -> Unit {
   if value.index_allocation is Some(allocation) {
     @strategy.release_task_execution_allocation(allocation) |> ignore
     value.index_allocation = None
+  }
+  if value.material_allocation is Some(allocation) {
+    @strategy.release_task_execution_allocation(allocation) |> ignore
+    value.material_allocation = None
   }
 }
 
@@ -554,7 +562,39 @@ pub fn managed_output_retain(
   bytes : Int64,
   available : () -> Bool,
 ) -> Unit raise NodeHostFailure {
-  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.receipt is Some(receipt) &&
+    value.material is None &&
+    value.material_allocation is None else {
+    raise InvalidCommand
+  }
+  // A managed strategy output uses the same admitted task reservation as the
+  // legacy retained path. Convert its exact sealed body size into a holding
+  // before issuing the managed material. The Store callback proves continued
+  // availability; it is not a substitute for physical capacity ownership.
+  let allocation = match value.receiver {
+    Compute(run, _) if run.strategy is Some(_) => {
+      guard run.managed_storage_bytes is Some(limit) &&
+        bytes >= 0L &&
+        bytes <= limit else {
+        raise Physical(InvalidCharge)
+      }
+      if bytes == 0L {
+        None
+      } else {
+        let (graph, _, task_handle) = run.strategy.unwrap()
+        match
+          @strategy.retain_task_execution_allocation(
+            graph,
+            @duckdb_driver.captured_duckdb_execution(task_handle),
+            bytes,
+          ) {
+          Ok(value) => Some(value)
+          Err(issue) => raise Physical(issue)
+        }
+      }
+    }
+    _ => None
+  }
   let valid = value.valid
   match
     @execution.retain_managed_output(value.retention, {
@@ -562,8 +602,16 @@ pub fn managed_output_retain(
       bytes,
       available: fn() { valid.val && available() && valid.val },
     }) {
-    Err(issue) => raise ManagedRetention(issue)
-    Ok(material) => value.material = Some(material)
+    Err(issue) => {
+      if allocation is Some(value) {
+        @strategy.release_task_execution_allocation(value) |> ignore
+      }
+      raise ManagedRetention(issue)
+    }
+    Ok(material) => {
+      value.material_allocation = allocation
+      value.material = Some(material)
+    }
   }
 }
 
