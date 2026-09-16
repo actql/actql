@@ -22,7 +22,7 @@ export async function baselinePublicEntry(baselineRoot) {
   const adopted = JSON.parse(adoptedText);
   return async ({database, program, environment, environmentCid, parameters,
     nativeMilliseconds, signal, receivedRows, receivedCells = 1000,
-    receivedBytes = 100000}) => {
+    receivedBytes = 100000, receivedColumns = 10}) => {
     if (!Number.isSafeInteger(receivedRows) || receivedRows < 100 || receivedRows > 2147483647) {
       throw TypeError('InvalidBaselineReceivedRows');
     }
@@ -30,14 +30,17 @@ export async function baselinePublicEntry(baselineRoot) {
         !Number.isSafeInteger(receivedBytes) || receivedBytes < 100000) {
       throw TypeError('InvalidBaselineReceivedEnvelope');
     }
+    if (!Number.isSafeInteger(receivedColumns) || receivedColumns < 1 || receivedColumns > 64) {
+      throw TypeError('InvalidBaselineReceivedColumns');
+    }
     // Only the explicitly supplied receiver envelope differs from the example.
     const limits = {maxRows: receivedRows, maxCells: receivedCells, maxTransportBytes: receivedBytes,
-      maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+      maxSqlBytes: 10000, maxParameters: 10, maxColumns: Math.max(10, receivedColumns),
       memoryBytes: 128 * 1024 * 1024, threads: 1};
     // Acquisition may scan much more than it captures. Keep Compute's original
     // declared envelope; increasing acquisition transport must not silently
     // enlarge a selected Compute offer or bypass its capacity check.
-    const computeLimits = {...limits, maxRows: 100, maxCells: 1000, maxTransportBytes: 100000};
+    const computeLimits = {...limits, maxRows: 100, maxCells: 1000, maxTransportBytes: 100000, maxColumns: 10};
     const [programText, environmentText, parameterText] = await Promise.all(
       [program, environment, parameters].map(path => readFile(path, 'utf8')));
     const prepared = runtime.checked(app.prepareApplication(programText, environmentText, environmentCid,

@@ -797,3 +797,29 @@ options fail before preparation. The two comparator tests and all 17 benchmark
 helper tests pass. These are functional checks of the measurement entry, not
 paired timing samples or a claim that the supplied cost estimate is calibrated.
 The equivalent-obligations comparator and full formal comparison remain open.
+
+## Follow-up: wide selective baseline and current real-driver regression
+
+At `c51444d4`, the complete real-DuckDB Node suite passed 77 tests, including
+the 27-case default smoke and managed resident data profiles. This is not a rerun
+of the larger registered matrix, the three MoonBit targets or remote CI.
+
+The baseline capacity adapter now supports selective wide source shapes without
+changing Compute's id-only envelope. A new pinned archive at
+`/tmp/actql-baseline-wide-bhed5w` changes only example capacity arguments: source
+column bounds, receiver/receipt limits, metadata matching work and the existing
+benchmark ledger allowances. Runtime algorithms remain those of `b87584fe`.
+
+Initial attempts were incomplete: overreserved retention, insufficient metadata
+work, transport text exhaustion, then overreserved execution capacity. In
+particular, numeric source values have no string payload, but their serialized
+columns do use transport text. Logical wire is bounded separately from framed
+transport; the two-row output does not need source-sized retention. The adapter
+now makes these distinctions explicitly rather than enlarging the Run ceilings.
+
+Numeric-64/10000 then completed acquisition and three Compute tasks, matched the
+independent final CID and released its resources. One public-entry diagnostic
+was 1329.507 ms execution / 0.428 ms cleanup. This is not a paired timing or a
+performance acceptance result. Wide 100000-row, text, join and large-output
+baseline execution still need verification/adaptation; equivalent-obligations
+and formal paired comparisons remain unfinished.

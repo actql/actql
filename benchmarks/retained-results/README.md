@@ -274,11 +274,22 @@ Run ceilings. Runtime algorithms and per-Compute envelopes are unchanged.
 Use these transformations only in a separate baseline archive, then rebuild its
 three JS entries. Acquisition gets scaled copies of the original pure capacity
 helpers so the shared Compute defaults do not change. The adapter deliberately
-rejects wide, join and large-output profiles; it is not the full-matrix baseline.
+rejects join and large-output profiles; it is not the full-matrix baseline.
 It has executed selective/narrow/10000 and /100000 successfully, not merely
 generated text. Flat-row value allowances scale with the scan; completion-record
 and two-row capture metadata retain their original limits. Giving every metadata
 object the cumulative multi-task value allowance would distort the comparison.
+
+Selective wide inputs additionally scale source checking, source mapping,
+receiver columns and metadata matching work. Pass the fixture's field count as
+the third argument to the application transformation; Compute stays id-only with
+its original column bound. Numeric-64/10000 has completed through this assembly.
+The full wide matrix has not. Logical wire uses the registered representation
+bound, not the larger framing allowance. Physical string-value storage is zero
+for numeric fixtures (subject to original minimum limits), while serialized
+transport still needs text capacity. The two-row output's retention allowance
+remains unchanged. These distinctions avoid artificial baseline overreservation
+without modifying its runtime capacity policy or the experiment's Run ceilings.
 
 For the selective narrow 1000-row baseline diagnostic, apply
 `baseline-receipt-1004.patch` to a separate clean archive of the pinned baseline

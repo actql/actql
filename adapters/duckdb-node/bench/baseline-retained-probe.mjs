@@ -54,6 +54,7 @@ for (const fixture of cases) {
         receivedCells: Math.max(1000, fixture.fields.length *
           (fixture.fields.length + fixture.rows + 3 * fixture.limits.intermediateRows)),
         receivedBytes: Math.max(100000, fixture.limits.representationBytes * 4),
+        receivedColumns: fixture.fields.length,
       } : {}),
       signal: AbortSignal.timeout(fixture.limits.timeoutMs)});
     executionMs = performance.now() - started;

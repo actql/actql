@@ -17,20 +17,41 @@ test('baseline ledger adaptation leaves native offers and execution logic unchan
   assert.throws(() => adaptBaselineAcquisitionLedger(application + '// changed', 2560000), /UnrecognizedBaseline/);
   assert.throws(() => adaptBaselineAcquisitionLedger(application, NaN), /InvalidBaseline/);
   assert.throws(() => adaptBaselineAcquisitionLedger(application, 2147483648), /InvalidBaseline/);
+  assert.throws(() => adaptBaselineAcquisitionLedger(application, 2560000, 65), /InvalidBaseline/);
+  const wide = adaptBaselineAcquisitionLedger(application, 2560000, 64);
+  assert.equal(dispatch(wide.source), dispatch(application));
+  assert.equal(wide.source.replace(/\d+/g, '#'), application.replace(/\d+/g, '#'));
+  assert(wide.source.includes('source_limits(64)'));
+  assert(wide.source.includes('    table,\n    64,\n    native_query_limits(),'));
 });
 test('baseline receiver adaptation preserves original dispatch and query logic', () => {
-  for (const rows of [100, 1000, 10000, 100000, 1000000]) {
-    const fixture = retainedCase(workloads[0], 'narrow', rows);
+  const cases = [100, 1000, 10000, 100000, 1000000].map(rows => retainedCase(workloads[0], 'narrow', rows));
+  for (const layout of ['numeric-64', 'text-1024']) {
+    for (const rows of [10000, 100000]) cases.push(retainedCase(workloads[0], layout, rows));
+  }
+  for (const fixture of cases) {
     const result = adaptBaselineAcquisitionCapacity(original, fixture);
     assert.equal(result.profile, fixture.id);
     assert.equal(result.source.slice(result.source.indexOf('fn dispatch_limits(')),
       original.slice(original.indexOf('fn dispatch_limits(')));
     const query = value => value.slice(value.indexOf('fn native_query_limits('), value.indexOf('fn transport('));
     assert.equal(query(result.source), query(original));
-    const records = value => value.slice(value.indexOf('      records: {'), value.indexOf('    retention: {'));
+    const records = value => value.slice(value.indexOf('      records: {'), value.indexOf('    output_rows:'));
     assert.equal(records(result.source), records(original));
+    const acquisition = result.source.slice(result.source.indexOf('fn acquisition_limits('),
+      result.source.indexOf('fn dispatch_limits('));
+    const physical = acquisition.slice(acquisition.indexOf('    physical: {'),
+      acquisition.indexOf('    metadata_work:'));
+    assert(physical.includes(`max_text_bytes: ${Math.max(100000,
+      fixture.layout === 'text-1024' ? fixture.rows * 1024 : 0)}`));
+    assert(acquisition.includes(`max_retained_wire_bytes: ${Math.max(100000, fixture.limits.representationBytes)}`));
+    if (fixture.layout === 'numeric-64') {
+      assert(acquisition.includes('metadata_work: 28736'));
+      assert(acquisition.includes('max_columns: 64'));
+    }
     assert(result.changes.every(change => change.after > change.before));
-    assert(result.changes.some(change => change.field === 'max_received_rows' && change.after === rows + 4));
+    assert(result.changes.some(change => change.field === 'max_received_rows' &&
+      change.after === fixture.rows + fixture.fields.length + 2));
     // The two helper copies prevent Acquisition bounds changing Compute.
     const normalized = result.source.slice(0, result.source.indexOf('fn acquisition_measurement(')) +
       result.source.slice(result.source.indexOf('fn acquisition_limits('));
@@ -46,7 +67,7 @@ test('baseline adaptation rejects unknown source, unrelated profiles and overflo
   assert.throws(() => adaptBaselineAcquisitionCapacity(original,
     retainedCase(workloads[1], 'narrow', 1000)), /UnsupportedBaseline/);
   assert.throws(() => adaptBaselineAcquisitionCapacity(original,
-    retainedCase(workloads[0], 'numeric-64', 1000)), /UnsupportedBaseline/);
+    {...fixture, layout: 'unknown'}), /UnsupportedBaseline/);
   assert.throws(() => adaptBaselineAcquisitionCapacity(original,
     {...fixture, limits: {...fixture.limits, representationBytes: 2147483647}}), /InvalidBaseline/);
 });
