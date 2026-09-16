@@ -9,6 +9,8 @@ struct RetainedProducerScan {
   mut reuse : RetainedScanReuse?
   mut open : Bool
   mut measurement : FixedProducerMeasurement?
+  mut measurement_start : (Int, Int, Int)?
+  mut measurement_reuse : RetainedValueMeasurement?
   mut guard_issue : FixedInputGuardIssue?
   mut join_validation : FixedJoinStream?
 }
@@ -92,6 +94,8 @@ pub fn prepare_retained_producer_scan(
     reuse: None,
     open: true,
     measurement: None,
+    measurement_start: None,
+    measurement_reuse: None,
     guard_issue: None,
     join_validation: None,
   })

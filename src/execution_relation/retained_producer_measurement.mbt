@@ -56,6 +56,13 @@ pub fn attach_retained_producer_measurement(
   }
   measurement.scanning_input = true
   scan.measurement = Some(measurement)
+  scan.measurement_start = Some(
+    (
+      measurement.budget.work,
+      measurement.budget.bytes,
+      measurement.budget.nodes,
+    ),
+  )
   Ok(())
 }
 
@@ -69,6 +76,14 @@ fn measure_retained_producer_scan_row(
   }
   if !measurement.open {
     scan.guard_issue = Some(ForeignInput)
+    return
+  }
+  if scan.stream.rows == 1 {
+    scan.measurement_reuse = reusable_retained_value_measurement(
+      scan, measurement,
+    )
+  }
+  if scan.measurement_reuse is Some(_) {
     return
   }
   match
@@ -104,7 +119,60 @@ fn finish_retained_producer_scan_measurement(
     measurement.open = false
     return Err(issue)
   }
+  if scan.measurement_reuse is Some(evidence) {
+    // The complete exact representation has now been verified. Keep consumer
+    // accounting, but do not repeat the canonical value measurement pass.
+    measurement.budget.work -= evidence.work
+    measurement.budget.bytes -= evidence.bytes
+    measurement.budget.nodes -= evidence.nodes
+  } else if scan.measurement_start is Some((work, bytes, nodes)) {
+    // One bounded slot per physical generation. Publish only after complete
+    // identity verification and successful measurement, never from partial rows.
+    let material = scan.input.bound.output.representation.unwrap()
+    material.value_measurement = Some({
+      columns: scan.wire_columns.copy(),
+      ceiling: measurement.max_value_bytes,
+      depth: measurement.budget.depth,
+      work: work - measurement.budget.work,
+      bytes: bytes - measurement.budget.bytes,
+      nodes: nodes - measurement.budget.nodes,
+    })
+  }
   measurement.scanning_input = false
   measurement.next_input += 1
   advance_fixed_producer_input_measurement(measurement)
+}
+
+///|
+// Private Core-issued evidence, owned by a single immutable material generation.
+// This is a successful bound, not the exact maximum or a diagnostic position.
+priv struct RetainedValueMeasurement {
+  columns : Array[Int]
+  ceiling : Int
+  depth : Int
+  work : Int
+  bytes : Int
+  nodes : Int
+}
+
+///|
+fn reusable_retained_value_measurement(
+  scan : RetainedProducerScan,
+  measurement : FixedProducerMeasurement,
+) -> RetainedValueMeasurement? {
+  guard scan.reuse is Some(reuse) && retained_scan_reuse_available(reuse) else {
+    return None
+  }
+  guard reuse.material.value_measurement is Some(evidence) else { return None }
+  if evidence.columns != scan.wire_columns ||
+    evidence.ceiling > measurement.max_value_bytes ||
+    evidence.depth > measurement.budget.depth ||
+    evidence.work > measurement.budget.work ||
+    evidence.bytes > measurement.budget.bytes ||
+    evidence.nodes > measurement.budget.nodes {
+    // An insufficient summary is not a violation. Ordinary ordered measurement
+    // preserves the exact first failure and partial budget on tighter limits.
+    return None
+  }
+  Some(evidence)
 }

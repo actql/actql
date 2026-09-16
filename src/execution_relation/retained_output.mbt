@@ -5,6 +5,7 @@ struct RetainedOutputMaterial {
   receipt : AdmittedOutputStreamReceipt
   storage_bytes : Int64
   available : () -> Bool
+  mut value_measurement : RetainedValueMeasurement?
 }
 
 ///|
@@ -38,7 +39,12 @@ pub fn[T] retain_admitted_output_stream(
   available : () -> Bool,
 ) -> RetainedOutputHandle[T] {
   {
-    material: { receipt, storage_bytes: receipt.bytes.to_int64(), available, },
+    material: {
+      receipt,
+      storage_bytes: receipt.bytes.to_int64(),
+      available,
+      value_measurement: None,
+    },
     payload,
   }
 }
@@ -63,7 +69,10 @@ pub fn[T] retain_admitted_output_representation(
   if !available() {
     return Err(NotRetained)
   }
-  Ok({ material: { receipt, storage_bytes, available, }, payload, })
+  Ok({
+    material: { receipt, storage_bytes, available, value_measurement: None, },
+    payload,
+  })
 }
 
 ///|
