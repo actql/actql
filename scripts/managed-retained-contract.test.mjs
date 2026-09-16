@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import './managed-runtime-vectors.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const contract = read('spec/contracts/actql-managed-retained-execution.json');

@@ -15,6 +15,8 @@ import {
 // Values
 pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
 
+pub fn admit_managed_execution_profile(@canonical_json.CanonicalValue, RegistryLimits) -> Result[ManagedExecutionProfile, ManagedProfileIssue]
+
 pub fn admit_ordered_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredOrderedContract, OrderedContractIssue]
 
 pub fn admit_relation_registry(@canonical_json.CanonicalValue, @canonical_json.CanonicalValue, RegistryLimits) -> Result[RegisteredRelationContracts, RegistryIssue]
@@ -87,6 +89,8 @@ pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
 
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
 
+pub fn[P, T] cancel_managed_completion_port(ManagedCompletionPort[P, T]) -> Bool
+
 pub fn[P, T] cancel_managed_output_retention_port(ManagedOutputRetentionPort[P, T]) -> Bool
 
 pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
@@ -114,6 +118,8 @@ pub fn captured_row_count(CapturedRows) -> Int
 pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
+
+pub fn[P, T] complete_managed_output(ManagedCompletionPort[P, T], P) -> Result[ManagedCompletedOutput[T], TrustedOutputIssue]
 
 pub fn[P] complete_trusted_output(TrustedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
 
@@ -219,6 +225,22 @@ pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWire
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn[T] managed_completed_output_available(ManagedCompletedOutput[T]) -> Bool
+
+pub fn[T] managed_completed_output_matches_inputs(ManagedCompletedOutput[T], Array[ProducerRead]) -> Bool
+
+pub fn[T] managed_completed_output_matches_material(ManagedCompletedOutput[T], ManagedRetainedOutput[T]) -> Bool
+
+pub fn[T] managed_completed_output_matches_port(ManagedCompletedOutput[T], @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn[T] managed_completed_output_row_count(ManagedCompletedOutput[T]) -> Int
+
+pub fn[T] managed_completed_profile_cid(ManagedCompletedOutput[T]) -> String
+
+pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCompletedOutput[T]) -> Bool
+
+pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
+
 pub fn managed_output_value_fixed_measurement_matches(ManagedOutputValueReceipt, FixedProducerMeasurement) -> Bool
 
 pub fn managed_output_value_fixed_measurement_usage(ManagedOutputValueReceipt) -> (Int, Int, Int)?
@@ -278,6 +300,8 @@ pub fn prepare_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
+
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
@@ -632,6 +656,12 @@ pub(all) enum LogicalMeasureIssue {
   WireMeasureFailure
 } derive(Eq, @debug.Debug)
 
+type ManagedCompletedOutput[T]
+
+type ManagedCompletionPort[P, T]
+
+type ManagedExecutionProfile
+
 pub(all) enum ManagedOutputRetentionIssue {
   Closed
   Unverified
@@ -651,6 +681,12 @@ pub(all) enum ManagedOutputValueIssue {
 type ManagedOutputValueReceipt
 
 type ManagedOutputValues
+
+pub(all) enum ManagedProfileIssue {
+  InvalidLimits
+  BodyLimit
+  UnsupportedProfile
+} derive(Eq, @debug.Debug)
 
 type ManagedRetainedOutput[T]
 
