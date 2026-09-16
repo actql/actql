@@ -17,6 +17,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const l = f.limits;
   const started = performance.now();
   const moon = await import(runtime.href);
+  const retention = checked(moon.obligationRetention(1073741824n));
+  const ledgerReport = () => Object.fromEntries(Object.entries(moon.obligationRetentionUsage(retention))
+    .map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value]));
   assertBoundedVectorRuntime();
   const signal = suppliedSignal ? AbortSignal.any([suppliedSignal, AbortSignal.timeout(l.timeoutMs)])
     : AbortSignal.timeout(l.timeoutMs);
@@ -40,7 +43,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const list = names => names.map(quote).join(', ');
   const exec = async sql => { check(); await connection.run(sql); check(); };
   async function scan(sql, names, guardBudget, {retain = false, identity = true, records = false,
-    maxRows = l.intermediateRows, comparisons = []} = {}) {
+    maxRows = l.intermediateRows, comparisons = [], outputReservation} = {}) {
     check();
     const stream = checked(moon.obligationBegin(names, names.map(kind), names.map(() => false),
       {...physical, max_rows: maxRows, max_cells: maxRows * names.length}, wire, transport,
@@ -50,6 +53,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
         JSON.stringify([[exportPhysicalValue(rhs, {id: 'DOUBLE'})]]), l.maxValueBytes,
         {max_work: l.cumulativeGuardWork, max_bytes: l.representationBytes * 4,
           max_nodes: l.cumulativeValueNodes, max_depth: 64}))]));
+    if (retain) assert(outputReservation, 'output capacity must precede native execution');
     const writer = retain ? store.reserve(l.representationBytes) : undefined;
     if (writer) await writer.start();
     const result = await connection.stream(sql);
@@ -83,12 +87,17 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const receipt = checked(moon.obligationFinish(stream));
     if (writer && receipt._0) await writer.append(receipt._0);
     const body = writer ? await writer.seal({cid: receipt._1, bytes: receipt._2}) : undefined;
+    if (body) checked(moon.obligationHoldOutput(outputReservation, receipt._2));
     return Object.freeze({run, cid: receipt._1, bytes: receipt._2, rows: receipt._4,
       measurement: receipt._5, body, chunks, demands});
   }
   let sourceValidation;
   async function stage(name, query, names, inputs) {
     const before = performance.now(), ownBudget = budget();
+    // Declared bounded metadata allowance, not an observation of heap/RSS.
+    // Reserve it with the independent file before this stage performs SQL.
+    const metadataBytes = 4096 + names.reduce((sum, field) => sum + 256 + Buffer.byteLength(field) * 8, 0);
+    const outputReservation = checked(moon.obligationReserveOutput(retention, l.representationBytes, metadataBytes));
     let reusedMeasurements = 0;
     for (const input of inputs) {
       const producer = completed.get(input);
@@ -110,7 +119,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const comparisons = name === 'capture' ? [{consumer: 'a', rhs: 0}, {consumer: 'b', rhs: 0}]
       : name === 'a' && f.workload !== workloads[1] ? [{consumer: 'c', rhs: 0}] : [];
     const output = await scan(`SELECT ${list(names)} FROM bench_${name} ORDER BY rowid`, names,
-      ownBudget, {retain: true, comparisons});
+      ownBudget, {retain: true, comparisons, outputReservation});
     const demandInput = name === 'capture' ? sourceValidation
       : ['a', 'b', 'c'].includes(name) ? completed.get(inputs[0]) : undefined;
     let demand;
@@ -121,7 +130,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     check();
     completed.set(name, Object.freeze({...output, names: Object.freeze([...names])}));
     stages.push({stage: name, rows: output.rows, cid: output.cid, bytes: output.bytes,
-      milliseconds: performance.now() - before, parameterInsertRows: 0, reusedMeasurements,
+      milliseconds: performance.now() - before, parameterInsertRows: 0, reusedMeasurements, metadataBytes,
       comparisonDemand: demand && Object.fromEntries(Object.entries(demand).map(([key, value]) =>
         [key, typeof value === 'bigint' ? value.toString() : value]))});
   }
@@ -162,16 +171,17 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     report = {caseId: f.id, status: 'diagnostic-completed', acceptanceEligible: false,
       comparator: 'independent-obligation-assembly', executionMs, validationMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
-      holding: store.status(),
+      holding: store.status(), retentionLedger: ledgerReport(),
       capacity: {
         independentRetention: {limitBytes: 1073741824, fileReservedBytes: store.status().reservedBytes,
-          scope: 'Store files only; completion metadata not yet accounted'},
+          metadataAllowanceBytes: stages.reduce((sum, stage) => sum + stage.metadataBytes, 0),
+          scope: 'file bytes plus declared bounded metadata allowance; not measured heap'},
         execution: {limitBytes: l.executionMemoryBytes, configuredEngineBytes: l.executionMemoryBytes,
           scope: 'DB copies belong to execution capacity; JS/semantic scratch not yet reserved'},
         conformance: 'incomplete',
       },
       missing: ['matched process/cold timing boundaries', 'complete expression-demand/guard failure parity',
-        'independent file-plus-metadata retention and shared DB-plus-scratch execution admission',
+        'metadata allowance validation and shared DB-plus-scratch execution admission',
         'acquisition evidence metadata parity',
         'transfer/work accounting equivalence', 'complete negative conformance fixtures']};
   } catch (error) { primary = error; }
@@ -186,6 +196,10 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       ['store-cleanup', async () => {
         await store.cleanup();
         assert.equal(store.status().cleanupPending, false);
+        completed.clear();
+        sourceValidation = undefined;
+        checked(moon.obligationRetentionReleased(retention));
+        if (report) report.releasedRetentionLedger = ledgerReport();
       }],
     ]);
     if (report) report.cleanupMs = performance.now() - cleanupStarted;

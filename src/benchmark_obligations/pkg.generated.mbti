@@ -4,6 +4,7 @@ package "actql/actql/benchmark_obligations"
 import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
 }
 
 // Values
@@ -19,19 +20,33 @@ pub fn obligation_comparison_finish(ObligationComparison, Int) -> @adapter.Nativ
 
 pub fn obligation_finish(ObligationStream) -> (String, String?, Int, Int, Int, GuardSummary) raise ObligationFailure
 
+pub fn obligation_hold_output(ObligationOutputReservation, Int) -> Unit raise RetentionFailure
+
+pub fn obligation_reserve_output(ObligationRetention, Int, Int) -> ObligationOutputReservation raise RetentionFailure
+
+pub fn obligation_retention(Int64) -> ObligationRetention raise RetentionFailure
+
+pub fn obligation_retention_released(ObligationRetention) -> Unit raise RetentionFailure
+
+pub fn obligation_retention_usage(ObligationRetention) -> @physical_resources.LedgerUsage
+
 pub fn obligation_reuse_measurement(GuardSummary, GuardBudget) -> Bool
 
 // Errors
 type ObligationFailure
 
-// Types and methods
-type ComparisonSlot
+type RetentionFailure
 
+// Types and methods
 type GuardBudget
 
 type GuardSummary
 
 type ObligationComparison
+
+type ObligationOutputReservation
+
+type ObligationRetention
 
 type ObligationStream
 

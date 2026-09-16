@@ -10,4 +10,5 @@ import {
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
+  "actql/actql/physical_resources" @resources,
 }

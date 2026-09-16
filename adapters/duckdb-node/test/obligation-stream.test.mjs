@@ -12,6 +12,24 @@ test.before(async () => {
   moon = await import('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js');
 });
 const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
+test('retention reserves metadata and retains uncertain allocations until confirmed cleanup', () => {
+  const owner = checked(moon.obligationRetention(100n));
+  const first = checked(moon.obligationReserveOutput(owner, 80, 10));
+  assert.throws(() => checked(moon.obligationReserveOutput(owner, 10, 1)));
+  checked(moon.obligationHoldOutput(first, 20));
+  assert.equal(moon.obligationRetentionUsage(owner).held_bytes, 30n);
+  assert.throws(() => checked(moon.obligationHoldOutput(first, 20)));
+  assert.throws(() => checked(moon.obligationReserveOutput(owner, 61, 10)));
+  checked(moon.obligationReserveOutput(owner, 60, 10));
+  const pending = moon.obligationRetentionUsage(owner);
+  assert.equal(pending.held_bytes, 30n);
+  assert.equal(pending.reserved_retention_bytes, 70n);
+  checked(moon.obligationRetentionReleased(owner));
+  assert.equal(moon.obligationRetentionUsage(owner).held_bytes, 0n);
+  assert.equal(moon.obligationRetentionUsage(owner).reserved_retention_bytes, 0n);
+  assert.throws(() => checked(moon.obligationRetentionReleased(owner)));
+  assert.throws(() => checked(moon.obligationReserveOutput(owner, 1, 0)));
+});
 function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget, records = false,
   names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]} = {}) {
   return checked(moon.obligationBegin(names, kinds, nullable,

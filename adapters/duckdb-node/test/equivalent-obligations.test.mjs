@@ -17,7 +17,7 @@ test('comparator assembly cannot import product Host or strategy wiring', async 
   const manifest = await readFile(new URL('../../../src/benchmark_obligations/moon.pkg', import.meta.url), 'utf8');
   const imports = [...manifest.matchAll(/"actql\/actql\/([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(imports.sort(), ['connectors/duckdb/adapter', 'encode_core', 'execution_relation',
-    'relation_schema', 'value_admission', 'value_contract']);
+    'physical_resources', 'relation_schema', 'value_admission', 'value_contract']);
 });
 
 test('independent assembly validates hashes and holds every named boundary without product Host', async () => {
@@ -47,6 +47,10 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.capacity.independentRetention.fileReservedBytes, result.holding.reservedBytes);
       assert.equal(result.capacity.execution.limitBytes, fixture.limits.executionMemoryBytes);
       assert.equal(result.capacity.conformance, 'incomplete');
+      assert.equal(BigInt(result.retentionLedger.held_bytes), BigInt(result.holding.reservedBytes) +
+        BigInt(result.capacity.independentRetention.metadataAllowanceBytes));
+      assert.equal(result.releasedRetentionLedger.held_bytes, '0');
+      assert.equal(result.releasedRetentionLedger.reserved_retention_bytes, '0');
       assert((await readdir(directory)).every(name => /^source-\d-[a-z0-9-]+.duckdb$/.test(name)));
       if (i === 0 && layout === 'narrow') {
         // Row zero is excluded by the acquisition predicate, but full scan

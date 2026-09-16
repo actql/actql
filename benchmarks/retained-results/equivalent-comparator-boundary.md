@@ -109,8 +109,8 @@ Still required before equivalence approval:
 
 - Matched execution-process/cold and warm timing boundaries.
 - Complete expression-demand/guard failure parity and its negative fixtures.
-- Independent file-plus-metadata retention and shared DB-plus-scratch execution
-  admission, not only the Store limit or the engine's configured memory limit.
+- Validation of the declared completion-metadata allowance and shared
+  DB-plus-scratch execution admission, not only the Store or engine limit.
 - Acquisition evidence metadata construction/validation parity.
 - Transfer and logical-work accounting equivalence.
 - Broader ownership, cancellation at other execution phases and actual resource
@@ -160,6 +160,18 @@ The comparator must therefore account independently for:
 The current prototype reports Store reservations and the configured DuckDB
 memory ceiling explicitly but marks resource conformance incomplete. An engine
 setting alone neither reserves the external JS/MoonBit scratch nor proves a
-whole-process RSS bound. Likewise, file-only Store accounting does not account
-for completion metadata. These gaps must close before equivalent-obligation
-acceptance; the reporting correction alone does not close them.
+whole-process RSS bound.
+
+The independent assembly now uses the shared resource ledger to reserve file
+capacity plus a declared metadata allowance before each stage's native work.
+After sealing, it settles to actual file bytes plus that allowance. Pending
+reservations and completed holdings are released only after confirmed Store
+cleanup; failed cleanup cannot produce a successful sample. Boundary tests cover
+metadata-induced capacity rejection, settlement, pending allocations and closed
+owners. This shares a resource primitive, not product Host/DAG orchestration.
+
+The metadata allowance (4096 bytes plus 256 bytes and eight times UTF-8 name
+length per column) is provisional, not measured heap or a proven bound. Its
+validation, and simultaneous DB-plus-scratch accounting, remain required before
+equivalent-obligation acceptance. This change does not establish performance
+acceptance or alter the registered capacity ceilings.
