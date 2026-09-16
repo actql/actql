@@ -70,7 +70,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
       const begin = fields => {
         if (!output) {
           output = checked(moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)));
-          // Explicitly bounded fixture metadata reservation, not a default index.
+          // Explicit fixture entry cap, not a physical byte reservation.
+          // Host metadata allocation accounting remains a separate obligation.
           checked(moon.computeHostManagedOutputEnableIndex(output, 4));
         }
         return output;

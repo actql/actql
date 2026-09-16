@@ -79,3 +79,37 @@ test "managed row measurement index is optional bounded and sealed only on full 
   assert_true(stream.row_measurements.unwrap().cells.is_empty())
   assert_true(finish_managed_output_values(stream) is Err(Closed))
 }
+
+///|
+test "ordered occurrence selection avoids duplicate-map pass while permutations charge it" {
+  let owner = capture_fixture()
+  let source = managed_read_fixture(owner, Ref(true), index_cells=4)
+  let receiver = typed_receiver(owner, "[{\"filter\":\"n > 0\"}]")
+  let input = prepare_managed_producer_read(
+    receiver, 0, owner, source, 1000, 10000,
+  ).unwrap()
+  let plan = prepare_managed_view_plan(
+    input,
+    [row_kernel(receiver, 0)],
+    1000,
+    10000,
+    100,
+  ).unwrap()
+  // Two row checks + two column entries + four cell measurements.
+  let ordered = managed_view_selection_measurements(plan, [0, 1], 8).unwrap()
+  assert_true(
+    managed_view_selection_measurements(plan, [0, 1], 7) is Err(Limit),
+  )
+  assert_true(
+    managed_view_selection_measurements(plan, [1, 0], 8) is Err(Limit),
+  )
+  let permuted = managed_view_selection_measurements(plan, [1, 0], 10).unwrap()
+  for column in 0..<2 {
+    assert_eq(ordered[column].unwrap().bytes, permuted[column].unwrap().bytes)
+    assert_eq(ordered[column].unwrap().nodes, permuted[column].unwrap().nodes)
+  }
+  assert_true(
+    managed_view_selection_measurements(plan, [1, 1], 100)
+    is Err(InvalidSelection),
+  )
+}

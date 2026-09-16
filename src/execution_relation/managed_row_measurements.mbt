@@ -70,15 +70,35 @@ pub fn[T] managed_view_selection_measurements(
     return Err(Limit)
   }
   let mut work = max_work - selected_rows.length()
-  let seen : Map[Int, Bool] = Map([])
+  let mut increasing = true
+  let mut previous = -1
   for position, row in selected_rows {
     if row < 0 ||
       row >= receipt.rows ||
-      seen.contains(row) ||
+      row == previous ||
       (plan.rows == AllRows && position != row) {
       return Err(InvalidSelection)
     }
-    seen[row] = true
+    if row < previous {
+      increasing = false
+    }
+    previous = row
+  }
+  // Take/filter preserve source occurrence order. Strictly increasing indices
+  // prove uniqueness without allocating a row-sized temporary hash map.
+  // Permutations still need a bounded duplicate check; charge its extra pass.
+  if !increasing {
+    if selected_rows.length() > work {
+      return Err(Limit)
+    }
+    work -= selected_rows.length()
+    let seen : Map[Int, Bool] = Map([])
+    for row in selected_rows {
+      if seen.contains(row) {
+        return Err(InvalidSelection)
+      }
+      seen[row] = true
+    }
   }
   if plan.columns.length() > work {
     return Err(Limit)

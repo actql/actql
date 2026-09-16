@@ -278,7 +278,9 @@ pub fn managed_selected_output_open(
 }
 
 ///|
-/// Optional Host-reserved metadata for future selected-row measurements.
+/// Optional metadata for future selected-row measurements. This entry only
+/// enforces a cell-count cap; the installed Host must separately reserve its
+/// physical storage, including temporary metadata, before enabling it.
 /// Configure once before the selected Compute emits its first row.
 #export_name("computeHostManagedOutputEnableIndex")
 pub fn compute_host_managed_output_enable_index(
