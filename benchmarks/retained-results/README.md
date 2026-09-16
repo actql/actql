@@ -151,6 +151,14 @@ alone does not attest revision/build provenance: the caller must verify that
 separately. The unchanged baseline is currently unable to run this matrix through
 its default example limits; see observations before interpreting its exit code.
 
+`ACTQL_BASELINE_PROFILE=received-row-envelope` instead assembles the same old
+public APIs and supplies only a larger transport received-row allowance. This
+separate diagnostic includes metadata rows, full validation and projected output
+in that allowance; all other old limits remain fixed. It does not patch archived
+source or replace the baseline algorithm. It is intentionally not the final
+capacity-matched benchmark: old MoonBit acquisition, fragment, guard, retention
+and column bounds still need explicit capacity-only assembly configuration.
+
 `managed-configuration.mjs` is shared by the readiness gate and the retained
 comparison leg so their Program, envelopes, estimates, child limits and retention
 settings do not drift. It preserves the existing fixture ceilings; estimates are

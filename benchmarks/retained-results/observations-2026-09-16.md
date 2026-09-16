@@ -561,3 +561,26 @@ capacity-only assembly adaptation, without importing new execution algorithms.
 The unchanged baseline cannot silently be replaced by current materialized code.
 Until comparable execution is established, the baseline performance gate remains
 incomplete even though retained readiness has passed.
+
+## Follow-up: public baseline assembly and remaining internal capacities
+
+A separate `received-row-envelope` probe mode now assembles the old public
+MoonBit/Node APIs without changing any archived source. It raises only the
+transport received-row allowance; the final formula includes metadata rows as
+well as full validation and projected output. The first diagnostic formula
+omitted metadata for low-selectivity cases; that formula was corrected rather
+than treating its `Rows` failure as evidence of an internal semantic limit.
+
+With the corrected allowance, the 100-row narrow selective case gets past the
+Node row check and fails the MoonBit Host boundary instead. The earlier full
+27-case diagnostic also exposed fixed cell and preparation limits after the row
+check. No successful timing samples were produced. Inspection confirms fixed
+100-row/10-column acquisition and transport limits, 100-row generated sequence
+and fragment input bounds, and small guard/retention envelopes in the original
+example's `host_limits.mbt` and `limits_and_generation.mbt`.
+
+Thus merely increasing Node transport settings cannot produce a comparable
+baseline. The next adapter must parameterize the old example assembly's limits
+explicitly, without copying new retained, batching or streaming algorithms into
+the old runtime. This diagnostic mode remains distinct from both the unchanged
+example and a future capacity-matched baseline. All failed cases remain incomplete.

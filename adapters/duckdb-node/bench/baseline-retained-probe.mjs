@@ -11,13 +11,17 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {retainedMatrix} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {benchmarkEnvironment} from '../../../benchmarks/retained-results/environment.mjs';
 import {selectReadinessCases} from '../../../benchmarks/retained-results/selection.mjs';
+import {baselinePublicEntry} from './baseline-public-entry.mjs';
 
 const baselineRoot = process.env.ACTQL_RETAINED_BASELINE_ROOT;
 if (!baselineRoot) throw Error('ACTQL_RETAINED_BASELINE_ROOT must name an independently verified baseline build');
-const {runExample} = await import(pathToFileURL(resolve(baselineRoot,
-  'adapters/duckdb-node/examples/physical-strategy.mjs')).href);
+const profile = process.env.ACTQL_BASELINE_PROFILE ?? 'unchanged-example';
+if (!['unchanged-example', 'received-row-envelope'].includes(profile)) throw Error('InvalidBaselineProfile');
+const runExample = profile === 'received-row-envelope' ? await baselinePublicEntry(baselineRoot)
+  : (await import(pathToFileURL(resolve(baselineRoot,
+    'adapters/duckdb-node/examples/physical-strategy.mjs')).href)).runExample;
 const {cases, scope} = selectReadinessCases(retainedMatrix(), process.env.ACTQL_RETAINED_CASE);
-console.log(JSON.stringify({kind: 'unchanged-baseline-capability-diagnostic', scope,
+console.log(JSON.stringify({kind: 'baseline-capability-diagnostic', scope, profile,
   baselineRoot: resolve(baselineRoot), caseCount: cases.length, performanceAcceptance: false,
   provenance: 'caller must verify the source tree and build against experiment.baselineRevision'}));
 let incomplete = 0;
@@ -42,6 +46,8 @@ for (const fixture of cases) {
     ]);
     result = await runExample({database, program, environment: environmentFile,
       environmentCid: environment.cid, parameters, nativeMilliseconds: '1',
+      receivedRows: Math.max(100, fixture.fields.length + fixture.rows + fixture.cardinalities.capture,
+        3 * fixture.limits.intermediateRows),
       signal: AbortSignal.timeout(fixture.limits.timeoutMs)});
     assert.equal(result.report.status, 'host-tasks-completed');
     assert.equal(result.report.internal_output_cids.at(-1)?.cid, fixture.identity().rowsCid);
@@ -62,11 +68,11 @@ for (const fixture of cases) {
   const status = failed || cleanupErrors.length ? 'incomplete' : 'verified';
   if (status === 'incomplete') incomplete++;
   console.log(JSON.stringify({caseId: fixture.id, status,
-    ...(failed ? {error: String(error), cause: String(error?.cause)} : {}),
+    ...(failed ? {error: String(error), cause: error?.cause} : {}),
     ...(result ? {taskStatus: result.report.status, failure: result.report.failure,
       completedTasks: result.report.completed.length} : {}),
     ...(cleanupErrors.length ? {cleanupErrors, retainedDiagnosticDirectory: directory} : {})}));
 }
-console.log(JSON.stringify({kind: 'unchanged-baseline-capability-summary',
+console.log(JSON.stringify({kind: 'baseline-capability-summary', profile,
   attempted: cases.length, verified: cases.length - incomplete, incomplete}));
 if (incomplete) process.exitCode = 1;
