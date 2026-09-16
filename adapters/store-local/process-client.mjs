@@ -37,7 +37,7 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
       active();
       if (reserved || bytes !== capacityBytes) throw new RetainedFileError('StoreCapacity');
       reserved = true;
-      return Object.freeze({
+      const operations = {
         async start() {
           active();
           if (writer) throw new RetainedFileError('StoreAlreadyStarted');
@@ -51,57 +51,63 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
           writerStopped = false;
         },
         async append(text) { active(); await writer.append(text); },
-        async seal(identity) {
-          active();
-          const report = await writer.seal();
-          writerStopped = true;
-          if (report.bytes !== identity.bytes || report.cid !== identity.cid) throw new RetainedFileError('StoreIdentityMismatch');
-          await context.callHost({command: 'seal', output, report});
-          active(); sealed = true;
-          const read = async (operation, readSignal) => {
+        async appendBytes(bytes) { active(); await writer.appendBytes(bytes); },
+      };
+      const seal = async (identity, physical = false) => {
+        active();
+        const report = await writer.seal();
+        writerStopped = true;
+        if (!physical && (report.bytes !== identity?.bytes || report.cid !== identity?.cid)) {
+          throw new RetainedFileError('StoreIdentityMismatch');
+        }
+        await context.callHost({command: 'seal', output, report});
+        active(); sealed = true;
+        const read = async (operation, readSignal) => {
+          active(); readSignal?.throwIfAborted();
+          const descriptor = await context.callHost({command: 'read', output});
+          if (descriptor.session !== context.session || descriptor.bytes !== report.bytes || descriptor.cid !== report.cid ||
+              descriptor.maxFrameBytes !== maxFrameBytes) {
+            throw new RetainedFileError('ForeignStoreReadReport');
+          }
+          readers++;
+          let readStopped = false;
+          try {
+            const result = await operation(descriptor);
+            readStopped = true;
+            await context.callHost({command: 'read-finish', output, report: result.report});
             active(); readSignal?.throwIfAborted();
-            const descriptor = await context.callHost({command: 'read', output});
-            if (descriptor.session !== context.session || descriptor.bytes !== report.bytes || descriptor.cid !== report.cid ||
-                descriptor.maxFrameBytes !== maxFrameBytes) {
-              throw new RetainedFileError('ForeignStoreReadReport');
-            }
-            readers++;
-            let readStopped = false;
-            try {
-              const result = await operation(descriptor);
-              readStopped = true;
-              await context.callHost({command: 'read-finish', output, report: result.report});
-              active(); readSignal?.throwIfAborted();
-              return result.value;
-            } catch (error) {
-              if (['ForeignStoreFile', 'RetainedBodyChanged', 'RetainedBodyTruncated'].includes(error?.code)) closed = true;
-              throw error;
-            } finally {
-              // A rejection is not proof that descriptor close stopped a read.
-              // Its conservative parent borrow lasts until confirmed exit.
-              if (readStopped) readers--;
-            }
-          };
-          const body = Object.freeze({
-            available: () => sealed && !closed,
-            nativeFilePath() { active(); return filePath; },
-            close() { closed = true; },
-            async consume(accept, readSignal) {
-              return read(async descriptor => ({
-                report: await consumeDelegatedFile(descriptor, accept, readSignal),
-              }), readSignal);
-            },
-            async withVerifiedFile(use, readSignal, beforeRead) {
-              return read(descriptor => withVerifiedDelegatedFile(descriptor, use, readSignal, beforeRead), readSignal);
-            },
-          });
-          origins.set(body, Object.freeze({binding, identity: Object.freeze({
-            session: context.session, run: context.run, output,
-            bytes: report.bytes, cid: report.cid,
-          })}));
-          return body;
-        },
-      });
+            return result.value;
+          } catch (error) {
+            if (['ForeignStoreFile', 'RetainedBodyChanged', 'RetainedBodyTruncated'].includes(error?.code)) closed = true;
+            throw error;
+          } finally {
+            // A rejection is not proof that descriptor close stopped a read.
+            // Its conservative parent borrow lasts until confirmed exit.
+            if (readStopped) readers--;
+          }
+        };
+        const body = Object.freeze({
+          bytes: report.bytes, cid: report.cid,
+          available: () => sealed && !closed,
+          nativeFilePath() { active(); return filePath; },
+          close() { closed = true; },
+          async consume(accept, readSignal) {
+            return read(async descriptor => ({
+              report: await consumeDelegatedFile(descriptor, accept, readSignal),
+            }), readSignal);
+          },
+          async withVerifiedFile(use, readSignal, beforeRead) {
+            return read(descriptor => withVerifiedDelegatedFile(descriptor, use, readSignal, beforeRead), readSignal);
+          },
+        });
+        origins.set(body, Object.freeze({binding, identity: Object.freeze({
+          session: context.session, run: context.run, output,
+          bytes: report.bytes, cid: report.cid,
+        })}));
+        return body;
+      };
+      return Object.freeze({...operations, seal: identity => seal(identity),
+        sealPhysical: () => seal(undefined, true)});
     },
     close() { closed = true; },
     async cleanup() {

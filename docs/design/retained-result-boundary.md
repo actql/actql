@@ -20,6 +20,17 @@ An alternative representation requires verified conversion and independent
 storage sealing; supplying a byte count is not proof of either. Physical file
 identity stays with the Store and never replaces the logical content CID.
 
+The local Store accepts bounded UTF-8 text or bounded byte frames. Byte frames
+are copied before awaited I/O so a producer can reuse its native buffer without
+changing the admitted write. Frame and remaining-reservation limits are checked
+before allocation and writing. Local and delegated writers use the same physical
+hash and exact-file sealing boundary. `seal(identity)` additionally checks an
+expected physical identity; `sealPhysical()` obtains that identity from the
+writer's own accumulated bytes. Neither operation establishes a logical content
+mapping or execution completion. Delegated writes send only the bounded terminal
+physical report to the control Host, not their payload. Failed or interrupted
+writes retain their existing cleanup and conservative accounting obligations.
+
 Full-output representation transfer uses an exact `ProducerStorage`, not a
 fabricated consumer `ProducerRead`. `RetainedStorageScan` decodes bounded rows
 using the common typed decoder and canonical stream encoder without retaining

@@ -118,18 +118,20 @@ export async function createLocalRetainedStore(options) {
       finally { entry.busy = false; }
     };
 
-    const append = async text => {
+    const append = async (frame, binary = false) => {
       active();
       if (!entry.fd || entry.sealed || entry.busy) fail('InvalidStoreWriteState');
-      if (typeof text !== 'string') fail('InvalidStoreFrame');
-      const bytes = Buffer.byteLength(text, 'utf8');
+      if (binary ? !(frame instanceof Uint8Array) : typeof frame !== 'string') fail('InvalidStoreFrame');
+      const bytes = binary ? frame.byteLength : Buffer.byteLength(frame, 'utf8');
       if (bytes > maxFrameBytes || bytes > entry.reservation - entry.bytes ||
           !Number.isSafeInteger(admittedWriteBytes + uncertainWriteBytes + delegatedWriteBytes + bytes)) fail('StoreCapacity');
       entry.busy = true;
       // Charge accepted traffic before writing; failure never refunds it. The
       // reservation remains conservative if the write outcome becomes unknown.
       admittedWriteBytes += bytes;
-      const buffer = Buffer.from(text, 'utf8');
+      // Copy bounded bytes before the first await: native producers may reuse
+      // their output buffer as soon as the write has been submitted.
+      const buffer = binary ? Buffer.from(frame) : Buffer.from(frame, 'utf8');
       try {
         let offset = 0;
         while (offset < buffer.length) {
@@ -144,15 +146,17 @@ export async function createLocalRetainedStore(options) {
       finally { entry.busy = false; }
     };
 
-    const seal = async ({ bytes, cid }, delegated = false) => {
+    const seal = async (identity, delegated = false, physical = false) => {
       active();
       if (!entry.fd || entry.sealed || entry.busy) fail('InvalidStoreSealState');
       entry.busy = true;
       try {
+        const bytes = physical ? entry.bytes : identity?.bytes;
+        const actual = delegated ? undefined : `sha256:${entry.hash.digest('hex')}`;
+        const cid = physical ? actual : identity?.cid;
         if (!quantity(bytes) || bytes !== entry.bytes ||
             typeof cid !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(cid)) fail('StoreIdentityMismatch');
         if (!delegated) {
-          const actual = `sha256:${entry.hash.digest('hex')}`;
           if (cid !== actual) fail('StoreIdentityMismatch');
         }
         const state = await entry.fd.stat();
@@ -305,7 +309,11 @@ export async function createLocalRetainedStore(options) {
       revoke();
       return true;
     };
-    return Object.freeze({ start, append, seal: identity => seal(identity),
+    return Object.freeze({ start, append: text => append(text), appendBytes: bytes => append(bytes, true),
+      seal: identity => seal(identity),
+      // Physical-byte proof only. Logical content/conversion and completion
+      // still require their own exact, installed verifier.
+      sealPhysical: () => seal(undefined, false, true),
       delegate, finishDelegated, confirmDelegatedStopped,
       cancel: revoke, cleanupHandle });
   };

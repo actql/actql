@@ -34,27 +34,29 @@ export async function openDelegatedFile(supplied, signal) {
     if (!state.isFile() || state.dev !== lease.device || state.ino !== lease.inode || state.size !== 0) fail('ForeignStoreFile');
     signal?.throwIfAborted();
   } catch (error) { await close(); throw error; }
+  const append = async (frame, binary = false) => {
+    active();
+    if (binary ? !(frame instanceof Uint8Array) : typeof frame !== 'string') fail('InvalidStoreFrame');
+    const size = binary ? frame.byteLength : Buffer.byteLength(frame, 'utf8');
+    if (size > lease.maxFrameBytes || size > lease.maxBytes - bytes) fail('StoreCapacity');
+    const buffer = binary ? Buffer.from(frame) : Buffer.from(frame, 'utf8');
+    busy = true;
+    try {
+      let offset = 0;
+      while (offset < size) {
+        signal?.throwIfAborted();
+        const { bytesWritten } = await fd.write(buffer, offset, size - offset, bytes + offset);
+        if (!bytesWritten) fail('IncompleteStoreWrite');
+        offset += bytesWritten;
+      }
+      hash.update(buffer);
+      bytes += size;
+    } catch (error) { failed = true; throw error; }
+    finally { busy = false; }
+  };
   return Object.freeze({
-    async append(text) {
-      active();
-      if (typeof text !== 'string') fail('InvalidStoreFrame');
-      const size = Buffer.byteLength(text, 'utf8');
-      if (size > lease.maxFrameBytes || size > lease.maxBytes - bytes) fail('StoreCapacity');
-      const buffer = Buffer.from(text, 'utf8');
-      busy = true;
-      try {
-        let offset = 0;
-        while (offset < size) {
-          signal?.throwIfAborted();
-          const { bytesWritten } = await fd.write(buffer, offset, size - offset, bytes + offset);
-          if (!bytesWritten) fail('IncompleteStoreWrite');
-          offset += bytesWritten;
-        }
-        hash.update(buffer);
-        bytes += size;
-      } catch (error) { failed = true; throw error; }
-      finally { busy = false; }
-    },
+    append: text => append(text),
+    appendBytes: bytes => append(bytes, true),
     async seal() {
       active();
       busy = true;

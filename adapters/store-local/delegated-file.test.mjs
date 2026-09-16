@@ -18,6 +18,49 @@ async function fixture(t) {
   return { store, write };
 }
 
+test('binary output stays in the execution process and seals the same physical holding', async t => {
+  const {store, write} = await fixture(t);
+  const worker = await startManagedExecution({
+    entry: new URL('./delegated-file-fixture.mjs', import.meta.url), run: 'binary-run',
+    frames: {maxBytes: 4096, maxNodes: 100, maxDepth: 10},
+    maxRequests: 1, graceMs: 100, startupMs: 5000,
+  });
+  t.after(() => worker.close());
+  const report = await worker.request({command: 'write-binary', lease: write.delegate(worker.identity().session)});
+  assert.deepEqual(Object.keys(report).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
+  const expected = Buffer.from([0, 255, 128, 1, 2, 3]);
+  const body = await write.finishDelegated(report);
+  await worker.close();
+  assert.equal(worker.status().exited, true);
+  assert.equal(body.available(), true);
+  assert.equal(body.cid, `sha256:${createHash('sha256').update(expected).digest('hex')}`);
+  const chunks = [];
+  await body.consume(bytes => chunks.push(Buffer.from(bytes)));
+  assert.deepEqual(Buffer.concat(chunks), expected);
+  assert.equal(store.status().reservedBytes, 6);
+  assert.equal(store.status().admittedWriteBytes, 6);
+  assert.equal(store.status().delegatedWriteBytes, 0);
+});
+
+test('delegated binary frames copy before await and reject capacity before writing', async t => {
+  const {store, write} = await fixture(t);
+  const writer = await openDelegatedFile(write.delegate('binary-session'));
+  t.after(() => writer.close());
+  for (const invalid of ['text', [1, 2], new Uint16Array(2), null]) {
+    await assert.rejects(writer.appendBytes(invalid), {code: 'InvalidStoreFrame'});
+  }
+  await assert.rejects(writer.appendBytes(new Uint8Array(5)), {code: 'StoreCapacity'});
+  const input = Buffer.from([0, 255, 128, 1]);
+  const pending = writer.appendBytes(input);
+  input.fill(42);
+  await assert.rejects(writer.seal(), {code: 'InvalidStoreWriteState'});
+  await pending;
+  const body = await write.finishDelegated(await writer.seal());
+  assert.equal(body.bytes, 4);
+  assert.equal(body.cid, `sha256:${createHash('sha256').update(Buffer.from([0, 255, 128, 1])).digest('hex')}`);
+  assert.equal(store.status().reservedBytes, 4);
+});
+
 test('control-owned inode survives writer process exit without body transfer', async t => {
   const { store, write } = await fixture(t);
   const process = await startManagedExecution({

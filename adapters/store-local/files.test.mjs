@@ -59,6 +59,37 @@ test('seal binds exact bytes; release preserves cumulative traffic and cannot ru
   assert.equal(store.status().admittedWriteBytes, 7);
 });
 
+test('binary storage snapshots bounded bytes and seals physical identity without a logical claim', async t => {
+  const {store} = await fixture(t, {maxFrameBytes: 4});
+  const writer = store.reserve(6);
+  await writer.start();
+  for (const invalid of ['text', [1, 2], new Uint16Array(2), null]) {
+    await assert.rejects(writer.appendBytes(invalid), code('InvalidStoreFrame'));
+  }
+  await assert.rejects(writer.appendBytes(new Uint8Array(5)), code('StoreCapacity'));
+  assert.equal(store.status().admittedWriteBytes, 0);
+  const source = new Uint8Array([9, 0, 255, 128, 9]);
+  const pending = writer.appendBytes(source.subarray(1, 4));
+  source.fill(42);
+  await assert.rejects(writer.sealPhysical(), code('InvalidStoreSealState'));
+  await pending;
+  await writer.appendBytes(new Uint8Array([1, 2, 3]));
+  await assert.rejects(writer.appendBytes(new Uint8Array([4])), code('StoreCapacity'));
+  const expected = Buffer.from([0, 255, 128, 1, 2, 3]);
+  const body = await writer.sealPhysical();
+  assert.equal(body.bytes, expected.length);
+  assert.equal(body.cid, digest(expected));
+  const chunks = [];
+  await body.consume(bytes => chunks.push(Buffer.from(bytes)));
+  assert.deepEqual(Buffer.concat(chunks), expected);
+  assert.equal(store.status().reservedBytes, 6);
+  assert.equal(store.status().admittedWriteBytes, 6);
+  await assert.rejects(writer.sealPhysical(), code('InvalidStoreSealState'));
+  body.close(); await body.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
+  assert.equal(store.status().admittedWriteBytes, 6);
+});
+
 test('batch rejection is before I/O and aggregate reservation cannot be overrun', async t => {
   const { store } = await fixture(t, { maxFrameBytes: 4 });
   const write = store.reserve(6);

@@ -9,6 +9,63 @@ import {createProcessStoreLease, processRetainedBodyIdentity} from './process-cl
 import {createProcessRetainedStore} from './process-service.mjs';
 import {registerRetainedInput, retainedStorageBody} from './representations.mjs';
 
+test('process Store seals binary physical identity without relaying payload or granting completion', async () => {
+  for (const mode of ['physical', 'expected', 'mismatch', 'cancel']) {
+    const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-binary-lease-'));
+    const store = createProcessRetainedStore({parentDirectory, capacityBytes: 8, maxFrameBytes: 4, maxEntries: 1});
+    const identity = {session: 'binary-session', run: 'same-run'};
+    let stop;
+    const stopped = new Promise(resolve => { stop = resolve; });
+    store.observe({identity: () => identity, cleanupHandle: {whenStopped: () => stopped}});
+    const controller = new AbortController(), messages = [];
+    const context = {...identity, callHost: request => {
+      messages.push(structuredClone(request));
+      return store.service.invoke(request, controller.signal,
+        {...identity, sequence: 1, call: messages.length});
+    }};
+    const binding = bindProcessStore(context);
+    const lease = createProcessStoreLease(binding, 'output', 8, 4, controller.signal);
+    try {
+      const writer = lease.reserve(8);
+      await writer.start();
+      await assert.rejects(writer.appendBytes(new Uint8Array(5)), {code: 'StoreCapacity'});
+      const source = new Uint8Array([0, 255, 128, 1]);
+      const pending = writer.appendBytes(source);
+      source.fill(42);
+      await pending;
+      const expected = Buffer.from([0, 255, 128, 1]);
+      const cid = `sha256:${createHash('sha256').update(expected).digest('hex')}`;
+      assert.deepEqual(messages.map(value => value.command), ['reserve']);
+      assert.equal(store.body('output'), undefined);
+      if (mode === 'cancel') {
+        controller.abort();
+        await assert.rejects(writer.sealPhysical());
+        assert.equal(store.body('output'), undefined);
+      } else if (mode === 'mismatch') {
+        await assert.rejects(writer.seal({bytes: 4, cid: `sha256:${'0'.repeat(64)}`}), {code: 'StoreIdentityMismatch'});
+        assert.equal(store.body('output'), undefined);
+      } else {
+        const body = mode === 'physical' ? await writer.sealPhysical() : await writer.seal({bytes: 4, cid});
+        assert.equal(body.bytes, 4);
+        assert.equal(body.cid, cid);
+        assert.deepEqual(processRetainedBodyIdentity(body, binding), {...identity, output: 'output', bytes: 4, cid});
+        assert.equal(store.body('output').cid, cid);
+        assert.equal(store.status().reservedBytes, 4);
+        assert.deepEqual(messages.map(value => value.command), ['reserve', 'seal']);
+        assert.deepEqual(Object.keys(messages[1]).sort(), ['command', 'output', 'report']);
+        assert.deepEqual(Object.keys(messages[1].report).sort(), ['bytes', 'cid', 'session', 'token', 'version']);
+        const chunks = [];
+        await body.consume(chunk => chunks.push(Buffer.from(chunk)));
+        assert.deepEqual(Buffer.concat(chunks), expected);
+        await assert.rejects(writer.sealPhysical(), {code: 'InvalidStoreWriteState'});
+      }
+    } finally {
+      lease.close(); await lease.cleanup(); stop(); await stopped;
+      await store.close(); await store.cleanupHandle.retry(); await rmdir(parentDirectory);
+    }
+  }
+});
+
 test('completion storage lookup keeps exact material, lease and process binding with real sealed bytes', async () => {
   const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-completion-lease-'));
   const store = createProcessRetainedStore({parentDirectory, capacityBytes: 100, maxFrameBytes: 100, maxEntries: 1});
