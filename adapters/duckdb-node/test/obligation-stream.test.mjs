@@ -71,3 +71,37 @@ test('owned completed measurement can be charged again but never waives a consum
   assert.throws(() => begin({budget: shared}));
   assert.equal(moon.obligationReuseMeasurement(summary, shared), false);
 });
+
+test('comparison demand is bound to a finished scan and discharges each consumer once', () => {
+  const stream = begin({names: ['id'], kinds: [0], nullable: [true]});
+  const demand = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
+    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1}));
+  assert.throws(() => checked(moon.obligationComparisonFinish(demand, 1)));
+  checked(moon.obligationAppend(stream, 3, '[["3ff0000000000000",null,"bff0000000000000"]]'));
+  assert.throws(() => checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
+    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1})));
+  checked(moon.obligationFinish(stream));
+  const usage = checked(moon.obligationComparisonFinish(demand, 1));
+  assert.equal(usage.rows, 3);
+  assert.equal(usage.field_bytes, 7n);
+  assert.equal(usage.predicate_bytes, 13n);
+  assert.equal(usage.physical_work, 4);
+  assert.equal(usage.physical_bytes, 8);
+  assert.throws(() => checked(moon.obligationComparisonFinish(demand, 1)));
+});
+
+test('future consumer demand failure does not retroactively fail its producer', () => {
+  for (const work of [1, 100]) {
+    const stream = begin({names: ['id'], kinds: [0], nullable: [false]});
+    const demand = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 4,
+      {max_work: work, max_bytes: 100, max_nodes: 100, max_depth: 1}));
+    const text = checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"]]'));
+    const receipt = checked(moon.obligationFinish(stream));
+    assert.equal(text + receipt._0, '[{"id":1}]');
+    assert.equal(receipt._1, hash('[{"id":1}]'));
+    // With work=1 RHS measurement failed; otherwise a false predicate needs
+    // five bytes, exceeding this consumer's four-byte limit.
+    assert.throws(() => checked(moon.obligationComparisonFinish(demand, 0)));
+    assert.throws(() => checked(moon.obligationComparisonFinish(demand, 0)));
+  }
+});

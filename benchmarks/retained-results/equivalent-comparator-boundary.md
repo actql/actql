@@ -74,6 +74,17 @@ or exhausted budget falls back to measurement; it is not silently waived. The
 orchestration must bind that summary to its private immutable table and live
 retained result. These are benchmark tokens, not production completion evidence.
 
+The prototype now attaches the adapter's common comparison-demand measurement
+to the existing source/output traversal for the registered acquisition and
+filter consumers. Numeric RHS admission uses the physical decoder. Each demand
+token is bound to its exact completed input scan, consumed once, and finished
+using the actual SQL output cardinality. No extra input scan is added. Pending
+future-consumer demand failures are retained until that consumer completes;
+they do not fail its already completed producer. Each stage's report includes
+operand/predicate quantities and physical measurement usage. This connects
+comparison measurement, not the remaining logical-work charging, acquisition
+evidence metadata or full failure-precedence equivalence.
+
 The current tests cover nine small workload/layout combinations, order,
 duplicates, NULL, Unicode, column-order permutation, nonfinite physical values,
 guard exhaustion, poisoned streams, cumulative measurement budgets, an invalid

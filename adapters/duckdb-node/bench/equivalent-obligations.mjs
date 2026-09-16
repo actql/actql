@@ -40,11 +40,16 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const list = names => names.map(quote).join(', ');
   const exec = async sql => { check(); await connection.run(sql); check(); };
   async function scan(sql, names, guardBudget, {retain = false, identity = true, records = false,
-    maxRows = l.intermediateRows} = {}) {
+    maxRows = l.intermediateRows, comparisons = []} = {}) {
     check();
     const stream = checked(moon.obligationBegin(names, names.map(kind), names.map(() => false),
       {...physical, max_rows: maxRows, max_cells: maxRows * names.length}, wire, transport,
       guardBudget, records, retain, identity, l.batchBytes));
+    const demands = new Map(comparisons.map(({consumer, rhs}) => [consumer,
+      checked(moon.obligationComparison(stream, 'id',
+        JSON.stringify([[exportPhysicalValue(rhs, {id: 'DOUBLE'})]]), l.maxValueBytes,
+        {max_work: l.cumulativeGuardWork, max_bytes: l.representationBytes * 4,
+          max_nodes: l.cumulativeValueNodes, max_depth: 64}))]));
     const writer = retain ? store.reserve(l.representationBytes) : undefined;
     if (writer) await writer.start();
     const result = await connection.stream(sql);
@@ -79,8 +84,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     if (writer && receipt._0) await writer.append(receipt._0);
     const body = writer ? await writer.seal({cid: receipt._1, bytes: receipt._2}) : undefined;
     return Object.freeze({run, cid: receipt._1, bytes: receipt._2, rows: receipt._4,
-      measurement: receipt._5, body, chunks});
+      measurement: receipt._5, body, chunks, demands});
   }
+  let sourceValidation;
   async function stage(name, query, names, inputs) {
     const before = performance.now(), ownBudget = budget();
     let reusedMeasurements = 0;
@@ -101,12 +107,23 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       assert(result.getRowObjects()[0].pairs <= BigInt(l.intermediateRows), 'join output guard');
     }
     await exec(`CREATE TEMP TABLE bench_${name} AS ${query}`);
+    const comparisons = name === 'capture' ? [{consumer: 'a', rhs: 0}, {consumer: 'b', rhs: 0}]
+      : name === 'a' && f.workload !== workloads[1] ? [{consumer: 'c', rhs: 0}] : [];
     const output = await scan(`SELECT ${list(names)} FROM bench_${name} ORDER BY rowid`, names,
-      ownBudget, {retain: true});
+      ownBudget, {retain: true, comparisons});
+    const demandInput = name === 'capture' ? sourceValidation
+      : ['a', 'b', 'c'].includes(name) ? completed.get(inputs[0]) : undefined;
+    let demand;
+    if (demandInput) {
+      assert(demandInput.run === run && demandInput.demands.has(name), 'missing exact input demand');
+      demand = checked(moon.obligationComparisonFinish(demandInput.demands.get(name), output.rows));
+    }
     check();
     completed.set(name, Object.freeze({...output, names: Object.freeze([...names])}));
     stages.push({stage: name, rows: output.rows, cid: output.cid, bytes: output.bytes,
-      milliseconds: performance.now() - before, parameterInsertRows: 0, reusedMeasurements});
+      milliseconds: performance.now() - before, parameterInsertRows: 0, reusedMeasurements,
+      comparisonDemand: demand && Object.fromEntries(Object.entries(demand).map(([key, value]) =>
+        [key, typeof value === 'bigint' ? value.toString() : value]))});
   }
   try {
     check();
@@ -119,7 +136,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     await exec('BEGIN TRANSACTION'); transaction = true;
     const validationStarted = performance.now();
     const validation = await scan(`SELECT ${list(f.fields)} FROM records ORDER BY rowid`,
-      f.fields, budget(), {records: true, maxRows: l.sourceRows});
+      f.fields, budget(), {records: true, maxRows: l.sourceRows,
+        comparisons: [{consumer: 'capture', rhs: f.minimum}]});
+    sourceValidation = validation;
     const validationMs = performance.now() - validationStarted;
     const names = f.workload === workloads[2] ? f.fields : ['id'];
     await stage('capture', `SELECT ${list(names)} FROM records WHERE id > ${f.minimum} ORDER BY rowid`, names, []);

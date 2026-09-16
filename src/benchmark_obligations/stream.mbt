@@ -17,6 +17,8 @@ struct ObligationStream {
   mut max_value_bytes : Int
   mut value_depth : Int
   mut open : Bool
+  mut finished : Bool
+  comparisons : Array[(Int, ComparisonSlot)]
 }
 
 ///|
@@ -72,6 +74,7 @@ suberror ObligationFailure {
   Physical(@duckdb.PhysicalResultIssue)
   Encoding(Error)
   GuardLimit
+  Demand(@duckdb.NativeDemandIssue)
 }
 
 ///|
@@ -190,6 +193,8 @@ pub fn obligation_begin(
       max_value_bytes: 0,
       value_depth: 0,
       open: true,
+      finished: false,
+      comparisons: [],
     }
   } catch {
     issue => raise Encoding(issue)
@@ -293,6 +298,18 @@ pub fn obligation_append(
   try {
     for row in 0..<rows {
       measure_row(stream, batch, row)
+      for (column, comparison) in stream.comparisons {
+        if comparison.issue is None {
+          match
+            @duckdb.append_comparison_measurement(
+              comparison.measurement,
+              @duckdb.physical_batch_cell(batch, row, column).unwrap().value,
+            ) {
+            Ok(_) => ()
+            Err(issue) => comparison.issue = Some(issue)
+          }
+        }
+      }
       if !stream.identity {
         continue
       }
@@ -347,6 +364,7 @@ pub fn obligation_finish(
     }
     let (rows, _, _, _) = @duckdb.physical_result_usage(stream.physical)
     stream.guard_budget.borrowed = false
+    stream.finished = true
     (
       tail,
       cid,

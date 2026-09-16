@@ -34,6 +34,13 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.validationRows, 100);
       assert.equal(result.stages.at(-1).cid, fixture.identity().rowsCid);
       assert.equal(result.stages.length, workload === workloads[1] ? 5 : 4);
+      for (const stage of result.stages) {
+        if (['capture', 'a', 'b', 'c'].includes(stage.stage)) {
+          assert.equal(stage.comparisonDemand.true_rows, stage.rows);
+          assert.equal(stage.comparisonDemand.rows,
+            stage.stage === 'capture' ? fixture.rows : fixture.cardinalities.capture);
+        }
+      }
       assert.equal(result.acceptanceEligible, false);
       assert(result.missing.length > 0);
       assert.equal(result.capacity.independentRetention.limitBytes, 1073741824);
