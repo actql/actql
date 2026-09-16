@@ -121,24 +121,19 @@ fn finish_fixed_import_row(
   values : Array[@admitted.CheckedValue],
   materialize_parameters : Bool,
 ) -> Result[Array[PhysicalParameter], FixedImportStreamIssue] {
-  let parameters = []
   accumulate_fixed_import_demand(stream, values)
   stream.rows += 1
+  if !materialize_parameters {
+    // prepare_fixed_import compiled this immutable receiver schema through
+    // parameter_type before constructing owner. Direct/resident readers still
+    // pass value admission, content verification and per-consumer demand above;
+    // repeating schema-only eligibility for every cell discharges no new duty.
+    return Ok([])
+  }
+  let parameters = []
   let schema = @execution.producer_read_schema(stream.owner.input)
   for column, value in values {
     let field = @schema.field_at(schema, column).unwrap()
-    if !materialize_parameters {
-      // Resident reuse still checks the receiving physical type, but needs no
-      // parameter object or parameter-wire representation of an existing cell.
-      match parameter_type(field.contract) {
-        Ok(_) => ()
-        Err(issue) => {
-          @execution.cancel_retained_producer_scan(stream.scan) |> ignore
-          return Err(Parameter(issue))
-        }
-      }
-      continue
-    }
     // Use the receiving column's contract exactly as the cell-backed importer
     // does; the stored producer's schema need not use the same field names.
     match

@@ -110,7 +110,7 @@ test "retained Compute fixes frame capacity before streaming and rejects full ro
 
 ///|
 test "retained Compute inputs must finish exact import before result receiving" {
-  for case_index in 0..<6 {
+  for case_index in 0..<8 {
     let mode = case_index / 2
     let materialize_parameters = case_index % 2 == 0
     let producer_transport : FixedComputeTestTransport = { settled: None, }
@@ -170,6 +170,26 @@ test "retained Compute inputs must finish exact import before result receiving" 
       retained_attempt_wire_limits(),
       64,
     ).unwrap()
+    if mode == 3 {
+      // Omitting parameter construction does not omit value admission, even
+      // though the immutable receiver's physical type was checked at prepare.
+      assert_true(
+        @duckdb_compute.append_duckdb_compute_input_stream(
+          attempt,
+          0,
+          "{\"id\":\"not a number\"}",
+          { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+          materialize_parameters~,
+        )
+        is Err(_),
+      )
+      assert_false(@duckdb_compute.duckdb_compute_inputs_ready(attempt))
+      assert_true(
+        @duckdb_compute.finish_duckdb_compute_input_stream(attempt, 0) is Err(_),
+      )
+      @duckdb_compute.close_duckdb_compute_attempt(producer)
+      continue
+    }
     let parameters = @duckdb_compute.append_duckdb_compute_input_stream(
       attempt,
       0,
