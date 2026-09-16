@@ -23,10 +23,28 @@ out-of-range indices and duplicate occurrences are rejected before issuance.
 Late material cancellation, authorization and execution verification retain
 their existing checks.
 
-The actual integration fixture still obtains zero or one filtered row from a
-count. The API and Core support longer ordered subsets, but this increment does
-not claim a multirow native filter integration test or general filter/take/sort
-chain completion. Those paths, physical index reservations and the original
+The actual integration fixture now also consumes the independently retained
+computed derive output after its original ancestor has been reclaimed. DuckDB
+produces two rows with the same numeric `marker = 2`, alongside copied text
+columns. A subsequent native `marker > 1` filter and `marker`-to-`n` projection
+return source occurrences `[0, 1]`: equal content does not collapse distinct
+row occurrences. An empty-input control returns no occurrences. Both ordinary
+value admission and preserved-index issuance pass through physical holding and
+the same managed query completion. The preserved leg admits zero new values,
+retains two measurement-index cells, and supports two independently bound next
+consumers without readmitting those values. Reversed, duplicated, negative and
+out-of-range occurrences are rejected.
+
+The two true comparisons still charge eight logical predicate bytes. A
+four-byte input ceiling rejects the nonempty derive input because its unchanged
+text columns exceed that ceiling, even though the filter and projection only
+use the numeric column. This is distinct from the count fixture's false-result
+predicate ceiling check. The fixture writes a numeric file view of the actual
+native result for direct DuckDB import; it is not a new production codec.
+
+This remains a small conformance fixture, not a throughput measurement. Its
+multirow predicate retains both rows; arbitrary larger partial subsets, general
+filter/take/sort chain completion, physical index reservations and the original
 large paired benchmarks remain unfinished. The fixture index cap is an entry
 limit, not a physical-byte reservation.
 

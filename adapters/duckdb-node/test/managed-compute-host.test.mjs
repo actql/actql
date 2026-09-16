@@ -271,7 +271,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             }
             const writer = store.reserve(4096);
             await writer.start();
-            await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
+            await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns,
+              ...(deriving ? {native_columns: [rows.map(row => row.marker)]} : {})}) + '\n'));
             held.body = await writer.sealPhysical();
             settled = true;
             if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
@@ -476,11 +477,18 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const countCodec = `sha256:${'6'.repeat(64)}`;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
             store, downstreamBody, countCodec);
-          if (revoke === 'none') for (const representation of ['validated', 'preserved']) for (const ceiling of [10000, 4]) {
-            const filterInput = fixture.ownedFixedManagedFilterInput(nativeQuery, downstreamCompleted);
-            assert.deepEqual(fixture.managedColumnMeasurement(filterInput),
-              [1, 1, 1, 1, 0]);
+          if (revoke === 'none') for (const derived of [undefined, heldTakes.find(held => held.representation === 'computed')])
+          for (const representation of ['validated', 'preserved']) for (const ceiling of derived ? [10000] : [10000, 4]) {
+            const filterInput = derived
+              ? fixture.managedDeriveFilterInput(derived.setup, derived.completed)
+              : fixture.ownedFixedManagedFilterInput(nativeQuery, downstreamCompleted);
+            const inputRows = derived ? (empty ? 0 : 2) : 1;
+            const expectedOccurrences = empty ? [] : derived ? [0, 1] : [0];
+            const expectedRows = expectedOccurrences.map(() => ({n: derived ? 2 : 3}));
             const filterQuery = fixture.managedFixedQuery(filterInput);
+            if (derived && !empty) assert.throws(() => checked(fixture.managedQueryCompletion(
+              filterQuery, profile, ...contracts, 4, () => true, () => true)),
+              'unused text columns remain input-admission obligations before the numeric filter');
             let settled = false;
             const filterPort = checked(fixture.managedQueryCompletion(filterQuery, profile, ...contracts, ceiling,
               () => true, () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
@@ -496,15 +504,21 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const [create, ordinarySql] = fixture.managedFixedQuerySql(filterQuery);
               const sql = representation === 'preserved'
                 ? checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'occurrence')) : ordinarySql;
-              assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'N', 'occurrence')));
+              assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, derived ? 'MARKER' : 'N', 'occurrence')));
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'N')));
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'bad\0ordinal', 'occurrence')));
               await connection.run(create);
-              const rows = await withManagedInputFile(countMaterial, filterInput, countCodec, () => true, async file => {
+              const material = derived ? moon.managedOutputMaterial(derived.output) : countMaterial;
+              const codec = derived ? `sha256:${'7'.repeat(64)}` : countCodec;
+              const rows = await withManagedInputFile(material, filterInput, codec, () => true, async file => {
                 {
                   const path = `'${file.path.replaceAll("'", "''")}'`;
-                  await connection.run(`INSERT INTO managed_input SELECT unnest(native_columns[1])
-                    FROM read_json(${path}, format='newline_delimited', columns={native_columns:'DOUBLE[][]'})`);
+                  await connection.run(derived
+                    ? `INSERT INTO managed_input (amount, copy, marker)
+                      SELECT unnest(columns[1]), unnest(columns[2]), unnest(native_columns[1])
+                      FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]', native_columns:'DOUBLE[][]'})`
+                    : `INSERT INTO managed_input SELECT unnest(native_columns[1])
+                      FROM read_json(${path}, format='newline_delimited', columns={native_columns:'DOUBLE[][]'})`);
                 }
                 const statement = await connection.prepare(sql);
                 try {
@@ -512,9 +526,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   return (await statement.runAndReadAll()).getRowObjects();
                 } finally { statement.destroySync(); }
               });
-              assert.deepEqual(rows.map(row => ({n: row.n})), empty ? [] : [{n: 3}]);
+              assert.deepEqual(rows.map(row => ({n: row.n})), expectedRows);
               if (representation === 'preserved') {
-                assert.deepEqual(rows.map(row => Number(row.occurrence)), empty ? [] : [0]);
+                assert.deepEqual(rows.map(row => Number(row.occurrence)), expectedOccurrences);
               }
               const columns = [rows.map(row => exportPhysicalValue(row.n, {id: 'DOUBLE'}))];
               const writer = store.reserve(4096);
@@ -523,7 +537,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               filterBody = await writer.sealPhysical();
               if (representation === 'preserved') {
                 const occurrences = rows.map(row => Number(row.occurrence));
-                for (const invalid of [[-1], [1], [0, 0]]) {
+                for (const invalid of [[-1], [inputRows], [0, 0], [1, 0]]) {
                   assert.throws(() => checked(fixture.managedFilterSelection(filterQuery, invalid)));
                 }
                 filterOutput = checked(moon.managedSelectedOutputOpen(moon.managedInputOutputValues(filterPort),
@@ -544,14 +558,21 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 assert.ok(admission[0] > 0 && admission[1] > 0, 'ordinary admission remains a real control');
               }
               checked(moon.managedOutputRetain(filterOutput, BigInt(filterBody.bytes), () => filterBody.available()));
-              if (empty && ceiling === 4) {
+              if (!derived && empty && ceiling === 4) {
                 assert.throws(() => checked(moon.managedOutputCompleteInput(filterOutput, filterPort)),
                   'false predicate is five logical bytes even with an empty result');
                 assert.throws(() => checked(moon.managedOutputCompleteInput(filterOutput, filterPort)));
                 continue;
               }
               const filtered = checked(moon.managedOutputCompleteInput(filterOutput, filterPort));
-              assert.deepEqual(checked(moon.managedInputComparisonUsage(filterPort)),
+              const comparison = checked(moon.managedInputComparisonUsage(filterPort));
+              if (derived) {
+                // Two comparisons of one-byte marker values against the
+                // one-byte literal; each true predicate is four logical bytes.
+                assert.deepEqual(comparison.slice(0, 7),
+                  (empty ? [0, 0, -1, 0, 0, 0, 0] : [2, 2, 1, 2, 0, 0, 8]).map(String));
+                assert.ok(Number(comparison[7]) > 0, 'metadata preparation still charges physical work');
+              } else assert.deepEqual(comparison,
                 (empty ? [1, 1, 1, 0, 1, 0, 5, 3, 1, 1] : [1, 1, 1, 1, 0, 0, 4, 3, 1, 1]).map(String));
               assert.equal(moon.managedCompletedProfileCid(filtered), profileCid);
               assert.equal(moon.managedCompletedAvailable(filtered), true);
@@ -560,13 +581,13 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   const next = fixture.ownedFixedManagedFilterInput(filterQuery, filtered);
                   const nextQuery = fixture.managedFixedQuery(next);
                   assert.deepEqual(fixture.managedColumnMeasurement(next),
-                    empty ? [0, 0, 0, 0, 0] : [1, 1, 1, 1, 0]);
+                    empty ? [0, 0, 0, 0, 0] : derived ? [2, 2, 2, 1, 0] : [1, 1, 1, 1, 0]);
                   // The new output's index, not singleton inferred facts,
                   // supplies both independently bound downstream selections.
-                  checked(fixture.managedFilterSelection(nextQuery, empty ? [] : [0]));
+                  checked(fixture.managedFilterSelection(nextQuery, expectedOccurrences));
                 }
               }
-              assert.deepEqual(checked(moon.managedOutputReusedMeasurements(filterOutput)),
+              if (!derived) assert.deepEqual(checked(moon.managedOutputReusedMeasurements(filterOutput)),
                 empty ? [2, 1, 1] : [4, 2, 2]);
             } finally {
               if (filterOutput) moon.managedOutputCancel(filterOutput);

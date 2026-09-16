@@ -323,6 +323,17 @@ pub fn managed_derive_next_input(
 }
 
 ///|
+#export_name("managedDeriveFilterInput")
+pub fn managed_derive_filter_input(
+  value : ManagedTakeFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  managed_take_next_input_base(
+    value, output, "[{\"filter\":\"marker > 1\"},{\"select\":[{\"n\":\"marker\"}]}]",
+  )
+}
+
+///|
 fn managed_take_next_input_base(
   value : ManagedTakeFixture,
   output : @execution.ManagedCompletedOutput[Int],

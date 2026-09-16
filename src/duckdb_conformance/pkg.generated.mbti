@@ -138,6 +138,8 @@ pub fn managed_count_read(@adapter.ManagedFixedQuery[Int], @execution_relation.M
 
 pub fn managed_derive_computed(ManagedTakeFixture) -> @execution_relation.ManagedComputedView[Int]
 
+pub fn managed_derive_filter_input(ManagedTakeFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
+
 pub fn managed_derive_fixture(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedExecutionProfile, String, String, String, () -> Bool) -> ManagedTakeFixture raise
 
 pub fn managed_derive_next_input(ManagedTakeFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
