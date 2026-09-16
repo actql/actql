@@ -87,6 +87,17 @@ pub fn compile_native_filter_select(
   table : String,
   limits : NativeQueryLimits,
 ) -> Result[NativeQuery, NativeQueryIssue] {
+  compile_native_filter_select_base(owner, database_schema, table, limits, None)
+}
+
+///|
+fn compile_native_filter_select_base(
+  owner : @lower.BoundPrepared,
+  database_schema : String,
+  table : String,
+  limits : NativeQueryLimits,
+  occurrence : (String, String)?,
+) -> Result[NativeQuery, NativeQueryIssue] {
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -197,6 +208,13 @@ pub fn compile_native_filter_select(
   let output = { builder: StringBuilder(), remaining: limits.max_sql_bytes, }
   try {
     sql_text(output, "SELECT ")
+    if occurrence is Some((ordinal, occurrence_name)) {
+      sql_text(output, "\"__actql_input\".")
+      sql_identifier(output, ordinal)
+      sql_text(output, " AS ")
+      sql_identifier(output, occurrence_name)
+      sql_text(output, ", ")
+    }
     for i, field in fields {
       guard field.input is @schema.Unqualified(input) else {
         return Err(UnsupportedField)
@@ -207,6 +225,9 @@ pub fn compile_native_filter_select(
       if i > 0 {
         sql_text(output, ", ")
       }
+      if occurrence is Some(_) {
+        sql_text(output, "\"__actql_input\".")
+      }
       sql_identifier(output, input)
       sql_text(output, " AS ")
       sql_identifier(output, result)
@@ -215,11 +236,17 @@ pub fn compile_native_filter_select(
     sql_identifier(output, database_schema)
     sql_text(output, ".")
     sql_identifier(output, table)
+    if occurrence is Some(_) {
+      sql_text(output, " AS \"__actql_input\"")
+    }
     sql_text(output, " WHERE ")
     // Validated physical integers/floats must compare in the checked binary64
     // domain, not DuckDB's parameter-dependent integer comparison coercions.
     if number {
       sql_text(output, "CAST(")
+    }
+    if occurrence is Some(_) {
+      sql_text(output, "\"__actql_input\".")
     }
     sql_identifier(output, name)
     if number {
@@ -227,6 +254,11 @@ pub fn compile_native_filter_select(
     }
     sql_text(output, symbol)
     sql_text(output, "?")
+    if occurrence is Some((ordinal, _)) {
+      sql_text(output, " ORDER BY \"__actql_input\".")
+      sql_identifier(output, ordinal)
+      sql_text(output, " ASC")
+    }
     Ok({
       owner,
       sql: output.builder.to_string(),

@@ -496,7 +496,12 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             const connection = await db.connect();
             let filterBody;
             try {
-              const [create, sql] = fixture.managedFixedQuerySql(filterQuery);
+              const [create, ordinarySql] = fixture.managedFixedQuerySql(filterQuery);
+              const sql = representation === 'preserved'
+                ? checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'occurrence')) : ordinarySql;
+              assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'N', 'occurrence')));
+              assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'N')));
+              assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'bad\0ordinal', 'occurrence')));
               await connection.run(create);
               const rows = await withManagedInputFile(countMaterial, filterInput, countCodec, () => true, async file => {
                 {
@@ -510,7 +515,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   return (await statement.runAndReadAll()).getRowObjects();
                 } finally { statement.destroySync(); }
               });
-              assert.deepEqual(rows, empty ? [] : [{n: 3}]);
+              assert.deepEqual(rows.map(row => ({n: row.n})), empty ? [] : [{n: 3}]);
+              if (representation === 'preserved') {
+                assert.deepEqual(rows.map(row => Number(row.occurrence)), empty ? [] : [0]);
+              }
               const columns = [rows.map(row => exportPhysicalValue(row.n, {id: 'DOUBLE'}))];
               const writer = store.reserve(4096);
               await writer.start();

@@ -200,6 +200,8 @@ pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.
 
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
 
+pub fn[T] managed_fixed_selection_sql(ManagedFixedQuery[T], String, String, NativeQueryLimits) -> Result[String, NativeQueryIssue]
+
 pub fn[T] managed_take_query_matches(ManagedTakeQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
 
 pub fn[T] managed_take_query_sql(ManagedTakeQuery[T]) -> String

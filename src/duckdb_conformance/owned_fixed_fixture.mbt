@@ -560,6 +560,27 @@ pub fn managed_fixed_view_plan(
 }
 
 ///|
+#export_name("managedFilterOccurrenceSql")
+pub fn managed_filter_occurrence_sql(
+  query : @duckdb.ManagedFixedQuery[Int],
+  ordinal : String,
+  occurrence_name : String,
+) -> String raise {
+  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
+  @duckdb.managed_fixed_selection_sql(query, ordinal, occurrence_name, {
+    max_entries: 100,
+    max_sql_bytes: 10000,
+    expressions: {
+      max_nodes: 1000,
+      max_work: 10000,
+      max_depth: 100,
+      max_literal_nodes: 1000,
+      max_literal_text_bytes: 10000,
+    },
+  }).unwrap()
+}
+
+///|
 /// Fixture issuer restricted to selecting zero/one rows from one admitted
 /// scalar count. Real native execution and sealed-output binding are checked
 /// by the Node test Host; no arbitrary subset totals are inferred here.
