@@ -6,6 +6,7 @@ struct ManagedTakeFixture {
   values : @execution.ManagedOutputValues
   selection : @execution.ManagedViewSelection[Int]?
   computed : @execution.ManagedComputedView[Int]?
+  query : @duckdb.ManagedTakeQuery[Int]?
   completion : @execution.ManagedCompletionPort[
     (
       @execution.ManagedOutputValueReceipt,
@@ -88,16 +89,35 @@ fn managed_take_fixture_base(
     input, kernels, 1000, 10000, 100,
   ).unwrap()
   let rows = Int::min(2, @execution.managed_producer_read_row_count(input))
+  let query = if deriving {
+    None
+  } else {
+    Some(
+      @duckdb.prepare_managed_take_query(
+        input,
+        "main",
+        "take_source",
+        "rowid",
+        "occurrence",
+        {
+          max_entries: 1000,
+          max_sql_bytes: 10000,
+          expressions: {
+            max_nodes: 100,
+            max_work: 1000,
+            max_depth: 100,
+            max_literal_nodes: 100,
+            max_literal_text_bytes: 1000,
+          },
+        },
+      ).unwrap(),
+    )
+  }
   let selection = if deriving {
     None
   } else {
     Some(
-      @execution.prepare_managed_view_selection(
-        plan,
-        Array::makei(rows, i => i),
-        100,
-        1000,
-      ).unwrap(),
+      @duckdb.prepare_managed_take_selection(query.unwrap(), 100, 1000).unwrap(),
     )
   }
   let computed = if deriving {
@@ -167,7 +187,22 @@ fn managed_take_fixture_base(
     },
     managed_inputs=[input],
   ).unwrap()
-  { owner, input, values, selection, computed, completion, }
+  { owner, input, values, selection, computed, query, completion, }
+}
+
+///|
+#export_name("managedTakeSql")
+pub fn managed_take_sql(value : ManagedTakeFixture) -> String {
+  @duckdb.managed_take_query_sql(value.query.unwrap())
+}
+
+///|
+#export_name("managedTakeQueryAvailable")
+pub fn managed_take_query_available(value : ManagedTakeFixture) -> Bool {
+  match value.query {
+    Some(query) => @duckdb.managed_take_query_matches(query, value.input)
+    None => false
+  }
 }
 
 ///|

@@ -113,21 +113,26 @@ fn physical_column_names_unique(schema : @schema.Schema) -> Bool {
   let names : Map[String, Bool] = Map([])
   for i in 0..<@schema.field_count(schema) {
     let name = @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
-    let folded = StringBuilder()
-    for char in name {
-      if char >= 'A' && char <= 'Z' {
-        folded.write_string(char.to_string().to_lower())
-      } else {
-        folded.write_char(char)
-      }
-    }
-    let key = folded.to_string()
+    let key = physical_column_name_key(name)
     if names.contains(key) {
       return false
     }
     names[key] = true
   }
   true
+}
+
+///|
+fn physical_column_name_key(name : String) -> String {
+  let folded = StringBuilder()
+  for char in name {
+    if char >= 'A' && char <= 'Z' {
+      folded.write_string(char.to_string().to_lower())
+    } else {
+      folded.write_char(char)
+    }
+  }
+  folded.to_string()
 }
 
 ///|

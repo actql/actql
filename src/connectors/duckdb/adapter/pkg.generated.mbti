@@ -200,6 +200,10 @@ pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.
 
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
 
+pub fn[T] managed_take_query_matches(ManagedTakeQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
+
+pub fn[T] managed_take_query_sql(ManagedTakeQuery[T]) -> String
+
 pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_fixed_compute_stream_demand(FixedCompute, FixedComputeStreamReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeStreamDemand, NativeDemandIssue]
@@ -305,6 +309,10 @@ pub fn[T] prepare_managed_fixed_view_plan(ManagedFixedQuery[T], NativeQueryLimit
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 
 pub fn[T] prepare_managed_query_demand(ManagedFixedQuery[T], Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ManagedQueryDemand[T], NativeDemandIssue]
+
+pub fn[T] prepare_managed_take_query(@execution_relation.ManagedProducerRead[T], String, String, String, String, NativeQueryLimits) -> Result[ManagedTakeQuery[T], NativeQueryIssue]
+
+pub fn[T] prepare_managed_take_selection(ManagedTakeQuery[T], Int, Int) -> Result[@execution_relation.ManagedViewSelection[T], @execution_relation.ManagedSelectionMeasureIssue]
 
 pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeValueGuards, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeReceiving, NativeReceivingIssue]
 
@@ -480,6 +488,8 @@ pub(all) enum ManagedPhysicalOutputIssue {
 }
 
 type ManagedQueryDemand[T]
+
+type ManagedTakeQuery[T]
 
 type NativeCountGroup
 

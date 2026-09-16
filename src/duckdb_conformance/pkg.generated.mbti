@@ -164,6 +164,8 @@ pub fn managed_selected_text_measurements(OwnedFixedFixture, @execution_relation
 
 pub fn managed_single_row_selection_facts(@execution_relation.ManagedProducerRead[Int], Int) -> @execution_relation.ManagedViewOutputFacts raise
 
+pub fn managed_take_compile_fixture(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int], Int64, Int64, String, String, String, Int, Bool) -> Array[String] raise
+
 pub fn managed_take_completion(ManagedTakeFixture) -> @execution_relation.ManagedCompletionPort[(@execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedRetainedOutput[Int]), Int]
 
 pub fn managed_take_fixture(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedExecutionProfile, String, String, String, () -> Bool) -> ManagedTakeFixture raise
@@ -176,7 +178,11 @@ pub fn managed_take_next_input(ManagedTakeFixture, @execution_relation.ManagedCo
 
 pub fn managed_take_occurrence(ManagedTakeFixture, Int) -> Int
 
+pub fn managed_take_query_available(ManagedTakeFixture) -> Bool
+
 pub fn managed_take_selection(ManagedTakeFixture) -> @execution_relation.ManagedViewSelection[Int]
+
+pub fn managed_take_sql(ManagedTakeFixture) -> String
 
 pub fn managed_take_values(ManagedTakeFixture) -> @execution_relation.ManagedOutputValues
 

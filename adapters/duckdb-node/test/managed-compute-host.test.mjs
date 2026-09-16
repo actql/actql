@@ -152,9 +152,38 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const path = `'${file.path.replaceAll("'", "''")}'`;
               await connection.run(`INSERT INTO take_source SELECT unnest(columns[1])
                 FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]'})`);
+              if (!deriving && representation === 'preserved') {
+                for (const [count, offset, occurrences, expected] of [
+                  [1n, 1n, ['1'], [null]],
+                  [9007199254740991n, 2n, ['2'], ['日本語']],
+                  [2n, 9007199254740991n, [], []],
+                ]) {
+                  const [sql, ...selected] = checked(fixture.managedTakeCompileFixture(configured, completed,
+                    count, offset, 'take_source', 'rowid', 'occurrence', 10000, false));
+                  assert.deepEqual(selected, empty ? [] : occurrences);
+                  const actual = (await connection.runAndReadAll(sql)).getRowObjects();
+                  assert.deepEqual(actual.map(row => row.occurrence.toString()), selected);
+                  assert.deepEqual(actual.map(row => row.amount), empty ? [] : expected);
+                }
+                const compile = (table, ordinal, alias, bytes = 10000) => checked(fixture.managedTakeCompileFixture(
+                  configured, completed, 2n, 0n, table, ordinal, alias, bytes, false));
+                assert.throws(() => compile('take_source', 'amount', 'occurrence'), 'authored field cannot masquerade as hidden ordinal');
+                assert.throws(() => compile('take_source', 'rowid', 'amount'), 'occurrence alias cannot shadow output');
+                assert.throws(() => compile('take_source', 'AMOUNT', 'occurrence'));
+                assert.throws(() => compile('take_source', 'rowid', 'AMOUNT'));
+                assert.throws(() => compile('take_source', 'rowid', 'occurrence', 4));
+                assert.throws(() => compile('bad\0table', 'rowid', 'occurrence'));
+                assert.equal(compile('quoted"table', 'rowid', 'occurrence')[0],
+                  'SELECT "__actql_input"."rowid" AS "occurrence", "__actql_input"."amount" AS "amount" FROM "main"."quoted""table" AS "__actql_input" ORDER BY "__actql_input"."rowid" ASC LIMIT 2 OFFSET 0');
+                const [renamedSql] = checked(fixture.managedTakeCompileFixture(configured, completed,
+                  2n, 0n, 'take_source', 'rowid', 'occurrence', 10000, true));
+                const renamed = (await connection.runAndReadAll(renamedSql)).getRowObjects();
+                assert.deepEqual(renamed.map(row => row.rowid), empty ? [] : ['日本語', null],
+                  'projection alias must not redirect ORDER BY from the bound physical ordinal');
+              }
               return (await connection.runAndReadAll(deriving
                 ? 'SELECT rowid AS occurrence, amount, amount AS copy, CAST(1 + 1 AS DOUBLE) AS marker FROM take_source ORDER BY rowid LIMIT 2'
-                : 'SELECT rowid AS occurrence, amount FROM take_source ORDER BY rowid LIMIT 2')).getRowObjects();
+                : fixture.managedTakeSql(setup))).getRowObjects();
             });
             assert.deepEqual(rows.map(row => row.amount), empty ? [] : ['日本語', null]);
             for (let i = 0; i < rows.length; i++) {
@@ -377,6 +406,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             'ancestor bytes are physically reclaimed before downstream use ends');
           for (const held of heldTakes) {
             assert.equal(moon.managedCompletedAvailable(held.completed), true);
+            if (held.representation !== 'computed') {
+              assert.equal(fixture.managedTakeQueryAvailable(held.setup), false,
+                'prepared SQL does not keep the revoked source available');
+            }
             const takeMaterial = moon.managedOutputMaterial(held.output);
             const takeCodec = `sha256:${'7'.repeat(64)}`;
             registerManagedInput(takeMaterial, input => moon.managedInputMatchesMaterial(input, takeMaterial), store, held.body, takeCodec);
