@@ -4,6 +4,7 @@ pub(all) enum NativeDemandIssue {
   InvalidLimits
   InvalidLayout
   InvalidResultCount
+  InputRepresentationRequired
   Operand(Int, Bool, NativeValueIssue)
   Predicate(NativeValueIssue)
 }

@@ -96,6 +96,8 @@ pub fn finish_fixed_import_stream(FixedImportStream) -> Result[@execution_relati
 
 pub fn finish_managed_physical_output(ManagedPhysicalOutput) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedPhysicalOutputIssue]
 
+pub fn[T] finish_managed_query_demand(ManagedQueryDemand[T], ManagedFixedQuery[T], @execution_relation.ManagedOutputValueReceipt) -> Result[FixedComputeDemandUsage, NativeDemandIssue]
+
 pub fn finish_native_output_stream(NativeReceiving) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String)?, NativeReceivingIssue]
 
 pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
@@ -290,6 +292,8 @@ pub fn[T] prepare_managed_fixed_query(@execution_relation.ManagedProducerRead[T]
 
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 
+pub fn[T] prepare_managed_query_demand(ManagedFixedQuery[T], Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ManagedQueryDemand[T], NativeDemandIssue]
+
 pub fn prepare_native_receiving(NativeScan, PhysicalResultLimits, Int, NativeValueGuards, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeReceiving, NativeReceivingIssue]
 
 pub fn prepare_native_root_guard(NativeQuery, Int) -> Result[NativeRootGuard, NativeRootGuardIssue]
@@ -455,6 +459,8 @@ pub(all) enum ManagedPhysicalOutputIssue {
   Closed
 }
 
+type ManagedQueryDemand[T]
+
 type NativeCountGroup
 
 pub(all) enum NativeDemandIssue {
@@ -462,6 +468,7 @@ pub(all) enum NativeDemandIssue {
   InvalidLimits
   InvalidLayout
   InvalidResultCount
+  InputRepresentationRequired
   Operand(Int, Bool, NativeValueIssue)
   Predicate(NativeValueIssue)
 }

@@ -111,6 +111,29 @@ pub fn managed_input_completion_cancel(
 }
 
 ///|
+#export_name("managedInputComparisonUsage")
+pub fn managed_input_comparison_usage(
+  completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
+) -> Array[String] raise NodeHostFailure {
+  guard @duckdb_compute.managed_input_duckdb_demand_usage(completion)
+    is Some(Comparison(usage)) else {
+    raise InvalidCommand
+  }
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
 #export_name("managedOutputMaterial")
 pub fn managed_output_material(
   value : ManagedNodeOutput,

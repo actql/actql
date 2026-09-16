@@ -130,7 +130,7 @@ pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_verify(IssuedNativeFixture) -> Bool
 
-pub fn managed_count_completion(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedExecutionProfile, String, String, String, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> @compute.ManagedInputDuckDBCompletion[Int] raise
+pub fn managed_column_measurement(@execution_relation.ManagedProducerRead[Int]) -> Array[Int]
 
 pub fn managed_count_read(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
@@ -146,7 +146,11 @@ pub fn managed_fixed_query(@execution_relation.ManagedProducerRead[Int]) -> @ada
 
 pub fn managed_fixed_query_matches(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedProducerRead[Int]) -> Bool
 
+pub fn managed_fixed_query_parameter(@adapter.ManagedFixedQuery[Int]) -> String raise
+
 pub fn managed_fixed_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
+
+pub fn managed_query_completion(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedExecutionProfile, String, String, String, Int, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> @compute.ManagedInputDuckDBCompletion[Int] raise
 
 pub fn metadata(@adapter.NativeReceiving, Int, String, String) -> Bool
 
@@ -171,6 +175,8 @@ pub fn owned_fixed_finish(OwnedFixedFixture) -> Bool
 pub fn owned_fixed_local_cid(OwnedFixedFixture) -> String
 
 pub fn owned_fixed_managed_count_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
+
+pub fn owned_fixed_managed_filter_input(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn owned_fixed_managed_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]?
 

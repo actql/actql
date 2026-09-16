@@ -69,6 +69,7 @@ fn[T : IndexedRows] measure_input_values(
   budget : FixedInputGuardBudget,
   column_usage? : Array[(Int, Int)],
   column_maxima? : Array[Int],
+  column_nulls? : Array[Int],
 ) -> Result[Unit, FixedInputGuardIssue] {
   for row in 0..<rows.row_count() {
     if budget.work <= 0 {
@@ -83,13 +84,14 @@ fn[T : IndexedRows] measure_input_values(
         return Err(MeasurementWork)
       }
       budget.work -= 1
+      let cell = rows.read_cell(row, column)
       let usage = try {
         let writer = @encode.measuring_writer(
           budget.bytes,
           budget.nodes,
           budget.depth,
         )
-        emit_runtime_value(rows.read_cell(row, column), writer)
+        emit_runtime_value(cell, writer)
         @encode.finish_measurement_usage(writer)
       } catch {
         issue => return Err(Measurement(phase, row, column, issue))
@@ -107,6 +109,10 @@ fn[T : IndexedRows] measure_input_values(
       }
       if column_maxima is Some(maxima) {
         maxima[column] = Int::max(maxima[column], usage.0)
+      }
+      if column_nulls is Some(nulls) &&
+        (cell is Null || cell is Captured(@admitted.Null)) {
+        nulls[column] += 1
       }
     }
   }

@@ -271,6 +271,8 @@ pub fn[T] managed_producer_read_available(ManagedProducerRead[T]) -> Bool
 
 pub fn[T] managed_producer_read_column(ManagedProducerRead[T], Int) -> Int?
 
+pub fn[T] managed_producer_read_column_measurement(ManagedProducerRead[T], Int) -> ManagedColumnMeasurement?
+
 pub fn[T] managed_producer_read_input_index(ManagedProducerRead[T]) -> Int
 
 pub fn[T] managed_producer_read_matches_material(ManagedProducerRead[T], ManagedRetainedOutput[T]) -> Bool
@@ -688,6 +690,15 @@ pub(all) enum LogicalMeasureIssue {
   LogicalWorkLimit
   HostMeasureLimit
   WireMeasureFailure
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ManagedColumnMeasurement {
+  rows : Int
+  bytes : Int
+  nodes : Int
+  max_value_bytes : Int
+  null_rows : Int
+  admitted_depth : Int
 } derive(Eq, @debug.Debug)
 
 type ManagedCompletedOutput[T]

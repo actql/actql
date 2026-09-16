@@ -89,6 +89,8 @@ pub fn finish_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Resul
 
 pub fn managed_duckdb_compute_output_values(ManagedDuckDBComputeOutput) -> @execution_relation.ManagedOutputValues
 
+pub fn[T] managed_input_duckdb_demand_usage(ManagedInputDuckDBCompletion[T]) -> @adapter.FixedComputeDemandUsage?
+
 pub fn[T] managed_input_duckdb_output_values(ManagedInputDuckDBCompletion[T]) -> @execution_relation.ManagedOutputValues
 
 pub fn prepare_duckdb_compute_input_physical(DuckDBComputeAttempt, Int, Array[(String, @adapter.PhysicalType)]) -> Result[@adapter.PhysicalResult, DuckDBComputeIssue]

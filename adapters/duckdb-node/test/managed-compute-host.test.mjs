@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
-import {exportPhysicalValue} from '../physical-values.mjs';
+import {exportPhysicalValue, bindPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
@@ -161,6 +161,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         // Compile the receiving operation from its actual checked owner, not
         // test-authored aggregate SQL or a fabricated legacy CID input.
         const countInput = fixture.ownedFixedManagedCountInput(configured, completed);
+        assert.deepEqual(fixture.managedColumnMeasurement(countInput),
+          empty ? [0, 0, 0, 0, 0] : [3, 26, 3, 11, 1]);
         assert.deepEqual(fixture.ownedFixedManagedInputUsage(configured, countInput),
           empty ? [0, 0, 0, 0] : [3, 6, 26, 3]);
         const nativeQuery = fixture.managedFixedQuery(countInput);
@@ -172,7 +174,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         let nativeSettled = false;
         let downstreamAuthorized = true;
         let invalidateInputOnAuthorization = false;
-        const downstreamPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+        const downstreamPort = checked(fixture.managedQueryCompletion(nativeQuery, profile, ...contracts, 10000,
           () => {
             if (invalidateInputOnAuthorization) moon.managedOutputCancel(output);
             return downstreamAuthorized;
@@ -213,13 +215,14 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             empty ? [2, 1, 1] : [8, 27, 4]);
           const downstreamWriter = store.reserve(4096);
           await downstreamWriter.start();
-          await downstreamWriter.appendBytes(Buffer.from(JSON.stringify({rows: 1, columns}) + '\n'));
+          const native_columns = [[rows[0].n]]; // Fixture numeric file view of the same native result.
+          await downstreamWriter.appendBytes(Buffer.from(JSON.stringify({rows: 1, columns, native_columns}) + '\n'));
           const downstreamBody = await downstreamWriter.sealPhysical();
           checked(moon.managedOutputRetain(downstreamOutput, BigInt(downstreamBody.bytes),
             () => downstreamBody.available()));
           for (const failure of ['transport', 'policy', 'cancel', 'reentrant']) {
             let allowed = true, settled = false, rejectPort;
-            rejectPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+            rejectPort = checked(fixture.managedQueryCompletion(nativeQuery, profile, ...contracts, 10000,
               () => allowed, () => {
                 if (failure === 'reentrant') moon.managedInputCompletionCancel(rejectPort);
                 return failure !== 'transport' || settled;
@@ -241,7 +244,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             } finally { moon.managedOutputCancel(rejected); }
           }
           // The same output cannot complete a separately prepared consumer ledger.
-          const foreignPort = checked(fixture.managedCountCompletion(nativeQuery, profile, ...contracts,
+          const foreignPort = checked(fixture.managedQueryCompletion(nativeQuery, profile, ...contracts, 10000,
             () => true, () => true));
           assert.throws(() => checked(moon.managedOutputCompleteInput(downstreamOutput, foreignPort)));
           nativeSettled = true;
@@ -271,11 +274,70 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const countCodec = `sha256:${'6'.repeat(64)}`;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
             store, downstreamBody, countCodec);
+          if (revoke === 'none') for (const ceiling of [10000, 4]) {
+            const filterInput = fixture.ownedFixedManagedFilterInput(nativeQuery, downstreamCompleted);
+            assert.deepEqual(fixture.managedColumnMeasurement(filterInput),
+              [1, 1, 1, 1, 0]);
+            const filterQuery = fixture.managedFixedQuery(filterInput);
+            let settled = false;
+            const filterPort = checked(fixture.managedQueryCompletion(filterQuery, profile, ...contracts, ceiling,
+              () => true, () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
+            const filterOutput = checked(moon.managedOutputOpen(moon.managedInputOutputValues(filterPort),
+              JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
+              fixture.managedFileTransportLimits(), 100));
+            const db = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
+            const connection = await db.connect();
+            let filterBody;
+            try {
+              const [create, sql] = fixture.managedFixedQuerySql(filterQuery);
+              await connection.run(create);
+              const rows = await withManagedInputFile(countMaterial, filterInput, countCodec, () => true, async file => {
+                {
+                  const path = `'${file.path.replaceAll("'", "''")}'`;
+                  await connection.run(`INSERT INTO managed_input SELECT unnest(native_columns[1])
+                    FROM read_json(${path}, format='newline_delimited', columns={native_columns:'DOUBLE[][]'})`);
+                }
+                const statement = await connection.prepare(sql);
+                try {
+                  bindPhysicalValue(statement, 1, JSON.parse(checked(fixture.managedFixedQueryParameter(filterQuery))));
+                  return (await statement.runAndReadAll()).getRowObjects();
+                } finally { statement.destroySync(); }
+              });
+              assert.deepEqual(rows, empty ? [] : [{n: 3}]);
+              const columns = [rows.map(row => exportPhysicalValue(row.n, {id: 'DOUBLE'}))];
+              checked(moon.managedOutputAccept(filterOutput, rows.length, JSON.stringify(columns)));
+              checked(moon.managedOutputFinish(filterOutput));
+              const writer = store.reserve(4096);
+              await writer.start();
+              await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
+              filterBody = await writer.sealPhysical();
+              checked(moon.managedOutputRetain(filterOutput, BigInt(filterBody.bytes), () => filterBody.available()));
+              settled = true;
+              if (empty && ceiling === 4) {
+                assert.throws(() => checked(moon.managedOutputCompleteInput(filterOutput, filterPort)),
+                  'false predicate is five logical bytes even with an empty result');
+                assert.throws(() => checked(moon.managedOutputCompleteInput(filterOutput, filterPort)));
+                continue;
+              }
+              const filtered = checked(moon.managedOutputCompleteInput(filterOutput, filterPort));
+              assert.deepEqual(checked(moon.managedInputComparisonUsage(filterPort)),
+                (empty ? [1, 1, 1, 0, 1, 0, 5, 3, 1, 1] : [1, 1, 1, 1, 0, 0, 4, 3, 1, 1]).map(String));
+              assert.equal(moon.managedCompletedProfileCid(filtered), profileCid);
+              assert.equal(moon.managedCompletedAvailable(filtered), true);
+              assert.deepEqual(checked(moon.managedOutputReusedMeasurements(filterOutput)),
+                empty ? [2, 1, 1] : [4, 2, 2]);
+            } finally {
+              moon.managedOutputCancel(filterOutput);
+              filterBody?.close();
+              connection.closeSync(); db.closeSync();
+              await store.cleanup();
+            }
+          }
           for (let reader = 0; reader < 2; reader++) {
             const countRead = fixture.managedCountRead(nativeQuery, downstreamCompleted);
             const frame = await withManagedInputFile(countMaterial, countRead, countCodec, () => true,
               async file => JSON.parse(await readFile(file.path, 'utf8')));
-            assert.deepEqual(frame, {rows: 1, columns});
+            assert.deepEqual(frame, {rows: 1, columns, native_columns});
             assert.equal(store.status().activeReaders, 0);
           }
         } finally { connection.closeSync(); database.closeSync(); }

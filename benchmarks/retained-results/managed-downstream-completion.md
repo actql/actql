@@ -14,9 +14,10 @@ retained material. Another preparation of the same query is not interchangeable.
 
 This connection currently admits the compiler's CountGroup realization, whose
 existing direct demand rule requires row counts rather than predicate values.
-FilterSelect compilation does not yet qualify: its predicate-demand measurement
-must be connected before that completion path can be accepted. This is unfinished
-adapter support, not a restriction of the agreed new profile.
+At this increment FilterSelect did not yet qualify. The subsequent
+[finite scalar-comparison demand connection](managed-filter-demand.md) adds that
+path without rescanning the input column. General expression/transform support
+remains unfinished adapter work, not a restriction of the agreed new profile.
 
 Installed Host callbacks cover native execution correspondence and the separate
 admitted identity/policy/resource obligations. They are trusted wiring, not

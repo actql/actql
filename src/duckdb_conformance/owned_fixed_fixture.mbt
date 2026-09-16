@@ -453,6 +453,47 @@ pub fn managed_fixed_query(
 }
 
 ///|
+#export_name("ownedFixedManagedFilterInput")
+pub fn owned_fixed_managed_filter_input(
+  query : @duckdb.ManagedFixedQuery[Int],
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  let native = @duckdb.managed_fixed_query_query(query)
+  let owner = @duckdb.fixed_query_owner(native)
+  let receiver = issued_fixture_consumer(
+    owner,
+    steps="[{\"filter\":\"n > 1\"},{\"select\":[\"n\"]}]",
+    target=@duckdb.fixed_query_target(native),
+  )
+  @execution.prepare_managed_producer_read(
+    receiver, 0, owner, output, 100, 10000,
+  ).unwrap()
+}
+
+///|
+#export_name("managedFixedQueryParameter")
+pub fn managed_fixed_query_parameter(
+  query : @duckdb.ManagedFixedQuery[Int],
+) -> String raise {
+  let parameter = @duckdb.fixed_query_parameter(
+    @duckdb.managed_fixed_query_query(query),
+    0,
+  ).unwrap()
+  let writer = @encode.writer(10000, 100, 10)
+  @duckdb.emit_physical_parameter(parameter, writer)
+  @encode.finish(writer)
+}
+
+///|
+#export_name("managedColumnMeasurement")
+pub fn managed_column_measurement(
+  input : @execution.ManagedProducerRead[Int],
+) -> Array[Int] {
+  let facts = @execution.managed_producer_read_column_measurement(input, 0).unwrap()
+  [facts.rows, facts.bytes, facts.nodes, facts.max_value_bytes, facts.null_rows]
+}
+
+///|
 #export_name("managedFixedQueryMatches")
 pub fn managed_fixed_query_matches(
   query : @duckdb.ManagedFixedQuery[Int],
@@ -473,13 +514,14 @@ pub fn managed_fixed_query_sql(
 }
 
 ///|
-#export_name("managedCountCompletion")
-pub fn managed_count_completion(
+#export_name("managedQueryCompletion")
+pub fn managed_query_completion(
   query : @duckdb.ManagedFixedQuery[Int],
   profile : @execution.ManagedExecutionProfile,
   registry_json : String,
   values_json : String,
   fragment_json : String,
+  max_value_bytes : Int,
   authorize : () -> Bool,
   transport : (@execution.ManagedOutputValueReceipt) -> Bool,
 ) -> @duckdb_compute.ManagedInputDuckDBCompletion[Int] raise {
@@ -488,7 +530,7 @@ pub fn managed_count_completion(
     registry_json,
     values_json,
     fragment_json,
-    false,
+    @duckdb.managed_fixed_query_query(query) is FilterSelect(_),
   )
   @duckdb_compute.prepare_managed_input_duckdb_completion(
     query,
@@ -519,7 +561,7 @@ pub fn managed_count_completion(
       completion_name_bytes: 10000,
     },
     100,
-    10000,
+    max_value_bytes,
     authorize,
     transport,
   ).unwrap()

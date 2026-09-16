@@ -13,6 +13,7 @@ struct ManagedOutputValues {
   managed_producer : ManagedProducerMeasurement?
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
+  column_nulls : Array[Int]
   max_value_bytes : Int
   max_rows : Int
   mut rows : Int
@@ -36,6 +37,7 @@ struct ManagedOutputValueReceipt {
   managed_measurement : (Ref[Bool], (Int, Int, Int))?
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
+  column_nulls : Array[Int]
   measured_depth : Int
 }
 
@@ -82,6 +84,7 @@ pub fn prepare_managed_output_values(
     managed_producer: None,
     column_usage: Array::make(@schema.field_count(output.buffer.schema), (0, 0)),
     column_maxima: Array::make(@schema.field_count(output.buffer.schema), 0),
+    column_nulls: Array::make(@schema.field_count(output.buffer.schema), 0),
     max_value_bytes,
     max_rows,
     rows: 0,
@@ -154,6 +157,7 @@ pub fn append_managed_output_values(
         stream.measurement,
         column_usage=stream.column_usage,
         column_maxima=stream.column_maxima,
+        column_nulls=stream.column_nulls,
       ) {
       Ok(_) => ()
       Err(issue) =>
@@ -247,6 +251,7 @@ pub fn finish_managed_output_values(
     managed_measurement,
     column_usage: stream.column_usage.copy(),
     column_maxima: stream.column_maxima.copy(),
+    column_nulls: stream.column_nulls.copy(),
     measured_depth: stream.measurement.depth,
   })
 }
