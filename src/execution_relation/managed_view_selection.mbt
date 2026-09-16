@@ -18,6 +18,19 @@ pub fn[T] prepare_managed_view_selection(
   max_cells : Int,
   max_work : Int,
 ) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
+  prepare_managed_view_selection_base(
+    plan, selected_rows, max_cells, max_work, false,
+  )
+}
+
+///|
+fn[T] prepare_managed_view_selection_base(
+  plan : ManagedViewPlan[T],
+  selected_rows : Array[Int],
+  max_cells : Int,
+  max_work : Int,
+  computed : Bool,
+) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
   if max_cells < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -43,10 +56,22 @@ pub fn[T] prepare_managed_view_selection(
   }
   let columns = []
   for measurement in measurements {
-    guard measurement is Some(measurement) else {
-      return Err(UnsupportedColumns)
+    match measurement {
+      Some(measurement) => columns.push(measurement)
+      None => {
+        if !computed {
+          return Err(UnsupportedColumns)
+        }
+        columns.push({
+          rows: rows.length(),
+          bytes: 0,
+          nodes: 0,
+          max_value_bytes: 0,
+          null_rows: 0,
+          admitted_depth: 0,
+        })
+      }
     }
-    columns.push(measurement)
   }
   let receipt = plan.input.output.material.receipt
   let source = receipt.row_measurements.unwrap()
@@ -54,8 +79,13 @@ pub fn[T] prepare_managed_view_selection(
   let cells = []
   for row in rows {
     for origin in plan.columns {
-      let column = plan.input.columns[origin.unwrap()]
-      cells.push(source.cells[row * source_width + column])
+      match origin {
+        Some(origin) => {
+          let column = plan.input.columns[origin]
+          cells.push(source.cells[row * source_width + column])
+        }
+        None => cells.push((0, 0, false))
+      }
     }
   }
   if !managed_producer_read_available(plan.input) {

@@ -45,6 +45,8 @@ pub fn append_completed_output_import(CompletedOutputImport, Array[@value_admiss
 
 pub fn append_completed_output_import_wire(CompletedOutputImport, String, RetainedRowDecodeLimits) -> Result[Unit, CompletedImportIssue]
 
+pub fn[T] append_managed_computed_view(ManagedComputedView[T], (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedComputedViewIssue]
+
 pub fn append_managed_output_values(ManagedOutputValues, Int, (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedOutputValueIssue]
 
 pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
@@ -90,6 +92,8 @@ pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
 
 pub fn[P, T] cancel_managed_completion_port(ManagedCompletionPort[P, T]) -> Bool
+
+pub fn[T] cancel_managed_computed_view(ManagedComputedView[T]) -> Bool
 
 pub fn[P, T] cancel_managed_output_retention_port(ManagedOutputRetentionPort[P, T]) -> Bool
 
@@ -187,6 +191,8 @@ pub fn finish_fixed_producer_measurement(FixedProducerMeasurement, AdmittedOutpu
 
 pub fn finish_fixed_producer_stream_measurement(FixedProducerMeasurement, AdmittedOutputStreamReceipt) -> Result[FixedProducerStreamMeasuredOutput, FixedInputGuardIssue]
 
+pub fn[T] finish_managed_computed_view(ManagedComputedView[T]) -> Result[ManagedViewSelection[T], ManagedComputedViewIssue]
+
 pub fn finish_managed_output_values(ManagedOutputValues) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue]
 
 pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
@@ -246,6 +252,8 @@ pub fn[T] managed_completed_output_row_count(ManagedCompletedOutput[T]) -> Int
 pub fn[T] managed_completed_profile_cid(ManagedCompletedOutput[T]) -> String
 
 pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCompletedOutput[T]) -> Bool
+
+pub fn[T] managed_computed_view_schema(ManagedComputedView[T]) -> @relation_schema.Schema
 
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
 
@@ -352,6 +360,8 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
 pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+
+pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
@@ -732,6 +742,16 @@ pub(all) struct ManagedColumnMeasurement {
 type ManagedCompletedOutput[T]
 
 type ManagedCompletionPort[P, T]
+
+type ManagedComputedView[T]
+
+pub(all) enum ManagedComputedViewIssue {
+  Selection(ManagedSelectionMeasureIssue)
+  Values(ManagedOutputValueIssue)
+  NeedsOrderedMeasurement(FixedInputGuardIssue)
+  RowCount
+  Closed
+}
 
 type ManagedExecutionProfile
 
