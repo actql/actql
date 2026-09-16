@@ -71,6 +71,15 @@ test('retained benchmark shapes execute in a managed process and retain exact re
       assert.equal(final.retained, true);
       assert.equal(result.process().exited, true);
       assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
+      for (const task of result.report.completed) {
+        for (const phase of task.phases?.inputs ?? []) {
+          if (phase.representation !== 'verified-file-native-read') continue;
+          assert.equal(phase.identityReused, true, fixture.id);
+          assert.equal(phase.logicalCidPasses, 0, fixture.id);
+          assert.equal(phase.validationRows, phase.rows, 'typed input admission remains complete');
+          assert.equal(phase.parameterInsertRows, 0);
+        }
+      }
       if (workload === workloads[2] && fixture.layout === 'numeric-64') {
         const reading = result.prepareReader(1);
         const readerHost = await createManagedProcessHost(limits);

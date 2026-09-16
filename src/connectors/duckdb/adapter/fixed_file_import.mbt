@@ -1,7 +1,8 @@
 ///|
 /// Native parsing of the admitted stored wire. This is a physical conversion,
-/// not validation evidence: the complete resulting table must still pass the
-/// typed input scan, ordered CID, consumer demand and guards before use.
+/// not validation evidence on its own: the complete resulting table still needs
+/// the typed input scan, consumer demand and guards. Ordered content identity
+/// is checked by hashing or the installed Host's exact native-copy proof.
 pub fn fixed_import_file_sql(
   stream : FixedImportStream,
   max_row_bytes : Int,

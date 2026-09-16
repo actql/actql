@@ -395,8 +395,9 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       if (material == null || !retainedInputSupportsFile(material, input)) return undefined;
       const {wire, maxFrameBytes} = retainedInputContract(material, input);
       if (maxFrameBytes > limits.maxTransportBytes) throw new DuckDBTransportError('RetainedFrameLimit');
-      const sql = moon.computeHostInputFileSql(run, port, wire, maxFrameBytes, limits.maxSqlBytes);
-      if (sql == null) return undefined; // Unsupported before native I/O, not retry.
+      const plan = checked(moon.computeHostInputFilePlan(run, port, wire, maxFrameBytes, limits.maxSqlBytes));
+      if (plan == null) return undefined; // Unsupported before native I/O, not retry.
+      const sql = moon.computeHostInputFilePlanSql(plan);
       const path = retainedInputFilePath(material, input);
       if (/[\u0000*?\[\]]/.test(path)) return undefined;
       return Object.freeze({path, run: async session => {
@@ -407,27 +408,36 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
           if (file.path !== path) throw new DuckDBTransportError('ForeignRetainedFile');
           fileBytes = file.bytes;
           await session.command(sql._0, [{type: {id: 'VARCHAR'}, value: file.path}], () => {});
-          let physical;
-          const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
-          const fields = await session.command(sql._1, [], chunk => {
-            signal?.throwIfAborted();
-            begin(chunk.fields);
-            checked(moon.computeHostInputPhysicalAccept(run, port, physical,
-              rows(chunk.rowCount), JSON.stringify(chunk.columns)));
-            validationRows += chunk.rowCount;
-            validationCells += chunk.rowCount * chunk.fields.length;
-          });
-          begin(fields);
-          checked(moon.computeHostInputStreamFinish(run, port));
         }, signal, bytes => {
           // Physical integrity scan plus native file read, before either starts.
-          // Logical consumer measurements are charged by the typed scan above.
+          // Logical consumer measurements are charged by the typed scan below.
           checked(moon.computeHostPhysicalCharge(run, BigInt(bytes) * 2n));
           directInputBytes += bytes * 2;
         });
+        // The borrow has completed its final identity/integrity checks. Import
+        // uses this compiled plan and the exact admitted immutable source; the
+        // session is private and no table mutation occurs before this scan.
+        // Number/Boolean/Text conversion is an adopted trusted implementation,
+        // not evidence obtained merely from read_json accepting arbitrary JSON.
+        signal?.throwIfAborted();
+        const identityReused = boundedTransport(limits) && limits.threads === 1 && moon.computeHostInputFilePlanReuse(plan, run, port,
+          () => !disposed && !signal?.aborted);
+        let physical;
+        const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
+        const fields = await session.command(sql._1, [], chunk => {
+          signal?.throwIfAborted();
+          begin(chunk.fields);
+          checked(moon.computeHostInputPhysicalAccept(run, port, physical,
+            rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+          validationRows += chunk.rowCount;
+          validationCells += chunk.rowCount * chunk.fields.length;
+        });
+        begin(fields);
+        checked(moon.computeHostInputStreamFinish(run, port));
         inputReadUnconfirmed = false;
         return Object.freeze({fileBytes, physicalIntegrityPasses: 1, nativeFileReads: 1,
-          validationRows, validationCells, logicalCidPasses: 1,
+          validationRows, validationCells, logicalCidPasses: identityReused ? 0 : 1,
+          identityReused,
           storedRowJsonDecodes: 0, parameterInsertRows: 0});
       }});
     },

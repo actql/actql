@@ -64,6 +64,12 @@ pub fn compute_host_import_batch(ComputeNodeRun, Int, Int, Int, Int) -> (Int, St
 
 pub fn compute_host_import_count(ComputeNodeRun) -> Int
 
+pub fn compute_host_input_file_plan(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int, Int) -> NativeFileInputPlan? raise NodeHostFailure
+
+pub fn compute_host_input_file_plan_reuse(NativeFileInputPlan, ComputeNodeRun, Int, () -> Bool) -> Bool
+
+pub fn compute_host_input_file_plan_sql(NativeFileInputPlan) -> (String, String)
+
 pub fn compute_host_input_file_sql(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int, Int) -> (String, String)?
 
 pub fn compute_host_input_material(@execution_relation.ProducerRead) -> @execution_relation.RetainedOutputMaterial?
@@ -281,6 +287,8 @@ type ComputeNodeRun
 type ComputeStreamNodeReceipt
 
 type ManagedNodeOutput
+
+type NativeFileInputPlan
 
 type NativeNodeRun
 
