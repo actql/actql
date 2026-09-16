@@ -150,7 +150,11 @@ pub fn managed_fixed_query_parameter(@adapter.ManagedFixedQuery[Int]) -> String 
 
 pub fn managed_fixed_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
 
+pub fn managed_fixed_view_plan(@adapter.ManagedFixedQuery[Int]) -> @execution_relation.ManagedViewPlan[Int] raise
+
 pub fn managed_query_completion(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedExecutionProfile, String, String, String, Int, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> @compute.ManagedInputDuckDBCompletion[Int] raise
+
+pub fn managed_single_row_selection_facts(@execution_relation.ManagedProducerRead[Int], Int) -> @execution_relation.ManagedViewOutputFacts raise
 
 pub fn metadata(@adapter.NativeReceiving, Int, String, String) -> Bool
 

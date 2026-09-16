@@ -274,17 +274,23 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const countCodec = `sha256:${'6'.repeat(64)}`;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
             store, downstreamBody, countCodec);
-          if (revoke === 'none') for (const ceiling of [10000, 4]) {
+          if (revoke === 'none') for (const representation of ['validated', 'preserved']) for (const ceiling of [10000, 4]) {
             const filterInput = fixture.ownedFixedManagedFilterInput(nativeQuery, downstreamCompleted);
             assert.deepEqual(fixture.managedColumnMeasurement(filterInput),
               [1, 1, 1, 1, 0]);
             const filterQuery = fixture.managedFixedQuery(filterInput);
             let settled = false;
+            let selectedRows;
             const filterPort = checked(fixture.managedQueryCompletion(filterQuery, profile, ...contracts, ceiling,
               () => true, () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
-            const filterOutput = checked(moon.managedOutputOpen(moon.managedInputOutputValues(filterPort),
-              JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
-              fixture.managedFileTransportLimits(), 100));
+            const filterOutput = representation === 'preserved'
+              ? checked(moon.managedViewOutputOpen(moon.managedInputOutputValues(filterPort),
+              checked(fixture.managedFixedViewPlan(filterQuery)), fixture.managedFileTransportLimits(),
+              () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput),
+              () => checked(fixture.managedSingleRowSelectionFacts(filterInput, selectedRows))))
+              : checked(moon.managedOutputOpen(moon.managedInputOutputValues(filterPort),
+                JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
+                fixture.managedFileTransportLimits(), 100));
             const db = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
             const connection = await db.connect();
             let filterBody;
@@ -305,14 +311,23 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               });
               assert.deepEqual(rows, empty ? [] : [{n: 3}]);
               const columns = [rows.map(row => exportPhysicalValue(row.n, {id: 'DOUBLE'}))];
-              checked(moon.managedOutputAccept(filterOutput, rows.length, JSON.stringify(columns)));
-              checked(moon.managedOutputFinish(filterOutput));
               const writer = store.reserve(4096);
               await writer.start();
               await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
               filterBody = await writer.sealPhysical();
-              checked(moon.managedOutputRetain(filterOutput, BigInt(filterBody.bytes), () => filterBody.available()));
+              selectedRows = rows.length;
               settled = true;
+              if (representation === 'validated') {
+                checked(moon.managedOutputAccept(filterOutput, rows.length, JSON.stringify(columns)));
+              }
+              checked(moon.managedOutputFinish(filterOutput));
+              const admission = checked(moon.managedOutputAdmissionUsage(filterOutput));
+              if (representation === 'preserved') {
+                assert.deepEqual(admission, [0, 0, 0], 'unchanged selected values must not be readmitted in Core');
+              } else if (!empty) {
+                assert.ok(admission[0] > 0 && admission[1] > 0, 'ordinary admission remains a real control');
+              }
+              checked(moon.managedOutputRetain(filterOutput, BigInt(filterBody.bytes), () => filterBody.available()));
               if (empty && ceiling === 4) {
                 assert.throws(() => checked(moon.managedOutputCompleteInput(filterOutput, filterPort)),
                   'false predicate is five logical bytes even with an empty result');

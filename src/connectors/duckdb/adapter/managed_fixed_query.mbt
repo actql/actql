@@ -75,3 +75,48 @@ pub fn[T] managed_fixed_query_create_sql(
 ) -> String {
   value.create_sql
 }
+
+///|
+/// Compile the finite preservation path for the already accepted native
+/// filter/select realization. Group creates new values and needs its separate
+/// validation issuer; compilation is not execution evidence.
+pub fn[T] prepare_managed_fixed_view_plan(
+  query : ManagedFixedQuery[T],
+  limits : NativeQueryLimits,
+) -> Result[@execution.ManagedViewPlan[T], NativeQueryIssue] {
+  guard query.query is FilterSelect(_) else { return Err(UnsupportedShape) }
+  if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if !managed_fixed_query_matches(query, query.input) {
+    return Err(InputUnavailable)
+  }
+  let kernels = []
+  for step in 0..<2 {
+    match
+      @lower.prepare_kernel(
+        fixed_query_owner(query.query),
+        step,
+        max_bindings=limits.max_entries,
+        max_name_bytes=limits.max_sql_bytes,
+        limits.expressions,
+      ) {
+      Ok(kernel) => kernels.push(kernel)
+      Err(issue) => return Err(Lowering(issue))
+    }
+  }
+  match
+    @execution.prepare_managed_view_plan(
+      query.input,
+      kernels,
+      limits.max_entries,
+      limits.max_sql_bytes,
+      limits.max_entries,
+    ) {
+    Ok(plan) => Ok(plan)
+    Err(ForeignInput) => Err(InputUnavailable)
+    Err(InvalidPath | UnsupportedKernel) => Err(UnsupportedShape)
+    Err(InvalidLimits) => Err(InvalidLimits)
+    Err(Limit) => Err(Limit)
+  }
+}

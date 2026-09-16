@@ -16,6 +16,7 @@ struct ManagedNodeOutput {
 priv enum ManagedNodeReceiver {
   Values(@duckdb.ManagedPhysicalOutput)
   Compute(ComputeNodeRun, @duckdb_compute.ManagedDuckDBComputeOutput)
+  View(@execution.ManagedViewOutputPort[Unit, Int])
 }
 
 ///|
@@ -162,6 +163,60 @@ priv struct ManagedNodeHolding {
 }
 
 ///|
+/// Installed Host path for an adopted view executor. The callbacks must bind
+/// the exact native execution and retained representation; callers cannot
+/// replace value admission by submitting an untrusted metadata record.
+#export_name("managedViewOutputOpen")
+pub fn managed_view_output_open(
+  values : @execution.ManagedOutputValues,
+  plan : @execution.ManagedViewPlan[Int],
+  transport : @duckdb.TransportColumnLimits,
+  verify : () -> Bool,
+  facts : () -> @execution.ManagedViewOutputFacts,
+) -> ManagedNodeOutput raise NodeHostFailure {
+  let retention = match
+    @execution.prepare_managed_output_retention_port(values, (
+      proof : ManagedNodeHolding,
+    ) => Some((proof.receipt, 1, proof.bytes, proof.available))) {
+    Ok(port) => port
+    Err(issue) => raise ManagedRetention(issue)
+  }
+  let port = match
+    @execution.prepare_managed_view_output_port(plan, values, (_ : Unit) => {
+      if verify() {
+        Some(facts())
+      } else {
+        None
+      }
+    }) {
+    Ok(port) => port
+    Err(issue) => {
+      @execution.cancel_managed_output_retention_port(retention) |> ignore
+      raise ManagedView(issue)
+    }
+  }
+  {
+    receiver: View(port),
+    transport,
+    retention,
+    receipt: None,
+    material: None,
+    open: true,
+    valid: Ref(true),
+  }
+}
+
+///|
+#export_name("managedOutputAdmissionUsage")
+pub fn managed_output_admission_usage(
+  value : ManagedNodeOutput,
+) -> Array[Int] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  let usage = @execution.managed_output_value_usage(receipt)
+  [usage.work, usage.nodes, usage.text_bytes]
+}
+
+///|
 #export_name("managedOutputOpen")
 pub fn managed_output_open(
   values : @execution.ManagedOutputValues,
@@ -244,6 +299,7 @@ pub fn managed_output_cancel(value : ManagedNodeOutput) -> Unit {
       @duckdb.cancel_managed_physical_output(receiver) |> ignore
     Compute(_, receiver) =>
       @duckdb_compute.cancel_managed_duckdb_compute_output(receiver)
+    View(port) => @execution.cancel_managed_view_output_port(port) |> ignore
   }
   @execution.cancel_managed_output_retention_port(value.retention) |> ignore
 }
@@ -261,6 +317,7 @@ pub fn managed_output_accept(
   errdefer managed_output_cancel(value)
   let columns = chunk_columns(value.transport, data)
   match value.receiver {
+    View(_) => raise InvalidCommand
     Values(receiver) =>
       match @duckdb.append_managed_physical_output(receiver, rows, columns) {
         Ok(_) => ()
@@ -293,6 +350,11 @@ pub fn managed_output_finish(
   errdefer managed_output_cancel(value)
   value.receipt = Some(
     match value.receiver {
+      View(port) =>
+        match @execution.finish_managed_view_output(port, ()) {
+          Ok(receipt) => receipt
+          Err(issue) => raise ManagedView(issue)
+        }
       Values(receiver) =>
         match @duckdb.finish_managed_physical_output(receiver) {
           Ok(receipt) => receipt

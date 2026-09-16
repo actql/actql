@@ -55,6 +55,10 @@ validate their content/measurement correspondence with independent cases, then
 measure eliminated admission/encoding passes on the registered large cases.
 Old contracts, identity preimages, pins and performance gates are unchanged.
 
+The first real native connection and its deliberately limited fixture scope
+are recorded in [managed-native-view-output.md](managed-native-view-output.md).
+General production issuer integration remains outstanding.
+
 Verification: execution_relation passed 433 tests on each of JS, Wasm and
 Native. The new tests are issuer/retention boundary tests; they do not replace
 the outstanding real-producer and end-to-end performance gates.

@@ -290,6 +290,8 @@ pub fn prepare_fixed_join_inputs(NativeInnerJoin, Array[@execution_relation.Prod
 
 pub fn[T] prepare_managed_fixed_query(@execution_relation.ManagedProducerRead[T], String, NativeQueryLimits) -> Result[ManagedFixedQuery[T], NativeQueryIssue]
 
+pub fn[T] prepare_managed_fixed_view_plan(ManagedFixedQuery[T], NativeQueryLimits) -> Result[@execution_relation.ManagedViewPlan[T], NativeQueryIssue]
+
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 
 pub fn[T] prepare_managed_query_demand(ManagedFixedQuery[T], Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ManagedQueryDemand[T], NativeDemandIssue]

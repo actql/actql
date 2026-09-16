@@ -494,6 +494,56 @@ pub fn managed_column_measurement(
 }
 
 ///|
+#export_name("managedFixedViewPlan")
+pub fn managed_fixed_view_plan(
+  query : @duckdb.ManagedFixedQuery[Int],
+) -> @execution.ManagedViewPlan[Int] raise {
+  @duckdb.prepare_managed_fixed_view_plan(query, {
+    max_entries: 100,
+    max_sql_bytes: 10000,
+    expressions: {
+      max_nodes: 1000,
+      max_work: 10000,
+      max_depth: 100,
+      max_literal_nodes: 1000,
+      max_literal_text_bytes: 10000,
+    },
+  }).unwrap()
+}
+
+///|
+/// Fixture issuer restricted to selecting zero/one rows from one admitted
+/// scalar count. Real native execution and sealed-output binding are checked
+/// by the Node test Host; no arbitrary subset totals are inferred here.
+#export_name("managedSingleRowSelectionFacts")
+pub fn managed_single_row_selection_facts(
+  input : @execution.ManagedProducerRead[Int],
+  rows : Int,
+) -> @execution.ManagedViewOutputFacts raise {
+  let column = @execution.managed_producer_read_column_measurement(input, 0).unwrap()
+  assert_eq(column.rows, 1)
+  assert_true(rows == 0 || rows == 1)
+  {
+    rows,
+    columns: [
+      if rows == 1 {
+        column
+      } else {
+        {
+          ..column,
+          rows: 0,
+          bytes: 0,
+          nodes: 0,
+          max_value_bytes: 0,
+          null_rows: 0,
+        }
+      },
+    ],
+    admission_usage: { work: 0, nodes: 0, text_bytes: 0, },
+  }
+}
+
+///|
 #export_name("managedFixedQueryMatches")
 pub fn managed_fixed_query_matches(
   query : @duckdb.ManagedFixedQuery[Int],
