@@ -76,3 +76,7 @@ view, producer, and attempt; a source file hash alone does not establish it.
 Consumer-specific demand, guard, logical accounting, and current use rights must
 remain. This work must be measured separately from changing identity obligations
 under the new profile. No resource limit or performance gate is relaxed here.
+
+The follow-up [native conversion probe](native-file-correspondence.md) records
+finite boundary tests and the coercion counterexample that prevents treating
+arbitrary successful `read_json` as typed admission evidence.
