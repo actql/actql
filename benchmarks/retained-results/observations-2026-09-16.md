@@ -633,3 +633,25 @@ exit code 1 and emitted no successful timing sample. The two-literal patch was
 checked forward against the original tree and in reverse against the adapted
 tree. Larger baseline capacities and paired equivalent-obligation timing remain
 unfinished.
+
+## Follow-up: selective 1000-row baseline receiver profile
+
+A fresh pinned archive at `/tmp/actql-baseline-1000-z4KnQQ` was built with the
+same pinned MoonBit and DuckDB versions. `baseline-receipt-1004.patch` records
+six numeric changes to the example receiver assembly: transport rows, physical
+rows/cells/nodes, receipt rows and receipt bytes. No runtime algorithm changed.
+Both forward and reverse patch checks succeeded against the original and adapted
+trees respectively.
+
+The new `received-transport-envelope` probe supplies fixture-derived acquisition
+transport bounds but preserves the old Compute envelope. Initially forwarding
+the larger acquisition byte allowance to Compute correctly failed its selected
+physical envelope; separating the two configurations fixed the benchmark wiring
+without weakening that check. Failed task diagnostics now retain the actual
+Host failure chain, not just `MoonBitHostFailure`.
+
+Selective/narrow/1000 completed acquisition and three Compute tasks, matched the
+independent final CID and cleaned up. One diagnostic run recorded 194.125 ms
+execution and 0.373 ms cleanup. This is not paired performance evidence, a wide
+or large-output compatibility result, or confirmation of equivalent obligations
+across all four comparators. Those acceptance requirements remain open.

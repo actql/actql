@@ -245,6 +245,18 @@ helper tests is not a performance result. Test it without DuckDB using:
 node --test benchmarks/retained-results/*.test.mjs
 ```
 
+### Selective baseline receiver profile
+
+For the selective narrow 1000-row baseline diagnostic, apply
+`baseline-receipt-1004.patch` to a separate clean archive of the pinned baseline
+(instead of the 104 patch), rebuild the three baseline JS entries, and select
+`ACTQL_BASELINE_PROFILE=received-transport-envelope` with
+`ACTQL_RETAINED_CASE=native-acquisition-full-validation-low-selectivity/narrow/1000`.
+This mode derives acquisition receiver row/cell/byte ceilings from the fixture;
+Compute transport and import bounds remain those of the original example.
+The patch changes six numeric receiver literals only. It is not a general
+capacity-matched baseline for wide, large-output or join cases.
+
 ### Resident phase diagnostics
 
 Resident Compute reports sequential wall-clock intervals in each task's `phases`:

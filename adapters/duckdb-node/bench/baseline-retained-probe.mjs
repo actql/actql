@@ -16,8 +16,8 @@ import {baselinePublicEntry} from './baseline-public-entry.mjs';
 const baselineRoot = process.env.ACTQL_RETAINED_BASELINE_ROOT;
 if (!baselineRoot) throw Error('ACTQL_RETAINED_BASELINE_ROOT must name an independently verified baseline build');
 const profile = process.env.ACTQL_BASELINE_PROFILE ?? 'unchanged-example';
-if (!['unchanged-example', 'received-row-envelope'].includes(profile)) throw Error('InvalidBaselineProfile');
-const runExample = profile === 'received-row-envelope' ? await baselinePublicEntry(baselineRoot)
+if (!['unchanged-example', 'received-row-envelope', 'received-transport-envelope'].includes(profile)) throw Error('InvalidBaselineProfile');
+const runExample = profile !== 'unchanged-example' ? await baselinePublicEntry(baselineRoot)
   : (await import(pathToFileURL(resolve(baselineRoot,
     'adapters/duckdb-node/examples/physical-strategy.mjs')).href)).runExample;
 const {cases, scope} = selectReadinessCases(retainedMatrix(), process.env.ACTQL_RETAINED_CASE);
@@ -50,6 +50,11 @@ for (const fixture of cases) {
       environmentCid: environment.cid, parameters, nativeMilliseconds: '1',
       receivedRows: Math.max(100, fixture.fields.length + fixture.rows + fixture.cardinalities.capture,
         3 * fixture.limits.intermediateRows),
+      ...(profile === 'received-transport-envelope' ? {
+        receivedCells: Math.max(1000, fixture.fields.length *
+          (fixture.fields.length + fixture.rows + 3 * fixture.limits.intermediateRows)),
+        receivedBytes: Math.max(100000, fixture.limits.representationBytes * 4),
+      } : {}),
       signal: AbortSignal.timeout(fixture.limits.timeoutMs)});
     executionMs = performance.now() - started;
     assert.equal(result.report.status, 'host-tasks-completed');
@@ -82,7 +87,10 @@ for (const fixture of cases) {
     }} : {}),
     ...(failed ? {error: String(error), cause: inspect(error?.cause, {depth: 8, breakLength: Infinity})} : {}),
     ...(result ? {taskStatus: result.report.status, failure: result.report.failure,
-      completedTasks: result.report.completed.length} : {}),
+      completedTasks: result.report.completed.length,
+      ...(result.report.status !== 'host-tasks-completed' ? {
+        taskFailure: inspect(result.execution?.failure, {depth: 12, breakLength: Infinity}),
+      } : {})} : {}),
     ...(cleanupErrors.length ? {cleanupErrors, retainedDiagnosticDirectory: directory} : {})}));
 }
 console.log(JSON.stringify({kind: 'baseline-capability-summary', profile,
