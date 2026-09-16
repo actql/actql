@@ -92,6 +92,8 @@ pub fn compute_host_input_values_reuse(ComputeNodeRun, Int) -> Bool
 
 pub fn compute_host_managed_output_begin(ComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
 
+pub fn compute_host_managed_output_enable_index(ManagedNodeOutput, Int) -> Unit raise NodeHostFailure
+
 pub fn compute_host_managed_prepare(ComputeNodeRun, @execution_relation.ManagedExecutionProfile, () -> Bool) -> @compute.ManagedDuckDBCompletion[Int] raise NodeHostFailure
 
 pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
@@ -171,6 +173,8 @@ pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool
 pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
 pub fn managed_output_material(ManagedNodeOutput) -> @execution_relation.ManagedRetainedOutput[Int]?
+
+pub fn managed_output_measurement_index_cells(ManagedNodeOutput) -> Int raise NodeHostFailure
 
 pub fn managed_output_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
 

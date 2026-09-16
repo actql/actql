@@ -38,6 +38,11 @@ pub fn[P, T] prepare_managed_view_output_port(
   if !stream.open || stream.reading || stream.rows != 0 {
     return Err(Closed)
   }
+  // This issuer accepts aggregate column facts, not per-row index material.
+  // Do not silently promise a downstream index which it cannot populate.
+  if stream.row_measurements is Some(_) {
+    return Err(OutputRepresentationRequired)
+  }
   if !physical_equal(stream.owner, plan.input.receiver) ||
     stream.target != plan.target ||
     @schema.field_count(stream.buffer.schema) != plan.columns.length() ||

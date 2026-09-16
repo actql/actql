@@ -2,6 +2,7 @@
 fn managed_read_fixture(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
+  index_cells? : Int,
 ) -> ManagedCompletedOutput[Int] raise {
   let preparation = prepare_completion(
     registered_relation_contracts(),
@@ -21,6 +22,9 @@ fn managed_read_fixture(
   let retention = prepare_managed_output_retention_port(values, (
     receipt : ManagedOutputValueReceipt,
   ) => Some((receipt, 7, 12L, fn() { live.val }))).unwrap()
+  if index_cells is Some(cap) {
+    enable_managed_row_measurements(values, cap).unwrap()
+  }
   for row in 0..<2 {
     let cells = output_fixture_row(owner, row)
     append_managed_output_values(values, cells.length(), column => {

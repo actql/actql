@@ -155,6 +155,8 @@ pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[
 
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]
+
 pub fn execute_fixed_input_guarded(GeneratedSequence, CapturedRows, @pipeline_typing.Target, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, record_values? : Bool, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
 
 pub fn execute_fixed_producer_guarded(GeneratedSequence, ProducerRead, @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[CompletedSequence, FixedInputGuardIssue]
@@ -247,6 +249,8 @@ pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCo
 
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
 
+pub fn managed_output_measurement_index_cells(ManagedOutputValueReceipt) -> Int?
+
 pub fn managed_output_value_fixed_measurement_matches(ManagedOutputValueReceipt, FixedProducerMeasurement) -> Bool
 
 pub fn managed_output_value_fixed_measurement_usage(ManagedOutputValueReceipt) -> (Int, Int, Int)?
@@ -304,6 +308,8 @@ pub fn[T] managed_view_plan_column_facts(ManagedViewPlan[T], Int) -> ManagedView
 pub fn[T] managed_view_plan_matches(ManagedViewPlan[T], ManagedProducerRead[T], @pipeline_typing.Target) -> Bool
 
 pub fn[T] managed_view_plan_rows(ManagedViewPlan[T]) -> ManagedViewRows
+
+pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], Int) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue]
 
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
@@ -737,6 +743,7 @@ pub(all) enum ManagedOutputValueIssue {
   Admission(CaptureIssue)
   Guard(FixedInputGuardIssue)
   Closed
+  MeasurementIndexLimit
 }
 
 type ManagedOutputValueReceipt
@@ -759,6 +766,14 @@ pub(all) enum ManagedProfileIssue {
 } derive(Eq, @debug.Debug)
 
 type ManagedRetainedOutput[T]
+
+pub(all) enum ManagedSelectionMeasureIssue {
+  InvalidLimits
+  Limit
+  ForeignInput
+  MissingIndex
+  InvalidSelection
+}
 
 pub(all) struct ManagedViewColumnFacts {
   source_column : Int

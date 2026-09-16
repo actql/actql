@@ -417,6 +417,50 @@ pub fn owned_fixed_managed_input_usage(
 }
 
 ///|
+/// Conditional metadata only; this helper does not issue an executed take.
+#export_name("managedSelectedTextMeasurements")
+pub fn managed_selected_text_measurements(
+  value : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  rows : Array[Int],
+) -> Array[Int] raise {
+  let owner = @duckdb.fixed_query_owner(
+    @duckdb.fixed_compute_query(value.compute),
+  )
+  let receiver = issued_fixture_consumer(
+    owner,
+    steps="[{\"take\":2},{\"select\":[\"amount\"]}]",
+    target=@duckdb.fixed_query_target(
+      @duckdb.fixed_compute_query(value.compute),
+    ),
+  )
+  let input = @execution.prepare_managed_producer_read(
+    receiver, 0, owner, output, 100, 10000,
+  ).unwrap()
+  let expressions : @lower.ExpressionLimits = {
+    max_nodes: 100,
+    max_work: 1000,
+    max_depth: 100,
+    max_literal_nodes: 100,
+    max_literal_text_bytes: 1000,
+  }
+  let kernels = Array::makei(2, i => {
+    @lower.prepare_kernel(
+      receiver,
+      i,
+      max_bindings=100,
+      max_name_bytes=1000,
+      expressions,
+    ).unwrap()
+  })
+  let plan = @execution.prepare_managed_view_plan(
+    input, kernels, 1000, 10000, 100,
+  ).unwrap()
+  let facts = @execution.managed_view_selection_measurements(plan, rows, 1000).unwrap()[0].unwrap()
+  [facts.rows, facts.bytes, facts.nodes, facts.max_value_bytes, facts.null_rows]
+}
+
+///|
 #export_name("ownedFixedManagedCountInput")
 pub fn owned_fixed_managed_count_input(
   value : OwnedFixedFixture,

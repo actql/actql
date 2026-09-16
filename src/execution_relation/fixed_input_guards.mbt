@@ -70,6 +70,7 @@ fn[T : IndexedRows] measure_input_values(
   column_usage? : Array[(Int, Int)],
   column_maxima? : Array[Int],
   column_nulls? : Array[Int],
+  row_measurements? : ManagedRowMeasurements,
 ) -> Result[Unit, FixedInputGuardIssue] {
   for row in 0..<rows.row_count() {
     if budget.work <= 0 {
@@ -113,6 +114,11 @@ fn[T : IndexedRows] measure_input_values(
       if column_nulls is Some(nulls) &&
         (cell is Null || cell is Captured(@admitted.Null)) {
         nulls[column] += 1
+      }
+      if row_measurements is Some(index) {
+        index.cells.push(
+          (usage.0, usage.1, cell is Null || cell is Captured(@admitted.Null)),
+        )
       }
     }
   }

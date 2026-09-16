@@ -66,7 +66,14 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
       });
       const writer = store.reserve(65536);
       await writer.start();
-      const begin = fields => output ??= checked(moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)));
+      const begin = fields => {
+        if (!output) {
+          output = checked(moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)));
+          // Explicitly bounded fixture metadata reservation, not a default index.
+          checked(moon.computeHostManagedOutputEnableIndex(output, 4));
+        }
+        return output;
+      };
       const observed = [];
       consume = async chunk => {
         begin(chunk.fields);
@@ -79,6 +86,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
       result = await runFixedCompute(port, limits, {maxRows: 4, maxCells: 8}, consume);
       begin(result.value.fields);
       checked(moon.managedOutputFinish(output));
+      assert.equal(checked(moon.managedOutputMeasurementIndexCells(output)), empty ? 0 : 3);
       const body = await writer.sealPhysical();
       checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
       assert.deepEqual(observed, empty ? [] : ['日本語', null, '日本語']);
@@ -111,6 +119,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           continue;
         }
         completed = checked(moon.managedOutputCompleteCompute(output, completion));
+        assert.deepEqual(checked(fixture.managedSelectedTextMeasurements(configured, completed,
+          empty ? [] : [0, 1])), empty ? [0, 0, 0, 0, 0] : [2, 15, 2, 11, 1]);
         assert.equal(moon.managedCompletedProfileCid(completed), profileCid);
         assert.equal(moon.managedCompletedAvailable(completed), true);
         assert.throws(() => checked(moon.managedOutputCompleteCompute(output, completion)), 'completion is single use');

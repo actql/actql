@@ -217,6 +217,39 @@ pub fn managed_output_admission_usage(
 }
 
 ///|
+/// Optional Host-reserved metadata for future selected-row measurements.
+/// Configure once before the selected Compute emits its first row.
+#export_name("computeHostManagedOutputEnableIndex")
+pub fn compute_host_managed_output_enable_index(
+  output : ManagedNodeOutput,
+  max_cells : Int,
+) -> Unit raise NodeHostFailure {
+  guard output.receiver is Compute(run, receiver) && !run.closed && output.open else {
+    raise InvalidCommand
+  }
+  match
+    @execution.enable_managed_row_measurements(
+      @duckdb_compute.managed_duckdb_compute_output_values(receiver),
+      max_cells,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise ManagedValues(Values(issue))
+  }
+}
+
+///|
+#export_name("managedOutputMeasurementIndexCells")
+pub fn managed_output_measurement_index_cells(
+  output : ManagedNodeOutput,
+) -> Int raise NodeHostFailure {
+  guard output.receipt is Some(receipt) &&
+    @execution.managed_output_measurement_index_cells(receipt) is Some(count) else {
+    raise InvalidCommand
+  }
+  count
+}
+
+///|
 #export_name("managedOutputOpen")
 pub fn managed_output_open(
   values : @execution.ManagedOutputValues,

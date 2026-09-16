@@ -14,6 +14,7 @@ struct ManagedOutputValues {
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
   column_nulls : Array[Int]
+  mut row_measurements : ManagedRowMeasurements?
   max_value_bytes : Int
   max_rows : Int
   mut rows : Int
@@ -39,6 +40,7 @@ struct ManagedOutputValueReceipt {
   column_maxima : Array[Int]
   column_nulls : Array[Int]
   measured_depth : Int
+  row_measurements : ManagedRowMeasurements?
 }
 
 ///|
@@ -46,6 +48,7 @@ pub(all) enum ManagedOutputValueIssue {
   Admission(CaptureIssue)
   Guard(FixedInputGuardIssue)
   Closed
+  MeasurementIndexLimit
 }
 
 ///|
@@ -85,6 +88,7 @@ pub fn prepare_managed_output_values(
     column_usage: Array::make(@schema.field_count(output.buffer.schema), (0, 0)),
     column_maxima: Array::make(@schema.field_count(output.buffer.schema), 0),
     column_nulls: Array::make(@schema.field_count(output.buffer.schema), 0),
+    row_measurements: None,
     max_value_bytes,
     max_rows,
     rows: 0,
@@ -100,6 +104,9 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
     return false
   }
   value.open = false
+  if value.row_measurements is Some(index) {
+    index.cells.clear()
+  }
   cancel_admitted_buffer(value.buffer) |> ignore
   true
 }
@@ -125,6 +132,11 @@ pub fn append_managed_output_values(
   if stream.rows >= stream.max_rows {
     cancel_managed_output_values(stream) |> ignore
     return Err(Admission(CaptureLimit))
+  }
+  if stream.row_measurements is Some(index) &&
+    width > index.max_cells - index.cells.length() {
+    cancel_managed_output_values(stream) |> ignore
+    return Err(MeasurementIndexLimit)
   }
   stream.reading = true
   let result = append_admitted_buffer_cells(stream.buffer, width, read)
@@ -158,6 +170,7 @@ pub fn append_managed_output_values(
         column_usage=stream.column_usage,
         column_maxima=stream.column_maxima,
         column_nulls=stream.column_nulls,
+        row_measurements?=stream.row_measurements,
       ) {
       Ok(_) => ()
       Err(issue) =>
@@ -234,6 +247,19 @@ pub fn finish_managed_output_values(
   if stream.issue is Some(issue) {
     return Err(Guard(issue))
   }
+  if stream.row_measurements is Some(index) {
+    let width = @schema.field_count(stream.buffer.schema)
+    if (width == 0 && index.cells.length() != 0) ||
+      (
+        width > 0 &&
+        (
+          index.cells.length() / width != stream.rows ||
+          index.cells.length() % width != 0
+        )
+      ) {
+      return Err(MeasurementIndexLimit)
+    }
+  }
   let budget = stream.buffer.budget
   Ok({
     identity: stream.identity,
@@ -253,6 +279,7 @@ pub fn finish_managed_output_values(
     column_maxima: stream.column_maxima.copy(),
     column_nulls: stream.column_nulls.copy(),
     measured_depth: stream.measurement.depth,
+    row_measurements: stream.row_measurements,
   })
 }
 
