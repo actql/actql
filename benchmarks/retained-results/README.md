@@ -134,6 +134,32 @@ has no timing samples or performance acceptance result.
 
 ## Paired timing assessment
 
+`managed-configuration.mjs` is shared by the readiness gate and the retained
+comparison leg so their Program, envelopes, estimates, child limits and retention
+settings do not drift. It preserves the existing fixture ceilings; estimates are
+still supplied selection inputs rather than measured costs.
+
+`adapters/duckdb-node/bench/retained-comparator.mjs` runs that configuration through
+the installed managed Host. Its `executionMs` starts before Host construction and
+ends after completed independent holdings and confirmed child exit. Independent
+expected identity is calculated beforehand, checked afterwards, and final result
+release has a separate `cleanupMs`. A failed identity check or failed cleanup
+throws instead of returning a completed sample. Reports include Program/parameter/
+source-definition hashes, environment CID, ledger, task phases, controller memory
+and wire traffic. The source-definition hash is not a verification of database
+contents; paired data provenance still belongs to the experiment runner.
+
+This is `managed-host-cycle-diagnostic`, not a warm-task timer or full experiment.
+It is not directly comparable to the raw engine's CTAS-only interval. The baseline
+and identical-obligations legs, common timing boundaries, immutable data/runtime
+provenance, alternating schedule and acceptance report still require integration.
+The real test covers all three 100-row narrow workloads and verifies that a wrong
+oracle rejects the sample while still removing completed files:
+
+```sh
+node --test adapters/duckdb-node/test/retained-comparator.test.mjs
+```
+
 The benchmark-only raw DuckDB leg can now be exercised against all 27 registered
 cases (or one exact `ACTQL_RETAINED_CASE`):
 

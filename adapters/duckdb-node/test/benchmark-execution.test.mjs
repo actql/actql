@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, retainedMatrix, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
-import {benchmarkEnvironment} from '../../../benchmarks/retained-results/environment.mjs';
+import {managedCaseConfiguration} from '../../../benchmarks/retained-results/managed-configuration.mjs';
 import {selectReadinessCases} from '../../../benchmarks/retained-results/selection.mjs';
 import {sampleControllerMemory} from '../../../benchmarks/retained-results/controller-memory.mjs';
 import {createManagedExampleHost} from '../examples/managed-host.mjs';
@@ -53,34 +53,12 @@ test('retained benchmark shapes execute in a managed process and retain exact re
           database, fixture.workload, fixture.layout, String(fixture.rows)],
         {timeout: fixture.limits.timeoutMs, maxBuffer: 65536});
       const l = fixture.limits;
-      const environment = benchmarkEnvironment(fixture);
-      const taskCount = workload === workloads[1] ? 4 : 3;
-      const computeTransfer = 3 * l.representationBytes +
-        2 * l.intermediateRows * (128 * l.maxColumns + 256) + 8192;
-      // Join preflight charges the supplied validation work before input scans;
-      // it is additional to graph/search planning, not a free execution check.
-      const limits = {planning_work: 100000 + l.cumulativeGuardWork, attempts: 12, holdings: 12,
-        transfer_bytes: BigInt(3 * l.representationBytes + (taskCount + 1) * computeTransfer),
-        retained_bytes: 1073741824n, execution_bytes: 4294967296n};
+      const {limits, input, childLimits} = managedCaseConfiguration(fixture, contracts, database, directory);
       const host = await createManagedExampleHost(limits);
-      const batchBytes = Math.min(l.batchBytes, l.representationBytes);
-      const input = {...contracts, database,
-        environmentText: environment.text, environmentCid: environment.cid,
-        programText: JSON.stringify(fixture.program()), parameterText: JSON.stringify({minimum: fixture.minimum}),
-        nativeMilliseconds: '1', localImportWorkMilliseconds: '0', localExportWorkMilliseconds: '0',
-        retainedWorkMilliseconds: '0',
-        dataProfile: {source_rows: l.sourceRows, task_rows: l.intermediateRows, columns: l.maxColumns,
-          value_bytes: l.maxValueBytes, wire_bytes: l.representationBytes,
-          value_nodes: l.cumulativeValueNodes, text_bytes: l.cumulativeValueTextBytes,
-          work: l.cumulativeGuardWork, entries: l.cumulativeValueNodes, batch_bytes: batchBytes},
-        retainedOutput: {parentDirectory: directory, maxFrameBytes: batchBytes,
-          wire: {max_bytes: l.representationBytes, max_nodes: l.cumulativeValueNodes, max_depth: 64,
-            max_columns: l.maxColumns, max_order_work: l.cumulativeGuardWork}},
-      };
       const memory = sampleControllerMemory();
       let controlMemory;
       try {
-        result = await host.run(input, {run: fixture.id, childLimits: {...limits, attempts: 10}},
+        result = await host.run(input, {run: fixture.id, childLimits},
           AbortSignal.timeout(l.timeoutMs)).catch(error => {
           throw new Error(`${fixture.id}: ${error.message} (${error.examplePhase}): ${JSON.stringify(error.cause)}`, {cause: error});
         });

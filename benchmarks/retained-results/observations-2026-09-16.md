@@ -517,3 +517,20 @@ three because the two-row and one-row tail have distinct SQL shapes. The shared
 SQL-cap tests passed on JS/Wasm/native, 17 tests per target; batch and resident
 session tests passed 10/10. This establishes fewer native calls, not a measured
 large-profile wall-clock improvement or formal performance acceptance.
+
+## Follow-up: retained comparison execution leg
+
+Readiness and retained measurement now share the same immutable benchmark
+configuration builder, including cumulative transfer/planning allowances and
+separately delegated child attempts. All 27 configurations are tested, with a
+fixed independently calculated join envelope case; the fixture pin is unchanged.
+
+The retained leg invokes the installed managed Host, validates the independent
+final identity and file lifetime after child exit, and times explicit result
+cleanup separately. Incorrect expected identity still releases completed files
+and never produces a successful sample. Real integration covers the three narrow
+100-row workloads, and the benchmark helper suite passed 14/14. These are runner
+verification cases, not acceptance measurements. Its interval includes Host and
+process setup, so no ratio against the raw comparator's compute-only interval is
+claimed. Baseline/equivalent-obligations implementations and paired provenance/
+timing boundaries remain required before applying registered thresholds.
