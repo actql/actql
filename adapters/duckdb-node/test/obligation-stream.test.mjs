@@ -1,0 +1,73 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {checked} from '../runtime-result.mjs';
+
+let moon;
+test.before(async () => {
+  await promisify(execFile)('moon', ['build', 'src/benchmark_obligations', '--target', 'js', '--release'],
+    {cwd: new URL('../../../', import.meta.url)});
+  moon = await import('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js');
+});
+const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
+function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget,
+  names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]} = {}) {
+  return checked(moon.obligationBegin(names, kinds, nullable,
+    {max_rows: 10, max_cells: 30, max_nodes: 1000, max_text_bytes: 10000},
+    {max_columns: 3, max_order_work: 1000, max_bytes: 10000, max_nodes: 1000, max_depth: 10},
+    {max_bytes: 10000, max_nodes: 1000, max_columns: 3, max_rows: 10, max_text_bytes: 10000},
+    budget ?? checked(moon.obligationBudget(work, 10000, 1000, 10, ceiling)),
+    false, retain, identity, 10000));
+}
+
+test('shared canonical encoding retains order duplicates NULL and Unicode independently of column order', () => {
+  const stream = begin();
+  const text = checked(moon.obligationAppend(stream, 3,
+    '[["4000000000000000","3ff0000000000000","4000000000000000"],["é",null,"é"]]'));
+  const result = checked(moon.obligationFinish(stream));
+  const expected = '[{"a":"é","z":2},{"a":null,"z":1},{"a":"é","z":2}]';
+  assert.equal(text + result._0, expected);
+  assert.equal(result._1, hash(expected)); assert.equal(result._4, 3);
+  assert.throws(() => checked(moon.obligationFinish(stream)));
+});
+
+test('physical invalidity, missing cells and guard exhaustion poison the stream', () => {
+  for (const [options, columns] of [
+    [{}, '[["7ff0000000000000"],["x"]]'],
+    [{}, '[[null],["x"]]'],
+    [{}, '[[],["x"]]'],
+    [{work: 1}, '[["3ff0000000000000"],["x"]]'],
+    [{ceiling: 2}, '[["3ff0000000000000"],["long"]]'],
+  ]) {
+    const stream = begin(options);
+    assert.throws(() => checked(moon.obligationAppend(stream, 1, columns)));
+    assert.throws(() => checked(moon.obligationFinish(stream)));
+  }
+});
+
+test('consumer measurement shares cumulative budget without inventing a content identity', () => {
+  const budget = checked(moon.obligationBudget(4, 10000, 1000, 10, 1000));
+  const columns = '[["3ff0000000000000"],["x"]]';
+  const first = begin({budget, retain: false, identity: false});
+  assert.equal(checked(moon.obligationAppend(first, 1, columns)), '');
+  assert.equal(checked(moon.obligationFinish(first))._1, undefined);
+  const second = begin({budget, retain: false, identity: false});
+  assert.throws(() => checked(moon.obligationAppend(second, 1, columns)));
+});
+
+test('owned completed measurement can be charged again but never waives a consumer budget', () => {
+  const stream = begin();
+  checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"],["x"]]'));
+  const summary = checked(moon.obligationFinish(stream))._5;
+  const budget = checked(moon.obligationBudget(3, 10000, 1000, 10, 1000));
+  assert.equal(moon.obligationReuseMeasurement(summary, budget), true);
+  assert.equal(moon.obligationReuseMeasurement(summary, budget), false);
+  assert.equal(moon.obligationReuseMeasurement(summary,
+    checked(moon.obligationBudget(10, 10000, 1000, 10, 2))), false);
+  const shared = checked(moon.obligationBudget(100, 10000, 1000, 10, 1000));
+  begin({budget: shared});
+  assert.throws(() => begin({budget: shared}));
+  assert.equal(moon.obligationReuseMeasurement(summary, shared), false);
+});

@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/benchmark_obligations"
+
+import {
+  "actql/actql/connectors/duckdb/adapter",
+  "actql/actql/execution_relation",
+}
+
+// Values
+pub fn obligation_append(ObligationStream, Int, String) -> String raise ObligationFailure
+
+pub fn obligation_begin(Array[String], Array[Int], Array[Bool], @adapter.PhysicalResultLimits, @execution_relation.RowWireLimits, @adapter.TransportColumnLimits, GuardBudget, Bool, Bool, Bool, Int) -> ObligationStream raise ObligationFailure
+
+pub fn obligation_budget(Int, Int, Int, Int, Int) -> GuardBudget raise ObligationFailure
+
+pub fn obligation_finish(ObligationStream) -> (String, String?, Int, Int, Int, GuardSummary) raise ObligationFailure
+
+pub fn obligation_reuse_measurement(GuardSummary, GuardBudget) -> Bool
+
+// Errors
+type ObligationFailure
+
+// Types and methods
+type GuardBudget
+
+type GuardSummary
+
+type ObligationStream
+
+// Type aliases
+
+// Traits

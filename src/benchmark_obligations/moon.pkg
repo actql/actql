@@ -1,0 +1,13 @@
+// Benchmark-only semantic components. No Host, planner or task-DAG assembly.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/connectors/duckdb/adapter" @duckdb,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/encode_core" @encode,
+}

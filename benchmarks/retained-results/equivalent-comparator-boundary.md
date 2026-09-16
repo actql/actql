@@ -2,7 +2,10 @@
 
 Q8 requires independent execution assembly, not an independent reimplementation
 of ActQL semantics. This inventory specifies that boundary; it does **not**
-claim that the equivalent-obligation comparator is implemented or accepted.
+claim that the equivalent-obligation comparator is accepted. An independent
+execution prototype now exists in `adapters/duckdb-node/bench/equivalent-obligations.mjs`.
+It always reports `acceptanceEligible: false` and names its missing obligations;
+it is not the registered equivalent comparator and cannot supply passing pairs.
 
 ## Shared components and independent assembly
 
@@ -52,3 +55,41 @@ Record nested/overlapping intervals rather than summing them as exclusive time.
 The unchanged registered thresholds apply. Passing 1.25 alone is not a claim of
 acceptable absolute latency. Missing comparator obligations, failed cases or
 unmatched timing boundaries leave acceptance undetermined, never passed.
+
+## Executable prototype and remaining closure
+
+The prototype opens its own read-only source connection and transaction, performs
+full source validation before filtering, runs each fixture Stage as a separate
+temporary table, hashes and independently holds every named intermediate, and
+reuses those private tables without parameter imports. It preflights join pair
+cardinality before creating the join result. The independent fixture supplies
+the final ordered-content oracle, not execution receipts.
+
+`src/benchmark_obligations` shares the DuckDB physical value decoder, schema/value
+contracts, canonical writer and canonical column-order helper. It contains no
+product Host/planner/DAG assembly. Its measurement traversal is benchmark-owned;
+completed per-value size measurements can discharge the next consumer's
+measurement by charging the full cached work/bytes/nodes again. A smaller ceiling
+or exhausted budget falls back to measurement; it is not silently waived. The
+orchestration must bind that summary to its private immutable table and live
+retained result. These are benchmark tokens, not production completion evidence.
+
+The current tests cover nine small workload/layout combinations, order,
+duplicates, NULL, Unicode, column-order permutation, nonfinite physical values,
+guard exhaustion, poisoned streams, cumulative measurement budgets, an invalid
+source value excluded by the filter, cancellation before start, and Store
+cleanup. The independent column-order test caught a schema/transport index
+confusion during development, before acceptance use.
+
+Still required before equivalence approval:
+
+- Matched execution-process/cold and warm timing boundaries.
+- Complete expression-demand/guard failure parity and its negative fixtures.
+- Combined live DB-copy and file retention admission, not only the Store limit.
+- Acquisition evidence metadata construction/validation parity.
+- Transfer and logical-work accounting equivalence.
+- Broader ownership, cancellation-during-work and cleanup-failure fixtures.
+- All 27 cases, followed by the registered alternating-pair experiment.
+
+Do not turn a successful prototype run or its lower elapsed time into a 1.25
+comparison result until this list is closed with inspected evidence.

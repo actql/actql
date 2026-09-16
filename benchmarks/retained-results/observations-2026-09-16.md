@@ -1049,3 +1049,27 @@ not Q7's calibrated selection requirement or formal performance acceptance.
 The file/row choice is currently made inside the selected fresh DuckDB transport;
 separate representation-aware cost evidence remains necessary. Independent
 equivalent-obligation assembly, proof reuse and direct output are still open.
+
+### Independent assembly prototype (not an equivalent timing sample)
+
+The new benchmark-owned assembly executes the fixture without the product Host,
+planner or DAG. It shares value admission and canonical encoding, independently
+orders its SQL and table lifetimes, preflights join cardinality, and retains each
+named intermediate through the low-level Store. It can charge completed scalar
+measurement summaries to each consumer without rereading an unchanged private
+table merely to measure the same values again. New, stricter consumer budgets
+are not waived. This is a benchmark implementation, not product proof reuse.
+
+Nine small workload/layout combinations passed final independent CIDs and
+cleanup. Separate tests cover order/duplicate/NULL/Unicode encoding, permuted
+transport columns, nonfinite values, cumulative budgets and poisoned streams.
+An invalid field in a source row excluded by the filter is still rejected.
+
+One numeric-64/10000 reuse diagnostic completed in 5328.820 ms, plus 5.618 ms
+cleanup, including validation (958.714 ms), four independently held outputs and
+three reused input measurement summaries. The final ordered CID matched the
+independent fixture. **This is not an equivalent-obligation comparison or a
+performance pass:** process/timing parity, combined DB/file capacity admission,
+expression-demand failure parity, evidence metadata and accounting remain open.
+The executable explicitly reports `acceptanceEligible: false` and its missing
+obligations; its time must not be used as the registered 1.25 denominator yet.
