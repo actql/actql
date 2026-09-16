@@ -10,6 +10,17 @@ export class RetainedFileError extends Error {
 
 const fail = code => { throw new RetainedFileError(code); };
 const quantity = n => Number.isSafeInteger(n) && n >= 0;
+const bodyOwners = new WeakMap(), storeOwners = new WeakMap();
+
+// Exact installed Store ownership, not content equality or completion authority.
+export function localStoreOwnsBody(store, body) {
+  const owner = storeOwners.get(store)?.owner;
+  return owner !== undefined && bodyOwners.get(body) === owner;
+}
+
+export function localRetainedStoreAvailable(store) {
+  return storeOwners.get(store)?.available() === true;
+}
 
 export function validateLocalStoreConfiguration({ parentDirectory, capacityBytes, maxFrameBytes, maxEntries = 1024 }) {
   // Pure validation precedes file creation/reservation.
@@ -24,6 +35,7 @@ export async function createLocalRetainedStore(options) {
   const {parentDirectory, capacityBytes, maxFrameBytes, maxEntries} = validateLocalStoreConfiguration(options);
   const directory = await mkdtemp(join(parentDirectory, 'actql-retained-'));
   const entries = new Set();
+  const owner = Object.freeze({});
   let remaining = capacityBytes;
   let admittedWriteBytes = 0;
   let uncertainWriteBytes = 0;
@@ -169,7 +181,7 @@ export async function createLocalRetainedStore(options) {
         entry.reservation = entry.bytes;
       } catch (error) { throw attachCleanup(error); }
       finally { entry.busy = false; }
-      return Object.freeze({
+      const body = Object.freeze({
         // Immutable identity of physical bytes only, not an ActQL result claim.
         bytes: entry.bytes, cid: entry.cid,
         available: () => !closed && !entry.revoked && !entry.released,
@@ -259,6 +271,8 @@ export async function createLocalRetainedStore(options) {
           } finally { entry.readers--; }
         },
       });
+      bodyOwners.set(body, owner);
+      return body;
     };
 
     // Trusted local-process wiring only. The Host owns the inode/reservation;
@@ -318,7 +332,7 @@ export async function createLocalRetainedStore(options) {
       cancel: revoke, cleanupHandle });
   };
 
-  return Object.freeze({
+  const store = Object.freeze({
     reserve, status,
     close() { closed = true; for (const entry of entries) entry.revoked = true; },
     cleanup() {
@@ -339,4 +353,6 @@ export async function createLocalRetainedStore(options) {
       return cleanupInFlight;
     },
   });
+  storeOwners.set(store, {owner, available: () => !closed});
+  return store;
 }
