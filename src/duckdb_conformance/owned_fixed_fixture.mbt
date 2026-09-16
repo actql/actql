@@ -380,6 +380,43 @@ pub fn owned_fixed_retained_input(
 }
 
 ///|
+#export_name("ownedFixedManagedInput")
+pub fn owned_fixed_managed_input(
+  value : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int]? {
+  @execution.prepare_managed_producer_read(
+    @execution.generated_sequence_owner(value.consumer),
+    0,
+    @duckdb.fixed_query_owner(@duckdb.fixed_compute_query(value.compute)),
+    output,
+    100,
+    10000,
+  ).to_option()
+}
+
+///|
+#export_name("ownedFixedManagedInputUsage")
+pub fn owned_fixed_managed_input_usage(
+  value : OwnedFixedFixture,
+  input : @execution.ManagedProducerRead[Int],
+) -> Array[Int] {
+  let owner = @execution.generated_sequence_owner(value.consumer)
+  let measurement = @execution.prepare_reused_managed_producer_measurement(
+    [input],
+    Step(@lower.node_count(@lower.bound_preparation(owner)) - 1),
+    max_rows=100,
+    max_value_bytes=10000,
+    { max_work: 10000, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    10000,
+  ).unwrap()
+  let (work, bytes, nodes) = @execution.managed_producer_measurement_usage(
+    measurement,
+  )
+  [@execution.managed_producer_read_row_count(input), work, bytes, nodes]
+}
+
+///|
 #export_name("ownedFixedRetainedCid")
 pub fn owned_fixed_retained_cid(
   value : OwnedFixedFixture,

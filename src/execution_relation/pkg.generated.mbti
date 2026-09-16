@@ -265,11 +265,15 @@ pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Sch
 
 pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
+pub fn managed_producer_measurement_usage(ManagedProducerMeasurement) -> (Int, Int, Int)
+
 pub fn[T] managed_producer_read_available(ManagedProducerRead[T]) -> Bool
 
 pub fn[T] managed_producer_read_column(ManagedProducerRead[T], Int) -> Int?
 
 pub fn[T] managed_producer_read_input_index(ManagedProducerRead[T]) -> Int
+
+pub fn[T] managed_producer_read_matches_material(ManagedProducerRead[T], ManagedRetainedOutput[T]) -> Bool
 
 pub fn[T] managed_producer_read_material(ManagedProducerRead[T]) -> ManagedRetainedOutput[T]?
 

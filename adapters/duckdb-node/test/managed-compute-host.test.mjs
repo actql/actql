@@ -9,6 +9,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
+import {registerManagedInput, withManagedInputFile} from '../../store-local/managed-representations.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -112,6 +113,47 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         releaseFixedCompute(result);
         assert.equal(moon.managedOutputComputeVerified(output), false);
         assert.equal(moon.managedCompletedAvailable(completed), true, 'sealed independent output is not a live input verification');
+        const material = moon.managedOutputMaterial(output);
+        const codec = `sha256:${'4'.repeat(64)}`; // Fixture physical-frame interpretation only.
+        registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
+        const foreign = fixture.typedFixedCreate(pipeline, empty ? 'id > 9' : 'id > 2', ...contracts);
+        assert.equal(fixture.ownedFixedManagedInput(foreign, completed), undefined);
+        for (let consumer = 0; consumer < 2; consumer++) {
+          const input = fixture.ownedFixedManagedInput(configured, completed);
+          assert.ok(input);
+          // Two separate consumer ledgers both charge the full logical input.
+          // This call consumes stored metadata, not cells or physical bytes.
+          assert.deepEqual(fixture.ownedFixedManagedInputUsage(configured, input),
+            empty ? [0, 0, 0, 0] : [3, 6, 26, 3]);
+          let reads = 0;
+          const use = async file => {
+            reads++;
+            assert.equal(store.status().activeReaders, 1);
+            const frames = (await readFile(file.path, 'utf8')).trim();
+            return frames ? frames.split('\n').flatMap(frame => JSON.parse(frame).columns[0]) : [];
+          };
+          await assert.rejects(withManagedInputFile(material, input, codec, () => false, use),
+            {code: 'ManagedInputUnauthorized'});
+          await assert.rejects(withManagedInputFile(material, null, codec, () => true, use),
+            {code: 'ManagedInputUnavailable'});
+          await assert.rejects(withManagedInputFile(material, input, `sha256:${'5'.repeat(64)}`, () => true, use),
+            {code: 'UnsupportedManagedCodec'});
+          assert.equal(reads, 0);
+          let integrityReadBytes = 0;
+          const read = await withManagedInputFile(material, input, codec, () => true, use,
+            undefined, bytes => { integrityReadBytes += bytes; });
+          assert.deepEqual(read, empty ? [] : ['日本語', null, '日本語']);
+          assert.equal(reads, 1);
+          assert.equal(integrityReadBytes, body.bytes);
+          assert.equal(store.status().activeReaders, 0);
+          let authorizedRead = true;
+          await assert.rejects(withManagedInputFile(material, input, codec, () => authorizedRead,
+            async file => { const read = await use(file); authorizedRead = false; return read; }),
+          {code: 'ManagedInputUnauthorized'});
+          assert.equal(store.status().activeReaders, 0);
+          assert.equal(moon.managedCompletedAvailable(completed), true,
+            'failed additional use does not undo prior completion');
+        }
       }
     } finally {
       if (output) moon.managedOutputCancel(output);

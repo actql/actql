@@ -187,3 +187,14 @@ pub fn[T] managed_producer_read_material(
     None
   }
 }
+
+///|
+/// Installed representation registry binding. Does not grant a Store pin or
+/// current use authority; projection remains the checked receiving view.
+pub fn[T] managed_producer_read_matches_material(
+  input : ManagedProducerRead[T],
+  material : ManagedRetainedOutput[T],
+) -> Bool {
+  physical_equal(input.output.material, material) &&
+  managed_producer_read_available(input)
+}

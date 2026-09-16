@@ -69,6 +69,27 @@ pub fn managed_completed_available(
 }
 
 ///|
+#export_name("managedOutputMaterial")
+pub fn managed_output_material(
+  value : ManagedNodeOutput,
+) -> @execution.ManagedRetainedOutput[Int]? {
+  if managed_output_available(value) {
+    value.material
+  } else {
+    None
+  }
+}
+
+///|
+#export_name("managedInputMatchesMaterial")
+pub fn managed_input_matches_material(
+  input : @execution.ManagedProducerRead[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Bool {
+  @execution.managed_producer_read_matches_material(input, material)
+}
+
+///|
 priv struct ManagedNodeHolding {
   receipt : @execution.ManagedOutputValueReceipt
   bytes : Int64

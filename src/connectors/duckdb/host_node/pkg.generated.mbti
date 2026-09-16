@@ -144,6 +144,8 @@ pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguratio
 
 pub fn managed_completed_available(@execution_relation.ManagedCompletedOutput[Int]) -> Bool
 
+pub fn managed_input_matches_material(@execution_relation.ManagedProducerRead[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Bool
+
 pub fn managed_output_accept(ManagedNodeOutput, Int, String) -> Unit raise NodeHostFailure
 
 pub fn managed_output_available(ManagedNodeOutput) -> Bool
@@ -155,6 +157,8 @@ pub fn managed_output_complete_compute(ManagedNodeOutput, @compute.ManagedDuckDB
 pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
+
+pub fn managed_output_material(ManagedNodeOutput) -> @execution_relation.ManagedRetainedOutput[Int]?
 
 pub fn managed_output_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
 

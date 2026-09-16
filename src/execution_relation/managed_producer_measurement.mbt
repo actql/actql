@@ -17,6 +17,19 @@ struct ManagedProducerMeasurement {
 }
 
 ///|
+/// Logical usage charged to this consumer ledger so far. This is not physical
+/// work performed or permission to use unavailable material.
+pub fn managed_producer_measurement_usage(
+  producer : ManagedProducerMeasurement,
+) -> (Int, Int, Int) {
+  (
+    producer.initial.max_work - producer.budget.work,
+    producer.initial.max_bytes - producer.budget.bytes,
+    producer.initial.max_nodes - producer.budget.nodes,
+  )
+}
+
+///|
 /// Finite exact-view/projection/copy rule. Successful per-column subtotals and
 /// maxima were recorded during original admission, not re-read from data here.
 /// Duplicate selected columns count twice; names do not affect value byte size.
