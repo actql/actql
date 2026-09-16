@@ -8,6 +8,7 @@ struct ManagedCompletionPort[P, T] {
   preparation : CompletionPreparation
   target : @pipeline.Target
   inputs : Array[ProducerRead]
+  managed_inputs : Array[ManagedProducerRead[T]]
   bindings : Array[ProducerBindingIdentity]
   verify : (P) -> ManagedRetainedOutput[T]?
   mut open : Bool
@@ -26,6 +27,7 @@ struct ManagedCompletedOutput[T] {
   preparation : CompletionPreparation
   target : @pipeline.Target
   bindings : Array[ProducerBindingIdentity]
+  managed_bindings : Array[Ref[Unit]]
   material : ManagedRetainedOutput[T]
 }
 
@@ -38,7 +40,13 @@ pub fn[P, T] prepare_managed_completion_port(
   max_name_bytes : Int,
   verify : (P) -> ManagedRetainedOutput[T]?,
   inputs? : Array[ProducerRead],
+  managed_inputs? : Array[ManagedProducerRead[T]],
 ) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue] {
+  // A fixed-input set has one explicit provenance family, never a partial mix
+  // that silently drops the remaining ports. Acquisition may omit both.
+  if inputs is Some(_) && managed_inputs is Some(_) {
+    return Err(ForeignInputs)
+  }
   let (_, _, bindings) = match
     validate_trusted_output_contract(
       preparation, target, max_entries, max_name_bytes, inputs,
@@ -46,12 +54,31 @@ pub fn[P, T] prepare_managed_completion_port(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if managed_inputs is Some(values) {
+    if values.length() > max_entries {
+      return Err(Limit)
+    }
+    let owner = completion_preparation_owner(preparation)
+    if values.length() !=
+      @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+      return Err(ForeignInputs)
+    }
+    for index, input in values {
+      if !physical_equal(input.receiver, owner) ||
+        input.input_index != index ||
+        input.output.profile.cid != profile.cid ||
+        !managed_producer_read_available(input) {
+        return Err(ForeignInputs)
+      }
+    }
+  }
   Ok({
     profile,
     preparation,
     target,
     bindings,
     inputs: inputs.map(values => values.copy()).unwrap_or([]),
+    managed_inputs: managed_inputs.map(values => values.copy()).unwrap_or([]),
     verify,
     open: true,
     verifying: false,
@@ -96,6 +123,7 @@ pub fn[P, T] complete_managed_output(
     preparation: port.preparation,
     target: port.target,
     bindings: port.bindings,
+    managed_bindings: port.managed_inputs.map(input => input.identity),
     material,
   })
 }
@@ -107,6 +135,11 @@ fn[P, T] verify_managed_completion_material(
 ) -> Result[ManagedRetainedOutput[T], TrustedOutputIssue] {
   for input in port.inputs {
     if !producer_read_available(input) {
+      return Err(ForeignInputs)
+    }
+  }
+  for input in port.managed_inputs {
+    if !managed_producer_read_available(input) {
       return Err(ForeignInputs)
     }
   }
@@ -134,6 +167,11 @@ fn[P, T] verify_managed_completion_material(
   }
   for input in port.inputs {
     if !producer_read_available(input) {
+      return Err(ForeignInputs)
+    }
+  }
+  for input in port.managed_inputs {
+    if !managed_producer_read_available(input) {
       return Err(ForeignInputs)
     }
   }
@@ -188,11 +226,31 @@ pub fn[T] managed_completed_output_matches_inputs(
   output : ManagedCompletedOutput[T],
   inputs : Array[ProducerRead],
 ) -> Bool {
-  if inputs.length() != output.bindings.length() {
+  if !output.managed_bindings.is_empty() ||
+    inputs.length() != output.bindings.length() {
     return false
   }
   for index, binding in output.bindings {
     if !physical_equal(inputs[index].bound.identity, binding) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Historical checked managed use-sites. Does not require released upstream
+/// storage to remain alive after an independent downstream output completes.
+pub fn[T] managed_completed_output_matches_managed_inputs(
+  output : ManagedCompletedOutput[T],
+  inputs : Array[ManagedProducerRead[T]],
+) -> Bool {
+  if !output.bindings.is_empty() ||
+    inputs.length() != output.managed_bindings.length() {
+    return false
+  }
+  for index, binding in output.managed_bindings {
+    if !physical_equal(inputs[index].identity, binding) {
       return false
     }
   }

@@ -229,6 +229,8 @@ pub fn[T] managed_completed_output_available(ManagedCompletedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_output_matches_inputs(ManagedCompletedOutput[T], Array[ProducerRead]) -> Bool
 
+pub fn[T] managed_completed_output_matches_managed_inputs(ManagedCompletedOutput[T], Array[ManagedProducerRead[T]]) -> Bool
+
 pub fn[T] managed_completed_output_matches_material(ManagedCompletedOutput[T], ManagedRetainedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_output_matches_port(ManagedCompletedOutput[T], @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
@@ -256,6 +258,22 @@ pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schem
 pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
+
+pub fn[T] managed_producer_read_available(ManagedProducerRead[T]) -> Bool
+
+pub fn[T] managed_producer_read_column(ManagedProducerRead[T], Int) -> Int?
+
+pub fn[T] managed_producer_read_input_index(ManagedProducerRead[T]) -> Int
+
+pub fn[T] managed_producer_read_material(ManagedProducerRead[T]) -> ManagedRetainedOutput[T]?
+
+pub fn[T] managed_producer_read_receiver(ManagedProducerRead[T]) -> @lowering_relation.BoundPrepared
+
+pub fn[T] managed_producer_read_row_count(ManagedProducerRead[T]) -> Int
+
+pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProducerRead[T]) -> Bool
+
+pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
 pub fn[T] managed_retained_output_matches(ManagedRetainedOutput[T], ManagedOutputValueReceipt) -> Bool
 
@@ -301,11 +319,13 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+
+pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
@@ -681,6 +701,13 @@ pub(all) enum ManagedOutputValueIssue {
 type ManagedOutputValueReceipt
 
 type ManagedOutputValues
+
+type ManagedProducerRead[T]
+
+pub(all) enum ManagedProducerReadIssue {
+  Binding(ProducerBindingIssue)
+  View(ProducerReadIssue)
+}
 
 pub(all) enum ManagedProfileIssue {
   InvalidLimits
