@@ -286,6 +286,8 @@ pub fn receive_fixed_compute_stream_chunk(FixedComputeReceiving, Int, Array[@dec
 
 pub fn resident_import_available(ResidentImport) -> Bool
 
+pub fn resident_import_batch_insert_sql(ResidentImport, Int, Int, Int) -> Result[(Int, String), NativeQueryIssue]
+
 pub fn resident_import_column_count(ResidentImport) -> Int
 
 pub fn resident_import_create_sql(ResidentImport) -> String

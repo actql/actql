@@ -155,14 +155,37 @@ pub fn fixed_import_batch_insert_sql(
   if !@execution.producer_read_available(value.input) {
     return Err(InputUnavailable)
   }
-  if value.columns > max_parameters {
+  compile_import_batch_sql(
+    value.insert_sql,
+    value.columns,
+    requested_rows,
+    max_parameters,
+    max_sql_bytes,
+  )
+}
+
+///|
+fn compile_import_batch_sql(
+  insert_sql : String,
+  columns : Int,
+  requested_rows : Int,
+  max_parameters : Int,
+  max_sql_bytes : Int,
+) -> Result[(Int, String), NativeQueryIssue] {
+  if requested_rows < 1 ||
+    columns < 1 ||
+    max_parameters < 0 ||
+    max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if columns > max_parameters {
     return Err(Limit)
   }
   let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
-    sql_text(output, value.insert_sql)
+    sql_text(output, insert_sql)
     let mut rows = 1
-    let parameter_rows = max_parameters / value.columns
+    let parameter_rows = max_parameters / columns
     let maximum = if requested_rows < parameter_rows {
       requested_rows
     } else {
@@ -172,13 +195,13 @@ pub fn fixed_import_batch_insert_sql(
     // before multiplying to avoid overflow even with hostile limit values.
     if maximum > 1 &&
       output.remaining >= 2 &&
-      value.columns <= (output.remaining - 2) / 3 {
-      let tuple_bytes = 3 * value.columns + 2
+      columns <= (output.remaining - 2) / 3 {
+      let tuple_bytes = 3 * columns + 2
       let sql_rows = output.remaining / tuple_bytes
       let count = if maximum - 1 < sql_rows { maximum - 1 } else { sql_rows }
       for _ in 0..<count {
         sql_text(output, ", (")
-        for column in 0..<value.columns {
+        for column in 0..<columns {
           if column > 0 {
             sql_text(output, ", ")
           }

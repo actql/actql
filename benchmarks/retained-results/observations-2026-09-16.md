@@ -492,3 +492,28 @@ module initialization are included; independent expected-value hashing, optional
 readmission and final file release are outside the sampled interval. No forced
 GC or memory threshold was added. The source-generator and benchmark helper
 tests passed 13/13. These diagnostic runs are not paired performance samples.
+
+## Follow-up: bounded initial import into resident environments
+
+The resident-copy import now uses bounded multi-row INSERTs when the configured
+transport supplies chunk limits, for both in-memory and file-backed producers.
+It shares the connector-private MoonBit tuple/parameter/SQL-cap compiler with
+fresh fixed Compute rather than reconstructing SQL in JavaScript. Batch sizing
+is checked before transfer reservation. Unbounded compatibility profiles retain
+their explicitly owned single-row prepared INSERT path.
+
+The existing batch writer enforces row/byte limits, snapshots typed parameters,
+yields for cancellation before native writes and cannot retry after failure.
+For retained inputs, the final partial batch is flushed only after full framing
+and immutable content verification. Earlier writes remain transaction-local;
+no copy is installed before native settlement and common transfer completion.
+Missing Store stop evidence still cannot be settled by native DB close alone.
+
+The standard real-Host suite passed with new memory/file producer variants:
+three imported rows use three statements (CREATE plus two batches) instead of
+four (CREATE plus three single-row writes), with exact downstream values/CIDs,
+shared-copy reuse and independent file cleanup unchanged. Preparation count is
+three because the two-row and one-row tail have distinct SQL shapes. The shared
+SQL-cap tests passed on JS/Wasm/native, 17 tests per target; batch and resident
+session tests passed 10/10. This establishes fewer native calls, not a measured
+large-profile wall-clock improvement or formal performance acceptance.

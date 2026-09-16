@@ -190,6 +190,8 @@ pub fn resident_confirm(@physical_strategy.CapturedDAG, @driver.DuckDBResidentSt
 
 pub fn resident_has_table(@physical_strategy.CapturedDAG, @driver.DuckDBResidentStore, Int) -> Bool
 
+pub fn resident_import_batch(@driver.DuckDBResidentTable, Int, Int, Int) -> (Int, String) raise NodeHostFailure
+
 pub fn resident_import_count(@driver.DuckDBResidentTable, Bool) -> Int raise NodeHostFailure
 
 pub fn resident_import_material(@driver.DuckDBResidentTable) -> @execution_relation.RetainedOutputMaterial? raise NodeHostFailure

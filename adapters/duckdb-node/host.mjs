@@ -6,6 +6,8 @@ import { runBroadQuery } from './broad-query.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError, provisionComputeDatabase, validateLimits } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
+import {boundedTransport} from './transport-bounds.mjs';
+import {createImportBatch} from './import-batch.mjs';
 import { checked } from './runtime-result.mjs';
 import { retainedConfiguration } from './retained-configuration.mjs';
 import { createLocalRetainedStore } from '../store-local/files.mjs';
@@ -127,13 +129,22 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   const capacity = computePhysicalCapacity(limits);
   const table = checked(moon.residentTablePrepare(owned.graph, owned.env, producer,
     BigInt(tableBytes), mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
-  let count, columns, transfer;
+  let count, columns, transfer, batchRows = 1;
+  const compileBatch = requested => {
+    const {_0: rows, _1: sql} = checked(moon.residentImportBatch(table, requested,
+      limits.maxParameters, limits.maxSqlBytes));
+    return {rows, sql};
+  };
   try {
     count = rows(checked(moon.residentImportCount(table, false)));
     columns = rows(checked(moon.residentImportCount(table, true)));
     if (count > limits.maxRows || columns > limits.maxColumns || columns > limits.maxParameters ||
         columns === 0 || count > Math.floor(limits.maxCells / columns)) {
       throw new DuckDBTransportError('InvalidImportLimits');
+    }
+    if (boundedTransport(limits) && count > 1) {
+      batchRows = compileBatch(Math.min(count, limits.maxChunkRows,
+        Math.floor(limits.maxParameters / columns))).rows;
     }
     transfer = checked(moon.residentTransferBegin(owned.graph, table,
       capacity.transferBytes, capacity.scratchBytes));
@@ -149,6 +160,9 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       const discard = () => {};
       await session.command(checked(moon.residentImportSql(table, false)), [], discard);
       const sql = checked(moon.residentImportSql(table, true));
+      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits,
+        compileBatch, (sql, parameters) => session.insert(sql, parameters, discard), signal) : undefined;
+      const append = parameters => batch ? batch.append(parameters) : session.insert(sql, parameters, discard);
       const material = checked(moon.residentImportMaterial(table));
       if (material != null) {
         const body = retainedStorageBody(material);
@@ -165,7 +179,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         const frames = createRetainedRowFrames({maxBytes: wire.max_bytes, maxRows: count,
           maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, async row => {
           const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
-          await session.insert(sql, parameters, discard);
+          await append(parameters);
         });
         try {
           storageReadUnconfirmed = true;
@@ -178,6 +192,9 @@ export async function importResidentStrategyInput(environment, producer, tableBy
           frames.finish();
           signal?.throwIfAborted();
           checked(moon.residentImportStreamFinish(stream));
+          // Verify the complete immutable input before flushing its final
+          // partial batch. Earlier writes remain transaction-local on failure.
+          await batch?.finish();
         } finally {
           frames.cancel();
           moon.residentImportStreamCancel(stream);
@@ -185,6 +202,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         return;
       }
       for (let row = 0; row < count; row++) {
+        signal?.throwIfAborted();
         const parameters = [];
         for (let column = 0; column < columns; column++) {
           parameters.push(JSON.parse(checked(moon.residentImportParameter(table, row, column,
@@ -193,8 +211,9 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         // The shared environment outlives this import, but the reusable INSERT
         // belongs only to its task connection and is explicitly destroyed at
         // settlement. Reuse does not bypass per-row transfer/parameter checks.
-        await session.insert(sql, parameters, discard);
+        await append(parameters);
       }
+      await batch?.finish();
     }, signal, Object.freeze({
       started() { started = true; },
       chargeTransfer(bytes) { checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(bytes))); },
@@ -203,7 +222,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       },
     }));
     checked(moon.residentTransferComplete(owned.graph, transfer));
-    return Object.freeze({ table, importedRows: count, importedCells: count * columns,
+    return Object.freeze({ table, importedRows: count, importedCells: count * columns, batchRows,
       usage: Object.freeze({...result.usage, storageReadBytes,
         transportBytes: result.usage.transportBytes + storageReadBytes}) });
   } catch (error) {

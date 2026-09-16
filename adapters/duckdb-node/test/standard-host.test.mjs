@@ -984,7 +984,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Shared X is imported once; both branches read that exact capture, and C
   // consumes A's retained native table without importing A from the Host again.
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
-  for (const retainedSource of [false, true, 'installed']) {
+  for (const [retainedSource, batchedImport] of [
+    [false, false], [true, false], ['installed', false], [false, true], [true, true],
+  ]) {
     await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
     const f = fixture.strategyFixtureCreate(...args, program);
     const capture = retainedSource
@@ -1054,11 +1056,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
         { ...suppliedLimits, maxTransportBytes: 100001 }, mapping));
       assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts);
-      const imported = await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
+      const importLimits = batchedImport ? {...suppliedLimits,
+        maxColumns: 1, maxChunkRows: 2, maxChunkBytes: 4096} : suppliedLimits;
+      const imported = await importResidentStrategyInput(environment, 0, 4000000n, importLimits, mapping);
       assert.equal(imported.importedRows, 3);
-      assert.equal(imported.usage.statements, 4);
-      assert.equal(imported.usage.preparations, 2,
-        'resident import prepares CREATE and one explicitly owned reusable INSERT');
+      assert.equal(imported.batchRows, batchedImport ? 2 : 1);
+      assert.equal(imported.usage.statements, batchedImport ? 3 : 4);
+      assert.equal(imported.usage.preparations, batchedImport ? 3 : 2,
+        'CREATE and each distinct bounded INSERT shape own their preparation');
       if (retainedSource) {
         assert.equal(imported.usage.storageReadBytes,
           Buffer.byteLength('[{"id":3},{"id":2},{"id":3}]'));

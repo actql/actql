@@ -94,6 +94,25 @@ pub fn resident_import_insert_sql(value : ResidentImport) -> String {
 }
 
 ///|
+pub fn resident_import_batch_insert_sql(
+  value : ResidentImport,
+  requested_rows : Int,
+  max_parameters : Int,
+  max_sql_bytes : Int,
+) -> Result[(Int, String), NativeQueryIssue] {
+  if !resident_import_available(value) {
+    return Err(InputUnavailable)
+  }
+  compile_import_batch_sql(
+    value.insert_sql,
+    resident_import_column_count(value),
+    requested_rows,
+    max_parameters,
+    max_sql_bytes,
+  )
+}
+
+///|
 pub fn resident_import_row_count(value : ResidentImport) -> Int {
   @execution.producer_storage_row_count(value.storage)
 }

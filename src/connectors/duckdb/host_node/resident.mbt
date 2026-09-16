@@ -259,6 +259,26 @@ pub fn resident_import_count(
 }
 
 ///|
+#export_name("residentImportBatch")
+pub fn resident_import_batch(
+  table : @duckdb_driver.DuckDBResidentTable,
+  rows : Int,
+  max_parameters : Int,
+  max_sql_bytes : Int,
+) -> (Int, String) raise NodeHostFailure {
+  guard @duckdb_driver.resident_table_import(table) is Some(imported) else {
+    raise InvalidCommand
+  }
+  match
+    @duckdb.resident_import_batch_insert_sql(
+      imported, rows, max_parameters, max_sql_bytes,
+    ) {
+    Ok(batch) => batch
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("residentImportParameter")
 pub fn resident_import_parameter(
   table : @duckdb_driver.DuckDBResidentTable,
