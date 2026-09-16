@@ -8,6 +8,18 @@ operation obligations, output target, schema, ordering and required identities.
 Representation admission binds that result to an immutable retained body and
 the authority to use it. Equal CIDs do not establish ownership or availability.
 
+The retained material distinguishes canonical logical row bytes from physical
+holding bytes. The admitted content receipt and completion descriptor keep the
+canonical quantity used by identity and logical encoding limits. Installed
+Store wiring binds the actual physical quantity to the exact immutable copy;
+the DuckDB Compute driver checks it against the admitted storage ceiling and settles
+that quantity plus metadata. A smaller physical encoding does not reduce logical
+budgets, and an expanded encoding cannot exceed its reserved holding silently.
+The canonical-stream constructor uses the receipt's bytes for both quantities.
+An alternative representation requires verified conversion and independent
+storage sealing; supplying a byte count is not proof of either. Physical file
+identity stays with the Store and never replaces the logical content CID.
+
 Full-output representation transfer uses an exact `ProducerStorage`, not a
 fabricated consumer `ProducerRead`. `RetainedStorageScan` decodes bounded rows
 using the common typed decoder and canonical stream encoder without retaining

@@ -148,9 +148,29 @@ original completion. Detected corruption or mismatched material instead revokes
 use of that representation and reports a retention-integrity failure; these are
 not ordinary additional-computation failures.
 
+## Implemented reuse and its limits
+
+`1c45fcfb` connects identity reuse to the product's admitted resident-input
+leases. Reuse binds the exact receiving input and retained material and checks
+the claimed, live resident generation. It skips repeated canonical encoding and
+hashing, not the initial required CID. Typed value admission, consumer demand,
+join checks, budgets and current availability checks remain in force.
+
+The [fixed-source resident diagnostic](resident-identity-diagnostic.md) records
+24 samples. The small resident case exercises reuse; the three measured large
+cases select fresh native-file inputs and do not benefit from it. This is partial
+existing-contract implementation, not general evidence reuse, calibrated
+large-case placement or formal performance acceptance. The initial coupling
+description above remains relevant to those fresh input paths.
+
+Direct native output and separation of physical-file identity from the logical
+row receipt remain unfinished. Neither resident reuse nor direct input reading
+implements the approved conditional-CID profile.
+
 ## Evidence still required
 
-- Implement existing-contract evidence reuse without omitting its required CIDs.
+- Extend existing-contract evidence reuse to eligible selected large-case paths
+  without omitting required CIDs or consumer-specific obligations.
 - Connect the approved conditional-CID profile to main's shared contract,
   implementation, independent fixtures and separately registered measurements.
 - Measured validation, canonical encoding/hash, physical integrity and holding

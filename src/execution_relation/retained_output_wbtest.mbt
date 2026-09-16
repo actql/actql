@@ -194,3 +194,42 @@ test "retained port rejects wrong owner target and unavailable physical holding"
     is Err(InvalidTarget),
   )
 }
+
+///|
+test "physical representation quantities do not change canonical receipt or availability" {
+  let owner = capture_fixture()
+  let (_, original) = retained_fixture(owner, Ref(true))
+  let receipt = original.material.receipt
+  assert_eq(
+    retained_output_storage_bytes(original.material),
+    Some(receipt.bytes.to_int64()),
+  )
+  for bytes in [0L, 1L, 2147483648L] {
+    let live = Ref(true)
+    let copy = retain_admitted_output_representation(
+      receipt,
+      "verified alternative representation",
+      bytes,
+      fn() { live.val },
+    ).unwrap()
+    let material = retained_output_material(copy)
+    assert_true(retained_output_matches_receipt(material, receipt))
+    assert_eq(retained_output_storage_bytes(material), Some(bytes))
+    assert_true(physical_equal(material.receipt, receipt))
+    let (_, foreign) = retained_fixture(owner, Ref(true))
+    assert_false(
+      retained_output_matches_receipt(material, foreign.material.receipt),
+    )
+    live.val = false
+    assert_true(retained_output_storage_bytes(material) is None)
+    assert_false(retained_output_matches_receipt(material, receipt))
+  }
+  assert_true(
+    retain_admitted_output_representation(receipt, (), -1L, () => true)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    retain_admitted_output_representation(receipt, (), 10L, () => false)
+    is Err(NotRetained),
+  )
+}

@@ -147,7 +147,7 @@ pub fn finish_duckdb_compute_stream_result(
 ///|
 /// Physical encoded bytes for the exact, live staged result. This is not a
 /// completion constructor; the common boundary still runs the full finisher.
-pub fn retained_duckdb_compute_bytes(value : DuckDBComputeAttempt) -> Int? {
+pub fn retained_duckdb_compute_bytes(value : DuckDBComputeAttempt) -> Int64? {
   guard value.live &&
     !value.completed &&
     value.streaming &&
@@ -160,8 +160,7 @@ pub fn retained_duckdb_compute_bytes(value : DuckDBComputeAttempt) -> Int? {
     @execution.retained_output_matches_receipt(material, content) else {
     return None
   }
-  let (_, bytes, _, _) = @execution.output_stream_identity(content)
-  Some(bytes)
+  @execution.retained_output_storage_bytes(material)
 }
 
 ///|

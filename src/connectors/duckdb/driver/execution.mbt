@@ -190,11 +190,11 @@ pub fn start_captured_duckdb_task(
       }
       guard retention_attempt.val is Some(attempt) &&
         @compute.retained_duckdb_compute_bytes(attempt) is Some(bytes) &&
-        bytes >= 0 &&
-        bytes.to_int64() <= storage_bytes else {
+        bytes >= 0L &&
+        bytes <= storage_bytes else {
         return Err(Physical(InvalidCharge))
       }
-      Ok(retention + bytes.to_int64())
+      Ok(retention + bytes)
     },
   )
   let bound = match bound {

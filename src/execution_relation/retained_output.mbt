@@ -3,6 +3,7 @@
 /// No table/file/session representation is visible to the common engine.
 struct RetainedOutputMaterial {
   receipt : AdmittedOutputStreamReceipt
+  storage_bytes : Int64
   available : () -> Bool
 }
 
@@ -36,7 +37,46 @@ pub fn[T] retain_admitted_output_stream(
   payload : T,
   available : () -> Bool,
 ) -> RetainedOutputHandle[T] {
-  { material: { receipt, available, }, payload, }
+  {
+    material: { receipt, storage_bytes: receipt.bytes.to_int64(), available, },
+    payload,
+  }
+}
+
+///|
+/// Installed Store/Host construction for a verified noncanonical representation.
+/// The Store must verify the conversion from the receipt's exact admitted values
+/// (including order) and seal immutable storage before constructing this handle.
+/// storage_bytes is the physical holding quantity, not the canonical row size.
+/// It grants neither completion nor a reservation; the receiving execution must
+/// still check it against its previously admitted physical storage allocation.
+/// A physical digest must never replace the content receipt's logical CID.
+pub fn[T] retain_admitted_output_representation(
+  receipt : AdmittedOutputStreamReceipt,
+  payload : T,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[RetainedOutputHandle[T], TrustedOutputIssue] {
+  if storage_bytes < 0L {
+    return Err(InvalidLimits)
+  }
+  if !available() {
+    return Err(NotRetained)
+  }
+  Ok({ material: { receipt, storage_bytes, available, }, payload, })
+}
+
+///|
+/// Quantity of this exact live physical copy. Content identity/encoding budgets
+/// continue to use its logical receipt; equal CIDs cannot select another copy.
+pub fn retained_output_storage_bytes(
+  material : RetainedOutputMaterial,
+) -> Int64? {
+  if (material.available)() {
+    Some(material.storage_bytes)
+  } else {
+    None
+  }
 }
 
 ///|

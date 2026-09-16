@@ -13,6 +13,7 @@ fn retained_attempt_wire_limits() -> @execution.RowWireLimits {
 fn receive_retained_attempt(
   attempt : @duckdb_compute.DuckDBComputeAttempt,
   available : Ref[Bool],
+  storage_bytes? : Int64,
 ) -> @execution.RetainedOutputHandle[String] {
   @duckdb_compute.begin_duckdb_compute_stream_result(
     attempt,
@@ -37,9 +38,21 @@ fn receive_retained_attempt(
     _ => abort("canonical tail")
   }
   // Trusted test Store fixture only: the standard Host must supply real storage.
-  @execution.retain_admitted_output_stream(receipt, "exact fixture holding", fn() {
-    available.val
-  })
+  match storage_bytes {
+    Some(bytes) =>
+      @execution.retain_admitted_output_representation(
+        receipt,
+        "exact fixture holding",
+        bytes,
+        fn() { available.val },
+      ).unwrap()
+    None =>
+      @execution.retain_admitted_output_stream(
+        receipt,
+        "exact fixture holding",
+        fn() { available.val },
+      )
+  }
 }
 
 ///|

@@ -87,7 +87,7 @@ pub fn receive_duckdb_compute_chunk(DuckDBComputeAttempt, Int, Array[@decode_cor
 
 pub fn receive_duckdb_compute_stream_chunk(DuckDBComputeAttempt, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
-pub fn retained_duckdb_compute_bytes(DuckDBComputeAttempt) -> Int?
+pub fn retained_duckdb_compute_bytes(DuckDBComputeAttempt) -> Int64?
 
 pub fn reuse_duckdb_compute_input_identity(DuckDBComputeAttempt, Int, @execution_relation.RetainedScanReuse) -> Bool
 

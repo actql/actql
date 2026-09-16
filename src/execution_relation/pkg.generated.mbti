@@ -311,6 +311,8 @@ pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[P
 
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
+pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
+
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
@@ -326,6 +328,8 @@ pub fn retained_completion_material(RetainedCompletionEvidence, CompletedOutput)
 pub fn retained_output_matches_receipt(RetainedOutputMaterial, AdmittedOutputStreamReceipt) -> Bool
 
 pub fn[T] retained_output_material(RetainedOutputHandle[T]) -> RetainedOutputMaterial
+
+pub fn retained_output_storage_bytes(RetainedOutputMaterial) -> Int64?
 
 pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) -> Array[Int]?
 
