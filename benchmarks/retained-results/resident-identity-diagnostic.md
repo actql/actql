@@ -61,3 +61,34 @@ database, holding directory, workload, layout, row count and estimate `20`.
 The entry checks source cleanliness and HEAD before and after each leg. This
 diagnostic does not replace all-27 conformance, the independent equivalent-duty
 comparator, absolute-practicality review or the new-profile contract work.
+
+## Small standard-Host transfer follow-up
+
+The standard Host regression uses a separate three-row branching fixture, not
+the registered performance matrix. Its previous retained-resident assertions
+expected file rereads even after native copy verification was implemented. The
+updated test checks one direct verification scan and one reused identity per
+eligible consumer, zero reimports, exact transfer-ledger settlement and unchanged
+independent output CIDs. Actual file corruption is tested on a file-reading
+consumer; a separate real-Store case detects corruption and checks that the
+resulting input revocation prevents resident use too.
+
+The investigation also found missing physical accounting in fresh row-decoding
+imports: file bytes were not charged in addition to native parameters. The fix
+charges both before their respective consumption and exposes `retainedInputBytes`.
+For this fixture the missing reads total 75 bytes (28 + 28 + 19); fresh retained
+transfer is now 2,105 bytes rather than the previously reported 2,030 bytes.
+
+| Representation / initial import | Resident reported transfer | Matching fresh reported transfer |
+| --- | ---: | ---: |
+| Cell-backed / row import | 1,860 | 2,030 |
+| Cell-backed / batched import | 1,757 | 2,030 |
+| Retained / row import | 2,331 | 2,105 |
+| Retained / batched import | 2,228 | 2,105 |
+
+Native verification includes statement metadata and typed result transport. At
+three rows it can cost more bytes than rereading a tiny file and importing its
+values. The regression no longer treats retained resident placement as a
+universal transfer win; it records the unfavorable comparison instead. This is
+not a relaxation of the registered 27-case timing, capacity or confidence gates,
+nor a calibrated placement result. No new large-case speed result is claimed.

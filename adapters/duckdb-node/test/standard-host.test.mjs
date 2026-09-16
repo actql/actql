@@ -17,6 +17,7 @@ import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
 import { runExample } from '../examples/physical-strategy.mjs';
 import {installCompletionObserver} from '../../host-common/completion-observer.mjs';
+import {retainedStorageBody} from '../../store-local/representations.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -981,6 +982,39 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       for (const [, result] of held) result.close();
     }
   }
+  // Compare retained resident execution with a retained fresh execution, not
+  // the row-backed baseline above which has no retained-consumer verification.
+  let freshRetainedTransfer;
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  {
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const retention = {parentDirectory: dirname(path), maxFrameBytes: 4096,
+      wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+        max_columns: 10, max_order_work: 10000}};
+    const capture = await runRetainedNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(f), suppliedLimits, retention);
+    const outputs = [];
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      await replaceRows('INSERT INTO records VALUES (99,99)');
+      for (const task of [1, 2, 3]) {
+        outputs.push(await runRetainedStrategyHostCompute(
+          fixture.strategyFixtureCompute(f, task), suppliedLimits,
+          {maxRows: 100, maxCells: 1000}, retention));
+        assert.equal(outputs.at(-1).usage.retainedInputBytes,
+          Buffer.byteLength(JSON.stringify(task === 3
+            ? [{id: 3}, {id: 3}] : [{id: 3}, {id: 2}, {id: 3}])));
+        assert.equal(outputs.at(-1).usage.residentInputBytes, 0);
+        assert.equal(fixture.strategyFixtureCid(f, task), hash(task === 2
+          ? [{id: 3}, {id: 2}, {id: 3}] : [{id: 3}, {id: 3}]));
+      }
+      freshRetainedTransfer = outputs.reduce((sum, output) => sum + BigInt(output.usage.transportBytes), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 0), freshRetainedTransfer);
+    } finally {
+      for (const output of outputs) { await output.close(); await output.cleanupHandle.retry(); }
+      capture.close(); await capture.cleanupHandle.retry();
+    }
+  }
   // Shared X is imported once; both branches read that exact capture, and C
   // consumes A's retained native table without importing A from the Host again.
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
@@ -1107,10 +1141,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               max_columns: 10, max_order_work: 10000}} : undefined);
         outputs.push(output);
         assert.equal(output.importedRows, 0);
-        assert.equal(output.usage.residentInputBytes,
-          retainedSource ? task < 3 ? imported.usage.storageReadBytes
-            : Buffer.byteLength('[{"id":3},{"id":3}]') : 0,
-          'resident reuse preserves each retained consumer read charge without reimport');
+        assert.equal(output.usage.residentInputBytes, 0,
+          'eligible resident inputs read the owned DB copy, not the independently retained file');
+        assert.equal(output.diagnostics.directInputScans, retainedSource ? 1 : 0,
+          'each retained consumer still executes its typed measurement and guard scan');
+        assert.equal(output.diagnostics.reusedInputIdentities, retainedSource ? 1 : 0,
+          'only the exact live resident lease reuses the previously admitted identity');
         assert.equal(environment.hasTable(0), task === 1,
           'X remains through A and is removed only after B commits its last use');
         assert.equal(environment.hasTable(1), task < 3,
@@ -1121,8 +1157,16 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       const residentTransfer = BigInt(imported.usage.transportBytes) +
         outputs.reduce((sum, output) => sum + BigInt(output.usage.transportBytes), 0n);
       assert.equal(fixture.strategyFixtureUsage(f, 0), residentTransfer);
-      assert(residentTransfer < freshDuckDBTransfer,
-        `resident ${residentTransfer} must transfer less than fresh ${freshDuckDBTransfer}`);
+      const comparableFreshTransfer = retainedSource ? freshRetainedTransfer : freshDuckDBTransfer;
+      if (!retainedSource) {
+        assert(residentTransfer < comparableFreshTransfer,
+          `resident ${residentTransfer} must transfer less than matched fresh ${comparableFreshTransfer}`);
+      }
+      // This three-row fixture measures fixed SQL metadata as well as values.
+      // Native verification can transfer more than decoding a tiny file; do not
+      // conceal that cost or mistake import elimination for a universal saving.
+      console.log('ACTQL_RESIDENT_TRANSFER', JSON.stringify({retainedSource, batchedImport,
+        resident: String(residentTransfer), fresh: String(comparableFreshTransfer)}));
       await environment.close();
       if (retainedSource) assert.ok(capture.source(), 'retained source survives DB-copy removal');
       assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
@@ -1163,7 +1207,46 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     } finally { if (environment) await environment.close(); capture.close(); }
   }
   {
-    const directory = await mkdtemp(join(dirname(path), 'resident-failed-read-'));
+    const directory = await mkdtemp(join(dirname(path), 'retained-failed-read-'));
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const capture = await runRetainedNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits, {
+      parentDirectory: directory, maxFrameBytes: 4096,
+      wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000},
+    });
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      const [holding] = await readdir(directory);
+      const bodyPath = join(directory, holding, 'body-0');
+      const original = await readFile(bodyPath);
+      // Same inode and byte length: a consumer actually reading this physical
+      // copy must reject corruption. Resident consumers may instead use their
+      // separately verified DB copy, so exercise the file path explicitly.
+      const changed = Buffer.from(original);
+      changed[0] = '!'.charCodeAt(0);
+      await writeFile(bodyPath, changed);
+      let failure;
+      await assert.rejects(runRetainedStrategyHostCompute(
+        fixture.strategyFixtureCompute(f, 1), suppliedLimits,
+        {maxRows: 100, maxCells: 1000}, {parentDirectory: directory, maxFrameBytes: 4096,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000}}), error => {
+        failure = error;
+        assert.equal(error.code, 'RetainedInputReadUnconfirmed');
+        assert.equal(error.cleanupHandle.status().pending, true);
+        return true;
+      });
+      assert.equal(fixture.strategyFixtureCid(f, 1), 'null');
+      assert.equal(fixture.strategyFixtureNext(f), -1);
+      assert.equal((await failure.cleanupHandle.retry()).pending, true,
+        'native settlement and retry are not a Store read-stop acknowledgement');
+    } finally {
+      capture.close();
+      await capture.cleanupHandle.retry();
+      await rm(directory, {recursive: true, force: true});
+    }
+  }
+  {
+    const directory = await mkdtemp(join(dirname(path), 'resident-revoked-input-'));
     const f = fixture.strategyFixtureCreate(...args, program);
     const capture = await runRetainedNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits, {
       parentDirectory: directory, maxFrameBytes: 4096,
@@ -1177,34 +1260,27 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       environment = await openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1, suppliedLimits);
       const mapping = {maxEntries: 1000, maxNameBytes: 10000};
       await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
+      const table = environment.table(0);
+      const body = retainedStorageBody(checked(bridge.residentImportMaterial(table)));
       const [holding] = await readdir(directory);
       const bodyPath = join(directory, holding, 'body-0');
-      const original = await readFile(bodyPath);
-      // Same inode and byte length: the cached DB copy must not bypass the
-      // consumer's live retained-input validation or its failure settlement.
-      const changed = Buffer.from(original);
+      const changed = await readFile(bodyPath);
       changed[0] = '!'.charCodeAt(0);
       await writeFile(bodyPath, changed);
-      let failure;
+      // Installed Store verification detects corruption and revokes the exact
+      // bound input. A previously imported DB copy must not bypass that now
+      // known revocation or fabricate a fresh receiving grant.
+      await assert.rejects(body.consume(() => {}), {code: 'RetainedBodyChanged'});
+      assert.equal(body.available(), false);
       await assert.rejects(runResidentStrategyHostCompute(
         checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, selected)),
-        environment, [environment.table(0)], suppliedLimits, mapping), error => {
-        failure = error;
-        assert.equal(error.code, 'RetainedInputReadUnconfirmed');
-        assert.equal(error.cleanupHandle.status().pending, true);
-        return true;
-      });
+        environment, [table], suppliedLimits, mapping));
       assert.equal(fixture.strategyFixtureCid(f, 1), 'null');
-      assert.equal(fixture.strategyFixtureNext(f), -1);
-      await assert.rejects(environment.close(), error => error.cleanupPending === true);
-      assert.equal(environment.status().live, false);
-      assert.equal(environment.status().pending, true);
-      assert.equal((await failure.cleanupHandle.retry()).pending, true,
-        'DB close and native retry are not a Store read-stop acknowledgement');
+      await environment.close();
+      assert.equal(environment.status().pending, false);
     } finally {
-      if (environment) await assert.rejects(environment.close(), error => error.cleanupPending === true);
-      capture.close();
-      await capture.cleanupHandle.retry();
+      if (environment) await environment.close();
+      capture.close(); await capture.cleanupHandle.retry();
       await rm(directory, {recursive: true, force: true});
     }
   }

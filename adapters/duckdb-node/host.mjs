@@ -358,7 +358,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
     settled(confirmed) { checked(moon.computeHostPhysicalSettle(run, confirmed && !inputReadUnconfirmed)); },
   }) : undefined;
   let began = false;
-  let residentInputBytes = 0;
+  let retainedInputBytes = 0;
   let directInputBytes = 0;
   const retainedCleanup = Object.freeze({
     status: () => ({ pending: (store?.status().cleanupPending ?? false) || (disposed && cleanupRun !== undefined) }),
@@ -480,10 +480,11 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       try {
         inputReadUnconfirmed = true;
         await consumeRetainedInput(material, input, chunk => {
-          if (resident) {
-            checked(moon.computeHostPhysicalCharge(run, BigInt(chunk.byteLength)));
-            residentInputBytes += chunk.byteLength;
-          }
+          // Reading retained storage is additional physical work even when
+          // its decoded values are then imported through native parameters.
+          // Session accounting covers those parameters, not this file read.
+          checked(moon.computeHostPhysicalCharge(run, BigInt(chunk.byteLength)));
+          retainedInputBytes += chunk.byteLength;
           return frames.feed(chunk, signal);
         }, signal);
         inputReadUnconfirmed = false;
@@ -572,8 +573,8 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
     let closed = false;
     return Object.freeze({
       usage: Object.freeze({...result.usage,
-        transportBytes: result.usage.transportBytes + residentInputBytes + directInputBytes,
-        residentInputBytes, directInputBytes}),
+        transportBytes: result.usage.transportBytes + retainedInputBytes + directInputBytes,
+        retainedInputBytes, residentInputBytes: resident ? retainedInputBytes : 0, directInputBytes}),
       physicalCapacity: capacity === undefined ? undefined : Object.freeze({
         ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
       }),

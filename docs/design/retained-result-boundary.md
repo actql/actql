@@ -57,6 +57,10 @@ receiver projection. A logical column shadowing `rowid` excludes this direct
 scan, leaving the checked file-read path; it cannot substitute a user column for
 the physical ordinal. Query traffic is charged by the resident session, and file
 traffic by the file reader when used. Copy reuse does not waive logical obligations.
+The row-decoding fallback charges its retained-file bytes in fresh execution too:
+native parameter accounting covers the later import, not the preceding file
+read. Diagnostics distinguish these retained-input bytes from direct-file reads
+and include them in total transfer, without charging an unused copy's file read.
 Their validation-only input stream does not construct or serialize SQL parameters
 for cells already held by the resident table. It still checks the receiving
 physical types and finishes the same consumer measurement, demand and join checks.
@@ -75,6 +79,11 @@ limits, it uses the ordinary verification path, preserving failure precedence.
 The driver attestation relies on the managed connection preventing mutation of
 committed table generations; a table name or equal CID cannot create it. No
 cross-Run, restart or external-file reuse is implied.
+A resident consumer verifies the selected DB copy rather than reading every
+independent representation. File corruption is rejected when the file is
+verified; a known revoked input material cannot be bypassed by a previously
+imported resident table. Failed actual file reads retain their own stop/cleanup
+responsibility, independently of native database settlement.
 Other producer and storage verification scans use the canonical encoder's hash-only
 sink: they do not reconstruct canonical output strings that no consumer stores.
 The ordered CID and cumulative byte/node/depth limits are unchanged. Output
