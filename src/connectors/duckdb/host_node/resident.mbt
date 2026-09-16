@@ -77,6 +77,23 @@ pub fn resident_inputs_sql(
 }
 
 ///|
+#export_name("residentInputScanSql")
+pub fn resident_input_scan_sql(
+  inputs : @duckdb_driver.DuckDBResidentInputs,
+  port : Int,
+  max_bytes : Int,
+) -> String? {
+  guard @duckdb_driver.resident_inputs_read_plans(inputs).get(port)
+    is Some(read) else {
+    return None
+  }
+  match @duckdb_compute.duckdb_resident_scan_sql(read, max_bytes) {
+    Ok(sql) => Some(sql)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("residentCancelInputs")
 pub fn resident_cancel_inputs(
   inputs : @duckdb_driver.DuckDBResidentInputs,

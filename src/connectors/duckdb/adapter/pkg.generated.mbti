@@ -250,6 +250,8 @@ pub fn prepare_fixed_compute_stream_receiving(FixedCompute, Array[(String, Physi
 
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
 
+pub fn prepare_fixed_import_physical(FixedImportStream, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, FixedImportStreamIssue]
+
 pub fn prepare_fixed_import_stream(FixedImport, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[FixedImportStream, FixedImportStreamIssue]
 
 pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
@@ -306,6 +308,8 @@ pub fn resident_import_receiver_sql(ResidentImport, @execution_relation.Producer
 
 pub fn resident_import_row_count(ResidentImport) -> Int
 
+pub fn resident_import_scan_sql(ResidentImport, Int) -> Result[String, NativeQueryIssue]
+
 pub fn resident_import_storage(ResidentImport) -> @execution_relation.ProducerStorage
 
 pub fn resident_query_create_sql(ResidentQuery) -> String
@@ -327,6 +331,8 @@ pub fn stream_native_validation(NativeReceiving, @execution_relation.RowWireLimi
 pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.FixedJoinValidation?, @execution_relation.RowIssue]
 
 pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relation.FixedJoinValidation, @execution_relation.RowIssue]
+
+pub fn verify_fixed_import_chunk(FixedImportStream, PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedImportStreamIssue]
 
 pub fn verify_fixed_import_values(FixedImportStream, Array[@value_admission.CheckedValue]) -> Result[Unit, FixedImportStreamIssue]
 
@@ -383,6 +389,7 @@ pub(all) enum FixedImportStreamIssue {
   Content(@execution_relation.CompletedImportIssue)
   Parameter(ValueIssue)
   Demand(NativeDemandIssue)
+  Physical(PhysicalResultIssue)
 }
 
 pub(all) enum FixedJoinInputIssue {

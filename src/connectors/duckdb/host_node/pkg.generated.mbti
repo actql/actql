@@ -66,6 +66,10 @@ pub fn compute_host_import_count(ComputeNodeRun) -> Int
 
 pub fn compute_host_input_material(@execution_relation.ProducerRead) -> @execution_relation.RetainedOutputMaterial?
 
+pub fn compute_host_input_physical_accept(ComputeNodeRun, Int, @adapter.PhysicalResult, Int, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_input_physical_begin(ComputeNodeRun, Int, String) -> @adapter.PhysicalResult raise NodeHostFailure
+
 pub fn compute_host_input_read(ComputeNodeRun, Int) -> @execution_relation.ProducerRead raise NodeHostFailure
 
 pub fn compute_host_input_stream_append(ComputeNodeRun, Int, String, @execution_relation.RetainedRowDecodeLimits) -> String raise NodeHostFailure
@@ -209,6 +213,8 @@ pub fn resident_import_stream_begin(@driver.DuckDBResidentTable, Int, @execution
 pub fn resident_import_stream_cancel(@adapter.ResidentImportStream) -> Unit
 
 pub fn resident_import_stream_finish(@adapter.ResidentImportStream) -> Unit raise NodeHostFailure
+
+pub fn resident_input_scan_sql(@driver.DuckDBResidentInputs, Int, Int) -> String?
 
 pub fn resident_inputs_sql(@driver.DuckDBResidentInputs) -> Array[String]
 

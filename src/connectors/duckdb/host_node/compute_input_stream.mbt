@@ -18,6 +18,52 @@ pub fn compute_host_input_read(
 }
 
 ///|
+#export_name("computeHostInputPhysicalBegin")
+pub fn compute_host_input_physical_begin(
+  run : ComputeNodeRun,
+  port : Int,
+  fields : String,
+) -> @duckdb.PhysicalResult raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb_compute.prepare_duckdb_compute_input_physical(
+      run.attempt,
+      port,
+      transport_fields(run.transport, fields),
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
+#export_name("computeHostInputPhysicalAccept")
+pub fn compute_host_input_physical_accept(
+  run : ComputeNodeRun,
+  port : Int,
+  physical : @duckdb.PhysicalResult,
+  rows : Int,
+  data : String,
+) -> Unit raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb_compute.verify_duckdb_compute_input_chunk(
+      run.attempt,
+      port,
+      physical,
+      rows,
+      chunk_columns(run.transport, data),
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
 #export_name("computeHostInputMaterial")
 pub fn compute_host_input_material(
   input : @execution.ProducerRead,

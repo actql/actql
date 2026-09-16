@@ -380,6 +380,27 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       return Object.freeze({rows: batchRows, sql});
     },
     parameter: (port, row, column) => JSON.parse(checked(moon.computeHostParameter(run, row, column, false, port))),
+    async verifyResidentInput(port, session) {
+      const sql = moon.residentInputScanSql(resident.inputs, port, limits.maxSqlBytes);
+      if (sql == null) return false;
+      const input = checked(moon.computeHostInputRead(run, port));
+      const material = moon.computeHostInputMaterial(input);
+      if (material == null) return false;
+      const {wire, maxFrameBytes} = retainedInputContract(material, input);
+      checked(moon.computeHostInputStreamBegin(run, port, wire, maxFrameBytes));
+      let physical;
+      const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
+      const fields = await session.command(sql, [], chunk => {
+        signal?.throwIfAborted();
+        begin(chunk.fields);
+        checked(moon.computeHostInputPhysicalAccept(run, port, physical,
+          rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+      });
+      begin(fields);
+      signal?.throwIfAborted();
+      checked(moon.computeHostInputStreamFinish(run, port));
+      return true;
+    },
     async consumeInput(port, accept) {
       const input = checked(moon.computeHostInputRead(run, port));
       const material = moon.computeHostInputMaterial(input);

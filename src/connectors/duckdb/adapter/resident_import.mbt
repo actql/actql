@@ -9,6 +9,38 @@ struct ResidentImport {
 }
 
 ///|
+/// Full immutable copy scan in insertion order, before receiver projection.
+/// A shadowed rowid cannot stand in for the physical ordinal.
+pub fn resident_import_scan_sql(
+  imported : ResidentImport,
+  max_sql_bytes : Int,
+) -> Result[String, NativeQueryIssue] {
+  if !resident_import_available(imported) {
+    return Err(InputUnavailable)
+  }
+  if max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  let schema = @execution.producer_storage_schema(imported.storage)
+  for column in 0..<@schema.field_count(schema) {
+    if @schema.reference_name(@schema.field_at(schema, column).unwrap().name).to_lower() ==
+      "rowid" {
+      return Err(UnsupportedField)
+    }
+  }
+  let sql = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(sql, "SELECT * FROM main.")
+    sql_identifier(sql, imported.table)
+    sql_text(sql, " ORDER BY rowid")
+    Ok(sql.builder.to_string())
+  } catch {
+    TextLimit => Err(Limit)
+    BadIdentifier => Err(InvalidIdentifier)
+  }
+}
+
+///|
 pub fn resident_import_available(value : ResidentImport) -> Bool {
   @execution.producer_storage_available(value.storage)
 }

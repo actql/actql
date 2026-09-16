@@ -176,6 +176,21 @@ fn duckdb_fixed_values_storage(
 }
 
 ///|
+test "resident direct scan rejects a logical column shadowing physical rowid" {
+  let source = "[{\"values\":{\"schema\":{\"RowID\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"RowID\":3}]},\"as\":\"seed\"}]"
+  let (_, storage) = duckdb_fixed_values_storage(
+    source,
+    steps="[{\"select\":[\"RowID\"]}]",
+  )
+  let imported = @duckdb.prepare_resident_import(
+    storage, "resident_shadow", 10, 1000,
+  ).unwrap()
+  assert_true(
+    @duckdb.resident_import_scan_sql(imported, 1000) is Err(UnsupportedField),
+  )
+}
+
+///|
 test "resident SQL uses exact producer storage and checked receiver projection" {
   let source = "[{\"values\":{\"schema\":{\"x\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"x\":3},{\"x\":3}]},\"as\":\"seed\"}]"
   let steps = "[{\"filter\":\"x > 1\"},{\"select\":[\"x\"]}]"
@@ -187,6 +202,11 @@ test "resident SQL uses exact producer storage and checked receiver projection" 
     @duckdb.resident_import_create_sql(imported),
     "CREATE TABLE \"resident_x\" (\"x\" DOUBLE NOT NULL)",
   )
+  assert_eq(
+    @duckdb.resident_import_scan_sql(imported, 1000).unwrap(),
+    "SELECT * FROM main.\"resident_x\" ORDER BY rowid",
+  )
+  assert_true(@duckdb.resident_import_scan_sql(imported, 1) is Err(Limit))
   assert_eq(
     @duckdb.resident_import_receiver_sql(
       imported, input, "owned_input", 10, 1000,

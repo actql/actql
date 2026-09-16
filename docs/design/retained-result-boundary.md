@@ -27,7 +27,13 @@ the file inside the resident transaction before committing the provisional
 table, and publishes only after native settlement and common completion. The
 resident environment can close without invalidating the independently held file.
 Later resident consumers avoid reimport but still perform their required bounded
-input checks and charge file reads; copy reuse does not waive logical obligations.
+input checks. Eligible retained inputs are scanned directly from the owned DB
+table in physical insertion order, through bounded physical column frames and
+the same typed content verifier. The scan covers the full producer schema before
+receiver projection. A logical column shadowing `rowid` excludes this direct
+scan, leaving the checked file-read path; it cannot substitute a user column for
+the physical ordinal. Query traffic is charged by the resident session, and file
+traffic by the file reader when used. Copy reuse does not waive logical obligations.
 Their validation-only input stream does not construct or serialize SQL parameters
 for cells already held by the resident table. It still decodes the retained
 content, checks the receiving physical types, verifies canonical identity and

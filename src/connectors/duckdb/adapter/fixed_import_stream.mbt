@@ -14,6 +14,55 @@ pub(all) enum FixedImportStreamIssue {
   Content(@execution.CompletedImportIssue)
   Parameter(ValueIssue)
   Demand(NativeDemandIssue)
+  Physical(PhysicalResultIssue)
+}
+
+///|
+pub fn prepare_fixed_import_physical(
+  stream : FixedImportStream,
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  metadata_work : Int,
+) -> Result[PhysicalResult, FixedImportStreamIssue] {
+  prepare_physical_result(
+    @execution.retained_producer_scan_schema(stream.scan),
+    fields,
+    limits,
+    metadata_work,
+  ).map_err(issue => Physical(issue))
+}
+
+///|
+pub fn verify_fixed_import_chunk(
+  stream : FixedImportStream,
+  physical : PhysicalResult,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[Unit, FixedImportStreamIssue] {
+  if !physical_equal(
+      physical.schema,
+      @execution.retained_producer_scan_schema(stream.scan),
+    ) {
+    @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+    return Err(Physical(SchemaMismatch))
+  }
+  let batch = match admit_physical_chunk(physical, rows, columns) {
+    Ok(batch) => batch
+    Err(issue) => {
+      @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+      return Err(Physical(issue))
+    }
+  }
+  for row in 0..<rows {
+    let values = Array::makei(@schema.field_count(physical.schema), column => {
+      physical_batch_cell(batch, row, column).unwrap()
+    })
+    match verify_fixed_import_values(stream, values) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(())
 }
 
 ///|

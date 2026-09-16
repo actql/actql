@@ -20,6 +20,13 @@ struct VerifiedProducerScan {
 }
 
 ///|
+pub fn retained_producer_scan_schema(
+  scan : RetainedProducerScan,
+) -> @schema.Schema {
+  scan.stream.buffer.schema
+}
+
+///|
 pub fn prepare_retained_producer_scan(
   input : ProducerRead,
   max_rows : Int,

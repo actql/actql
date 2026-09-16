@@ -1,5 +1,46 @@
 ///|
 /// Readiness before native query execution, not an SQL transport receipt.
+pub fn prepare_duckdb_compute_input_physical(
+  value : DuckDBComputeAttempt,
+  port : Int,
+  fields : Array[(String, @duckdb.PhysicalType)],
+) -> Result[@duckdb.PhysicalResult, DuckDBComputeIssue] {
+  guard value.live &&
+    value.receiving is None &&
+    value.input_streams.get(port) is Some(Some(stream)) else {
+    return Err(InvalidState)
+  }
+  @duckdb.prepare_fixed_import_physical(
+    stream,
+    fields,
+    value.limits.physical,
+    value.limits.metadata_work,
+  ).map_err(issue => InputStream(issue))
+}
+
+///|
+pub fn verify_duckdb_compute_input_chunk(
+  value : DuckDBComputeAttempt,
+  port : Int,
+  physical : @duckdb.PhysicalResult,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[Unit, DuckDBComputeIssue] {
+  guard value.live &&
+    value.receiving is None &&
+    value.input_streams.get(port) is Some(Some(stream)) else {
+    return Err(InvalidState)
+  }
+  match @duckdb.verify_fixed_import_chunk(stream, physical, rows, columns) {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      abort_duckdb_compute_attempt(value)
+      Err(InputStream(issue))
+    }
+  }
+}
+
+///|
 pub fn duckdb_compute_inputs_ready(value : DuckDBComputeAttempt) -> Bool {
   value.live &&
   @execution.fixed_producer_inputs_measured(value.measurement) &&

@@ -329,6 +329,8 @@ pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) 
 
 pub fn[T] retained_producer_payload(RetainedOutputHandle[T], ProducerRead) -> T?
 
+pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
+
 pub fn row_wire_cid(RowWireIdentity) -> String
 
 pub fn row_wire_matches_captured(RowWireIdentity, CapturedRows) -> Bool

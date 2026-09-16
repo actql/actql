@@ -122,8 +122,10 @@ export async function prepareExampleText({database, environmentCid, programText,
   const computeTransport = data ? {...transportLimits,
     // Each input INSERT yields a one-cell acknowledgement. These rows are
     // transport, not logical output, and are charged in addition to that output.
-    maxRows: data.task_rows * 3,
-    maxCells: data.task_rows * (data.columns + 2),
+    // Two full input scans plus output, with bounded SQL acknowledgement rows.
+    // These are cumulative physical transport counts, not logical row limits.
+    maxRows: data.task_rows * 3 + 8,
+    maxCells: data.task_rows * data.columns * 3 + 8,
     maxTransportBytes: Number(app.applicationComputeTransferCapacity(prepared)),
   } : transportLimits;
   const duckdbConfiguration = prepareDuckDBStrategyConfiguration({transportLimits: computeTransport,

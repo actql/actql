@@ -66,6 +66,9 @@ test('explicit data profiles select resident reuse with independent retained out
         assert.deepEqual(result.report.completed.map(task => task.preparation.imports.length),
           oversizedCopy ? Array(config.finalTask).fill(0) : [1, ...Array(config.finalTask - 1).fill(0)]);
         assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
+        if (!oversizedCopy) {
+          assert(result.report.completed.every(task => task.phases.directInputScans >= 1));
+        }
       } finally {
         await result?.close();
         if (result) assert.equal(result.cleanupHandle.status().pending, false);

@@ -110,9 +110,9 @@ test "retained fixed import demand uses exact decoded input and single receiving
     100,
     10000,
   ).unwrap()
-  for case_index in 0..<9 {
-    let mode = case_index / 3
-    let materialize_parameters = case_index % 3 == 0
+  for case_index in 0..<13 {
+    let mode = case_index / 4
+    let materialize_parameters = case_index % 4 == 0
     let ceiling = if mode == 1 { 4 } else { 5 }
     let physical : @execution.FixedInputGuardMeasureLimits = {
       max_work: 7,
@@ -138,8 +138,25 @@ test "retained fixed import demand uses exact decoded input and single receiving
     ).unwrap()
     @duckdb.attach_fixed_import_demand(stream, compute, ceiling, physical).unwrap()
     assert_true(@duckdb.fixed_import_verified_demand(stream) is None)
+    let native_input = @duckdb.prepare_fixed_import_physical(
+      stream,
+      [("id", @duckdb.Float64)],
+      { max_rows: 2, max_cells: 2, max_nodes: 10, max_text_bytes: 100, },
+      1000,
+    ).unwrap()
     for index, row in ["{\"id\":3}", "{\"id\":2}"] {
-      if case_index % 3 == 2 {
+      if case_index % 4 == 3 {
+        let data = if index == 0 {
+          "[\"4008000000000000\"]"
+        } else {
+          "[\"4000000000000000\"]"
+        }
+        @duckdb.verify_fixed_import_chunk(stream, native_input, 1, [
+          input_cursor(data),
+        ]).unwrap()
+        continue
+      }
+      if case_index % 4 == 2 {
         let field = @schema.field_at(
           @execution.output_stream_schema(receipt),
           0,
@@ -164,6 +181,15 @@ test "retained fixed import demand uses exact decoded input and single receiving
         materialize_parameters~,
       ).unwrap()
       assert_eq(parameters.length(), if materialize_parameters { 1 } else { 0 })
+    }
+    if case_index == 12 {
+      assert_true(
+        @duckdb.verify_fixed_import_chunk(stream, native_input, -1, [])
+        is Err(_),
+      )
+      assert_true(@duckdb.finish_fixed_import_stream(stream) is Err(_))
+      assert_true(@duckdb.fixed_import_verified_demand(stream) is None)
+      continue
     }
     @duckdb.finish_fixed_import_stream(stream).unwrap() |> ignore
     let demand = @duckdb.fixed_import_verified_demand(stream).unwrap()
