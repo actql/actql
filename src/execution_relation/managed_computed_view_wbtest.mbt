@@ -55,7 +55,7 @@ test "managed derive validates only computed columns and merges a reusable index
   }
   assert_eq(calls, [2, 2])
   let selection = finish_managed_computed_view(computed).unwrap()
-  assert_eq(selection.index.cells.length(), 8)
+  assert_eq(selection.index.count, 8)
   assert_eq(selection.facts.columns.map(c => c.bytes), [10, 2, 2, 10])
   assert_true(finish_managed_computed_view(computed) is Err(Closed))
   let values = prepare_managed_output_values(
@@ -129,7 +129,7 @@ test "managed computed columns cannot seal missing foreign or oversized values" 
       )
     }
     assert_true(finish_managed_computed_view(computed) is Err(Closed))
-    assert_true(computed.selection.index.cells.is_empty())
+    assert_eq(computed.selection.index.count, 0)
   }
 }
 
@@ -186,14 +186,11 @@ test "managed computed view rejects missing cells and reentrant finish without p
     assert_true(rejected.val)
     if missing {
       assert_true(result is Err(Values(Admission(InvalidCheckedRow))))
-      assert_true(computed.selection.index.cells.is_empty())
+      assert_eq(computed.selection.index.count, 0)
     } else {
       result.unwrap()
       append_managed_computed_view(computed, _ => Some(cell)).unwrap()
-      assert_eq(
-        finish_managed_computed_view(computed).unwrap().index.cells.length(),
-        8,
-      )
+      assert_eq(finish_managed_computed_view(computed).unwrap().index.count, 8)
     }
   }
 }

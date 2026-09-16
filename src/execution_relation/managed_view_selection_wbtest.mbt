@@ -147,7 +147,7 @@ test "failed selected port installation drops only the consumed copied index" {
     is Err(Closed),
   )
   assert_true(selection.claimed)
-  assert_eq(selection.index.cells.length(), 0)
+  assert_eq(selection.index.count, 0)
   assert_eq(
     managed_output_measurement_index_cells(source.material.receipt),
     Some(4),
@@ -184,7 +184,7 @@ test "reentrant selected finish does not discard the active verification index" 
   ) => reenter.val.unwrap()()).unwrap()
   reenter.val = Some(fn() {
     finish_managed_view_output(port, ()) is Err(Closed) &&
-    selection.index.cells.length() == 4
+    selection.index.count == 4
   })
   let receipt = finish_managed_view_output(port, ()).unwrap()
   assert_eq(managed_output_measurement_index_cells(receipt), Some(4))
@@ -250,7 +250,7 @@ test "managed selected index cannot publish after failed verification or revocat
     )
     assert_true(stream.row_measurements is None)
     assert_true(port.index is None)
-    assert_eq(selection.index.cells.length(), 0)
+    assert_eq(selection.index.count, 0)
     assert_eq(
       managed_output_measurement_index_cells(source.material.receipt),
       Some(4),

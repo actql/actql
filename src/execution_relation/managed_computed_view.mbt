@@ -100,7 +100,7 @@ pub fn[T] cancel_managed_computed_view(value : ManagedComputedView[T]) -> Bool {
     return false
   }
   value.open = false
-  value.selection.index.cells.clear()
+  discard_managed_row_measurements(value.selection.index)
   true
 }
 
@@ -141,7 +141,10 @@ fn[T] append_managed_computed_view_row(
       // Reused values still participate in the output's diagnostic order.
       // Their exact per-occurrence size needs no value read or encoding.
       if value.issue is None &&
-        value.selection.index.cells[value.row * width + column].0 >
+        managed_row_measurement_get(
+          value.selection.index,
+          value.row * width + column,
+        ).unwrap().0 >
         value.ceiling {
         value.issue = Some(Guard(ValueBytes(Output, value.row, column)))
       }
@@ -193,11 +196,13 @@ fn[T] append_managed_computed_view_row(
       continue
     }
     let null = checked.value is @admitted.Null
-    value.selection.index.cells[value.row * width + column] = (
-      usage.0,
-      usage.1,
-      null,
-    )
+    if !managed_row_measurement_set(
+        value.selection.index,
+        value.row * width + column,
+        (usage.0, usage.1, null),
+      ) {
+      return Err(Values(Guard(InvalidLayout)))
+    }
     let prior = value.selection.facts.columns[column]
     value.selection.facts.columns[column] = {
       ..prior,

@@ -181,10 +181,10 @@ test "indexed diagnostic resolution does not precede execution proof or live bin
 
 ///|
 test "indexed failure position is the first offending occurrence not the maximum" {
-  let index : ManagedRowMeasurements = {
-    max_cells: 2,
-    cells: [(120, 1, false), (160, 1, false)],
-  }
+  let index = managed_row_measurements_from_cells([
+    (120, 1, false),
+    (160, 1, false),
+  ]).unwrap()
   let budget : FixedInputGuardBudget = {
     work: 100,
     bytes: 1000,
@@ -216,7 +216,7 @@ test "contradictory private index cannot turn an aggregate violation into succes
   let selected = prepare_managed_view_selection(plan, [0, 1], 4, 1000).unwrap()
   // Whitebox fault injection, unavailable through the public opaque handle.
   for i in 0..<4 {
-    selected.index.cells[i] = (1, 1, false)
+    assert_true(managed_row_measurement_set(selected.index, i, (1, 1, false)))
   }
   let stream = prepare_managed_output_values(
     receiver,

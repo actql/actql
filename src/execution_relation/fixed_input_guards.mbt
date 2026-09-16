@@ -116,9 +116,12 @@ fn[T : IndexedRows] measure_input_values(
         nulls[column] += 1
       }
       if row_measurements is Some(index) {
-        index.cells.push(
-          (usage.0, usage.1, cell is Null || cell is Captured(@admitted.Null)),
-        )
+        if !managed_row_measurement_push(
+            index,
+            (usage.0, usage.1, cell is Null || cell is Captured(@admitted.Null)),
+          ) {
+          return Err(InvalidLayout)
+        }
       }
     }
   }

@@ -311,6 +311,8 @@ pub fn[T] managed_retained_output_payload(ManagedRetainedOutput[T]) -> T?
 
 pub fn[T] managed_retained_output_storage_bytes(ManagedRetainedOutput[T]) -> Int64?
 
+pub fn managed_row_measurement_capacity_bytes(Int) -> Int64?
+
 pub fn[T] managed_view_plan_column(ManagedViewPlan[T], Int) -> Int?
 
 pub fn[T] managed_view_plan_column_facts(ManagedViewPlan[T], Int) -> ManagedViewColumnFacts?

@@ -44,9 +44,9 @@ native result for direct DuckDB import; it is not a new production codec.
 
 This remains a small conformance fixture, not a throughput measurement. Its
 multirow predicate retains both rows; arbitrary larger partial subsets, general
-filter/take/sort chain completion, physical index reservations and the original
-large paired benchmarks remain unfinished. The fixture index cap is an entry
-limit, not a physical-byte reservation.
+filter/take/sort chain completion, Host ledger connection for the now-packed
+index and the original large paired benchmarks remain unfinished. The fixture
+index cap is still an entry limit until that capacity is actually reserved.
 
 Verification: adapter tests passed 23/23 on JS, Wasm and Native; strict JS and
 all six managed DuckDB/manifest Node tests passed. Interface generation and

@@ -24,7 +24,7 @@ test "contiguous retained selection matches explicit occurrences without an arra
         100,
       ).unwrap()
       assert_true(slice.rows is Slice(_, _))
-      assert_eq(slice.index.cells, explicit.index.cells)
+      assert_true(managed_row_measurements_equal(slice.index, explicit.index))
       assert_eq(slice.facts.rows, count)
       for column in 0..<2 {
         let actual = slice.facts.columns[column]

@@ -119,16 +119,27 @@ fn[T] prepare_managed_occurrence_selection(
   let receipt = plan.input.output.material.receipt
   let source = receipt.row_measurements.unwrap()
   let source_width = @schema.field_count(receipt.schema)
-  let cells = []
+  guard new_managed_row_measurements(count) is Some(index) else {
+    return Err(Limit)
+  }
   for position in 0..<rows.length() {
     let row = rows.get(position).unwrap()
     for origin in plan.columns {
       match origin {
         Some(origin) => {
           let column = plan.input.columns[origin]
-          cells.push(source.cells[row * source_width + column])
+          let value = managed_row_measurement_get(
+            source,
+            row * source_width + column,
+          ).unwrap()
+          if !managed_row_measurement_push(index, value) {
+            return Err(Limit)
+          }
         }
-        None => cells.push((0, 0, false))
+        None =>
+          if !managed_row_measurement_push(index, (0, 0, false)) {
+            return Err(Limit)
+          }
       }
     }
   }
@@ -143,7 +154,7 @@ fn[T] prepare_managed_occurrence_selection(
       columns,
       admission_usage: { work: 0, nodes: 0, text_bytes: 0, },
     },
-    index: { max_cells: count, cells, },
+    index,
     claimed: false,
   })
 }
@@ -184,7 +195,7 @@ pub fn[P, T] prepare_managed_selected_view_output_port(
     Err(issue) => {
       // The one-shot selection has been consumed, but no output owns its
       // copied metadata. Do not retain it behind a failed installation.
-      selection.index.cells = []
+      discard_managed_row_measurements(selection.index)
       return Err(issue)
     }
   }

@@ -23,7 +23,9 @@ test "managed slice metadata paired diagnostic" {
       column_usage: [(count, count), (count * 4, count)],
       column_maxima: [1, 4],
       column_nulls: [0, 0],
-      row_measurements: Some({ max_cells: count * 2, cells, }),
+      row_measurements: Some(
+        managed_row_measurements_from_cells(cells).unwrap(),
+      ),
     }
     let source : ManagedCompletedOutput[Int] = {
       ..template,
@@ -57,7 +59,7 @@ test "managed slice metadata paired diagnostic" {
               count * 10,
             ).unwrap()
           }
-          assert_eq(selected.index.cells.length(), count * 2)
+          assert_eq(selected.index.count, count * 2)
           assert_eq(
             managed_view_selection_row(selected, count - 1),
             Some(count - 1),
@@ -66,7 +68,7 @@ test "managed slice metadata paired diagnostic" {
             selected.facts.columns[1].bytes
           // Discard provisional metadata, identically in both legs. This is
           // not a physical allocator/GC acknowledgement or ledger refund.
-          selected.index.cells = []
+          discard_managed_row_measurements(selected.index)
         }
         let elapsed = @bench.monotonic_clock_end(clock)
         assert_eq(checksum, count * 50)

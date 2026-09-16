@@ -76,8 +76,32 @@ test "managed row measurement index is optional bounded and sealed only on full 
     is Err(MeasurementIndexLimit),
   )
   assert_eq(reads.val, 0)
-  assert_true(stream.row_measurements.unwrap().cells.is_empty())
+  assert_eq(stream.row_measurements.unwrap().count, 0)
   assert_true(finish_managed_output_values(stream) is Err(Closed))
+}
+
+///|
+test "managed row measurement index has fixed packed capacity and exact cells" {
+  assert_eq(managed_row_measurement_capacity_bytes(0), Some(512L))
+  assert_eq(managed_row_measurement_capacity_bytes(3), Some(704L))
+  assert_true(managed_row_measurement_capacity_bytes(-1) is None)
+  assert_true(managed_row_measurement_capacity_bytes(238609295) is None)
+  let index = new_managed_row_measurements(3).unwrap()
+  assert_eq(index.cells.length(), 3)
+  assert_true(managed_row_measurement_push(index, (1, 2, false)))
+  assert_true(
+    managed_row_measurement_push(index, (2147483647, 2147483646, true)),
+  )
+  assert_eq(managed_row_measurement_get(index, 0), Some((1, 2, false)))
+  assert_eq(
+    managed_row_measurement_get(index, 1),
+    Some((2147483647, 2147483646, true)),
+  )
+  assert_true(managed_row_measurement_get(index, 2) is None)
+  assert_false(managed_row_measurement_set(index, 3, (1, 1, false)))
+  discard_managed_row_measurements(index)
+  assert_eq(index.count, 0)
+  assert_eq(index.cells.length(), 0)
 }
 
 ///|

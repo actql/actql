@@ -85,7 +85,7 @@ fn[P, T] discard_managed_view_output_index(
   port : ManagedViewOutputPort[P, T],
 ) -> Unit {
   if port.index is Some(index) {
-    index.cells = []
+    discard_managed_row_measurements(index)
     port.index = None
   }
 }
@@ -281,14 +281,8 @@ fn measure_managed_output_index(
   ceiling : Int,
   budget : FixedInputGuardBudget,
 ) -> Result[Unit, FixedInputGuardIssue] {
-  if (width == 0 && index.cells.length() != 0) ||
-    (
-      width > 0 &&
-      (
-        index.cells.length() / width != rows ||
-        index.cells.length() % width != 0
-      )
-    ) {
+  if (width == 0 && index.count != 0) ||
+    (width > 0 && (index.count / width != rows || index.count % width != 0)) {
     return Err(InvalidLayout)
   }
   for row in 0..<rows {
@@ -301,7 +295,10 @@ fn measure_managed_output_index(
         return Err(MeasurementWork)
       }
       budget.work -= 1
-      let (bytes, nodes, _) = index.cells[row * width + column]
+      let (bytes, nodes, _) = managed_row_measurement_get(
+        index,
+        row * width + column,
+      ).unwrap()
       if bytes <= 0 || nodes <= 0 {
         return Err(InvalidLayout)
       }

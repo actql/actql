@@ -9,7 +9,7 @@ metadata capacity accounting follows from that fixture's successful execution.
 
 | Boundary | Current allocation / responsibility |
 | --- | --- |
-| `enable_managed_row_measurements` | Optional growable array of byte/node/null tuples; cell cap only. The producer stream populates it during original measurement. |
+| `enable_managed_row_measurements` | Fixed packed byte buffer for byte/node/null cells. Its exact cell payload is now bounded before allocation; the Host ledger connection remains separate. |
 | `prepare_managed_take_selection` | Creates the expected occurrence array before Core preparation. |
 | `prepare_managed_view_selection_base` | Defensively copies occurrences, builds column summaries, copies cell metadata; source and destination overlap. |
 | `managed_view_selection_measurements` | Reads the source index; arbitrary permutations require temporary duplicate-detection metadata. |
@@ -23,9 +23,10 @@ operations distinguish cancellation from acknowledged reclamation. It should
 remain the accounting owner; a separate metadata quota must not silently enlarge
 the selected physical allowance.
 
-The missing connection requires a supported representation/runtime allocation
-bound (including array capacity, tuple/map overhead and growth/copy overlap),
-reservation **before** preparation, and an independently tracked retained
+The index now has a supported fixed representation and exposed retained
+capacity bound. The remaining connection requires reservation **before**
+preparation, capacity for occurrence arrays, summaries, maps and copy overlap,
+and an independently tracked retained
 allocation for metadata that survives into receipts. Preparation temporaries
 and retained indexes have different release times. Dropping a reference or
 marking the body file unavailable is not proof that all metadata allocation has

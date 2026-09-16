@@ -1,10 +1,87 @@
 ///|
 /// Optional bounded metadata captured during the original value measurement.
-/// No values, source buffers or canonical strings are retained here. The Host
-/// must reserve metadata storage; max_cells is an entry cap, not physical bytes.
+/// Measurements use one fixed-capacity array rather than a growable array.
+/// The physical allowance is the pinned-runtime upper bound for one array slot
+/// and its three-field tuple; Native and Wasm use no more storage than JS.
 priv struct ManagedRowMeasurements {
   max_cells : Int
-  mut cells : Array[(Int, Int, Bool)]
+  mut cells : FixedArray[(Int, Int, Bool)]
+  mut count : Int
+}
+
+///|
+const MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL : Int = 64
+
+///|
+const MANAGED_ROW_MEASUREMENT_HEADER_BYTES : Int64 = 512L
+
+///|
+fn new_managed_row_measurements(max_cells : Int) -> ManagedRowMeasurements? {
+  if max_cells < 0 ||
+    max_cells > 2147483647 / MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL {
+    return None
+  }
+  Some({
+    max_cells,
+    cells: FixedArray::make(max_cells, (0, 0, false)),
+    count: 0,
+  })
+}
+
+///|
+/// Conservative retained allocation bound for the packed payload and its
+/// fixed owner object. Selection arrays and preparation scratch are separate.
+pub fn managed_row_measurement_capacity_bytes(max_cells : Int) -> Int64? {
+  if max_cells < 0 ||
+    max_cells > 2147483647 / MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL {
+    return None
+  }
+  Some(
+    MANAGED_ROW_MEASUREMENT_HEADER_BYTES +
+    (max_cells * MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL).to_int64(),
+  )
+}
+
+///|
+fn managed_row_measurement_set(
+  index : ManagedRowMeasurements,
+  position : Int,
+  value : (Int, Int, Bool),
+) -> Bool {
+  if position < 0 || position >= index.max_cells || value.0 < 0 || value.1 < 0 {
+    return false
+  }
+  index.cells[position] = value
+  true
+}
+
+///|
+fn managed_row_measurement_push(
+  index : ManagedRowMeasurements,
+  value : (Int, Int, Bool),
+) -> Bool {
+  if !managed_row_measurement_set(index, index.count, value) {
+    return false
+  }
+  index.count += 1
+  true
+}
+
+///|
+fn managed_row_measurement_get(
+  index : ManagedRowMeasurements,
+  position : Int,
+) -> (Int, Int, Bool)? {
+  if position < 0 || position >= index.count {
+    return None
+  }
+  Some(index.cells[position])
+}
+
+///|
+fn discard_managed_row_measurements(index : ManagedRowMeasurements) -> Unit {
+  index.cells = FixedArray::make(0, (0, 0, false))
+  index.count = 0
 }
 
 ///|
@@ -21,7 +98,10 @@ pub fn enable_managed_row_measurements(
   if max_cells < 0 {
     return Err(Guard(InvalidLimits))
   }
-  stream.row_measurements = Some({ max_cells, cells: [], })
+  guard new_managed_row_measurements(max_cells) is Some(index) else {
+    return Err(MeasurementIndexLimit)
+  }
+  stream.row_measurements = Some(index)
   Ok(())
 }
 
@@ -29,7 +109,7 @@ pub fn enable_managed_row_measurements(
 pub fn managed_output_measurement_index_cells(
   receipt : ManagedOutputValueReceipt,
 ) -> Int? {
-  receipt.row_measurements.map(index => index.cells.length())
+  receipt.row_measurements.map(index => index.count)
 }
 
 ///|
@@ -134,8 +214,10 @@ fn[T] managed_occurrence_measurements(
     for position in 0..<selected_rows.length() {
       let row = selected_rows.get(position).unwrap()
       // Completed indexes have exactly rows * width cells, checked at sealing.
-      let (cell_bytes, cell_nodes, is_null) = index.cells[row * width +
-        source_column]
+      let (cell_bytes, cell_nodes, is_null) = managed_row_measurement_get(
+        index,
+        row * width + source_column,
+      ).unwrap()
       bytes += cell_bytes
       nodes += cell_nodes
       maximum = Int::max(maximum, cell_bytes)

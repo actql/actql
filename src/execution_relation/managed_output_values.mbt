@@ -105,7 +105,7 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
   }
   value.open = false
   if value.row_measurements is Some(index) {
-    index.cells.clear()
+    discard_managed_row_measurements(index)
   }
   cancel_admitted_buffer(value.buffer) |> ignore
   true
@@ -134,7 +134,7 @@ pub fn append_managed_output_values(
     return Err(Admission(CaptureLimit))
   }
   if stream.row_measurements is Some(index) &&
-    width > index.max_cells - index.cells.length() {
+    width > index.max_cells - index.count {
     cancel_managed_output_values(stream) |> ignore
     return Err(MeasurementIndexLimit)
   }
@@ -249,13 +249,10 @@ pub fn finish_managed_output_values(
   }
   if stream.row_measurements is Some(index) {
     let width = @schema.field_count(stream.buffer.schema)
-    if (width == 0 && index.cells.length() != 0) ||
+    if (width == 0 && index.count != 0) ||
       (
         width > 0 &&
-        (
-          index.cells.length() / width != stream.rows ||
-          index.cells.length() % width != 0
-        )
+        (index.count / width != stream.rows || index.count % width != 0)
       ) {
       return Err(MeasurementIndexLimit)
     }
