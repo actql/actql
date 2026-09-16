@@ -85,6 +85,16 @@ pub fn[T] managed_computed_view_schema(
 }
 
 ///|
+/// Original receiving column for an unchanged output column; None for new
+/// values or an out-of-range column. Not proof of actual native execution.
+pub fn[T] managed_computed_view_source_column(
+  value : ManagedComputedView[T],
+  column : Int,
+) -> Int? {
+  managed_view_plan_column(value.selection.plan, column)
+}
+
+///|
 pub fn[T] cancel_managed_computed_view(value : ManagedComputedView[T]) -> Bool {
   if !value.open {
     return false

@@ -4,7 +4,8 @@ struct ManagedTakeFixture {
   owner : @lower.BoundPrepared
   input : @execution.ManagedProducerRead[Int]
   values : @execution.ManagedOutputValues
-  selection : @execution.ManagedViewSelection[Int]
+  selection : @execution.ManagedViewSelection[Int]?
+  computed : @execution.ManagedComputedView[Int]?
   completion : @execution.ManagedCompletionPort[
     (
       @execution.ManagedOutputValueReceipt,
@@ -25,12 +26,48 @@ pub fn managed_take_fixture(
   fragment : String,
   verify : () -> Bool,
 ) -> ManagedTakeFixture raise {
+  managed_take_fixture_base(
+    source, output, profile, registry, values_contract, fragment, verify, false,
+  )
+}
+
+///|
+#export_name("managedDeriveFixture")
+pub fn managed_derive_fixture(
+  source : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  profile : @execution.ManagedExecutionProfile,
+  registry : String,
+  values_contract : String,
+  fragment : String,
+  verify : () -> Bool,
+) -> ManagedTakeFixture raise {
+  managed_take_fixture_base(
+    source, output, profile, registry, values_contract, fragment, verify, true,
+  )
+}
+
+///|
+fn managed_take_fixture_base(
+  source : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  profile : @execution.ManagedExecutionProfile,
+  registry : String,
+  values_contract : String,
+  fragment : String,
+  verify : () -> Bool,
+  deriving : Bool,
+) -> ManagedTakeFixture raise {
   let producer = @duckdb.fixed_query_owner(
     @duckdb.fixed_compute_query(source.compute),
   )
   let owner = issued_fixture_consumer(
     producer,
-    steps="[{\"take\":2},{\"select\":[\"amount\"]}]",
+    steps=if deriving {
+      "[{\"take\":2},{\"derive\":{\"copy\":\"amount\",\"marker\":\"1 + 1\"}}]"
+    } else {
+      "[{\"take\":2},{\"select\":[\"amount\"]}]"
+    },
     target=@duckdb.fixed_query_target(
       @duckdb.fixed_compute_query(source.compute),
     ),
@@ -51,12 +88,38 @@ pub fn managed_take_fixture(
     input, kernels, 1000, 10000, 100,
   ).unwrap()
   let rows = Int::min(2, @execution.managed_producer_read_row_count(input))
-  let selection = @execution.prepare_managed_view_selection(
-    plan,
-    Array::makei(rows, i => i),
-    100,
-    1000,
-  ).unwrap()
+  let selection = if deriving {
+    None
+  } else {
+    Some(
+      @execution.prepare_managed_view_selection(
+        plan,
+        Array::makei(rows, i => i),
+        100,
+        1000,
+      ).unwrap(),
+    )
+  }
+  let computed = if deriving {
+    Some(
+      @execution.prepare_managed_computed_view(
+        plan,
+        Array::makei(rows, i => i),
+        100,
+        1000,
+        {
+          max_work: 10000,
+          max_nodes: 1000,
+          max_text_bytes: 10000,
+          max_depth: 100,
+        },
+        10000,
+        { max_work: 10000, max_bytes: 10000, max_nodes: 1000, max_depth: 100, },
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let measured = @execution.prepare_reused_managed_producer_measurement(
     [input],
     Step(1),
@@ -72,7 +135,12 @@ pub fn managed_take_fixture(
     max_depth: 100,
   }).unwrap()
   let generated = fixture_generated(
-    owner, registry, values_contract, fragment, false,
+    owner,
+    registry,
+    values_contract,
+    fragment,
+    deriving,
+    fragment_start=1,
   )
   let completion = @execution.prepare_managed_completion_port(
     profile,
@@ -99,7 +167,7 @@ pub fn managed_take_fixture(
     },
     managed_inputs=[input],
   ).unwrap()
-  { owner, input, values, selection, completion, }
+  { owner, input, values, selection, computed, completion, }
 }
 
 ///|
@@ -113,7 +181,11 @@ pub fn managed_take_input(
 ///|
 #export_name("managedTakeOccurrence")
 pub fn managed_take_occurrence(value : ManagedTakeFixture, row : Int) -> Int {
-  @execution.managed_view_selection_row(value.selection, row).unwrap()
+  match value.selection {
+    Some(selection) =>
+      @execution.managed_view_selection_row(selection, row).unwrap()
+    None => row // Fixed fixture is a prefix take; the test checks native rowid.
+  }
 }
 
 ///|
@@ -129,7 +201,15 @@ pub fn managed_take_values(
 pub fn managed_take_selection(
   value : ManagedTakeFixture,
 ) -> @execution.ManagedViewSelection[Int] {
-  value.selection
+  value.selection.unwrap()
+}
+
+///|
+#export_name("managedDeriveComputed")
+pub fn managed_derive_computed(
+  value : ManagedTakeFixture,
+) -> @execution.ManagedComputedView[Int] {
+  value.computed.unwrap()
 }
 
 ///|
@@ -149,11 +229,25 @@ pub fn managed_take_next_input(
   value : ManagedTakeFixture,
   output : @execution.ManagedCompletedOutput[Int],
 ) -> @execution.ManagedProducerRead[Int] {
-  let receiver = issued_fixture_consumer(
-    value.owner,
-    steps="[{\"select\":[\"amount\"]}]",
-    target=Step(1),
-  )
+  managed_take_next_input_base(value, output, "[{\"select\":[\"amount\"]}]")
+}
+
+///|
+#export_name("managedDeriveNextInput")
+pub fn managed_derive_next_input(
+  value : ManagedTakeFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  managed_take_next_input_base(value, output, "[{\"select\":[\"marker\"]}]")
+}
+
+///|
+fn managed_take_next_input_base(
+  value : ManagedTakeFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  steps : String,
+) -> @execution.ManagedProducerRead[Int] {
+  let receiver = issued_fixture_consumer(value.owner, steps~, target=Step(1))
   @execution.prepare_managed_producer_read(
     receiver,
     0,

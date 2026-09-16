@@ -255,6 +255,8 @@ pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCo
 
 pub fn[T] managed_computed_view_schema(ManagedComputedView[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_computed_view_source_column(ManagedComputedView[T], Int) -> Int?
+
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
 
 pub fn managed_output_measurement_index_cells(ManagedOutputValueReceipt) -> Int?

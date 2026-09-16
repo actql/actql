@@ -6,6 +6,7 @@ fn fixture_generated(
   values_json : String,
   fragment_json : String,
   filter : Bool,
+  fragment_start? : Int = 0,
 ) -> @execution.GeneratedSequence raise {
   let registry_limits : @execution.RegistryLimits = {
     max_body_bytes: 100000,
@@ -42,7 +43,7 @@ fn fixture_generated(
   let direct_join = @lower.sequence_step(sequence, 0)
     is Some(@lower.JoinStep(_))
   let contexts = if filter && !direct_count && !direct_join {
-    let pipeline = @lower.prepare_fragment_pipeline(sequence, 0, {
+    let pipeline = @lower.prepare_fragment_pipeline(sequence, fragment_start, {
       max_roots: 100,
       max_pointer_bytes: 10000,
       max_work: 100000,

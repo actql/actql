@@ -131,10 +131,12 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         const material = moon.managedOutputMaterial(output);
         const codec = `sha256:${'4'.repeat(64)}`; // Fixture physical-frame interpretation only.
         registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
-        if (revoke === 'none') for (const representation of ['validated', 'preserved']) {
+        if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed']) {
           let settled = false;
-          const setup = checked(fixture.managedTakeFixture(configured, completed, profile, ...contracts, () => settled));
-          const taken = representation === 'preserved'
+          const deriving = representation === 'computed';
+          const setup = checked((deriving ? fixture.managedDeriveFixture : fixture.managedTakeFixture)(
+            configured, completed, profile, ...contracts, () => settled));
+          let taken = deriving ? undefined : representation === 'preserved'
             ? checked(moon.managedSelectedOutputOpen(fixture.managedTakeValues(setup),
               fixture.managedTakeSelection(setup), fixture.managedFileTransportLimits(), () => settled))
             : checked(moon.managedOutputOpen(fixture.managedTakeValues(setup),
@@ -150,7 +152,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const path = `'${file.path.replaceAll("'", "''")}'`;
               await connection.run(`INSERT INTO take_source SELECT unnest(columns[1])
                 FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]'})`);
-              return (await connection.runAndReadAll('SELECT rowid AS occurrence, amount FROM take_source ORDER BY rowid LIMIT 2')).getRowObjects();
+              return (await connection.runAndReadAll(deriving
+                ? 'SELECT rowid AS occurrence, amount, amount AS copy, CAST(1 + 1 AS DOUBLE) AS marker FROM take_source ORDER BY rowid LIMIT 2'
+                : 'SELECT rowid AS occurrence, amount FROM take_source ORDER BY rowid LIMIT 2')).getRowObjects();
             });
             assert.deepEqual(rows.map(row => row.amount), empty ? [] : ['日本語', null]);
             for (let i = 0; i < rows.length; i++) {
@@ -158,6 +162,47 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 'the actual selected occurrence must match the checked transfer');
             }
             const columns = [rows.map(row => row.amount)];
+            if (deriving) {
+              assert.deepEqual(rows.map(row => row.copy), empty ? [] : ['日本語', null]);
+              assert.deepEqual(rows.map(row => row.marker), empty ? [] : [2, 2]);
+              for (const fault of ['inherited-field', 'wrong-type', 'bad-value', 'bad-shape', 'bad-json']) {
+                const invalid = checked(fixture.managedDeriveFixture(configured, completed, profile, ...contracts, () => false));
+                const fields = fault === 'inherited-field' ? [['amount', 'VARCHAR', null, null]]
+                  : [['marker', fault === 'wrong-type' ? 'VARCHAR' : 'DOUBLE', null, null]];
+                const open = () => checked(moon.managedComputedOpen(fixture.managedDeriveComputed(invalid),
+                  JSON.stringify(fields), fixture.managedFilePhysicalLimits(), fixture.managedFileTransportLimits(), 1000));
+                if (fault === 'inherited-field' || fault === 'wrong-type') {
+                  assert.throws(open);
+                } else {
+                  const invalidReceiver = open();
+                  try {
+                    const data = fault === 'bad-value' ? '[["not-double-bits"]]'
+                      : fault === 'bad-shape' ? '[[]]' : '{';
+                    assert.throws(() => checked(moon.managedComputedAccept(invalidReceiver, 1, data)));
+                    assert.throws(() => checked(moon.managedComputedFinish(invalidReceiver)),
+                      'failed compact transport cannot publish even when the native execution succeeds later');
+                  } finally { moon.managedComputedCancel(invalidReceiver); }
+                }
+              }
+              columns.push(rows.map(row => row.copy), rows.map(row => exportPhysicalValue(
+                row.marker, {id: 'DOUBLE'})));
+              const receiver = checked(moon.managedComputedOpen(fixture.managedDeriveComputed(setup),
+                JSON.stringify([['marker', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
+                fixture.managedFileTransportLimits(), 1000));
+              try {
+                // Only marker crosses the product value-admission boundary.
+                if (rows.length === 0) checked(moon.managedComputedAccept(receiver, 0, '[[]]'));
+                for (const cell of columns[2]) {
+                  checked(moon.managedComputedAccept(receiver, 1, JSON.stringify([[cell]])));
+                }
+                assert.deepEqual(moon.managedComputedUsage(receiver).slice(0, 3),
+                  [rows.length, rows.length, rows.length]);
+                const selection = checked(moon.managedComputedFinish(receiver));
+                assert.throws(() => checked(moon.managedComputedFinish(receiver)));
+                taken = held.output = checked(moon.managedSelectedOutputOpen(fixture.managedTakeValues(setup),
+                  selection, fixture.managedFileTransportLimits(), () => settled));
+              } finally { moon.managedComputedCancel(receiver); }
+            }
             const writer = store.reserve(4096);
             await writer.start();
             await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
@@ -165,13 +210,17 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             settled = true;
             if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
             checked(moon.managedOutputFinish(taken));
-            if (representation === 'preserved') {
+            if (deriving) {
+              assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), empty ? [0, 0, 0] : [16, 4, 12]);
+              assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length * 3);
+            } else if (representation === 'preserved') {
               assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), [0, 0, 0]);
               assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length);
             } else if (!empty) {
               assert.ok(checked(moon.managedOutputAdmissionUsage(taken))[0] > 0);
             }
-            assert.deepEqual(checked(moon.managedOutputReusedMeasurements(taken)), empty ? [0, 0, 0] : [10, 41, 5]);
+            assert.deepEqual(checked(moon.managedOutputReusedMeasurements(taken)), empty ? [0, 0, 0]
+              : deriving ? [14, 58, 9] : [10, 41, 5]);
             checked(moon.managedOutputRetain(taken, BigInt(held.body.bytes), () => held.body.available()));
             held.completed = checked(moon.managedOutputCompleteView(taken, fixture.managedTakeCompletion(setup)));
             assert.equal(moon.managedCompletedProfileCid(held.completed), profileCid);
@@ -335,10 +384,16 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const input = fixture.managedTakeNextInput(held.setup, held.completed);
               const expected = empty ? [0, 0, 0, 0, 0] : [2, 15, 2, 11, 1];
               assert.deepEqual(fixture.managedColumnMeasurement(input), expected);
-              if (held.representation === 'preserved') assert.deepEqual(fixture.managedTakeNextIndexFacts(input), expected);
+              if (held.representation !== 'validated') assert.deepEqual(fixture.managedTakeNextIndexFacts(input), expected);
+              if (held.representation === 'computed') {
+                const markerInput = fixture.managedDeriveNextInput(held.setup, held.completed);
+                const markerFacts = empty ? [0, 0, 0, 0, 0] : [2, 2, 2, 1, 0];
+                assert.deepEqual(fixture.managedTakeNextIndexFacts(markerInput), markerFacts);
+              }
               const frame = await withManagedInputFile(takeMaterial, input, takeCodec, () => true,
                 async file => JSON.parse(await readFile(file.path, 'utf8')));
-              assert.deepEqual(frame.columns, [empty ? [] : ['日本語', null]]);
+              assert.deepEqual(frame.columns[0], empty ? [] : ['日本語', null]);
+              assert.equal(frame.columns.length, held.representation === 'computed' ? 3 : 1);
             }
           }
           assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true);
@@ -438,7 +493,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
       }
     } finally {
       for (const held of heldTakes) {
-        moon.managedOutputCancel(held.output);
+        if (held.output) moon.managedOutputCancel(held.output);
         held.body?.close();
       }
       if (downstreamOutput) moon.managedOutputCancel(downstreamOutput);

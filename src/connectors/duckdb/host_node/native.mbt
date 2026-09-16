@@ -26,6 +26,7 @@ pub(all) suberror NodeHostFailure {
   ManagedValues(@duckdb.ManagedPhysicalOutputIssue)
   ManagedRetention(@execution.ManagedOutputRetentionIssue)
   ManagedView(@execution.ManagedViewOutputIssue)
+  ManagedComputed(@duckdb.ManagedComputedPhysicalIssue)
 }
 
 ///|

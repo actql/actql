@@ -148,6 +148,16 @@ pub fn managed_completed_available(@execution_relation.ManagedCompletedOutput[In
 
 pub fn managed_completed_profile_cid(@execution_relation.ManagedCompletedOutput[Int]) -> String
 
+pub fn managed_computed_accept(ManagedNodeComputed, Int, String) -> Unit raise NodeHostFailure
+
+pub fn managed_computed_cancel(ManagedNodeComputed) -> Bool
+
+pub fn managed_computed_finish(ManagedNodeComputed) -> @execution_relation.ManagedViewSelection[Int] raise NodeHostFailure
+
+pub fn managed_computed_open(@execution_relation.ManagedComputedView[Int], String, @adapter.PhysicalResultLimits, @adapter.TransportColumnLimits, Int) -> ManagedNodeComputed raise NodeHostFailure
+
+pub fn managed_computed_usage(ManagedNodeComputed) -> Array[Int]
+
 pub fn managed_input_comparison_usage(@compute.ManagedInputDuckDBCompletion[Int]) -> Array[String] raise NodeHostFailure
 
 pub fn managed_input_completion_cancel(@compute.ManagedInputDuckDBCompletion[Int]) -> Bool
@@ -318,6 +328,7 @@ pub(all) suberror NodeHostFailure {
   ManagedValues(@adapter.ManagedPhysicalOutputIssue)
   ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)
   ManagedView(@execution_relation.ManagedViewOutputIssue)
+  ManagedComputed(@adapter.ManagedComputedPhysicalIssue)
 }
 
 // Types and methods
@@ -326,6 +337,8 @@ type BroadNodeRun
 type ComputeNodeRun
 
 type ComputeStreamNodeReceipt
+
+type ManagedNodeComputed
 
 type ManagedNodeOutput
 

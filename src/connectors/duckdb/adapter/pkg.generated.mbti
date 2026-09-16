@@ -36,6 +36,8 @@ pub fn append_comparison_measurement(ComparisonMeasurement, @value_admission.Val
 
 pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
 
+pub fn[T] append_managed_computed_physical_output(ManagedComputedPhysicalOutput[T], Int, Array[@decode_core.Cursor]) -> Result[Unit, ManagedComputedPhysicalIssue]
+
 pub fn append_managed_physical_output(ManagedPhysicalOutput, Int, Array[@decode_core.Cursor]) -> Result[Unit, ManagedPhysicalOutputIssue]
 
 pub fn append_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
@@ -55,6 +57,8 @@ pub fn broad_scan_metadata_sql(BroadScan) -> String
 pub fn broad_scan_sql(BroadScan) -> String
 
 pub fn cancel_fixed_import_stream(FixedImportStream) -> Bool
+
+pub fn[T] cancel_managed_computed_physical_output(ManagedComputedPhysicalOutput[T]) -> Bool
 
 pub fn cancel_managed_physical_output(ManagedPhysicalOutput) -> Bool
 
@@ -93,6 +97,8 @@ pub fn finish_fixed_compute_receiving(FixedComputeReceiving) -> Result[FixedComp
 pub fn finish_fixed_compute_stream_receiving(FixedComputeReceiving) -> Result[(FixedComputeStreamReceipt, String), FixedComputeReceivingIssue]
 
 pub fn finish_fixed_import_stream(FixedImportStream) -> Result[@execution_relation.VerifiedProducerScan, FixedImportStreamIssue]
+
+pub fn[T] finish_managed_computed_physical_output(ManagedComputedPhysicalOutput[T]) -> Result[@execution_relation.ManagedViewSelection[T], ManagedComputedPhysicalIssue]
 
 pub fn finish_managed_physical_output(ManagedPhysicalOutput) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedPhysicalOutputIssue]
 
@@ -179,6 +185,8 @@ pub fn fixed_query_sql(FixedQuery) -> String
 pub fn fixed_query_target(FixedQuery) -> @pipeline_typing.Target
 
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
+
+pub fn[T] managed_computed_physical_usage(ManagedComputedPhysicalOutput[T]) -> (Int, Int, Int, Int)
 
 pub fn managed_fixed_compute_demand_matches(ManagedFixedComputeDemand, FixedCompute, @execution_relation.ManagedOutputValueReceipt, Int) -> Bool
 
@@ -287,6 +295,8 @@ pub fn prepare_fixed_import_stream(FixedImport, Int, @execution_relation.ValueLi
 pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_join_inputs(NativeInnerJoin, Array[@execution_relation.ProducerRead], @execution_relation.FixedJoinValidationLimits, Int, Int) -> Result[FixedJoinInputs, FixedJoinInputIssue]
+
+pub fn[T] prepare_managed_computed_physical_output(@execution_relation.ManagedComputedView[T], Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedComputedPhysicalOutput[T], ManagedComputedPhysicalIssue]
 
 pub fn[T] prepare_managed_fixed_query(@execution_relation.ManagedProducerRead[T], String, NativeQueryLimits) -> Result[ManagedFixedQuery[T], NativeQueryIssue]
 
@@ -448,6 +458,14 @@ pub enum FixedQuery {
   CountGroup(NativeCountGroup)
   InnerJoin(NativeInnerJoin)
 }
+
+pub(all) enum ManagedComputedPhysicalIssue {
+  Physical(PhysicalResultIssue)
+  Computed(@execution_relation.ManagedComputedViewIssue)
+  Closed
+}
+
+type ManagedComputedPhysicalOutput[T]
 
 type ManagedFixedComputeDemand
 
