@@ -584,3 +584,52 @@ baseline. The next adapter must parameterize the old example assembly's limits
 explicitly, without copying new retained, batching or streaming algorithms into
 the old runtime. This diagnostic mode remains distinct from both the unchanged
 example and a future capacity-matched baseline. All failed cases remain incomplete.
+
+## Follow-up: first verified capacity-adapted old-runtime execution
+
+Diagnostic error reporting now retains MoonBit constructor names: the 100-row
+selective case first failed `PhysicalResultIssue.RowLimit`, then (after raising
+only that receiver cap) `NativeReceiptIdentityIssue.ReceiptRows`. This narrowed
+the required change to two receiver ceilings rather than an execution rewrite.
+
+A separate archive of the same baseline at
+`/tmp/actql-baseline-capacity-CeBFcq` changes only those two literals in
+`src/physical_strategy_example/host_limits.mbt`, from 100 to 104. The exact diff
+is preserved in `baseline-receipt-104.patch`; the unchanged source SHA-256 is
+`905a1ac2bbd1fa702b4da3a07b1ebd1a39c0b4141cc0875f00f60858dca4dc9a`.
+After rebuilding with the pinned toolchain, the public-entry assembly with the
+matching transport allowance completed acquisition and all three Compute tasks
+for `native-acquisition-full-validation-low-selectivity/narrow/100`, matched the
+independent final CID and completed cleanup. The probe exited successfully.
+
+This proves one capacity-adapted original-runtime case, not the unchanged
+baseline, all 27 profiles or any paired performance threshold. No new batching,
+retained representation, encoder or evaluation algorithm was imported into it.
+The larger and wider capacity profiles and other comparator remain unfinished.
+
+## Follow-up: resident reuse phase attribution
+
+Resident Compute now supplies the same installed task diagnostic channel with
+sequential timings for input verification, view setup, materialization, receiving,
+awaited output finalization and temporary SQL cleanup. It still imports zero rows
+on reuse; verification is not silently counted as zero work. Finalization timing
+includes the asynchronous independent-holding callback. Transaction settlement
+and environment lifetime remain outside this callback-level interval.
+
+Six real-DuckDB resident lifecycle tests pass, including awaited verification and
+holding attribution, failed holding rollback, cancellation and cleanup ownership.
+The related fixed-input, batching, standard-Host and benchmark-helper run also
+passed 23 tests. These tests confirm attribution and preserved behavior, not a
+wall-clock improvement or completion of the four-comparator performance gate.
+
+The subsequent complete `adapters/duckdb-node/test/*.test.mjs` run passed all
+75 tests in approximately 80 seconds, including the 27-case default smoke
+(not the larger registered matrix). The patched baseline selective/narrow/100
+case also passed again: one diagnostic execution interval was 189.868 ms and
+cleanup 0.423 ms. This was measured while other tests were running and is only
+instrumentation evidence, not an uncontended performance sample. The same case
+against the unchanged archive failed `PhysicalResultIssue.RowLimit`, returned
+exit code 1 and emitted no successful timing sample. The two-literal patch was
+checked forward against the original tree and in reverse against the adapted
+tree. Larger baseline capacities and paired equivalent-obligation timing remain
+unfinished.

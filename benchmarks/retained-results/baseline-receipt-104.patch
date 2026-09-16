@@ -1,0 +1,21 @@
+diff --git a/src/physical_strategy_example/host_limits.mbt b/src/physical_strategy_example/host_limits.mbt
+--- a/src/physical_strategy_example/host_limits.mbt
++++ b/src/physical_strategy_example/host_limits.mbt
+@@ -34,7 +34,7 @@
+ fn acquisition_limits() -> @acquisition_host.NativeHostLimits {
+   {
+     physical: {
+-      max_rows: 100,
++      max_rows: 104,
+       max_cells: 1000,
+       max_nodes: 1000,
+       max_text_bytes: 10000,
+@@ -50,7 +50,7 @@
+         max_nodes: 10000,
+         max_depth: 100,
+       },
+-      max_received_rows: 100,
++      max_received_rows: 104,
+       max_received_bytes: 100000,
+       max_retained_wire_bytes: 100000,
+       records: {

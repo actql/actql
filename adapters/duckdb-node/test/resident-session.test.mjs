@@ -46,6 +46,7 @@ test('resident publication waits for asynchronous holding and rolls back failed 
       if (mode === 'success') {
         const result = await operation;
         assert(matchesFixedCompute(result, port, discard));
+        assertResidentPhases(result.value.diagnostics);
         const rows = await db.run(limits, session => collect(session, 'SELECT i FROM provisional'));
         assert.deepEqual(rows.value, ['1']);
         releaseFixedCompute(result);
@@ -107,6 +108,7 @@ test('resident Compute materializes once and validates before publishing its tab
       assert.deepEqual(received, ['3', '3']);
     });
     assert.equal(result.value.importedRows, 0);
+    assertResidentPhases(result.value.diagnostics);
     assert(matchesFixedCompute(result, port, consume));
     assert(!matchesFixedCompute(result, { ...port }, consume));
     const next = await db.run(limits, session => collect(session, 'SELECT id FROM a'));
@@ -121,6 +123,47 @@ const collect = async (session, sql) => {
   await session.command(sql, [], chunk => values.push(...chunk.columns[0]));
   return values;
 };
+
+function assertResidentPhases(phases) {
+  const names = ['inputVerificationMilliseconds', 'viewPreparationMilliseconds',
+    'materializationMilliseconds', 'receiveMilliseconds',
+    'finalizationMilliseconds', 'temporaryCleanupMilliseconds'];
+  assert(Object.isFrozen(phases));
+  assert.deepEqual(Object.keys(phases), [...names, 'workMilliseconds']);
+  for (const value of Object.values(phases)) assert(Number.isFinite(value) && value >= 0);
+  const sum = names.reduce((total, name) => total + phases[name], 0);
+  assert(Math.abs(sum - phases.workMilliseconds) < 0.000001);
+}
+
+test('resident diagnostics include awaited input verification and holding without importing rows', async () => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  const events = [];
+  const pause = () => new Promise(resolve => setTimeout(resolve, 15));
+  const port = Object.freeze({
+    queryParameters: () => [], importCount: () => 2,
+    async consumeInput(input) { events.push(input); await pause(); },
+  });
+  const resident = Object.freeze({
+    viewSqls: () => [],
+    createResultSql: () => 'CREATE TABLE timed_output AS SELECT 1 AS i',
+    readResultSql: () => 'SELECT i FROM timed_output',
+    cleanupSqls: () => ['DROP TABLE timed_output'],
+  });
+  let result;
+  try {
+    result = await runResidentFixedCompute(db, port, resident, limits, discard,
+      async () => { events.push('holding'); await pause(); });
+    assert.deepEqual(events, [0, 1, 'holding']);
+    assert.equal(result.value.importedRows, 0);
+    assert.equal(result.value.importedCells, 0);
+    assertResidentPhases(result.value.diagnostics);
+    // Loose lower bounds detect accidentally timing Promise creation instead
+    // of awaiting it; no performance upper bound is asserted by this test.
+    assert(result.value.diagnostics.inputVerificationMilliseconds >= 20);
+    assert(result.value.diagnostics.finalizationMilliseconds >= 10);
+    await db.run(limits, session => session.command('CREATE TABLE timed_output(i INTEGER)', [], discard));
+  } finally { if (result) releaseFixedCompute(result); await db.close(); }
+});
 
 test('resident provider separates environment capacity from task settlement', async () => {
   const events = [];

@@ -146,6 +146,16 @@ export async function runResidentFixedCompute(
   if (!environment.status().live) throw new DuckDBTransportError('SessionClosed');
   const result = await environment.run(limits, async session => {
     const discard = () => {};
+    // Sequential wall-clock intervals, not additive with session.command or
+    // receive-callback timings (which are nested within these intervals).
+    const workStarted = performance.now();
+    let boundary = workStarted;
+    const phases = {};
+    const endPhase = name => {
+      const now = performance.now();
+      phases[name] = now - boundary;
+      boundary = now;
+    };
     // Reusing an exact DB copy skips import, not this consumer's measurement
     // or demand checks. Retained inputs use the same bounded common decoder.
     if (port.consumeInput) {
@@ -154,15 +164,22 @@ export async function runResidentFixedCompute(
         await port.consumeInput(input, discard);
       }
     }
+    endPhase('inputVerificationMilliseconds');
     for (const sql of resident.viewSqls()) await session.command(sql, [], discard);
+    endPhase('viewPreparationMilliseconds');
     await session.command(resident.createResultSql(), port.queryParameters(), discard);
+    endPhase('materializationMilliseconds');
     const fields = await session.command(resident.readResultSql(), [], consume);
+    endPhase('receiveMilliseconds');
     // Includes empty-result metadata. Throwing here rolls back this task only.
     await validate(fields);
+    endPhase('finalizationMilliseconds');
     for (const sql of resident.cleanupSqls?.() ?? []) {
       await session.command(sql, [], discard);
     }
-    return Object.freeze({ fields, importedRows: 0, importedCells: 0 });
+    endPhase('temporaryCleanupMilliseconds');
+    return Object.freeze({ fields, importedRows: 0, importedCells: 0,
+      diagnostics: Object.freeze({...phases, workMilliseconds: boundary - workStarted}) });
   }, signal, accounting);
   // Preserve completed Host-output provenance independently of future DB loss.
   // Reusing the DB table still requires its separate live table-generation proof.

@@ -159,6 +159,16 @@ source or replace the baseline algorithm. It is intentionally not the final
 capacity-matched benchmark: old MoonBit acquisition, fragment, guard, retention
 and column bounds still need explicit capacity-only assembly configuration.
 
+`baseline-receipt-104.patch` records the smallest verified assembly adaptation
+for the 100-row narrow low-selectivity case: only the physical receiver and
+receipt row ceilings change from 100 to 104 (metadata + validation + selected
+rows). Apply it only to an isolated baseline, rebuild its example, and use
+`received-row-envelope` with that exact case. The original `host_limits.mbt`
+SHA-256 is `905a1ac2bbd1fa702b4da3a07b1ebd1a39c0b4141cc0875f00f60858dca4dc9a`.
+This is explicitly an adapted baseline assembly, not the unchanged example and
+not a capacity profile for the entire matrix. It changes no execution algorithm,
+identity, fixture or semantic validation rule.
+
 `managed-configuration.mjs` is shared by the readiness gate and the retained
 comparison leg so their Program, envelopes, estimates, child limits and retention
 settings do not drift. It preserves the existing fixture ceilings; estimates are
@@ -234,3 +244,29 @@ helper tests is not a performance result. Test it without DuckDB using:
 ```sh
 node --test benchmarks/retained-results/*.test.mjs
 ```
+
+### Resident phase diagnostics
+
+Resident Compute reports sequential wall-clock intervals in each task's `phases`:
+input verification, view preparation, result materialization, receiving the
+result, finalization (including awaited independent holding), and temporary SQL
+cleanup. Their sum is `workMilliseconds`. Reusing a DB copy reports zero imported
+rows/cells, but does not omit input verification or its cost.
+
+These intervals cover the callback inside the resident transaction, not BEGIN,
+COMMIT/ROLLBACK, environment provisioning, first-copy imports or final environment
+close. Those operations remain in the surrounding session/Host measurements.
+Receiving includes the receiver's validation/encoding/write callbacks; it is not
+pure DB execution time. Session command and callback timings overlap these
+phases and must not be added to them. Diagnostics accompany successful execution;
+a failed or cancelled finalization still rejects and rolls back, without yielding
+a successful phase report. These are attribution measurements, not new resource
+budgets or proof of a performance threshold.
+
+The baseline capability probe also emits `baseline-public-entry-diagnostic`
+execution and cleanup intervals, but only after correctness and cleanup succeed.
+The independent expected CID is calculated before timing. Source construction,
+builds and fixture removal are excluded. This baseline holds results in memory;
+the retained leg owns a process and independent files, so these single samples
+are not equivalent-obligation or paired acceptance ratios. Failed cases emit no
+successful timing sample and keep the probe's nonzero exit status.

@@ -1013,6 +1013,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.deepEqual(execution.completed.map(item => [item.realization, item.outputRepresentation]),
             Array.from({length: 3}, () => ['duckdb-resident', 'retained-file']));
           assert.deepEqual(execution.completed.map(item => item.preparation.imports.length), [1, 0, 0]);
+          for (const item of execution.completed) {
+            assert(Object.isFrozen(item.phases));
+            assert(Number.isFinite(item.phases.workMilliseconds));
+            assert(item.phases.inputVerificationMilliseconds >= 0);
+            assert(item.phases.finalizationMilliseconds >= 0);
+          }
           assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id: 3}, {id: 3}]));
           assert.equal(fixture.strategyFixtureCanBind(f, 3), true,
             'independent file is usable after the installed finisher closes the DB');
