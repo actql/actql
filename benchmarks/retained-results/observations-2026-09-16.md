@@ -655,3 +655,32 @@ independent final CID and cleaned up. One diagnostic run recorded 194.125 ms
 execution and 0.373 ms cleanup. This is not paired performance evidence, a wide
 or large-output compatibility result, or confirmation of equivalent obligations
 across all four comparators. Those acceptance requirements remain open.
+
+## Fixed-HEAD regression audit after receiver diagnostics
+
+At `97f50c83996fe1622ce2a72517c70c49b3e135ef`, with the pinned toolchain:
+
+- `moon test --target js --deny-warn`: 4328 passed.
+- `moon test --target wasm --deny-warn`: 4327 passed.
+- `moon test --target native --deny-warn`: 4327 passed.
+- `npm run check:retained-boundary`: 77 passed.
+- Portable Core, backend semantic and connector-dispatch boundary tests:
+  16 passed, including negative injection cases.
+- `node adapters/workers/verify.mjs`: passed, including real workerd,
+  artifact/resolved-module checks and pinned stdlib verification.
+- `node scripts/check-node-without-duckdb.mjs`: passed; isolated standard-entry
+  execution plus 27 tests without the DuckDB dependency.
+- `node scripts/check-moonbit-api.mjs`: passed across all three targets.
+
+The runtime contract audit also distinguishes two tested paths. The installed
+managed execution fixture selects Local-to-DuckDB and DuckDB-to-Local task chains
+through normal estimates, verifies their independent result CID and file
+holdings, and releases the process through common accounting. The separate
+managed reader verifies, readmits, binds and physically reads a held result in
+a new process; it does not start a new Compute. Its result must not be counted as
+evidence of task continuation or control-Host restart recovery. No such capability
+was added by this audit. The prior 75-test real-DuckDB run covers the former
+execution fixture; this turn did not rerun that entire suite again.
+
+These checks strengthen functional regression evidence, not the incomplete
+four-comparator performance acceptance. Linux and remote CI were not run here.
