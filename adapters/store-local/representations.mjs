@@ -27,6 +27,28 @@ export function retainedInputContract(material, input) {
   return admitted(material, input).contract;
 }
 
+// Capability discovery is not permission to use a path. The exact input grant
+// is checked again on both sides of the awaited native read below.
+export function retainedInputSupportsFile(material, input) {
+  return typeof admitted(material, input).body.withVerifiedFile === 'function';
+}
+
+export async function withRetainedInputFile(material, input, use, signal) {
+  signal?.throwIfAborted();
+  const held = admitted(material, input);
+  if (typeof held.body.withVerifiedFile !== 'function' || typeof use !== 'function') {
+    throw new TypeError('UnsupportedRetainedFileAccess');
+  }
+  const value = await held.body.withVerifiedFile(async file => {
+    signal?.throwIfAborted();
+    admitted(material, input);
+    return use(file);
+  }, signal);
+  signal?.throwIfAborted();
+  admitted(material, input);
+  return value;
+}
+
 // Installed Store custody wiring only. The caller must obtain material from
 // genuine completion evidence; this lookup itself is not a consumer grant.
 // Concrete paths/session tokens remain behind the Store's opaque body handle.

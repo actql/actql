@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, rmdir} from 'node:fs/promises';
+import {mkdtemp, rmdir, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -39,6 +39,11 @@ test('completion storage lookup keeps exact material, lease and process binding 
     // binding that created this lease. Wire/copied settings grant nothing.
     assert.throws(() => processRetainedBodyIdentity(body, bindProcessStore(context)), {code: 'ForeignRetainedStoreBody'});
     assert.throws(() => processRetainedBodyIdentity(body, {...binding}), /ForeignProcessStoreBinding/);
+    assert.equal(await body.withVerifiedFile(async file => {
+      assert.equal(await readFile(file.path, 'utf8'), '[]');
+      return 'native-result';
+    }), 'native-result');
+    assert.equal(body.available(), true);
     body.close();
     assert.throws(() => processRetainedBodyIdentity(body, binding), {code: 'ForeignRetainedStoreBody'});
     assert.equal(store.body('task-1').available(), true);

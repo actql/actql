@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
-  retainedStorageBody, retainedStorageContract} from './representations.mjs';
+  retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
+  withRetainedInputFile} from './representations.mjs';
 
 test('installed representation access preserves exact material and port without exposing file configuration', async () => {
   const material = {};
@@ -26,6 +27,34 @@ test('installed representation access preserves exact material and port without 
   let received;
   await consumeRetainedInput(material, input, chunk => { received = [...chunk]; });
   assert.deepEqual(received, [1, 2]);
+});
+
+test('direct file access requires the exact live consumer before and after native use', async () => {
+  const material = {}, input = {};
+  let live = true, calls = 0;
+  registerRetainedInput(material, value => live && value === input, {
+    async consume() {},
+    async withVerifiedFile(use) { calls++; return use({path: '/trusted-fixture'}); },
+  }, {maxFrameBytes: 10, wire: {max_bytes: 10}});
+  assert.equal(retainedInputSupportsFile(material, input), true);
+  await assert.rejects(withRetainedInputFile({}, input, () => {}), {code: 'RetainedInputUnavailable'});
+  await assert.rejects(withRetainedInputFile(material, {}, () => {}), {code: 'RetainedInputUnavailable'});
+  assert.equal(calls, 0);
+  assert.equal(await withRetainedInputFile(material, input, () => 'verified'), 'verified');
+  await assert.rejects(withRetainedInputFile(material, input, () => { live = false; }),
+    {code: 'RetainedInputUnavailable'});
+  assert.equal(calls, 2);
+});
+
+test('unsupported direct access and already-cancelled use do not enter native code', async () => {
+  const material = {}, input = {};
+  registerRetainedInput(material, value => value === input, {async consume() {}},
+    {maxFrameBytes: 10, wire: {max_bytes: 10}});
+  assert.equal(retainedInputSupportsFile(material, input), false);
+  await assert.rejects(withRetainedInputFile(material, input, () => {}), /UnsupportedRetainedFileAccess/);
+  const controller = new AbortController();
+  const reason = Error('cancelled'); controller.abort(reason);
+  await assert.rejects(withRetainedInputFile(material, input, () => {}, controller.signal), error => error === reason);
 });
 
 test('release or cancellation during a provisional read cannot become verified consumption', async () => {

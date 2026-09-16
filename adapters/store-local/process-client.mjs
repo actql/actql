@@ -4,6 +4,7 @@
 import {processStoreContext} from './process-binding.mjs';
 import {openDelegatedFile} from './delegated-file.mjs';
 import {consumeDelegatedFile} from './delegated-reader.mjs';
+import {withVerifiedDelegatedFile} from './direct-file.mjs';
 import {RetainedFileError} from './files.mjs';
 
 const origins = new WeakMap();
@@ -56,28 +57,40 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
           if (report.bytes !== identity.bytes || report.cid !== identity.cid) throw new RetainedFileError('StoreIdentityMismatch');
           await context.callHost({command: 'seal', output, report});
           active(); sealed = true;
+          const read = async (operation, readSignal) => {
+            active(); readSignal?.throwIfAborted();
+            const descriptor = await context.callHost({command: 'read', output});
+            if (descriptor.session !== context.session || descriptor.bytes !== report.bytes || descriptor.cid !== report.cid ||
+                descriptor.maxFrameBytes !== maxFrameBytes) {
+              throw new RetainedFileError('ForeignStoreReadReport');
+            }
+            readers++;
+            let readStopped = false;
+            try {
+              const result = await operation(descriptor);
+              readStopped = true;
+              await context.callHost({command: 'read-finish', output, report: result.report});
+              active(); readSignal?.throwIfAborted();
+              return result.value;
+            } catch (error) {
+              if (['ForeignStoreFile', 'RetainedBodyChanged', 'RetainedBodyTruncated'].includes(error?.code)) closed = true;
+              throw error;
+            } finally {
+              // A rejection is not proof that descriptor close stopped a read.
+              // Its conservative parent borrow lasts until confirmed exit.
+              if (readStopped) readers--;
+            }
+          };
           const body = Object.freeze({
             available: () => sealed && !closed,
             close() { closed = true; },
             async consume(accept, readSignal) {
-              active(); readSignal?.throwIfAborted();
-              const descriptor = await context.callHost({command: 'read', output});
-              if (descriptor.session !== context.session || descriptor.bytes !== report.bytes || descriptor.cid !== report.cid ||
-                  descriptor.maxFrameBytes !== maxFrameBytes) {
-                throw new RetainedFileError('ForeignStoreReadReport');
-              }
-              readers++;
-              let readStopped = false;
-              try {
-                const receipt = await consumeDelegatedFile(descriptor, accept, readSignal);
-                readStopped = true;
-                await context.callHost({command: 'read-finish', output, report: receipt});
-                active();
-              } finally {
-                // A rejection is not proof that a failed descriptor close
-                // stopped the reader. Its conservative lease lasts to exit.
-                if (readStopped) readers--;
-              }
+              return read(async descriptor => ({
+                report: await consumeDelegatedFile(descriptor, accept, readSignal),
+              }), readSignal);
+            },
+            async withVerifiedFile(use, readSignal) {
+              return read(descriptor => withVerifiedDelegatedFile(descriptor, use, readSignal), readSignal);
             },
           });
           origins.set(body, Object.freeze({binding, identity: Object.freeze({
