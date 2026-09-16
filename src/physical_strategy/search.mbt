@@ -412,7 +412,9 @@ pub fn revise_strategy(
       available.attempts - usage.attempts {
       Some(@resources.AttemptLimit)
     } else if shared.rejected {
-      Some(@resources.RetentionLimit)
+      // Resident tables are suballocations of shared execution capacity, not
+      // independent completed-output holdings. Keep the rejection domain exact.
+      Some(@resources.ExecutionLimit)
     } else if tasks.length() > available.holdings - usage.holdings {
       Some(@resources.HoldingLimit)
     } else if transfer >

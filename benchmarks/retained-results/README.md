@@ -371,6 +371,11 @@ not a general join-scale adapter or a formal timing comparison.
 
 ### Resident phase diagnostics
 
+The [fixed-checkout identity-reuse diagnostic](resident-identity-diagnostic.md)
+records three alternating pairs for a small resident case and three registered
+large cases. It shows the small-case improvement and the large cases' continued
+fresh selection; it is not formal acceptance.
+
 The [equivalent-comparator boundary](equivalent-comparator-boundary.md) lists
 the semantic components that may be shared and the execution assembly that
 must remain independent. It does not mark that comparator implemented.

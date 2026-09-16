@@ -5,6 +5,7 @@ fn portfolio_profile(
   preparation : Int64,
   cleanup : Int64,
   import_ms : Int64,
+  database_bytes? : Int64 = 1000L,
 ) -> @strategy.ResidentProfile {
   let work = fn(milliseconds) {
     @strategy.prepare_shared_work(
@@ -17,7 +18,7 @@ fn portfolio_profile(
   @strategy.prepare_resident_profile(
     run,
     binding,
-    1000L,
+    database_bytes,
     work(preparation),
     work(cleanup),
     Array::make(4, @strategy.ResidentImportEstimate::{
@@ -27,6 +28,43 @@ fn portfolio_profile(
       table_bytes: 80L,
     }),
   ).unwrap()
+}
+
+///|
+test "resident copy capacity rejection is execution not independent retention" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  let profile = portfolio_profile(
+    run,
+    @connector.prepare_resource_binding(
+      registry,
+      @connector.capability_registration_at(registry, 1).unwrap(),
+    ).unwrap(),
+    1L,
+    1L,
+    1L,
+    database_bytes=120L,
+  )
+  @strategy.configure_strategy_search(run, {
+    max_offers: 3,
+    max_strategies: 1,
+    max_work: 10000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = portfolio_offers(run, registry, [
+    Some(profile),
+    Some(profile),
+    Some(profile),
+  ])
+  assert_true(
+    @strategy.revise_strategy(run, offers, registry, None) is Ok(NoFeasible),
+  )
+  let report = @strategy.strategy_report_at(run, 0).unwrap()
+  assert_eq(report.retained_bytes, 300L)
+  assert_true(report.rejection is Some(ExecutionLimit))
+  let explanation = @strategy.explain_captured_strategy(run, 100000, 10000).unwrap()
+  assert_true(explanation.contains("execution_limit"))
+  assert_false(explanation.contains("retention_limit"))
 }
 
 ///|

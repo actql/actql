@@ -1,0 +1,960 @@
+{
+  "scope": "diagnostic-not-acceptance",
+  "environment": {
+    "node": "v22.23.2",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M4",
+    "totalMemoryBytes": 34359738368,
+    "duckdbNodeApi": "1.5.5-r.4"
+  },
+  "selection": {
+    "resident": true,
+    "nativeMilliseconds": "20",
+    "calibrated": false
+  },
+  "initialPlacement": "fixture database; no preexisting resident copies",
+  "sourceSetupTimed": false,
+  "buildsTimed": false,
+  "firstResidentImportTimed": true,
+  "rawDirectory": "/tmp/actql-resident-pairs-retry.ZCowPn",
+  "invalidInitialRun": "/tmp/actql-resident-pairs.BsoJA2: baseline dependency symlinks rejected by clean-checkout check",
+  "samples": [
+    {
+      "pair": 0,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1077.2064999999998,
+      "cleanupMs": 1.5525410000000193,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        52.99579200000005,
+        47.69862499999999,
+        46.46641599999998
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1018.1691659999999,
+      "cleanupMs": 1.8330410000000938,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        36.89216699999997,
+        31.429416999999944,
+        31.418499999999995
+      ],
+      "reusedInputIdentities": [
+        1,
+        1,
+        1
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1022.7402910000001,
+      "cleanupMs": 1.6295840000000226,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        36.20295800000008,
+        31.41433399999994,
+        30.96774999999991
+      ],
+      "reusedInputIdentities": [
+        1,
+        1,
+        1
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1057.74875,
+      "cleanupMs": 1.3717079999998987,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        52.47520799999995,
+        46.72954099999993,
+        46.43420800000001
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1063.1402079999998,
+      "cleanupMs": 3.8457079999998314,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        52.27208299999995,
+        47.60429199999999,
+        47.517124999999965
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/1000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 1018.355375,
+      "cleanupMs": 1.7186670000000959,
+      "expectedRowsCid": "sha256:ae69575ac292ebeea5e0beaae74cec5f52d5e8fcfadda38144489bce49c29bce",
+      "programHash": "sha256:e72b6f35e98519a50480d9ab6165cf7b0bc9f3cbf8aadf823226b67dd635c34a",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:831a307f6b6120ddf0d526eff5f8318f2d5d7357b24d2b176fbbd432a15cb219",
+      "sourceDefinitionHash": "sha256:0557920231386a8846eb7b5af1f9b368fa807efb860ceab702e7862b03aa2373",
+      "selected": [
+        "duckdb-resident",
+        "duckdb-resident",
+        "duckdb-resident"
+      ],
+      "inputVerificationMs": [
+        36.11245799999995,
+        31.554666999999995,
+        31.02841699999999
+      ],
+      "reusedInputIdentities": [
+        1,
+        1,
+        1
+      ],
+      "storage": {
+        "capacityBytes": 8192000,
+        "reservedBytes": 4191564,
+        "admittedWriteBytes": 4191564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 870.4047909999999,
+      "cleanupMs": 1.4076250000000528,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 843.355416,
+      "cleanupMs": 1.1182909999999993,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 851.61125,
+      "cleanupMs": 2.4813749999999573,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 859.238792,
+      "cleanupMs": 2.147540999999933,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 850.7780829999999,
+      "cleanupMs": 1.2565829999999778,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 850.1876249999999,
+      "cleanupMs": 1.2615829999999733,
+      "expectedRowsCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "programHash": "sha256:8c146daff8a33fe598e69b608ca726bee75c975deefc2c1e2b3f93044a93c268",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:097e7a997125cb1eb234fb3e9f2a6ae35109d9f016c7334261d522a98492a661",
+      "sourceDefinitionHash": "sha256:971abb68db0a780012a67c85856513b7e14a1d5af40dcab80f77ccb2e3d5110e",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 2560000,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 8861.411250000001,
+      "cleanupMs": 2.3947079999998095,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 9008.584708,
+      "cleanupMs": 4.647750000000087,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 8963.383333,
+      "cleanupMs": 4.720375000000786,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 9082.358833,
+      "cleanupMs": 4.813958000000639,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 8934.947833,
+      "cleanupMs": 4.685042000000976,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 9043.210167,
+      "cleanupMs": 4.708709000000454,
+      "expectedRowsCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "programHash": "sha256:defc6d3a2d97b4c6098d6867d4e2242643baf025bebca032ca0b9d723b7a5a66",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:506a84fa67042de31a943a955e80098462023c38ebf269d30c4a412a80c8f8cd",
+      "sourceDefinitionHash": "sha256:1474eff431adc0f932c089f20ef04339722635a89957ee0835f20a512820cbc3",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4557.652792,
+      "cleanupMs": 2.5108329999993657,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 0,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4552.071792,
+      "cleanupMs": 2.4475000000002183,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4581.24175,
+      "cleanupMs": 2.4741659999999683,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 1,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4577.306083,
+      "cleanupMs": 2.2261250000001382,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 0,
+      "revision": "eae6e67904b931f190f9f0efd8b602e59d65e7cc",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4535.84875,
+      "cleanupMs": 2.150499999999738,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    },
+    {
+      "pair": 2,
+      "leg": 1,
+      "revision": "25e9ac2bd7e0e80d96035c1078e0945ba2dce9cb",
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "completed",
+      "acceptanceEligible": false,
+      "executionMs": 4584.407458000001,
+      "cleanupMs": 2.7572079999999914,
+      "expectedRowsCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "programHash": "sha256:3447c6d22ea920fa273aa2f301fc2d8a4edd4d69b48b93dd56412c91be1319e7",
+      "parameterHash": "sha256:4d12d686f7c352f9a4d9c588fff00fecba781217b219c00060e7ae7bd7c25ea1",
+      "environmentCid": "sha256:13390a18e8b12386e301c99d75c145ca9ebec4e7991e77f96d701849668c0854",
+      "sourceDefinitionHash": "sha256:f20645d8b1643ad7b4b52d2dbded6e4fae2919a28a6936508c94d415b196c8c7",
+      "selected": [
+        "duckdb",
+        "duckdb",
+        "duckdb"
+      ],
+      "inputVerificationMs": [
+        null,
+        null,
+        null
+      ],
+      "reusedInputIdentities": [
+        0,
+        0,
+        0
+      ],
+      "storage": {
+        "capacityBytes": 81920000,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      }
+    }
+  ]
+}
