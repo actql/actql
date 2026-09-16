@@ -1,8 +1,58 @@
-# Identity boundary review — proposal, not an adopted semantic change
+# Identity boundary review — main decision recorded; implementation pending
 
-Inspected implementation: `86429b48`. This records the required contract review;
-it does not declare main agreement or authorize omission of existing identities.
-The registered experiment continues to require its original guarantees.
+Initial implementation inspection: `86429b48`. On 2026-09-16 the user relayed
+main's contract answer, following the checker integration at `3820ea11`.
+The agreement below records that answer, not an independently rerun main audit.
+It authorizes no omission of mandatory identities. The registered experiment
+continues to require its original guarantees. Implementation, independent
+fixtures and measured cost attribution remain separate unfinished work.
+
+## Agreed decision and exact identity domains
+
+- Acquisition observation: retain mandatory content identities and the distinct
+  observation/access/evidence associations used by fixed-observation consumers.
+- Internal task completion: content identity is conditional on the applicable
+  capture/publication/persistence/consumer contract, not a new universal hashing
+  requirement for every task. Exact producer, attempt, input, output, ownership
+  and holding still determine execution completion.
+- Published Result: retain mandatory `logical_result_cid` for ordered logical
+  equality, artifact verification and delivery correspondence.
+
+Do not conflate their canonical preimages:
+
+| Identity | Preimage / authoritative reference |
+| --- | --- |
+| `received_rows_cid`, output `rows_cid` | Canonical JSON UTF-8 of the ordered typed-wire row array; `docs/spec/execution.md`, acquisition output/receipts |
+| Relation logical Result CID | `computeCid({sort: "relation", value: canonical_rows})`; `docs/spec/protocols/artifacts.md`, Relation value/ResultArtifact |
+| Observation CID | Completed observation, including actual access, coverage and snapshot; `actql-query-acquisition.json:/schemas/completed_observation` |
+| Process evidence CID | Record including requirement, issuer, attempt, role and output; `actql-query-process-evidence.json:/schemas/record` |
+| Two-receipt associations | `actql-query-two-receipt.json:/schemas/receipt`, `/schemas/record`, `/schemas/completed_observation` |
+
+Equal row content never equates observations, attempts, authorization or actual
+access evidence. Sharing the content hash for identical native receipt/output
+rows does not collapse their roles or receipts.
+
+Main permits reuse of an already accepted owned validation/identity handle only
+when a trusted issuer actually completed validation and identity generation,
+and it binds the exact material/generation, owner, managed immutability, holding,
+contract pin, schema, canonical representation, order and validation scope.
+The retained result must cover this consumer's requirements. Same Run, matching
+paths, inode numbers, digests or caller assertions alone are insufficient.
+
+Consumer guards, demand, selected capacity, authorization, input binding and
+current liveness/holding remain checked. Logical rows/value quantities/work are
+charged per consumer even when physical scans or hash computations are avoided.
+Completion admission's explicit `resolved_request_cid` recomputation remains
+mandatory; reading an accepted observation is not admitting a new completion.
+
+Material/generation changes, lost holding, incompatible contract/scope and
+unverified transfer/deserialization invalidate reuse. Process evidence cannot be
+restored from JSON after process loss. Ordinary consumer failure does not revoke
+an independently completed upstream observation.
+
+This is a clarification of implementation conditions, not a wire/preimage or
+mandatory-field change. No machine-contract CID/pin change is required for this
+decision. No contract/version update or CID-free publication is authorized.
 
 ## Boundaries, beneficiaries and costs
 
@@ -15,15 +65,14 @@ The registered experiment continues to require its original guarantees.
 | Physical storage/transfer | Storage and receiving implementations need intact bytes and a valid mapping to the logical result | File integrity and logical identity checks are separate, sometimes repeated | Keep physical integrity at the appropriate trust boundary. A physical file hash never substitutes for the logical CID; validate representation conversion, preferably during conversion |
 | Published named Result | Delivery, audit and representation-independent comparison need the ordered logical Result identity | `docs/spec/protocols/artifacts.md` requires `logical_result_cid` in the closed Result Artifact, distinct from row payload | Preserve current publication contract unless main adopts an explicit change. Formal Result publication is not implemented by the physical-task benchmark |
 
-These recommendations require a recorded main decision: **retain mandatory /
-require under specified conditions / unnecessary**, with beneficiaries, value
-and measured cost. Specification text identifies the current requirement, but
-is not by itself its user-value justification. All decisions are currently
-pending; this document is not a completed review.
+The table above records the original proposal and cost model. The main decision
+now appears above; measured cost separation remains outstanding. Specification
+text alone is not the user-value justification. This document does not mark the
+implementation or the complete cost review finished.
 
 ## Existing coupling that must be separated safely
 
-`runResidentFixedCompute()` calls `port.consumeInput()` even when it imports
+At the initial inspected revision, `runResidentFixedCompute()` calls `port.consumeInput()` even when it imports
 zero rows. `append_retained_producer_scan_wire()` currently performs all of:
 
 1. Exact input availability checks.
@@ -57,10 +106,13 @@ not ordinary additional-computation failures.
 
 ## Evidence still required
 
-- Main's boundary-by-boundary agreement; no speculative CID omission.
+- Implement the recorded agreement without speculative CID omission.
 - Measured validation, canonical encoding/hash, physical integrity and holding
   costs, with interval nesting and shared work identified.
 - Positive reuse tests and negative generation/owner/attempt/corruption/expiry
   tests, plus unchanged consumer guard and budget failures.
+- Independent array-versus-Relation preimages, equal content with foreign
+  owner/attempt, unverified restoration, and upstream completion preserved after
+  consumer failure.
 - Any adopted semantic change: coordinated contracts, implementation,
   independent fixtures and a separately registered experiment.
