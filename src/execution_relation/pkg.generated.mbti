@@ -311,6 +311,8 @@ pub fn[T] managed_view_plan_rows(ManagedViewPlan[T]) -> ManagedViewRows
 
 pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], Int) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue]
 
+pub fn[T] managed_view_selection_row(ManagedViewSelection[T], Int) -> Int?
+
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
@@ -357,9 +359,13 @@ pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
+pub fn[P, T] prepare_managed_selected_view_output_port(ManagedViewSelection[T], ManagedOutputValues, (P) -> Bool) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
+
 pub fn[P, T] prepare_managed_view_output_port(ManagedViewPlan[T], ManagedOutputValues, (P) -> ManagedViewOutputFacts?) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
 
 pub fn[T] prepare_managed_view_plan(ManagedProducerRead[T], Array[@lowering_relation.PreparedKernel], Int, Int, Int) -> Result[ManagedViewPlan[T], ManagedViewIssue]
+
+pub fn[T] prepare_managed_view_selection(ManagedViewPlan[T], Array[Int], Int, Int) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue]
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
@@ -773,6 +779,7 @@ pub(all) enum ManagedSelectionMeasureIssue {
   ForeignInput
   MissingIndex
   InvalidSelection
+  UnsupportedColumns
 }
 
 pub(all) struct ManagedViewColumnFacts {
@@ -814,6 +821,8 @@ pub(all) enum ManagedViewRows {
   PermutedRows
   SelectedRows
 } derive(Eq, @debug.Debug)
+
+type ManagedViewSelection[T]
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits

@@ -424,6 +424,9 @@ pub fn managed_selected_text_measurements(
   output : @execution.ManagedCompletedOutput[Int],
   rows : Array[Int],
 ) -> Array[Int] raise {
+  assert_true(
+    rows.length() <= @execution.managed_completed_output_row_count(output),
+  )
   let owner = @duckdb.fixed_query_owner(
     @duckdb.fixed_compute_query(value.compute),
   )
@@ -542,6 +545,7 @@ pub fn managed_column_measurement(
 pub fn managed_fixed_view_plan(
   query : @duckdb.ManagedFixedQuery[Int],
 ) -> @execution.ManagedViewPlan[Int] raise {
+  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
   @duckdb.prepare_managed_fixed_view_plan(query, {
     max_entries: 100,
     max_sql_bytes: 10000,

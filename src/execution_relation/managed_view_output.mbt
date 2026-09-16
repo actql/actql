@@ -13,6 +13,7 @@ struct ManagedViewOutputPort[P, T] {
   plan : ManagedViewPlan[T]
   stream : ManagedOutputValues
   verify : (P) -> ManagedViewOutputFacts?
+  index : ManagedRowMeasurements?
   mut open : Bool
 }
 
@@ -55,8 +56,14 @@ pub fn[P, T] prepare_managed_view_output_port(
   }
   // Reserve the stream against append/finish during verifier re-entry. Store
   // retention must be installed before this reservation, using the same stream.
+  if !stream.open || stream.reading || stream.rows != 0 {
+    return Err(Closed)
+  }
+  if stream.row_measurements is Some(_) {
+    return Err(OutputRepresentationRequired)
+  }
   stream.reading = true
-  Ok({ plan, stream, verify, open: true, })
+  Ok({ plan, stream, verify, index: None, open: true, })
 }
 
 ///|
@@ -203,6 +210,7 @@ fn[P, T] managed_view_output_verify(
   stream.buffer.budget.text = usage.text_bytes
   stream.buffer.budget.work = usage.work
   stream.rows = facts.rows
+  stream.row_measurements = port.index
   for index, column in facts.columns {
     stream.column_usage[index] = (column.bytes, column.nodes)
     stream.column_maxima[index] = column.max_value_bytes

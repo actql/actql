@@ -39,6 +39,7 @@ pub(all) enum ManagedSelectionMeasureIssue {
   ForeignInput
   MissingIndex
   InvalidSelection
+  UnsupportedColumns
 }
 
 ///|
