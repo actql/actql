@@ -1,8 +1,9 @@
 # Retained execution completion audit
 
-This is a working-tree audit, not a completion certificate. The base commit is
-`b87584fed46217659589315c1f819994dc0cfe77`; the uncommitted changes are essential.
-Do not use that commit alone as the tested implementation.
+This is an incremental audit, not a completion certificate. The original base
+was `b87584fed46217659589315c1f819994dc0cfe77`. The implementation checkpoint is
+`de86a96fdd74f1f6cc2463924428d2e4de19a4d0`; use that checkpoint, not the original
+base, for the retained execution implementation described here.
 
 ## Required behavior and evidence
 
@@ -49,8 +50,16 @@ Logs: `/tmp/actql-retained-verification.q56Wue/` (local diagnostic artifacts).
 - AoA semantic boundary, portable Core and pinned benchmark fixture checks:
   19 passed; concrete dispatch boundary checks: 3 passed.
 
-The generated-API gate and isolated third-connector-addition gate require
-committed product sources. Regeneration and isolated targeted tests are not
-substitutes for those gates on the eventual fixed revision. Final
-fixed-revision verification remains required. Linux/GitHub Actions has not been
-verified here.
+The generated-API gate passed on the clean implementation checkpoint
+`de86a96fdd74f1f6cc2463924428d2e4de19a4d0`. The isolated third-connector-addition
+gate also passed on that SHA: baseline and extended checks, independent connector
+execution on JS/Wasm/native, and the real standard Node Host integration. Its
+inventory confirmed 2,311 common files unchanged, with 162 permitted addition/
+composition/conformance changes. Evidence resides in
+`/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-connector-addition-0Aeoiv`.
+
+The broad regressions above preceded the checkpoint; the last generated fixture
+refresh was separately covered by Workers and no-DuckDB checks. Further product
+changes require rerunning the relevant gates before final sign-off.
+Linux/GitHub Actions has not been verified here. Remaining functional and
+performance items in the requirement table are not closed by this checkpoint.
