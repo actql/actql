@@ -1018,9 +1018,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Two independent count consumers of X can share established value evidence.
   // This passes the actual checked DAG and installed resident Host, not a fake
   // verifier callback. The third filter still executes its own demand scan.
-  {
+  for (const projected of [false, true]) {
     await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
     const counts = JSON.parse(program);
+    if (projected) {
+      counts.stages[0].steps.at(-1).select = ['id', 'amount'];
+      counts.stages[0].results.r.fields = ['id', 'amount'];
+      counts.stages[0].results.narrow = {from: 'captured', fields: ['id']};
+      counts.stages[2].inputs.x.result.result = 'narrow';
+    }
     for (const index of [1, 2]) counts.stages[index].steps = [
       {group: {by: [], aggregates: {id: {fn: 'count'}}}, as: 'out'},
     ];

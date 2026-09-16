@@ -67,6 +67,7 @@ fn[T : IndexedRows] measure_input_values(
   ceiling : Int,
   phase : FixedInputGuardPhase,
   budget : FixedInputGuardBudget,
+  column_usage? : Array[(Int, Int)],
 ) -> Result[Unit, FixedInputGuardIssue] {
   for row in 0..<rows.row_count() {
     if budget.work <= 0 {
@@ -96,6 +97,12 @@ fn[T : IndexedRows] measure_input_values(
       budget.nodes -= usage.1
       if usage.0 > ceiling {
         return Err(ValueBytes(phase, row, column))
+      }
+      if column_usage is Some(totals) {
+        let (bytes, nodes) = totals[column]
+        // Subtotals cannot overflow: the enclosing successful budget bounds
+        // their nonnegative sum. Publish only with the complete verified scan.
+        totals[column] = (bytes + usage.0, nodes + usage.1)
       }
     }
   }

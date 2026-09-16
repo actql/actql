@@ -3,12 +3,13 @@ fn projected_consumer(
   owner : @lower.BoundPrepared,
   fields : String,
   steps : String,
+  target? : @pipeline.Target = Step(0),
 ) -> @lower.BoundPrepared {
   let producer = @lower.pipeline(@lower.bound_preparation(owner))
   let checked = @relation.check(
     Select,
     input_cursor(fields),
-    @pipeline.schema_at(producer, Step(0)).unwrap(),
+    @pipeline.schema_at(producer, target).unwrap(),
     None,
     {
       max_work: 10000,
@@ -27,10 +28,7 @@ fn projected_consumer(
     max_depth: 100,
   }
   let projected = @pipeline.project_produced_input(
-    producer,
-    Step(0),
-    checked,
-    limits,
+    producer, target, checked, limits,
   ).unwrap()
   let pipeline = @pipeline.check_with_evidence(
     input_cursor(steps),

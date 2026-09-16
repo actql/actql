@@ -28,11 +28,11 @@ test "retained measurement evidence skips repeat measurement but not consumer ch
       ),
     )
     if pass > 0 {
-      // Even the same material is insufficient for a different ordered view.
+      // Per-column quantities survive a pure reordering of the same values.
       let first = scan.wire_columns[0]
       scan.wire_columns[0] = scan.wire_columns[1]
       assert_true(
-        reusable_retained_value_measurement(scan, measurement) is None,
+        reusable_retained_value_measurement(scan, measurement) is Some(_),
       )
       scan.wire_columns[0] = first
       assert_true(

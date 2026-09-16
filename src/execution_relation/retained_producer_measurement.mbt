@@ -55,6 +55,7 @@ pub fn attach_retained_producer_measurement(
     return Err(ForeignInput)
   }
   measurement.scanning_input = true
+  scan.column_measurements = Array::make(scan.wire_columns.length(), (0, 0))
   scan.measurement = Some(measurement)
   scan.measurement_start = Some(
     (
@@ -92,6 +93,7 @@ fn measure_retained_producer_scan_row(
       measurement.max_value_bytes,
       InputValues,
       measurement.budget,
+      column_usage=scan.column_measurements,
     ) {
     Ok(_) => ()
     Err(issue) =>
@@ -116,6 +118,7 @@ fn finish_retained_producer_scan_measurement(
     return Err(ForeignInput)
   }
   if scan.guard_issue is Some(issue) {
+    scan.column_measurements = []
     measurement.open = false
     return Err(issue)
   }
@@ -131,6 +134,7 @@ fn finish_retained_producer_scan_measurement(
     let material = scan.input.bound.output.representation.unwrap()
     material.value_measurement = Some({
       columns: scan.wire_columns.copy(),
+      column_usage: scan.column_measurements,
       ceiling: measurement.max_value_bytes,
       depth: measurement.budget.depth,
       work: work - measurement.budget.work,
@@ -138,6 +142,9 @@ fn finish_retained_producer_scan_measurement(
       nodes: nodes - measurement.budget.nodes,
     })
   }
+  // Ownership of successful subtotals moves to the immutable material cache.
+  // Do not keep a second per-column buffer in the closed scan.
+  scan.column_measurements = []
   measurement.scanning_input = false
   measurement.next_input += 1
   advance_fixed_producer_input_measurement(measurement)
@@ -148,6 +155,7 @@ fn finish_retained_producer_scan_measurement(
 // This is a successful bound, not the exact maximum or a diagnostic position.
 priv struct RetainedValueMeasurement {
   columns : Array[Int]
+  column_usage : Array[(Int, Int)]
   ceiling : Int
   depth : Int
   work : Int
@@ -164,10 +172,14 @@ fn reusable_retained_value_measurement(
     return None
   }
   guard reuse.material.value_measurement is Some(evidence) else { return None }
-  if evidence.columns != scan.wire_columns ||
-    evidence.ceiling > measurement.max_value_bytes ||
-    evidence.depth > measurement.budget.depth ||
-    evidence.work > measurement.budget.work ||
+  if evidence.ceiling > measurement.max_value_bytes ||
+    evidence.depth > measurement.budget.depth {
+    return None
+  }
+  if evidence.columns != scan.wire_columns {
+    return project_retained_value_measurement(scan, measurement, evidence)
+  }
+  if evidence.work > measurement.budget.work ||
     evidence.bytes > measurement.budget.bytes ||
     evidence.nodes > measurement.budget.nodes {
     // An insufficient summary is not a violation. Ordinary ordered measurement
@@ -175,4 +187,56 @@ fn reusable_retained_value_measurement(
     return None
   }
   Some(evidence)
+}
+
+///|
+/// Closed projection/copy rule over the same material and all of its rows.
+/// This transports per-value quantities, not record bytes or a Result CID.
+fn project_retained_value_measurement(
+  scan : RetainedProducerScan,
+  measurement : FixedProducerMeasurement,
+  evidence : RetainedValueMeasurement,
+) -> RetainedValueMeasurement? {
+  let rows = producer_read_row_count(scan.input)
+  let budget = measurement.budget
+  if rows > budget.work {
+    return None
+  }
+  let mut work = rows
+  let mut bytes = 0
+  let mut nodes = 0
+  let mut remaining = scan.wire.max_order_work
+  let column_usage = []
+  for column in scan.wire_columns {
+    let mut found = None
+    for index, stored in evidence.columns {
+      if remaining <= 0 {
+        return None
+      }
+      remaining -= 1
+      if stored == column {
+        found = evidence.column_usage.get(index)
+        break
+      }
+    }
+    guard found is Some((column_bytes, column_nodes)) else { return None }
+    if rows > budget.work - work ||
+      column_bytes > budget.bytes - bytes ||
+      column_nodes > budget.nodes - nodes {
+      return None
+    }
+    work += rows
+    bytes += column_bytes
+    nodes += column_nodes
+    column_usage.push((column_bytes, column_nodes))
+  }
+  Some({
+    columns: scan.wire_columns.copy(),
+    column_usage,
+    ceiling: evidence.ceiling,
+    depth: evidence.depth,
+    work,
+    bytes,
+    nodes,
+  })
 }
