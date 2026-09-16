@@ -12,6 +12,7 @@ import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNati
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
+import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
@@ -127,6 +128,9 @@ test('standard native and broad Node Hosts own verification through real capture
               assert.equal(retained.storageUsage().holdings, 1);
               assert.equal(retained.storageUsage().admittedWriteBytes, Buffer.byteLength(JSON.stringify(expected)));
               const fixed = fixture.ownedFixedCreate(prepared, heldOutput, ...contracts);
+              const hostMoon = await import(pathToFileURL(join(root,
+                '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
+              exerciseNativeFilePlan(hostMoon, fixture.ownedFixedConfiguration(fixed), retention.wire);
               const computed = await runRetainedFixedHostCompute(fixture.ownedFixedConfiguration(fixed),
                 limits, { maxRows: 100, maxCells: 1000 }, retention);
               try {

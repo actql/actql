@@ -73,3 +73,16 @@ Host, typed fixed Host, native conversion and delegated/direct-file integration
 cross-target API, full documentation/contracts and formatting/whitespace checks.
 After restricting reuse to the SDK-checked bounded single-thread session, the
 10,000-row numeric-64 reuse case passed again with all new phase assertions.
+
+The follow-up standard Host integration also probes the low-level plan with
+actual retained acquisition input, for both populated and empty results. A
+foreign run or port is rejected before calling the issuer; successful issuance
+is single-use; failed verification cannot be retried; closed runs cannot create
+or apply plans; closure during the verifier rejects attachment. The fixture's
+verifier is deliberately a test issuer, not proof of native conversion. The
+ordinary Host integration continues through real acquisition, Compute, consumer
+and cleanup after these probes and passed.
+
+The [fixed-source diagnostic](direct-matrix-48ec97dc.md) records all 27 registered
+cases and 99 input phases with identity reuse. It remains separate from formal
+paired performance acceptance and managed-profile conformance.
