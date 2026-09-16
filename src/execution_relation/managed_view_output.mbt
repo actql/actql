@@ -147,10 +147,12 @@ fn[P, T] managed_view_output_verify(
   let mut work = budget.work
   let mut bytes = budget.bytes
   let mut nodes = budget.nodes
+  let mut needs_ordered = false
   if facts.rows > work {
-    return Err(OutputRepresentationRequired)
+    needs_ordered = true
+  } else {
+    work -= facts.rows
   }
-  work -= facts.rows
   for index, column in facts.columns {
     if column.rows != facts.rows ||
       column.bytes < 0 ||
@@ -178,34 +180,58 @@ fn[P, T] managed_view_output_verify(
         return Err(InconsistentFacts)
       }
     }
-    if column.max_value_bytes > stream.max_value_bytes ||
+    if facts.rows > 0 &&
       (
-        facts.rows > 0 &&
-        (
-          column.admitted_depth > budget.depth ||
-          column.admitted_depth > limits.max_depth
-        )
-      ) ||
-      facts.rows > work ||
-      column.bytes > bytes ||
-      column.nodes > nodes {
+        column.admitted_depth > budget.depth ||
+        column.admitted_depth > limits.max_depth
+      ) {
       return Err(OutputRepresentationRequired)
     }
-    work -= facts.rows
-    bytes -= column.bytes
-    nodes -= column.nodes
+    if !needs_ordered {
+      if column.max_value_bytes > stream.max_value_bytes ||
+        facts.rows > work ||
+        column.bytes > bytes ||
+        column.nodes > nodes {
+        needs_ordered = true
+      } else {
+        work -= facts.rows
+        bytes -= column.bytes
+        nodes -= column.nodes
+      }
+    }
   }
-  // No partial credit on rejection. All output facts are detached from the
-  // source's lifetime only after execution verification succeeded.
+  // No receipt before binding/liveness verification. An indexed diagnostic
+  // resolution below retains the consumed prefix of the shared ledger.
   if !managed_producer_read_available(plan.input) {
     return Err(ForeignBinding)
   }
   if !stream.open {
     return Err(Closed)
   }
-  budget.work = work
-  budget.bytes = bytes
-  budget.nodes = nodes
+  if needs_ordered {
+    guard port.index is Some(index) else {
+      return Err(OutputRepresentationRequired)
+    }
+    match
+      measure_managed_output_index(
+        index,
+        facts.rows,
+        facts.columns.length(),
+        stream.max_value_bytes,
+        budget,
+      ) {
+      // Exact index and exact aggregate facts must agree. An aggregate
+      // violation followed by successful indexed measurement is corruption,
+      // never permission to publish contradictory evidence.
+      Ok(_) => return Err(InconsistentFacts)
+      Err(issue) => return Err(Values(Guard(issue)))
+    }
+  } else {
+    // The normal success path stays O(columns), even when an index is held.
+    budget.work = work
+    budget.bytes = bytes
+    budget.nodes = nodes
+  }
   stream.buffer.budget.nodes = usage.nodes
   stream.buffer.budget.text = usage.text_bytes
   stream.buffer.budget.work = usage.work
@@ -215,6 +241,54 @@ fn[P, T] managed_view_output_verify(
     stream.column_usage[index] = (column.bytes, column.nodes)
     stream.column_maxima[index] = column.max_value_bytes
     stream.column_nulls[index] = column.null_rows
+  }
+  Ok(())
+}
+
+///|
+/// Resolve only an otherwise ambiguous rejection, using sealed exact cell
+/// measurements in the same row/column order as measure_input_values. All
+/// depth and value-validity obligations must already have been established.
+fn measure_managed_output_index(
+  index : ManagedRowMeasurements,
+  rows : Int,
+  width : Int,
+  ceiling : Int,
+  budget : FixedInputGuardBudget,
+) -> Result[Unit, FixedInputGuardIssue] {
+  if (width == 0 && index.cells.length() != 0) ||
+    (
+      width > 0 &&
+      (
+        index.cells.length() / width != rows ||
+        index.cells.length() % width != 0
+      )
+    ) {
+    return Err(InvalidLayout)
+  }
+  for row in 0..<rows {
+    if budget.work <= 0 {
+      return Err(MeasurementWork)
+    }
+    budget.work -= 1
+    for column in 0..<width {
+      if budget.work <= 0 {
+        return Err(MeasurementWork)
+      }
+      budget.work -= 1
+      let (bytes, nodes, _) = index.cells[row * width + column]
+      if bytes <= 0 || nodes <= 0 {
+        return Err(InvalidLayout)
+      }
+      if bytes > budget.bytes || nodes > budget.nodes {
+        return Err(Measurement(Output, row, column, @encode.OutputLimit))
+      }
+      budget.bytes -= bytes
+      budget.nodes -= nodes
+      if bytes > ceiling {
+        return Err(ValueBytes(Output, row, column))
+      }
+    }
   }
   Ok(())
 }
