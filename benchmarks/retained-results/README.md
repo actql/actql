@@ -195,6 +195,21 @@ oracle rejects the sample while still removing completed files:
 node --test adapters/duckdb-node/test/retained-comparator.test.mjs
 ```
 
+The retained comparison function also accepts an explicit fifth argument such as
+`{resident: true, nativeMilliseconds: '20'}`. Defaults remain fresh selection
+with a supplied native estimate of `'1'`. Reports snapshot and hash these
+selection inputs, and retain the actual per-task realizations and import counts.
+Enabling resident candidates does not force them past eligibility or resource
+checks. The estimate is not elapsed time, and changing it is a different selection
+configuration, not an optimization speedup by itself.
+
+Both selections use the same managed-cycle timing and cleanup boundaries. The
+real integration test checks all three narrow 100-row workloads through both
+selections, identical independent final CIDs, resident initial import followed by
+zero reimports, process completion and file release. This permits diagnosis of
+reuse without silently changing the fresh comparison leg. It does not complete
+the equivalent-obligations comparator or the preregistered paired experiment.
+
 The benchmark-only raw DuckDB leg can now be exercised against all 27 registered
 cases (or one exact `ACTQL_RETAINED_CASE`):
 

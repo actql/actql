@@ -781,3 +781,19 @@ Its inclusive readiness diagnostic was 954.623 ms. These two timings have
 different boundaries and are not paired; no speedup ratio or acceptance result
 is inferred from them. All 17 benchmark helper tests passed. Full comparator
 coverage and formal performance acceptance remain open.
+
+## Follow-up: measure fresh and resident through the same retained entry
+
+The retained diagnostic comparator now accepts explicit resident eligibility and
+native cost-estimate inputs, snapshots them before execution and records their
+hash alongside actual task realizations. Both modes include Host preparation,
+child startup, validation, required identity, independent holding and child exit;
+final file release remains separately timed. Default selection is unchanged.
+
+All three narrow 100-row workloads pass with fresh and resident configurations,
+with identical independent expected CIDs. Resident execution imports once and
+does not reimport downstream inputs. Both paths release all output files. Invalid
+options fail before preparation. The two comparator tests and all 17 benchmark
+helper tests pass. These are functional checks of the measurement entry, not
+paired timing samples or a claim that the supplied cost estimate is calibrated.
+The equivalent-obligations comparator and full formal comparison remain open.

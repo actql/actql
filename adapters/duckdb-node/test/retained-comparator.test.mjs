@@ -9,6 +9,15 @@ import {fileURLToPath} from 'node:url';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {runRetainedComparator} from '../bench/retained-comparator.mjs';
 
+test('retained comparator rejects invalid selection before preparing or executing', async () => {
+  for (const options of [null, [], {resident: 'true'}, {nativeMilliseconds: '-1'},
+    {nativeMilliseconds: '1.5'}, {nativeMilliseconds: '2147483648'}, {nativeMilliseconds: 20},
+    {unknown: true}]) {
+    await assert.rejects(runRetainedComparator(undefined, undefined, undefined, undefined, options),
+      {code: 'ERR_ASSERTION'});
+  }
+});
+
 test('installed retained timing leg verifies every workload and independently releases files', async () => {
   const root = new URL('../../../', import.meta.url);
   for (const target of ['connectors/duckdb/host_node', 'retained_host_bridge',
@@ -33,11 +42,23 @@ test('installed retained timing leg verifies every workload and independently re
       assert.equal(report.status, 'completed');
       assert.equal(report.comparator, 'retained-actql');
       assert.equal(report.scope, 'managed-host-cycle-diagnostic');
+      assert.deepEqual(report.selection, {resident: false, nativeMilliseconds: '1'});
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
       assert.equal(report.controlMemory.status, 'observed');
       assert(BigInt(report.controlTransport.receivedBytes) > 0n);
       assert(report.executionMs > 0 && report.cleanupMs >= 0);
       assert.doesNotThrow(() => JSON.stringify(report));
+      assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
+      const reused = await runRetainedComparator(fixture, contracts, database, directory,
+        {resident: true, nativeMilliseconds: '20'});
+      assert.equal(reused.expectedRowsCid, report.expectedRowsCid);
+      assert.equal(reused.scope, report.scope);
+      assert.notEqual(reused.selectionHash, report.selectionHash);
+      assert.deepEqual(reused.selection, {resident: true, nativeMilliseconds: '20'});
+      assert(reused.tasks.every(task => task.realization === 'duckdb-resident'));
+      assert.deepEqual(reused.tasks.map(task => task.preparation.imports.length),
+        [1, ...Array(reused.tasks.length - 1).fill(0)]);
+      assert(reused.executionMs > 0 && reused.cleanupMs >= 0);
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
     }
     const fixture = retainedCase(workloads[2], 'narrow', 100);

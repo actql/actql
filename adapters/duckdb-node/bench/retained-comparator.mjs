@@ -10,8 +10,20 @@ const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')
 const usage = value => Object.fromEntries(Object.entries(value).map(([key, v]) =>
   [key, typeof v === 'bigint' ? v.toString() : v]));
 
-export async function runRetainedComparator(fixture, contracts, database, directory) {
+export async function runRetainedComparator(fixture, contracts, database, directory, options = {}) {
+  assert(options && typeof options === 'object' && !Array.isArray(options), 'InvalidComparatorOptions');
+  assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds'].includes(key)),
+    'UnknownComparatorOption');
+  // Snapshot selection inputs before any await. These are estimates, never
+  // measurements or permission to override a reservation/capacity refusal.
+  const selection = Object.freeze({resident: options.resident ?? false,
+    nativeMilliseconds: options.nativeMilliseconds ?? '1'});
+  assert.equal(typeof selection.resident, 'boolean', 'InvalidResidentSelection');
+  assert(typeof selection.nativeMilliseconds === 'string' &&
+    /^(0|[1-9][0-9]*)$/.test(selection.nativeMilliseconds) &&
+    BigInt(selection.nativeMilliseconds) <= 2147483647n, 'InvalidNativeEstimate');
   const config = managedCaseConfiguration(fixture, contracts, database, directory);
+  const input = Object.freeze({...config.input, ...selection});
   const expected = fixture.identity(); // Independent oracle, not timed product work.
   const memory = sampleControllerMemory();
   let result, memoryReport, elapsed, cleanupMs, report;
@@ -19,7 +31,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
     const started = performance.now();
     const host = await createManagedExampleHost(config.limits);
     try {
-      result = await host.run(config.input, {run: fixture.id, childLimits: config.childLimits},
+      result = await host.run(input, {run: fixture.id, childLimits: config.childLimits},
         AbortSignal.timeout(config.timeoutMs));
       elapsed = performance.now() - started;
     } finally { memoryReport = memory.stop(); }
@@ -34,6 +46,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
     report = {comparator: 'retained-actql', scope: 'managed-host-cycle-diagnostic',
       caseId: fixture.id, executionMs: elapsed, expectedRowsCid: expected.rowsCid,
+      selection, selectionHash: hash(JSON.stringify(selection)),
       rows: expected.rows, programHash: hash(config.input.programText),
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
       sourceDefinitionHash: hash(fixture.createSourceSql),
