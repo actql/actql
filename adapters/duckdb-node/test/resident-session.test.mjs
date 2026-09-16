@@ -130,10 +130,10 @@ function assertResidentPhases(phases) {
     'finalizationMilliseconds', 'temporaryCleanupMilliseconds'];
   assert(Object.isFrozen(phases));
   assert.deepEqual(Object.keys(phases), [...names, 'directInputScans',
-    'reusedInputIdentities', 'workMilliseconds']);
+    'reusedInputIdentities', 'reusedInputValues', 'workMilliseconds']);
   assert(Number.isInteger(phases.directInputScans));
   assert(Number.isInteger(phases.reusedInputIdentities));
-  assert(phases.reusedInputIdentities <= phases.directInputScans);
+  assert(phases.reusedInputIdentities <= phases.directInputScans + phases.reusedInputValues);
   for (const value of Object.values(phases)) assert(Number.isFinite(value) && value >= 0);
   const sum = names.reduce((total, name) => total + phases[name], 0);
   assert(Math.abs(sum - phases.workMilliseconds) < 0.000001);

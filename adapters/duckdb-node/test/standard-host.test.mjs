@@ -1015,6 +1015,37 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       capture.close(); await capture.cleanupHandle.retry();
     }
   }
+  // Two independent count consumers of X can share established value evidence.
+  // This passes the actual checked DAG and installed resident Host, not a fake
+  // verifier callback. The third filter still executes its own demand scan.
+  {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+    const counts = JSON.parse(program);
+    for (const index of [1, 2]) counts.stages[index].steps = [
+      {group: {by: [], aggregates: {id: {fn: 'count'}}}, as: 'out'},
+    ];
+    const f = fixture.strategyFixtureCreate(...args, JSON.stringify(counts));
+    const retention = {parentDirectory: dirname(path), maxFrameBytes: 4096,
+      wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+        max_columns: 10, max_order_work: 10000}};
+    const capture = await runRetainedNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(f), suppliedLimits, retention);
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      execution = await runCapturedStrategy(fixture.strategyFixtureRetainedResidentDispatch(f), {
+        duckdb: prepareDuckDBStrategyConfiguration({transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000}, retainedOutput: retention}),
+      });
+      assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+      assert.deepEqual(execution.completed.map(item => item.phases.reusedInputValues), [0, 1, 0]);
+      assert.deepEqual(execution.completed.map(item => item.phases.directInputScans), [1, 0, 1]);
+      for (const task of [1, 2, 3]) assert.equal(fixture.strategyFixtureCid(f, task), hash([{id: 3}]));
+    } finally {
+      if (execution) { await execution.close(); assert.equal(await execution.cleanup(), true); }
+      capture.close(); await capture.cleanupHandle.retry();
+    }
+  }
   // Shared X is imported once; both branches read that exact capture, and C
   // consumes A's retained native table without importing A from the Host again.
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');

@@ -18,6 +18,20 @@ pub fn reuse_fixed_import_identity(
 }
 
 ///|
+/// Value-preserving resident access only; a new comparison demand still needs
+/// its own evaluation. Missing evidence preserves the ordinary scanning path.
+pub fn reuse_fixed_import_values(stream : FixedImportStream) -> Bool {
+  if stream.rows != 0 || stream.demand is Some(_) {
+    return false
+  }
+  if !@execution.reuse_retained_scan_values(stream.scan) {
+    return false
+  }
+  stream.rows = @execution.producer_read_row_count(stream.owner.input)
+  true
+}
+
+///|
 pub(all) enum FixedImportStreamIssue {
   Content(@execution.CompletedImportIssue)
   Parameter(ValueIssue)

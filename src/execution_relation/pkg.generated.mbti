@@ -339,6 +339,8 @@ pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.S
 
 pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool
 
+pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool
+
 pub fn row_wire_cid(RowWireIdentity) -> String
 
 pub fn row_wire_matches_captured(RowWireIdentity, CapturedRows) -> Bool

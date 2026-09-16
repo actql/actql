@@ -18,6 +18,16 @@ pub fn compute_host_resident_input_reuse(
 }
 
 ///|
+#export_name("computeHostInputValuesReuse")
+pub fn compute_host_input_values_reuse(
+  run : ComputeNodeRun,
+  port : Int,
+) -> Bool {
+  !run.closed &&
+  @duckdb_compute.reuse_duckdb_compute_input_values(run.attempt, port)
+}
+
+///|
 #export_name("computeHostInputFileSql")
 pub fn compute_host_input_file_sql(
   run : ComputeNodeRun,

@@ -164,19 +164,22 @@ export async function runResidentFixedCompute(
     const phases = {};
     let directInputScans = 0;
     let reusedInputIdentities = 0;
+    let reusedInputValues = 0;
     const endPhase = name => {
       const now = performance.now();
       phases[name] = now - boundary;
       boundary = now;
     };
-    // Reusing an exact DB copy skips import, not this consumer's measurement
-    // or demand checks. Retained inputs use the same bounded common decoder.
+    // An exact DB copy skips import. Established value evidence may discharge
+    // the same validation/measurement obligations without a second traversal;
+    // fresh consumer demand still uses the bounded common decoder.
     if (port.consumeInput) {
       for (let input = 0; input < port.importCount(); input++) {
         signal?.throwIfAborted();
         const verified = port.verifyResidentInput && await port.verifyResidentInput(input, session);
         if (verified) {
-          directInputScans++;
+          if (verified.valuesReused === true) reusedInputValues++;
+          else directInputScans++;
           if (verified.identityReused === true) reusedInputIdentities++;
           continue;
         }
@@ -198,7 +201,7 @@ export async function runResidentFixedCompute(
     }
     endPhase('temporaryCleanupMilliseconds');
     return Object.freeze({ fields, importedRows: 0, importedCells: 0,
-      diagnostics: Object.freeze({...phases, directInputScans, reusedInputIdentities,
+      diagnostics: Object.freeze({...phases, directInputScans, reusedInputIdentities, reusedInputValues,
         workMilliseconds: boundary - workStarted}) });
   }, signal, accounting);
   // Preserve completed Host-output provenance independently of future DB loss.

@@ -13,6 +13,19 @@ pub fn reuse_duckdb_compute_input_identity(
 }
 
 ///|
+pub fn reuse_duckdb_compute_input_values(
+  value : DuckDBComputeAttempt,
+  port : Int,
+) -> Bool {
+  guard value.live &&
+    value.receiving is None &&
+    value.input_streams.get(port) is Some(Some(stream)) else {
+    return false
+  }
+  @duckdb.reuse_fixed_import_values(stream)
+}
+
+///|
 pub fn duckdb_compute_input_file_sql(
   value : DuckDBComputeAttempt,
   port : Int,

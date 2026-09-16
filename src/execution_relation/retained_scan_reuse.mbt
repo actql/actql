@@ -87,3 +87,55 @@ fn append_reused_retained_row(
     Err(issue) => Err(Admission(issue))
   }
 }
+
+///|
+/// Discharge the complete read from an exact live immutable representation.
+/// This is only a preparation for the ordinary finish boundary. No rows are
+/// supplied and no new consumer-specific predicate or join work is waived.
+/// Missing/insufficient evidence leaves the scan unchanged for ordered fallback.
+pub fn reuse_retained_scan_values(scan : RetainedProducerScan) -> Bool {
+  let stream = scan.stream
+  if !scan.open ||
+    !stream.open ||
+    stream.reading ||
+    stream.rows != 0 ||
+    scan.join_validation is Some(_) ||
+    scan.guard_issue is Some(_) {
+    return false
+  }
+  guard scan.reuse is Some(reuse) && retained_scan_reuse_available(reuse) else {
+    return false
+  }
+  let receipt = reuse.material.receipt
+  let budget = stream.buffer.budget
+  // Receipt wire depth includes the enclosing array/object and is a safe upper
+  // bound on admission depth. A tighter depth falls back, never fails here.
+  if receipt.rows > stream.max_rows ||
+    receipt.depth > budget.limits.max_depth ||
+    receipt.usage.nodes > budget.limits.max_nodes - budget.nodes ||
+    receipt.usage.text_bytes > budget.limits.max_text_bytes - budget.text ||
+    receipt.usage.work > budget.limits.max_work - budget.work {
+    return false
+  }
+  let measured = match scan.measurement {
+    None => None
+    Some(measurement) => {
+      if !measurement.open || !measurement.scanning_input {
+        return false
+      }
+      guard reusable_retained_value_measurement(scan, measurement)
+        is Some(value) else {
+        return false
+      }
+      Some(value)
+    }
+  }
+  // Commit only after every prerequisite passed. Finish rechecks live binding
+  // and applies the same consumer measurement charges as the scanned path.
+  budget.nodes += receipt.usage.nodes
+  budget.text += receipt.usage.text_bytes
+  budget.work += receipt.usage.work
+  stream.rows = receipt.rows
+  scan.measurement_reuse = measured
+  true
+}
