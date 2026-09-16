@@ -44,6 +44,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
     const directory = await mkdtemp(join(tmpdir(), 'actql-managed-compute-'));
     const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 65536, maxFrameBytes: 4096});
     let result, output, run, attempt, port, consume, completed, downstreamOutput, downstreamCompleted;
+    const heldTakes = [];
     try {
       run = checked(moon.computeHostOpen(fixture.ownedFixedConfiguration(configured),
         current => current === attempt && matchesFixedCompute(result, port, consume)));
@@ -130,6 +131,56 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         const material = moon.managedOutputMaterial(output);
         const codec = `sha256:${'4'.repeat(64)}`; // Fixture physical-frame interpretation only.
         registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
+        if (revoke === 'none') for (const representation of ['validated', 'preserved']) {
+          let settled = false;
+          const setup = checked(fixture.managedTakeFixture(configured, completed, profile, ...contracts, () => settled));
+          const taken = representation === 'preserved'
+            ? checked(moon.managedSelectedOutputOpen(fixture.managedTakeValues(setup),
+              fixture.managedTakeSelection(setup), fixture.managedFileTransportLimits(), () => settled))
+            : checked(moon.managedOutputOpen(fixture.managedTakeValues(setup),
+              JSON.stringify([['amount', 'VARCHAR', null, null]]), fixture.managedFilePhysicalLimits(),
+              fixture.managedFileTransportLimits(), 100));
+          const held = {setup, output: taken, representation};
+          heldTakes.push(held);
+          const db = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
+          const connection = await db.connect();
+          try {
+            await connection.run('CREATE TABLE take_source(amount VARCHAR)');
+            const rows = await withManagedInputFile(material, fixture.managedTakeInput(setup), codec, () => true, async file => {
+              const path = `'${file.path.replaceAll("'", "''")}'`;
+              await connection.run(`INSERT INTO take_source SELECT unnest(columns[1])
+                FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]'})`);
+              return (await connection.runAndReadAll('SELECT rowid AS occurrence, amount FROM take_source ORDER BY rowid LIMIT 2')).getRowObjects();
+            });
+            assert.deepEqual(rows.map(row => row.amount), empty ? [] : ['日本語', null]);
+            for (let i = 0; i < rows.length; i++) {
+              assert.equal(Number(rows[i].occurrence), fixture.managedTakeOccurrence(setup, i),
+                'the actual selected occurrence must match the checked transfer');
+            }
+            const columns = [rows.map(row => row.amount)];
+            const writer = store.reserve(4096);
+            await writer.start();
+            await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
+            held.body = await writer.sealPhysical();
+            settled = true;
+            if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
+            checked(moon.managedOutputFinish(taken));
+            if (representation === 'preserved') {
+              assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), [0, 0, 0]);
+              assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length);
+            } else if (!empty) {
+              assert.ok(checked(moon.managedOutputAdmissionUsage(taken))[0] > 0);
+            }
+            assert.deepEqual(checked(moon.managedOutputReusedMeasurements(taken)), empty ? [0, 0, 0] : [10, 41, 5]);
+            checked(moon.managedOutputRetain(taken, BigInt(held.body.bytes), () => held.body.available()));
+            held.completed = checked(moon.managedOutputCompleteView(taken, fixture.managedTakeCompletion(setup)));
+            assert.equal(moon.managedCompletedProfileCid(held.completed), profileCid);
+            assert.throws(() => checked(moon.managedOutputCompleteView(taken, fixture.managedTakeCompletion(setup))));
+            settled = false;
+            assert.equal(moon.managedCompletedAvailable(held.completed), true,
+              'independent completion does not borrow the settled verifier');
+          } finally { connection.closeSync(); db.closeSync(); }
+        }
         const foreign = fixture.typedFixedCreate(pipeline, empty ? 'id > 9' : 'id > 2', ...contracts);
         assert.equal(fixture.ownedFixedManagedInput(foreign, completed), undefined);
         for (let consumer = 0; consumer < 2; consumer++) {
@@ -273,8 +324,23 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           body.close();
           await store.cleanup();
           assert.equal(body.available(), false);
-          assert.equal(store.status().reservedBytes, downstreamBody.bytes,
+          assert.equal(store.status().reservedBytes, downstreamBody.bytes + heldTakes.reduce((sum, held) => sum + held.body.bytes, 0),
             'ancestor bytes are physically reclaimed before downstream use ends');
+          for (const held of heldTakes) {
+            assert.equal(moon.managedCompletedAvailable(held.completed), true);
+            const takeMaterial = moon.managedOutputMaterial(held.output);
+            const takeCodec = `sha256:${'7'.repeat(64)}`;
+            registerManagedInput(takeMaterial, input => moon.managedInputMatchesMaterial(input, takeMaterial), store, held.body, takeCodec);
+            for (let use = 0; use < 2; use++) {
+              const input = fixture.managedTakeNextInput(held.setup, held.completed);
+              const expected = empty ? [0, 0, 0, 0, 0] : [2, 15, 2, 11, 1];
+              assert.deepEqual(fixture.managedColumnMeasurement(input), expected);
+              if (held.representation === 'preserved') assert.deepEqual(fixture.managedTakeNextIndexFacts(input), expected);
+              const frame = await withManagedInputFile(takeMaterial, input, takeCodec, () => true,
+                async file => JSON.parse(await readFile(file.path, 'utf8')));
+              assert.deepEqual(frame.columns, [empty ? [] : ['日本語', null]]);
+            }
+          }
           assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true);
           downstreamAuthorized = false;
           nativeSettled = false;
@@ -371,6 +437,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           'prepared SQL does not preserve authority after material revocation');
       }
     } finally {
+      for (const held of heldTakes) {
+        moon.managedOutputCancel(held.output);
+        held.body?.close();
+      }
       if (downstreamOutput) moon.managedOutputCancel(downstreamOutput);
       if (downstreamCompleted) assert.equal(moon.managedCompletedAvailable(downstreamCompleted), false);
       if (output) moon.managedOutputCancel(output);

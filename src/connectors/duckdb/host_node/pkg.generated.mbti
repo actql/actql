@@ -168,6 +168,8 @@ pub fn managed_output_complete_compute(ManagedNodeOutput, @compute.ManagedDuckDB
 
 pub fn managed_output_complete_input(ManagedNodeOutput, @compute.ManagedInputDuckDBCompletion[Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
 
+pub fn managed_output_complete_view(ManagedNodeOutput, @execution_relation.ManagedCompletionPort[(@execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedRetainedOutput[Int]), Int]) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
+
 pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
@@ -185,6 +187,8 @@ pub fn managed_output_retain(ManagedNodeOutput, Int64, () -> Bool) -> Unit raise
 pub fn managed_output_reused_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
 
 pub fn managed_output_verify_compute(ManagedNodeOutput) -> Unit raise NodeHostFailure
+
+pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewSelection[Int], @adapter.TransportColumnLimits, () -> Bool) -> ManagedNodeOutput raise NodeHostFailure
 
 pub fn managed_view_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewPlan[Int], @adapter.TransportColumnLimits, () -> Bool, () -> @execution_relation.ManagedViewOutputFacts) -> ManagedNodeOutput raise NodeHostFailure
 

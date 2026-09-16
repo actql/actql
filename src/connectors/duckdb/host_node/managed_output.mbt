@@ -104,6 +104,31 @@ pub fn managed_output_complete_input(
 }
 
 ///|
+/// Installed Host common completion for a verified view realization. The port
+/// must enforce the adopted operation's obligations, not just physical holding.
+#export_name("managedOutputCompleteView")
+pub fn managed_output_complete_view(
+  value : ManagedNodeOutput,
+  port : @execution.ManagedCompletionPort[
+    (
+      @execution.ManagedOutputValueReceipt,
+      @execution.ManagedRetainedOutput[Int],
+    ),
+    Int,
+  ],
+) -> @execution.ManagedCompletedOutput[Int] raise NodeHostFailure {
+  guard value.valid.val &&
+    value.receipt is Some(receipt) &&
+    value.material is Some(material) else {
+    raise InvalidCommand
+  }
+  match @execution.complete_managed_output(port, (receipt, material)) {
+    Ok(output) => output
+    Err(issue) => raise Completion(issue)
+  }
+}
+
+///|
 #export_name("managedInputCompletionCancel")
 pub fn managed_input_completion_cancel(
   completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
@@ -214,6 +239,42 @@ pub fn managed_output_admission_usage(
   guard value.receipt is Some(receipt) else { raise InvalidCommand }
   let usage = @execution.managed_output_value_usage(receipt)
   [usage.work, usage.nodes, usage.text_bytes]
+}
+
+///|
+#export_name("managedSelectedOutputOpen")
+pub fn managed_selected_output_open(
+  values : @execution.ManagedOutputValues,
+  selection : @execution.ManagedViewSelection[Int],
+  transport : @duckdb.TransportColumnLimits,
+  verify : () -> Bool,
+) -> ManagedNodeOutput raise NodeHostFailure {
+  let retention = match
+    @execution.prepare_managed_output_retention_port(values, (
+      proof : ManagedNodeHolding,
+    ) => Some((proof.receipt, 1, proof.bytes, proof.available))) {
+    Ok(port) => port
+    Err(issue) => raise ManagedRetention(issue)
+  }
+  let port = match
+    @execution.prepare_managed_selected_view_output_port(selection, values, (
+      _ : Unit,
+    ) => verify()) {
+    Ok(port) => port
+    Err(issue) => {
+      @execution.cancel_managed_output_retention_port(retention) |> ignore
+      raise ManagedView(issue)
+    }
+  }
+  {
+    receiver: View(port),
+    transport,
+    retention,
+    receipt: None,
+    material: None,
+    open: true,
+    valid: Ref(true),
+  }
 }
 
 ///|
