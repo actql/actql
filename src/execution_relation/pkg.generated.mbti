@@ -293,6 +293,14 @@ pub fn[T] managed_retained_output_payload(ManagedRetainedOutput[T]) -> T?
 
 pub fn[T] managed_retained_output_storage_bytes(ManagedRetainedOutput[T]) -> Int64?
 
+pub fn[T] managed_view_plan_column(ManagedViewPlan[T], Int) -> Int?
+
+pub fn[T] managed_view_plan_column_facts(ManagedViewPlan[T], Int) -> ManagedViewColumnFacts?
+
+pub fn[T] managed_view_plan_matches(ManagedViewPlan[T], ManagedProducerRead[T], @pipeline_typing.Target) -> Bool
+
+pub fn[T] managed_view_plan_rows(ManagedViewPlan[T]) -> ManagedViewRows
+
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
@@ -338,6 +346,8 @@ pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
+
+pub fn[T] prepare_managed_view_plan(ManagedProducerRead[T], Array[@lowering_relation.PreparedKernel], Int, Int, Int) -> Result[ManagedViewPlan[T], ManagedViewIssue]
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
@@ -743,6 +753,29 @@ pub(all) enum ManagedProfileIssue {
 } derive(Eq, @debug.Debug)
 
 type ManagedRetainedOutput[T]
+
+pub(all) struct ManagedViewColumnFacts {
+  source_column : Int
+  max_value_bytes_bound : Int
+  null_free : Bool
+  exact_measurement : ManagedColumnMeasurement?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedViewIssue {
+  InvalidLimits
+  Limit
+  ForeignInput
+  InvalidPath
+  UnsupportedKernel
+} derive(Eq, @debug.Debug)
+
+type ManagedViewPlan[T]
+
+pub(all) enum ManagedViewRows {
+  AllRows
+  PermutedRows
+  SelectedRows
+} derive(Eq, @debug.Debug)
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits
