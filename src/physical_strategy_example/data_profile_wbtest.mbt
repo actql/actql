@@ -33,6 +33,15 @@ test "explicit data profile preserves distinct source and intermediate row bound
   assert_eq(dispatch.guards.max_work, data.work)
   assert_eq(dispatch.guards.max_bytes, 3000000)
   assert_eq(profile_compute_transfer_capacity(data), 36800192L)
+  assert_eq(profile_resident_import_scratch(data), 41005120L)
+  assert_true(
+    profile_resident_import_scratch({ ..data, batch_bytes: 200000, }) >
+    profile_resident_import_scratch(data),
+  )
+  assert_true(
+    profile_resident_import_scratch({ ..data, columns: 65, }) >
+    profile_resident_import_scratch(data),
+  )
   assert_eq(dispatch.native.demand.max_work, data.work)
   assert_eq(dispatch.native.retention.max_nodes, data.value_nodes)
   assert_eq(dispatch.native.completion_entries, 64)

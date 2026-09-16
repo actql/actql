@@ -45,6 +45,17 @@ fn profile_compute_transfer_capacity(value : DataProfile) -> Int64 {
 }
 
 ///|
+// Conservative installed Node transport envelope: 128 delivered rows, the
+// pinned 2048-row native vector, 128 parameters per column, and column metadata.
+// SQL remains capped at 10000 bytes. This is a reservation policy, not measured
+// native memory. The actual transport charge still must fit this envelope.
+fn profile_resident_import_scratch(value : DataProfile) -> Int64 {
+  value.batch_bytes.to_int64() * 32L +
+  value.columns.to_int64() * (128L + 2048L + 128L + 1L) * 256L +
+  40000L
+}
+
+///|
 // Completion metadata contains output field names and at most two owned input
 // bindings, never one entry per row/value. Data scratch retains its own budget.
 fn profile_completion_entries(value : DataProfile) -> Int {

@@ -716,15 +716,22 @@ fn create_application_dispatch(
       .unwrap_or(100000L),
       retained_bytes: data
       .map(value => {
-        (if !resident && retained is Some((bytes, _)) && bytes > 0L {
-          @duckdb_compute.duckdb_stream_retention_capacity(
-            dispatch_limits(data=Some(value)).native,
-          )
+        let limits = dispatch_limits(data=Some(value)).native
+        let full = @duckdb_compute.duckdb_task_retention_capacity(limits).unwrap()
+        if retained is Some((bytes, _)) && bytes > 0L {
+          let streamed = @duckdb_compute.duckdb_stream_retention_capacity(
+            limits,
+          ).unwrap()
+          // This estimate also supplies the resident offer's output-copy
+          // ceiling. Neither copy capacity nor independent metadata may vanish.
+          if resident && full > streamed {
+            full
+          } else {
+            streamed
+          }
         } else {
-          @duckdb_compute.duckdb_task_retention_capacity(
-            dispatch_limits(data=Some(value)).native,
-          )
-        }).unwrap()
+          full
+        }
       })
       .unwrap_or(4000000L),
       execution_bytes: if data is Some(_) {
@@ -790,9 +797,19 @@ fn create_application_dispatch(
           [{ work_slots: [0], milliseconds: Some(1L), }],
           3,
         ).unwrap(),
-        transfer_bytes: 100000L,
-        scratch_bytes: 2000000L,
-        table_bytes: 4000000L,
+        transfer_bytes: data
+        .map(profile_compute_transfer_capacity)
+        .unwrap_or(100000L),
+        scratch_bytes: data
+        .map(profile_resident_import_scratch)
+        .unwrap_or(2000000L),
+        table_bytes: data
+        .map(value => {
+          @duckdb_compute.duckdb_task_retention_capacity(
+            dispatch_limits(data=Some(value)).native,
+          ).unwrap()
+        })
+        .unwrap_or(4000000L),
       }),
     ).unwrap()
     @dbhost.configure_resident_dispatch(

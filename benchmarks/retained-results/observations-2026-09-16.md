@@ -684,3 +684,41 @@ execution fixture; this turn did not rerun that entire suite again.
 
 These checks strengthen functional regression evidence, not the incomplete
 four-comparator performance acceptance. Linux and remote CI were not run here.
+
+## Follow-up: explicit data profile with resident reuse
+
+The application no longer rejects `dataProfile` together with `resident` before
+planning. Its import estimates now use profile-derived transfer and bounded
+transport scratch, and the connector's existing full table retention bound for
+the DB copy. Streamed completion metadata is reserved separately; it does not
+replace that DB-copy allowance. The existing 128 MiB shared engine bound remains
+unchanged, so this is not unlimited resident capacity.
+
+The new installed managed-process test passes all three narrow 1000-row
+workloads. Supplied fresh estimates of 20 select resident tasks through normal
+comparison, with exactly one initial import and no downstream reimports. The
+independent final CID matches, all Compute outputs are files, holdings survive
+actual process exit, and explicit close leaves no pending file cleanup. This
+is functional reuse evidence, not a performance comparison.
+
+The JS application capacity test and existing real standard-Host integration
+also passed. Attempting the application-only test on Wasm correctly reported
+that this application package supports JS only; it is not a failed portable
+Core test or a successful Wasm verification of this new application policy.
+Full large/wide resident performance and final regression remain open.
+
+Extending this test exposed an actual long-text start-capacity mismatch: the
+candidate's native retained allowance also supplies the resident output-copy
+ceiling, so using only streamed metadata understated that copy. The estimate
+now conservatively covers both bounds via their maximum; execution still
+accounts for the independent holding and shared copy separately. The regression
+keeps this text-1024/1000 case through both installed in-process and managed
+assemblies. It now completes with one import, reuse and the expected final CID.
+
+Numeric-64/1000 correctly selects fresh DuckDB: its full-copy node allowance
+alone exceeds the unchanged 128 MiB shared environment. The test checks that
+lower bound explicitly and verifies normal fresh completion rather than forcing
+resident placement. All five managed cases (three narrow workloads, wide reuse,
+long-text reuse) pass. `check:docs` and cross-target API checks also passed before
+the final conservative-estimate adjustment. After that adjustment, the JS
+application test, cross-target API check and whitespace check passed again.

@@ -68,7 +68,6 @@ export async function prepareExampleText({database, environmentCid, programText,
   schema = 'main', table = 'records', nativeMilliseconds = '5', resident = false,
   retainedOutput, retainedWorkMilliseconds, localImportWorkMilliseconds, localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile}, resourceLimits) {
   const data = snapshotDataProfile(dataProfile);
-  if (data && resident) throw new TypeError('ResidentDataProfileNotSupported');
   const transportLimits = data ? {...limits,
     // One session reads one table-metadata cell, validation and selected output.
     // Metadata is outside the receipts but still consumes transport capacity.

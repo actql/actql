@@ -201,6 +201,17 @@ allowance. The example's resident environment remains bounded to 128 MiB; large
 profiles may therefore reject resident placement rather than enlarge the engine
 or discard capacity obligations.
 
+Explicit `dataProfile` settings can also offer resident execution. Import
+transfer, bounded transport scratch and DB-copy allowances are derived before
+selection instead of reusing the small example's fixed import envelope. A
+streamed completion reserves its metadata separately from the resident DB copy;
+independent file holding is still required. The 128 MiB environment bound and
+the Run's cumulative capacity checks remain in force.
+The current candidate estimate also supplies a resident output-copy ceiling,
+so it conservatively covers the greater of the full-copy and streamed-metadata
+bounds. Actual copy holding and independent file/metadata accounting remain
+separate; lowering this estimate to metadata alone would understate the copy.
+
 The standard Host can execute the all-DuckDB file-backed chain and release its
 files asynchronously; call `await result.close()`. Without an export policy,
 Local-only selection creates no output files. To allow a file-to-Local edge, also supply an explicit
