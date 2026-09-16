@@ -13,7 +13,7 @@ struct ManagedViewOutputPort[P, T] {
   plan : ManagedViewPlan[T]
   stream : ManagedOutputValues
   verify : (P) -> ManagedViewOutputFacts?
-  index : ManagedRowMeasurements?
+  mut index : ManagedRowMeasurements?
   mut open : Bool
 }
 
@@ -71,11 +71,23 @@ pub fn[P, T] cancel_managed_view_output_port(
   port : ManagedViewOutputPort[P, T],
 ) -> Bool {
   if !port.stream.open || (!port.open && !port.stream.reading) {
+    discard_managed_view_output_index(port)
     return false
   }
   port.open = false
   cancel_managed_output_values(port.stream) |> ignore
+  discard_managed_view_output_index(port)
   true
+}
+
+///|
+fn[P, T] discard_managed_view_output_index(
+  port : ManagedViewOutputPort[P, T],
+) -> Unit {
+  if port.index is Some(index) {
+    index.cells = []
+    port.index = None
+  }
 }
 
 ///|
@@ -86,6 +98,10 @@ pub fn[P, T] finish_managed_view_output(
   proof : P,
 ) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue] {
   if !port.open || !port.stream.open {
+    // A reentrant finish during verification is not a terminal transition.
+    if !port.stream.open {
+      discard_managed_view_output_index(port)
+    }
     return Err(Closed)
   }
   port.open = false
@@ -94,13 +110,22 @@ pub fn[P, T] finish_managed_view_output(
   match result {
     Err(issue) => {
       cancel_managed_output_values(stream) |> ignore
+      discard_managed_view_output_index(port)
       Err(issue)
     }
     Ok(_) => {
       stream.reading = false
       match finish_managed_output_values(stream) {
-        Ok(receipt) => Ok(receipt)
-        Err(issue) => Err(Values(issue))
+        Ok(receipt) => {
+          // Ownership was transferred to the receipt. A later cancellation
+          // of this consumed port must never clear that receipt's index.
+          port.index = None
+          Ok(receipt)
+        }
+        Err(issue) => {
+          discard_managed_view_output_index(port)
+          Err(Values(issue))
+        }
       }
     }
   }

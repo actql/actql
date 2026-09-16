@@ -137,7 +137,12 @@ pub fn[P, T] prepare_managed_selected_view_output_port(
       }
     }) {
     Ok(port) => port
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      // The one-shot selection has been consumed, but no output owns its
+      // copied metadata. Do not retain it behind a failed installation.
+      selection.index.cells = []
+      return Err(issue)
+    }
   }
   Ok({ ..port, index: Some(selection.index), })
 }

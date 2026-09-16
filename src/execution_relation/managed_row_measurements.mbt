@@ -4,7 +4,7 @@
 /// must reserve metadata storage; max_cells is an entry cap, not physical bytes.
 priv struct ManagedRowMeasurements {
   max_cells : Int
-  cells : Array[(Int, Int, Bool)]
+  mut cells : Array[(Int, Int, Bool)]
 }
 
 ///|
