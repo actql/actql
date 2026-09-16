@@ -232,6 +232,27 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
   let mut i = 0
   while i < text.length() {
     let unit = text[i].to_int()
+    if unit >= 32 && unit < 128 && unit != 34 && unit != 92 {
+      // Bounded ASCII spans avoid a builder append and buffer reservation for
+      // every ordinary character. Inspect at most one byte beyond the current
+      // allowance, preserving limit failure before a later invalid surrogate.
+      let capacity = match w.output {
+        BufferedHashOutput(buffer) =>
+          Int::min(w.remaining_bytes, buffer.limit - buffer.bytes)
+        _ => w.remaining_bytes
+      }
+      let bound = Int::min(256, capacity)
+      let start = i
+      while i < text.length() && i - start <= bound {
+        let next = text[i].to_int()
+        if next < 32 || next >= 128 || next == 34 || next == 92 {
+          break
+        }
+        i += 1
+      }
+      ascii_span(w, text, start, i)
+      continue
+    }
     match unit {
       0x22 => ascii(w, "\\\"")
       0x5c => ascii(w, "\\\\")
@@ -290,6 +311,38 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
     i += 1
   }
   ascii(w, "\"")
+}
+
+///|
+// Only quoted() calls this with a checked printable-ASCII slice, at most 257
+// bytes. Measurement/hashing allocate no substring; text sinks append once.
+fn ascii_span(
+  w : Writer,
+  text : String,
+  start : Int,
+  end : Int,
+) -> Unit raise EncodeFailure {
+  let size = end - start
+  if size > w.remaining_bytes {
+    fail(w, OutputLimit)
+  }
+  reserve_buffer(w, size)
+  w.remaining_bytes -= size
+  match w.output {
+    MeasureOutput => ()
+    TextOutput(output) =>
+      output.write_string(text.unsafe_substring(start~, end~))
+    HashOutput(hash) =>
+      for i in start..<end {
+        hash_byte(w, hash, text[i].to_int())
+      }
+    BufferedHashOutput(buffer) => {
+      for i in start..<end {
+        hash_byte(w, buffer.hash, text[i].to_int())
+      }
+      buffer.text.write_string(text.unsafe_substring(start~, end~))
+    }
+  }
 }
 
 ///|
