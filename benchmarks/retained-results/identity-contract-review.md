@@ -2,6 +2,68 @@
 
 ## Latest approved direction — 2026-09-16
 
+### Resumption clarification: managed Run scope and quantity-specific duties
+
+The user explicitly reaffirmed the new-contract decision after relaying a main
+answer that described only existing contracts. Absence of a registered new
+profile is **not** a decision to abandon it. The intervening uncommitted edits
+that said "no new profile" have been withdrawn. Implementation must follow the
+decision below rather than alternate between these interpretations.
+
+The new boundary covers one managed Run, including the existing admitted local
+execution-process delegation. It is not limited to one OS process. An opaque
+handle serialized as an ID is not proof: receiving admission must establish the
+managed session, delegate, attempt, exact material/generation, ownership,
+immutability and holding. Arbitrary remote authentication, cross-Run reuse and
+restart reconstruction remain outside this increment.
+
+Logical content CID is generated when the applicable obligation set requires
+it; otherwise it need never be generated during that result's lifetime. This
+applies to acquisition receipt contents as well as output contents. Provenance,
+actual access, validation scope and receipt roles are retained. Each identity
+domain distinguishes established identity from unestablished identity, and
+separately records whether its exact source material remains available for
+later generation. Retaining final output does not retain a discarded validation
+scan. Later failure cannot revoke earlier valid completion; discovered material
+corruption instead invalidates that representation's future use.
+
+Known downstream requirements must be resolved before execution/irreversible
+discard. Unknown later requests require additional admission of implementation,
+authority, material, holding and budget. Process crossing alone does not require
+logical CID. Conversion into an existing CID-required contract does require all
+its identities and dependencies, not just a final output digest.
+
+The approved quantity policy is also part of the shared-contract task:
+
+| Quantity / obligation | Required treatment |
+| --- | --- |
+| Semantic canonical value/row bytes | Preserve wherever the applicable semantic contract explicitly requires it. Reuse an exact compatible owned measurement when permitted; do not substitute file size or a planner estimate |
+| Physical memory capacity | Reserve a safe bound for actual simultaneous representations; do not require canonical row serialization merely to estimate memory |
+| Retained storage / physical transfer | Charge the relevant physical representation's bytes and required metadata; keep reservation, actual use and confirmed reclamation distinct |
+| Consumer logical work / demand / guards | Apply each consumer's duties even when measurements are reused. Existing evidence must cover its exact quantity and scope; execute new predicates/other uncovered work |
+| Content hashing | No implicit full-output canonical byte requirement solely because the old storage format was canonical JSON |
+
+This does not remove existing semantic value-size limits from the new profile.
+In particular `actql-fixed-compute-capacity/0.1` explicitly measures canonical
+UTF-8 **per top-level value**, not physical file size. Reusing its meaning keeps
+that bound; it does not imply a requirement to create or hash the full row-array
+encoding. Required counting may still cost a value traversal, even with no
+digest. The normative new profile must enumerate these inherited obligations
+instead of importing all old transport/encoder limits implicitly.
+
+For every scan, the implementation inventory must distinguish initial
+verification, exact reusable evidence, and genuinely new consumer work. Exact
+counts/measurements can discharge compatible checks; estimated planner statistics
+cannot. Order need not be re-sorted at each task, independent holding need not
+be a Host row copy, and physical integrity need not reconstruct logical values.
+Evidence of lower hash-call counts alone does not satisfy the performance goal.
+
+The new normative profile, machine contract, pins and independent fixtures still
+need to be produced by the shared-contract owner and connected to Local and
+delegated DuckDB. The approved direction is settled; this outstanding work is
+specification and implementation, not a renewed vote on CID omission. Original
+27-case acceptance remains unchanged; new-profile measurements are separate.
+
 The user's subsequent decision supersedes the universal no-omission wording of
 the earlier main answer below: **preserve the existing contract, and make logical
 content identity conditional in a new profile**. This is an approved direction,
