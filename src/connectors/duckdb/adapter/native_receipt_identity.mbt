@@ -5,6 +5,7 @@ pub(all) enum NativeReceiptIdentityIssue {
   ReceiptRows
   ReceiptBytes
   Wire(NativeReceiptRole, @execution.RowWireIssue)
+  Stream(@execution.OutputStreamIssue)
 }
 
 ///|
@@ -131,19 +132,29 @@ fn identify_native_receipts_impl(
     return Err(ReceiptRows)
   }
   let validation = match
-    hash_native_receipt(scan, value.validation_batches, limits) {
+    (match value.validation_stream {
+      Some(stream) => validation_stream_digest(stream, limits)
+      None => hash_native_receipt(scan, value.validation_batches, limits)
+    }) {
     Ok(digest) => digest
     Err(issue) => return Err(Wire(ValidationScan, issue))
   }
   if validation.bytes > max_bytes {
     return Err(ReceiptBytes)
   }
+  if value.output_stream is Some(stream) && stream.issue is Some(issue) {
+    return Err(Stream(issue))
+  }
+  let remaining = {
+    ..limits,
+    max_bytes: limits.max_bytes - validation.bytes,
+    max_nodes: limits.max_nodes - validation.nodes,
+    max_order_work: limits.max_order_work - validation.work,
+  }
   let native = match
-    hash_native_receipt(output, value.native_batches, {
-      ..limits,
-      max_bytes: limits.max_bytes - validation.bytes,
-      max_nodes: limits.max_nodes - validation.nodes,
-      max_order_work: limits.max_order_work - validation.work,
+    (match value.output_stream {
+      Some(_) => native_stream_digest(value, remaining)
+      None => hash_native_receipt(output, value.native_batches, remaining)
     }) {
     Ok(digest) => digest
     Err(issue) => return Err(Wire(NativeResult, issue))

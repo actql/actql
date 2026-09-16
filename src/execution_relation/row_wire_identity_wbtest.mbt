@@ -137,7 +137,7 @@ test "canonical row hashing reads typed completion without rearranging projectio
     execute_generated_sequence(generated, [], compute_test_limits()).unwrap(),
     Step(1),
   ).unwrap()
-  assert_true(typed.table is NumberTable(_))
+  assert_true(typed.table is Some(NumberTable(_)))
   for output in [typed, row] {
     let identity = identify_completed_rows(output, row_wire_limits()).unwrap()
     assert_eq(
@@ -159,7 +159,7 @@ test "canonical row hashing reads typed completion without rearranging projectio
     bind_completed_input(receiver, 0, owner, typed).unwrap(),
   ]).unwrap()
   let output = completed_output(result, Step(0)).unwrap()
-  assert_true(output.table is NumberTable(_))
+  assert_true(output.table is Some(NumberTable(_)))
   assert_eq(completed_column_name(output, 0), Some("z"))
   assert_eq(
     row_wire_cid(identify_completed_rows(output, row_wire_limits()).unwrap()),

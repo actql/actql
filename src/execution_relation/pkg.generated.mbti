@@ -37,9 +37,29 @@ pub fn append_admitted_output(AdmittedOutput, Array[@value_admission.CheckedValu
 
 pub fn append_admitted_output_cells(AdmittedOutput, Int, (Int) -> @value_admission.CheckedValue?) -> Result[Unit, CaptureIssue]
 
+pub fn append_admitted_output_stream(AdmittedOutputStream, Int, (Int) -> @value_admission.CheckedValue?) -> Result[String, OutputStreamIssue]
+
+pub fn append_completed_output_import(CompletedOutputImport, Array[@value_admission.CheckedValue]) -> Result[Unit, CompletedImportIssue]
+
+pub fn append_completed_output_import_wire(CompletedOutputImport, String, RetainedRowDecodeLimits) -> Result[Unit, CompletedImportIssue]
+
+pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
+
+pub fn append_retained_producer_scan_wire(RetainedProducerScan, String, RetainedRowDecodeLimits) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
+
+pub fn append_retained_storage_scan_wire(RetainedStorageScan, String, RetainedRowDecodeLimits) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
+
+pub fn attach_fixed_producer_stream_measurement(FixedProducerMeasurement, AdmittedOutputStream) -> Result[Unit, FixedInputGuardIssue]
+
+pub fn attach_retained_join_scan(RetainedProducerScan, FixedJoinStream) -> Result[Unit, RowIssue]
+
+pub fn attach_retained_producer_measurement(FixedProducerMeasurement, RetainedProducerScan) -> Result[Unit, FixedInputGuardIssue]
+
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
+
+pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
 
@@ -49,7 +69,23 @@ pub fn cancel_admitted_input(AdmittedInput) -> Bool
 
 pub fn cancel_admitted_output(AdmittedOutput) -> Bool
 
+pub fn cancel_admitted_output_stream(AdmittedOutputStream) -> Bool
+
+pub fn cancel_completed_export_receipt(CompletedOutputExportReceipt) -> Unit
+
+pub fn cancel_completed_output_export(CompletedOutputExport) -> Unit
+
+pub fn cancel_completed_output_import(CompletedOutputImport) -> Bool
+
+pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
+
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
+
+pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
+
+pub fn cancel_retained_producer_scan(RetainedProducerScan) -> Bool
+
+pub fn cancel_retained_storage_scan(RetainedStorageScan) -> Bool
 
 pub fn capture(@value_admission.Value) -> Value
 
@@ -71,13 +107,21 @@ pub fn captured_usage(CapturedRows) -> ValueUsage
 
 pub fn[P] complete_trusted_output(TrustedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
 
+pub fn[P] complete_trusted_retained_output(TrustedRetainedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
+
 pub fn completed_cell(CompletedOutput, Int, Int) -> Value?
 
 pub fn completed_column_count(CompletedOutput) -> Int
 
 pub fn completed_column_name(CompletedOutput, Int) -> String?
 
+pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputStreamReceipt
+
+pub fn completed_has_cell_access(CompletedOutput) -> Bool
+
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
+
+pub fn completed_output_available(CompletedOutput) -> Bool
 
 pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> Bool
 
@@ -111,15 +155,37 @@ pub fn finish_admitted_input(AdmittedInput) -> Result[CapturedRows, CaptureIssue
 
 pub fn finish_admitted_output(AdmittedOutput) -> Result[AdmittedOutputRows, CaptureIssue]
 
+pub fn finish_admitted_output_stream(AdmittedOutputStream) -> Result[(AdmittedOutputStreamReceipt, String), OutputStreamIssue]
+
+pub fn finish_completed_output_export(CompletedOutputExport) -> Result[(CompletedOutputExportReceipt, String), CompletedExportIssue]
+
+pub fn finish_completed_output_import(CompletedOutputImport) -> Result[CompletedOutput, CompletedImportIssue]
+
+pub fn finish_fixed_join_stream(FixedJoinStream) -> Result[FixedJoinValidation, RowIssue]
+
 pub fn finish_fixed_producer_measurement(FixedProducerMeasurement, AdmittedOutputRows) -> Result[FixedProducerMeasuredOutput, FixedInputGuardIssue]
+
+pub fn finish_fixed_producer_stream_measurement(FixedProducerMeasurement, AdmittedOutputStreamReceipt) -> Result[FixedProducerStreamMeasuredOutput, FixedInputGuardIssue]
+
+pub fn finish_retained_content_read(RetainedContentRead) -> Result[AdmittedOutputStreamReceipt, RetainedContentReadIssue]
+
+pub fn finish_retained_producer_scan(RetainedProducerScan) -> Result[VerifiedProducerScan, CompletedImportIssue]
+
+pub fn finish_retained_storage_scan(RetainedStorageScan) -> Result[VerifiedStorageScan, CompletedImportIssue]
 
 pub fn fixed_join_validation_matches(FixedJoinValidation, @lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead]) -> Bool
 
 pub fn fixed_join_validation_usage(FixedJoinValidation) -> (Int, Int)
 
+pub fn fixed_producer_inputs_measured(FixedProducerMeasurement) -> Bool
+
 pub fn fixed_producer_measurement_matches(FixedProducerMeasuredOutput, Array[ProducerRead], AdmittedOutputRows, Int, Int) -> Bool
 
 pub fn fixed_producer_measurement_usage(FixedProducerMeasuredOutput) -> (Int, Int, Int)
+
+pub fn fixed_producer_stream_measurement_matches(FixedProducerStreamMeasuredOutput, Array[ProducerRead], AdmittedOutputStreamReceipt, Int, Int) -> Bool
+
+pub fn fixed_producer_stream_measurement_usage(FixedProducerStreamMeasuredOutput) -> (Int, Int, Int)
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation
 
@@ -141,15 +207,35 @@ pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWire
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
+
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
+
+pub fn output_stream_identity(AdmittedOutputStreamReceipt) -> (String, Int, Int, Int)
+
+pub fn output_stream_owner(AdmittedOutputStreamReceipt) -> @lowering_relation.BoundPrepared
+
+pub fn output_stream_schema(AdmittedOutputStreamReceipt) -> @relation_schema.Schema
+
+pub fn output_stream_target(AdmittedOutputStreamReceipt) -> @pipeline_typing.Target
+
+pub fn output_stream_value_usage(AdmittedOutputStreamReceipt) -> ValueUsage
 
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
 
+pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int) -> Result[AdmittedOutputStream, OutputStreamIssue]
+
+pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+
+pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
+
+pub fn prepare_fixed_join_stream(@lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead], FixedJoinValidationLimits) -> Result[FixedJoinStream, RowIssue]
 
 pub fn prepare_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[FixedProducerMeasurement, FixedInputGuardIssue]
 
@@ -159,23 +245,41 @@ pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
+pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerRead, ProducerReadIssue]
 
 pub fn prepare_producer_storage(CompletedOutput, Int, Int) -> Result[ProducerStorage, ProducerReadIssue]
+
+pub fn prepare_retained_content_read(CompletionPreparation, RetainedCompletionDescriptor, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedContentRead, RetainedContentReadIssue]
+
+pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedProducerScan, CompletedImportIssue]
+
+pub fn prepare_retained_storage_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
 pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
 
+pub fn prepare_streamed_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.Target, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[FixedProducerMeasurement, FixedInputGuardIssue]
+
 pub fn[P] prepare_trusted_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> AdmittedOutputRows?, inputs? : Array[ProducerRead]) -> Result[TrustedOutputPort[P], TrustedOutputIssue]
+
+pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> RetainedOutputMaterial?, inputs? : Array[ProducerRead]) -> Result[TrustedRetainedOutputPort[P], TrustedOutputIssue]
+
+pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
 pub fn producer_read_available(ProducerRead) -> Bool
 
 pub fn producer_read_cell(ProducerRead, Int, Int) -> Value?
 
+pub fn producer_read_has_cell_access(ProducerRead) -> Bool
+
 pub fn producer_read_input_index(ProducerRead) -> Int
 
 pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
+
+pub fn producer_read_retained_material(ProducerRead) -> RetainedOutputMaterial?
 
 pub fn producer_read_row_count(ProducerRead) -> Int
 
@@ -189,11 +293,37 @@ pub fn producer_storage_matches_output(ProducerStorage, CompletedOutput) -> Bool
 
 pub fn producer_storage_projection(ProducerStorage, ProducerRead, Int) -> Result[Array[Int], ProducerReadIssue]
 
+pub fn producer_storage_retained_material(ProducerStorage) -> RetainedOutputMaterial?
+
 pub fn producer_storage_row_count(ProducerStorage) -> Int
 
 pub fn producer_storage_schema(ProducerStorage) -> @relation_schema.Schema
 
+pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
+
+pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[ProducerRead, ProducerReadIssue]
+
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
+
+pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
+
+pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
+pub fn retained_completion_can_handoff(RetainedCompletionEvidence, CompletedOutput) -> Bool
+
+pub fn retained_completion_descriptor(RetainedCompletionEvidence) -> RetainedCompletionDescriptor
+
+pub fn retained_completion_matches_output(RetainedCompletionEvidence, CompletedOutput) -> Bool
+
+pub fn retained_completion_material(RetainedCompletionEvidence, CompletedOutput) -> RetainedOutputMaterial?
+
+pub fn retained_output_matches_receipt(RetainedOutputMaterial, AdmittedOutputStreamReceipt) -> Bool
+
+pub fn[T] retained_output_material(RetainedOutputHandle[T]) -> RetainedOutputMaterial
+
+pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) -> Array[Int]?
+
+pub fn[T] retained_producer_payload(RetainedOutputHandle[T], ProducerRead) -> T?
 
 pub fn row_wire_cid(RowWireIdentity) -> String
 
@@ -215,6 +345,10 @@ pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIss
 
 pub fn validate_fixed_join_inputs(@lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead], FixedJoinValidationLimits) -> Result[FixedJoinValidation, RowIssue]
 
+pub fn verified_producer_scan_matches(VerifiedProducerScan, ProducerRead) -> Bool
+
+pub fn verified_storage_scan_matches(VerifiedStorageScan, ProducerStorage) -> Bool
+
 // Errors
 
 // Types and methods
@@ -223,6 +357,10 @@ type AdmittedInput
 type AdmittedOutput
 
 type AdmittedOutputRows
+
+type AdmittedOutputStream
+
+type AdmittedOutputStreamReceipt
 
 pub struct BackendCapabilityIssue {
   kind : BackendCapabilityIssueKind
@@ -258,7 +396,36 @@ pub(all) enum CaptureOrigin {
 
 type CapturedRows
 
+pub(all) enum CompletedExportIssue {
+  Unavailable
+  NotCellRepresentation
+  InvalidTarget
+  NotFinished
+  Closed
+  ForeignMaterial
+  Admission(CaptureIssue)
+  Wire(RowWireIssue)
+}
+
+pub(all) enum CompletedImportIssue {
+  Unavailable
+  NotRetainedRepresentation
+  Admission(CaptureIssue)
+  Encoding(OutputStreamIssue)
+  IdentityMismatch
+  Closed
+  WireRow(RetainedRowDecodeIssue)
+  InputGuard(FixedInputGuardIssue)
+  JoinValidation(RowIssue)
+}
+
 type CompletedOutput
+
+type CompletedOutputExport
+
+type CompletedOutputExportReceipt
+
+type CompletedOutputImport
 
 type CompletedSequence
 
@@ -295,6 +462,7 @@ pub(all) enum FixedInputGuardIssue {
   InputRows
   OutputRows
   MissingOutput
+  InputRepresentationRequired(Int)
 }
 
 pub(all) struct FixedInputGuardMeasureLimits {
@@ -309,6 +477,8 @@ pub(all) enum FixedInputGuardPhase {
   Output
 }
 
+type FixedJoinStream
+
 type FixedJoinValidation
 
 pub(all) struct FixedJoinValidationLimits {
@@ -320,6 +490,8 @@ pub(all) struct FixedJoinValidationLimits {
 type FixedProducerMeasuredOutput
 
 type FixedProducerMeasurement
+
+type FixedProducerStreamMeasuredOutput
 
 pub(all) enum FragmentAdmissionIssue {
   InvalidContract
@@ -435,6 +607,12 @@ pub(all) enum OrderedShapeIssue {
   InvalidPrefix
 }
 
+pub(all) enum OutputStreamIssue {
+  Admission(CaptureIssue)
+  Wire(RowWireIssue)
+  Closed
+}
+
 pub(all) enum ProducerBindingIssue {
   NotProducedInput
   ProducerOwnerMismatch
@@ -451,6 +629,7 @@ pub(all) enum ProducerReadIssue {
   ForeignReceiver
   InvalidProjection
   ProducerUnavailable
+  ForeignRepresentation
 }
 
 type ProducerStorage
@@ -472,6 +651,65 @@ pub(all) struct RegistryLimits {
   max_body_nodes : Int
   max_body_depth : Int
 }
+
+pub(all) struct RetainedCompletionDescriptor {
+  registry_cid : String
+  values_contract_cid : String
+  rows_cid : String
+  output_step : Int
+  input_count : Int
+  columns : Int
+  rows : Int
+  bytes : Int
+  nodes : Int
+  depth : Int
+  values : ValueUsage
+} derive(Eq, @debug.Debug)
+
+type RetainedCompletionEvidence
+
+pub(all) enum RetainedCompletionEvidenceIssue {
+  Unavailable
+  NotRetained
+  MetadataLimit
+  InvalidTarget
+} derive(Eq, @debug.Debug)
+
+type RetainedContentRead
+
+pub(all) enum RetainedContentReadIssue {
+  ForeignContract
+  MetadataLimit
+  Encoding(OutputStreamIssue)
+  Row(RetainedRowDecodeIssue)
+  IdentityMismatch
+  Closed
+}
+
+type RetainedOutputHandle[T]
+
+type RetainedOutputMaterial
+
+type RetainedProducerScan
+
+pub(all) enum RetainedRowDecodeIssue {
+  InvalidLimits
+  InputLimit
+  ShapeLimit
+  InvalidJson
+  InvalidShape
+  Decode(@decode_core.Issue)
+  Value(Int, @value_admission.Issue)
+}
+
+pub(all) struct RetainedRowDecodeLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+}
+
+type RetainedStorageScan
 
 pub(all) enum RootArtifactIssue {
   InvalidLimits
@@ -546,6 +784,7 @@ pub(all) enum SequenceFailureKind {
   InputOwnership
   InputSet
   InputEvidencePending(Int)
+  InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int)
   Wiring
@@ -564,6 +803,7 @@ pub(all) enum SequenceRunIssue {
   InputOwnership
   InputSet
   InputExecutionEvidencePending(Int)
+  InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int, InputKeyIssue)
   Wiring(WiringIssue)
@@ -605,6 +845,10 @@ pub(all) enum TrustedOutputIssue {
 
 type TrustedOutputPort[P]
 
+type TrustedRetainedOutputPort[P]
+
+type TrustedRetainedReadmission[P]
+
 pub(all) enum Value {
   Null
   Number(Double)
@@ -625,6 +869,10 @@ pub(all) struct ValueUsage {
   text_bytes : Int
   work : Int
 } derive(Eq, @debug.Debug)
+
+type VerifiedProducerScan
+
+type VerifiedStorageScan
 
 pub(all) enum WiringIssue {
   InvalidLimits

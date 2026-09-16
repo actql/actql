@@ -25,7 +25,8 @@ fn prepare_physical_sequence(
       }).map(table => RowTable(table))
     },
     fn(bound, id, output_budget) {
-      let adopted = match bound.output.table {
+      guard bound.output.table is Some(source) else { return Err(InvalidRows) }
+      let adopted = match source {
         RowTable(table) => RowTable({ ..table, owner: bound.receiver, id, })
         NumberTable(table) =>
           NumberTable({ ..table, owner: bound.receiver, id, })

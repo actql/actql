@@ -170,6 +170,35 @@ pub fn validate_fixed_compute_join(
 }
 
 ///|
+/// Value-sensitive retained joins collect keys during their verified imports.
+/// This prepares scratch, never validation evidence or SQL permission.
+pub fn fixed_compute_retains_join_keys(value : FixedCompute) -> Bool {
+  match value.join_inputs {
+    None => false
+    Some(inputs) =>
+      @lower.inner_join_fails_null(inputs.query.profile) ||
+      @lower.inner_join_assertion(inputs.query.profile) is Some(_)
+  }
+}
+
+///|
+pub fn prepare_fixed_compute_join_stream(
+  value : FixedCompute,
+) -> Result[@execution.FixedJoinStream?, @execution.RowIssue] {
+  guard value.join_inputs is Some(inputs) else { return Ok(None) }
+  if inputs.inputs.all(input => @execution.producer_read_has_cell_access(input)) ||
+    !fixed_compute_retains_join_keys(value) {
+    return Ok(None)
+  }
+  @execution.prepare_fixed_join_stream(
+    inputs.query.owner,
+    inputs.query.profile,
+    inputs.inputs,
+    inputs.validation_limits,
+  ).map(stream => Some(stream))
+}
+
+///|
 pub fn fixed_compute_join_validation_matches(
   value : FixedCompute,
   validation : @execution.FixedJoinValidation?,

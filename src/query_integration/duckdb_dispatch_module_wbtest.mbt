@@ -89,6 +89,26 @@ test "DuckDB installed dispatch retains exact sequences and cannot exchange modu
     0,
   )
   assert_false(@strategy.captured_task_completed(run, 1))
+  assert_eq(
+    @duckdb_driver.configured_strategy_output_file_bytes(setup),
+    Some(0L),
+  )
+  for bytes in [0L, 50L] {
+    assert_true(
+      @duckdb_driver.start_configured_strategy_compute_host(
+        setup,
+        _ => false,
+        100L,
+        2000L,
+        retained_storage=(bytes, () => true),
+      )
+      is Err(Physical(InvalidCharge)),
+    )
+  }
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+    0,
+  )
   @host_driver.stop_dispatch_driver(driver)
 }
 

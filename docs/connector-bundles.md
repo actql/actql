@@ -200,6 +200,23 @@ common logical budget.
 
 ## Node transport composition
 
+Prepared execution authors supply `ExecutionOperations.retention_released` as
+an installed physical cleanup fact. Memory-only implementations may confirm it
+after synchronous disposal. External files and provisional retained outputs must
+not confirm it merely because execution stopped, cancellation was requested, or
+the result was revoked. After disposal, `refresh_task_execution_cleanup` polls
+this fact for the exact execution; it cannot assert deletion or native stop.
+Cleanup retries belong to the implementation and do not retry computation.
+
+`bind_prepared_execution` optionally accepts an installed `retained_bytes`
+measurement. It runs after readiness and execution settlement, before holding
+attachment, and must include every still-owned result allocation and metadata
+allowance. The common driver rejects negative values and values exceeding the
+original reservation. Omitting it retains the admitted capacity. A measurement
+does not prove output validity: finish, exact publication and cleanup checks
+remain mandatory. Unused reservation is released only on successful completion
+or confirmed cleanup, not merely because the measured output is smaller.
+
 Node execution contributions are separately declared by connector-owned
 `node-bundle.json` files and generated with `connector-node-bundles.mjs`.
 `adapters/connectors-builtin/strategy.generated.mjs` obtains the actual configured
@@ -235,6 +252,15 @@ completion. To add an existing capability implementation, provide its module,
 typed `compute-bundle.json`, optional Node `node-bundle.json` contribution and
 application settings, then regenerate the two composition packages. Neither the
 standard bridge template nor common Host/driver changes.
+
+A contribution may declare a typed asynchronous dispatch result and an optional
+`synchronous_dispatch` function returning `Result[Unit, DispatchIssue]`. The latter
+is eligible for the generated in-process entry, not an instruction to coerce
+asynchronous work into synchronous execution. Local uses this split for retained
+input conversion: its own wrapper drives bounded Store reads after common
+reservation, while its synchronous entry accepts only a no-I/O prepared plan.
+The manifest owns both entrypoints; neither the common driver nor the generator
+branches on Local or DuckDB names.
 
 `node scripts/check-node-without-duckdb.mjs` executes Local-only, numeric-only and
 mixed installations through that standard entry in a copied tree without

@@ -25,7 +25,8 @@ export function generateComputeAssembly(entries) {
     : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy']) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : [])]) ||
+        (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
         !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
@@ -141,10 +142,10 @@ function synchronousAssembly(entries, alias) {
 /// transport modules are not coerced into this synchronous execution contract.
 pub fn[E] execute_configured_in_process(value : ConfiguredComputeHost[E], task : @host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]] {
   let selected = @host.prepared_task_registration(task)
-` + entries.filter(({manifest:m})=>m.dispatch_result === 'Unit').map(({name, manifest:m})=>`
-  if value.modules.installed_${name} is Some((installed, _, _)) &&
+` + entries.filter(({manifest:m})=>m.dispatch_result === 'Unit' || m.synchronous_dispatch).map(({name, manifest:m})=>`
+  if value.modules.installed_${name} is Some((installed, project, _)) &&
     physical_equal(selected, @${alias(m.package)}.${m.registration}(installed)) {
-    return dispatch_${name}(value.modules, @host.compute_host_dispatch(value.runtime), task)
+    return @${alias(m.package)}.${m.synchronous_dispatch ?? m.dispatch}(installed, @host.compute_host_dispatch(value.runtime), task).map_err(issue => Implementation(project(issue)))
   }
 `).join('') + '  Err(MissingImplementation)\n}\n';
 }

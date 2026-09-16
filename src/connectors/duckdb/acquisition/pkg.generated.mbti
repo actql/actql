@@ -49,6 +49,10 @@ pub fn complete_duckdb_native_capture(DuckDBNativeIssuer, DuckDBNativeAttempt, D
 
 pub fn complete_duckdb_native_output(DuckDBNativeOutput, Int, Int) -> Result[@execution_relation.CompletedOutput, @execution_relation.TrustedOutputIssue]
 
+pub fn complete_duckdb_native_retained_output(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeObservation, Int, Int) -> Result[@execution_relation.CompletedOutput, @execution_relation.TrustedOutputIssue]
+
+pub fn drain_duckdb_native_output(DuckDBNativeAttempt) -> Result[String?, DuckDBNativeAttemptIssue]
+
 pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 
 pub fn duckdb_broad_attempt_row_count(DuckDBBroadAttempt) -> Int?
@@ -111,6 +115,8 @@ pub fn execute_duckdb_broad_residual(DuckDBQueryPreparation, @execution_relation
 
 pub fn finish_duckdb_broad_receipt(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
+pub fn finish_duckdb_native_output_stream(DuckDBNativeAttempt) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String)?, DuckDBNativeAttemptIssue]
+
 pub fn finish_duckdb_native_receipt(DuckDBNativeAttempt, @adapter.NativeReceiptPort) -> Result[Unit, DuckDBNativeAttemptIssue]
 
 pub fn issue_duckdb_broad_records(DuckDBBroadAttempt, @query_planning.QueryMaterialLimits) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue]
@@ -122,6 +128,8 @@ pub fn materialize_duckdb_native_output(DuckDBNativeIssuer, DuckDBNativeAttempt,
 pub fn measure_duckdb_native_attempt(DuckDBNativeAttempt, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[DuckDBNativeMeasurement, DuckDBNativeAttemptIssue]
 
 pub fn native_captured_source(DuckDBNativeOutput, Int, Int) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn native_retained_captured_source(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeObservation, Int, Int) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttempt
 
@@ -142,6 +150,12 @@ pub fn retain_duckdb_broad_attempt(DuckDBBroadAttempt, @query_planning.QueryRete
 pub fn settle_duckdb_broad_transport(DuckDBBroadAttempt) -> Result[Unit, DuckDBBroadAttemptIssue]
 
 pub fn settle_duckdb_native_transport(DuckDBNativeAttempt) -> Result[Unit, DuckDBNativeAttemptIssue]
+
+pub fn stage_duckdb_native_output_material(DuckDBNativeAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, DuckDBEvidenceIssue]
+
+pub fn stream_duckdb_native_output(DuckDBNativeAttempt, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[Unit, DuckDBNativeAttemptIssue]
+
+pub fn stream_duckdb_native_validation(DuckDBNativeAttempt, @execution_relation.RowWireLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[Unit, DuckDBNativeAttemptIssue]
 
 pub fn verify_duckdb_broad_records(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadRecords) -> Result[Unit, DuckDBEvidenceIssue]
 

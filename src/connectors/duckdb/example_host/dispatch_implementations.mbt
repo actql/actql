@@ -8,6 +8,10 @@ fn local_dispatch_issue(
     Preparation(NotSelected) => ForeignSelection
     Preparation(Capacity) => Run(Physical(InvalidLimits))
     Preparation(Execution(issue)) => Run(Compute(issue))
+    Preparation(Materializing(Candidate(issue))) => Run(Compute(issue))
+    Preparation(Materializing(Capacity)) => Run(Physical(InvalidLimits))
+    Preparation(Materializing(State | Import(_) | Export(_))) =>
+      InvalidConfiguration
     Dispatch(issue) => dispatch_driver_issue(issue)
     Execution(issue) => Run(issue)
     Search(issue) => Search(issue)

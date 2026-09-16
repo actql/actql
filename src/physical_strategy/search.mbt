@@ -8,9 +8,13 @@ pub(all) struct SearchLimits {
 
 ///|
 priv struct SearchResources {
+  planning_capacity : Int
+  attempt_capacity : Int
+  holding_capacity : Int
   attempts : Int
   holdings : Int
   transferred : Int64
+  uncertain_transfer : Int64
   transfer : Int64
   held : Int64
   retention : Int64
@@ -232,10 +236,15 @@ pub fn revise_strategy(
     return Err(Busy)
   }
   let latest = @resources.ledger_usage(run.ledger)
+  let admission = @resources.ledger_admission_limits(run.ledger)
   let resources = {
+    planning_capacity: admission.planning_work,
+    attempt_capacity: admission.attempts,
+    holding_capacity: admission.holdings,
     attempts: latest.attempts,
     holdings: latest.holdings,
     transferred: latest.transferred_bytes,
+    uncertain_transfer: latest.uncertain_transfer_bytes,
     transfer: latest.reserved_transfer_bytes,
     held: latest.held_bytes,
     retention: latest.reserved_retention_bytes,
@@ -398,7 +407,7 @@ pub fn revise_strategy(
         duration += value
       }
     }
-    let available = @resources.ledger_limits(run.ledger)
+    let available = @resources.ledger_admission_limits(run.ledger)
     let rejection = if tasks.length() + shared.attempts >
       available.attempts - usage.attempts {
       Some(@resources.AttemptLimit)
@@ -409,6 +418,7 @@ pub fn revise_strategy(
     } else if transfer >
       available.transfer_bytes -
       usage.transferred_bytes -
+      usage.uncertain_transfer_bytes -
       usage.reserved_transfer_bytes {
       Some(@resources.TransferLimit)
     } else if retained >

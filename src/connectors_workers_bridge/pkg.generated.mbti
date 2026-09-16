@@ -3,6 +3,7 @@ package "actql/actql/connectors_workers_bridge"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/local/driver",
   "actql/actql/connectors_workers",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
@@ -11,7 +12,7 @@ import {
 }
 
 // Values
-pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
+pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @driver.LocalDispatchOperations raise NodeHostFailure
 
 pub fn local_registration(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 

@@ -99,7 +99,7 @@ test "late row-conversion failure exposes no typed producer partial result" {
     ]).unwrap()
     for completion in [before, after] {
       let output = completed_output(completion, Step(0)).unwrap()
-      assert_true(output.table is NumberTable(_))
+      assert_true(output.table is Some(NumberTable(_)))
       assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
       assert_true(completed_cell(output, 1, 0) is Some(Number(1)))
     }
@@ -148,8 +148,8 @@ test "typed producer conversion to row output is explicit bounded and repeatable
       binding,
     ]).unwrap()
     let output = completed_output(result, Step(0)).unwrap()
-    assert_true(source.table is NumberTable(_))
-    assert_true(output.table is RowTable(_))
+    assert_true(source.table is Some(NumberTable(_)))
+    assert_true(output.table is Some(RowTable(_)))
     assert_eq(completed_row_count(output), 2)
     assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
     assert_true(completed_cell(output, 1, 0) is Some(Number(1)))

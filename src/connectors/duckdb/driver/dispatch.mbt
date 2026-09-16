@@ -20,6 +20,8 @@ struct DuckDBDispatchModule {
   channel : @host.DispatchChannel[StrategyComputeHostConfiguration]
   resident_estimates : Array[DuckDBResidentEstimates]
   mut estimate_configuration : DuckDBEstimateConfiguration?
+  mut retained_output : (Int64, Int64?)?
+  mut output_policy_sealed : Bool
 }
 
 ///|
@@ -96,6 +98,8 @@ pub fn prepare_duckdb_dispatch_module(
     channel,
     resident_estimates: [],
     estimate_configuration: None,
+    retained_output: None,
+    output_policy_sealed: false,
   })
 }
 
@@ -210,6 +214,9 @@ pub fn prepare_duckdb_dispatch(
         installed.limits.execution,
         installed.limits.transport,
       ),
+      output_file_bytes=installed.retained_output
+        .map(policy => policy.0)
+        .unwrap_or(0L),
     ),
   ).map_err(issue => Dispatch(issue))
 }

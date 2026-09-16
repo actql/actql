@@ -5,17 +5,19 @@ import {installStrategyContributions} from '../connectors-builtin/strategy.gener
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {snapshotConfigurations} from './installation.mjs';
+import {completionObserver} from '../host-common/completion-observer.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 let runtime;
 
-export async function runCapturedStrategy(setup, options = {}, signal) {
+export async function runCapturedStrategy(setup, options = {}, signal, observer) {
   signal?.throwIfAborted();
+  const observeCompletion = completionObserver(observer);
   const configurations = snapshotConfigurations(options);
   const moon = await (runtime ??= import(runtimeUrl.href));
   signal?.throwIfAborted();
   const core = runtimeCore(moon);
   const installed = await installStrategyContributions(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
-  return runInstalledStrategy(setup, core, installed, signal);
+  return runInstalledStrategy(setup, core, installed, signal, observeCompletion);
 }

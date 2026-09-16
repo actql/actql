@@ -65,6 +65,12 @@ fn complete_duckdb_native_capture_impl(
     Ok(_) => ()
     Err(issue) => return Err(NativeAttempt(issue))
   }
+  if attempt.streaming_output {
+    guard attempt.retained_material is Some(material) &&
+      @duckdb.native_output_stream_material_matches(attempt.receiver, material) else {
+      return Err(InvalidRetainedLayout)
+    }
+  }
   let records = match
     issue_duckdb_native_records(
       attempt,

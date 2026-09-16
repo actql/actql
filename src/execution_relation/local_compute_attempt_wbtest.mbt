@@ -85,7 +85,7 @@ test "local compute accepts typed completed storage without row conversion" {
   let task = prepare_local_compute_attempt(consumer, [binding], 3).unwrap()
   let result = execute_local_compute_attempt(task, compute_test_limits()).unwrap()
   let output = completed_output(result, Step(0)).unwrap()
-  assert_true(output.table is NumberTable(_))
+  assert_true(output.table is Some(NumberTable(_)))
   assert_true(completed_cell(output, 0, 0) is Some(Number(5)))
   assert_true(physical_equal(result._producer_inputs[0].output, source))
 }

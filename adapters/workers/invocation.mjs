@@ -17,7 +17,7 @@ export async function withScopedStrategy(setup, core, contributions, consume, si
     }
     value = await consume(report);
   } catch (error) { errors.push(error); }
-  try { report.close(); } catch (error) { errors.push(error); }
+  try { await report.close(); } catch (error) { errors.push(error); }
   try {
     if (!await report.cleanup()) throw new Error('Unconfirmed resource cleanup');
   } catch (error) { errors.push(error); }

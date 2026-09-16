@@ -50,6 +50,19 @@ test('independent Compute declaration extends composition without a generator br
   assert.deepEqual(base.map(value => value.name), ['duckdb', 'local']);
 });
 
+test('asynchronous dispatch and optional no-I/O dispatch remain separate typed entrypoints', () => {
+  const local = entry('local');
+  const both = generateComputeAssembly([local]).source;
+  assert.match(both, /LocalDispatchOperations/);
+  assert.match(both, /\.start_local_dispatch\(/);
+  assert.match(both, /\.execute_local_dispatch\(/);
+  const manifest = {...local.manifest};
+  delete manifest.synchronous_dispatch;
+  const asynchronous = generateComputeAssembly([{...local, manifest}]).source;
+  assert.match(asynchronous, /\.start_local_dispatch\(/);
+  assert.doesNotMatch(asynchronous, /\.execute_local_dispatch\(/);
+});
+
 test('declarations cannot inject code or move implementation ownership into core', () => {
   const good = entry('local');
   for (const update of [
@@ -60,6 +73,8 @@ test('declarations cannot inject code or move implementation ownership into core
     {configure: 'prepare(); execute'},
     {configuration: 'Any[Unsafe]'},
     {dispatch: 'execute(); abort'},
+    {synchronous_dispatch: 'execute(); abort'},
+    {synchronous_dispatch: null},
     {dispatch_result: 'Any'},
     {dispatch_result: []},
     {dispatch_result: [{package: good.manifest.package, type: 'Result'}]},

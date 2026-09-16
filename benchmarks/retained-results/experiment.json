@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "baselineRevision": "b87584fed46217659589315c1f819994dc0cfe77",
+  "status": "preregistered-not-measured",
+  "fixtures": {
+    "generator": "fixtures.mjs",
+    "sha256": "fa01f134b448dab827eac23b95998f612b0b7000a4427326a25bbf0749b6cb1c",
+    "caseCount": 27,
+    "data": "exact integer id and payloads; numeric-64 uses 63 modulo-1024 payload fields; text-1024 uses 1024 ASCII x bytes",
+    "lowSelectivity": "scan N rows and every declared field, retain the final two ids",
+    "join": "two copies of every id on each side: N input rows, 2*N intermediate pairs, one global count row",
+    "reuse": "N rows and all fields survive capture, A/B branches and A-to-C consumption",
+    "ceilings": "per-case limits emitted by the pinned generator; distinct source/intermediate rows and cumulative value/work/representation caps",
+    "failureTreatment": "timeout, unsupported required profile or budget rejection is incomplete/failing, never an omitted sample"
+  },
+  "scope": "local process-owned task completion, independent holding, downstream consumption and cleanup; not formal Run/Result publication",
+  "workloads": [
+    "native-acquisition-full-validation-low-selectivity",
+    "fixed-join-count-shrinking-intermediate",
+    "retained-large-output-downstream-reuse"
+  ],
+  "smallRows": [100, 1000],
+  "narrowLargeRows": [10000, 100000, 1000000],
+  "wideLargeRows": [10000, 100000],
+  "wideNumericColumns": 64,
+  "longTextUtf8Bytes": 1024,
+  "comparators": [
+    "baseline-actql",
+    "direct-duckdb",
+    "direct-duckdb-with-identical-obligations-and-independent-holding",
+    "retained-actql"
+  ],
+  "timing": {
+    "build": "release",
+    "minimumAlternatingPairs": 7,
+    "bootstrapResamples": 10000,
+    "confidence": 0.95,
+    "include": ["validation", "required-identities", "independent-holding"],
+    "separate": ["cold-start", "within-run-reuse", "downstream-consumption", "final-cleanup"],
+    "indeterminateIsPass": false
+  },
+  "gates": {
+    "largeMaximumBaselineRatio": 1.0,
+    "largeMaximumEquivalentObligationsRatio": 1.25,
+    "smallMaximumWarmOverheadMs": 10,
+    "smallMaximumColdOverheadMs": 100,
+    "controlValidationRows": 0,
+    "controlFullResultCopies": 0,
+    "controlMemoryMustNotScaleWithRows": true,
+    "incompleteCaseIsPass": false
+  },
+  "notes": [
+    "Concrete deterministic fixtures, input/intermediate/output cardinalities, resource ceilings and timeout must be frozen before performance samples.",
+    "No thresholds are inferred from historical Local layout measurements.",
+    "Measure actual traffic, hash bytes/passes, materializations, process memory and ledger units separately.",
+    "Correctness includes all currently admitted types, identity/order/NULL/duplicate parity, tamper, ownership, expiry, cancellation and cleanup failures.",
+    "Process-local file retention does not establish recovery after control Host restart."
+  ]
+}

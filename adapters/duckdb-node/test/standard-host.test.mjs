@@ -2,19 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute,
+import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
+import { exerciseManagedExample } from './managed-example.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
 import { runExample } from '../examples/physical-strategy.mjs';
+import {installCompletionObserver} from '../../host-common/completion-observer.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -25,6 +27,8 @@ const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/retained_host_bridge'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/process_host_bridge'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
@@ -76,6 +80,80 @@ test('standard native and broad Node Hosts own verification through real capture
         const prepared = create(100);
         const setup = configure(prepared);
         close(prepared); // unused test issuer is not the product issuer
+        if (native) {
+          const retention = { parentDirectory: directory, maxFrameBytes: 4096,
+            wire: { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_columns: 10, max_order_work: 10000 } };
+          const executeRetained = () => runRetainedNativeHostQuery(grant, setup, limits, retention).catch(async error => {
+            await error?.cleanupHandle?.retry();
+            assert.equal(error?.cleanupHandle?.status().pending ?? false, false);
+            throw error;
+          });
+          if (kind === 'invalid-unused') {
+            await assert.rejects(executeRetained(), { code: 'MoonBitHostFailure' });
+          } else {
+            if (kind === 'valid') {
+              await assert.rejects(runRetainedNativeHostQuery(grant, setup, limits,
+                { ...retention, maxFrameBytes: 1 }).catch(async error => {
+                assert.ok(error.cleanupHandle);
+                await error.cleanupHandle.retry();
+                assert.equal(error.cleanupHandle.status().pending, false);
+                throw error;
+              }), { code: 'MoonBitHostFailure' });
+            }
+            const retained = await executeRetained();
+            let heldOutput;
+            try {
+              assert(Object.isFrozen(retained.diagnostics));
+              for (const duration of Object.values(retained.diagnostics)) {
+                assert(Number.isFinite(duration) && duration >= 0);
+              }
+              const expected = kind === 'empty' ? [] : [{ id: 3 }, { id: 2 }, { id: 3 }];
+              assert.equal(JSON.parse(retained.document()).output.rows_cid, hash(expected));
+              heldOutput = retained.output();
+              assert.equal(retained.output(), heldOutput);
+              assert.ok(retained.source());
+              assert.equal(fixture.issuedNativeConsumeOutput(prepared, heldOutput, 100), 'null');
+              const read = fixture.issuedNativeRetainedInput(prepared, heldOutput);
+              assert.ok(read);
+              const memory = await importRetainedComputeInput(heldOutput, read, {
+                maxRows: 100, maxBatchBytes: 4096,
+                values: { max_nodes: 10000, max_text_bytes: 100000, max_depth: 10, max_work: 200000 },
+                wire: retention.wire,
+                row: { max_bytes: 4096, max_nodes: 100, max_depth: 10, max_text_bytes: 4096 },
+                frames: { maxBytes: 100000, maxRows: 100, maxRowBytes: 4096, maxDepth: 10, maxFrameBytes: 4096 },
+              });
+              assert.equal(fixture.issuedNativeConsumeOutput(prepared, memory, 100), hash(expected));
+              assert.equal(retained.storageUsage().holdings, 1);
+              assert.equal(retained.storageUsage().admittedWriteBytes, Buffer.byteLength(JSON.stringify(expected)));
+              const fixed = fixture.ownedFixedCreate(prepared, heldOutput, ...contracts);
+              const computed = await runRetainedFixedHostCompute(fixture.ownedFixedConfiguration(fixed),
+                limits, { maxRows: 100, maxCells: 1000 }, retention);
+              try {
+                const computedOutput = computed.output();
+                assert.equal(fixture.ownedFixedRetainedCid(fixed, computedOutput), hash(expected.filter(row => row.id > 2)));
+                assert.equal(fixture.ownedFixedConsumeOutput(fixed, computedOutput), 'null');
+                // The finished Compute is independent of the acquisition's live
+                // capture. Its retained file feeds another real DB directly.
+                retained.close();
+                const next = fixture.ownedFixedNext(fixed, computedOutput, ...contracts);
+                const downstream = await runFixedHostCompute(fixture.ownedFixedConfiguration(next),
+                  limits, { maxRows: 100, maxCells: 1000 });
+                try {
+                  assert.equal(fixture.ownedFixedConsumeOutput(next, downstream.output()), hash(expected.filter(row => row.id > 2)));
+                } finally { downstream.close(); }
+              } finally {
+                computed.close();
+                await computed.cleanupHandle.retry();
+              }
+            } finally {
+              retained.close();
+              await retained.cleanupHandle.retry();
+            }
+            assert.equal(retained.cleanupHandle.status().pending, false);
+            assert.equal(retained.storageUsage().reservedBytes, 0);
+            assert.equal(fixture.issuedNativeRetainedInput(prepared, heldOutput), undefined);
+          }
+        }
         if (kind === 'invalid-unused') {
           await assert.rejects(execute(grant, setup, limits), error => {
             assert.equal(error.code, 'MoonBitHostFailure');
@@ -232,6 +310,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // exports or test catalogs. Tests supply their own documents at its boundary.
   const exampleDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/example-input-'));
   try {
+    await exerciseManagedExample(path, args[0], args[1], hash([{id: 3}, {id: 3}]));
     const environment = join(exampleDirectory, 'environment.json');
     const programFile = join(exampleDirectory, 'program.json');
     const parameters = join(exampleDirectory, 'parameters.json');
@@ -250,6 +329,62 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert(BigInt(result.report.explanation.ledger.transferred_bytes) > 0n);
       } finally { result.close(); }
       assert.equal(result.execution.usage().heldBytes, 0n);
+    }
+    for (const [fileWork, native, imports, expected] of [
+      ['0', '1', undefined, ['duckdb', 'duckdb', 'duckdb']],
+      ['100', '1', undefined, ['local', 'local', 'local']],
+      ['0', '5', '0', ['duckdb', 'duckdb', 'local']],
+    ]) {
+      const beforeFiles = (await readdir(exampleDirectory)).sort();
+      const evidenceRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/retained_host_bridge/retained_host_bridge.js')));
+      const observed = [];
+      const observer = installCompletionObserver(({task, output}) => {
+        const retained = expected[observed.length] === 'duckdb';
+        if (!retained) {
+          observed.push({task});
+          return;
+        }
+        const evidence = checked(evidenceRuntime.retainedCompletionEvidence(output, 10, 10));
+        const descriptor = evidenceRuntime.retainedCompletionDescriptor(evidence);
+        assert.equal(evidenceRuntime.retainedCompletionCanHandoff(evidence, output), true);
+        assert.equal(descriptor.input_count, 1);
+        assert.equal(descriptor.output_step, 1);
+        observed.push({task, output, evidence, descriptor});
+      });
+      const result = await runExample({database: path, environment, environmentCid: args[1],
+        program: programFile, parameters, nativeMilliseconds: native,
+        localImportWorkMilliseconds: imports,
+        retainedWorkMilliseconds: fileWork,
+        retainedOutput: {parentDirectory: exampleDirectory, maxFrameBytes: 100000,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000}}}, observer);
+      try {
+        assert.equal(result.report.status, 'host-tasks-completed');
+        assert.deepEqual(result.report.completed.map(item => item.realization), expected);
+        assert.equal(result.report.internal_output_cids[2].cid, hash([{id: 3}, {id: 3}]));
+        assert.deepEqual(observed.map(value => value.task), result.report.completed.map(value => value.task));
+        for (const record of observed) {
+          if (record.descriptor) assert.equal(record.descriptor.rows_cid,
+            result.report.internal_output_cids.find(value => value.task === record.task).cid);
+        }
+        if (imports !== undefined) {
+          assert.equal(result.report.completed[2].importedRows, 2);
+          assert.equal(result.report.completed[2].importedBytes, '19');
+        }
+        if (expected.includes('duckdb')) {
+          assert(result.report.completed.filter(item => item.realization === 'duckdb')
+            .every(item => item.outputRepresentation === 'retained-file'));
+          assert((await readdir(exampleDirectory)).length > beforeFiles.length);
+        } else assert.deepEqual((await readdir(exampleDirectory)).sort(), beforeFiles);
+      } finally { await result.close(); }
+      for (const record of observed) {
+        if (record.evidence) {
+          assert.equal(evidenceRuntime.retainedCompletionCanHandoff(record.evidence, record.output), false);
+          assert.deepEqual(evidenceRuntime.retainedCompletionDescriptor(record.evidence), record.descriptor);
+        }
+      }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+      assert.deepEqual((await readdir(exampleDirectory)).sort(), beforeFiles);
     }
     const residentExample = await runExample({ database: path, environment, environmentCid: args[1],
       program: programFile, parameters, nativeMilliseconds: '20', resident: true });
@@ -330,20 +465,60 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.doesNotMatch(script, /duckdb_conformance|query_integration/);
     await writeFile(programFile, await readFile(join(root,
       'adapters/duckdb-node/examples/join-count.json'), 'utf8'));
-    for (const [estimate, resident, expected] of [
+    for (const [estimate, resident, expected, retained] of [
       ['20', false, ['local', 'local', 'local', 'local']],
       ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb']],
       ['20', true, ['local', 'local', 'duckdb-resident', 'duckdb-resident']],
+      ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb'], true],
     ]) {
       const result = await runExample({ database: path, environment,
         environmentCid: args[1], program: programFile, parameters,
-        nativeMilliseconds: estimate, resident });
+        nativeMilliseconds: estimate, resident,
+        ...(retained ? {localImportWorkMilliseconds: '0', retainedWorkMilliseconds: '0',
+          retainedOutput: {parentDirectory: exampleDirectory, maxFrameBytes: 100000,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000}}} : {}) });
       try {
         assert.equal(result.report.status, 'host-tasks-completed', String(result.execution.failure));
         assert.deepEqual(result.report.completed.map(item => item.realization), expected);
         assert.equal(result.report.internal_output_cids.length, 4);
         assert.equal(result.report.internal_output_cids[3].cid, hash([{ id: 3, n: 4, present: 4 }]));
-      } finally { result.close(); }
+        if (retained) assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+      } finally { await result.close(); }
+      assert.equal(result.execution.usage().heldBytes, 0n);
+    }
+    // Value-sensitive join obligations use verified key-only import scratch.
+    // Both retained branches contain duplicate id=3; NULL rejection succeeds,
+    // whereas one-to-one must fail before the native join publishes any result.
+    for (const [obligation, succeeds] of [
+      [{null_key: 'fail'}, true], [{cardinality: 'one_to_one'}, false],
+    ]) {
+      const joined = JSON.parse(await readFile(join(root,
+        'adapters/duckdb-node/examples/join-count.json'), 'utf8'));
+      Object.assign(joined.stages[3].steps[0].join, obligation);
+      await writeFile(programFile, JSON.stringify(joined));
+      const result = await runExample({database: path, environment,
+        environmentCid: args[1], program: programFile, parameters,
+        nativeMilliseconds: '1', localImportWorkMilliseconds: '0',
+        retainedWorkMilliseconds: '0',
+        retainedOutput: {parentDirectory: exampleDirectory, maxFrameBytes: 100000,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000}}});
+      try {
+        assert.equal(result.report.status, succeeds ? 'host-tasks-completed' : 'host-tasks-failed',
+          String(result.execution.failure));
+        assert.equal(result.report.completed.length, succeeds ? 4 : 2);
+        assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+        if (succeeds) {
+          assert.equal(result.report.internal_output_cids[3].cid, hash([{id: 3, n: 4, present: 4}]));
+        } else {
+          assert.equal(result.execution.failure.code, 'MoonBitHostFailure');
+          assert(result.execution.failure.cause, 'preserve the typed join validation failure');
+          assert.equal(result.execution.cleanupPending(), true,
+            'failed import keeps its explicit physical cleanup responsibility');
+        }
+      } finally { await result.close(); }
+      assert.equal(await result.execution.cleanup(), true);
       assert.equal(result.execution.usage().heldBytes, 0n);
     }
   } finally { await rm(exampleDirectory, { recursive: true, force: true }); }
@@ -514,6 +689,82 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(failed, 3), 1n);
   }
   const accountedFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+  const retainedRootDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/retained-root-'));
+  const rootRetention = {parentDirectory: retainedRootDirectory, maxFrameBytes: 4096,
+    wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000}};
+  try {
+    const retainedBridge = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
+    const preparedOnly = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+    const setupOnly = fixture.strategyFixtureAcquisition(preparedOnly);
+    const ledgerOnly = fixture.strategyFixtureLedger(preparedOnly);
+    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'invalid-batch', () => true, 100000n, 134217728n, 100000n, 0, () => true)));
+    assert.throws(() => checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'oversized-batch', () => true, 100000n, 134217728n, 100000n, 100001, () => true)));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
+    const fixedStream = checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
+      'fixed-stream', () => true, 100000n, 134217728n, 100000n, 4096, () => true));
+    // The lower retention reservation never exposes a switchable receiver.
+    assert.throws(() => checked(retainedBridge.nativeHostStreamPrepare(fixedStream, 4096)));
+    // Even confirmed native stop cannot turn a missing sealed body into a
+    // zero-byte holding. Keep the original reservation on this failed path.
+    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
+    const pendingRetention = fixture.strategyFixtureUsage(preparedOnly, 5);
+    assert(pendingRetention > 0n);
+    assert.throws(() => checked(retainedBridge.nativeHostComplete(fixedStream)));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 5), pendingRetention);
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 4), 0n);
+    // No transport was started in this boundary probe. Close alone is still
+    // not the native-stop acknowledgement required by the physical ledger.
+    retainedBridge.nativeHostClose(fixedStream);
+    checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
+    for (const field of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(preparedOnly, field), 0n);
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 1n);
+    for (const adopt of [false, true]) {
+      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+      const captured = await runRetainedStrategyNativeHostQuery(grant,
+        fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
+      try {
+        assert.equal(captured.output, undefined);
+        assert.equal(captured.source, undefined);
+        // Admission keeps the full file ceiling. Only the exact sealed body
+        // becomes a holding; unused capacity is released after completion.
+        assert.equal(captured.physicalCapacity.retentionBytes, 134615840n);
+        const fileBytes = BigInt(captured.storageUsage().reservedBytes);
+        assert(fileBytes > 0n && fileBytes < 100000n);
+        const heldBytes = 134515840n + fileBytes;
+        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
+        assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
+        if (adopt) assert.equal(fixture.strategyFixtureAttach(f,
+          captured.openDAG(fixture.strategyFixtureGraph(f))), true);
+        captured.close();
+        assert.equal(captured.cleanupHandle.status().pending, true);
+        assert.equal(fixture.strategyFixtureUsage(f, 4), heldBytes);
+        const spent = fixture.strategyFixtureUsage(f, 0);
+        await captured.cleanupHandle.retry();
+        await captured.cleanupHandle.retry();
+        assert.equal(captured.cleanupHandle.status().pending, false);
+        assert.equal(fixture.strategyFixtureUsage(f, 4), 0n);
+        assert.equal(fixture.strategyFixtureUsage(f, 0), spent);
+      } finally { captured.close(); await captured.cleanupHandle.retry(); }
+    }
+    for (const invalid of ['settings', 'ledger', 'capacity', 'stream']) {
+      const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+      await assert.rejects(runRetainedStrategyNativeHostQuery(grant,
+        fixture.strategyFixtureAcquisition(f), invalid === 'ledger' ? undefined : fixture.strategyFixtureLedger(f),
+        invalid === 'settings' ? {...suppliedLimits, threads: 0} : suppliedLimits,
+        invalid === 'stream' ? {...rootRetention, maxFrameBytes: 1}
+          : invalid === 'capacity' ? {...rootRetention, wire: {...rootRetention.wire, max_bytes: 100000000}}
+            : rootRetention).catch(async error => {
+          await error.cleanupHandle?.retry();
+          assert.equal(error.cleanupHandle?.status().pending ?? false, false);
+          throw error;
+        }));
+      for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, field), 0n);
+      assert.equal(fixture.strategyFixtureUsage(f, 3), invalid === 'stream' ? 1n : 0n);
+    }
+    assert.deepEqual(await readdir(retainedRootDirectory), []);
+  } finally { await rm(retainedRootDirectory, {recursive: true, force: true}); }
   const accounted = await runStrategyNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(accountedFixture),
     fixture.strategyFixtureLedger(accountedFixture), suppliedLimits);
@@ -550,6 +801,84 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     for (const result of accountedComputes) result.close();
     accounted.close();
   }
+  // Retained data uses the ordinary checked DAG's atomic holding boundary.
+  // File cleanup is independent of native settlement and keeps its allocation
+  // charged even when close cannot reclaim the exact inode.
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  const retainedFixture = fixture.strategyFixtureCreate(...args, program);
+  const retainedCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(retainedFixture), suppliedLimits);
+  const fileParent = await mkdtemp(join(dirname(path), 'dag-retained-'));
+  const heldFiles = [];
+  let completedFileHolding = 0n;
+  const retainedWire = { max_columns: 10, max_order_work: 10000, max_bytes: 100000, max_nodes: 10000, max_depth: 100 };
+  try {
+    assert.equal(fixture.strategyFixtureOpen(retainedFixture, retainedCapture.source()), true);
+    const unstarted = fixture.strategyFixtureCompute(retainedFixture, 1);
+    const attempts = fixture.strategyFixtureUsage(retainedFixture, 3);
+    await assert.rejects(runRetainedStrategyHostCompute(unstarted, suppliedLimits,
+      {maxRows: 100, maxCells: 1000}, {parentDirectory: fileParent, wire: retainedWire, maxFrameBytes: 100001}),
+      {code: 'InvalidRetainedConfiguration'});
+    await assert.rejects(runRetainedStrategyHostCompute(unstarted, suppliedLimits,
+      {maxRows: 100, maxCells: 1000}, {parentDirectory: fileParent,
+        wire: {...retainedWire, max_bytes: 32000001}, maxFrameBytes: 4096}),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 3), attempts);
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 5), 0n);
+    assert.deepEqual(await readdir(fileParent), []);
+    for (const task of [1, 2, 3]) {
+      if (task === 3) retainedCapture.close();
+      const output = await runRetainedStrategyHostCompute(
+        fixture.strategyFixtureCompute(retainedFixture, task), suppliedLimits,
+        {maxRows: 100, maxCells: 1000},
+        {parentDirectory: fileParent, wire: retainedWire, maxFrameBytes: 4096});
+      heldFiles.push(output);
+      assert.equal(output.physicalCapacity.retentionBytes, 2765600n);
+      const expected = task === 2 ? [{id: 3}, {id: 2}, {id: 3}] : [{id: 3}, {id: 3}];
+      completedFileHolding += 2665600n + BigInt(Buffer.byteLength(JSON.stringify(expected)));
+      assert.equal(fixture.strategyFixtureUsage(retainedFixture, 4), completedFileHolding);
+      assert.equal(fixture.strategyFixtureUsage(retainedFixture, 2), 0n);
+      assert.equal(fixture.strategyFixtureUsage(retainedFixture, 5), 0n);
+      assert.equal(fixture.strategyFixtureCid(retainedFixture, task),
+        hash(task === 2 ? [{id: 3}, {id: 2}, {id: 3}] : [{id: 3}, {id: 3}]));
+      assert.equal(output.importedRows, task === 3 ? 2 : 3);
+    }
+    const transferred = fixture.strategyFixtureUsage(retainedFixture, 0);
+    const directories = await readdir(fileParent);
+    assert.equal(directories.length, 3);
+    // Each task owns a different physical allocation, even if content matches.
+    const originals = [];
+    for (const name of directories) {
+      const path = join(fileParent, name, 'body-0');
+      await rename(path, `${path}.saved`);
+      await writeFile(path, 'replacement');
+      originals.push(path);
+    }
+    const recoveries = [];
+    for (const output of [...heldFiles].reverse()) {
+      await assert.rejects(output.close(), error => {
+        assert(error.cleanupHandle?.status().pending);
+        recoveries.push(error.cleanupHandle);
+        return true;
+      });
+    }
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 4), completedFileHolding);
+    assert.equal(fixture.strategyFixtureCid(retainedFixture, 3), 'null');
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 0), transferred);
+    for (const path of originals) {
+      await rm(path);
+      await rename(`${path}.saved`, path);
+    }
+    for (const recovery of recoveries) assert.equal((await recovery.retry()).pending, false);
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 4), 0n);
+    assert.equal(fixture.strategyFixtureUsage(retainedFixture, 0), transferred);
+    assert.deepEqual(await readdir(fileParent), []);
+  } finally {
+    for (const output of heldFiles) {
+      await output.close();
+      await output.cleanupHandle.retry();
+    }
+    retainedCapture.close();
+  }
   const phaseCapture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(phaseFixture), suppliedLimits);
   const bridge = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
   let phaseRun;
@@ -557,7 +886,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(phaseFixture, phaseCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(phaseFixture, 1);
-    assert.equal(accepted(bridge.computeStrategyScratchCapacity(setup)), 11708160n);
+    assert.equal(accepted(bridge.computeStrategyScratchCapacity(setup, false)), 11708160n);
     phaseRun = accepted(bridge.computeStrategyHostOpen(setup, () => false, 100000n, 134217728n));
     assert.equal(fixture.strategyFixtureUsage(phaseFixture, 2), 145925888n);
     accepted(bridge.computeHostPhysicalSettle(phaseRun, true));
@@ -655,14 +984,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Shared X is imported once; both branches read that exact capture, and C
   // consumes A's retained native table without importing A from the Host again.
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
-  {
+  for (const retainedSource of [false, true, 'installed']) {
+    await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
     const f = fixture.strategyFixtureCreate(...args, program);
-    const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
+    const capture = retainedSource
+      ? await runRetainedNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits, {
+        parentDirectory: dirname(path), maxFrameBytes: 4096,
+        wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000},
+      })
+      : await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
     const outputs = [];
     let environment;
     try {
       assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
-      const dispatch = fixture.strategyFixtureResidentDispatch(f);
+      const dispatch = retainedSource ? fixture.strategyFixtureRetainedResidentDispatch(f)
+        : fixture.strategyFixtureResidentDispatch(f);
+      if (retainedSource === 'installed') {
+        const execution = await runCapturedStrategy(dispatch, {duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits, importLimits: {maxRows: 100, maxCells: 1000},
+          retainedOutput: {parentDirectory: dirname(path), maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000}},
+        })});
+        try {
+          assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+          assert.deepEqual(execution.completed.map(item => [item.realization, item.outputRepresentation]),
+            Array.from({length: 3}, () => ['duckdb-resident', 'retained-file']));
+          assert.deepEqual(execution.completed.map(item => item.preparation.imports.length), [1, 0, 0]);
+          assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id: 3}, {id: 3}]));
+          assert.equal(fixture.strategyFixtureCanBind(f, 3), true,
+            'independent file is usable after the installed finisher closes the DB');
+        } finally {
+          await execution.close();
+          assert.equal(await execution.cleanup(), true);
+          assert.equal(execution.cleanupPending(), false);
+        }
+        continue;
+      }
       const firstTask = checked(hostRuntime.strategyHostNext(dispatch));
       const beforeProvision = fixture.strategyFixtureUsage(f, 3);
       for (const invalid of [{ threads: 0 }, { maxRows: -1 }, { cancelWaitMs: -1 },
@@ -698,6 +1056,17 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts);
       const imported = await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
       assert.equal(imported.importedRows, 3);
+      assert.equal(imported.usage.statements, 4);
+      assert.equal(imported.usage.preparations, 2,
+        'resident import prepares CREATE and one explicitly owned reusable INSERT');
+      if (retainedSource) {
+        assert.equal(imported.usage.storageReadBytes,
+          Buffer.byteLength('[{"id":3},{"id":2},{"id":3}]'));
+        assert.equal(fixture.strategyFixtureUsage(f, 0), BigInt(imported.usage.transportBytes));
+        assert.equal(environment.hasTable(0), true);
+        assert.equal(JSON.parse(capture.document()).output.rows_cid,
+          hash([{id: 3}, {id: 2}, {id: 3}]));
+      }
       assert.equal(fixture.strategyFixtureUsage(f, 3), importAttempts + 1n);
       await assert.rejects(importResidentStrategyInput(environment, 0, 4000000n,
         suppliedLimits, mapping));
@@ -710,11 +1079,27 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         if (task === 1) {
           await assert.rejects(runResidentStrategyHostCompute(compute, environment, [table],
             { ...suppliedLimits, threads: 2 }, mapping), { code: 'ResidentProfileMismatch' });
+          if (!retainedSource) {
+            const attempts = fixture.strategyFixtureUsage(f, 3);
+            await assert.rejects(runResidentStrategyHostCompute(compute, environment, [table],
+              suppliedLimits, mapping, undefined, {parentDirectory: dirname(path), maxFrameBytes: 4096,
+                wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+                  max_columns: 10, max_order_work: 10000}}), {code: 'MoonBitHostFailure'});
+            assert.equal(fixture.strategyFixtureUsage(f, 3), attempts,
+              'a selected row-only offer cannot be enlarged into file holding');
+          }
         }
         const output = await runResidentStrategyHostCompute(compute,
-          environment, [table], suppliedLimits, mapping);
+          environment, [table], suppliedLimits, mapping, undefined,
+          retainedSource ? {parentDirectory: dirname(path), maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000}} : undefined);
         outputs.push(output);
         assert.equal(output.importedRows, 0);
+        assert.equal(output.usage.residentInputBytes,
+          retainedSource ? task < 3 ? imported.usage.storageReadBytes
+            : Buffer.byteLength('[{"id":3},{"id":3}]') : 0,
+          'resident reuse preserves each retained consumer read charge without reimport');
         assert.equal(environment.hasTable(0), task === 1,
           'X remains through A and is removed only after B commits its last use');
         assert.equal(environment.hasTable(1), task < 3,
@@ -728,12 +1113,20 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert(residentTransfer < freshDuckDBTransfer,
         `resident ${residentTransfer} must transfer less than fresh ${freshDuckDBTransfer}`);
       await environment.close();
+      if (retainedSource) assert.ok(capture.source(), 'retained source survives DB-copy removal');
       assert.equal(fixture.strategyFixtureCid(f, 3), hash([{ id: 3 }, { id: 3 }]));
       assert.equal(fixture.strategyFixtureCanBind(f, 3), true);
     } finally {
       if (environment) await environment.close();
-      for (const output of outputs) output.close();
+      for (const output of outputs) {
+        await output.close();
+        if (retainedSource) assert.equal(output.cleanupHandle.status().pending, false);
+      }
       capture.close();
+      if (retainedSource) {
+        await capture.cleanupHandle.retry();
+        assert.equal(capture.cleanupHandle.status().pending, false);
+      }
     }
   }
   await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
@@ -757,6 +1150,52 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(fixture.strategyFixtureUsage(f, 2), 0n);
       assert.equal(fixture.strategyFixtureNext(f), -1, 'cleanup does not authorize fallback');
     } finally { if (environment) await environment.close(); capture.close(); }
+  }
+  {
+    const directory = await mkdtemp(join(dirname(path), 'resident-failed-read-'));
+    const f = fixture.strategyFixtureCreate(...args, program);
+    const capture = await runRetainedNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits, {
+      parentDirectory: directory, maxFrameBytes: 4096,
+      wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64, max_columns: 10, max_order_work: 10000},
+    });
+    let environment;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
+      const dispatch = fixture.strategyFixtureResidentDispatch(f);
+      const selected = checked(hostRuntime.strategyHostNext(dispatch));
+      environment = await openResidentStrategyEnvironment(fixture.strategyFixtureRun(f), 1, suppliedLimits);
+      const mapping = {maxEntries: 1000, maxNameBytes: 10000};
+      await importResidentStrategyInput(environment, 0, 4000000n, suppliedLimits, mapping);
+      const [holding] = await readdir(directory);
+      const bodyPath = join(directory, holding, 'body-0');
+      const original = await readFile(bodyPath);
+      // Same inode and byte length: the cached DB copy must not bypass the
+      // consumer's live retained-input validation or its failure settlement.
+      const changed = Buffer.from(original);
+      changed[0] = '!'.charCodeAt(0);
+      await writeFile(bodyPath, changed);
+      let failure;
+      await assert.rejects(runResidentStrategyHostCompute(
+        checked(hostRuntime.strategyModule_duckdb_Dispatch(dispatch, selected)),
+        environment, [environment.table(0)], suppliedLimits, mapping), error => {
+        failure = error;
+        assert.equal(error.code, 'RetainedInputReadUnconfirmed');
+        assert.equal(error.cleanupHandle.status().pending, true);
+        return true;
+      });
+      assert.equal(fixture.strategyFixtureCid(f, 1), 'null');
+      assert.equal(fixture.strategyFixtureNext(f), -1);
+      await assert.rejects(environment.close(), error => error.cleanupPending === true);
+      assert.equal(environment.status().live, false);
+      assert.equal(environment.status().pending, true);
+      assert.equal((await failure.cleanupHandle.retry()).pending, true,
+        'DB close and native retry are not a Store read-stop acknowledgement');
+    } finally {
+      if (environment) await assert.rejects(environment.close(), error => error.cleanupPending === true);
+      capture.close();
+      await capture.cleanupHandle.retry();
+      await rm(directory, {recursive: true, force: true});
+    }
   }
   for (const failure of ['received-row-limit', 'cancelled']) {
     const f = fixture.strategyFixtureCreate(...args, program);

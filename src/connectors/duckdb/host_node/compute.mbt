@@ -4,14 +4,16 @@ struct ComputeNodeRun {
   transport : @duckdb.TransportColumnLimits
   strategy : (@strategy.CapturedDAG, Int, @duckdb_driver.CapturedDuckDBTask)?
   mut closed : Bool
+  stream_owner : Ref[Bool]
 }
 
 ///|
 #export_name("computeStrategyRetentionCapacity")
 pub fn compute_strategy_retention_capacity(
   setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  retained : Bool,
 ) -> Int64 raise NodeHostFailure {
-  guard @duckdb_driver.configured_strategy_retention_capacity(setup)
+  guard @duckdb_driver.configured_strategy_retention_capacity(setup, retained~)
     is Some(bytes) else {
     raise Physical(InvalidLimits)
   }
@@ -22,8 +24,9 @@ pub fn compute_strategy_retention_capacity(
 #export_name("computeStrategyScratchCapacity")
 pub fn compute_strategy_scratch_capacity(
   setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  retained : Bool,
 ) -> Int64 raise NodeHostFailure {
-  guard @duckdb_driver.configured_strategy_scratch_capacity(setup)
+  guard @duckdb_driver.configured_strategy_scratch_capacity(setup, retained~)
     is Some(bytes) else {
     raise Physical(InvalidLimits)
   }
@@ -43,6 +46,7 @@ pub fn compute_host_open(
         transport: @duckdb_driver.configured_compute_transport(setup),
         strategy: None,
         closed: false,
+        stream_owner: Ref(true),
       }
     Err(issue) => raise Compute(issue)
   }
@@ -57,6 +61,27 @@ pub fn compute_strategy_host_open(
   execution_bytes : Int64,
 ) -> ComputeNodeRun raise NodeHostFailure {
   open_strategy_compute_host(setup, verify, transfer_bytes, execution_bytes)
+}
+
+///|
+/// Installed retained Store wiring, not ordinary per-request verification.
+/// File capacity is additional to the receiver's conservative retention bound.
+#export_name("computeRetainedStrategyHostOpen")
+pub fn compute_retained_strategy_host_open(
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  file_bytes : Int64,
+  released : () -> Bool,
+) -> ComputeNodeRun raise NodeHostFailure {
+  open_strategy_compute_host(
+    setup,
+    verify,
+    transfer_bytes,
+    execution_bytes,
+    retained_storage=(file_bytes, released),
+  )
 }
 
 ///|
@@ -78,12 +103,35 @@ pub fn compute_resident_strategy_host_open(
 }
 
 ///|
+/// Independent file holding and resident-copy admission are both required.
+#export_name("computeRetainedResidentStrategyHostOpen")
+pub fn compute_retained_resident_strategy_host_open(
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  resident : @duckdb_driver.DuckDBResidentInputs,
+  file_bytes : Int64,
+  released : () -> Bool,
+) -> ComputeNodeRun raise NodeHostFailure {
+  open_strategy_compute_host(
+    setup,
+    verify,
+    transfer_bytes,
+    execution_bytes,
+    resident~,
+    retained_storage=(file_bytes, released),
+  )
+}
+
+///|
 fn open_strategy_compute_host(
   setup : @duckdb_driver.StrategyComputeHostConfiguration,
   verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : @duckdb_driver.DuckDBResidentInputs,
+  retained_storage? : (Int64, () -> Bool),
 ) -> ComputeNodeRun raise NodeHostFailure {
   match
     @duckdb_driver.start_configured_strategy_compute_host(
@@ -92,6 +140,7 @@ fn open_strategy_compute_host(
       transfer_bytes,
       execution_bytes,
       resident?,
+      retained_storage?,
     ) {
     Ok(task_handle) =>
       {
@@ -105,6 +154,7 @@ fn open_strategy_compute_host(
           ),
         ),
         closed: false,
+        stream_owner: Ref(true),
       }
     Err(issue) => raise Strategy(issue)
   }
@@ -116,6 +166,9 @@ pub fn compute_resident_sql(
   run : ComputeNodeRun,
   kind : Int,
 ) -> String raise NodeHostFailure {
+  if !@duckdb_compute.duckdb_compute_inputs_ready(run.attempt) {
+    raise InvalidCommand
+  }
   guard run.strategy is Some((graph, _, task_handle)) &&
     @duckdb_driver.captured_duckdb_query(graph, task_handle) is Some(query) else {
     raise InvalidCommand
@@ -249,8 +302,38 @@ pub fn compute_host_sql(
   match kind {
     0 => @duckdb.fixed_import_create_sql(imported)
     1 => @duckdb.fixed_import_insert_sql(imported)
-    2 => @duckdb.fixed_query_sql(@duckdb.fixed_compute_query(compute))
+    2 => {
+      if !@duckdb_compute.duckdb_compute_inputs_ready(run.attempt) {
+        raise Compute(InvalidState)
+      }
+      @duckdb.fixed_query_sql(@duckdb.fixed_compute_query(compute))
+    }
     _ => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("computeHostImportBatch")
+pub fn compute_host_import_batch(
+  run : ComputeNodeRun,
+  port : Int,
+  rows : Int,
+  max_parameters : Int,
+  max_sql_bytes : Int,
+) -> (Int, String) raise NodeHostFailure {
+  guard @duckdb.fixed_compute_import(
+      @duckdb_compute.duckdb_compute_attempt_plan(run.attempt),
+      port,
+    )
+    is Some(imported) else {
+    raise InvalidCommand
+  }
+  match
+    @duckdb.fixed_import_batch_insert_sql(
+      imported, rows, max_parameters, max_sql_bytes,
+    ) {
+    Ok(batch) => batch
+    Err(_) => raise InvalidCommand
   }
 }
 
@@ -394,11 +477,36 @@ pub fn compute_host_close(run : ComputeNodeRun) -> Unit {
     return
   }
   run.closed = true
+  run.stream_owner.val = false
   @duckdb_compute.close_duckdb_compute_attempt(run.attempt)
   if run.strategy is Some((graph, _, task_handle)) {
     @strategy.close_task_execution(
       graph,
       @duckdb_driver.captured_duckdb_execution(task_handle),
     )
+  }
+}
+
+///|
+/// After Store cleanup, ask common ownership/lifecycle management to observe
+/// its installed cleanup fact. This call itself asserts no deletion or stop.
+#export_name("computeHostCleanupRefresh")
+pub fn compute_host_cleanup_refresh(
+  run : ComputeNodeRun,
+) -> Bool raise NodeHostFailure {
+  if !run.closed {
+    raise InvalidCommand
+  }
+  if run.strategy is Some((graph, _, task_handle)) {
+    match
+      @strategy.refresh_task_execution_cleanup(
+        graph,
+        @duckdb_driver.captured_duckdb_execution(task_handle),
+      ) {
+      Ok(value) => value
+      Err(issue) => raise Physical(issue)
+    }
+  } else {
+    true
   }
 }

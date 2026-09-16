@@ -236,6 +236,28 @@ pub fn issued_native_consume_output(
 }
 
 ///|
+#export_name("issuedNativeRetainedInput")
+pub fn issued_native_retained_input(
+  value : IssuedNativeFixture,
+  output : @execution.CompletedOutput,
+) -> @execution.ProducerRead? {
+  let receiver = @execution.generated_sequence_owner(value.consumer)
+  guard @execution.bind_completed_input(
+      receiver,
+      0,
+      @duckdb.native_query_owner(@duckdb.native_scan_query(value.scan)),
+      output,
+    )
+    is Ok(bound) else {
+    return None
+  }
+  match @execution.prepare_producer_read(receiver, bound, 100, 10000) {
+    Ok(input) => Some(input)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("issuedNativeBind")
 pub fn issued_native_bind(
   value : IssuedNativeFixture,

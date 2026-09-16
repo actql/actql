@@ -1,6 +1,6 @@
 // DuckDB-specific execution and resident session lifetime. The common serial
 // driver never interprets this resource policy, tables, imports or SQL.
-import { runStrategyHostCompute, openResidentStrategyEnvironment,
+import { runStrategyHostCompute, runRetainedStrategyHostCompute, openResidentStrategyEnvironment,
   importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
@@ -63,12 +63,17 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       }
       const selected = checked(moon.strategyModule_duckdb_Dispatch(setup, task));
       const result = resident
-        ? await runResidentStrategyHostCompute(selected, environment, inputs, limits, mapping, signal)
-        : await runStrategyHostCompute(selected, limits, imports, signal);
+        ? await runResidentStrategyHostCompute(selected, environment, inputs, limits, mapping, signal,
+          options.retainedOutput, `task-${index}`)
+        : options.retainedOutput
+          ? await runRetainedStrategyHostCompute(selected, limits, imports, options.retainedOutput, signal, `task-${index}`)
+          : await runStrategyHostCompute(selected, limits, imports, signal);
       return Object.freeze({
         close: () => result.close(),
         diagnostic: Object.freeze({
           realization: resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,
+          phases: result.diagnostics,
+          outputRepresentation: options.retainedOutput ? 'retained-file' : 'memory',
           preparation: Object.freeze({environmentCreated, imports: Object.freeze(imported)}),
         }),
       });

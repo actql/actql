@@ -20,7 +20,9 @@ pub fn retain_native_output_rows(
   max_rows : Int,
   limits : @execution.ValueLimits,
 ) -> Result[NativeOutputRows, NativeOutputRetentionIssue] {
-  guard receiver.phase is Received else { return Err(InvalidState) }
+  guard receiver.phase is Received && receiver.output_stream is None else {
+    return Err(InvalidState)
+  }
   let output = match
     @execution.prepare_admitted_output(
       receiver.scan.query.owner,

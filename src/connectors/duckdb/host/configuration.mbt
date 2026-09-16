@@ -52,16 +52,33 @@ pub fn start_configured_native_host(
   nonce : String,
   verify : (@duckdb_query.DuckDBNativeAttempt) -> Bool,
 ) -> Result[NativeHostRun, NativeHostIssue] {
-  start_native_host(
-    value.contract,
-    value.requirement,
-    value.choice,
-    value.candidate,
-    nonce,
-    128,
-    value.limits.physical,
-    value.limits.metadata_work,
-    value.limits.measurement,
-    verify,
-  )
+  let run = match
+    start_native_host(
+      value.contract,
+      value.requirement,
+      value.choice,
+      value.candidate,
+      nonce,
+      128,
+      value.limits.physical,
+      value.limits.metadata_work,
+      value.limits.measurement,
+      verify,
+    ) {
+    Ok(run) => run
+    Err(issue) => return Err(issue)
+  }
+  match
+    @duckdb_query.stream_duckdb_native_validation(
+      run.attempt,
+      value.limits.completion.receipts,
+      value.limits.completion.demand,
+      value.limits.transport.max_rows,
+    ) {
+    Ok(_) => Ok(run)
+    Err(issue) => {
+      close_native_host(run)
+      Err(Attempt(issue))
+    }
+  }
 }

@@ -42,3 +42,27 @@ export async function finalizerCase(kind, scoped = false) {
     cleanup: await result.cleanup(), finished, closed,
   };
 }
+
+export async function asynchronousCloseCase(kind) {
+  const registration = {}, setup = {};
+  let complete = false, closed = 0, retries = 0, pending = true;
+  const recovery = {status: () => ({pending}), retry() { retries++; pending = false; }};
+  const first = kind === 'undefined' ? undefined : kind === 'null' ? null :
+    Object.assign(new Error('asynchronous close'), {cleanupHandle: recovery});
+  const core = {
+    count: () => 2, next: () => ({}), task: () => 1,
+    registration: () => registration, completed: () => complete,
+    finished: () => complete, stop() {}, usage: () => ({}),
+    closeOutputs() { closed++; }, output: () => complete ? 1 : undefined,
+  };
+  try {
+    await withScopedStrategy(setup, core, [{registration, run() {
+      complete = true;
+      return {async close() { await Promise.resolve(); throw first; }};
+    }}], () => 1);
+    return {failed: false};
+  } catch (error) {
+    return {failed: error instanceof AggregateError, firstPreserved: error.errors?.[0] === first,
+      pending: error.cleanupHandle?.status().pending ?? false, closed, retries};
+  }
+}

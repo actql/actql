@@ -1,4 +1,104 @@
 ///|
+test "captured external holding waits for physical release in either close order" {
+  for release_first in [false, true] {
+    let (run, _) = captured_graph_fixture()
+    let ledger = @strategy.captured_dag_ledger(run)
+    let reservation = @resources.reserve_attempt(ledger, 100L, 100L, 0L).unwrap()
+    @resources.charge_transfer(ledger, reservation, 37L).unwrap()
+    let holding = @resources.retain_allocation(ledger, reservation, 100L).unwrap()
+    let released = Ref(release_first)
+    @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=fn() {
+      released.val
+    }).unwrap()
+    @resources.settle_reservation(ledger, reservation).unwrap()
+    // A duplicate attachment cannot replace a pending check with unconditional
+    // success, even when it carries the original ledger-owned token.
+    assert_true(
+      @strategy.retain_captured_task_allocation(run, 0, holding)
+      is Err(InvalidCharge),
+    )
+    @strategy.refresh_captured_retention(run)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
+    let read = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
+    @strategy.close_captured_task_output(run, 0)
+    assert_false(@execution.producer_read_available(read))
+    @strategy.refresh_captured_retention(run)
+    assert_eq(
+      @resources.ledger_usage(ledger).held_bytes,
+      if release_first {
+        0L
+      } else {
+        100L
+      },
+    )
+    released.val = true
+    @strategy.refresh_captured_retention(run)
+    @strategy.refresh_captured_retention(run)
+    @strategy.close_captured_task_output(run, 0)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 37L)
+    assert_false(@execution.producer_read_available(read))
+  }
+}
+
+///|
+test "capture cleanup confirmation does not erase completed child retention" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let reservation = @resources.reserve_attempt(ledger, 0L, 100L, 0L).unwrap()
+  let holding = @resources.retain_allocation(ledger, reservation, 100L).unwrap()
+  let released = Ref(false)
+  @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=fn() {
+    released.val
+  }).unwrap()
+  @resources.settle_reservation(ledger, reservation).unwrap()
+  captured_graph_local(run, 1).unwrap()
+  @strategy.close_captured_task_output(run, 0)
+  released.val = true
+  @strategy.refresh_captured_retention(run)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 7760100L)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is Some(_))
+  @strategy.close_captured_task_output(run, 1)
+  @strategy.refresh_captured_retention(run)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "capture storage release and native consumer stop are separate confirmations" {
+  for storage_first in [false, true] {
+    let (run, _) = captured_graph_fixture()
+    let ledger = @strategy.captured_dag_ledger(run)
+    let reservation = @resources.reserve_attempt(ledger, 0L, 100L, 0L).unwrap()
+    let holding = @resources.retain_allocation(ledger, reservation, 100L).unwrap()
+    let released = Ref(false)
+    @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=fn() {
+      released.val
+    }).unwrap()
+    @resources.settle_reservation(ledger, reservation).unwrap()
+    let transport : FixedComputeTestTransport = { settled: None, }
+    let attempt = captured_graph_duckdb_start(run, 1, transport)
+    let execution = @duckdb_driver.captured_duckdb_execution(attempt)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.stop_captured_dag(run)
+    @strategy.close_task_execution(run, execution)
+    if storage_first {
+      released.val = true
+    } else {
+      @strategy.settle_task_execution(run, execution, true).unwrap()
+    }
+    @strategy.refresh_captured_retention(run)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
+    released.val = true
+    if storage_first {
+      @strategy.settle_task_execution(run, execution, true).unwrap()
+    }
+    @strategy.refresh_captured_retention(run)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  }
+}
+
+///|
 test "shared capture allocation stays charged through both branches and completed descendants" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)

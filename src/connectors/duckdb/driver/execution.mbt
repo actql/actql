@@ -37,16 +37,48 @@ pub fn start_captured_duckdb_task(
   native_execution_bytes : Int64,
   verify : (@compute.DuckDBComputeAttempt) -> Bool,
   resident? : DuckDBResidentInputs,
+  retained_storage? : (Int64, () -> Bool),
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
-  guard @compute.duckdb_task_retention_capacity(limits) is Some(retention) &&
-    @compute.duckdb_task_scratch_capacity(limits, transport) is Some(scratch) &&
+  let retained_required = retained_storage is Some(_)
+  guard (if retained_required {
+      @compute.duckdb_stream_retention_capacity(limits)
+    } else {
+      @compute.duckdb_task_retention_capacity(limits)
+    })
+    is Some(retention) &&
+    (if retained_required {
+      @compute.duckdb_stream_scratch_capacity(
+        limits,
+        transport,
+        compute?=@connector.fixed_compute_choice_payload(choice, prepared),
+      )
+    } else {
+      @compute.duckdb_task_scratch_capacity(limits, transport)
+    })
+    is Some(scratch) &&
     transfer_bytes > 0L &&
     native_execution_bytes > 0L &&
     native_execution_bytes <= 9223372036854775807L - scratch else {
     return Err(Physical(InvalidLimits))
   }
+  let storage_bytes = retained_storage.map(value => value.0).unwrap_or(0L)
+  if storage_bytes < 0L || retention > 9223372036854775807L - storage_bytes {
+    return Err(Physical(InvalidLimits))
+  }
   let output_plan : Ref[@compute.DuckDBResidentOutput?] = Ref(None)
+  let retention_attempt : Ref[@compute.DuckDBComputeAttempt?] = Ref(None)
   let store = resident.map(inputs => inputs.store)
+  // A streamed completion's metadata allowance must never stand in for the
+  // DB copy. The latter occupies shared environment capacity independently of
+  // the file holding charged to this task.
+  let copy_retention = if resident is Some(_) {
+    match @compute.duckdb_task_retention_capacity(limits) {
+      Some(bytes) => bytes
+      None => return Err(Physical(InvalidLimits))
+    }
+  } else {
+    retention
+  }
   let resident = match resident {
     None => None
     Some(inputs) =>
@@ -57,7 +89,7 @@ pub fn start_captured_duckdb_task(
           choice,
           prepared,
           inputs.leases,
-          retention,
+          copy_retention,
           scratch,
           fn(ordinal) {
             guard @connector.fixed_compute_choice_payload(choice, prepared)
@@ -88,6 +120,7 @@ pub fn start_captured_duckdb_task(
               Err(Preparation(issue)) => Err(preparation_failure(issue))
             }
           },
+          independent_retention=retention + storage_bytes,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return Err(issue)
@@ -98,7 +131,7 @@ pub fn start_captured_duckdb_task(
     prepared,
     {
       transfer_bytes,
-      retained_bytes: retention,
+      retained_bytes: retention + storage_bytes,
       scratch_bytes: scratch,
       execution_bytes: native_execution_bytes + scratch,
     },
@@ -112,10 +145,21 @@ pub fn start_captured_duckdb_task(
     fn(_payload) {
       match
         @compute.start_duckdb_compute_attempt(
-          choice, prepared, generated, limits, verify,
+          choice,
+          prepared,
+          generated,
+          limits,
+          verify,
+          retained_required~,
+          stream_transport?=if retained_required {
+            Some(transport)
+          } else {
+            None
+          },
         ) {
         Err(issue) => Err(compute_failure(issue))
         Ok(attempt) => {
+          retention_attempt.val = Some(attempt)
           let operations : @connector.ExecutionOperations[
             @strategy.RunIssue,
             @strategy.TaskPublication,
@@ -123,6 +167,9 @@ pub fn start_captured_duckdb_task(
             cancel: fn() { @compute.abort_duckdb_compute_attempt(attempt) },
             dispose: fn() { @compute.close_duckdb_compute_attempt(attempt) },
             settled: fn() {  },
+            retention_released: retained_storage
+            .map(value => value.1)
+            .unwrap_or(fn() { true }),
             released: fn() { output_plan.val = None },
             ready: fn() { Ok(()) },
             finish: fn() {
@@ -136,6 +183,18 @@ pub fn start_captured_duckdb_task(
           Ok((attempt, operations))
         }
       }
+    },
+    retained_bytes=fn() {
+      if !retained_required {
+        return Ok(retention)
+      }
+      guard retention_attempt.val is Some(attempt) &&
+        @compute.retained_duckdb_compute_bytes(attempt) is Some(bytes) &&
+        bytes >= 0 &&
+        bytes.to_int64() <= storage_bytes else {
+        return Err(Physical(InvalidCharge))
+      }
+      Ok(retention + bytes.to_int64())
     },
   )
   let bound = match bound {

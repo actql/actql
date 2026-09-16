@@ -46,6 +46,7 @@ struct StrategyComputeHostConfiguration {
   graph : @strategy.CapturedDAG
   task : Int
   compute : ComputeHostConfiguration
+  output_file_bytes : Int64?
 }
 
 ///|
@@ -53,8 +54,9 @@ pub fn configure_strategy_compute_host(
   graph : @strategy.CapturedDAG,
   task : Int,
   compute : ComputeHostConfiguration,
+  output_file_bytes? : Int64,
 ) -> StrategyComputeHostConfiguration {
-  { graph, task, compute, }
+  { graph, task, compute, output_file_bytes, }
 }
 
 ///|
@@ -71,7 +73,15 @@ pub fn start_configured_strategy_compute_host(
   transfer_bytes : Int64,
   execution_bytes : Int64,
   resident? : DuckDBResidentInputs,
+  retained_storage? : (Int64, () -> Bool),
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
+  if setup.output_file_bytes is Some(expected) {
+    match (expected, retained_storage) {
+      (0L, None) => ()
+      (bytes, Some((actual, _))) if bytes > 0L && actual == bytes => ()
+      _ => return Err(Physical(InvalidCharge))
+    }
+  }
   let c = setup.compute
   start_captured_duckdb_task(
     setup.graph,
@@ -85,7 +95,15 @@ pub fn start_configured_strategy_compute_host(
     execution_bytes,
     verify,
     resident?,
+    retained_storage?,
   )
+}
+
+///|
+pub fn configured_strategy_output_file_bytes(
+  setup : StrategyComputeHostConfiguration,
+) -> Int64? {
+  setup.output_file_bytes
 }
 
 ///|
@@ -128,16 +146,33 @@ pub fn borrow_configured_resident_inputs(
 ///|
 pub fn configured_strategy_retention_capacity(
   setup : StrategyComputeHostConfiguration,
+  retained? : Bool = false,
 ) -> Int64? {
-  @compute.duckdb_task_retention_capacity(setup.compute.limits)
+  if retained || (setup.output_file_bytes is Some(bytes) && bytes > 0L) {
+    @compute.duckdb_stream_retention_capacity(setup.compute.limits)
+  } else {
+    @compute.duckdb_task_retention_capacity(setup.compute.limits)
+  }
 }
 
 ///|
 pub fn configured_strategy_scratch_capacity(
   setup : StrategyComputeHostConfiguration,
+  retained? : Bool = false,
 ) -> Int64? {
-  @compute.duckdb_task_scratch_capacity(
-    setup.compute.limits,
-    setup.compute.transport,
-  )
+  if retained || (setup.output_file_bytes is Some(bytes) && bytes > 0L) {
+    @compute.duckdb_stream_scratch_capacity(
+      setup.compute.limits,
+      setup.compute.transport,
+      compute?=@connector.fixed_compute_choice_payload(
+        setup.compute.choice,
+        setup.compute.prepared,
+      ),
+    )
+  } else {
+    @compute.duckdb_task_scratch_capacity(
+      setup.compute.limits,
+      setup.compute.transport,
+    )
+  }
 }

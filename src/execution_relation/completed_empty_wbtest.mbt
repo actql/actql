@@ -41,7 +41,7 @@ test "typed completion preserves nullable values all-null stable ties and empty 
       produced=[binding],
     ).unwrap()
     let output = completed_output(completion, Step(1)).unwrap()
-    assert_true(output.table is NumberTable(_))
+    assert_true(output.table is Some(NumberTable(_)))
     assert_eq(completed_row_count(output), count)
     assert_eq(completed_column_count(output), 2)
     assert_eq(completed_column_name(output, 0), Some("b"))
@@ -136,7 +136,7 @@ test "zero-column typed input crosses product completion and producer no-ops" {
     produced=[binding],
   ).unwrap()
   let output = completed_output(completion, Step(1)).unwrap()
-  assert_true(output.table is NumberTable(_))
+  assert_true(output.table is Some(NumberTable(_)))
   assert_eq(completed_row_count(output), 3)
   assert_eq(completed_column_count(output), 0)
   assert_true(completed_cell(output, 2, 0) is None)

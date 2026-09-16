@@ -16,6 +16,8 @@ import {
 // Values
 pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
 
+pub fn configure_dispatch_retained_output(StrategyHostDispatch, Int64, Int64?) -> Result[Unit, DispatchIssue]
+
 pub fn configure_resident_dispatch(StrategyHostDispatch, @physical_strategy.ResidentProfile, Array[Array[@physical_cost.WorkRate]]) -> Result[Unit, DispatchIssue]
 
 pub fn configure_strategy_dispatch(@physical_strategy.CapturedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], TaskDispatchLimits) -> Result[StrategyHostDispatch, DispatchIssue]

@@ -14,6 +14,7 @@ pub(all) enum SequenceRunIssue {
   InputOwnership
   InputSet
   InputExecutionEvidencePending(Int)
+  InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int, InputKeyIssue)
   Wiring(WiringIssue)
@@ -78,8 +79,8 @@ fn evaluate_sequence_components(
   if produced.length() <= limits.metadata_entries &&
     produced.any(bound => {
       match bound.output.table {
-        RowTable(_) => false
-        NumberTable(_) | AdmittedTable(_) => true
+        Some(RowTable(_)) | None => false
+        Some(NumberTable(_) | AdmittedTable(_)) => true
       }
     }) {
     return evaluate_physical_sequence(
@@ -157,7 +158,7 @@ fn prepare_sequence_invocation(
       })
     },
     fn(bound, id, output_budget) {
-      guard bound.output.table is RowTable(source) else {
+      guard bound.output.table is Some(RowTable(source)) else {
         return Err(InvalidRows)
       }
       let adopted : Table = {
@@ -291,7 +292,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
     inputs[index] = Some(RawInput(supplied[i]))
   }
   for bound in produced {
-    if !completion_is_live(bound.output.completion) {
+    if !completed_output_available(bound.output) {
       return Err(InputOwnership)
     }
     if !spend_control(control, 1) {
@@ -347,7 +348,9 @@ fn[T : RelationRows] prepare_sequence_with_importers(
           }
         }
         ProducerInput(bound) => {
-          let source = bound.output.table
+          guard bound.output.table is Some(source) else {
+            return Err(InputRepresentationRequired(i))
+          }
           if !charge_completed_rows(
               source,
               limits.max_rows - input_rows,
@@ -455,6 +458,8 @@ fn[T : RelationRows] run_completed_sequence_backend(
     return Err(issue)
   }
   Ok({
+    result_identity: Ref(()),
+    readmitted: false,
     contracts: invocation.contracts,
     sequence: invocation.sequence,
     store: wrap(invocation.store),

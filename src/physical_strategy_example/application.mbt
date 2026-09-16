@@ -4,6 +4,14 @@ struct Application {
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
   generated : Array[@execution.GeneratedSequence]
+  data : DataProfile?
+}
+
+///|
+// The Node transport and selected offer must use the same admission envelope.
+#export_name("applicationComputeTransferCapacity")
+pub fn application_compute_transfer_capacity(app : Application) -> Int64 {
+  app.data.map(profile_compute_transfer_capacity).unwrap_or(100000L)
 }
 
 ///|
@@ -46,17 +54,95 @@ pub fn prepare_application(
   database_schema : String,
   table : String,
 ) -> Application raise {
-  let input_limits : @syntax.Limits = {
-    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-    tree: {
-      max_nodes: 100000,
-      max_depth: 100,
-      max_string_bytes: 1000000,
-      max_total_string_bytes: 1000000,
-    },
-    max_stages: 5,
+  prepare_application_internal(
+    program_json,
+    environment_json,
+    environment_cid,
+    parameter_json,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    database_schema,
+    table,
+    None,
+  )
+}
+
+///|
+#export_name("prepareApplicationWithData")
+pub fn prepare_application_with_data(
+  program_json : String,
+  environment_json : String,
+  environment_cid : String,
+  parameter_json : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  database_schema : String,
+  table : String,
+  data : DataProfile,
+) -> Application raise {
+  prepare_application_internal(
+    program_json,
+    environment_json,
+    environment_cid,
+    parameter_json,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    database_schema,
+    table,
+    Some(data),
+  )
+}
+
+///|
+priv suberror ApplicationSyntaxFailure {
+  Syntax(@syntax.SyntaxError)
+}
+
+///|
+fn prepare_application_internal(
+  program_json : String,
+  environment_json : String,
+  environment_cid : String,
+  parameter_json : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  database_schema : String,
+  table : String,
+  data : DataProfile?,
+) -> Application raise {
+  if data is Some(value) && !validate_data_profile(value) {
+    fail("invalid application data profile")
   }
-  let program = @syntax.parse(program_json, input_limits, format=Json).unwrap()
+  let input_limits : @syntax.Limits = {
+        source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+        tree: {
+          max_nodes: 100000,
+          max_depth: 100,
+          max_string_bytes: 1000000,
+          max_total_string_bytes: 1000000,
+        },
+        max_stages: 5,
+      }
+  let program = match @syntax.parse(program_json, input_limits, format=Json) {
+    Ok(program) => program
+    Err(issue) => raise Syntax(issue)
+  }
   let stages = @syntax.stage_count(program)
   if stages != 4 && stages != 5 {
     fail(
@@ -130,14 +216,23 @@ pub fn prepare_application(
       max_name_bytes=10000,
     ).unwrap()
   })
-  let generated = owners.map(owner => {
-    generate(owner, registry_json, values_json, fragment_json, true)
+  let generated = owners.mapi((index, owner) => {
+    generate(
+      owner,
+      registry_json,
+      values_json,
+      fragment_json,
+      true,
+      data~,
+      acquisition=index == 0,
+    )
   })
   let graph = @strategy.prepare_checked_dag(checked, owners, 5, 10000).unwrap()
   let sequence = @query.prepare_query_sequence(acquisition, generated[0], 10000).unwrap()
   let material : @planning.QueryMaterialLimits = {
     max_work: 1000000,
-    max_fields: 100,
+    // Requirement admission counts both source and projected output fields.
+    max_fields: data.map(value => value.columns * 2).unwrap_or(100),
     max_parameters: 100,
     max_bytes: 1000000,
     max_nodes: 100000,
@@ -146,14 +241,17 @@ pub fn prepare_application(
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, material).unwrap(),
     identity,
-    { max_rows: 100, max_value_bytes: 1000, },
+    {
+      max_rows: data.map(value => value.source_rows).unwrap_or(100),
+      max_value_bytes: data.map(value => value.value_bytes).unwrap_or(1000),
+    },
     material,
   ).unwrap()
   let preparation = @duckdb_query.prepare_duckdb_query(
     requirement,
     database_schema,
     table,
-    10,
+    data.map(value => value.columns).unwrap_or(10),
     native_query_limits(),
   ).unwrap()
   let registry = @connector.prepare_capability_registry(
@@ -197,11 +295,12 @@ pub fn prepare_application(
       requirement,
       choice,
       candidate,
-      acquisition_limits(),
+      acquisition_limits(data~),
     ),
     graph,
     registry,
     generated: generated[1:].to_owned(),
+    data,
   }
 }
 
@@ -220,24 +319,175 @@ pub fn application_graph(app : Application) -> @strategy.CheckedDAG {
 }
 
 ///|
+#export_name("applicationComputeCount")
+pub fn application_compute_count(app : Application) -> Int {
+  app.generated.length()
+}
+
+///|
+#export_name("applicationTaskReference")
+pub fn application_task_reference(
+  app : Application,
+  task : Int,
+) -> @strategy.CheckedTaskReference raise {
+  match @strategy.prepare_checked_task_reference(app.graph, task, 20, 1000) {
+    Ok(reference) => reference
+    Err(_) => fail("invalid checked task reference")
+  }
+}
+
+///|
+#export_name("applicationTaskIdentity")
+pub fn application_task_identity(
+  reference : @strategy.CheckedTaskReference,
+) -> @strategy.CheckedTaskIdentity {
+  @strategy.checked_task_identity(reference)
+}
+
+///|
+#export_name("applicationTaskOutputMatches")
+pub fn application_task_output_matches(
+  reference : @strategy.CheckedTaskReference,
+  output : @execution.CompletedOutput,
+) -> Bool {
+  @strategy.checked_task_output_matches(reference, output)
+}
+
+///|
+/// Content-only revalidation for the installed fresh-reader example. This
+/// projection neither runs the Local evaluator nor recreates task completion.
+#export_name("applicationTaskContentRead")
+pub fn application_task_content_read(
+  app : Application,
+  task : Int,
+  descriptor : @execution.RetainedCompletionDescriptor,
+) -> @execution.RetainedContentRead raise {
+  guard task > 0 && app.generated.get(task - 1) is Some(generated) else {
+    fail("invalid content task")
+  }
+  match
+    @execution.prepare_retained_content_read(
+      @execution.generated_completion_preparation(generated),
+      descriptor,
+      app.data.map(value => value.task_rows).unwrap_or(100),
+      {
+        max_nodes: app.data.map(value => value.value_nodes).unwrap_or(100000),
+        max_text_bytes: app.data
+        .map(value => value.text_bytes)
+        .unwrap_or(100000),
+        max_depth: 64,
+        max_work: app.data.map(value => value.work).unwrap_or(1000000),
+      },
+      {
+        max_bytes: app.data.map(value => value.wire_bytes).unwrap_or(100000),
+        max_nodes: app.data.map(value => value.value_nodes).unwrap_or(10000),
+        max_depth: 64,
+        max_columns: app.data.map(value => value.columns).unwrap_or(10),
+        max_order_work: app.data.map(value => value.work).unwrap_or(10000),
+      },
+      app.data.map(value => value.batch_bytes).unwrap_or(100000),
+    ) {
+    Ok(value) => value
+    Err(_) => fail("content admission failed")
+  }
+}
+
+///|
+#export_name("applicationTaskCompletionPreparation")
+pub fn application_task_completion_preparation(
+  app : Application,
+  task : Int,
+) -> @execution.CompletionPreparation raise {
+  guard task > 0 && app.generated.get(task - 1) is Some(generated) else {
+    fail("invalid completion task")
+  }
+  @execution.generated_completion_preparation(generated)
+}
+
+///|
+/// Bind a checked port only. This does not start or resume the consumer task.
+#export_name("applicationBindReadmittedOutput")
+pub fn application_bind_readmitted_output(
+  app : Application,
+  producer : Int,
+  consumer : Int,
+  input : Int,
+  output : @execution.CompletedOutput,
+) -> @execution.ProducerRead raise {
+  let mut connected = false
+  for index in 0..<@strategy.graph_data_count(app.graph) {
+    let edge = @strategy.graph_data_at(app.graph, index).unwrap()
+    if edge.producer == producer &&
+      edge.consumer == consumer &&
+      edge.input == input {
+      connected = true
+    }
+  }
+  guard connected &&
+    @strategy.graph_task_owner(app.graph, producer) is Some(owner) &&
+    @strategy.graph_task_owner(app.graph, consumer) is Some(receiver) else {
+    fail("foreign readmitted input port")
+  }
+  let bound = match
+    @execution.bind_completed_input(receiver, input, owner, output) {
+    Ok(bound) => bound
+    Err(_) => fail("readmitted binding rejected")
+  }
+  // Projection matching is metadata work, not a row-count allowance. Use the
+  // same configured-profile ceiling as the normal Compute preparation path.
+  let entries = if app.data is Some(_) { 100000 } else { 1000 }
+  match @execution.prepare_producer_read(receiver, bound, entries, 10000) {
+    Ok(read) => read
+    Err(_) => fail("readmitted producer unavailable")
+  }
+}
+
+///|
 // Bounded diagnostic hashing, not a transferable completion or publication grant.
 #export_name("applicationOutputCid")
 pub fn application_output_cid(
   run : @strategy.CapturedDAG,
   task : Int,
 ) -> String? {
+  output_cid_with_limits(run, task, {
+    max_columns: 10,
+    max_order_work: 10000,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  })
+}
+
+///|
+#export_name("applicationProfileOutputCid")
+pub fn application_profile_output_cid(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> String? {
+  if !physical_equal(app.graph, @strategy.captured_dag_graph(run)) {
+    return None
+  }
+  output_cid_with_limits(run, task, {
+    max_columns: app.data.map(value => value.columns).unwrap_or(10),
+    max_order_work: app.data.map(value => value.work).unwrap_or(10000),
+    max_bytes: app.data.map(value => value.wire_bytes).unwrap_or(100000),
+    max_nodes: app.data.map(value => value.value_nodes).unwrap_or(10000),
+    max_depth: 100,
+  })
+}
+
+///|
+fn output_cid_with_limits(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  limits : @execution.RowWireLimits,
+) -> String? {
   guard @strategy.captured_task_target(run, task) is Some(target) &&
     @strategy.captured_task_output(run, task, target) is Some(output) else {
     return None
   }
-  match
-    @execution.identify_completed_rows(output, {
-      max_columns: 10,
-      max_order_work: 10000,
-      max_bytes: 100000,
-      max_nodes: 10000,
-      max_depth: 100,
-    }) {
+  match @execution.identify_completed_rows(output, limits) {
     Ok(identity) => Some(@execution.row_wire_cid(identity))
     Err(_) => None
   }
@@ -257,6 +507,33 @@ pub fn application_ledger() -> @resources.Ledger {
 }
 
 ///|
+#export_name("applicationBoundedLedger")
+pub fn application_bounded_ledger(
+  limits : @resources.LedgerLimits,
+) -> @resources.Ledger raise {
+  match @resources.create_ledger(limits) {
+    Ok(ledger) => ledger
+    Err(_) => fail("invalid application ledger limits")
+  }
+}
+
+///|
+#export_name("applicationLedgerLimits")
+pub fn application_ledger_limits(
+  ledger : @resources.Ledger,
+) -> @resources.LedgerLimits {
+  @resources.ledger_limits(ledger)
+}
+
+///|
+#export_name("applicationLedgerUsage")
+pub fn application_ledger_usage(
+  ledger : @resources.Ledger,
+) -> @resources.LedgerUsage {
+  @resources.ledger_usage(ledger)
+}
+
+///|
 #export_name("applicationDispatch")
 pub fn application_dispatch(
   app : Application,
@@ -264,8 +541,95 @@ pub fn application_dispatch(
   native_fixed_ms : Int64,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  create_application_dispatch(app, run, native_fixed_ms, resident, None)
+}
+
+///|
+#export_name("applicationRetainedDispatch")
+pub fn application_retained_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  create_application_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    Some((file_bytes, Some(file_work_ms))),
+  )
+}
+
+///|
+#export_name("applicationMaterializingDispatch")
+pub fn application_materializing_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  local_import_ms : Int64,
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  create_application_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    Some((file_bytes, Some(file_work_ms))),
+    local_import_ms=Some(local_import_ms),
+  )
+}
+
+///|
+#export_name("applicationRetainedLocalDispatch")
+pub fn application_retained_local_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  local_import_ms : Int64,
+  local_export_ms : Int64,
+  native_task_ms : Array[Int64],
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  create_application_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    Some((file_bytes, Some(file_work_ms))),
+    local_import_ms=Some(local_import_ms),
+    local_export_ms=Some(local_export_ms),
+    native_task_ms~,
+  )
+}
+
+///|
+fn create_application_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  resident : Bool,
+  retained : (Int64, Int64?)?,
+  local_import_ms? : Int64? = None,
+  local_export_ms? : Int64? = None,
+  native_task_ms? : Array[Int64] = [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
     fail("foreign graph")
+  }
+  let data = app.data
+  if (
+      !native_task_ms.is_empty() &&
+      native_task_ms.length() != app.generated.length()
+    ) ||
+    native_task_ms.any(value => value < 0L) {
+    fail("invalid native task estimates")
   }
   let dispatch = @dbhost.configure_strategy_dispatch(
     run,
@@ -273,10 +637,61 @@ pub fn application_dispatch(
     @connector.capability_registration_at(app.registry, 0).unwrap(),
     @connector.capability_registration_at(app.registry, 1).unwrap(),
     app.generated,
-    dispatch_limits(),
+    dispatch_limits(data=app.data),
   ).unwrap()
+  if retained is Some((bytes, work)) {
+    @dbhost.configure_dispatch_retained_output(dispatch, bytes, work).unwrap()
+  }
+  if local_import_ms is Some(work) {
+    let modules = @builtin.configured_host_modules(
+      @dbhost.dispatch_installation(dispatch),
+    )
+    @local_driver.configure_local_retained_inputs(
+      @builtin.configured_local_module(modules).unwrap(),
+      {
+        max_rows: data.map(value => value.task_rows).unwrap_or(100),
+        values: dispatch_limits(data~).local_execution.rows.input_values,
+        wire: {
+          max_bytes: data.map(value => value.wire_bytes).unwrap_or(100000),
+          max_nodes: data.map(value => value.value_nodes).unwrap_or(10000),
+          max_depth: 64,
+          max_columns: data.map(value => value.columns).unwrap_or(10),
+          max_order_work: 10000,
+        },
+        row: {
+          max_bytes: data.map(value => value.batch_bytes).unwrap_or(100000),
+          max_nodes: 10000,
+          max_depth: 64,
+          max_text_bytes: data.map(value => value.batch_bytes).unwrap_or(10000),
+        },
+        max_batch_bytes: data.map(value => value.batch_bytes).unwrap_or(100000),
+      },
+      Some(work),
+    ).unwrap()
+  }
   let count = app.generated.length()
-  let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(count, _ => {
+  if local_export_ms is Some(work) {
+    let modules = @builtin.configured_host_modules(
+      @dbhost.dispatch_installation(dispatch),
+    )
+    @local_driver.configure_local_retained_output(
+      @builtin.configured_local_module(modules).unwrap(),
+      {
+        max_rows: data.map(value => value.task_rows).unwrap_or(100),
+        values: dispatch_limits(data~).local_execution.rows.output_values,
+        wire: {
+          max_bytes: data.map(value => value.wire_bytes).unwrap_or(100000),
+          max_nodes: data.map(value => value.value_nodes).unwrap_or(10000),
+          max_depth: 64,
+          max_columns: data.map(value => value.columns).unwrap_or(10),
+          max_order_work: 10000,
+        },
+        max_batch_bytes: data.map(value => value.batch_bytes).unwrap_or(100000),
+      },
+      Some(work),
+    ).unwrap()
+  }
+  let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(count, index => {
     local_rates: [
       {
         work_slots: [0, 1, 2, 3, 4],
@@ -289,16 +704,34 @@ pub fn application_dispatch(
     native_rates: [
       {
         work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
-        fixed_ms: Some(native_fixed_ms),
+        fixed_ms: Some(native_task_ms.get(index).unwrap_or(native_fixed_ms)),
         per_row_ms: Some(0L),
         per_wire_byte_ms: Some(0L),
         per_pair_ms: Some(0L),
       },
     ],
     native_capacity: {
-      transfer_bytes: 100000L,
-      retained_bytes: 4000000L,
-      execution_bytes: 268435456L,
+      transfer_bytes: data
+      .map(profile_compute_transfer_capacity)
+      .unwrap_or(100000L),
+      retained_bytes: data
+      .map(value => {
+        (if !resident && retained is Some((bytes, _)) && bytes > 0L {
+          @duckdb_compute.duckdb_stream_retention_capacity(
+            dispatch_limits(data=Some(value)).native,
+          )
+        } else {
+          @duckdb_compute.duckdb_task_retention_capacity(
+            dispatch_limits(data=Some(value)).native,
+          )
+        }).unwrap()
+      })
+      .unwrap_or(4000000L),
+      execution_bytes: if data is Some(_) {
+        4294967296L
+      } else {
+        268435456L
+      },
     },
     output_rows_per_mille: Some(1000),
   })

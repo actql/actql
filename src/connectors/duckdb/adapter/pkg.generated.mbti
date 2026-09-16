@@ -32,6 +32,16 @@ pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> 
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
+pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
+
+pub fn append_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
+
+pub fn attach_fixed_import_demand(FixedImportStream, FixedCompute, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, FixedImportStreamIssue]
+
+pub fn attach_fixed_import_join(FixedImportStream, @execution_relation.FixedJoinStream) -> Result[Unit, FixedImportStreamIssue]
+
+pub fn attach_fixed_import_measurement(FixedImportStream, @execution_relation.FixedProducerMeasurement) -> Result[Unit, FixedImportStreamIssue]
+
 pub fn begin_native_receipt(NativeReceiving, NativeReceiptRole, Array[(String, PhysicalType)]) -> Result[NativeReceiptPort, NativeReceivingIssue]
 
 pub fn broad_scan_metadata_parameter(BroadScan, Int) -> PhysicalParameter?
@@ -40,7 +50,11 @@ pub fn broad_scan_metadata_sql(BroadScan) -> String
 
 pub fn broad_scan_sql(BroadScan) -> String
 
+pub fn cancel_fixed_import_stream(FixedImportStream) -> Bool
+
 pub fn cancel_physical_result(PhysicalResult) -> Unit
+
+pub fn cancel_resident_import_stream(ResidentImportStream) -> Bool
 
 pub fn check_fixed_compute_static(@lowering_relation.BoundPrepared, Array[String], NativeQueryLimits) -> Result[Unit, NativeQueryIssue]
 
@@ -58,13 +72,25 @@ pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIs
 
 pub fn decode_transport_columns(String, TransportColumnLimits) -> Result[Array[@decode_core.Cursor], TransportColumnIssue]
 
+pub fn drain_fixed_compute_stream_row(FixedComputeReceiving) -> Result[String?, FixedComputeReceivingIssue]
+
+pub fn drain_native_output_row(NativeReceiving) -> Result[String?, NativeReceivingIssue]
+
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn finish_broad_receiving(BroadReceiving) -> Result[@execution_relation.CapturedRows, BroadReceivingIssue]
 
 pub fn finish_fixed_compute_receiving(FixedComputeReceiving) -> Result[FixedComputeReceipt, FixedComputeReceivingIssue]
 
+pub fn finish_fixed_compute_stream_receiving(FixedComputeReceiving) -> Result[(FixedComputeStreamReceipt, String), FixedComputeReceivingIssue]
+
+pub fn finish_fixed_import_stream(FixedImportStream) -> Result[@execution_relation.VerifiedProducerScan, FixedImportStreamIssue]
+
+pub fn finish_native_output_stream(NativeReceiving) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String)?, NativeReceivingIssue]
+
 pub fn finish_native_receipt(NativeReceiving, NativeReceiptPort) -> Result[Unit, NativeReceivingIssue]
+
+pub fn finish_resident_import_stream(ResidentImportStream) -> Result[@execution_relation.VerifiedStorageScan, FixedImportStreamIssue]
 
 pub fn fixed_compute_demand_matches(FixedComputeDemand, FixedCompute, FixedComputeReceipt, Int) -> Bool
 
@@ -88,11 +114,23 @@ pub fn fixed_compute_receipt_matches(FixedComputeReceipt, FixedComputeReceiving)
 
 pub fn fixed_compute_receipt_rows(FixedComputeReceipt) -> @execution_relation.AdmittedOutputRows?
 
+pub fn fixed_compute_retains_join_keys(FixedCompute) -> Bool
+
+pub fn fixed_compute_stream_demand_matches(FixedComputeStreamDemand, FixedCompute, FixedComputeStreamReceipt, Int) -> Bool
+
+pub fn fixed_compute_stream_demand_usage(FixedComputeStreamDemand) -> FixedComputeDemandUsage
+
+pub fn fixed_compute_stream_receipt_content(FixedComputeStreamReceipt) -> @execution_relation.AdmittedOutputStreamReceipt?
+
+pub fn fixed_compute_stream_receipt_matches(FixedComputeStreamReceipt, FixedComputeReceiving) -> Bool
+
 pub fn fixed_count_group_owner(NativeCountGroup) -> @lowering_relation.BoundPrepared
 
 pub fn fixed_count_group_profile(NativeCountGroup) -> @lowering_relation.PreparedCountGroup
 
 pub fn fixed_count_group_sql(NativeCountGroup) -> String
+
+pub fn fixed_import_batch_insert_sql(FixedImport, Int, Int, Int) -> Result[(Int, String), NativeQueryIssue]
 
 pub fn fixed_import_column_count(FixedImport) -> Int
 
@@ -103,6 +141,8 @@ pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
 pub fn fixed_import_insert_sql(FixedImport) -> String
 
 pub fn fixed_import_parameter(FixedImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
+
+pub fn fixed_import_verified_demand(FixedImportStream) -> FixedImportDemand?
 
 pub fn fixed_join_import_at(FixedJoinInputs, Int) -> FixedImport?
 
@@ -126,7 +166,9 @@ pub fn fixed_query_target(FixedQuery) -> @pipeline_typing.Target
 
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
 
-pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[FixedComputeDemand, NativeDemandIssue]
+pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeDemand, NativeDemandIssue]
+
+pub fn measure_fixed_compute_stream_demand(FixedCompute, FixedComputeStreamReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeStreamDemand, NativeDemandIssue]
 
 pub fn measure_native_demand(NativeReceiving, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeDemandMeasurement, NativeDemandIssue]
 
@@ -142,9 +184,15 @@ pub fn native_inner_join_profile(NativeInnerJoin) -> @lowering_relation.Prepared
 
 pub fn native_inner_join_sql(NativeInnerJoin) -> String
 
+pub fn native_output_retained_rows(NativeReceiving) -> Int
+
 pub fn native_output_rows(NativeOutputRows) -> @execution_relation.AdmittedOutputRows?
 
 pub fn native_output_rows_match(NativeOutputRows, NativeReceiving) -> Bool
+
+pub fn native_output_stream_matches(NativeReceiving, @execution_relation.AdmittedOutputStreamReceipt) -> Bool
+
+pub fn native_output_stream_material_matches(NativeReceiving, @execution_relation.RetainedOutputMaterial) -> Bool
 
 pub fn native_query_owner(NativeQuery) -> @lowering_relation.BoundPrepared
 
@@ -176,6 +224,8 @@ pub fn native_scan_query(NativeScan) -> NativeQuery
 
 pub fn native_scan_sql(NativeScan) -> String
 
+pub fn native_validation_retained_rows(NativeReceiving) -> Int
+
 pub fn physical_batch_cell(PhysicalBatch, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn physical_batch_owner(PhysicalBatch) -> PhysicalResult
@@ -192,9 +242,15 @@ pub fn prepare_broad_scan(@lowering_relation.BoundPrepared, Int, String, String,
 
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
+pub fn prepare_fixed_compute_join_stream(FixedCompute) -> Result[@execution_relation.FixedJoinStream?, @execution_relation.RowIssue]
+
 pub fn prepare_fixed_compute_receiving(FixedCompute, Array[(String, PhysicalType)], PhysicalResultLimits, @execution_relation.ValueLimits, Int) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue]
 
+pub fn prepare_fixed_compute_stream_receiving(FixedCompute, Array[(String, PhysicalType)], PhysicalResultLimits, @execution_relation.ValueLimits, Int, @execution_relation.RowWireLimits, Int, Int, measurement? : @execution_relation.FixedProducerMeasurement) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue]
+
 pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int) -> Result[FixedImport, NativeQueryIssue]
+
+pub fn prepare_fixed_import_stream(FixedImport, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[FixedImportStream, FixedImportStreamIssue]
 
 pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
 
@@ -214,6 +270,8 @@ pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) ->
 
 pub fn prepare_resident_import(@execution_relation.ProducerStorage, String, Int, Int) -> Result[ResidentImport, NativeQueryIssue]
 
+pub fn prepare_resident_import_stream(ResidentImport, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[ResidentImportStream, FixedImportStreamIssue]
+
 pub fn prepare_resident_query(FixedQuery, String, Int) -> Result[ResidentQuery, NativeQueryIssue]
 
 pub fn prepare_scan_output_receiver(NativeScan, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
@@ -223,6 +281,8 @@ pub fn prepare_scan_validation_receiver(NativeScan, Array[(String, PhysicalType)
 pub fn prepare_value_mapping(PhysicalType, @value_contract.Contract) -> Result[ValueMapping, ValueIssue]
 
 pub fn receive_fixed_compute_chunk(FixedComputeReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedComputeReceivingIssue]
+
+pub fn receive_fixed_compute_stream_chunk(FixedComputeReceiving, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedComputeReceivingIssue]
 
 pub fn resident_import_available(ResidentImport) -> Bool
 
@@ -257,6 +317,10 @@ pub fn resident_query_parameter(ResidentQuery, Int) -> PhysicalParameter?
 pub fn resident_query_read_sql(ResidentQuery) -> String
 
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
+
+pub fn stream_native_output(NativeReceiving, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[Unit, NativeReceivingIssue]
+
+pub fn stream_native_validation(NativeReceiving, @execution_relation.RowWireLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[Unit, NativeReceivingIssue]
 
 pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.FixedJoinValidation?, @execution_relation.RowIssue]
 
@@ -297,9 +361,25 @@ pub(all) enum FixedComputeReceivingIssue {
   InvalidShape
   Physical(PhysicalResultIssue)
   Retention(@execution_relation.CaptureIssue)
+  Stream(@execution_relation.OutputStreamIssue)
+  Guard(@execution_relation.FixedInputGuardIssue)
 }
 
+type FixedComputeStreamDemand
+
+type FixedComputeStreamReceipt
+
 type FixedImport
+
+type FixedImportDemand
+
+type FixedImportStream
+
+pub(all) enum FixedImportStreamIssue {
+  Content(@execution_relation.CompletedImportIssue)
+  Parameter(ValueIssue)
+  Demand(NativeDemandIssue)
+}
 
 pub(all) enum FixedJoinInputIssue {
   Validation(@execution_relation.RowIssue)
@@ -377,6 +457,7 @@ pub(all) enum NativeReceiptIdentityIssue {
   ReceiptRows
   ReceiptBytes
   Wire(NativeReceiptRole, @execution_relation.RowWireIssue)
+  Stream(@execution_relation.OutputStreamIssue)
 }
 
 type NativeReceiptPort
@@ -396,6 +477,7 @@ pub(all) enum NativeReceivingIssue {
   InvalidMetadata
   Values(PhysicalResultIssue)
   Guard(NativeReceiptRole, Int, Int, NativeValueIssue)
+  Stream(@execution_relation.OutputStreamIssue)
 }
 
 type NativeRootGuard
@@ -457,6 +539,8 @@ pub(all) enum PhysicalType {
 } derive(Eq, @debug.Debug)
 
 type ResidentImport
+
+type ResidentImportStream
 
 type ResidentQuery
 

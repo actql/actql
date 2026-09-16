@@ -1,8 +1,10 @@
 // Conformance only. No product entry imports this fixture-backed driver.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { runFixedCompute, matchesFixedCompute, releaseFixedCompute } from '../fixed-compute.mjs';
-import { runFixedHostCompute } from '../host.mjs';
+import { runFixedHostCompute, runRetainedFixedHostCompute, consumeRetainedComputeInput,
+  importRetainedComputeInput } from '../host.mjs';
 
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
@@ -12,6 +14,52 @@ export async function exerciseOwnedFixedTransport(moon, producer, output, contra
   const setup = moon.ownedFixedConfiguration(configured);
   const hostLimits = { maxRows: 100, maxCells: 1000 };
   const expectedCid = hash(expectedIds.map(id => ({ id })));
+  const retained = await runRetainedFixedHostCompute(setup, limits, hostLimits, {
+    parentDirectory: tmpdir(), maxFrameBytes: 4096,
+    wire: { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_columns: 10, max_order_work: 10000 },
+  }).catch(async error => { await error?.cleanupHandle?.retry(); throw error; });
+  const retainedOutput = retained.output();
+  try {
+    assert.equal(moon.ownedFixedRetainedCid(configured, retainedOutput), expectedCid);
+    assert.equal(moon.ownedFixedRetainedCid(create(), retainedOutput), 'null');
+    // Local requires an explicit conversion; no hidden all-row fallback.
+    assert.equal(moon.ownedFixedConsumeOutput(configured, retainedOutput), 'null');
+    assert.equal(retained.storageUsage().holdings, 1);
+    assert.equal(retained.storageUsage().admittedWriteBytes,
+      Buffer.byteLength(JSON.stringify(expectedIds.map(id => ({ id })))));
+    const read = moon.ownedFixedRetainedInput(configured, retainedOutput);
+    assert.ok(read);
+    let text = '';
+    await consumeRetainedComputeInput(retainedOutput, read, bytes => { text += bytes.toString('utf8'); });
+    assert.equal(text, JSON.stringify(expectedIds.map(id => ({ id }))));
+    await assert.rejects(consumeRetainedComputeInput(retainedOutput, null, () => {}), {
+      code: 'RetainedInputUnavailable',
+    });
+    const conversionLimits = {
+      maxRows: 100, maxBatchBytes: 4096,
+      values: { max_nodes: 10000, max_text_bytes: 100000, max_depth: 10, max_work: 200000 },
+      wire: { max_bytes: 100000, max_nodes: 10000, max_depth: 10, max_columns: 10, max_order_work: 10000 },
+      row: { max_bytes: 4096, max_nodes: 100, max_depth: 10, max_text_bytes: 4096 },
+      frames: { maxBytes: 100000, maxRows: 100, maxRowBytes: 4096, maxDepth: 10, maxFrameBytes: 4096 },
+    };
+    const imported = await importRetainedComputeInput(retainedOutput, read, conversionLimits);
+    assert.equal(moon.ownedFixedConsumeOutput(configured, imported), expectedCid);
+    // A failed conversion cannot revoke the independent source result.
+    await assert.rejects(importRetainedComputeInput(retainedOutput, read, {
+      ...conversionLimits, frames: { ...conversionLimits.frames, maxBytes: 1 },
+    }));
+    assert.equal(moon.ownedFixedRetainedCid(configured, retainedOutput), expectedCid);
+    const cancelledImport = new AbortController();
+    cancelledImport.abort();
+    await assert.rejects(importRetainedComputeInput(retainedOutput, read, conversionLimits, cancelledImport.signal));
+  } finally {
+    retained.close();
+    assert.equal(retained.cleanupHandle.status().pending, true);
+    await retained.cleanupHandle.retry();
+  }
+  assert.equal(retained.cleanupHandle.status().pending, false);
+  assert.equal(retained.storageUsage().reservedBytes, 0);
+  assert.equal(moon.ownedFixedRetainedCid(configured, retainedOutput), 'null');
   const forbidden = () => assert.fail('fixed Host used caller replacement');
   const actual = await runFixedHostCompute(setup, { ...limits,
     verifier: forbidden, verify: forbidden, sql: forbidden,

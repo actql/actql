@@ -46,6 +46,10 @@ jobs:
         run: node scripts/check-moonbit-api.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
+      - name: Test bounded retained storage and process lifecycle
+        run: npm run check:retained-boundary
+      - name: Test control-side process admission without DuckDB
+        run: npm run check:process-capacity
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies

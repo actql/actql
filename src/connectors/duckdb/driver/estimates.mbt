@@ -64,6 +64,9 @@ pub fn prepare_duckdb_estimate_module(
       return Err(InvalidConfiguration)
     }
   }
+  // A policy can emit offers before installation. Freeze the representation
+  // now so an already emitted row offer cannot later authorize file execution.
+  installed.output_policy_sealed = true
   Ok({
     installed,
     configuration: {
@@ -213,6 +216,7 @@ fn estimate_duckdb_configuration(
       lines,
       configuration.capacities[task - 1],
       configuration.max_work,
+      retained_output?=installed.retained_output,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Search(issue))
@@ -241,6 +245,7 @@ fn estimate_duckdb_configuration(
         configuration.capacities[task - 1],
         configuration.max_work,
         resident=resident.profile,
+        retained_output?=installed.retained_output,
       ) {
       Ok(value) => offers.push(value)
       Err(issue) => return Err(Search(issue))

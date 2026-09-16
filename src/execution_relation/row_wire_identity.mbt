@@ -150,14 +150,45 @@ pub fn identify_completed_rows(
   output : CompletedOutput,
   limits : RowWireLimits,
 ) -> Result[RowWireIdentity, RowWireIssue] {
-  hash_row_wire(output.table, RelationRows::field_names(output.table), limits).map(value => {
+  if !row_wire_valid_limits(limits) {
+    return Err(InvalidLimits)
+  }
+  guard output.table is Some(table) else {
+    let receipt = output.representation.unwrap().receipt
+    let width = @schema.field_count(receipt.schema)
+    if width > limits.max_columns || width > limits.max_order_work {
+      return Err(OrderLimit)
+    }
+    let names = Array::makei(width, column => {
+      @schema.reference_name(
+        @schema.field_at(receipt.schema, column).unwrap().name,
+      )
+    })
+    match
+      prepare_row_wire_order(names, limits.max_columns, limits.max_order_work) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if receipt.bytes > limits.max_bytes ||
+      receipt.nodes > limits.max_nodes ||
+      receipt.depth > limits.max_depth {
+      return Err(Encoding(@encode.OutputLimit))
+    }
+    return Ok({
       owner: Output(output),
-      cid: value.0,
-      bytes: value.1,
-      nodes: value.2,
-      rows: completed_row_count(output),
-    },
-  )
+      cid: receipt.cid,
+      bytes: receipt.bytes,
+      nodes: receipt.nodes,
+      rows: receipt.rows,
+    })
+  }
+  hash_row_wire(table, RelationRows::field_names(table), limits).map(value => {
+    owner: Output(output),
+    cid: value.0,
+    bytes: value.1,
+    nodes: value.2,
+    rows: completed_row_count(output),
+  })
 }
 
 ///|

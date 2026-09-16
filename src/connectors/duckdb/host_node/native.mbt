@@ -4,6 +4,8 @@ struct NativeNodeRun {
   host : @acquisition_host.NativeHostRun
   limits : @acquisition_host.NativeHostLimits
   physical : NativePhysical?
+  mut streaming_output : Bool
+  stream_owner : Ref[Bool]
 }
 
 ///|
@@ -36,6 +38,8 @@ pub fn native_host_open(
         host,
         limits: @acquisition_host.configured_native_host_limits(setup),
         physical: None,
+        streaming_output: false,
+        stream_owner: Ref(true),
       }
     Err(issue) => raise Host(issue)
   }
@@ -249,8 +253,16 @@ pub fn native_host_complete(
     if p.closed || !p.settled || p.holding is Some(_) {
       raise Physical(InvalidCharge)
     }
+    let retention = if run.streaming_output {
+      guard p.sealed_file_bytes is Some(bytes) else {
+        raise Physical(InvalidCharge)
+      }
+      p.retention - p.file_capacity + bytes
+    } else {
+      p.retention
+    }
     p.holding = Some(
-      match @resources.retain_allocation(p.ledger, p.reservation, p.retention) {
+      match @resources.retain_allocation(p.ledger, p.reservation, retention) {
         Ok(value) => value
         Err(issue) => raise Physical(issue)
       },
@@ -287,6 +299,18 @@ pub fn native_host_output(
     raise Physical(InvalidCharge)
   }
   let limits = run.limits
+  if run.streaming_output {
+    return match
+      @acquisition_host.native_host_retained_output(
+        run.host,
+        observation,
+        limits.output_entries,
+        limits.output_name_bytes,
+      ) {
+      Ok(output) => output
+      Err(issue) => raise Host(issue)
+    }
+  }
   let retained = match
     @acquisition_host.native_host_output(
       run.host,
@@ -328,6 +352,18 @@ pub fn native_host_captured_source(
     raise Physical(InvalidCharge)
   }
   let limits = run.limits
+  if run.streaming_output {
+    return match
+      @acquisition_host.native_host_retained_source(
+        run.host,
+        observation,
+        limits.output_entries,
+        limits.output_name_bytes,
+      ) {
+      Ok(source) => source
+      Err(issue) => raise CapturedSource(issue)
+    }
+  }
   let retained = match
     @acquisition_host.native_host_output(
       run.host,
@@ -358,6 +394,7 @@ pub fn native_host_abort(run : NativeNodeRun) -> Unit {
 ///|
 #export_name("nativeHostClose")
 pub fn native_host_close(run : NativeNodeRun) -> Unit {
+  run.stream_owner.val = false
   @acquisition_host.close_native_host(run.host)
   close_native_physical(run)
 }

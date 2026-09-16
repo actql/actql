@@ -39,6 +39,27 @@ pub fn[P] prepare_trusted_output_port(
   verify : (P) -> AdmittedOutputRows?,
   inputs? : Array[ProducerRead],
 ) -> Result[TrustedOutputPort[P], TrustedOutputIssue] {
+  let (id, names, input_bindings) = match
+    validate_trusted_output_contract(
+      generated, target, max_entries, max_name_bytes, inputs,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ generated, target, id, names, verify, input_bindings, })
+}
+
+///|
+fn validate_trusted_output_contract(
+  generated : CompletionPreparation,
+  target : @pipeline.Target,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[ProducerRead]?,
+) -> Result[
+  (String, Array[String], Array[ProducerBindingIdentity]),
+  TrustedOutputIssue,
+] {
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -46,6 +67,9 @@ pub fn[P] prepare_trusted_output_port(
   let prepared = @lower.bound_preparation(owner)
   let input_bindings = []
   if inputs is Some(inputs) {
+    if inputs.length() > max_entries {
+      return Err(Limit)
+    }
     if inputs.length() != @lower.preparation_input_count(prepared) {
       return Err(ForeignInputs)
     }
@@ -95,7 +119,7 @@ pub fn[P] prepare_trusted_output_port(
     }
     names.push(name)
   }
-  Ok({ generated, target, id, names, verify, input_bindings, })
+  Ok((id, names, input_bindings))
 }
 
 ///|
@@ -128,6 +152,8 @@ pub fn[P] complete_trusted_output(
     }
   }
   let completion : CompletedSequence = {
+    result_identity: Ref(()),
+    readmitted: false,
     contracts: port.generated.contracts,
     sequence: port.generated.sequence,
     store: ImportedStore(
@@ -139,7 +165,12 @@ pub fn[P] complete_trusted_output(
     input_bindings: port.input_bindings,
     live: Some(live),
   }
-  Ok({ completion, target: port.target, table, })
+  Ok({
+    completion,
+    target: port.target,
+    table: Some(table),
+    representation: None,
+  })
 }
 
 ///|

@@ -24,7 +24,7 @@ pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.Co
 
 pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @driver.LocalDispatchModule?
 
-pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@driver.LocalDispatchOperations, ConfiguredDispatchIssue[E]]
 
 pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

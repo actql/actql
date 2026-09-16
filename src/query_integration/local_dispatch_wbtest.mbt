@@ -1,4 +1,62 @@
 ///|
+test "Local retained input policy validates before mutation and seals before offers escape" {
+  for install_policy in [false, true] {
+    let (run, _) = captured_graph_fixture()
+    let registry = search_registry()
+    let driver = @host_driver.open_dispatch_driver(run)
+    let limits = dispatch_test_limits()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let installed = @local_driver.prepare_local_dispatch_module(
+      driver,
+      registry,
+      registration,
+      dispatch_test_generated(run),
+      limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+    ).unwrap()
+    let imports : @local_connector.LocalImportLimits = {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    }
+    let ledger = @strategy.captured_dag_ledger(run)
+    let before = @resources.ledger_usage(ledger)
+    assert_true(
+      @local_driver.configure_local_retained_inputs(
+        installed,
+        { ..imports, max_batch_bytes: 0, },
+        Some(0L),
+      )
+      is Err(Configuration(InvalidLimits)),
+    )
+    if install_policy {
+      @local_driver.configure_local_retained_inputs(installed, imports, None).unwrap()
+    }
+    @local_driver.estimate_local_dispatch_offer(
+      installed,
+      1,
+      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+      100,
+    ).unwrap()
+    |> ignore
+    assert_true(
+      @local_driver.configure_local_retained_inputs(
+        installed,
+        imports,
+        Some(0L),
+      )
+      is Err(Configuration(InvalidLimits)),
+    )
+    let after = @resources.ledger_usage(ledger)
+    assert_true(after.planning_work > before.planning_work)
+    assert_eq(after, { ..before, planning_work: after.planning_work, })
+  }
+}
+
+///|
 test "Local connector installation validates task owners and cannot exchange prepared channels" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

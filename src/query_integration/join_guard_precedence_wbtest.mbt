@@ -51,6 +51,27 @@ test "common input value guard precedes join cardinality in both realizations" {
     10000,
   ).unwrap()
   let compute = @duckdb.prepare_fixed_join_compute(imported, 100).unwrap()
+  assert_true(@duckdb.fixed_compute_retains_join_keys(compute))
+  let frame : @duckdb.TransportColumnLimits = {
+    max_bytes: 100,
+    max_nodes: 20,
+    max_rows: 1,
+    max_columns: 2,
+    max_text_bytes: 100,
+  }
+  // Cardinality preflight may retain input keys: passing a prepared plan must
+  // not select the frame-only allowance for this realization.
+  assert_eq(
+    @duckdb_compute.duckdb_stream_scratch_capacity(
+      fixed_compute_attempt_limits(),
+      frame,
+      compute~,
+    ),
+    @duckdb_compute.duckdb_stream_scratch_capacity(
+      fixed_compute_attempt_limits(),
+      frame,
+    ),
+  )
   let registry = search_registry()
   let quantities : @connector.QueryQuantities = {
     transfer_bytes: None,

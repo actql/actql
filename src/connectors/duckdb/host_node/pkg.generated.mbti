@@ -50,6 +50,8 @@ pub fn compute_host_attempt(ComputeNodeRun) -> @compute.DuckDBComputeAttempt
 
 pub fn compute_host_begin(ComputeNodeRun, String) -> Unit raise NodeHostFailure
 
+pub fn compute_host_cleanup_refresh(ComputeNodeRun) -> Bool raise NodeHostFailure
+
 pub fn compute_host_close(ComputeNodeRun) -> Unit
 
 pub fn compute_host_complete(ComputeNodeRun) -> @execution_relation.CompletedOutput raise NodeHostFailure
@@ -58,7 +60,19 @@ pub fn compute_host_count(ComputeNodeRun, Int, Bool) -> Int raise NodeHostFailur
 
 pub fn compute_host_finish(ComputeNodeRun) -> Unit raise NodeHostFailure
 
+pub fn compute_host_import_batch(ComputeNodeRun, Int, Int, Int, Int) -> (Int, String) raise NodeHostFailure
+
 pub fn compute_host_import_count(ComputeNodeRun) -> Int
+
+pub fn compute_host_input_material(@execution_relation.ProducerRead) -> @execution_relation.RetainedOutputMaterial?
+
+pub fn compute_host_input_read(ComputeNodeRun, Int) -> @execution_relation.ProducerRead raise NodeHostFailure
+
+pub fn compute_host_input_stream_append(ComputeNodeRun, Int, String, @execution_relation.RetainedRowDecodeLimits) -> String raise NodeHostFailure
+
+pub fn compute_host_input_stream_begin(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int) -> Unit raise NodeHostFailure
+
+pub fn compute_host_input_stream_finish(ComputeNodeRun, Int) -> Unit raise NodeHostFailure
 
 pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
@@ -72,6 +86,22 @@ pub fn compute_host_query_parameter_count(ComputeNodeRun) -> Int
 
 pub fn compute_host_sql(ComputeNodeRun, Int, Int) -> String raise NodeHostFailure
 
+pub fn compute_host_stream_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_stream_begin(ComputeNodeRun, String, @execution_relation.RowWireLimits, Int) -> Unit raise NodeHostFailure
+
+pub fn compute_host_stream_drain(ComputeNodeRun) -> String? raise NodeHostFailure
+
+pub fn compute_host_stream_finish(ComputeNodeRun) -> (ComputeStreamNodeReceipt, String) raise NodeHostFailure
+
+pub fn compute_host_stream_identity(ComputeStreamNodeReceipt) -> (String, Int, Int, Int)
+
+pub fn compute_host_stream_material(@execution_relation.RetainedOutputHandle[ComputeStreamNodeReceipt]) -> @execution_relation.RetainedOutputMaterial
+
+pub fn compute_host_stream_readable(@execution_relation.RetainedOutputHandle[ComputeStreamNodeReceipt], @execution_relation.ProducerRead) -> Bool
+
+pub fn compute_host_stream_retain(ComputeNodeRun, ComputeStreamNodeReceipt, () -> Bool) -> @execution_relation.RetainedOutputHandle[ComputeStreamNodeReceipt] raise NodeHostFailure
+
 pub fn compute_resident_cleanup_sql(ComputeNodeRun) -> Array[String] raise NodeHostFailure
 
 pub fn compute_resident_commit(ComputeNodeRun) -> Unit raise NodeHostFailure
@@ -80,11 +110,15 @@ pub fn compute_resident_sql(ComputeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn compute_resident_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, @driver.DuckDBResidentInputs) -> ComputeNodeRun raise NodeHostFailure
 
+pub fn compute_retained_resident_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, @driver.DuckDBResidentInputs, Int64, () -> Bool) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_retained_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, Int64, () -> Bool) -> ComputeNodeRun raise NodeHostFailure
+
 pub fn compute_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
 
-pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
-pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguration) -> Int64 raise NodeHostFailure
+pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
@@ -118,9 +152,29 @@ pub fn native_host_parameter(NativeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn native_host_physical_charge(NativeNodeRun, Int64) -> Unit raise NodeHostFailure
 
+pub fn native_host_physical_refresh(NativeNodeRun) -> Unit
+
 pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFailure
 
 pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn native_host_stream_drain(NativeNodeRun) -> String? raise NodeHostFailure
+
+pub fn native_host_stream_finish(NativeNodeRun) -> (NativeStreamNodeReceipt, String)? raise NodeHostFailure
+
+pub fn native_host_stream_identity(NativeStreamNodeReceipt) -> (String, Int, Int, Int)
+
+pub fn native_host_stream_material(@execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt]) -> @execution_relation.RetainedOutputMaterial
+
+pub fn native_host_stream_prepare(NativeNodeRun, Int) -> Unit raise NodeHostFailure
+
+pub fn native_host_stream_readable(@execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt], @execution_relation.ProducerRead) -> Bool
+
+pub fn native_host_stream_retain(NativeNodeRun, NativeStreamNodeReceipt, () -> Bool) -> @execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt] raise NodeHostFailure
+
+pub fn native_retained_host_capacity(@host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
+
+pub fn native_retained_strategy_host_open(@host.NativeHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBNativeAttempt) -> Bool, Int64, Int64, Int64, Int, () -> Bool) -> NativeNodeRun raise NodeHostFailure
 
 pub fn native_strategy_host_open(@host.NativeHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBNativeAttempt) -> Bool, Int64, Int64) -> NativeNodeRun raise NodeHostFailure
 
@@ -138,9 +192,19 @@ pub fn resident_has_table(@physical_strategy.CapturedDAG, @driver.DuckDBResident
 
 pub fn resident_import_count(@driver.DuckDBResidentTable, Bool) -> Int raise NodeHostFailure
 
+pub fn resident_import_material(@driver.DuckDBResidentTable) -> @execution_relation.RetainedOutputMaterial? raise NodeHostFailure
+
 pub fn resident_import_parameter(@driver.DuckDBResidentTable, Int, Int, Int, Int) -> String raise NodeHostFailure
 
 pub fn resident_import_sql(@driver.DuckDBResidentTable, Bool) -> String raise NodeHostFailure
+
+pub fn resident_import_stream_append(@adapter.ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> String raise NodeHostFailure
+
+pub fn resident_import_stream_begin(@driver.DuckDBResidentTable, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> @adapter.ResidentImportStream raise NodeHostFailure
+
+pub fn resident_import_stream_cancel(@adapter.ResidentImportStream) -> Unit
+
+pub fn resident_import_stream_finish(@adapter.ResidentImportStream) -> Unit raise NodeHostFailure
 
 pub fn resident_inputs_sql(@driver.DuckDBResidentInputs) -> Array[String]
 
@@ -182,7 +246,11 @@ type BroadNodeRun
 
 type ComputeNodeRun
 
+type ComputeStreamNodeReceipt
+
 type NativeNodeRun
+
+type NativeStreamNodeReceipt
 
 // Type aliases
 

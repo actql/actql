@@ -21,9 +21,10 @@ pub fn measure_fixed_compute_demand(
   receipt : FixedComputeReceipt,
   max_value_bytes : Int,
   physical : @execution.FixedInputGuardMeasureLimits,
+  input_demand? : FixedImportDemand,
 ) -> Result[FixedComputeDemand, NativeDemandIssue] {
   let result = measure_fixed_compute_demand_impl(
-    compute, receipt, max_value_bytes, physical,
+    compute, receipt, max_value_bytes, physical, input_demand,
   )
   if result is Err(_) && physical_equal(receipt.owner.compute, compute) {
     abort_fixed_compute_receiving(receipt.owner)
@@ -37,11 +38,46 @@ fn measure_fixed_compute_demand_impl(
   receipt : FixedComputeReceipt,
   max_value_bytes : Int,
   physical : @execution.FixedInputGuardMeasureLimits,
+  input_demand : FixedImportDemand?,
 ) -> Result[FixedComputeDemand, NativeDemandIssue] {
   if !physical_equal(receipt.owner.compute, compute) ||
     !fixed_compute_receipt_matches(receipt, receipt.owner) {
     return Err(InvalidState)
   }
+  if input_demand is Some(demand) {
+    return consume_fixed_import_demand(
+      demand,
+      compute,
+      @execution.admitted_output_row_count(receipt.rows),
+      max_value_bytes,
+      physical,
+    ).map(usage => FixedComputeDemand::{
+      compute,
+      receipt,
+      ceiling: max_value_bytes,
+      usage,
+    })
+  }
+  measure_fixed_compute_demand_usage(
+    compute,
+    @execution.admitted_output_row_count(receipt.rows),
+    max_value_bytes,
+    physical,
+  ).map(usage => FixedComputeDemand::{
+    compute,
+    receipt,
+    ceiling: max_value_bytes,
+    usage,
+  })
+}
+
+///|
+fn measure_fixed_compute_demand_usage(
+  compute : FixedCompute,
+  output_rows : Int,
+  max_value_bytes : Int,
+  physical : @execution.FixedInputGuardMeasureLimits,
+) -> Result[FixedComputeDemandUsage, NativeDemandIssue] {
   if max_value_bytes < 0 ||
     physical.max_work < 0 ||
     physical.max_bytes < 0 ||
@@ -53,30 +89,24 @@ fn measure_fixed_compute_demand_impl(
   let query = match compute.query {
     FilterSelect(query) => query
     CountGroup(_) =>
-      return Ok({
-        compute,
-        receipt,
-        ceiling: max_value_bytes,
-        usage: DirectCount(
+      return Ok(
+        DirectCount(
           input_rows=@execution.producer_read_row_count(input),
-          output_rows=@execution.admitted_output_row_count(receipt.rows),
+          output_rows~,
         ),
-      })
+      )
     InnerJoin(query) =>
-      return Ok({
-        compute,
-        receipt,
-        ceiling: max_value_bytes,
-        usage: DirectJoin(
+      return Ok(
+        DirectJoin(
           left_rows=@execution.producer_read_row_count(
             compute.imports[query.left_input].input,
           ),
           right_rows=@execution.producer_read_row_count(
             compute.imports[query.right_input].input,
           ),
-          output_rows=@execution.admitted_output_row_count(receipt.rows),
+          output_rows~,
         ),
-      })
+      )
   }
   let schema = @execution.producer_read_schema(input)
   let budget : NativeValueBudget = {
@@ -89,23 +119,10 @@ fn measure_fixed_compute_demand_impl(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  let mut selected = None
-  for index in 0..<@schema.field_count(schema) {
-    let name = @schema.reference_name(
-      @schema.field_at(schema, index).unwrap().name,
-    )
-    for size in [name.length(), query.predicate_field.length()] {
-      if size > budget.work {
-        return Err(Predicate(MeasurementWork))
-      }
-      budget.work -= size
-    }
-    if name == query.predicate_field {
-      selected = Some(index)
-      break
-    }
+  let column = match fixed_comparison_column(schema, query, budget) {
+    Ok(column) => column
+    Err(issue) => return Err(issue)
   }
-  guard selected is Some(column) else { return Err(InvalidLayout) }
   let rhs = match query.parameter.value {
     Admitted(value) => Admitted(value)
     Null => Null
@@ -130,17 +147,98 @@ fn measure_fixed_compute_demand_impl(
       Err(issue) => return Err(issue)
     }
   }
-  finish_comparison_demand(
-    state,
-    @execution.admitted_output_row_count(receipt.rows),
-    budget,
-    physical,
-  ).map(usage => FixedComputeDemand::{
+  finish_comparison_demand(state, output_rows, budget, physical).map(usage => {
+    Comparison(usage)
+  })
+}
+
+///|
+fn fixed_comparison_column(
+  schema : @schema.Schema,
+  query : NativeQuery,
+  budget : NativeValueBudget,
+) -> Result[Int, NativeDemandIssue] {
+  let mut selected = None
+  for index in 0..<@schema.field_count(schema) {
+    let name = @schema.reference_name(
+      @schema.field_at(schema, index).unwrap().name,
+    )
+    for size in [name.length(), query.predicate_field.length()] {
+      if size > budget.work {
+        return Err(Predicate(MeasurementWork))
+      }
+      budget.work -= size
+    }
+    if name == query.predicate_field {
+      selected = Some(index)
+      break
+    }
+  }
+  guard selected is Some(column) else { return Err(InvalidLayout) }
+  Ok(column)
+}
+
+///|
+struct FixedComputeStreamDemand {
+  compute : FixedCompute
+  receipt : FixedComputeStreamReceipt
+  ceiling : Int
+  usage : FixedComputeDemandUsage
+}
+
+///|
+pub fn measure_fixed_compute_stream_demand(
+  compute : FixedCompute,
+  receipt : FixedComputeStreamReceipt,
+  max_value_bytes : Int,
+  physical : @execution.FixedInputGuardMeasureLimits,
+  input_demand? : FixedImportDemand,
+) -> Result[FixedComputeStreamDemand, NativeDemandIssue] {
+  if !physical_equal(receipt.owner.compute, compute) ||
+    !fixed_compute_stream_receipt_matches(receipt, receipt.owner) {
+    return Err(InvalidState)
+  }
+  let (_, _, _, output_rows) = @execution.output_stream_identity(
+    receipt.admitted,
+  )
+  let result = if input_demand is Some(demand) {
+    consume_fixed_import_demand(
+      demand, compute, output_rows, max_value_bytes, physical,
+    )
+  } else {
+    measure_fixed_compute_demand_usage(
+      compute, output_rows, max_value_bytes, physical,
+    )
+  }
+  if result is Err(_) {
+    abort_fixed_compute_receiving(receipt.owner)
+  }
+  result.map(usage => FixedComputeStreamDemand::{
     compute,
     receipt,
     ceiling: max_value_bytes,
-    usage: Comparison(usage),
+    usage,
   })
+}
+
+///|
+pub fn fixed_compute_stream_demand_matches(
+  value : FixedComputeStreamDemand,
+  compute : FixedCompute,
+  receipt : FixedComputeStreamReceipt,
+  max_value_bytes : Int,
+) -> Bool {
+  physical_equal(value.compute, compute) &&
+  physical_equal(value.receipt, receipt) &&
+  value.ceiling == max_value_bytes &&
+  fixed_compute_stream_receipt_matches(receipt, receipt.owner)
+}
+
+///|
+pub fn fixed_compute_stream_demand_usage(
+  value : FixedComputeStreamDemand,
+) -> FixedComputeDemandUsage {
+  value.usage
 }
 
 ///|

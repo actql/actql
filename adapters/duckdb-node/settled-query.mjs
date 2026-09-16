@@ -35,6 +35,7 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     return Object.freeze({
       observation,
       usage: settled.usage,
+      diagnostics: settled.value.diagnostics,
       bindInput(...args) {
         if (closed) throw new DuckDBTransportError('IssuerClosed');
         // Consumer failures do not release a successful acquisition or reread.

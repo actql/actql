@@ -10,6 +10,79 @@ const limits = Object.freeze({
 });
 const discard = () => {};
 
+test('resident publication waits for asynchronous holding and rolls back failed or cancelled finalization', async () => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  try {
+    for (const mode of ['success', 'failure', 'cancel']) {
+      const port = Object.freeze({queryParameters: () => []});
+      const resident = Object.freeze({
+        viewSqls: () => [],
+        createResultSql: () => 'CREATE TABLE provisional AS SELECT 1 AS i',
+        readResultSql: () => 'SELECT i FROM provisional',
+      });
+      let entered, release;
+      const ready = new Promise(resolve => { entered = resolve; });
+      const holding = new Promise(resolve => { release = resolve; });
+      const controller = new AbortController();
+      const settlements = [];
+      let terminal = false;
+      const operation = runResidentFixedCompute(db, port, resident, limits, discard,
+        async () => {
+          entered();
+          await holding;
+          if (mode === 'failure') throw new Error('holding seal failed');
+        }, controller.signal, {
+          started() {}, chargeTransfer() {}, settled(value) { settlements.push(value); },
+        });
+      // Observe without replacing the original result/rejection.
+      operation.then(() => { terminal = true; }, () => { terminal = true; });
+      await ready;
+      try {
+        assert.equal(terminal, false);
+        assert.deepEqual(settlements, []);
+        assert.equal(db.status().busy, true);
+        if (mode === 'cancel') controller.abort();
+      } finally { release(); }
+      if (mode === 'success') {
+        const result = await operation;
+        assert(matchesFixedCompute(result, port, discard));
+        const rows = await db.run(limits, session => collect(session, 'SELECT i FROM provisional'));
+        assert.deepEqual(rows.value, ['1']);
+        releaseFixedCompute(result);
+      } else {
+        await assert.rejects(operation, mode === 'failure' ? /holding seal failed/ : {code: 'Cancelled'});
+        // CREATE succeeds only if the earlier provisional table was rolled back.
+        await db.run(limits, session => session.command('CREATE TABLE provisional(i INTEGER)', [], discard));
+      }
+      assert.deepEqual(settlements, [true]);
+      await db.run(limits, session => session.command('DROP TABLE provisional', [], discard));
+    }
+  } finally { await db.close(); }
+});
+
+test('a swallowed falsy receiver failure rolls back resident publication', async () => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  try {
+    for (const reason of [undefined, null, false, 0, '']) {
+      let rejected = false;
+      try {
+        await db.run(limits, async session => {
+          await session.command('CREATE TABLE failed_output(i INTEGER)', [], discard);
+          try {
+            await session.command('SELECT 1 AS i', [], () => { throw reason; });
+          } catch (error) { assert.equal(error, reason); }
+        });
+      } catch (error) { rejected = true; assert.equal(error, reason); }
+      assert.equal(rejected, true);
+      // The table must not have committed, and the environment remains usable.
+      await db.run(limits, async session => {
+        await session.command('CREATE TABLE failed_output(i INTEGER)', [], discard);
+        await session.command('DROP TABLE failed_output', [], discard);
+      });
+    }
+  } finally { await db.close(); }
+});
+
 test('resident Compute materializes once and validates before publishing its table', async () => {
   const db = await provisionComputeDatabase(limits, { started() {}, settled() {} });
   const port = Object.freeze({ queryParameters: () => [] });

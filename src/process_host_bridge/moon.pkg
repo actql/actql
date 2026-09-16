@@ -1,0 +1,8 @@
+// Control-side physical admission only; no concrete connector or process I/O.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/physical_resources" @resources,
+}

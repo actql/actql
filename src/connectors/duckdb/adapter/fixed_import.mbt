@@ -140,6 +140,62 @@ pub fn fixed_import_insert_sql(value : FixedImport) -> String {
 }
 
 ///|
+/// Bounded physical batching of the same exactly owned input. This changes
+/// neither its row order nor logical admission. Returned rows may be smaller
+/// than requested to fit the statement/parameter envelope, never larger.
+pub fn fixed_import_batch_insert_sql(
+  value : FixedImport,
+  requested_rows : Int,
+  max_parameters : Int,
+  max_sql_bytes : Int,
+) -> Result[(Int, String), NativeQueryIssue] {
+  if requested_rows < 1 || max_parameters < 0 || max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if !@execution.producer_read_available(value.input) {
+    return Err(InputUnavailable)
+  }
+  if value.columns > max_parameters {
+    return Err(Limit)
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, value.insert_sql)
+    let mut rows = 1
+    let parameter_rows = max_parameters / value.columns
+    let maximum = if requested_rows < parameter_rows {
+      requested_rows
+    } else {
+      parameter_rows
+    }
+    // Every extra tuple has exactly 3 * columns + 2 ASCII bytes. Divide
+    // before multiplying to avoid overflow even with hostile limit values.
+    if maximum > 1 &&
+      output.remaining >= 2 &&
+      value.columns <= (output.remaining - 2) / 3 {
+      let tuple_bytes = 3 * value.columns + 2
+      let sql_rows = output.remaining / tuple_bytes
+      let count = if maximum - 1 < sql_rows { maximum - 1 } else { sql_rows }
+      for _ in 0..<count {
+        sql_text(output, ", (")
+        for column in 0..<value.columns {
+          if column > 0 {
+            sql_text(output, ", ")
+          }
+          sql_text(output, "?")
+        }
+        sql_text(output, ")")
+        rows += 1
+      }
+    }
+    Ok((rows, output.builder.to_string()))
+  } catch {
+    TextLimit => Err(Limit)
+    BadIdentifier => Err(InvalidIdentifier)
+  }
+}
+
+///|
 pub fn fixed_import_input(value : FixedImport) -> @execution.ProducerRead {
   value.input
 }

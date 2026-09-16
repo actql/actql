@@ -105,6 +105,7 @@ pub fn[E, P] prepare_numeric_execution(
       cancel: close,
       dispose: close,
       settled: fn() { attempt.settled = true },
+      retention_released: fn() { true },
       released: fn() {  },
       ready: fn() {
         if !attempt.closed && attempt.completed is Some(_) {

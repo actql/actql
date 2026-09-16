@@ -14,10 +14,23 @@ environment generation and live ownership. Each receiver uses its own checked
 projection and binding, and still performs its required guards and demand
 measurement. Residency is neither receiving admission nor budget credit.
 
+The execution contract distinguishes the copy allocated within the shared
+environment from the independent completed-output holding. The former must fit
+the selected copy estimate and the live environment allocation; the latter must
+fit the task's retained-byte envelope. They need not have the same size. A file
+plus metadata may be smaller than its DB representation, but neither allowance
+can cover an excess in the other. Streamed metadata must not be used as the DB
+copy's capacity estimate. The row realization defaults both amounts to its
+declared row-holding bound. The installed retained realization declares file work
+and holding before selection and supplies both obligations at task admission.
+
 The initial shape remains X to A to C, and X to B, using filter/select. One
-import of X can serve A and B; a retained A table can serve C. Host validation
-and retained Host results remain mandatory. A DB copy is additional storage,
-not a replacement for the independently completed Host result.
+import of X can serve A and B; a retained A table can serve C. Trusted execution
+side validation and independently held completed results remain mandatory.
+Independent holding may be a canonical file rather than a Host row table. A DB
+copy is additional storage, not a replacement for that independent result.
+File output is validated and sealed inside the resident transaction before its
+commit; common completion still requires native settlement and exact holding.
 
 One installed DuckDB implementation may provide multiple run-owned resource
 bindings. Profiles are installed before selection, once per exact binding. The
@@ -43,6 +56,12 @@ does not supply a live handle, and a future table does not supply an input CID
 or execution evidence. Preparation, import, computation, output transfer,
 retention and cleanup belong to the whole-plan comparison. Shared work is
 counted once only when its resource and allocation are actually shared.
+
+Independent file output is additional task work for either fresh or resident
+realization: writing, sealing and cleanup are not discounted by DB residency.
+Unknown file work remains unknown in the composed estimate. The file holding
+ceiling is added to independent retention, not to the DB-copy estimate. Shared
+environment work and input-import reuse retain their own exact profile binding.
 
 The Host authorizes and reserves before provision starts. The local provider
 creates a source-isolated DB and returns its actual profile and live binding;

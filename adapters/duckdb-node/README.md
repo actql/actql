@@ -56,6 +56,44 @@ row/cell limits are separate from session transfer limits and logical guards.
 The port must be backed by the exact MoonBit `FixedCompute` preparation, not
 Program-supplied SQL or a deserialized claim of completed input.
 
+Fixed-input imports reuse one session-owned prepared INSERT. Every row still
+passes the existing physical conversion, parameter/frame ceilings, cumulative
+transfer accounting and cancellation checks. Bindings are cleared after each
+successful execution. Switching SQL destroys the previous statement before
+preparing another; session cleanup explicitly destroys the remaining statement.
+A destruction failure retains the cleanup handle and native reservation until
+confirmed cleanup. This is not Appender adoption: its finalizer-managed
+destruction must not be treated as confirmed resource release.
+
+Installed fixed-input ports also use bounded multi-row INSERT when both
+`maxChunkRows` and `maxChunkBytes` are supplied and the reserved `maxParameters`
+allows it. The MoonBit compiler constructs each statement from the exact import,
+fitting the SQL and parameter ceilings. Row snapshots are batched only within
+the frame-byte ceiling, and variable-width values can end a batch early. The
+same parameter conversion and native settlement path is used; an import failure
+does not retry as single-row SQL. All inputs still finish semantic admission
+before the Compute query starts. There is no task fusion or intermediate guard
+elision. Single-row import remains the implementation when the admitted envelope
+does not permit batching. The data-profile example reserves up to 128 rows of
+parameters in its pre-selection physical capacity, without changing its logical
+row, cell, intermediate-result, cumulative transfer or timeout ceilings.
+
+Transfer counts the actual batched parameter frames and INSERT result frames;
+it is not artificially charged as one transfer per logical row. Imported row/cell
+counts still describe all inputs, including separately imported copies of X.
+
+Transport diagnostics report actual `preparations` separately from `statements`.
+`commandMilliseconds` includes preparation, native execution, decoding and awaited
+receive callbacks; `prepareMilliseconds` and `receiveCallbackMilliseconds` are
+subsets, not additional wall time. `cleanupMilliseconds` covers owned rollback
+and resource cleanup. Fixed Compute diagnostics also report each input's total
+time and its INSERT subset, plus `queryAndReceiveMilliseconds` (SQL execution and
+streamed validation/storage callbacks). These are diagnostic elapsed intervals,
+not pure DB CPU time, planner estimates or formal performance samples. Final
+store sealing and common completion after transport return are not in that query
+interval; measure the full Host run for end-to-end acceptance. No row payloads
+are included in diagnostics.
+
 This low-level connection test does not turn the native result into MoonBit
 completed output or issue acquisition capture evidence. Standard Host tests
 separately cover those product boundaries. The transport's result chunks remain
@@ -578,13 +616,18 @@ inputs, under the existing search and cumulative resource limits. Failed or
 started tasks are not automatically retried.
 
 `runResidentStrategyHostCompute(setup, environment, tables, limits, mappingLimits,
-signal)` takes an array of resident table handles in checked input-port order.
+signal, retention?, outputKey?)` takes an array of resident table handles in
+checked input-port order. Optional independent file holding must already be
+covered by the selected configuration; adding it to a row-only offer is rejected.
 A two-input join requires both handles; passing the same table twice is valid
 only when both checked ports refer to that producer. The standard strategy driver
 obtains this mapping from the selected strategy, imports each missing producer
 once, and supports resident join followed by group/count without reimporting
-the intermediate result. Results still return to the Host for validation and
-independent holding. Preparing a later input unsuccessfully releases earlier
+the intermediate result. Results are validated on the execution side and held
+independently as rows or a bounded-stream canonical file. With file holding,
+sealing precedes resident transaction commit, and common completion follows
+native settlement. Closing the DB does not release the independent file.
+Preparing a later input unsuccessfully releases earlier
 unstarted borrows; after admission, native settlement owns their release.
 
 Transport settings are validated and frozen before environment reservation.
@@ -798,6 +841,31 @@ The transport-byte ledger measures UTF-8 JSON frames for parameter arrays, field
 metadata and column chunks. SQL bytes have a separate bound. These figures are
 not native IPC traffic, canonical value bytes, logical work, allocator capacity
 or process RSS. Row/cell/byte budgets are cumulative across commands in a session.
+Optional positive `maxChunkRows` and `maxChunkBytes` bound converted batch delivery.
+The former slices SDK column vectors without first constructing a whole chunk's
+converted values. The latter counts each batch's row-count/column framing and
+encoded cells; schema metadata is charged separately to the session. An oversized
+batch is not delivered. Splitting charges its extra frames, and neither failure
+nor cancellation refunds already fetched rows or encoded bytes.
+
+When both bounds are present, the Node capacity policy reserves simultaneous
+frame/encoding space, delivered cell containers and a 2048-row SDK vector window,
+not every cell or byte allowed cumulatively during the session. The selected
+transport enforces the same policy: it rejects larger native chunks before
+creating JavaScript vectors, bounds parameter and metadata frames, and checks
+VARCHAR byte lengths before the SDK decodes their contents. An escaped string
+may still exceed the remaining encoded frame allowance and is rejected before
+retention/delivery. A single missing chunk bound retains the whole-input policy.
+
+`bounded-vector.mjs` is a connector-private adaptation to `@duckdb/node-api`
+`1.5.5-r.4`. Its public `getItem()` cannot inspect variable-width sizes before
+copying; this adaptation reads the SDK's 16-byte VARCHAR descriptor length and
+validity metadata without dereferencing data pointers. It refuses unknown SDK
+versions/layouts rather than falling back to unchecked decoding. SDK upgrades
+must re-audit this adaptation and its inline/indirect/NULL/Unicode and pre-copy
+rejection tests. The parent vector does not cache decoded values across batches.
+Native engine allocations remain governed separately by the native configuration;
+the policy does not resize native result chunks or certify observed allocator use.
 DuckDB memory configuration does not impose a hard whole-process memory ceiling.
 
 Cancellation is cooperative: request, native settlement and cleanup are distinct.

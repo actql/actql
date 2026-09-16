@@ -98,6 +98,7 @@ fn publish_task_completion(
   // from success. Completed descendants do not borrow upstream availability.
   run.resources[task] = Some({
     holding: Some(holding),
+    release_confirmed: fn() { true },
     parents: task_parents(run, task),
   })
   run.completed[task] = Some(output)

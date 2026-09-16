@@ -230,6 +230,44 @@ pub fn native_host_output(
 }
 
 ///|
+pub fn native_host_retained_output(
+  run : NativeHostRun,
+  observation : @duckdb_query.DuckDBNativeObservation,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@execution.CompletedOutput, NativeHostIssue] {
+  if run.closed {
+    return Err(InvalidState)
+  }
+  @duckdb_query.complete_duckdb_native_retained_output(
+    run.issuer,
+    run.attempt,
+    observation,
+    max_entries,
+    max_name_bytes,
+  ).map_err(issue => Completion(issue))
+}
+
+///|
+pub fn native_host_retained_source(
+  run : NativeHostRun,
+  observation : @duckdb_query.DuckDBNativeObservation,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  if run.closed {
+    return Err(Unavailable)
+  }
+  @duckdb_query.native_retained_captured_source(
+    run.issuer,
+    run.attempt,
+    observation,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
 pub fn bind_native_host_input(
   run : NativeHostRun,
   observation : @duckdb_query.DuckDBNativeObservation,

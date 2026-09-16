@@ -46,6 +46,7 @@ pub fn emit_document(
   if value.bytes > w.remaining_bytes {
     fail(w, OutputLimit)
   }
+  reserve_buffer(w, value.bytes)
   w.remaining_nodes -= value.nodes - 1
   w.remaining_bytes -= value.bytes
   w.peak_depth = w.peak_depth.max(depth)
@@ -57,5 +58,11 @@ pub fn emit_document(
       for scalar in value.text.iter() {
         hash_scalar(w, h, scalar.to_int())
       }
+    BufferedHashOutput(buffer) => {
+      for scalar in value.text.iter() {
+        hash_scalar(w, buffer.hash, scalar.to_int())
+      }
+      buffer.text.write_string(value.text)
+    }
   }
 }

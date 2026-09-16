@@ -50,12 +50,22 @@ struct FixedJoinValidation {
 }
 
 ///|
-pub fn validate_fixed_join_inputs(
+priv struct FixedJoinValidationLayout {
+  left : Int
+  right : Int
+  keys : Array[(Int, Int)]
+  orders : Array[Array[ColumnOrder]]
+  control : ControlBudget
+  workspace : RowWorkspace
+}
+
+///|
+fn prepare_fixed_join_validation_layout(
   owner : @lower.BoundPrepared,
   profile : @lower.PreparedInnerJoin,
   inputs : Array[ProducerRead],
   limits : FixedJoinValidationLimits,
-) -> Result[FixedJoinValidation, RowIssue] {
+) -> Result[FixedJoinValidationLayout, RowIssue] {
   if limits.max_rows < 0 || limits.max_work < 0 || limits.max_entries < 0 {
     return Err(InvalidRowLimits)
   }
@@ -121,11 +131,74 @@ pub fn validate_fixed_join_inputs(
     orders[0].push({ column: lc, descending: false, nulls_first: true, })
     orders[1].push({ column: rc, descending: false, nulls_first: true, })
   }
+  Ok({ left: li, right: ri, keys, orders, control, workspace, })
+}
+
+///|
+pub fn validate_fixed_join_inputs(
+  owner : @lower.BoundPrepared,
+  profile : @lower.PreparedInnerJoin,
+  inputs : Array[ProducerRead],
+  limits : FixedJoinValidationLimits,
+) -> Result[FixedJoinValidation, RowIssue] {
+  let layout = match
+    prepare_fixed_join_validation_layout(owner, profile, inputs, limits) {
+    Ok(layout) => layout
+    Err(issue) => return Err(issue)
+  }
+  let li = layout.left
+  let ri = layout.right
+  let keys = layout.keys
+  let orders = layout.orders
+  let control = layout.control
+  let workspace = layout.workspace
+  if inputs[li].bound.output.table is None ||
+    inputs[ri].bound.output.table is None {
+    // With no null-failure or uniqueness assertion, this preflight only checks
+    // row shape. A genuinely admitted retained receipt already fixes that
+    // shape; demanding cell access would force an unnecessary full copy.
+    // Content integrity, import, demand and output guards remain separate and
+    // mandatory before execution/completion. Value-sensitive join obligations
+    // still require their existing validator and are not discharged here.
+    if @lower.inner_join_fails_null(profile) ||
+      @lower.inner_join_assertion(profile) is Some(_) {
+      return Err(InputMismatch)
+    }
+    for input in [inputs[li], inputs[ri]] {
+      guard input.bound.output.table is Some(_) ||
+        input.bound.output.representation is Some(_) else {
+        return Err(InputMismatch)
+      }
+      for row in 0..<producer_read_row_count(input) {
+        if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
+        if input.bound.output.table is Some(table) {
+          let rows = ProducerGuardRows::{ input, table, }
+          if IndexedRows::row_width(rows, row) !=
+            IndexedRows::column_count(rows) {
+            return Err(InvalidRows)
+          }
+        }
+      }
+    }
+    return Ok({
+      owner,
+      profile,
+      inputs: inputs.copy(),
+      work: limits.max_work - control.remaining,
+      peak: workspace.peak,
+    })
+  }
+  guard inputs[li].bound.output.table is Some(left) &&
+    inputs[ri].bound.output.table is Some(right) else {
+    return Err(InputMismatch)
+  }
   match
     validate_join_obligations(
       profile,
-      ProducerGuardRows::{ input: inputs[li], },
-      ProducerGuardRows::{ input: inputs[ri], },
+      ProducerGuardRows::{ input: inputs[li], table: left, },
+      ProducerGuardRows::{ input: inputs[ri], table: right, },
       keys,
       orders,
       control,

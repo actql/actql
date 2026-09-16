@@ -3,6 +3,11 @@
 /// verifier accepts an external realization of the retained final target.
 /// This is component evidence, not whole-Program admission/publication evidence.
 struct CompletedSequence {
+  // Fresh only at successful completion, preserved by verified representation
+  // conversion. Equal owner/target/CID does not identify the same completion.
+  result_identity : Ref[Unit]
+  // A readmitted fact may supply a producer, not complete a pending task.
+  readmitted : Bool
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   store : CompletedStore
@@ -19,7 +24,8 @@ struct CompletedSequence {
 struct CompletedOutput {
   completion : CompletedSequence
   target : @pipeline.Target
-  table : CompletedTable
+  table : CompletedTable?
+  representation : RetainedOutputMaterial?
 }
 
 ///|
@@ -30,9 +36,19 @@ pub fn restrict_completed_output(
   live : () -> Bool,
 ) -> CompletedOutput {
   let original = output.completion
+  // Capture only the logical predicate, not the original completion's storage.
+  // A verified representation conversion must not retain old row buffers just
+  // because this result had an additional logical-use restriction.
+  let original_live = original.live
   let completion = {
     ..original,
-    live: Some(fn() { completion_is_live(original) && live() }),
+    live: Some(fn() {
+      let prior = match original_live {
+        None => true
+        Some(check) => check()
+      }
+      prior && live()
+    }),
   }
   { ..output, completion, }
 }
@@ -46,6 +62,13 @@ pub fn completed_output(
     return None
   }
   let store = completion.store
+  if store is RetainedStore(_, retained_target, material) {
+    return if target == retained_target && (material.available)() {
+      Some({ completion, target, table: None, representation: Some(material), })
+    } else {
+      None
+    }
+  }
   let slot = match target {
     Input(i) => {
       if i < 0 || i >= store.input_count() {
@@ -61,12 +84,15 @@ pub fn completed_output(
     }
   }
   guard store.table_at(slot) is Some(table) else { return None }
-  Some({ completion, target, table, })
+  Some({ completion, target, table: Some(table), representation: None, })
 }
 
 ///|
 pub fn completed_row_count(output : CompletedOutput) -> Int {
-  IndexedRows::row_count(output.table)
+  match output.table {
+    Some(table) => IndexedRows::row_count(table)
+    None => output.representation.unwrap().receipt.rows
+  }
 }
 
 ///|
@@ -80,7 +106,7 @@ pub fn completed_output_matches_port(
 ) -> Bool {
   physical_equal(@lower.sequence_owner(output.completion.sequence), owner) &&
   output.target == target &&
-  completion_is_live(output.completion)
+  completed_output_available(output)
 }
 
 ///|
@@ -94,9 +120,10 @@ pub fn completed_output_matches_inputs(
   let completion = output.completion
   let owner = @lower.sequence_owner(completion.sequence)
   let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
-  if inputs.length() != count ||
+  if completion.readmitted ||
+    inputs.length() != count ||
     completion.input_bindings.length() != count ||
-    !completion_is_live(completion) {
+    !completed_output_available(output) {
     return false
   }
   for index, input in inputs {
@@ -118,12 +145,22 @@ pub fn completed_output_matches_inputs(
 
 ///|
 pub fn completed_column_count(output : CompletedOutput) -> Int {
-  IndexedRows::column_count(output.table)
+  match output.table {
+    Some(table) => IndexedRows::column_count(table)
+    None => @schema.field_count(output.representation.unwrap().receipt.schema)
+  }
 }
 
 ///|
 pub fn completed_column_name(output : CompletedOutput, column : Int) -> String? {
-  RelationRows::field_names(output.table).get(column)
+  match output.table {
+    Some(table) => RelationRows::field_names(table).get(column)
+    None =>
+      @schema.field_at(output.representation.unwrap().receipt.schema, column).map(field => {
+          @schema.reference_name(field.name)
+        },
+      )
+  }
 }
 
 ///|
@@ -134,11 +171,33 @@ pub fn completed_cell(
   row : Int,
   column : Int,
 ) -> Value? {
+  guard output.table is Some(table) else { return None }
   if row < 0 ||
-    row >= IndexedRows::row_count(output.table) ||
+    row >= IndexedRows::row_count(table) ||
     column < 0 ||
-    column >= IndexedRows::row_width(output.table, row) {
+    column >= IndexedRows::row_width(table, row) {
     return None
   }
-  Some(IndexedRows::read_cell(output.table, row, column))
+  Some(IndexedRows::read_cell(table, row, column))
+}
+
+///|
+/// Capability of this admitted representation, not a claim about the result's
+/// validity. A cell-based consumer must admit conversion before starting work
+/// when false; it must not interpret absent cell access as NULL or an empty row.
+pub fn completed_has_cell_access(output : CompletedOutput) -> Bool {
+  output.table is Some(_)
+}
+
+///|
+/// Logical-use restrictions and this physical copy's availability are distinct.
+/// Loss of a representation does not rewrite the immutable completion record.
+pub fn completed_output_available(output : CompletedOutput) -> Bool {
+  if !completion_is_live(output.completion) {
+    return false
+  }
+  match output.representation {
+    None => true
+    Some(material) => (material.available)()
+  }
 }

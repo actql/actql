@@ -37,7 +37,14 @@ fn generate(
   values_json : String,
   fragment_json : String,
   filter : Bool,
+  data? : DataProfile? = None,
+  acquisition? : Bool = false,
 ) -> @execution.GeneratedSequence raise {
+  let row_limit = data
+    .map(value => if acquisition { value.source_rows } else { value.task_rows })
+    .unwrap_or(100)
+  let value_limit = data.map(value => value.value_bytes).unwrap_or(1000)
+  let work_limit = data.map(value => value.work).unwrap_or(100000)
   let registry_limits : @execution.RegistryLimits = {
     max_body_bytes: 100000,
     max_body_nodes: 10000,
@@ -55,8 +62,8 @@ fn generate(
   ).unwrap()
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
-    max_rows: 100,
-    max_cells: 10000,
+    max_rows: row_limit,
+    max_cells: data.map(value => row_limit * value.columns).unwrap_or(10000),
     max_bindings: 100,
     max_name_bytes: 10000,
     expressions: {
@@ -78,7 +85,11 @@ fn generate(
       max_pointer_bytes: 10000,
       max_work: 100000,
     }).unwrap()
-    let request = @lower.prepare_fragment_request(pipeline, 100L, 1000L).unwrap()
+    let request = @lower.prepare_fragment_request(
+      pipeline,
+      row_limit.to_int64(),
+      value_limit.to_int64(),
+    ).unwrap()
     let context = @execution.prepare_runtime_fragment(
       request,
       fragment,
@@ -91,10 +102,12 @@ fn generate(
       },
       registry_limits,
       {
-        max_input_rows: 100L,
-        max_value_bytes: 1000L,
-        max_live_value_bytes: 10000L,
-        max_work: 100000L,
+        max_input_rows: row_limit.to_int64(),
+        max_value_bytes: value_limit.to_int64(),
+        max_live_value_bytes: data
+        .map(value => value.wire_bytes.to_int64())
+        .unwrap_or(10000L),
+        max_work: work_limit.to_int64(),
       },
     ).unwrap()
     [context]

@@ -3,7 +3,6 @@ package "actql/actql/connectors_builtin_node"
 
 import {
   "actql/actql/connector_sdk",
-  "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors_builtin",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
@@ -12,11 +11,11 @@ import {
 }
 
 // Values
-pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @driver.StrategyComputeHostConfiguration raise NodeHostFailure
+pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 
 pub fn duckdb_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
-pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
+pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
 
 pub fn local_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 

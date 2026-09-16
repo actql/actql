@@ -18,11 +18,15 @@ pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
+pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits
+
 pub fn holding_available(Ledger, Holding) -> Bool
 
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn ledger_admission_limits(Ledger) -> LedgerLimits
 
 pub fn ledger_limits(Ledger) -> LedgerLimits
 
@@ -34,6 +38,8 @@ pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 
+pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
+
 pub fn reservation_open(Reservation) -> Bool
 
 pub fn reservation_pending(Reservation) -> Bool
@@ -42,6 +48,8 @@ pub fn reservation_serial(Reservation) -> Int
 
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
 
+pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
+
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
@@ -49,6 +57,8 @@ pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIs
 pub fn retire_shared_capacity(SharedAllocation) -> Unit
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
+
+pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) -> Result[Unit, LedgerIssue]
 
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]
 
@@ -63,6 +73,8 @@ pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 // Errors
 
 // Types and methods
+type ExecutionDelegation
+
 type Holding
 
 type Ledger
@@ -95,6 +107,7 @@ pub(all) struct LedgerUsage {
   attempts : Int
   holdings : Int
   transferred_bytes : Int64
+  uncertain_transfer_bytes : Int64
   reserved_transfer_bytes : Int64
   held_bytes : Int64
   reserved_retention_bytes : Int64

@@ -11,7 +11,10 @@ test('Node installation touches only the configured module subset', async () => 
   const moon = new Proxy({
     strategyHostModules: value => { assert.equal(value, setup); return ['local']; },
     strategyModule_local_Registration: value => { assert.equal(value, setup); return registration; },
-    strategyModule_local_Dispatch: (owner, value) => { assert.equal(owner, setup); assert.equal(value, task); executions++; },
+    strategyModule_local_Dispatch: (owner, value) => {
+      assert.equal(owner, setup); assert.equal(value, task); executions++;
+      return {inputs: [], execute() {}, settle() {}, complete() {}, close() {}};
+    },
   }, {
     get(target, key) {
       assert.ok(Object.hasOwn(target, key), `Absent module accessed ${String(key)}`);
@@ -19,7 +22,7 @@ test('Node installation touches only the configured module subset', async () => 
     },
   });
   const options = new Proxy({}, {get() { throw new Error('Absent module read settings'); }});
-  const entries = await installStrategyContributions(moon, setup, value => value, {local: options});
+  const entries = await installStrategyContributions(moon, setup, value => value, {duckdb: options});
   assert.equal(entries.length, 1);
   assert.equal(entries[0].registration, registration);
   await entries[0].run(task);

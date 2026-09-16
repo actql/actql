@@ -61,17 +61,21 @@ test('completed scalar imports round-trip exactly through isolated DuckDB transp
   ]);
   assert.deepEqual(fixtures.map(value => value.name), [...expected.keys()]);
   for (const fixture of fixtures) {
+    for (const batched of [false, true]) {
     const port = {
       importCount: () => 1,
       rowCount: () => 3, columnCount: () => 1,
       createSql: () => fixture.create, insertSql: () => fixture.insert,
+      ...(batched ? {insertBatch: (_input, rows) => ({rows,
+        sql: fixture.insert + ', (?)'.repeat(rows - 1)})} : {}),
       parameter: (_input, row, column) => { assert.equal(column, 0); return fixture.rows[row]; },
       // Transport observation only; no semantic Compute completion is issued.
       querySql: () => 'SELECT "x" FROM "fixed"', queryParameters: () => [],
     };
     const chunks = [];
     const consume = chunk => chunks.push(chunk);
-    const result = await runFixedCompute(port, limits, { maxRows: 3, maxCells: 3 }, consume);
+    const configuration = batched ? {...limits, maxChunkRows: 2, maxChunkBytes: 4096} : limits;
+    const result = await runFixedCompute(port, configuration, { maxRows: 3, maxCells: 3 }, consume);
     try {
       const [type, value] = expected.get(fixture.name);
       assert.equal(matchesFixedCompute(result, port, consume), true);
@@ -80,9 +84,14 @@ test('completed scalar imports round-trip exactly through isolated DuckDB transp
         { id: 'DECIMAL', precision: 38, scale: 2 });
       assert.deepEqual(chunks.flatMap(chunk => chunk.columns[0]), [value, null, value], fixture.name);
       assert.equal(result.value.importedCells, 3);
-      assert.equal(result.usage.statements, 5);
+      assert.equal(result.usage.statements, batched ? 4 : 5);
+      assert.equal(result.usage.preparations, batched ? 4 : 3);
+      assert.equal(result.value.diagnostics.inputs[0].rows, 3);
+      assert(result.value.diagnostics.inputs[0].insertMilliseconds <= result.value.diagnostics.inputs[0].milliseconds);
+      assert(result.value.diagnostics.queryAndReceiveMilliseconds >= 0);
     } finally { releaseFixedCompute(result); }
     assert.equal(matchesFixedCompute(result, port, consume), false);
+    }
   }
 });
 

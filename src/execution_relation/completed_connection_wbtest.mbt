@@ -224,7 +224,7 @@ test "typed derive crosses product completion binding projection sort and comple
   for width in [1, 7, 1000] {
     let producer = test_typed_completion(generated, width)
     let source = completed_output(producer, Step(1)).unwrap()
-    assert_true(source.table is NumberTable(_))
+    assert_true(source.table is Some(NumberTable(_)))
     let bound = bind_completed_input(receiver, 0, owner, source).unwrap()
     let rebound = @lower.bind_parameters(
       @lower.bound_preparation(owner),
@@ -257,12 +257,12 @@ test "typed derive crosses product completion binding projection sort and comple
     assert_true(completion.store is PhysicalStore(_))
     let selected = completed_output(completion, Step(0)).unwrap()
     let sorted = completed_output(completion, Step(1)).unwrap()
-    assert_true(selected.table is NumberTable(_))
-    assert_true(sorted.table is NumberTable(_))
-    guard selected.table is NumberTable(selected_buffers) else {
+    assert_true(selected.table is Some(NumberTable(_)))
+    assert_true(sorted.table is Some(NumberTable(_)))
+    guard selected.table is Some(NumberTable(selected_buffers)) else {
       fail("typed projection")
     }
-    guard sorted.table is NumberTable(sorted_buffers) else {
+    guard sorted.table is Some(NumberTable(sorted_buffers)) else {
       fail("typed sort")
     }
     assert_true(

@@ -26,6 +26,8 @@ struct DuckDBNativeAttempt {
   authority : DuckDBNativeAuthority?
   receiver : @duckdb.NativeReceiving
   mut state : DuckDBNativeState
+  mut streaming_output : Bool
+  mut retained_material : @execution.RetainedOutputMaterial?
 }
 
 ///|
@@ -69,7 +71,14 @@ pub fn prepare_duckdb_native_attempt(
     measurement,
   )
   .map_err(issue => DuckDBNativeAttemptIssue::Receiving(issue))
-  .map(receiver => { preparation, authority: None, receiver, state: Receiving, })
+  .map(receiver => {
+    preparation,
+    authority: None,
+    receiver,
+    state: Receiving,
+    streaming_output: false,
+    retained_material: None,
+  })
 }
 
 ///|
@@ -80,11 +89,32 @@ pub fn duckdb_native_attempt_preparation(
 }
 
 ///|
+/// Configure data-side validation accounting before receipt work. This changes
+/// physical retention only; the issuer still checks exact transport and proofs.
+pub fn stream_duckdb_native_validation(
+  attempt : DuckDBNativeAttempt,
+  wire : @execution.RowWireLimits,
+  demand : @execution.FixedInputGuardMeasureLimits,
+  max_chunk_rows : Int,
+) -> Result[Unit, DuckDBNativeAttemptIssue] {
+  if !(attempt.state is Receiving) {
+    return Err(InvalidState)
+  }
+  @duckdb.stream_native_validation(
+    attempt.receiver,
+    wire,
+    demand,
+    max_chunk_rows,
+  ).map_err(issue => Receiving(issue))
+}
+
+///|
 pub fn abort_duckdb_native_attempt(attempt : DuckDBNativeAttempt) -> Unit {
   if attempt.state is Captured(_) {
     return
   }
   @duckdb.abort_native_receiving(attempt.receiver)
+  attempt.retained_material = None
   attempt.state = Failed
 }
 

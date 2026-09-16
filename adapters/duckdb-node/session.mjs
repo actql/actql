@@ -5,6 +5,8 @@ import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical-values.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
+import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
+import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
 export { DuckDBTransportError, validateLimits } from './configuration.mjs';
 
 const files = new WeakMap();
@@ -38,7 +40,7 @@ async function cancellationBoundary(start, limits, signal, accounting) {
   signal.addEventListener('abort', onAbort, { once: true });
   const operation = Promise.resolve().then(() => start(limits)).then(
     value => { settled = true; return { value }; },
-    error => { settled = true; terminalError = error; return { error }; },
+    error => { settled = true; terminalError = error; return { failed: true, error }; },
   );
   if (signal.aborted) onAbort();
   let outcome = await Promise.race([operation, deadline]);
@@ -46,7 +48,7 @@ async function cancellationBoundary(start, limits, signal, accounting) {
   clearTimeout(timer);
   if (outcome.expired && settled) outcome = await operation;
   if (!outcome.expired) {
-    if (outcome.error) throw outcome.error;
+    if (outcome.failed) throw outcome.error;
     return outcome.value;
   }
   const status = () => Object.freeze({
@@ -71,6 +73,8 @@ async function cancellationBoundary(start, limits, signal, accounting) {
 
 async function usingSession(path, readonly, suppliedLimits, body, signal, accounting, shared) {
   const limits = validateLimits(suppliedLimits);
+  const bounded = boundedTransport(limits);
+  if (bounded) assertBoundedVectorRuntime();
   accounting?.started();
   let cancelled = signal?.aborted ?? false;
   let active = true;
@@ -80,8 +84,17 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   let connection;
   let transaction = false;
   let commandFailure;
+  let commandFailed = false;
+  // At most one prepared INSERT, owned by this exact session. It replaces, not
+  // supplements, the ordinary per-command statement allocation.
+  let cachedInsert;
   const inFlight = new Set();
-  const usage = { rows: 0, cells: 0, transportBytes: 0, statements: 0, chunks: 0 };
+  const usage = { rows: 0, cells: 0, transportBytes: 0, statements: 0, preparations: 0, chunks: 0,
+    commandMilliseconds: 0, prepareMilliseconds: 0, receiveCallbackMilliseconds: 0, cleanupMilliseconds: 0 };
+  const destroyCachedInsert = () => {
+    cachedInsert?.prepared.destroySync();
+    cachedInsert = undefined;
+  };
   const assertLive = () => {
     if (cancelled) throw new DuckDBTransportError('Cancelled');
     if (!active) throw new DuckDBTransportError('SessionClosed');
@@ -97,7 +110,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     accounting?.chargeTransfer(n);
     usage.transportBytes += n;
   };
-  const runCommand = async (sql, parameters, consume) => {
+  const runCommand = async (sql, parameters, consume, reuseInsert = false) => {
     assertLive();
     if (busy) throw new DuckDBTransportError('ConcurrentCommand');
     if (typeof sql !== 'string' || Buffer.byteLength(sql, 'utf8') > limits.maxSqlBytes) {
@@ -108,23 +121,55 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     }
     // Snapshot plain transport parameters before the first await. No Neo object
     // or caller-owned mutable array may change a bound command during execution.
-    const bound = parameters.map(({ type, value }) => ({ type: { ...type }, value }));
-    chargeBytes(Buffer.byteLength('{"parameters":[]}\n', 'utf8'));
+    const bound = parameters.map(({ type, value }) => {
+      if (bounded) {
+        if (typeof value === 'string' && Buffer.byteLength(value, 'utf8') > limits.maxChunkBytes) {
+          throw new DuckDBTransportError('ChunkBytes');
+        }
+        if ((value !== null && typeof value !== 'string' && typeof value !== 'boolean') ||
+            !type || typeof type.id !== 'string' || type.id.length > 32 ||
+            Object.keys(type).some(key => !['id', 'precision', 'scale'].includes(key)) ||
+            ['precision', 'scale'].some(key => type[key] !== undefined && !Number.isSafeInteger(type[key]))) {
+          throw new DuckDBTransportError('Parameters');
+        }
+      }
+      return {type: {...type}, value};
+    });
+    let parameterBytes = Buffer.byteLength('{"parameters":[]}\n', 'utf8');
+    if (bounded && parameterBytes > limits.maxChunkBytes) throw new DuckDBTransportError('ChunkBytes');
+    chargeBytes(parameterBytes);
     for (let i = 0; i < bound.length; i++) {
-      chargeBytes(Buffer.byteLength(JSON.stringify(bound[i]), 'utf8') + (i === 0 ? 0 : 1));
+      const bytes = Buffer.byteLength(JSON.stringify(bound[i]), 'utf8') + (i === 0 ? 0 : 1);
+      if (bounded && bytes > limits.maxChunkBytes - parameterBytes) throw new DuckDBTransportError('ChunkBytes');
+      chargeBytes(bytes);
+      parameterBytes += bytes;
     }
     busy = true;
+    const commandStarted = performance.now();
     let prepared;
+    let succeeded = false;
     try {
-      pending = true;
-      const extracted = await connection.extractStatements(sql);
-      pending = false;
-      assertLive();
-      if (extracted.count !== 1) throw new DuckDBTransportError('StatementCount');
-      pending = true;
-      prepared = await extracted.prepare(0);
-      pending = false;
-      assertLive();
+      if (reuseInsert && cachedInsert?.sql === sql) {
+        prepared = cachedInsert.prepared;
+      } else {
+        destroyCachedInsert();
+        const prepareStarted = performance.now();
+        try {
+          pending = true;
+          const extracted = await connection.extractStatements(sql);
+          pending = false;
+          assertLive();
+          if (extracted.count !== 1) throw new DuckDBTransportError('StatementCount');
+          pending = true;
+          prepared = await extracted.prepare(0);
+          usage.preparations++;
+          pending = false;
+          assertLive();
+        } finally { usage.prepareMilliseconds += performance.now() - prepareStarted; }
+      }
+      if (reuseInsert && (readonly || prepared.statementType !== StatementType.INSERT)) {
+        throw new DuckDBTransportError('StatementKind');
+      }
       const allowed = readonly ? [StatementType.SELECT]
         : [StatementType.SELECT, StatementType.CREATE, StatementType.INSERT,
           ...(shared ? [StatementType.DROP] : [])];
@@ -137,46 +182,92 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       pending = false;
       assertLive();
       if (result.columnCount > limits.maxColumns) throw new DuckDBTransportError('Columns');
-      const fields = Object.freeze(Array.from({ length: result.columnCount }, (_, i) =>
-        Object.freeze({ name: result.columnName(i), type: physicalType(result.columnType(i)) })));
+      const fieldItems = [];
+      let fieldBytes = Buffer.byteLength('{"fields":[]}\n', 'utf8');
+      for (let i = 0; i < result.columnCount; i++) {
+        const name = result.columnName(i);
+        if (bounded && Buffer.byteLength(name, 'utf8') > limits.maxChunkBytes) throw new DuckDBTransportError('ChunkBytes');
+        const field = Object.freeze({name, type: physicalType(result.columnType(i))});
+        const bytes = Buffer.byteLength(JSON.stringify(field), 'utf8') + (i === 0 ? 0 : 1);
+        if (bounded && bytes > limits.maxChunkBytes - fieldBytes) throw new DuckDBTransportError('ChunkBytes');
+        fieldBytes += bytes;
+        fieldItems.push(field);
+      }
+      const fields = Object.freeze(fieldItems);
       // Charge even an empty result's metadata; rows alone do not bound schema.
-      chargeBytes(Buffer.byteLength(JSON.stringify({ fields }) + '\n', 'utf8'));
+      const metadataBytes = Buffer.byteLength(JSON.stringify({ fields }) + '\n', 'utf8');
+      if (bounded && metadataBytes > limits.maxChunkBytes) throw new DuckDBTransportError('ChunkBytes');
+      chargeBytes(metadataBytes);
       for (;;) {
         pending = true;
         const chunk = await result.fetchChunk();
         pending = false;
         assertLive();
         if (!chunk || chunk.rowCount === 0) break;
+        if (bounded && chunk.rowCount > maxNativeVectorRows) throw new DuckDBTransportError('NativeChunkRows');
         if (chunk.rowCount > limits.maxRows - usage.rows) throw new DuckDBTransportError('Rows');
         if (fields.length !== 0 && chunk.rowCount > Math.floor((limits.maxCells - usage.cells) / fields.length)) {
           throw new DuckDBTransportError('Cells');
         }
         usage.rows += chunk.rowCount;
         usage.cells += chunk.rowCount * fields.length;
-        chargeBytes(Buffer.byteLength(JSON.stringify({
-          rowCount: chunk.rowCount, columns: fields.map(() => []),
-        }) + '\n', 'utf8'));
-        const columns = [];
-        for (let i = 0; i < fields.length; i++) {
-          const values = [];
-          chunk.visitColumnValues(i, (value) => {
-            const cell = exportPhysicalValue(value, fields[i].type);
-            // This is the explicit transport encoding cost, not canonical value
-            // bytes, DuckDB allocator capacity or whole-process RSS.
-            chargeBytes(Buffer.byteLength(JSON.stringify(cell), 'utf8') + (values.length === 0 ? 0 : 1));
-            values.push(cell);
-          });
-          columns.push(Object.freeze(values));
+        const rowsPerBatch = limits.maxChunkRows ?? chunk.rowCount;
+        for (let start = 0; start < chunk.rowCount; start += rowsPerBatch) {
+          const rowCount = Math.min(rowsPerBatch, chunk.rowCount - start);
+          let batchBytes = 0;
+          const chargeBatch = bytes => {
+            if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes) - batchBytes) {
+              throw new DuckDBTransportError('ChunkBytes');
+            }
+            chargeBytes(bytes);
+            batchBytes += bytes;
+          };
+          chargeBatch(Buffer.byteLength(JSON.stringify({
+            rowCount, columns: fields.map(() => []),
+          }) + '\n', 'utf8'));
+          const columns = [];
+          for (let i = 0; i < fields.length; i++) {
+            const values = [];
+            // Variable-width SDK vectors cache getItem results. Use a view for
+            // this delivered batch so the chunk-wide vector does not accumulate
+            // every decoded string across otherwise released batches.
+            const vector = chunk.getColumnVector(i).slice(start, rowCount);
+            for (let row = start; row < start + rowCount; row++) {
+              const item = bounded
+                ? boundedVectorItem(vector, row - start, fields[i].type, limits.maxChunkBytes)
+                : vector.getItem(row - start);
+              const cell = exportPhysicalValue(item, fields[i].type);
+              // Serialized transport framing, not canonical bytes or allocator
+              // memory. Charge before retaining the converted cell in a batch.
+              chargeBatch(Buffer.byteLength(JSON.stringify(cell), 'utf8') + (values.length === 0 ? 0 : 1));
+              values.push(cell);
+            }
+            columns.push(Object.freeze(values));
+          }
+          usage.chunks++;
+          const receiveStarted = performance.now();
+          try {
+            await consume(Object.freeze({ fields, rowCount, columns: Object.freeze(columns) }));
+          } finally { usage.receiveCallbackMilliseconds += performance.now() - receiveStarted; }
+          assertLive();
         }
-        usage.chunks++;
-        await consume(Object.freeze({ fields, rowCount: chunk.rowCount, columns: Object.freeze(columns) }));
-        assertLive();
       }
+      succeeded = true;
       return fields;
     } finally {
       pending = false;
-      prepared?.destroySync();
-      busy = false;
+      try {
+        if (prepared && reuseInsert) {
+          // Keep ownership until explicit destruction succeeds, including on a
+          // failed command. Cleanup must not forget a native statement.
+          cachedInsert = {sql, prepared};
+          if (succeeded) prepared.clearBindings();
+          else destroyCachedInsert();
+        } else prepared?.destroySync();
+      } finally {
+        usage.commandMilliseconds += performance.now() - commandStarted;
+        busy = false;
+      }
     }
   };
   const command = (...args) => {
@@ -186,30 +277,40 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     // forgets to await a command. Such an attempt must never return success.
     promise.then(
       () => inFlight.delete(promise),
-      (error) => { commandFailure ??= error; inFlight.delete(promise); },
+      (error) => {
+        if (!commandFailed) commandFailure = error;
+        commandFailed = true;
+        inFlight.delete(promise);
+      },
     );
     return promise;
   };
   let result;
   let failure;
+  let failed = false;
   const cleanupErrors = [];
   let cleaning = false;
   const cleanupStatus = () => Object.freeze({
-    pending: connection !== undefined || instance !== undefined,
+    pending: cachedInsert !== undefined || connection !== undefined || instance !== undefined,
     errors: Object.freeze([...cleanupErrors]),
   });
   const cleanOwnedResources = async () => {
     if (cleaning) throw new DuckDBTransportError('CleanupInProgress');
     cleaning = true;
+    const cleanupStarted = performance.now();
     try {
+      try { destroyCachedInsert(); }
+      catch (error) { cleanupErrors.push(error); }
       try {
         if (transaction && connection) await connection.run('ROLLBACK');
         transaction = false;
       } catch (error) { cleanupErrors.push(error); }
       try {
-        connection?.closeSync();
-        connection = undefined;
-        transaction = false; // closing the owned connection ends its transaction
+        if (!cachedInsert) {
+          connection?.closeSync();
+          connection = undefined;
+          transaction = false; // closing the owned connection ends its transaction
+        }
       } catch (error) { cleanupErrors.push(error); }
       // Retain the instance while its connection still needs cleanup.
       if (!connection && !shared) {
@@ -222,7 +323,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       const status = cleanupStatus();
       accounting?.settled(!status.pending);
       return status;
-    } finally { cleaning = false; }
+    } finally {
+      usage.cleanupMilliseconds += performance.now() - cleanupStarted;
+      cleaning = false;
+    }
   };
   try {
     assertLive();
@@ -237,11 +341,12 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     // success channel. Only this function's resolution denotes clean completion.
     result = await body(Object.freeze({
       command,
+      insert: (sql, parameters, consume) => command(sql, parameters, consume, true),
       usage: () => Object.freeze({ ...usage }),
     }));
     assertLive();
     if (inFlight.size !== 0) throw new DuckDBTransportError('UnawaitedCommand');
-    if (commandFailure) throw commandFailure;
+    if (commandFailed) throw commandFailure;
     if (shared) {
       // The trusted body must finish provisional-output validation before
       // returning. Only successful transactions may publish resident tables.
@@ -250,6 +355,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       assertLive();
     }
   } catch (error) {
+    failed = true;
     failure = cancelled ? new DuckDBTransportError('Cancelled', { cause: error }) : error;
   } finally {
     active = false;
@@ -263,7 +369,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     await cleanOwnedResources();
   }
   if (cleanupErrors.length) {
-    const combined = new DuckDBTransportError(failure?.code ?? 'CleanupFailed', { cause: failure ?? cleanupErrors[0] });
+    const combined = new DuckDBTransportError(failure?.code ?? 'CleanupFailed', {
+      cause: failed ? failure : cleanupErrors[0],
+    });
     combined.primaryFailure = failure;
     combined.cleanupErrors = Object.freeze([...cleanupErrors]);
     combined.cleanupPending = cleanupStatus().pending;
@@ -272,8 +380,11 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     });
     throw combined;
   }
-  if (signal?.aborted && !failure) failure = new DuckDBTransportError('Cancelled');
-  if (failure) throw failure;
+  if (signal?.aborted && !failed) {
+    failed = true;
+    failure = new DuckDBTransportError('Cancelled');
+  }
+  if (failed) throw failure;
   return Object.freeze({ value: result, usage: Object.freeze({ ...usage }) });
 }
 
@@ -352,7 +463,7 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
           return await usingSession(':memory:', false, fixedLimits, body, signal,
             taskAccounting, { instance });
         } catch (error) {
-          if (error.cleanupPending) {
+          if (error?.cleanupPending) {
             pendingCleanup = error.cleanupHandle;
             closing = true;
           }

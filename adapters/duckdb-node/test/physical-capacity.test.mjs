@@ -28,6 +28,23 @@ test('capacity rejects invalid or overflowing envelopes before reservation', () 
     9007199254740991n);
 });
 
+test('bounded transport capacity is independent of cumulative rows and bytes', () => {
+  const config = {...limits, maxRows: 10000, maxCells: 10000, maxTransportBytes: 1000000,
+    maxChunkRows: 16, maxChunkBytes: 1024};
+  const cap = computePhysicalCapacity(config);
+  // 16*3 delivered cells, 2048*3 raw SDK vector cells, 3 fields and 4 parameters.
+  assert.equal(cap.scratchBytes, 1024n * 32n + (48n + 6144n + 7n) * 256n + 20n);
+  const larger = computePhysicalCapacity({...config, maxRows: 1000000, maxCells: 1000000,
+    maxTransportBytes: 100000000});
+  assert.equal(larger.scratchBytes, cap.scratchBytes);
+  assert.equal(larger.transferBytes, 100000000n);
+  assert.equal(computePhysicalCapacity({...config, maxChunkBytes: 1025}).scratchBytes, cap.scratchBytes + 32n);
+  // Neither bound alone selects the smaller physical representation policy.
+  const whole = computePhysicalCapacity({...config, maxChunkRows: undefined, maxChunkBytes: undefined});
+  assert.equal(computePhysicalCapacity({...config, maxChunkBytes: undefined}).scratchBytes, whole.scratchBytes);
+  assert.equal(computePhysicalCapacity({...config, maxChunkRows: undefined}).scratchBytes, whole.scratchBytes);
+});
+
 test('provider preflight freezes all transport settings before any start or settlement', async () => {
   const source = { ...limits, cancelWaitMs: 0 };
   const fixed = validateLimits(source);

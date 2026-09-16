@@ -4,6 +4,7 @@ package "actql/actql/physical_strategy_example"
 import {
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors_builtin",
+  "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
 }
@@ -11,20 +12,65 @@ import {
 // Values
 pub fn application_acquisition(Application) -> @host.NativeHostConfiguration
 
+pub fn application_bind_readmitted_output(Application, Int, Int, Int, @execution_relation.CompletedOutput) -> @execution_relation.ProducerRead raise
+
+pub fn application_bounded_ledger(@physical_resources.LedgerLimits) -> @physical_resources.Ledger raise
+
+pub fn application_compute_count(Application) -> Int
+
+pub fn application_compute_transfer_capacity(Application) -> Int64
+
 pub fn application_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
 pub fn application_graph(Application) -> @physical_strategy.CheckedDAG
 
 pub fn application_ledger() -> @physical_resources.Ledger
 
+pub fn application_ledger_limits(@physical_resources.Ledger) -> @physical_resources.LedgerLimits
+
+pub fn application_ledger_usage(@physical_resources.Ledger) -> @physical_resources.LedgerUsage
+
+pub fn application_materializing_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
 pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?
 
+pub fn application_profile_output_cid(Application, @physical_strategy.CapturedDAG, Int) -> String?
+
+pub fn application_retained_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
+pub fn application_retained_local_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
+pub fn application_task_completion_preparation(Application, Int) -> @execution_relation.CompletionPreparation raise
+
+pub fn application_task_content_read(Application, Int, @execution_relation.RetainedCompletionDescriptor) -> @execution_relation.RetainedContentRead raise
+
+pub fn application_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
+
+pub fn application_task_output_matches(@physical_strategy.CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
+
+pub fn application_task_reference(Application, Int) -> @physical_strategy.CheckedTaskReference raise
+
 pub fn prepare_application(String, String, String, String, String, String, String, String, String, String, String, String) -> Application raise
+
+pub fn prepare_application_with_data(String, String, String, String, String, String, String, String, String, String, String, String, DataProfile) -> Application raise
 
 // Errors
 
 // Types and methods
 type Application
+
+pub(all) struct DataProfile {
+  source_rows : Int
+  task_rows : Int
+  columns : Int
+  value_bytes : Int
+  wire_bytes : Int
+  value_nodes : Int
+  text_bytes : Int
+  work : Int
+  entries : Int
+  batch_bytes : Int
+}
 
 // Type aliases
 

@@ -93,6 +93,7 @@ pub fn execute_local_fixed_compute(
   limits : @execution.SequenceExecutionLimits,
   measurement~ : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
+  representations? : Array[@execution.CompletedOutput?],
 ) -> Result[@execution.CompletedSequence, @connector.FixedComputeIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
@@ -116,9 +117,23 @@ pub fn execute_local_fixed_compute(
     is Some(target) else {
     return Err(UnsupportedInputShape)
   }
+  let inputs = @connector.fixed_compute_request_inputs(request)
+  if representations is Some(copies) {
+    if copies.length() != inputs.length() {
+      return Err(UnsupportedInputShape)
+    }
+    for index, copy in copies {
+      if copy is Some(output) {
+        match @execution.rebind_producer_representation(inputs[index], output) {
+          Ok(read) => inputs[index] = read
+          Err(_) => return Err(ForeignPreparation)
+        }
+      }
+    }
+  }
   @execution.execute_fixed_producers_guarded(
     sequence,
-    @connector.fixed_compute_request_inputs(request),
+    inputs,
     target,
     limits,
     max_rows=@connector.fixed_compute_request_capacity(request).max_rows,

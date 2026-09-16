@@ -4,6 +4,24 @@ import {build} from 'esbuild';
 import {fileURLToPath} from 'node:url';
 import {createTestRuntime} from './runtime.mjs';
 
+test('workerd observes asynchronous result close and preserves reasonless failures', async () => {
+  const bundle = await build({
+    stdin: {contents: `import {asynchronousCloseCase} from '../host-node/finalizer-fixture.mjs';
+      export default {async fetch(request) {
+        return Response.json(await asynchronousCloseCase(await request.text()));
+      }};`, resolveDir: fileURLToPath(new URL('.', import.meta.url))},
+    bundle: true, platform: 'browser', format: 'esm', write: false,
+  });
+  const runtime = createTestRuntime(bundle.outputFiles[0].text);
+  try {
+    for (const kind of ['undefined', 'null', 'recoverable']) {
+      const response = await runtime.dispatchFetch('http://worker.test/', {method: 'POST', body: kind});
+      assert.deepEqual(await response.json(), {failed: true, firstPreserved: true,
+        pending: kind !== 'recoverable', closed: 1, retries: kind === 'recoverable' ? 1 : 0});
+    }
+  } finally { await runtime.dispose(); }
+});
+
 test('workerd retains unconfirmed finalizer ownership without implicit retry', async () => {
   // Bundle the actual common driver and scoped Host with a protocol test double;
   // no alternate lifecycle implementation or Node globals in the Worker.

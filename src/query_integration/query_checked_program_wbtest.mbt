@@ -11,6 +11,7 @@ fn query_checked_program_fixture(
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
+  parameter_json? : String = "{\"minimum\":1}",
 ) -> @program_check.CheckedProgram raise {
   let text =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}],"results":{"out":{"from":{"stage":"a","result":"r"}}}}
@@ -126,7 +127,7 @@ fn query_checked_program_fixture(
           text_rank: false,
         },
       ),
-      Some(input_cursor("{\"minimum\":1}")),
+      Some(input_cursor(parameter_json)),
       evidence,
       { input: input_limits, compilation: query_checked_limits(10), },
     ) {

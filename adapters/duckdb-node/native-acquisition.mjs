@@ -6,12 +6,15 @@ import { withSourceAcquisition } from './source-acquisition.mjs';
 
 export async function runNativeAcquisition(grant, port, limits, signal, accounting) {
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
+    const started = performance.now();
     // The trusted adapter supplies catalog-only SQL, not a source-row query.
     // Metadata transport remains in the session ledger, outside both receipts.
     const metadataFields = await session.command(port.metadataSql(),
       port.metadataParameters(), chunk => port.acceptMetadata(chunk, readView));
     await port.finishMetadata(metadataFields, readView);
+    const metadataMilliseconds = performance.now() - started;
     const receive = async (role, sql, parameters) => {
+      const receiptStarted = performance.now();
       let begun = false;
       const begin = async fields => {
         await port.beginReceipt(role, fields, readView);
@@ -29,12 +32,23 @@ export async function runNativeAcquisition(grant, port, limits, signal, accounti
       const transport = Object.freeze(Object.fromEntries(
         Object.keys(before).map(key => [key, after[key] - before[key]]),
       ));
-      return Object.freeze({ accepted, transport });
+      return Object.freeze({ accepted, transport,
+        milliseconds: performance.now() - receiptStarted });
     };
     const validation = await receive('validation_scan', port.validationSql(), []);
     // Await complete pinned validation before starting native filtering.
     if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
     const native = await receive('native_result', port.nativeSql(), port.nativeParameters());
-    return Object.freeze({ readView, validation, native });
+    // These wall-clock phases include receiver work (validation, encoding and
+    // storage where installed), not just SQL execution. Session command/callback
+    // timers are nested within them and must not be added to these totals.
+    // Opening/settling/closing the source session is outside this body timer.
+    return Object.freeze({ readView, validation, native,
+      diagnostics: Object.freeze({
+        metadataMilliseconds,
+        validationMilliseconds: validation.milliseconds,
+        nativeResultMilliseconds: native.milliseconds,
+        bodyMilliseconds: performance.now() - started,
+      }) });
   }, accounting);
 }

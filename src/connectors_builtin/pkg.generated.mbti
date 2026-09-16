@@ -30,7 +30,7 @@ pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @a
 
 pub fn[C, E] dispatch_duckdb(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration, ConfiguredDispatchIssue[E]]
 
-pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
+pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@actql/actql/connectors/local/driver.LocalDispatchOperations, ConfiguredDispatchIssue[E]]
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

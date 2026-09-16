@@ -26,6 +26,7 @@ pub(all) enum FixedInputGuardIssue {
   InputRows
   OutputRows
   MissingOutput
+  InputRepresentationRequired(Int)
 }
 
 ///|
@@ -227,17 +228,18 @@ pub fn execute_fixed_input_guarded(
   if completed_row_count(output) > max_output_rows {
     return Err(OutputRows)
   }
+  guard output.table is Some(table) else { return Err(MissingOutput) }
   let measured_output = if record_values {
-    let names = RelationRows::field_names(output.table)
+    let names = RelationRows::field_names(table)
     measure_input_records(
-      output.table,
+      table,
       column => names[column],
       max_value_bytes,
       Output,
       budget,
     )
   } else {
-    measure_input_values(output.table, max_value_bytes, Output, budget)
+    measure_input_values(table, max_value_bytes, Output, budget)
   }
   match measured_output {
     Err(issue) => return Err(issue)

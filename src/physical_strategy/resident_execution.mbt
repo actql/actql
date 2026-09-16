@@ -11,11 +11,15 @@ struct ResidentExecution {
     RunIssue,
   ]
   retention : Int64
+  independent_retention : Int64
   scratch : Int64
   mut pending : ResidentPendingOutput?
 }
 
 ///|
+/// retention bounds the copy inside the shared environment. independent_retention
+/// bounds the separately completed output and defaults to the legacy row bound.
+/// Neither value substitutes for the other's reservation or release evidence.
 pub fn[T, P] prepare_resident_execution(
   run : CapturedDAG,
   task : Int,
@@ -29,6 +33,7 @@ pub fn[T, P] prepare_resident_execution(
     @execution.ProducerStorage,
     RunIssue,
   ],
+  independent_retention? : Int64,
 ) -> Result[ResidentExecution, RunIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared) is Some(_) &&
     resident_inputs_match(
@@ -39,7 +44,8 @@ pub fn[T, P] prepare_resident_execution(
     ) else {
     return Err(ForeignCandidate)
   }
-  if retention < 0L || scratch < 0L {
+  let independent_retention = independent_retention.unwrap_or(retention)
+  if retention < 0L || independent_retention < 0L || scratch < 0L {
     return Err(Physical(InvalidLimits))
   }
   Ok({
@@ -53,6 +59,7 @@ pub fn[T, P] prepare_resident_execution(
       })
     },
     retention,
+    independent_retention,
     scratch,
     pending: None,
   })
@@ -81,15 +88,22 @@ fn resident_execution_capacity(
         resident_inputs_match(run, resource.inputs, task, resource.candidate) else {
         return Err(ForeignCandidate)
       }
-      if capacity.retained_bytes < resource.retention ||
-        capacity.scratch_bytes < resource.scratch {
-        return Err(Physical(InvalidCharge))
-      }
+      // The shared copy is allocated inside the environment's independently
+      // reserved capacity. Its size is not the size of the independent output
+      // holding (which may be a canonical file plus metadata).
       guard run.strategy.bind(revision => {
           revision.choices.get(task).bind(value => value)
         })
-        is Some(offer) &&
-        resource.retention <= offer.resident_output_bytes else {
+        is Some(offer) else {
+        return Err(ForeignCandidate)
+      }
+      if !resident_storage_capacity_matches(
+          capacity,
+          resource.retention,
+          resource.independent_retention,
+          resource.scratch,
+          offer.resident_output_bytes,
+        ) {
         return Err(Physical(InvalidCharge))
       }
       Ok(
@@ -98,6 +112,22 @@ fn resident_execution_capacity(
     }
     _ => Err(ForeignCandidate)
   }
+}
+
+///|
+fn resident_storage_capacity_matches(
+  capacity : @connector.ExecutionCapacity,
+  copy_bytes : Int64,
+  independent_bytes : Int64,
+  scratch_bytes : Int64,
+  offered_copy_bytes : Int64,
+) -> Bool {
+  copy_bytes >= 0L &&
+  independent_bytes >= 0L &&
+  scratch_bytes >= 0L &&
+  copy_bytes <= offered_copy_bytes &&
+  independent_bytes <= capacity.retained_bytes &&
+  scratch_bytes <= capacity.scratch_bytes
 }
 
 ///|

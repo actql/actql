@@ -66,6 +66,14 @@ test "connector estimate modules own schedules without Host policy state or call
         installed, schedules, capacities, 1000,
       ).unwrap()
       assert_true(
+        @duckdb_driver.configure_duckdb_retained_output(
+          installed,
+          50L,
+          Some(0L),
+        )
+        is Err(InvalidConfiguration),
+      )
+      assert_true(
         @duckdb_driver.estimate_duckdb_installed_offers(
           installed, 1, quantities,
         )

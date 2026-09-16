@@ -111,6 +111,7 @@ priv enum CompletedStore {
   RowStore(TableStore[Table])
   PhysicalStore(TableStore[CompletedTable])
   ImportedStore(Int, @pipeline.Target, CompletedTable)
+  RetainedStore(Int, @pipeline.Target, RetainedOutputMaterial)
 }
 
 ///|
@@ -118,7 +119,7 @@ fn CompletedStore::input_count(self : CompletedStore) -> Int {
   match self {
     RowStore(store) => store.wiring.input_count
     PhysicalStore(store) => store.wiring.input_count
-    ImportedStore(count, _, _) => count
+    ImportedStore(count, _, _) | RetainedStore(count, _, _) => count
   }
 }
 
@@ -135,6 +136,7 @@ fn CompletedStore::table_at(
         Step(index) => if slot == count + index { Some(table) } else { None }
         Input(_) => None
       }
+    RetainedStore(_, _, _) => None
   }
 }
 

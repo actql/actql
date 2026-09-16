@@ -214,16 +214,16 @@ pub fn[E] execute_configured_in_process(
 ) -> Result[Unit, ConfiguredDispatchIssue[E]] {
   let selected = @host.prepared_task_registration(task)
 
-  if value.modules.installed_reference_compute is Some((installed, _, _)) &&
+  if value.modules.installed_reference_compute is Some((installed, project, _)) &&
     physical_equal(
       selected,
       @binding2.numeric_contribution_registration(installed),
     ) {
-    return dispatch_reference_compute(
-      value.modules,
+    return @binding2.execute_numeric_contribution(
+      installed,
       @host.compute_host_dispatch(value.runtime),
       task,
-    )
+    ).map_err(issue => Implementation(project(issue)))
   }
   Err(MissingImplementation)
 }

@@ -117,7 +117,11 @@ pub fn open_captured_dag(
   let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
   let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
-  resources[0] = Some({ holding: None, parents: [], })
+  resources[0] = Some({
+    holding: None,
+    release_confirmed: fn() { true },
+    parents: [],
+  })
   Ok({
     graph,
     offer_owner: { graph, },

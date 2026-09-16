@@ -1,4 +1,77 @@
 ///|
+test "confirmed retention is bounded and never substitutes for completion or cleanup" {
+  for amount in [-1L, 101L, 40L] {
+    let (run, _) = captured_graph_fixture()
+    let (_, choice, candidate) = synchronous_test_choice(run)
+    let ledger = @strategy.captured_dag_ledger(run)
+    let cleaned = Ref(false)
+    let finishes = Ref(0)
+    let prepared = @connector.bind_prepared_execution(
+      choice,
+      candidate,
+      {
+        transfer_bytes: 100L,
+        retained_bytes: 100L,
+        scratch_bytes: 10L,
+        execution_bytes: 100L,
+      },
+      [],
+      fn(payload) {
+        let operations : @connector.ExecutionOperations[
+          @strategy.RunIssue,
+          @strategy.TaskPublication,
+        ] = {
+          cancel: fn() {  },
+          dispose: fn() {  },
+          settled: fn() {  },
+          retention_released: fn() { cleaned.val },
+          released: fn() {  },
+          ready: fn() { Ok(()) },
+          finish: fn() {
+            finishes.val += 1
+            Err(MissingOutput)
+          },
+          publish: fn(_) { Ok(()) },
+        }
+        Ok((payload, operations))
+      },
+      retained_bytes=fn() { Ok(amount) },
+    ).unwrap()
+    assert_true(
+      @connector.prepared_execution_retained_bytes(prepared)
+      is Err(Candidate(NotSelected)),
+    )
+    let (_, execution) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
+    @strategy.charge_task_execution_transfer(run, execution, 23L).unwrap()
+    @strategy.settle_task_execution(run, execution, true).unwrap()
+    let result = @strategy.complete_task_execution(run, execution)
+    if amount == 40L {
+      assert_true(result is Err(MissingOutput))
+      assert_eq(finishes.val, 1)
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, 40L)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 60L)
+    } else {
+      assert_true(result is Err(Compute(InvalidLimits)))
+      assert_eq(finishes.val, 0)
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 100L)
+    }
+    assert_false(@strategy.captured_task_completed(run, 1))
+    @strategy.close_task_execution(run, execution)
+    let pending = @resources.ledger_usage(ledger)
+    assert_eq(pending.held_bytes + pending.reserved_retention_bytes, 100L)
+    cleaned.val = true
+    assert_true(
+      @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+    )
+    let released = @resources.ledger_usage(ledger)
+    assert_eq(released.held_bytes, 0L)
+    assert_eq(released.reserved_retention_bytes, 0L)
+    assert_eq(released.transferred_bytes, 23L)
+  }
+}
+
+///|
 test "prepared asynchronous execution reserves before calling installed payload" {
   let (run, _) = captured_graph_fixture()
   let (_, choice, candidate) = synchronous_test_choice(run)
@@ -27,6 +100,7 @@ test "prepared asynchronous execution reserves before calling installed payload"
         cancel: fn() { cancelled.val += 1 },
         dispose: fn() { disposed.val += 1 },
         settled: fn() { settled.val += 1 },
+        retention_released: fn() { true },
         released: fn() { released.val += 1 },
         ready: fn() { Ok(()) },
         finish: fn() { Err(MissingOutput) },
@@ -172,6 +246,7 @@ test "prepared execution still rejects foreign completed output and keeps holdin
         cancel: fn() {  },
         dispose: fn() {  },
         settled: fn() {  },
+        retention_released: fn() { true },
         released: fn() {  },
         ready: fn() { Ok(()) },
         finish: fn() { Ok(foreign) },
@@ -182,6 +257,7 @@ test "prepared execution still rejects foreign completed output and keeps holdin
       }
       Ok((payload, operations))
     },
+    retained_bytes=fn() { Ok(40L) },
   ).unwrap()
   let (_, execution) = @strategy.start_captured_execution(run, 1, prepared).unwrap()
   @strategy.settle_task_execution(run, execution, true).unwrap()
@@ -191,7 +267,8 @@ test "prepared execution still rejects foreign completed output and keeps holdin
   assert_eq(publications.val, 0)
   assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
   let ledger = @strategy.captured_dag_ledger(run)
-  assert_eq(@resources.ledger_usage(ledger).held_bytes, 100L)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 40L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 60L)
   @strategy.close_task_execution(run, execution)
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(@strategy.captured_task_output(other, 1, Step(1)) is Some(_))

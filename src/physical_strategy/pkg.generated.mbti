@@ -60,6 +60,10 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
+
+pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
+
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
 pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -108,7 +112,9 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
-pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentExecution, RunIssue]
+pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
+
+pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue], independent_retention? : Int64) -> Result[ResidentExecution, RunIssue]
 
 pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[ResidentTable], @connector_sdk.FixedComputeCandidate, Int, Int, Int, (Int, ResidentTable, @execution_relation.ProducerRead, Int) -> Result[Int, RunIssue]) -> Result[ResidentInputs, RunIssue]
 
@@ -119,6 +125,10 @@ pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, In
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn refresh_captured_retention(CapturedDAG) -> Unit
+
+pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -146,7 +156,7 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
-pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding) -> Result[Unit, @physical_resources.LedgerIssue]
+pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -196,6 +206,34 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 type CapturedDAG
 
 type CheckedDAG
+
+pub(all) struct CheckedTaskIdentity {
+  task : Int
+  program_definition_cid : String
+  program_parameters_cid : String
+  unit_definition_cid : String
+  unit_parameters_cid : String
+  unit_contracts_cid : String
+  output_step : Int
+  inputs : Array[CheckedTaskInputIdentity]
+  controls : Array[Int]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CheckedTaskInputIdentity {
+  input : Int
+  producer : Int
+  producer_target_is_input : Bool
+  producer_target_index : Int
+} derive(Eq, @debug.Debug)
+
+type CheckedTaskReference
+
+pub(all) enum CheckedTaskReferenceIssue {
+  InvalidLimits
+  InvalidTask
+  WorkLimit
+  ReferenceLimit
+} derive(Eq, @debug.Debug)
 
 pub struct ControlEdge {
   predecessor : Int

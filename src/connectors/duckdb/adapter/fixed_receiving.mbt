@@ -5,6 +5,10 @@ struct FixedComputeReceiving {
   compute : FixedCompute
   physical : PhysicalResult
   mut retained : @execution.AdmittedOutput?
+  mut stream : @execution.AdmittedOutputStream?
+  mut pending : PhysicalBatch?
+  mut pending_row : Int
+  stream_chunk_rows : Int
   mut open : Bool
   mut finished : Bool
 }
@@ -22,6 +26,8 @@ pub(all) enum FixedComputeReceivingIssue {
   InvalidShape
   Physical(PhysicalResultIssue)
   Retention(@execution.CaptureIssue)
+  Stream(@execution.OutputStreamIssue)
+  Guard(@execution.FixedInputGuardIssue)
 }
 
 ///|
@@ -31,6 +37,25 @@ pub fn prepare_fixed_compute_receiving(
   physical : PhysicalResultLimits,
   retention : @execution.ValueLimits,
   max_metadata_work : Int,
+) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue] {
+  prepare_fixed_compute_receiving_impl(
+    compute,
+    fields,
+    physical,
+    retention,
+    max_metadata_work,
+    None,
+  )
+}
+
+///|
+fn prepare_fixed_compute_receiving_impl(
+  compute : FixedCompute,
+  fields : Array[(String, PhysicalType)],
+  physical : PhysicalResultLimits,
+  retention : @execution.ValueLimits,
+  max_metadata_work : Int,
+  streaming : (@execution.RowWireLimits, Int, Int)?,
 ) -> Result[FixedComputeReceiving, FixedComputeReceivingIssue] {
   if !fixed_compute_inputs_available(compute) {
     return Err(InputUnavailable)
@@ -53,23 +78,46 @@ pub fn prepare_fixed_compute_receiving(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let retained = match
-    @execution.prepare_admitted_output(
-      fixed_query_owner(compute.query),
-      fixed_query_target(compute.query),
-      physical.max_rows,
-      retention,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      cancel_physical_result(received)
-      return Err(Retention(issue))
-    }
+  let (retained, stream, chunk_rows) = match streaming {
+    Some((wire, batch_bytes, chunk_rows)) =>
+      match
+        @execution.prepare_admitted_output_stream(
+          fixed_query_owner(compute.query),
+          fixed_query_target(compute.query),
+          physical.max_rows,
+          retention,
+          wire,
+          batch_bytes,
+        ) {
+        Ok(stream) => (None, Some(stream), chunk_rows)
+        Err(issue) => {
+          cancel_physical_result(received)
+          return Err(Stream(issue))
+        }
+      }
+    None =>
+      match
+        @execution.prepare_admitted_output(
+          fixed_query_owner(compute.query),
+          fixed_query_target(compute.query),
+          physical.max_rows,
+          retention,
+        ) {
+        Ok(value) => (Some(value), None, 0)
+        Err(issue) => {
+          cancel_physical_result(received)
+          return Err(Retention(issue))
+        }
+      }
   }
   Ok({
     compute,
     physical: received,
-    retained: Some(retained),
+    retained,
+    stream,
+    pending: None,
+    pending_row: 0,
+    stream_chunk_rows: chunk_rows,
     open: true,
     finished: false,
   })
@@ -86,6 +134,12 @@ pub fn abort_fixed_compute_receiving(value : FixedComputeReceiving) -> Unit {
     @execution.cancel_admitted_output(retained) |> ignore
   }
   value.retained = None
+  if value.stream is Some(stream) {
+    @execution.cancel_admitted_output_stream(stream) |> ignore
+  }
+  value.stream = None
+  value.pending = None
+  value.pending_row = 0
 }
 
 ///|
@@ -98,6 +152,32 @@ pub fn receive_fixed_compute_chunk(
     return Err(InvalidState)
   }
   guard value.retained is Some(retained) else { return Err(InvalidState) }
+  let batch = match receive_fixed_compute_physical_chunk(value, rows, columns) {
+    Ok(batch) => batch
+    Err(issue) => return Err(issue)
+  }
+  let width = @schema.field_count(value.physical.schema)
+  for row in 0..<batch.rows {
+    match
+      @execution.append_admitted_output_cells(retained, width, column => {
+        physical_batch_cell(batch, row, column)
+      }) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_fixed_compute_receiving(value)
+        return Err(Retention(issue))
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
+fn receive_fixed_compute_physical_chunk(
+  value : FixedComputeReceiving,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[PhysicalBatch, FixedComputeReceivingIssue] {
   if !fixed_compute_inputs_available(value.compute) {
     abort_fixed_compute_receiving(value)
     return Err(InputUnavailable)
@@ -130,20 +210,7 @@ pub fn receive_fixed_compute_chunk(
       return Err(Physical(issue))
     }
   }
-  let width = @schema.field_count(value.physical.schema)
-  for row in 0..<batch.rows {
-    match
-      @execution.append_admitted_output_cells(retained, width, column => {
-        physical_batch_cell(batch, row, column)
-      }) {
-      Ok(_) => ()
-      Err(issue) => {
-        abort_fixed_compute_receiving(value)
-        return Err(Retention(issue))
-      }
-    }
-  }
-  Ok(())
+  Ok(batch)
 }
 
 ///|

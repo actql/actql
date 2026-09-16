@@ -13,6 +13,10 @@ import {
 // Values
 pub fn configure_local_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
+pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
+
+pub fn configure_local_retained_output(LocalDispatchModule, @local.LocalExportLimits, Int64?) -> Result[Unit, LocalDispatchIssue]
+
 pub fn estimate_local_dispatch_offer(LocalDispatchModule, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[@physical_strategy.TaskOffer, LocalDispatchIssue]
 
 pub fn estimate_local_installed_offers(LocalDispatchModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], LocalEstimateIssue]
@@ -39,6 +43,8 @@ pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.R
 
 pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
+pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
+
 // Errors
 
 // Types and methods
@@ -59,6 +65,15 @@ pub(all) enum LocalDispatchIssue {
 
 type LocalDispatchModule
 
+pub struct LocalDispatchOperations {
+  inputs : Array[LocalInputTransfer]
+  output : LocalOutputTransfer?
+  execute : () -> Result[Unit, LocalDispatchIssue]
+  settle : () -> Result[Unit, LocalDispatchIssue]
+  complete : () -> Result[Unit, LocalDispatchIssue]
+  close : () -> Unit
+}
+
 pub(all) enum LocalEstimateIssue {
   InvalidConfiguration
   Rate(@physical_cost.RateIssue)
@@ -70,6 +85,47 @@ type LocalEstimateModule
 pub(all) struct LocalEstimateSettings {
   schedules : Array[@physical_cost.RateSchedule]
   max_work : Int
+}
+
+pub struct LocalExportContent {
+  cid : String
+  bytes : Int
+  rows : Int
+  tail : String
+  bind : (() -> Bool) -> Result[LocalRetainedRepresentation, LocalDispatchIssue]
+}
+
+pub struct LocalInputFrames {
+  maxBytes : Int
+  maxRows : Int
+  maxRowBytes : Int
+  maxDepth : Int
+  maxFrameBytes : Int
+}
+
+pub struct LocalInputTransfer {
+  material : @execution_relation.RetainedOutputMaterial
+  input : @execution_relation.ProducerRead
+  frames : LocalInputFrames
+  begin : () -> Result[Unit, LocalDispatchIssue]
+  charge : (Int64) -> Result[Unit, LocalDispatchIssue]
+  append : (String) -> Result[Unit, LocalDispatchIssue]
+  finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+pub struct LocalOutputTransfer {
+  key : String
+  limits : @local.LocalExportLimits
+  install : (() -> Bool) -> Result[Unit, LocalDispatchIssue]
+  begin : () -> Result[Unit, LocalDispatchIssue]
+  next : () -> Result[String?, LocalDispatchIssue]
+  finish : () -> Result[LocalExportContent, LocalDispatchIssue]
+  refresh : () -> Result[Bool, LocalDispatchIssue]
+}
+
+pub struct LocalRetainedRepresentation {
+  material : @execution_relation.RetainedOutputMaterial
+  readable : (@execution_relation.ProducerRead) -> Bool
 }
 
 // Type aliases

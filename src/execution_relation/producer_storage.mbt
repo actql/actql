@@ -16,7 +16,7 @@ pub fn prepare_producer_storage(
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if !completion_is_live(output.completion) {
+  if !completed_output_available(output) {
     return Err(ProducerUnavailable)
   }
   let owner = @lower.sequence_owner(output.completion.sequence)
@@ -76,7 +76,19 @@ pub fn producer_storage_cell(
 
 ///|
 pub fn producer_storage_available(storage : ProducerStorage) -> Bool {
-  completion_is_live(storage.output.completion)
+  completed_output_available(storage.output)
+}
+
+///|
+/// Installed representation-transfer access only, not a consumer permission.
+pub fn producer_storage_retained_material(
+  storage : ProducerStorage,
+) -> RetainedOutputMaterial? {
+  if producer_storage_available(storage) {
+    storage.output.representation
+  } else {
+    None
+  }
 }
 
 ///|
@@ -122,7 +134,7 @@ pub fn producer_storage_projection(
       @lower.sequence_owner(output.completion.sequence),
       @lower.sequence_owner(storage.output.completion.sequence),
     ) ||
-    !same_completed_storage(output.table, storage.output.table) {
+    !same_completed_output_storage(output, storage.output) {
     return Err(InvalidProjection)
   }
   let mut work = max_entries
@@ -143,4 +155,20 @@ pub fn producer_storage_projection(
     result.push(index)
   }
   Ok(result)
+}
+
+///|
+fn same_completed_output_storage(
+  left : CompletedOutput,
+  right : CompletedOutput,
+) -> Bool {
+  match (left.table, right.table) {
+    (Some(a), Some(b)) => same_completed_storage(a, b)
+    (None, None) =>
+      match (left.representation, right.representation) {
+        (Some(a), Some(b)) => physical_equal(a, b)
+        _ => false
+      }
+    _ => false
+  }
 }

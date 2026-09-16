@@ -8,7 +8,9 @@ fn test_row_store(completion : CompletedSequence) -> TableStore[Table] {
 
 ///|
 fn test_row_output(output : CompletedOutput) -> Table {
-  guard output.table is RowTable(table) else { abort("expected row output") }
+  guard output.table is Some(RowTable(table)) else {
+    abort("expected row output")
+  }
   table
 }
 

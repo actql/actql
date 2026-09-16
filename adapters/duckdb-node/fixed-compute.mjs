@@ -1,6 +1,8 @@
 // Trusted Host port backed by MoonBit FixedCompute accessors. This does not
 // accept Program SQL, discharge logical guards, or issue completed output.
-import { DuckDBTransportError, withComputeDatabase } from './session.mjs';
+import { DuckDBTransportError, withComputeDatabase, validateLimits } from './session.mjs';
+import {boundedTransport} from './transport-bounds.mjs';
+import {createImportBatch} from './import-batch.mjs';
 
 const attempted = new WeakSet();
 const completed = new WeakMap();
@@ -8,6 +10,8 @@ const completed = new WeakMap();
 // The trusted bridge creates a fresh port/receiver for each attempt. Its
 // immutable completed input may be reused through another port and fresh budget.
 export async function runFixedCompute(port, limits, importLimits, consume, signal, accounting) {
+  limits = validateLimits(limits);
+  importLimits = Object.freeze({...importLimits});
   if (attempted.has(port)) throw new DuckDBTransportError('AttemptAlreadyStarted');
   attempted.add(port);
   let ownedSession;
@@ -46,26 +50,73 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
     if (rows > Number.MAX_SAFE_INTEGER - importedRows) throw new DuckDBTransportError('ImportRows');
     importedRows += rows;
     importedCells += rows * columns;
-    imports.push({ rows, columns });
+    // Batch sizing is pure and precedes DB creation. Old trusted test ports can
+    // keep the single-row path; installed ports use the exact MoonBit compiler.
+    let batchRows = 1;
+    if (boundedTransport(limits) && typeof port.insertBatch === 'function' && rows > 1) {
+      const requested = Math.min(rows, limits.maxChunkRows, Math.floor(limits.maxParameters / columns));
+      const batch = port.insertBatch(input, requested);
+      if (!Number.isSafeInteger(batch.rows) || batch.rows < 1 || batch.rows > requested ||
+          typeof batch.sql !== 'string' || Buffer.byteLength(batch.sql, 'utf8') > limits.maxSqlBytes) {
+        throw new DuckDBTransportError('InvalidImportBatch');
+      }
+      batchRows = batch.rows;
+    }
+    imports.push({ rows, columns, batchRows });
   }
   return withComputeDatabase(limits, async session => {
     retainSession(session);
     const discard = () => {};
+    const inputTimings = [];
     for (let input = 0; input < imports.length; input++) {
-      const { rows, columns } = imports[input];
+      const inputStarted = performance.now();
+      let insertMilliseconds = 0;
+      const { rows, columns, batchRows } = imports[input];
       await session.command(port.createSql(input), [], discard);
       const insert = port.insertSql(input);
+      const write = async (sql, parameters) => {
+        const started = performance.now();
+        try { await session.insert(sql, parameters, discard); }
+        finally { insertMilliseconds += performance.now() - started; }
+      };
+      const batch = batchRows > 1 ? createImportBatch(columns, batchRows, limits,
+        count => port.insertBatch(input, count), write, signal) : undefined;
+      const importRow = parameters => batch ? batch.append(parameters) : write(insert, parameters);
+      let accepted = 0;
+      const streamed = await port.consumeInput?.(input, async parameters => {
+        signal?.throwIfAborted();
+        if (accepted >= rows || !Array.isArray(parameters) || parameters.length !== columns) {
+          throw new DuckDBTransportError('InvalidImportStream');
+        }
+        await importRow(parameters);
+        accepted++;
+      });
+      signal?.throwIfAborted();
+      if (streamed) {
+        if (accepted !== rows) throw new DuckDBTransportError('InvalidImportStream');
+        await batch?.finish();
+        inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+          insertMilliseconds, batchRows}));
+        continue;
+      }
+      if (accepted !== 0) throw new DuckDBTransportError('InvalidImportStream');
       for (let row = 0; row < rows; row++) {
         if (signal?.aborted) throw new DuckDBTransportError('Cancelled');
         // Only the current parameter row is materialized. No source connection
         // crosses this fixed-input boundary.
         const parameters = [];
         for (let column = 0; column < columns; column++) parameters.push(port.parameter(input, row, column));
-        await session.command(insert, parameters, discard);
+        await importRow(parameters);
       }
+      await batch?.finish();
+      inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
+        insertMilliseconds, batchRows}));
     }
+    const outputStarted = performance.now();
     const fields = await session.command(port.querySql(), port.queryParameters(), consume);
-    return Object.freeze({ fields, importedRows, importedCells });
+    return Object.freeze({ fields, importedRows, importedCells,
+      diagnostics: Object.freeze({inputs: Object.freeze(inputTimings),
+        queryAndReceiveMilliseconds: performance.now() - outputStarted}) });
   }, signal, accounting);
 }
 
@@ -95,6 +146,14 @@ export async function runResidentFixedCompute(
   if (!environment.status().live) throw new DuckDBTransportError('SessionClosed');
   const result = await environment.run(limits, async session => {
     const discard = () => {};
+    // Reusing an exact DB copy skips import, not this consumer's measurement
+    // or demand checks. Retained inputs use the same bounded common decoder.
+    if (port.consumeInput) {
+      for (let input = 0; input < port.importCount(); input++) {
+        signal?.throwIfAborted();
+        await port.consumeInput(input, discard);
+      }
+    }
     for (const sql of resident.viewSqls()) await session.command(sql, [], discard);
     await session.command(resident.createResultSql(), port.queryParameters(), discard);
     const fields = await session.command(resident.readResultSql(), [], consume);

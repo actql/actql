@@ -5,8 +5,25 @@ struct LocalDispatchModule {
   run : @strategy.CapturedDAG
   registration : @connector.CapabilityRegistration
   implementation : @local.LocalComputeModule
-  channel : @host.DispatchChannel[@connector.SynchronousCompute]
+  channel : @host.DispatchChannel[LocalDispatchPlan]
   mut estimate_configuration : LocalEstimateConfiguration?
+  mut import_policy : (@local.LocalImportLimits, Int64?)?
+  mut output_policy : (@local.LocalExportLimits, Int64?)?
+  mut policy_sealed : Bool
+}
+
+///|
+priv enum LocalDispatchPlan {
+  Synchronous(@connector.SynchronousCompute)
+  Materializing(
+    @connector.PreparedExecution[
+      @local.LocalMaterializingAttempt,
+      @strategy.RunIssue,
+      @strategy.TaskPublication,
+    ],
+    @local.LocalImportLimits,
+    @local.LocalExportLimits?
+  )
 }
 
 ///|
@@ -63,6 +80,9 @@ pub fn prepare_local_dispatch_module(
     implementation,
     channel,
     estimate_configuration: None,
+    import_policy: None,
+    output_policy: None,
+    policy_sealed: false,
   })
 }
 
@@ -82,19 +102,59 @@ pub fn estimate_local_dispatch_offer(
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))
   }
+  let mut transfer = 0L
+  let mut retained = capacity.retained_bytes
+  let offers = lines.copy()
+  let mut slots = local_dispatch_work_slots()
+  if installed.import_policy is Some((limits, milliseconds)) {
+    guard @local.local_import_retention_capacity(limits) is Some(per_input) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    let graph = @strategy.captured_dag_graph(installed.run)
+    let edges = @strategy.graph_data_count(graph)
+    if edges > max_work {
+      return Err(Configuration(InvalidLimits))
+    }
+    for edge in 0..<edges {
+      if @strategy.graph_data_at(graph, edge).unwrap().consumer == task {
+        if per_input > 9223372036854775807L - retained ||
+          limits.wire.max_bytes.to_int64() > 9223372036854775807L - transfer {
+          return Err(Configuration(InvalidLimits))
+        }
+        transfer += limits.wire.max_bytes.to_int64()
+        retained += per_input
+      }
+    }
+    offers.push({ work_slots: [slots], milliseconds, })
+    slots += 1
+  }
+  if installed.output_policy is Some((limits, milliseconds)) {
+    guard @local.local_export_retention_capacity(limits) is Some(extra) &&
+      extra <= 9223372036854775807L - retained else {
+      return Err(Configuration(InvalidLimits))
+    }
+    retained += extra
+    offers.push({ work_slots: [slots], milliseconds, })
+    slots += 1
+  }
   @strategy.prepare_task_offer(
     installed.run,
     task,
     installed.registration,
-    local_dispatch_work_slots(),
-    lines,
+    slots,
+    offers,
     {
-      transfer_bytes: 0L,
-      retained_bytes: capacity.retained_bytes,
+      transfer_bytes: transfer,
+      retained_bytes: retained,
       execution_bytes: capacity.execution_bytes,
     },
     max_work,
-  ).map_err(issue => Search(issue))
+  )
+  .map(offer => {
+    installed.policy_sealed = true
+    offer
+  })
+  .map_err(issue => Search(issue))
 }
 
 ///|
@@ -113,6 +173,35 @@ pub fn prepare_local_dispatch(
   if local_dispatch_rejection(installed, task) is Some(_) {
     return Err(Configuration(ComputeUnsupported))
   }
+  if installed.import_policy is Some((limits, _)) &&
+    (
+      installed.output_policy is Some(_) ||
+      @connector.fixed_compute_request_inputs(request).any(input => {
+        !@execution.producer_read_has_cell_access(input)
+      })
+    ) {
+    let output_limits = installed.output_policy.map(value => value.0)
+    let compute = match
+      @local.prepare_local_module_materializing_compute(
+        installed.implementation,
+        task - 1,
+        request,
+        limits,
+        _ => @strategy.RunIssue::Compute(InvalidLimits),
+        @strategy.captured_task_join_output_at(installed.run, task, 0),
+        output_limits~,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Preparation(issue))
+    }
+    return @host.stage_dispatch_work(
+      installed.channel,
+      task,
+      revision,
+      request,
+      Materializing(compute, limits, output_limits),
+    ).map_err(issue => Dispatch(issue))
+  }
   let compute = match
     @local.prepare_local_module_compute(
       installed.implementation,
@@ -123,10 +212,13 @@ pub fn prepare_local_dispatch(
     Ok(value) => value
     Err(issue) => return Err(Preparation(issue))
   }
-  @host.stage_dispatch_work(installed.channel, task, revision, request, compute).map_err(issue => {
-      Dispatch(issue)
-    },
-  )
+  @host.stage_dispatch_work(
+    installed.channel,
+    task,
+    revision,
+    request,
+    Synchronous(compute),
+  ).map_err(issue => Dispatch(issue))
 }
 
 ///|
@@ -136,7 +228,8 @@ pub fn[C, E] execute_local_dispatch(
   task : @host.PreparedTaskDispatch,
 ) -> Result[Unit, LocalDispatchIssue] {
   let compute = match @host.take_installed_task(host, task, installed.channel) {
-    Ok(value) => value
+    Ok(Synchronous(value)) => value
+    Ok(Materializing(_, _, _)) => return Err(Configuration(ComputeUnsupported))
     Err(issue) => return Err(Dispatch(issue))
   }
   @strategy.execute_captured_synchronous_task(

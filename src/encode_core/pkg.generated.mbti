@@ -12,9 +12,13 @@ pub fn begin_object(Writer) -> Unit raise EncodeFailure
 
 pub fn bool_value(Writer, Bool) -> Unit raise EncodeFailure
 
+pub fn buffered_hashing_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
+
 pub fn document_bytes(EncodedDocument) -> Int
 
 pub fn document_text(EncodedDocument) -> String
+
+pub fn drain_hash_output(Writer) -> String raise EncodeFailure
 
 pub fn emit_document(Writer, EncodedDocument) -> Unit raise EncodeFailure
 
@@ -29,6 +33,8 @@ pub fn finish(Writer) -> String raise EncodeFailure
 pub fn finish_document(Writer) -> EncodedDocument raise EncodeFailure
 
 pub fn finish_hash(Writer) -> String raise EncodeFailure
+
+pub fn finish_hash_metrics(Writer) -> (String, Int, Int, Int) raise EncodeFailure
 
 pub fn finish_hash_usage(Writer) -> (String, Int, Int) raise EncodeFailure
 

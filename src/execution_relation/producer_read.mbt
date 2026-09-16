@@ -6,6 +6,8 @@ struct ProducerRead {
   bound : BoundProducerInput
   schema : @schema.Schema
   columns : Array[Int]
+  max_entries : Int
+  max_name_bytes : Int
 }
 
 ///|
@@ -15,6 +17,48 @@ pub(all) enum ProducerReadIssue {
   ForeignReceiver
   InvalidProjection
   ProducerUnavailable
+  ForeignRepresentation
+}
+
+///|
+/// Admit another verified representation of this exact completed result while
+/// retaining the receiving port, projection and binding identity. This does not
+/// reserve conversion resources or replace a selected DAG input: the Host must
+/// separately admit that transition before dispatch. A lost original copy need
+/// not remain available, but its logical-use restrictions still apply.
+pub fn rebind_producer_representation(
+  input : ProducerRead,
+  output : CompletedOutput,
+) -> Result[ProducerRead, ProducerReadIssue] {
+  let original = input.bound.output.completion
+  if !physical_equal(
+      original.result_identity,
+      output.completion.result_identity,
+    ) ||
+    input.bound.output.target != output.target {
+    return Err(ForeignRepresentation)
+  }
+  if !completion_is_live(original) || !completed_output_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  // Keep the logical restriction, not the old completion/store. A replacement
+  // representation must not retain the previous physical buffer through this
+  // callback after all other readers release it.
+  let original_live = original.live
+  let constrained = restrict_completed_output(output, fn() {
+    match original_live {
+      None => true
+      Some(check) => check()
+    }
+  })
+  // Physical column positions belong to a representation, not the logical
+  // result. Re-project using the original bounded metadata admission limits.
+  prepare_producer_read(
+    input.bound.receiver,
+    { ..input.bound, output: constrained, },
+    input.max_entries,
+    input.max_name_bytes,
+  )
 }
 
 ///|
@@ -24,7 +68,7 @@ pub fn prepare_producer_read(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[ProducerRead, ProducerReadIssue] {
-  if !completion_is_live(bound.output.completion) {
+  if !completed_output_available(bound.output) {
     return Err(ProducerUnavailable)
   }
   if max_entries < 0 || max_name_bytes < 0 {
@@ -102,7 +146,7 @@ pub fn prepare_producer_read(
     guard found is Some(column) else { return Err(InvalidProjection) }
     columns.push(column)
   }
-  Ok({ bound, schema, columns, })
+  Ok({ bound, schema, columns, max_entries, max_name_bytes, })
 }
 
 ///|
@@ -120,7 +164,12 @@ pub fn producer_read_input_index(value : ProducerRead) -> Int {
 /// Recheck external completion provenance before a new import/execution starts.
 /// Immutable cell access alone is not permission to start another computation.
 pub fn producer_read_available(value : ProducerRead) -> Bool {
-  completion_is_live(value.bound.output.completion)
+  completed_output_available(value.bound.output)
+}
+
+///|
+pub fn producer_read_has_cell_access(value : ProducerRead) -> Bool {
+  completed_has_cell_access(value.bound.output)
 }
 
 ///|

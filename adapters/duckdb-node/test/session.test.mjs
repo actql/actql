@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { fork } from 'node:child_process';
-import { DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBInstance, DuckDBPreparedStatement } from '@duckdb/node-api';
 import { authorizeLocalDatabase, withSourceDatabase, withComputeDatabase, DuckDBTransportError } from '../session.mjs';
 
 const limits = Object.freeze({
@@ -21,6 +21,103 @@ async function rows(session, sql, parameters = []) {
   return result;
 }
 const hasCode = code => error => error.code === code;
+
+test('falsy receiver and body failures cannot become successful sessions', async () => {
+  for (const reason of [undefined, null, false, 0, '']) {
+    for (const deadline of [false, true]) {
+      const signal = deadline ? new AbortController().signal : undefined;
+      const settings = deadline ? {...limits, cancelWaitMs: 10} : limits;
+      for (const caught of [false, true]) {
+        let rejected = false;
+        try {
+          await withComputeDatabase(settings, async session => {
+            if (!caught) throw reason;
+            try {
+              await session.command('SELECT 1 AS i', [], () => { throw reason; });
+            } catch (error) { assert.equal(error, reason); }
+            return 'must-not-publish';
+          }, signal);
+        } catch (error) { rejected = true; assert.equal(error, reason); }
+        assert.equal(rejected, true, `caught=${caught}, deadline=${deadline}, reason=${String(reason)}`);
+      }
+    }
+  }
+});
+
+test('reused INSERT keeps exact payloads and transfer charges without repeated preparation', async () => {
+  const execute = (reuse, configuration = limits) => withComputeDatabase(configuration, async session => {
+    await session.command('CREATE TEMP TABLE imported(i BIGINT, s VARCHAR, d DECIMAL(38,2))', [], discard);
+    const insert = reuse ? session.insert : session.command;
+    for (const value of ['9223372036854775807', null, '-9223372036854775808']) {
+      await insert('INSERT INTO imported VALUES (?, ?, ?)', [
+        {type: {id: 'BIGINT'}, value},
+        {type: {id: 'VARCHAR'}, value: value === null ? null : '日本語'},
+        {type: {id: 'DECIMAL', precision: 38, scale: 2}, value: '99999999999999999999999999999999999999'},
+      ], discard);
+    }
+    return rows(session, 'SELECT * FROM imported');
+  });
+  const ordinary = await execute(false);
+  const reused = await execute(true);
+  assert.deepEqual(reused.value, ordinary.value);
+  assert.deepEqual(reused.value.map(row => row[0]), ['9223372036854775807', null, '-9223372036854775808']);
+  for (const field of ['rows', 'cells', 'transportBytes', 'statements', 'chunks']) {
+    assert.equal(reused.usage[field], ordinary.usage[field], field);
+  }
+  assert.equal(ordinary.usage.preparations, 5);
+  assert.equal(reused.usage.preparations, 3);
+  assert(reused.usage.prepareMilliseconds <= reused.usage.commandMilliseconds);
+  assert(reused.usage.receiveCallbackMilliseconds <= reused.usage.commandMilliseconds);
+  assert(reused.usage.cleanupMilliseconds >= 0);
+  await assert.rejects(execute(true, {...limits, maxTransportBytes: ordinary.usage.transportBytes - 1}),
+    hasCode('TransportBytes'));
+});
+
+test('reused INSERT cannot swallow invalid types or continue after cancellation', async () => {
+  const abort = new AbortController();
+  let writes = 0;
+  await assert.rejects(withComputeDatabase(limits, async session => {
+    await session.command('CREATE TEMP TABLE imported(i BIGINT)', [], discard);
+    await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '1'}], discard);
+    writes++;
+    abort.abort();
+    await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '2'}], discard);
+    writes++;
+  }, abort.signal), hasCode('Cancelled'));
+  assert.equal(writes, 1);
+  await assert.rejects(withComputeDatabase(limits, async session => {
+    await session.command('CREATE TEMP TABLE imported(i BIGINT)', [], discard);
+    await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '1'}], discard);
+    try {
+      await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '9223372036854775808'}], discard);
+    } catch { /* swallowed by orchestration must still fail the attempt */ }
+  }));
+  await assert.rejects(withComputeDatabase(limits,
+    session => session.insert('SELECT 1', [], discard)), hasCode('StatementKind'));
+});
+
+test('cached INSERT destruction failure retains native cleanup ownership until explicit retry', async t => {
+  const destroy = DuckDBPreparedStatement.prototype.destroySync;
+  let rejectDestroy = false;
+  t.mock.method(DuckDBPreparedStatement.prototype, 'destroySync', function () {
+    if (rejectDestroy) throw Error('injected prepared destruction failure');
+    return destroy.call(this);
+  });
+  const settled = [];
+  let failure;
+  try {
+    await withComputeDatabase(limits, async session => {
+      await session.command('CREATE TEMP TABLE imported(i BIGINT)', [], discard);
+      await session.insert('INSERT INTO imported VALUES (?)', [{type: {id: 'BIGINT'}, value: '1'}], discard);
+      rejectDestroy = true;
+    }, undefined, {started() {}, chargeTransfer() {}, settled(value) { settled.push(value); }});
+  } catch (error) { failure = error; }
+  rejectDestroy = false;
+  assert.equal(failure?.cleanupHandle?.status().pending, true);
+  assert.deepEqual(settled, [false]);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(settled, [false, true]);
+});
 
 test('single-table filtering and projection preserve duplicate relative order across chunks', async () => {
   const root = fileURLToPath(new URL('../../../_build/duckdb-fixtures/', import.meta.url));
@@ -57,8 +154,10 @@ test('single-table filtering and projection preserve duplicate relative order ac
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test('exact physical scalar transport and prepared import preserve payloads', async () => {
-  const output = await withComputeDatabase(limits, async session => {
+for (const bounded of [false, true]) {
+test(`exact physical scalar transport and prepared import preserve payloads (${bounded ? 'bounded' : 'whole-input'})`, async () => {
+  const configuration = bounded ? {...limits, maxChunkRows: 128, maxChunkBytes: 4096} : limits;
+  const output = await withComputeDatabase(configuration, async session => {
     const chunks = [];
     await session.command(`SELECT TRUE AS b, '日本語' AS s,
       9223372036854775807::BIGINT AS i, 18446744073709551615::UBIGINT AS u,
@@ -86,6 +185,7 @@ test('exact physical scalar transport and prepared import preserve payloads', as
   assert.equal(output.value[0][6], '1789302896123456');
   assert.equal(output.usage.statements, 2);
 });
+}
 
 test('chunk transfer has cumulative bounds and immutable column payloads', async () => {
   const output = await withComputeDatabase(limits, async session => {

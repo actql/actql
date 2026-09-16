@@ -1,6 +1,7 @@
 ///|
 priv struct ProducerGuardRows {
   input : ProducerRead
+  table : CompletedTable
 }
 
 ///|
@@ -20,11 +21,7 @@ impl IndexedRows for ProducerGuardRows with fn row_width(self, _row) {
 
 ///|
 impl IndexedRows for ProducerGuardRows with fn read_cell(self, row, column) {
-  IndexedRows::read_cell(
-    self.input.bound.output.table,
-    row,
-    self.input.columns[column],
-  )
+  IndexedRows::read_cell(self.table, row, self.input.columns[column])
 }
 
 ///|
@@ -97,10 +94,13 @@ pub fn execute_fixed_producers_guarded(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  for input in inputs {
+  for index, input in inputs {
+    guard input.bound.output.table is Some(table) else {
+      return Err(InputRepresentationRequired(index))
+    }
     match
       measure_input_values(
-        ProducerGuardRows::{ input, },
+        ProducerGuardRows::{ input, table, },
         max_value_bytes,
         InputValues,
         budget,
@@ -125,7 +125,8 @@ pub fn execute_fixed_producers_guarded(
   if completed_row_count(output) > max_rows {
     return Err(OutputRows)
   }
-  match measure_input_values(output.table, max_value_bytes, Output, budget) {
+  guard output.table is Some(table) else { return Err(MissingOutput) }
+  match measure_input_values(table, max_value_bytes, Output, budget) {
     Err(issue) => Err(issue)
     Ok(_) => Ok(completed)
   }

@@ -18,7 +18,8 @@ test "common completed handoff preserves lifetime and independent results for ro
   let row_result = execute_generated_sequence(generated, [], limits).unwrap()
   let column_result = test_typed_completion(generated, 7)
   assert_true(
-    completed_output(column_result, Step(1)).unwrap().table is NumberTable(_),
+    completed_output(column_result, Step(1)).unwrap().table
+    is Some(NumberTable(_)),
   )
   for result in [row_result, column_result] {
     let live = Ref(true)

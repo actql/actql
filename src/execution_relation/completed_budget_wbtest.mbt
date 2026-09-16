@@ -73,7 +73,7 @@ test "typed producer projection sort enforce cumulative value and retained ceili
     assert_true(store.tables[0] is None)
     assert_true(store.tables[1] is None)
     let output = completed_output(result, Step(1)).unwrap()
-    assert_true(output.table is NumberTable(_))
+    assert_true(output.table is Some(NumberTable(_)))
     assert_true(completed_cell(output, 0, 0) is Some(Number(1)))
     assert_true(completed_cell(output, 1, 0) is Some(Number(2)))
     assert_true(completed_cell(source, 0, 0) is Some(Number(2)))
@@ -115,7 +115,7 @@ test "sealed product output does not alias mutable original input or builder buf
     produced=[binding],
   ).unwrap()
   let output = completed_output(completion, Step(0)).unwrap()
-  assert_true(output.table is NumberTable(_))
+  assert_true(output.table is Some(NumberTable(_)))
   assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
   assert_true(completed_cell(output, 1, 0) is Some(Number(1)))
 }

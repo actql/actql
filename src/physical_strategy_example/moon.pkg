@@ -5,6 +5,7 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/connectors_builtin" @builtin,
+  "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connector_sdk" @connector,
@@ -12,6 +13,7 @@ import {
   "actql/actql/canonical_json" @identity,
   "actql/actql/execution_relation" @execution,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
+  "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/duckdb/example_host" @dbhost,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,

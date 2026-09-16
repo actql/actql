@@ -226,7 +226,7 @@ fn owned_fixed_from_output(
         fragment_json,
         false,
       ),
-      measurement: @execution.prepare_fixed_producer_measurement(
+      measurement: @execution.prepare_streamed_fixed_producer_measurement(
         inputs,
         if count || keyed_count || inner_join {
           @pipeline.Step(0)
@@ -245,6 +245,24 @@ fn owned_fixed_from_output(
   } catch {
     _ => abort("owned fixed conformance setup")
   }
+}
+
+///|
+#export_name("ownedFixedNext")
+pub fn owned_fixed_next(
+  previous : OwnedFixedFixture,
+  output : @execution.CompletedOutput,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+) -> OwnedFixedFixture {
+  owned_fixed_from_output(
+    @duckdb.fixed_query_owner(@duckdb.fixed_compute_query(previous.compute)),
+    output,
+    registry_json,
+    values_json,
+    fragment_json,
+  )
 }
 
 ///|
@@ -340,6 +358,59 @@ fn issued_fixture_join_consumer(
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+#export_name("ownedFixedRetainedInput")
+pub fn owned_fixed_retained_input(
+  value : OwnedFixedFixture,
+  output : @execution.CompletedOutput,
+) -> @execution.ProducerRead? {
+  let owner = @duckdb.fixed_query_owner(
+    @duckdb.fixed_compute_query(value.compute),
+  )
+  let receiver = @execution.generated_sequence_owner(value.consumer)
+  guard @execution.bind_completed_input(receiver, 0, owner, output) is Ok(bound) else {
+    return None
+  }
+  match @execution.prepare_producer_read(receiver, bound, 100, 10000) {
+    Ok(input) => Some(input)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("ownedFixedRetainedCid")
+pub fn owned_fixed_retained_cid(
+  value : OwnedFixedFixture,
+  output : @execution.CompletedOutput,
+) -> String {
+  let owner = @duckdb.fixed_query_owner(
+    @duckdb.fixed_compute_query(value.compute),
+  )
+  if @execution.completed_has_cell_access(output) {
+    return "null"
+  }
+  guard @execution.bind_completed_input(
+      @execution.generated_sequence_owner(value.consumer),
+      0,
+      owner,
+      output,
+    )
+    is Ok(_) else {
+    return "null"
+  }
+  match
+    @execution.identify_completed_rows(output, {
+      max_columns: 10,
+      max_order_work: 10000,
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }) {
+    Ok(identity) => @execution.row_wire_cid(identity)
+    Err(_) => "null"
+  }
 }
 
 ///|

@@ -6,6 +6,7 @@ priv struct TaskLifetime {
 ///|
 priv struct TaskRetention {
   mut holding : @resources.Holding?
+  mut release_confirmed : () -> Bool
   parents : Array[Int]
 }
 
@@ -25,10 +26,14 @@ fn task_parents(run : CapturedDAG, task : Int) -> Array[Int] {
 /// task has established success. Task zero is the validated captured root.
 /// Sharing is by owned token, never equal CIDs. The Host must keep this port
 /// open while exporting the allocation to users outside this run.
+/// External storage supplies its original physical-release predicate here;
+/// logical close and lack of consumers do not establish physical cleanup.
+/// The default is for allocations requiring no asynchronous external release.
 pub fn retain_captured_task_allocation(
   run : CapturedDAG,
   task : Int,
   holding : @resources.Holding,
+  release_confirmed? : () -> Bool = fn() { true },
 ) -> Result[Unit, @resources.LedgerIssue] {
   if !@resources.holding_belongs_to(run.ledger, holding) {
     return Err(ForeignOwner)
@@ -47,7 +52,15 @@ pub fn retain_captured_task_allocation(
     }
   }
   resource.holding = Some(holding)
+  resource.release_confirmed = release_confirmed
   Ok(())
+}
+
+///|
+/// Poll the original attached physical-release checks after Host cleanup.
+/// This does not close any result, acknowledge cleanup, or replace its check.
+pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
+  collect_captured_retention(run)
 }
 
 ///|
@@ -92,6 +105,10 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
       continue
     }
     let mut needed = false
+    if run.executions[task] is Some(execution) &&
+      (!execution.disposed || !(execution.hooks.unwrap().retention_released)()) {
+      needed = true
+    }
     for child in run.resources {
       if child is Some(child) && child.parents.contains(task) {
         needed = true
@@ -103,7 +120,7 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
       }) {
       needed = true
     }
-    if !needed {
+    if !needed && (resource.release_confirmed)() {
       if resource.holding is Some(holding) {
         @resources.release_allocation(run.ledger, holding) |> ignore
       }

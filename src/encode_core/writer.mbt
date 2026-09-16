@@ -21,6 +21,17 @@ priv enum OutputSink {
   TextOutput(StringBuilder)
   MeasureOutput
   HashOutput(@sha256.Hasher)
+  BufferedHashOutput(BufferedHash)
+}
+
+///|
+// One bounded provisional batch, never a relation-sized text accumulator.
+// Draining transfers bytes, not permission to publish a completed document.
+priv struct BufferedHash {
+  hash : @sha256.Hasher
+  text : StringBuilder
+  limit : Int
+  mut bytes : Int
 }
 
 ///|
@@ -93,6 +104,58 @@ pub fn hashing_writer(
 }
 
 ///|
+/// Emit and hash the same canonical stream in one traversal. The caller drains
+/// provisional text between bounded batches and owns storage/I/O/backpressure.
+/// No callback, file handle or platform-specific dependency enters this writer.
+/// A batch overflow closes the writer, just like an aggregate output overflow.
+pub fn buffered_hashing_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_buffer_bytes : Int,
+) -> Writer raise EncodeFailure {
+  if max_buffer_bytes < 0 {
+    raise OutputLimit
+  }
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    BufferedHashOutput({
+      hash: @sha256.hasher(),
+      text: StringBuilder(),
+      limit: max_buffer_bytes,
+      bytes: 0,
+    }),
+  )
+}
+
+///|
+/// Provisional canonical UTF-8 text only. Concatenate in drain order; draining
+/// neither finalizes the document nor resets aggregate byte/node/depth limits.
+/// All pending text must be drained before finish_hash[_usage].
+pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
+  active(w)
+  guard w.output is BufferedHashOutput(buffer) else {
+    fail(w, InvalidStructure)
+  }
+  let text = buffer.text.to_string()
+  buffer.text.reset()
+  buffer.bytes = 0
+  text
+}
+
+///|
+fn reserve_buffer(w : Writer, bytes : Int) -> Unit raise EncodeFailure {
+  if w.output is BufferedHashOutput(buffer) {
+    if bytes > buffer.limit - buffer.bytes {
+      fail(w, OutputLimit)
+    }
+    buffer.bytes += bytes
+  }
+}
+
+///|
 fn hash_byte(
   w : Writer,
   h : @sha256.Hasher,
@@ -145,6 +208,7 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   if text.length() > w.remaining_bytes {
     fail(w, OutputLimit)
   }
+  reserve_buffer(w, text.length())
   w.remaining_bytes -= text.length()
   match w.output {
     TextOutput(output) => output.write_string(text)
@@ -153,6 +217,12 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
       for unit in text {
         hash_byte(w, h, unit.to_int())
       }
+    BufferedHashOutput(buffer) => {
+      for unit in text {
+        hash_byte(w, buffer.hash, unit.to_int())
+      }
+      buffer.text.write_string(text)
+    }
   }
 }
 
@@ -204,11 +274,16 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
         if bytes > w.remaining_bytes {
           fail(w, OutputLimit)
         }
+        reserve_buffer(w, bytes)
         w.remaining_bytes -= bytes
         match w.output {
           TextOutput(output) => output.write_char(scalar.unsafe_to_char())
           MeasureOutput => ()
           HashOutput(h) => hash_scalar(w, h, scalar)
+          BufferedHashOutput(buffer) => {
+            hash_scalar(w, buffer.hash, scalar)
+            buffer.text.write_char(scalar.unsafe_to_char())
+          }
         }
       }
     }
@@ -404,12 +479,37 @@ pub fn finish_hash(w : Writer) -> String raise EncodeFailure {
 /// Complete the hash sink once, returning (hex digest, UTF-8 bytes, value nodes).
 /// Counts cover the same successfully emitted stream, not a second traversal.
 pub fn finish_hash_usage(w : Writer) -> (String, Int, Int) raise EncodeFailure {
+  let (hash, bytes, nodes, _) = finish_hash_metrics(w)
+  (hash, bytes, nodes)
+}
+
+///|
+/// Complete once and expose the actual peak container depth as well as usage.
+/// A retained identity may use these metrics to enforce subsequent hash limits
+/// without rescanning the immutable value or assuming the original ceiling.
+pub fn finish_hash_metrics(
+  w : Writer,
+) -> (String, Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is HashOutput(h) else { fail(w, InvalidStructure) }
+  let h = match w.output {
+    HashOutput(h) => h
+    BufferedHashOutput(buffer) => {
+      if buffer.bytes != 0 {
+        fail(w, InvalidStructure)
+      }
+      buffer.hash
+    }
+    TextOutput(_) | MeasureOutput => fail(w, InvalidStructure)
+  }
   finish_state(w)
   let hex = @sha256.finish_hex(h) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
   }
-  (hex, w.max_bytes - w.remaining_bytes, w.max_nodes - w.remaining_nodes)
+  (
+    hex,
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
 }

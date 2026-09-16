@@ -1,0 +1,9 @@
+// Environment-neutral typed conversion bridge; filesystem access belongs to
+// the Store adapter, not the completion contract or decoder.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/execution_relation" @execution,
+}

@@ -3,9 +3,10 @@
 /// driver; the installed implementation owns its private transport state.
 /// Construction is private: callers cannot attach arbitrary completion hooks.
 struct TaskExecution {
+  owner : StrategyOfferOwner
   task : Int
   reservation : @resources.Reservation
-  retention : Int64
+  mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
   mut hooks : @connector.ExecutionOperations[RunIssue, TaskPublication]?
   mut execution_settled : Bool
@@ -130,9 +131,16 @@ fn[T] start_task_execution(
         resource.inputs.claimed = true
       }
       let execution : TaskExecution = {
+        owner: run.offer_owner,
         task,
         reservation,
-        retention,
+        retained_bytes: Some(fn() {
+          match @connector.prepared_execution_retained_bytes(prepared) {
+            Ok(bytes) => Ok(bytes)
+            Err(Candidate(issue)) => Err(Compute(issue))
+            Err(Implementation(issue)) => Err(issue)
+          }
+        }),
         scratch,
         hooks: Some(hooks),
         execution_settled: false,
@@ -185,15 +193,13 @@ pub fn settle_task_execution(
   if !confirmed {
     return @resources.mark_cleanup_pending(run.ledger, execution.reservation)
   }
-  let result = if execution.disposed {
-    @resources.settle_reservation(run.ledger, execution.reservation)
-  } else {
-    @resources.settle_execution_reservation(
-      run.ledger,
-      execution.reservation,
-      remaining_execution=execution.scratch,
-    )
-  }
+  // Actual execution stop releases native capacity. An independently owned
+  // file/provisional output can still require retention after disposal.
+  let result = @resources.settle_execution_reservation(
+    run.ledger,
+    execution.reservation,
+    remaining_execution=if execution.disposed { 0L } else { execution.scratch },
+  )
   match result {
     Err(issue) => Err(issue)
     Ok(_) => {
@@ -240,15 +246,20 @@ pub fn complete_task_execution(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let retained_bytes = match execution.retained_bytes.unwrap()() {
+    Ok(bytes) => bytes
+    Err(issue) => return Err(issue)
+  }
   let holding = match
     @resources.retain_allocation(
       run.ledger,
       execution.reservation,
-      execution.retention,
+      retained_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  execution.retained_bytes = None
   match (hooks.finish)() {
     Ok(output) => {
       match
@@ -295,6 +306,7 @@ pub fn close_task_execution(
     stop_captured_dag(run)
   }
   execution.disposed = true
+  execution.retained_bytes = None
   (execution.hooks.unwrap().dispose)()
   close_captured_task_output(run, execution.task)
   if execution.execution_settled {
@@ -311,6 +323,19 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
     !task_execution_matches(run, execution) {
     return
   }
+  if !(execution.hooks.unwrap().retention_released)() {
+    // Dispose has synchronously freed MoonBit scratch; external retained
+    // storage has its own acknowledgement and must keep its reservation.
+    if @resources.reservation_open(execution.reservation) {
+      @resources.settle_execution_reservation(
+        run.ledger,
+        execution.reservation,
+        remaining_execution=0L,
+      )
+      |> ignore
+    }
+    return
+  }
   if execution.failed_holding is Some(holding) {
     @resources.release_allocation(run.ledger, holding) |> ignore
     execution.failed_holding = None
@@ -324,4 +349,28 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   execution.hooks = None
   execution.resident = None
   (hooks.released)()
+  collect_captured_retention(run)
+}
+
+///|
+/// Poll installed cleanup facts after disposal, without treating this call as
+/// evidence of native stop or file deletion. The exact task remains tracked
+/// until both confirmations have arrived; no consumed transfer is refunded.
+pub fn refresh_task_execution_cleanup(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Bool, @resources.LedgerIssue] {
+  if physical_equal(execution.owner, run.offer_owner) &&
+    execution.disposed &&
+    execution.hooks is None {
+    return Ok(true)
+  }
+  if !task_execution_matches(run, execution) {
+    return Err(ForeignOwner)
+  }
+  if !execution.disposed {
+    return Err(InvalidCharge)
+  }
+  release_task_execution(run, execution)
+  Ok(!task_execution_matches(run, execution))
 }

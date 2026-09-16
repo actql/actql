@@ -9,6 +9,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
@@ -17,13 +18,8 @@ import {
 }
 
 import {
-  "actql/actql/source_value" @source,
   "actql/actql/carrier_contract" @carrier,
   "moonbitlang/core/bench",
   "moonbitlang/core/env",
   "actql/actql/parameter_binding" @parameter,
 } for "wbtest"
-
-import {
-  "actql/actql/source_value" @source,
-} for "test"

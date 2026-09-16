@@ -70,3 +70,44 @@ pub fn native_captured_source(
     },
   ).bind(port => @query.capture_verified_source(port, material))
 }
+
+///|
+pub fn native_retained_captured_source(
+  issuer : DuckDBNativeIssuer,
+  attempt : DuckDBNativeAttempt,
+  observation : DuckDBNativeObservation,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  let output = match
+    complete_duckdb_native_retained_output(
+      issuer, attempt, observation, max_entries, max_name_bytes,
+    ) {
+    Ok(output) => output
+    Err(issue) => return Err(Completion(issue))
+  }
+  let requirement = attempt.preparation.requirement
+  @query.prepare_trusted_capture_port(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    ),
+    @planning.query_requirement_program(requirement),
+    fn(proof : DuckDBNativeObservation) {
+      if physical_equal(proof, observation) &&
+        verify_duckdb_native_observation(issuer, attempt, observation) is Ok(_) &&
+        @execution.completed_output_available(output) {
+        Some(
+          (
+            output,
+            @duckdb.native_receipt_digest(
+              observation.records.measurement.receipts,
+              @duckdb.NativeResult,
+            ).1,
+          ),
+        )
+      } else {
+        None
+      }
+    },
+  ).bind(port => @query.capture_verified_source(port, observation))
+}

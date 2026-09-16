@@ -1,6 +1,22 @@
 ///|
-fn received_identity_fixture(split? : Bool = false) -> @duckdb.NativeReceiving {
+fn received_identity_fixture(
+  split? : Bool = false,
+  streamed? : Bool = false,
+  wire? : @execution.RowWireLimits = receipt_wire_limits(),
+) -> @duckdb.NativeReceiving {
   let value = native_receiving_fixture()
+  if streamed {
+    @duckdb.stream_native_validation(
+      value,
+      wire,
+      native_demand_physical(),
+      if split {
+        1
+      } else {
+        3
+      },
+    ).unwrap()
+  }
   receiving_metadata(value)
   let scan = receiving_validation(value)
   if split {

@@ -16,6 +16,9 @@ pub(all) struct ExecutionOperations[E, P] {
   cancel : () -> Unit
   dispose : () -> Unit
   settled : () -> Unit
+  // Confirmed physical release of task-owned retained/provisional storage.
+  // Disposal or stopped execution alone is not storage cleanup confirmation.
+  retention_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
   finish : () -> Result[@execution.CompletedOutput, E]
@@ -37,6 +40,7 @@ struct PreparedExecution[T, E, P] {
   capacity : ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   prepare : () -> Result[(T, ExecutionOperations[E, P]), E]
+  retained_bytes : () -> Result[Int64, E]
   mut started : Bool
 }
 
@@ -49,6 +53,7 @@ pub fn[T, E, P, U] bind_prepared_execution(
   capacity : ExecutionCapacity,
   join_output_ceilings : Array[(Int, Int64)],
   prepare : (U) -> Result[(T, ExecutionOperations[E, P]), E],
+  retained_bytes? : () -> Result[Int64, E],
 ) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
@@ -70,8 +75,32 @@ pub fn[T, E, P, U] bind_prepared_execution(
     capacity,
     join_output_ceilings: ceilings,
     prepare: fn() { prepare(payload) },
+    retained_bytes: retained_bytes.unwrap_or(fn() {
+      Ok(capacity.retained_bytes)
+    }),
     started: false,
   })
+}
+
+///|
+/// Installed implementation accounting after preparation, before holding
+/// attachment. The original reservation remains intact until settlement.
+/// This reports physical capacity, not output validity or completion evidence.
+pub fn[T, E, P] prepared_execution_retained_bytes(
+  prepared : PreparedExecution[T, E, P],
+) -> Result[Int64, ExecutionPreparationIssue[E]] {
+  if !prepared.started {
+    return Err(Candidate(NotSelected))
+  }
+  match (prepared.retained_bytes)() {
+    Err(issue) => Err(Implementation(issue))
+    Ok(bytes) =>
+      if bytes < 0L || bytes > prepared.capacity.retained_bytes {
+        Err(Candidate(InvalidLimits))
+      } else {
+        Ok(bytes)
+      }
+  }
 }
 
 ///|

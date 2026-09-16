@@ -17,7 +17,7 @@ test "typed producer enforces actual parameter binding and requested target" {
   ).unwrap()
   let completion = test_typed_completion(generated, 1)
   let source = completed_output(completion, Step(1)).unwrap()
-  assert_true(source.table is NumberTable(_))
+  assert_true(source.table is Some(NumberTable(_)))
   assert_true(completed_cell(source, 0, 0) is Some(Number(5)))
   let receiver = typed_receiver(owner, "[{\"select\":[\"n\"]}]")
   assert_true(
@@ -49,7 +49,7 @@ test "typed producer enforces actual parameter binding and requested target" {
     produced=[binding],
   ).unwrap()
   let output = completed_output(result, Step(0)).unwrap()
-  assert_true(output.table is NumberTable(_))
+  assert_true(output.table is Some(NumberTable(_)))
   assert_true(completed_cell(output, 0, 0) is Some(Number(5)))
 }
 

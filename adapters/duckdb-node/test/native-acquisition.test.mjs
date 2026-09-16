@@ -84,6 +84,15 @@ test('generated native acquisition awaits validation on the same read view and c
       settled(confirmed) { accountingEvents.push(confirmed); },
     };
     const result = await runNativeAcquisition(grant, good.port, limits, undefined, accounting);
+    const phases = result.value.diagnostics;
+    assert(Object.isFrozen(phases));
+    for (const milliseconds of Object.values(phases)) {
+      assert(Number.isFinite(milliseconds) && milliseconds >= 0);
+    }
+    assert.equal(phases.validationMilliseconds, result.value.validation.milliseconds);
+    assert.equal(phases.nativeResultMilliseconds, result.value.native.milliseconds);
+    assert(phases.bodyMilliseconds >= phases.metadataMilliseconds
+      + phases.validationMilliseconds + phases.nativeResultMilliseconds);
     assert.equal(charged, result.usage.transportBytes);
     assert.equal(accountingEvents[0], 'started');
     assert.equal(accountingEvents.at(-1), true);
@@ -200,6 +209,8 @@ test('generated native acquisition awaits validation on the same read view and c
     const emptyResult = await runNativeAcquisition(await authorizeLocalDatabase(emptyPath), empty.port, limits);
     assert.equal(emptyResult.value.validation.transport.rows, 0);
     assert.equal(emptyResult.value.native.transport.rows, 0);
+    assert(Number.isFinite(emptyResult.value.diagnostics.validationMilliseconds));
+    assert(Number.isFinite(emptyResult.value.diagnostics.nativeResultMilliseconds));
     assert.deepEqual(empty.received.validation_scan, []);
     assert.deepEqual(empty.received.native_result, []);
     assert(empty.events.includes('validation_scan-begin'));

@@ -107,6 +107,7 @@ fn fixed_compute_attempt_fixture(
   ceiling? : Int = 5,
   supplied_input? : @execution.ProducerRead? = None,
   generated? : @execution.GeneratedSequence? = None,
+  stream_transport? : @duckdb.TransportColumnLimits,
 ) -> (@duckdb_compute.DuckDBComputeAttempt, @execution.ProducerRead) raise {
   let input = match supplied_input {
     Some(input) => input
@@ -159,6 +160,8 @@ fn fixed_compute_attempt_fixture(
         None => false
       }
     },
+    stream_transport?,
+    retained_required=stream_transport is Some(_),
   ).unwrap()
   (attempt, input)
 }

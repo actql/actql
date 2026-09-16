@@ -26,6 +26,7 @@ pub(all) enum SequenceFailureKind {
   InputOwnership
   InputSet
   InputEvidencePending(Int)
+  InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int)
   Wiring
@@ -46,6 +47,7 @@ pub fn sequence_failure_kind(issue : SequenceRunIssue) -> SequenceFailureKind {
     InputOwnership => InputOwnership
     InputSet => InputSet
     InputExecutionEvidencePending(i) => InputEvidencePending(i)
+    InputRepresentationRequired(i) => InputRepresentationRequired(i)
     InputLimit => InputLimit
     InputKey(i, _) => InputKey(i)
     Wiring(_) => Wiring

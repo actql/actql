@@ -37,7 +37,9 @@ pub fn configure_compute_host(@connector_sdk.FixedComputeChoice, @connector_sdk.
 
 pub fn configure_duckdb_compute(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, DuckDBComputeConfiguration) -> Result[DuckDBDispatchModule, DuckDBDispatchIssue]
 
-pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration) -> StrategyComputeHostConfiguration
+pub fn configure_duckdb_retained_output(DuckDBDispatchModule, Int64, Int64?) -> Result[Unit, DuckDBDispatchIssue]
+
+pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, ComputeHostConfiguration, output_file_bytes? : Int64) -> StrategyComputeHostConfiguration
 
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
@@ -47,9 +49,11 @@ pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @
 
 pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
-pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration) -> Int64?
+pub fn configured_strategy_output_file_bytes(StrategyComputeHostConfiguration) -> Int64?
 
-pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration) -> Int64?
+pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration, retained? : Bool) -> Int64?
+
+pub fn configured_strategy_scratch_capacity(StrategyComputeHostConfiguration, retained? : Bool) -> Int64?
 
 pub fn[E] duckdb_compute_contribution(DuckDBDispatchModule, (DuckDBDispatchIssue) -> E, (DuckDBEstimateIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
 
@@ -67,7 +71,7 @@ pub fn estimate_duckdb_installed_offers(DuckDBDispatchModule, Int, @physical_hos
 
 pub fn estimate_duckdb_module_offers(DuckDBEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], DuckDBEstimateIssue]
 
-pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
+pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile, retained_output? : (Int64, Int64?)) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn install_duckdb_dispatch_estimates(DuckDBDispatchModule, DuckDBEstimateModule) -> Result[Unit, DuckDBEstimateIssue]
 
@@ -103,11 +107,11 @@ pub fn resident_table_handle(DuckDBResidentTable) -> @physical_strategy.Resident
 
 pub fn resident_table_import(DuckDBResidentTable) -> @adapter.ResidentImport?
 
-pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
+pub fn start_captured_duckdb_task(@physical_strategy.CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, @compute.DuckDBComputeLimits, @adapter.TransportColumnLimits, Int64, Int64, (@compute.DuckDBComputeAttempt) -> Bool, resident? : DuckDBResidentInputs, retained_storage? : (Int64, () -> Bool)) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 pub fn start_configured_compute_host(ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> Result[@compute.DuckDBComputeAttempt, @compute.DuckDBComputeIssue]
 
-pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : DuckDBResidentInputs) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
+pub fn start_configured_strategy_compute_host(StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, resident? : DuckDBResidentInputs, retained_storage? : (Int64, () -> Bool)) -> Result[CapturedDuckDBTask, @physical_strategy.RunIssue]
 
 pub fn[C, E] take_duckdb_dispatch(DuckDBDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[StrategyComputeHostConfiguration, DuckDBDispatchIssue]
 

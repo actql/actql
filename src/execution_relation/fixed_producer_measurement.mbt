@@ -10,6 +10,11 @@ struct FixedProducerMeasurement {
   budget : FixedInputGuardBudget
   initial : FixedInputGuardMeasureLimits
   mut open : Bool
+  identity : Ref[Bool]
+  mut streamed_rows : Int
+  mut streamed_issue : FixedInputGuardIssue?
+  mut next_input : Int
+  mut scanning_input : Bool
 }
 
 ///|
@@ -50,6 +55,33 @@ pub fn prepare_fixed_producer_measurement(
   max_rows~ : Int,
   max_value_bytes~ : Int,
   physical : FixedInputGuardMeasureLimits,
+) -> Result[FixedProducerMeasurement, FixedInputGuardIssue] {
+  prepare_fixed_producer_measurement_impl(
+    inputs, target, max_rows, max_value_bytes, physical, false,
+  )
+}
+
+///|
+pub fn prepare_streamed_fixed_producer_measurement(
+  inputs : Array[ProducerRead],
+  target : @pipeline.Target,
+  max_rows~ : Int,
+  max_value_bytes~ : Int,
+  physical : FixedInputGuardMeasureLimits,
+) -> Result[FixedProducerMeasurement, FixedInputGuardIssue] {
+  prepare_fixed_producer_measurement_impl(
+    inputs, target, max_rows, max_value_bytes, physical, true,
+  )
+}
+
+///|
+fn prepare_fixed_producer_measurement_impl(
+  inputs : Array[ProducerRead],
+  target : @pipeline.Target,
+  max_rows : Int,
+  max_value_bytes : Int,
+  physical : FixedInputGuardMeasureLimits,
+  streaming : Bool,
 ) -> Result[FixedProducerMeasurement, FixedInputGuardIssue] {
   if max_rows < 0 ||
     max_value_bytes < 0 ||
@@ -92,19 +124,7 @@ pub fn prepare_fixed_producer_measurement(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  for input in inputs {
-    match
-      measure_input_values(
-        ProducerGuardRows::{ input, },
-        max_value_bytes,
-        InputValues,
-        budget,
-      ) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-  }
-  Ok({
+  let measurement : FixedProducerMeasurement = {
     inputs: inputs.copy(),
     target,
     max_rows,
@@ -112,7 +132,20 @@ pub fn prepare_fixed_producer_measurement(
     budget,
     initial: physical,
     open: true,
-  })
+    identity: Ref(false),
+    streamed_rows: 0,
+    streamed_issue: None,
+    next_input: 0,
+    scanning_input: false,
+  }
+  match advance_fixed_producer_input_measurement(measurement) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !streaming && measurement.next_input != inputs.length() {
+    return Err(InputRepresentationRequired(measurement.next_input))
+  }
+  Ok(measurement)
 }
 
 ///|
@@ -120,7 +153,9 @@ pub fn finish_fixed_producer_measurement(
   measurement : FixedProducerMeasurement,
   rows : AdmittedOutputRows,
 ) -> Result[FixedProducerMeasuredOutput, FixedInputGuardIssue] {
-  if !measurement.open {
+  if !measurement.open ||
+    measurement.scanning_input ||
+    measurement.next_input != measurement.inputs.length() {
     return Err(ForeignInput)
   }
   measurement.open = false

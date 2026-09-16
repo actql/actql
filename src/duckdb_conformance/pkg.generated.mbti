@@ -123,6 +123,8 @@ pub fn issued_native_parameter(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_requirement(IssuedNativeFixture) -> String
 
+pub fn issued_native_retained_input(IssuedNativeFixture, @execution_relation.CompletedOutput) -> @execution_relation.ProducerRead?
+
 pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_verify(IssuedNativeFixture) -> Bool
@@ -149,7 +151,13 @@ pub fn owned_fixed_finish(OwnedFixedFixture) -> Bool
 
 pub fn owned_fixed_local_cid(OwnedFixedFixture) -> String
 
+pub fn owned_fixed_next(OwnedFixedFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
+
 pub fn owned_fixed_parameter(OwnedFixedFixture, Int, Int, Bool) -> String
+
+pub fn owned_fixed_retained_cid(OwnedFixedFixture, @execution_relation.CompletedOutput) -> String
+
+pub fn owned_fixed_retained_input(OwnedFixedFixture, @execution_relation.CompletedOutput) -> @execution_relation.ProducerRead?
 
 pub fn owned_fixed_row_count(OwnedFixedFixture) -> Int
 
@@ -218,6 +226,8 @@ pub fn strategy_fixture_replan(StrategyFixture, Int64) -> Bool
 pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG
 

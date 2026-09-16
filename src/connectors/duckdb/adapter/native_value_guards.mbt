@@ -76,9 +76,21 @@ fn measure_native_receipt(
   port : NativeReceiptPort,
 ) -> Result[Unit, NativeReceivingIssue] {
   let budget = receiving.measurement
+  if port.role == ValidationScan && receiving.validation_stream is Some(stream) {
+    return match stream.guard_issue {
+      Some(issue) => Err(issue)
+      None => Ok(())
+    }
+  }
   if port.role == NativeResult &&
     port.result.rows > budget.guards.max_output_rows {
     return Err(Guard(port.role, budget.guards.max_output_rows, -1, OutputRows))
+  }
+  if port.role == NativeResult && receiving.output_stream is Some(stream) {
+    return match stream.guard_issue {
+      Some(issue) => Err(issue)
+      None => Ok(())
+    }
   }
   let batches = match port.role {
     ValidationScan => receiving.validation_batches

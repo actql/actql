@@ -45,6 +45,14 @@ pub fn strategy_fixture_resident_dispatch(
 }
 
 ///|
+#export_name("strategyFixtureRetainedResidentDispatch")
+pub fn strategy_fixture_retained_resident_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  resident_dispatch_fixture(f, 1L, 100L, 100L, retained=true)
+}
+
+///|
 #export_name("strategyFixtureResidentCleanupDispatch")
 pub fn strategy_fixture_resident_cleanup_dispatch(
   f : StrategyFixture,
@@ -59,8 +67,12 @@ fn resident_dispatch_fixture(
   first_local : Int64,
   remaining_local : Int64,
   multiple_resources? : Bool = false,
+  retained? : Bool = false,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let host = fixture_example_dispatch(f)
+  if retained {
+    @dbhost.configure_dispatch_retained_output(host, 100000L, Some(1L)).unwrap()
+  }
   let count = @strategy.graph_task_count(f.graph) - 1
   let profiles = Array::makei(count, i => @dbhost.DispatchEstimateProfile::{
     local_rates: [

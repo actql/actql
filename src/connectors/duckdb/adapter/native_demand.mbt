@@ -173,6 +173,26 @@ fn measure_native_demand_impl(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
+  if receiving.validation_stream is Some(stream) {
+    if physical.max_work != stream.demand_limits.max_work ||
+      physical.max_bytes != stream.demand_limits.max_bytes ||
+      physical.max_nodes != stream.demand_limits.max_nodes ||
+      physical.max_depth != stream.demand_limits.max_depth {
+      return Err(InvalidLimits)
+    }
+    if stream.demand_issue is Some(issue) {
+      return Err(issue)
+    }
+    if stream.demand.rows != validation.rows {
+      return Err(InvalidLayout)
+    }
+    return finish_comparison_demand(
+      stream.demand,
+      native.rows,
+      stream.demand_budget,
+      physical,
+    ).map(usage => NativeDemandMeasurement::{ owner: receiving, usage, })
+  }
   let query = receiving.scan.query
   let column = receiving.scan.predicate_column
   let rhs = match query.parameter.value {

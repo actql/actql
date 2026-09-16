@@ -20,6 +20,7 @@ pub(all) enum DuckDBComputeIssue {
   Receiving(@duckdb.FixedComputeReceivingIssue)
   Demand(@duckdb.NativeDemandIssue)
   Completion(@execution.TrustedOutputIssue)
+  InputStream(@duckdb.FixedImportStreamIssue)
 }
 
 ///|
@@ -29,9 +30,13 @@ struct DuckDBComputeAttempt {
   request : @connector.FixedComputeRequest
   compute : @duckdb.FixedCompute
   port : @execution.TrustedOutputPort[DuckDBComputeAttempt]
+  retained_port : @execution.TrustedRetainedOutputPort[DuckDBComputeAttempt]
   limits : DuckDBComputeLimits
   measurement : @execution.FixedProducerMeasurement
-  join_validation : @execution.FixedJoinValidation?
+  input_streams : Array[@duckdb.FixedImportStream?]
+  mut input_demand : @duckdb.FixedImportDemand?
+  mut join_validation : @execution.FixedJoinValidation?
+  join_stream : @execution.FixedJoinStream?
   transport_matches : (DuckDBComputeAttempt) -> Bool
   mut receiving : @duckdb.FixedComputeReceiving?
   mut receipt : @duckdb.FixedComputeReceipt?
@@ -41,6 +46,14 @@ struct DuckDBComputeAttempt {
   // Sealed only after the trusted completion port accepts the exact rows.
   // Retention belongs to this Compute, not to its input's future availability.
   mut completed_rows : @execution.AdmittedOutputRows?
+  mut streaming : Bool
+  retained_required : Bool
+  stream_transport : @duckdb.TransportColumnLimits?
+  mut stream_receipt : @duckdb.FixedComputeStreamReceipt?
+  mut stream_measured : @execution.FixedProducerStreamMeasuredOutput?
+  mut stream_demand : @duckdb.FixedComputeStreamDemand?
+  mut pending_material : @execution.RetainedOutputMaterial?
+  retained_live : Ref[Bool]
   mut live : Bool
 }
 
@@ -51,7 +64,20 @@ pub fn start_duckdb_compute_attempt(
   generated : @execution.CompletionPreparation,
   limits : DuckDBComputeLimits,
   transport_matches : (DuckDBComputeAttempt) -> Bool,
+  retained_required? : Bool = false,
+  stream_transport? : @duckdb.TransportColumnLimits,
 ) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue] {
+  if stream_transport is Some(bound) &&
+    (
+      !retained_required ||
+      bound.max_bytes <= 0 ||
+      bound.max_nodes <= 0 ||
+      bound.max_rows <= 0 ||
+      bound.max_columns <= 0 ||
+      bound.max_text_bytes < 0
+    ) {
+    return Err(InvalidState)
+  }
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(compute) else {
     return Err(NotSelected)
@@ -74,7 +100,7 @@ pub fn start_duckdb_compute_attempt(
     return Err(ForeignPreparation)
   }
   let measurement = match
-    @execution.prepare_fixed_producer_measurement(
+    @execution.prepare_streamed_fixed_producer_measurement(
       @connector.fixed_compute_request_inputs(request),
       @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
       max_rows=@connector.fixed_compute_request_capacity(request).max_rows,
@@ -84,9 +110,17 @@ pub fn start_duckdb_compute_attempt(
     Ok(value) => value
     Err(issue) => return Err(Guard(issue))
   }
-  let join_validation = match @duckdb.validate_fixed_compute_join(compute) {
+  let join_stream = match @duckdb.prepare_fixed_compute_join_stream(compute) {
     Ok(value) => value
     Err(issue) => return Err(JoinValidation(issue))
+  }
+  let join_validation = if join_stream is Some(_) {
+    None
+  } else {
+    match @duckdb.validate_fixed_compute_join(compute) {
+      Ok(value) => value
+      Err(issue) => return Err(JoinValidation(issue))
+    }
   }
   let port = match
     @execution.prepare_trusted_output_port(
@@ -100,13 +134,32 @@ pub fn start_duckdb_compute_attempt(
     Ok(port) => port
     Err(issue) => return Err(Completion(issue))
   }
+  let retained_port = match
+    @execution.prepare_trusted_retained_output_port(
+      generated,
+      @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
+      limits.completion_entries,
+      limits.completion_name_bytes,
+      verified_compute_material,
+      inputs=@connector.fixed_compute_request_inputs(request),
+    ) {
+    Ok(port) => port
+    Err(issue) => return Err(Completion(issue))
+  }
   Ok({
     request,
     compute,
     port,
+    retained_port,
     limits,
     measurement,
+    input_streams: Array::make(
+      @duckdb.fixed_compute_import_count(compute),
+      None,
+    ),
+    input_demand: None,
     join_validation,
+    join_stream,
     transport_matches,
     receiving: None,
     receipt: None,
@@ -114,6 +167,14 @@ pub fn start_duckdb_compute_attempt(
     demand: None,
     completed: false,
     completed_rows: None,
+    streaming: false,
+    retained_required,
+    stream_transport,
+    stream_receipt: None,
+    stream_measured: None,
+    stream_demand: None,
+    pending_material: None,
+    retained_live: Ref(true),
     live: true,
   })
 }
@@ -130,7 +191,9 @@ pub fn begin_duckdb_compute_result(
   value : DuckDBComputeAttempt,
   fields : Array[(String, @duckdb.PhysicalType)],
 ) -> Result[Unit, DuckDBComputeIssue] {
-  if !value.live || value.receiving is Some(_) {
+  if value.retained_required ||
+    !duckdb_compute_inputs_ready(value) ||
+    value.receiving is Some(_) {
     return Err(InvalidState)
   }
   match
@@ -167,6 +230,7 @@ pub fn receive_duckdb_compute_chunk(
   columns : Array[@decode.Cursor],
 ) -> Result[Unit, DuckDBComputeIssue] {
   guard value.live &&
+    !value.streaming &&
     @duckdb.fixed_compute_join_validation_matches(
       value.compute,
       value.join_validation,
@@ -189,6 +253,7 @@ pub fn finish_duckdb_compute_result(
   value : DuckDBComputeAttempt,
 ) -> Result[Unit, DuckDBComputeIssue] {
   guard value.live &&
+    !value.streaming &&
     value.receipt is None &&
     value.receiving is Some(receiving) else {
     return Err(InvalidState)
@@ -254,6 +319,13 @@ pub fn complete_duckdb_compute_attempt(
   if !value.live || value.completed {
     return Err(InvalidState)
   }
+  if value.streaming {
+    guard value.pending_material is Some(material) else {
+      abort_duckdb_compute_attempt(value)
+      return Err(Completion(NotRetained))
+    }
+    return complete_retained_duckdb_compute_attempt(value, material)
+  }
   let result = complete_duckdb_compute_impl(value)
   if result is Err(_) {
     abort_duckdb_compute_attempt(value)
@@ -272,12 +344,22 @@ fn complete_duckdb_compute_impl(
   let capacity = @connector.fixed_compute_request_capacity(value.request)
   value.demand = Some(
     match
-      @duckdb.measure_fixed_compute_demand(
-        value.compute,
-        receipt,
-        capacity.max_value_bytes,
-        value.limits.demand,
-      ) {
+      (if value.input_demand is Some(input_demand) {
+        @duckdb.measure_fixed_compute_demand(
+          value.compute,
+          receipt,
+          capacity.max_value_bytes,
+          value.limits.demand,
+          input_demand~,
+        )
+      } else {
+        @duckdb.measure_fixed_compute_demand(
+          value.compute,
+          receipt,
+          capacity.max_value_bytes,
+          value.limits.demand,
+        )
+      }) {
       Ok(demand) => demand
       Err(issue) => return Err(Demand(issue))
     },
@@ -316,6 +398,20 @@ pub fn abort_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
 ///|
 pub fn close_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
   value.live = false
+  value.retained_live.val = false
+  if value.join_stream is Some(stream) {
+    @execution.cancel_fixed_join_stream(stream)
+  }
+  for stream in value.input_streams {
+    if stream is Some(stream) {
+      @duckdb.cancel_fixed_import_stream(stream) |> ignore
+    }
+  }
+  value.input_demand = None
+  value.stream_receipt = None
+  value.stream_measured = None
+  value.stream_demand = None
+  value.pending_material = None
   value.completed_rows = None
   if value.receiving is Some(receiving) {
     @duckdb.abort_fixed_compute_receiving(receiving)

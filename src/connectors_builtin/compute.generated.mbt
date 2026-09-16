@@ -279,11 +279,11 @@ pub fn[C, E] dispatch_local(
   value : ConfiguredComputeModules[E],
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
-) -> Result[Unit, ConfiguredDispatchIssue[E]] {
+) -> Result[@binding3.LocalDispatchOperations, ConfiguredDispatchIssue[E]] {
   match value.installed_local {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding3.execute_local_dispatch(installed, host, task).map_err(issue => {
+      @binding3.start_local_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
   }
@@ -457,25 +457,25 @@ pub fn[E] execute_configured_in_process(
 ) -> Result[Unit, ConfiguredDispatchIssue[E]] {
   let selected = @host.prepared_task_registration(task)
 
-  if value.modules.installed_local is Some((installed, _, _)) &&
+  if value.modules.installed_local is Some((installed, project, _)) &&
     physical_equal(selected, @binding3.local_dispatch_registration(installed)) {
-    return dispatch_local(
-      value.modules,
+    return @binding3.execute_local_dispatch(
+      installed,
       @host.compute_host_dispatch(value.runtime),
       task,
-    )
+    ).map_err(issue => Implementation(project(issue)))
   }
 
-  if value.modules.installed_reference_compute is Some((installed, _, _)) &&
+  if value.modules.installed_reference_compute is Some((installed, project, _)) &&
     physical_equal(
       selected,
       @binding4.numeric_contribution_registration(installed),
     ) {
-    return dispatch_reference_compute(
-      value.modules,
+    return @binding4.execute_numeric_contribution(
+      installed,
       @host.compute_host_dispatch(value.runtime),
       task,
-    )
+    ).map_err(issue => Implementation(project(issue)))
   }
   Err(MissingImplementation)
 }

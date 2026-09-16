@@ -36,7 +36,7 @@ pub fn bind_completed_input(
   expected_producer : @lower.BoundPrepared,
   output : CompletedOutput,
 ) -> Result[BoundProducerInput, ProducerBindingIssue] {
-  if !completion_is_live(output.completion) {
+  if !completed_output_available(output) {
     return Err(ProducerUnavailable)
   }
   let pipeline = @lower.pipeline(@lower.bound_preparation(receiver))
@@ -83,13 +83,10 @@ pub fn bind_live_completed_input(
   output : CompletedOutput,
   live : () -> Bool,
 ) -> Result[BoundProducerInput, ProducerBindingIssue] {
-  let original = output.completion
-  let constrained : CompletedSequence = {
-    ..original,
-    live: Some(fn() { completion_is_live(original) && live() }),
-  }
-  bind_completed_input(receiver, input_index, expected_producer, {
-    ..output,
-    completion: constrained,
-  })
+  bind_completed_input(
+    receiver,
+    input_index,
+    expected_producer,
+    restrict_completed_output(output, live),
+  )
 }

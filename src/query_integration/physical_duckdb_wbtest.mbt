@@ -15,6 +15,7 @@ fn captured_graph_duckdb_try_start(
   transfer_bytes? : Int64 = 100000L,
   execution_bytes? : Int64 = 1000000L,
   generated? : @execution.GeneratedSequence,
+  retained_storage? : (Int64, () -> Bool),
 ) -> Result[@duckdb_driver.CapturedDuckDBTask, @strategy.RunIssue] raise {
   let input = @strategy.captured_task_input(run, task, 100, 10000).unwrap()
   let request = @connector.prepare_fixed_compute_request([input], {
@@ -66,6 +67,7 @@ fn captured_graph_duckdb_try_start(
     current => {
       transport.settled is Some(expected) && physical_equal(current, expected)
     },
+    retained_storage?,
   )
 }
 

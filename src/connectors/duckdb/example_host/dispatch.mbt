@@ -188,9 +188,8 @@ fn dispatch_driver_issue(issue : @host_driver.DispatchIssue) -> DispatchIssue {
 pub fn execute_synchronous_dispatch(
   dispatch : TaskDispatch,
 ) -> Result[Unit, DispatchIssue] {
-  @builtin.dispatch_local(
-    dispatch.owner.modules,
-    @host_driver.compute_host_dispatch(dispatch.owner.runtime),
+  @builtin.execute_configured_in_process(
+    dispatch.owner.installation,
     dispatch.prepared,
   ).map_err(configured_dispatch_issue)
 }
@@ -299,4 +298,18 @@ pub fn dispatch_installation(
   value : StrategyHostDispatch,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   value.installation
+}
+
+///|
+pub fn configure_dispatch_retained_output(
+  value : StrategyHostDispatch,
+  max_file_bytes : Int64,
+  file_work_ms : Int64?,
+) -> Result[Unit, DispatchIssue] {
+  guard @builtin.configured_duckdb_module(value.modules) is Some(installed) else {
+    return Err(InvalidConfiguration)
+  }
+  @duckdb_driver.configure_duckdb_retained_output(
+    installed, max_file_bytes, file_work_ms,
+  ).map_err(duckdb_dispatch_issue)
 }

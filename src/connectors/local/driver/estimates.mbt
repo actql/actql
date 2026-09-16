@@ -47,6 +47,7 @@ pub fn prepare_local_estimate_module(
     @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) - 1 {
     return Err(InvalidConfiguration)
   }
+  installed.policy_sealed = true
   Ok({ installed, configuration: { schedules: schedules.copy(), max_work, }, })
 }
 

@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
-import {finalizerCase} from './finalizer-fixture.mjs';
+import {finalizerCase, asynchronousCloseCase} from './finalizer-fixture.mjs';
+import {installCompletionObserver, completionObserver} from '../host-common/completion-observer.mjs';
+
+test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {
+  for (const kind of ['undefined', 'null', 'recoverable']) {
+    assert.deepEqual(await asynchronousCloseCase(kind), {failed: true, firstPreserved: true,
+      pending: kind !== 'recoverable', closed: 1, retries: kind === 'recoverable' ? 1 : 0});
+  }
+});
 
 test('finalizer failure without a retry handle retains its owner on direct and scoped Hosts', async () => {
   for (const kind of ['error', 'undefined', 'null']) {
@@ -40,6 +48,73 @@ function fixture(registrations) {
   };
   return {setup, core, complete, stopped: () => stopped, closed: () => closed};
 }
+
+test('installed completion observer receives the exact core output only after publication', async () => {
+  const registration = {}, f = fixture([registration]);
+  const output = {}, fake = {}, seen = [];
+  f.core.output = () => output;
+  const installed = installCompletionObserver(value => { seen.push(value); });
+  assert.throws(() => completionObserver({...installed}), /ForeignCompletionObserver/);
+  assert.throws(() => completionObserver(() => {}), /ForeignCompletionObserver/);
+  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
+    run() { f.complete.add(1); return {output: fake, diagnostic: {output: fake}}; },
+  }], undefined, completionObserver(installed));
+  assert.equal(result.status, 'host-tasks-completed');
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].task, 1);
+  assert.equal(seen[0].output, output);
+  assert(Object.isFrozen(seen[0]));
+  result.close();
+});
+
+test('resolved connector callback without common completion cannot issue an observed output', async () => {
+  const registration = {}, f = fixture([registration]);
+  let observed = 0;
+  const result = await runInstalledStrategy(f.setup, f.core, [{registration, run() { return {output: {}}; }}],
+    undefined, () => { observed++; });
+  assert.equal(result.failure.code, 'TaskNotCompleted');
+  assert.equal(observed, 0);
+  result.close();
+});
+
+test('failed completion delivery stops future work but preserves completed output and cleanup responsibility', async () => {
+  for (const reason of [undefined, null, new Error('delivery failed')]) {
+    const registration = {}, f = fixture([registration, registration]);
+    let started = 0, finished = 0;
+    const result = await runInstalledStrategy(f.setup, f.core, [{registration,
+      run(task) { started++; f.complete.add(task.index); }, finish() { finished++; },
+    }], undefined, () => Promise.reject(reason));
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.failure, reason);
+    assert.equal(started, 1);
+    assert.equal(finished, 1);
+    assert.equal(result.completed.length, 1);
+    assert.equal(result.output(1), 1);
+    assert.equal(result.cleanupPending(), true);
+    result.close();
+    assert.equal(await result.cleanup(), false);
+  }
+});
+
+test('cancellation while delivering completed output cannot start another task', async () => {
+  const registration = {}, f = fixture([registration, registration]);
+  const controller = new AbortController();
+  let entered, release, started = 0;
+  const observing = new Promise(resolve => { entered = resolve; });
+  const waiting = new Promise(resolve => { release = resolve; });
+  const pending = runInstalledStrategy(f.setup, f.core, [{registration,
+    run(task) { started++; f.complete.add(task.index); },
+  }], controller.signal, async () => { entered(); await waiting; });
+  await observing;
+  controller.abort();
+  release();
+  const result = await pending;
+  assert.equal(result.status, 'host-tasks-failed');
+  assert.equal(started, 1);
+  assert.equal(result.output(1), 1);
+  assert.equal(result.cleanupPending(), false);
+  result.close();
+});
 
 test('cancellation after preparation or task selection stops normal work but finalizes all entries', async () => {
   for (const phase of ['preparation','dispatch']) {
@@ -279,6 +354,51 @@ test('concurrent cleanup calls share the same in-flight recovery', async () => {
   resume();
   assert.equal(await first, true);
   assert.equal(retries, 1);
+});
+
+test('asynchronous output close stays pending until all releases and explicit recoveries settle', async () => {
+  const registration = {}, f = fixture([registration, registration]);
+  let resume, closes = 0, retries = 0, pending = true;
+  const wait = new Promise(resolve => { resume = resolve; });
+  const handle = {status: () => ({pending}), retry() { retries++; pending = false; }};
+  const failure = Object.assign(new Error('file cleanup failed'), {cleanupHandle: handle});
+  const result = await runInstalledStrategy(f.setup, f.core, [{registration, run(task) {
+    f.complete.add(task.index);
+    return {async close() { closes++; await wait; if (task.index === 1) throw failure; }};
+  }}]);
+  const closing = result.close();
+  assert.equal(result.close(), closing);
+  assert.equal(closes, 2);
+  assert.equal(f.closed(), 1);
+  assert.throws(() => result.output(1), {code: 'ReleasedStrategy'});
+  assert.equal(result.cleanupPending(), true);
+  let cleaned = false;
+  const cleanup = result.cleanup().then(value => { cleaned = value; });
+  await Promise.resolve();
+  assert.equal(cleaned, false);
+  assert.equal(retries, 0);
+  resume();
+  await assert.rejects(closing, error => error === failure);
+  await cleanup;
+  assert.equal(cleaned, true);
+  assert.equal(result.cleanupPending(), false);
+  assert.equal(retries, 1);
+  assert.equal(closes, 2);
+});
+
+test('reasonless asynchronous close is not forgotten or implicitly retried', async () => {
+  for (const reason of [undefined, null]) {
+    const registration = {}, f = fixture([registration]);
+    let closes = 0;
+    const result = await runInstalledStrategy(f.setup, f.core, [{registration, run(task) {
+      f.complete.add(task.index);
+      return {close() { closes++; return Promise.reject(reason); }};
+    }}]);
+    await assert.rejects(result.close(), error => error === reason);
+    assert.equal(result.cleanupPending(), true);
+    assert.equal(await result.cleanup(), false);
+    assert.equal(closes, 1);
+  }
 });
 
 test('cancellation prevents dispatch and still finalizes every installed implementation', async () => {

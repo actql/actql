@@ -7,7 +7,10 @@ export class StrategyHostError extends Error {
 
 const active = new WeakSet();
 
-export async function runInstalledStrategy(setup, core, contributions, signal) {
+export async function runInstalledStrategy(setup, core, contributions, signal, observeCompletion) {
+  if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
+    throw new StrategyHostError('InvalidCompletionObserver');
+  }
   if (active.has(setup)) throw new StrategyHostError('StrategyAlreadyRunning');
   core = Object.freeze({ ...core });
   // Snapshot the implementation set before invoking any implementation. Opaque
@@ -26,6 +29,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
   const completed = [];
   const outputs = [];
   const pendingCleanup = new Set();
+  const pendingCloses = new Set();
   // A release without a recovery handle has no safe implicit retry contract.
   // Retain its owner and report unknown cleanup rather than forgetting it.
   const unconfirmedRelease = new Set();
@@ -33,6 +37,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
   let failed = false;
   let failure;
   let closed = false;
+  let closeResult;
   const rememberCleanup = (error, releaseOwner) => {
     const handle = error?.cleanupHandle;
     if (handle && typeof handle.status === 'function' && typeof handle.retry === 'function') {
@@ -47,6 +52,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
     rememberCleanup(error, releaseOwner);
   };
   const cleanupPending = () => {
+    if (pendingCloses.size) return true;
     if (unconfirmedRelease.size) return true;
     for (const handle of pendingCleanup) {
       try { if (handle.status().pending) return true; }
@@ -78,6 +84,17 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
       // already have installed this exact task's retained, verified output.
       if (!core.completed(setup, index)) throw new StrategyHostError('TaskNotCompleted');
       completed.push(Object.freeze({ ...result?.diagnostic, task: index }));
+      if (observeCompletion) {
+        const output = core.output(setup, index);
+        if (output == null) throw new StrategyHostError('MissingCompletedOutput');
+        signal?.throwIfAborted();
+        // Deliver the core's exact output, never a connector diagnostic/CID or
+        // callback-supplied substitute. Failure stops future tasks but cannot
+        // undo this already completed task's independent result.
+        try { await observeCompletion(Object.freeze({task: index, output})); }
+        catch (error) { rememberCleanup(error, observeCompletion); throw error; }
+        signal?.throwIfAborted();
+      }
     }
     if (!core.finished(setup)) throw new StrategyHostError('StrategyNotComplete');
   } catch (error) {
@@ -101,6 +118,10 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
     cleanup() {
       if (cleanupInFlight) return cleanupInFlight;
       cleanupInFlight = (async () => {
+        // Closing a file-backed output may still be awaiting readers or native
+        // cleanup. Observe every initiated close before inspecting its recovery
+        // handles; an unresolved Promise is not release confirmation.
+        await Promise.all([...pendingCloses]);
         // Attempt every independent recovery even when an earlier one fails.
         // Only an explicit recovery handle authorizes retry; never run Compute.
         const errors = [];
@@ -131,7 +152,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
       return core.output(setup, task);
     },
     close() {
-      if (closed) return;
+      if (closed) return closeResult;
       closed = true;
       let closeFailed = false;
       let closeFailure;
@@ -141,11 +162,28 @@ export async function runInstalledStrategy(setup, core, contributions, signal) {
         rememberCleanup(error, owner);
       };
       for (const output of outputs) {
-        try { output.close(); } catch (error) { releaseFailed(error, output); }
+        try {
+          const result = output.close();
+          if (result != null && typeof result.then === 'function') {
+            const pending = Promise.resolve(result).then(
+              () => {}, error => releaseFailed(error, output),
+            ).finally(() => pendingCloses.delete(pending));
+            pendingCloses.add(pending);
+          }
+        } catch (error) { releaseFailed(error, output); }
       }
       outputs.length = 0;
       try { core.closeOutputs(setup); } catch (error) { releaseFailed(error, core); }
+      if (pendingCloses.size) {
+        closeResult = Promise.all([...pendingCloses]).then(() => {
+          if (closeFailed) throw closeFailure;
+        });
+        // Older synchronous callers may ignore the return value. Responsibility
+        // still stays in this driver's cleanup state, never an unhandled reject.
+        closeResult.catch(() => {});
+      }
       if (closeFailed) throw closeFailure;
+      return closeResult;
     },
   });
 }

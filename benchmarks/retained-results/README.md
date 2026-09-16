@@ -1,0 +1,112 @@
+# Retained result performance experiment
+
+`experiment.json` preregisters comparators, sample sizes and acceptance criteria.
+Its pinned `fixtures.mjs` defines 27 deterministic workload/layout/size cases,
+ActQL Program text, source construction SQL, cardinalities, independent expected
+result identities and explicit resource/timeout ceilings. This is not a record
+of passing performance measurements.
+
+Development observations are recorded separately in
+[2026-09-16 diagnostic observations](observations-2026-09-16.md). They include
+failures and exclude unperformed comparisons; they are not acceptance results.
+
+The correctness smoke checks run without importing the ActQL evaluator:
+
+```sh
+node --test benchmarks/retained-results/fixtures.test.mjs
+node --test adapters/duckdb-node/test/benchmark-fixtures.test.mjs
+node --test adapters/duckdb-node/test/benchmark-profile.test.mjs
+node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+```
+
+The second command requires the pinned DuckDB Node dependency. It compares all
+nine workload/layout shapes at 100 rows to real DuckDB. It verifies source
+generation and expected values/cardinalities, not ActQL eligibility or speed.
+The expectation encoder covers only these finite exact integers and ASCII
+strings/keys; it is not a replacement for the common typed canonical encoder.
+
+The profile test prepares every registered size through the public checker without
+opening a source. The execution smoke uses the installed managed Host and real
+DuckDB at 100, 1000 and 10000 rows across all nine shapes, checking independent logical
+CIDs, process exit, surviving file holdings and explicit cleanup. These require
+the pinned MoonBit toolchain; they are correctness tests, not timing samples.
+Wide retained reuse also re-admits the same output in a fresh installed process
+and binds its exact downstream port without reading the source again. It then
+reads the retained bytes through shared Store access, with both admission and
+consumer reads charged. This is input readmission and physical access, not
+another Compute execution or Program continuation.
+The smoke's cumulative transfer allowance covers acquisition plus the configured
+per-task import/return envelopes; it is not a per-file byte ceiling.
+
+Run the full preregistered size matrix explicitly (including one million narrow
+rows and 100000-row wide layouts):
+
+```sh
+ACTQL_RETAINED_CASES=registered node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+```
+
+Both modes fail on an incomplete case and emit each attempted/verified/failed
+case ID. Diagnostic elapsed time includes setup, optional readmission and
+cleanup; it is not a performance sample or a substitute for the four comparators.
+Successful case reports include per-task transport counters and nested phase
+timings. INSERT time is part of each input interval; preparation and receiving
+callbacks are parts of command time. Do not sum overlapping intervals. Counters
+distinguish actual statement executions from SQL preparations, so preparation
+reuse cannot be mistaken for fewer imported rows or shared transfer.
+The registered run is a readiness gate, not performance sampling; the default
+smoke does not prove the larger cases executable.
+
+To compare ordinary and reused INSERTs through the actual bounded transport:
+
+```sh
+node adapters/duckdb-node/bench/session-import-probe.mjs
+```
+
+This separately reports setup-through-cleanup elapsed time, verifies identical
+payloads and cumulative transport counters, and checks preparation counts. It
+does not include MoonBit admission, logical guards, CID generation or independent
+retention, and is not a replacement for the four-comparator experiment.
+
+For diagnosis only, add `ACTQL_RETAINED_CASE` with one exact case ID from the
+selected matrix (for example `fixed-join-count-shrinking-intermediate/numeric-64/100000`).
+Unknown, empty and ambiguous IDs fail rather than running zero cases. The log
+labels this scope `single-case-diagnostic`; its success is not full-matrix
+readiness or performance acceptance. Omit this variable for the complete gate.
+
+## Work and boundaries
+
+- Low selectivity validates all N source rows and declared fields, although
+  capture and each downstream result contain only the final two ids.
+- Join/count captures N rows with each id occurring twice. A and B share that
+  observation; the inner join produces 2N rows before a single global count.
+  The intermediate join limit must allow 2N, not just the final one-row output.
+- Large reuse preserves all N rows and all fields through capture, independent
+  A/B consumers and the A-to-C edge. Wide layouts cannot silently project the
+  payload away to make transfer or memory measurements smaller.
+
+Source generation is outside measured execution. Required source validation,
+identity generation, independent holding and consumer completion are inside;
+final cleanup is recorded separately. Pure task boundaries and logical output
+identities remain identical across comparators. No cross-task fusion or
+unfinished-input streaming is permitted.
+
+## Execution readiness
+
+The shipped application's default remains the 100-row, 10-column and
+100000-byte profile. Its explicit `dataProfile` entrance has 1000-row and
+10000-row retained process integration cases, not acceptance of this matrix. Before timing,
+connect all generated cases to the parameterized, owned application profile and
+check that its query capacities, logical guards, intermediate bounds, transport,
+hashing, retention and physical reservations agree with every explicit case
+ceiling. Unsupported profiles and timeouts remain failures/incomplete cases;
+do not drop them or derive a smaller workload from successful execution.
+
+All four comparators must use the same immutable database contents and logical
+contracts. Keep raw DuckDB distinct from the equivalent-obligations comparator.
+Record tested revisions, runtime versions, dataset/Program/configuration hashes,
+actual transfer, hash bytes/passes, materializations, memory and ledger usage.
+Do not use a synthetic sleep or a configured cost estimate as measured work.
+
+Changing the fixture pin after samples exist requires a new experiment record
+and fresh samples, not overwriting inconvenient measurements. The current record
+has no timing samples or performance acceptance result.

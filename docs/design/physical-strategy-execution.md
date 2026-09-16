@@ -126,6 +126,13 @@ release without an explicit recovery handle stays unconfirmed and is not retried
 implicitly. Cleanup attempts every independent handle, aggregates retry errors,
 and retains incomplete handles. Concurrent cleanup callers share the same attempt.
 Repeated close never repeats release work or revives result access.
+Result close revokes the common ports synchronously. If an implementation returns
+a Promise for physical cleanup, the driver tracks it and returns an awaitable
+close result. `cleanupPending()` remains true while any close is unresolved;
+`cleanup()` observes those closes before retrying their explicit recovery handles.
+Ignoring the close return value does not lose asynchronous failures or their
+owners. The scoped Workers Host awaits close and retains the first release failure
+even if a subsequent explicit recovery succeeds.
 When a finalizer throws without a recovery handle, its installed owner remains
 unconfirmed even after result close. Neither cleanup nor the Workers invocation
 wrapper retries that finalizer or reports successful cleanup on its behalf.
@@ -270,7 +277,7 @@ query retrieval remains in the DuckDB driver, gated by the owning execution's
 availability, and final disposal drops the driver's provisional plan reference.
 Ledger and completion operations validate that exact execution against the DAG;
 a raw transport attempt cannot be used to recover or replace the binding. Once
-disposal and settlement both finish, the common execution detaches its hooks and
+disposal, execution settlement and retained-storage cleanup all finish, the common execution detaches its hooks and
 the execution drops provisional resident references. A retained closed handle cannot
 reactivate work or release another task's reservation.
 Cleanup preparation is split at the same ownership boundary. The common driver
@@ -577,8 +584,14 @@ It returns private implementation state and lifecycle operations; only the commo
 driver registers the execution. Preparation rejection releases unused capacity,
 without refunding its consumed attempt entry. Once external work can start,
 failure instead retains capacity until the corresponding cleanup is confirmed.
-Failure disposes provisional material and
-settles the remaining reservation only after native cleanup confirmation.
+Failure disposes provisional material, but native cleanup and retained-storage
+cleanup are independent facts. `ExecutionOperations.retention_released` is
+installed implementation wiring: a live or unconfirmed file must keep it false.
+After disposal, native stop frees execution capacity while unreclaimed storage
+keeps its retention reservation or holding. `refresh_task_execution_cleanup`
+observes these facts for the exact execution; it neither asserts stop/deletion
+nor re-runs computation. Confirmation order and repeated observation do not
+refund transfer, revive outputs, or release another execution's resources.
 
 The same immutable Compute configuration supplies a separate MoonBit working
 capacity: 256 bytes per permitted transport/physical batch node, cell, row or

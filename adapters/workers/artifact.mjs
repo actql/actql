@@ -38,13 +38,21 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 
 // Each source is explicitly reviewed: generated fixture/bridge contain the same
 // product Core; generated composition selects only Local; Local's JS contribution
-// is pure despite its historical directory name. No namespace-wide permission.
+// delegates reads without Node I/O despite its historical directory name. The
+// Store registry and row framing use only WeakMap/typed arrays/TextDecoder;
+// concrete files.mjs and delegated-file.mjs are NOT included in this allowance.
+// No namespace-wide permission.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
   '_build/workers/modules/async_bridge.mjs',
   'adapters/connectors-workers/strategy.generated.mjs',
   'adapters/local-node/strategy-bundle.mjs',
+  'adapters/local-node/retained-input.mjs',
+  'adapters/local-node/retained-store.mjs',
+  'adapters/local-node/retained-output.mjs',
+  'adapters/store-local/representations.mjs',
+  'adapters/store-local/row-frames.mjs',
   'adapters/reference-compute-node/async-probe.mjs',
   'adapters/host-common/strategy.mjs',
   'adapters/host-common/runtime-core.mjs',
@@ -60,6 +68,11 @@ export const hostModules = [
   '_build/workers/modules/bridge.mjs',
   'adapters/connectors-workers/strategy.generated.mjs',
   'adapters/local-node/strategy-bundle.mjs',
+  'adapters/local-node/retained-input.mjs',
+  'adapters/local-node/retained-store.mjs',
+  'adapters/local-node/retained-output.mjs',
+  'adapters/store-local/representations.mjs',
+  'adapters/store-local/row-frames.mjs',
   'adapters/host-common/strategy.mjs',
   'adapters/host-common/runtime-core.mjs',
   'adapters/host-common/runtime-result.mjs',

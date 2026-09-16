@@ -34,6 +34,21 @@ fn duckdb_captured_input_lifetime(
 }
 
 ///|
+test "batched import SQL stays bound to the live captured producer" {
+  let (input, close) = duckdb_captured_input_lifetime()
+  let plan = @duckdb.prepare_fixed_import(input, "日本語", 1, 1000).unwrap()
+  assert_eq(
+    @duckdb.fixed_import_batch_insert_sql(plan, 2, 2, 1000).unwrap(),
+    (2, "INSERT INTO \"日本語\" VALUES (?), (?)"),
+  )
+  close()
+  assert_true(
+    @duckdb.fixed_import_batch_insert_sql(plan, 2, 2, 1000)
+    is Err(InputUnavailable),
+  )
+}
+
+///|
 test "completed capture prepares exact isolated Compute import without source access" {
   let input = duckdb_captured_input()
   let plan = @duckdb.prepare_fixed_import(input, "owned\"input", 1, 1000).unwrap()
@@ -44,6 +59,33 @@ test "completed capture prepares exact isolated Compute import without source ac
   let insert = "INSERT INTO \"owned\"\"input\" VALUES (?)"
   assert_eq(@duckdb.fixed_import_create_sql(plan), create)
   assert_eq(@duckdb.fixed_import_insert_sql(plan), insert)
+  assert_eq(
+    @duckdb.fixed_import_batch_insert_sql(plan, 3, 100, 1000).unwrap(),
+    (3, insert + ", (?), (?)"),
+  )
+  assert_eq(
+    @duckdb.fixed_import_batch_insert_sql(plan, 3, 2, 1000).unwrap(),
+    (2, insert + ", (?)"),
+  )
+  assert_eq(
+    @duckdb.fixed_import_batch_insert_sql(plan, 3, 100, insert.length() + 4).unwrap(),
+    (1, insert),
+  )
+  assert_eq(
+    @duckdb.fixed_import_batch_insert_sql(plan, 3, 100, insert.length() + 5).unwrap(),
+    (2, insert + ", (?)"),
+  )
+  assert_true(
+    @duckdb.fixed_import_batch_insert_sql(plan, 0, 100, 1000)
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    @duckdb.fixed_import_batch_insert_sql(plan, 2, 0, 1000) is Err(Limit),
+  )
+  assert_true(
+    @duckdb.fixed_import_batch_insert_sql(plan, 2, 100, insert.length() - 1)
+    is Err(Limit),
+  )
   for (row, expected) in [(0, "4008000000000000"), (1, "4000000000000000")] {
     let parameter = @duckdb.fixed_import_parameter(plan, row, 0).unwrap()
     let writer = @encode.writer(1000, 20, 4)

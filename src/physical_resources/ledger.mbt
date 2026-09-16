@@ -15,6 +15,7 @@ pub(all) struct LedgerUsage {
   attempts : Int
   holdings : Int
   transferred_bytes : Int64
+  uncertain_transfer_bytes : Int64
   reserved_transfer_bytes : Int64
   held_bytes : Int64
   reserved_retention_bytes : Int64
@@ -26,6 +27,9 @@ pub(all) struct LedgerUsage {
 struct Ledger {
   limits : LedgerLimits
   mut usage : LedgerUsage
+  mut delegated_planning : Int
+  mut delegated_attempts : Int
+  mut delegated_holdings : Int
 }
 
 ///|
@@ -75,11 +79,15 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
   }
   Ok({
     limits,
+    delegated_planning: 0,
+    delegated_attempts: 0,
+    delegated_holdings: 0,
     usage: {
       planning_work: 0,
       attempts: 0,
       holdings: 0,
       transferred_bytes: 0L,
+      uncertain_transfer_bytes: 0L,
       reserved_transfer_bytes: 0L,
       held_bytes: 0L,
       reserved_retention_bytes: 0L,
@@ -102,7 +110,10 @@ pub fn charge_planning(
   if work < 0 {
     return Err(InvalidCharge)
   }
-  if work > ledger.limits.planning_work - ledger.usage.planning_work {
+  if work >
+    ledger.limits.planning_work -
+    ledger.usage.planning_work -
+    ledger.delegated_planning {
     return Err(PlanningLimit)
   }
   ledger.usage = {
@@ -125,12 +136,13 @@ pub fn reserve_attempt(
     return Err(InvalidCharge)
   }
   let u = ledger.usage
-  if u.attempts == ledger.limits.attempts {
+  if u.attempts >= ledger.limits.attempts - ledger.delegated_attempts {
     return Err(AttemptLimit)
   }
   if transfer_bytes >
     ledger.limits.transfer_bytes -
     u.transferred_bytes -
+    u.uncertain_transfer_bytes -
     u.reserved_transfer_bytes {
     return Err(TransferLimit)
   }
@@ -227,7 +239,7 @@ pub fn retain_allocation(
     return Err(RetentionLimit)
   }
   let u = ledger.usage
-  if u.holdings == ledger.limits.holdings {
+  if u.holdings >= ledger.limits.holdings - ledger.delegated_holdings {
     return Err(HoldingLimit)
   }
   reservation.retention -= bytes
@@ -343,6 +355,19 @@ pub fn holding_serial(holding : Holding) -> Int {
 ///|
 pub fn ledger_limits(ledger : Ledger) -> LedgerLimits {
   ledger.limits
+}
+
+///|
+/// Limits available to this ledger's own admissions while subledgers are live.
+/// Byte allowances already appear as reservations in LedgerUsage; count quotas
+/// are excluded here without falsely reporting them as completed/consumed work.
+pub fn ledger_admission_limits(ledger : Ledger) -> LedgerLimits {
+  {
+    ..ledger.limits,
+    planning_work: ledger.limits.planning_work - ledger.delegated_planning,
+    attempts: ledger.limits.attempts - ledger.delegated_attempts,
+    holdings: ledger.limits.holdings - ledger.delegated_holdings,
+  }
 }
 
 ///|

@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/process_host_bridge"
+
+import {
+  "actql/actql/physical_resources",
+}
+
+// Values
+pub fn process_delegate(@physical_resources.Ledger, @physical_resources.LedgerLimits, Int64, Int64) -> @physical_resources.ExecutionDelegation raise ProcessCapacityFailure
+
+pub fn process_delegation_stopped(@physical_resources.Ledger, @physical_resources.ExecutionDelegation, @physical_resources.LedgerUsage?) -> Unit raise ProcessCapacityFailure
+
+pub fn process_ledger_create(@physical_resources.LedgerLimits) -> @physical_resources.Ledger raise ProcessCapacityFailure
+
+pub fn process_ledger_usage(@physical_resources.Ledger) -> @physical_resources.LedgerUsage
+
+pub fn process_read_charge(@physical_resources.Ledger, @physical_resources.Reservation, Int64) -> Unit raise ProcessCapacityFailure
+
+pub fn process_read_reserve(@physical_resources.Ledger, Int64, Int64) -> @physical_resources.Reservation raise ProcessCapacityFailure
+
+pub fn process_report_usage(@physical_resources.Ledger, @physical_resources.ExecutionDelegation, @physical_resources.LedgerUsage) -> Unit raise ProcessCapacityFailure
+
+pub fn process_reserve(@physical_resources.Ledger, Int64, Int64) -> @physical_resources.Reservation raise ProcessCapacityFailure
+
+pub fn process_stopped(@physical_resources.Ledger, @physical_resources.Reservation) -> Unit raise ProcessCapacityFailure
+
+// Errors
+type ProcessCapacityFailure
+
+// Types and methods
+
+// Type aliases
+
+// Traits

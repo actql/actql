@@ -231,7 +231,7 @@ pub fn local_registration(
 pub fn local_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> Unit raise NodeHostFailure {
+) -> @local_driver.LocalDispatchOperations raise NodeHostFailure {
   match
     @builtin.dispatch_local(
       @builtin.configured_host_modules(setup),

@@ -10,7 +10,7 @@ import {
 // Values
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
-pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
+pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
 
 pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
 
@@ -82,6 +82,8 @@ pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> Execu
 
 pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P], Int) -> Int64?
 
+pub fn[T, E, P] prepared_execution_retained_bytes(PreparedExecution[T, E, P]) -> Result[Int64, ExecutionPreparationIssue[E]]
+
 pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
 
 pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
@@ -147,6 +149,7 @@ pub(all) struct ExecutionOperations[E, P] {
   cancel : () -> Unit
   dispose : () -> Unit
   settled : () -> Unit
+  retention_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
   finish : () -> Result[@execution_relation.CompletedOutput, E]

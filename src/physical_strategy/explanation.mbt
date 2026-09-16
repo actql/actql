@@ -274,6 +274,11 @@ fn emit_strategy_ledger(
   emit_strategy_quantity(w, "transferred_bytes", usage.transferred_bytes)
   emit_strategy_quantity(
     w,
+    "uncertain_transfer_bytes",
+    usage.uncertain_transfer_bytes,
+  )
+  emit_strategy_quantity(
+    w,
     "reserved_transfer_bytes",
     usage.reserved_transfer_bytes,
   )

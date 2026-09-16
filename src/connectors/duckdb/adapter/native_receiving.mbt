@@ -13,6 +13,7 @@ pub(all) enum NativeReceivingIssue {
   InvalidMetadata
   Values(PhysicalResultIssue)
   Guard(NativeReceiptRole, Int, Int, NativeValueIssue)
+  Stream(@execution.OutputStreamIssue)
 }
 
 ///|
@@ -39,6 +40,8 @@ struct NativeReceiving {
   mut native : PhysicalResult?
   validation_batches : Array[PhysicalBatch]
   native_batches : Array[PhysicalBatch]
+  mut validation_stream : NativeValidationStream?
+  mut output_stream : NativeOutputStream?
 }
 
 ///|
@@ -85,6 +88,8 @@ pub fn prepare_native_receiving(
     native: None,
     validation_batches: [],
     native_batches: [],
+    validation_stream: None,
+    output_stream: None,
   })
 }
 
@@ -99,6 +104,12 @@ pub fn abort_native_receiving(value : NativeReceiving) -> Unit {
   }
   value.validation_batches.clear()
   value.native_batches.clear()
+  value.validation_stream = None
+  if value.output_stream is Some(stream) {
+    @execution.cancel_admitted_output_stream(stream.admitted) |> ignore
+    stream.pending = None
+  }
+  value.output_stream = None
 }
 
 ///|
@@ -177,6 +188,9 @@ pub fn begin_native_receipt(
     NativeResult => value.native = Some(result)
   }
   value.phase = Reading(role, result)
+  if role == ValidationScan && value.validation_stream is Some(stream) {
+    start_validation_digest(stream, result)
+  }
   Ok({ owner: value, role, result, })
 }
 
@@ -209,6 +223,18 @@ pub fn accept_native_receipt_chunk(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  if port.role == ValidationScan &&
+    value.validation_stream is Some(stream) &&
+    row_count > stream.max_chunk_rows {
+    abort_native_receiving(value)
+    return Err(Values(RowLimit))
+  }
+  if port.role == NativeResult && value.output_stream is Some(stream) {
+    if stream.pending is Some(_) || row_count > stream.max_chunk_rows {
+      abort_native_receiving(value)
+      return Err(InvalidState)
+    }
+  }
   let batch = match admit_physical_chunk(port.result, row_count, columns) {
     Ok(batch) => batch
     Err(issue) => {
@@ -220,8 +246,19 @@ pub fn accept_native_receipt_chunk(
   // do not create unbounded retained container roots.
   if row_count > 0 {
     match port.role {
-      ValidationScan => value.validation_batches.push(batch)
-      NativeResult => value.native_batches.push(batch)
+      ValidationScan =>
+        match value.validation_stream {
+          Some(stream) => consume_validation_batch(value, stream, batch)
+          None => value.validation_batches.push(batch)
+        }
+      NativeResult =>
+        match value.output_stream {
+          Some(stream) => {
+            stream.pending = Some(batch)
+            stream.offset = 0
+          }
+          None => value.native_batches.push(batch)
+        }
     }
   }
   Ok(())
@@ -236,11 +273,31 @@ pub fn finish_native_receipt(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  if port.role == NativeResult &&
+    value.output_stream is Some(stream) &&
+    stream.pending is Some(_) {
+    abort_native_receiving(value)
+    return Err(InvalidState)
+  }
   match measure_native_receipt(value, port) {
     Ok(_) => ()
     Err(issue) => {
       abort_native_receiving(value)
       return Err(issue)
+    }
+  }
+  if port.role == ValidationScan && value.validation_stream is Some(stream) {
+    finish_validation_digest(stream, port.result)
+  }
+  if port.role == NativeResult && value.output_stream is Some(stream) {
+    if stream.issue is None {
+      match @execution.finish_admitted_output_stream(stream.admitted) {
+        Ok((receipt, tail)) => {
+          stream.receipt = Some(receipt)
+          stream.tail = Some(tail)
+        }
+        Err(issue) => stream.issue = Some(issue)
+      }
     }
   }
   cancel_physical_result(port.result)

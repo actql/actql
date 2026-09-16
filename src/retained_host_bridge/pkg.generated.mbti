@@ -1,0 +1,55 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/retained_host_bridge"
+
+import {
+  "actql/actql/execution_relation",
+}
+
+// Values
+pub fn retained_completion_can_handoff(@execution_relation.RetainedCompletionEvidence, @execution_relation.CompletedOutput) -> Bool
+
+pub fn retained_completion_descriptor(@execution_relation.RetainedCompletionEvidence) -> @execution_relation.RetainedCompletionDescriptor
+
+pub fn retained_completion_evidence(@execution_relation.CompletedOutput, Int, Int) -> @execution_relation.RetainedCompletionEvidence raise RetainedCompletionFailure
+
+pub fn retained_completion_material(@execution_relation.RetainedCompletionEvidence, @execution_relation.CompletedOutput) -> @execution_relation.RetainedOutputMaterial?
+
+pub fn retained_content_append(@execution_relation.RetainedContentRead, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise RetainedContentFailure
+
+pub fn retained_content_begin(@execution_relation.CompletionPreparation, @execution_relation.RetainedCompletionDescriptor, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> @execution_relation.RetainedContentRead raise RetainedContentFailure
+
+pub fn retained_content_cancel(@execution_relation.RetainedContentRead) -> Bool
+
+pub fn retained_content_finish(@execution_relation.RetainedContentRead) -> @execution_relation.AdmittedOutputStreamReceipt raise RetainedContentFailure
+
+pub fn retained_import_append(@execution_relation.CompletedOutputImport, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise RetainedImportFailure
+
+pub fn retained_import_begin(@execution_relation.CompletedOutput, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> @execution_relation.CompletedOutputImport raise RetainedImportFailure
+
+pub fn retained_import_cancel(@execution_relation.CompletedOutputImport) -> Bool
+
+pub fn retained_import_finish(@execution_relation.CompletedOutputImport) -> @execution_relation.CompletedOutput raise RetainedImportFailure
+
+pub fn retained_readmission_close(InstalledRetainedReadmission) -> Unit
+
+pub fn retained_readmission_complete(InstalledRetainedReadmission, @execution_relation.AdmittedOutputStreamReceipt) -> @execution_relation.CompletedOutput raise RetainedReadmissionFailure
+
+pub fn retained_readmission_install(@execution_relation.CompletionPreparation, @execution_relation.RetainedCompletionDescriptor, (@execution_relation.AdmittedOutputStreamReceipt) -> Bool, () -> Bool) -> InstalledRetainedReadmission raise RetainedReadmissionFailure
+
+pub fn retained_readmission_readable(InstalledRetainedReadmission, @execution_relation.ProducerRead) -> Bool
+
+// Errors
+type RetainedCompletionFailure
+
+type RetainedContentFailure
+
+type RetainedImportFailure
+
+type RetainedReadmissionFailure
+
+// Types and methods
+type InstalledRetainedReadmission
+
+// Type aliases
+
+// Traits
