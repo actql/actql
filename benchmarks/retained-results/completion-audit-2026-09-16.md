@@ -87,3 +87,10 @@ writer-crash regression, the complete real-DuckDB suite passed 72/72 in about
 standard managed Local/DuckDB and retained/resident integration, scalar parity,
 and failure/cleanup cases. It is not the registered large retained matrix or a
 new performance sample. JavaScript syntax and whitespace checks also passed.
+
+Controller traffic and memory diagnostics now cover narrow retained reuse at
+100 and 1,000,000 rows in separate invocations. With source setup moved to its
+own process, observed controller peak RSS was 137,150,464 and 139,100,160 bytes,
+respectively. The sampled controller path and all protocol traffic are measured;
+the full matrix, execution-side memory and formal performance gate remain open.
+See observations for baselines, intervals, exclusions and test scope.

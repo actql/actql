@@ -6,10 +6,10 @@ import {mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {DuckDBInstance} from '@duckdb/node-api';
 import {retainedCase, retainedMatrix, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {benchmarkEnvironment} from '../../../benchmarks/retained-results/environment.mjs';
 import {selectReadinessCases} from '../../../benchmarks/retained-results/selection.mjs';
+import {sampleControllerMemory} from '../../../benchmarks/retained-results/controller-memory.mjs';
 import {createManagedExampleHost} from '../examples/managed-host.mjs';
 import {createManagedProcessHost} from '../../host-node/process-capacity.mjs';
 
@@ -46,10 +46,12 @@ test('retained benchmark shapes execute in a managed process and retain exact re
     let result;
     try {
       const database = join(directory, 'source.duckdb');
-      const db = await DuckDBInstance.create(database);
-      const connection = await db.connect();
-      try { await connection.run(fixture.createSourceSql); }
-      finally { connection.closeSync(); db.closeSync(); }
+      // Source generation is outside execution measurement and outside the
+      // controller allocator. Await actual generator exit before starting work.
+      await promisify(execFile)(process.execPath,
+        [fileURLToPath(new URL('../bench/create-retained-source.mjs', import.meta.url)),
+          database, fixture.workload, fixture.layout, String(fixture.rows)],
+        {timeout: fixture.limits.timeoutMs, maxBuffer: 65536});
       const l = fixture.limits;
       const environment = benchmarkEnvironment(fixture);
       const taskCount = workload === workloads[1] ? 4 : 3;
@@ -75,10 +77,15 @@ test('retained benchmark shapes execute in a managed process and retain exact re
           wire: {max_bytes: l.representationBytes, max_nodes: l.cumulativeValueNodes, max_depth: 64,
             max_columns: l.maxColumns, max_order_work: l.cumulativeGuardWork}},
       };
-      result = await host.run(input, {run: fixture.id, childLimits: {...limits, attempts: 10}},
-        AbortSignal.timeout(l.timeoutMs)).catch(error => {
-        throw new Error(`${fixture.id}: ${error.message} (${error.examplePhase}): ${JSON.stringify(error.cause)}`, {cause: error});
-      });
+      const memory = sampleControllerMemory();
+      let controlMemory;
+      try {
+        result = await host.run(input, {run: fixture.id, childLimits: {...limits, attempts: 10}},
+          AbortSignal.timeout(l.timeoutMs)).catch(error => {
+          throw new Error(`${fixture.id}: ${error.message} (${error.examplePhase}): ${JSON.stringify(error.cause)}`, {cause: error});
+        });
+      } finally { controlMemory = memory.stop(); }
+      assert.equal(controlMemory.status, 'observed', 'memory sampling must not silently fail');
       assert.equal(result.report.status, 'host-tasks-completed', `${fixture.id}: ${JSON.stringify(result.report)}`);
       const final = result.completion(workload === workloads[1] ? 4 : 3);
       assert.equal(final.descriptor.rows, fixture.identity().rows, fixture.id);
@@ -123,6 +130,7 @@ test('retained benchmark shapes execute in a managed process and retain exact re
       console.log('retained-benchmark', JSON.stringify({phase: 'verified', matrix, case: fixture.id,
         diagnosticMilliseconds: performance.now() - started,
         controlTransport: result.process().transport,
+        controlMemory,
         tasks: result.report.completed}));
     } catch (error) {
       console.log('retained-benchmark', JSON.stringify({phase: 'failed', matrix, case: fixture.id,

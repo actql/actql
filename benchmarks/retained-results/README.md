@@ -61,6 +61,19 @@ bytes include invalid frames. Neither counter grants logical transfer budget or
 proves that a payload contains no rows. Keep these separate from connector data
 transport and from memory measurements. Failed requests rejected before encoding
 do not count as submitted bytes.
+`controlMemory` samples the controller's RSS, V8 heap, external and ArrayBuffer
+usage every 20 ms around `host.run`, including its preparation, process startup,
+execution and child exit. It excludes fixture source construction, independent
+expected-value hashing, optional fresh-reader checks and final output release.
+Only baseline, last and per-field observed maxima are retained, so the sampler's
+own storage does not grow with runtime. These categories overlap and must not be
+summed. Peaks between samples may be missed, and allocator retention is not a live
+allocation count. Sampling failure yields `incomplete`, never a zero-memory pass.
+There is no implicit memory acceptance threshold in this diagnostic. For scale
+comparisons, run each exact case in a fresh controller and record its baseline;
+the full-matrix process also includes prior-case module/allocator state. Source
+fixture creation runs in a separate, awaited process before sampling so its
+native allocation does not contaminate the controller baseline.
 The registered run is a readiness gate, not performance sampling; the default
 smoke does not prove the larger cases executable.
 

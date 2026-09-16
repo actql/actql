@@ -461,3 +461,34 @@ must not be used as a formal paired timing sample or a speedup claim.
 Process-channel/capacity tests passed 31/31, including exact UTF-8 envelope byte
 counts, immutable snapshots and unsent-request exclusion. The shared retained
 boundary suite passed 77/77. No identity definition or resource admission changed.
+
+## Follow-up: sampled controller memory, isolated from source generation
+
+The readiness harness now samples controller memory every 20 ms only around
+`host.run`, storing a fixed-size baseline/last/peak aggregate. Failed samples,
+including falsy thrown values, produce `incomplete`. RSS, heap and external
+categories overlap; they are not added together. Observed peaks can miss brief
+allocations and are not an allocation bound or a memory-gate pass.
+
+An initial measurement found that generating the source DuckDB in the controller
+contaminated its RSS baseline: 97,796,096 bytes at 100 rows versus 188,940,288 at
+one million rows. Although execution-time increments were similar, those absolute
+peaks did not isolate control work. Source generation now runs in a separate
+process, awaited through exit before execution; the generator preserves the
+unchanged pinned fixture SQL. All nine source shapes are checked after generator
+exit through a read-only connection, and invalid arguments create no database.
+
+After that harness correction, separate controller invocations observed:
+
+| Narrow reuse input | Baseline RSS | Observed peak RSS | Peak RSS above baseline | Observed peak heap used | Samples |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 100 rows | 80,789,504 | 137,150,464 | 56,360,960 | 41,545,000 | 21 |
+| 1,000,000 rows | 80,920,576 | 139,100,160 | 58,179,584 | 43,349,224 | 2,203 |
+
+Both cases passed independent CID, retained-file survival, process exit and
+cleanup checks. This provides limited scale evidence for this fixed graph and
+layout, not all 27 cases or a general proof of constant memory. Preparation and
+module initialization are included; independent expected-value hashing, optional
+readmission and final file release are outside the sampled interval. No forced
+GC or memory threshold was added. The source-generator and benchmark helper
+tests passed 13/13. These diagnostic runs are not paired performance samples.
