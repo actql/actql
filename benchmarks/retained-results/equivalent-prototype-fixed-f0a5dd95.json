@@ -1,0 +1,2250 @@
+{
+  "revision": "f0a5dd95e0a985633ec6d61d421253751f0a4c55",
+  "acceptanceEligible": false,
+  "scope": "independent-prototype-diagnostic",
+  "completed": 27,
+  "total": 27,
+  "outcomes": [
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 26.241957999999997,
+      "validationMs": 11.192417000000006,
+      "validationRows": 100,
+      "validationCid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:a97275822627f0f9b0541f5d9b48f68c92e68903f2c4489ff07b2210490ed754",
+          "bytes": 21,
+          "milliseconds": 2.785541000000009,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:a97275822627f0f9b0541f5d9b48f68c92e68903f2c4489ff07b2210490ed754",
+          "bytes": 21,
+          "milliseconds": 0.8204159999999945,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:a97275822627f0f9b0541f5d9b48f68c92e68903f2c4489ff07b2210490ed754",
+          "bytes": 21,
+          "milliseconds": 0.6974579999999975,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:a97275822627f0f9b0541f5d9b48f68c92e68903f2c4489ff07b2210490ed754",
+          "bytes": 21,
+          "milliseconds": 0.9372910000000019,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 84,
+        "admittedWriteBytes": 84,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 84,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2271669999999943,
+      "processCycleMs": 97.28091700000002
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 38.345959,
+      "validationMs": 23.838042,
+      "validationRows": 1000,
+      "validationCid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6",
+          "bytes": 23,
+          "milliseconds": 2.649208999999999,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6",
+          "bytes": 23,
+          "milliseconds": 0.8675829999999962,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6",
+          "bytes": 23,
+          "milliseconds": 0.7255000000000109,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6",
+          "bytes": 23,
+          "milliseconds": 0.6747500000000031,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 92,
+        "admittedWriteBytes": 92,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 92,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2007079999999917,
+      "processCycleMs": 108.226291
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 75.95949999999999,
+      "validationMs": 61.902291000000005,
+      "validationRows": 10000,
+      "validationCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 1.884541000000013,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.7541659999999979,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.7870000000000061,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.6999580000000094,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 100,
+        "admittedWriteBytes": 100,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 100,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.1185419999999908,
+      "processCycleMs": 145.985416
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 306.55616699999996,
+      "validationMs": 291.98395800000003,
+      "validationRows": 100000,
+      "validationCid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 2.527749999999969,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.8093749999999886,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.7216669999999681,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.6264999999999645,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 108,
+        "admittedWriteBytes": 108,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 108,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2174170000000117,
+      "processCycleMs": 376.27087500000005
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 2575.1764169999997,
+      "validationMs": 2559.371875,
+      "validationRows": 1000000,
+      "validationCid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:3bc0996f10e802f59fee0f5322eeaa302d19b49a6f06fc47fdbe23356d3dc96d",
+          "bytes": 29,
+          "milliseconds": 2.130417000000307,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:3bc0996f10e802f59fee0f5322eeaa302d19b49a6f06fc47fdbe23356d3dc96d",
+          "bytes": 29,
+          "milliseconds": 0.8857499999999163,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:3bc0996f10e802f59fee0f5322eeaa302d19b49a6f06fc47fdbe23356d3dc96d",
+          "bytes": 29,
+          "milliseconds": 1.268750000000182,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:3bc0996f10e802f59fee0f5322eeaa302d19b49a6f06fc47fdbe23356d3dc96d",
+          "bytes": 29,
+          "milliseconds": 1.1404170000000704,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 116,
+        "admittedWriteBytes": 116,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 116,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.3003340000000208,
+      "processCycleMs": 2647.4939170000002
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 983.2997079999999,
+      "validationMs": 967.6989169999999,
+      "validationRows": 10000,
+      "validationCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 3.2259169999999813,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.7612500000000182,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.5889170000000377,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.6051250000000437,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 100,
+        "admittedWriteBytes": 100,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 100,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2420419999998558,
+      "processCycleMs": 1056.3890410000004
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 9398.002917,
+      "validationMs": 9382.189041,
+      "validationRows": 100000,
+      "validationCid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 3.2464170000002923,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.8605420000003505,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.6602080000011483,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.5641670000004524,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 108,
+        "admittedWriteBytes": 108,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 108,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.4174170000005688,
+      "processCycleMs": 9474.70875
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 519.077,
+      "validationMs": 504.10154100000005,
+      "validationRows": 10000,
+      "validationCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 2.5003749999999627,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.8159590000000208,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.6783340000000635,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:6e7c4dd7d52d884c0576dbb3ecac5fe5c6f397c2b645dc1df44cf2ed8f2dc89e",
+          "bytes": 25,
+          "milliseconds": 0.8765409999999747,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 100,
+        "admittedWriteBytes": 100,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 100,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2880420000000186,
+      "processCycleMs": 590.527666
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 4680.495166,
+      "validationMs": 4657.7390829999995,
+      "validationRows": 100000,
+      "validationCid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 8.284292000000278,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 2.7675409999992553,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.6895000000004075,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 2,
+          "cid": "sha256:23e0b86a0d6d7cb0871d5361df7492ba40c6f9aab0392d6763fcf29d9c09a5bb",
+          "bytes": 27,
+          "milliseconds": 0.6236660000004122,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 108,
+        "admittedWriteBytes": 108,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 108,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.228834000000461,
+      "processCycleMs": 4755.7744170000005
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 34.455875000000006,
+      "validationMs": 11.39800000000001,
+      "validationRows": 100,
+      "validationCid": "sha256:12475e021398493edcc6fbb76f85cc3c262afe280a5189a2c8f8b94159e76362",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100,
+          "cid": "sha256:e292fcc0967037825bcc0c59faf073901efa240ee2eec8893d740f2ad702e1cc",
+          "bytes": 981,
+          "milliseconds": 4.1875,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100,
+          "cid": "sha256:e292fcc0967037825bcc0c59faf073901efa240ee2eec8893d740f2ad702e1cc",
+          "bytes": 981,
+          "milliseconds": 2.1588330000000013,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100,
+          "cid": "sha256:e292fcc0967037825bcc0c59faf073901efa240ee2eec8893d740f2ad702e1cc",
+          "bytes": 981,
+          "milliseconds": 2.133250000000004,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 200,
+          "cid": "sha256:cc460b2885d0e291bafec8ac60fe09f331610a67c5560546e318d679f3de5d84",
+          "bytes": 1961,
+          "milliseconds": 3.690624999999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:dd365facceb289f236a8c82763a2e158255661bcb29091363b2c3510360e78e4",
+          "bytes": 25,
+          "milliseconds": 0.9291249999999991,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 4929,
+        "admittedWriteBytes": 4929,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 4929,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.3135419999999982,
+      "processCycleMs": 104.28912500000297
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 61.548,
+      "validationMs": 23.915041000000002,
+      "validationRows": 1000,
+      "validationCid": "sha256:05214bf1bd3982f44da9f53db254fe88693889541c84fffce56b4601b97c3072",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 1000,
+          "cid": "sha256:70ed39c6bd5559c9792ff74e69b2c43ae492385d6d271912098efec7ebc06155",
+          "bytes": 10781,
+          "milliseconds": 8.657125000000008,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 1000,
+          "cid": "sha256:70ed39c6bd5559c9792ff74e69b2c43ae492385d6d271912098efec7ebc06155",
+          "bytes": 10781,
+          "milliseconds": 7.948332999999991,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 1000,
+          "cid": "sha256:70ed39c6bd5559c9792ff74e69b2c43ae492385d6d271912098efec7ebc06155",
+          "bytes": 10781,
+          "milliseconds": 4.510124999999988,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 2000,
+          "cid": "sha256:b8bae34d9249651d6b76ace2a20bd849456557f3d1b07a0a80de6f9ac3053f63",
+          "bytes": 21561,
+          "milliseconds": 5.279375000000002,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:a370b831f8e630dcdc2488f0d8661782a6c3810b5f4f0d505d543927f44abe07",
+          "bytes": 27,
+          "milliseconds": 1.0596670000000046,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 53931,
+        "admittedWriteBytes": 53931,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 53931,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.3770419999999888,
+      "processCycleMs": 132.7687079999996
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 160.472208,
+      "validationMs": 60.967209,
+      "validationRows": 10000,
+      "validationCid": "sha256:6315caa644dbf7d91b6e35fe3aa790e99c5abeb36cd66e6a1b844698e0c690ad",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 20.861499999999992,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 16.476,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 16.86500000000001,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 20000,
+          "cid": "sha256:3d2207d4b7d6d2bca9765d791491c25c6625f91296f86db1e07922da2411dbed",
+          "bytes": 235561,
+          "milliseconds": 33.899292,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+          "bytes": 29,
+          "milliseconds": 1.057832999999988,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 588933,
+        "admittedWriteBytes": 588933,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 588933,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.5126659999999958,
+      "processCycleMs": 229.8635830000021
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 1105.880459,
+      "validationMs": 293.307166,
+      "validationRows": 100000,
+      "validationCid": "sha256:646efa82136a04fdee8c166e2ab47d41074021ec28c6bc9454f95eb9033a97a9",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 157.65308300000004,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 167.77429200000006,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 158.12566700000002,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 200000,
+          "cid": "sha256:82dc313848ff5be95558d068901b7b9efee05f0e9c2ce741bf98628e55d93c0b",
+          "bytes": 2555561,
+          "milliseconds": 317.38874999999996,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+          "bytes": 31,
+          "milliseconds": 1.2162500000001728,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 6388935,
+        "admittedWriteBytes": 6388935,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 6388935,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 2.6071669999998903,
+      "processCycleMs": 1178.432041
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 10399.449125000001,
+      "validationMs": 2536.128791,
+      "validationRows": 1000000,
+      "validationCid": "sha256:2da4b9c156fde3f1ed25e2d3d4c62e1f1d3f7b0abb6bc596602adb7b73b2fdb0",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 1000000,
+          "cid": "sha256:cbe9e888599dbcefc10fa2f64b3f773d6a89a4a7aa456a3b4d09de7c97f4efba",
+          "bytes": 13777781,
+          "milliseconds": 1557.9657079999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 1000000,
+          "cid": "sha256:cbe9e888599dbcefc10fa2f64b3f773d6a89a4a7aa456a3b4d09de7c97f4efba",
+          "bytes": 13777781,
+          "milliseconds": 1536.78175,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 1000000,
+          "cid": "sha256:cbe9e888599dbcefc10fa2f64b3f773d6a89a4a7aa456a3b4d09de7c97f4efba",
+          "bytes": 13777781,
+          "milliseconds": 1537.4389579999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 2000000,
+          "cid": "sha256:81db094ff985ab29649331150654d383b1a8521e050e0da7e60c0ff5e48098b9",
+          "bytes": 27555561,
+          "milliseconds": 3218.3154999999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:19f8080403b11f153516dc6e32ef3d2aa8fc64e1929c70d38d77d71049e32d1a",
+          "bytes": 33,
+          "milliseconds": 1.7639579999995476,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 68888937,
+        "admittedWriteBytes": 68888937,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 68888937,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 9.70745800000077,
+      "processCycleMs": 10483.893042
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 1071.002959,
+      "validationMs": 972.7614169999999,
+      "validationRows": 10000,
+      "validationCid": "sha256:7c3b46ce1aa231efdf44edd7408a6f561b4c6a75459c6e49cd51f5e2fc9f513a",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 22.291541999999936,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 16.196082999999817,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 15.743832999999995,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 20000,
+          "cid": "sha256:3d2207d4b7d6d2bca9765d791491c25c6625f91296f86db1e07922da2411dbed",
+          "bytes": 235561,
+          "milliseconds": 32.408125000000155,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+          "bytes": 29,
+          "milliseconds": 0.9527499999999236,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 588933,
+        "admittedWriteBytes": 588933,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 588933,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.4833749999997963,
+      "processCycleMs": 1139.5710420000032
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 10185.105291,
+      "validationMs": 9425.645292000001,
+      "validationRows": 100000,
+      "validationCid": "sha256:c50c39b8d615172729d5d496984258355f6b6bb7fe959e15e3208e9a22a2628a",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 154.1604589999988,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 147.3977500000001,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 146.192583,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 200000,
+          "cid": "sha256:82dc313848ff5be95558d068901b7b9efee05f0e9c2ce741bf98628e55d93c0b",
+          "bytes": 2555561,
+          "milliseconds": 299.7729589999999,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+          "bytes": 31,
+          "milliseconds": 1.1801249999989523,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 6388935,
+        "admittedWriteBytes": 6388935,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 6388935,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 2.7715420000004087,
+      "processCycleMs": 10262.40225
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 600.802042,
+      "validationMs": 502.150583,
+      "validationRows": 10000,
+      "validationCid": "sha256:82ca8be8bb1da67ddbb711ca1c1312fc1dec6dd7fe34dffc56612b585c9f819f",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 22.33974999999998,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 16.306375000000003,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:5d6218104679f9f9756817dbb9fe57cf77094574c30603a27ae619d7d4267e9f",
+          "bytes": 117781,
+          "milliseconds": 16.076625000000035,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 20000,
+          "cid": "sha256:3d2207d4b7d6d2bca9765d791491c25c6625f91296f86db1e07922da2411dbed",
+          "bytes": 235561,
+          "milliseconds": 32.65808399999992,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:36529d03061c47e33551b31500f3a2c18e5fab4bee87d9147a4208f510c01cbe",
+          "bytes": 29,
+          "milliseconds": 1.025792000000024,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 588933,
+        "admittedWriteBytes": 588933,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 588933,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.4222500000000764,
+      "processCycleMs": 670.6313330000048
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 5517.288208,
+      "validationMs": 4728.5732499999995,
+      "validationRows": 100000,
+      "validationCid": "sha256:f45ce872d27e5d3b34413c0263b79232954e6f1c2ffc674ad8783da11a488fe7",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 159.67324999999983,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 151.3569580000003,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:55b33945d40fcd9ecf3e8d3c1efde33a457e6841388014a70f78c6b84ce18140",
+          "bytes": 1277781,
+          "milliseconds": 152.3886249999996,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "join",
+          "rows": 200000,
+          "cid": "sha256:82dc313848ff5be95558d068901b7b9efee05f0e9c2ce741bf98628e55d93c0b",
+          "bytes": 2555561,
+          "milliseconds": 313.828125,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 2
+        },
+        {
+          "stage": "count",
+          "rows": 1,
+          "cid": "sha256:84ef4e3f58a90ae5a0639dcd44459c180b345766fb2de23f9fb148844b496cc2",
+          "bytes": 31,
+          "milliseconds": 1.3263340000003154,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 6388935,
+        "admittedWriteBytes": 6388935,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 5,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 6388935,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 2.5305410000000848,
+      "processCycleMs": 5593.111792000003
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 36.28662500000001,
+      "validationMs": 11.429000000000002,
+      "validationRows": 100,
+      "validationCid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100,
+          "cid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+          "bytes": 2281,
+          "milliseconds": 6.0658750000000055,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100,
+          "cid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+          "bytes": 2281,
+          "milliseconds": 3.953249999999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100,
+          "cid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+          "bytes": 2281,
+          "milliseconds": 2.173917000000003,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 100,
+          "cid": "sha256:6beb4a7694abafd3e1c39a41d9e1c261845a83c85a9a2f02afd43012a037703f",
+          "bytes": 2281,
+          "milliseconds": 2.2640409999999918,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 9124,
+        "admittedWriteBytes": 9124,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 9124,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.2682920000000024,
+      "processCycleMs": 106.72495799999888
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 62.26420900000001,
+      "validationMs": 24.742834000000002,
+      "validationRows": 1000,
+      "validationCid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 1000,
+          "cid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+          "bytes": 24781,
+          "milliseconds": 12.650499999999994,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 1000,
+          "cid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+          "bytes": 24781,
+          "milliseconds": 6.598624999999998,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 1000,
+          "cid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+          "bytes": 24781,
+          "milliseconds": 4.387749999999997,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 1000,
+          "cid": "sha256:ccc1137122b953d45fa905c0c2c91cb20dc7dd0b8fd8939afd3a374f6d7ecd23",
+          "bytes": 24781,
+          "milliseconds": 3.7457920000000087,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 99124,
+        "admittedWriteBytes": 99124,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 99124,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.4413749999999936,
+      "processCycleMs": 132.7051250000004
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 190.962583,
+      "validationMs": 61.288082999999986,
+      "validationRows": 10000,
+      "validationCid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+          "bytes": 258007,
+          "milliseconds": 35.016458,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+          "bytes": 258007,
+          "milliseconds": 28.280124999999998,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+          "bytes": 258007,
+          "milliseconds": 27.990125000000006,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 10000,
+          "cid": "sha256:e12f5d5ae170310b40048f18506cfddd6aa81f9941bae9d8362a768f147b1898",
+          "bytes": 258007,
+          "milliseconds": 28.309834000000023,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 1032028,
+        "admittedWriteBytes": 1032028,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 1032028,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 1.7777910000000077,
+      "processCycleMs": 265.88595799999894
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 1457.368041,
+      "validationMs": 291.123875,
+      "validationRows": 100000,
+      "validationCid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+          "bytes": 2680439,
+          "milliseconds": 288.898125,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+          "bytes": 2680439,
+          "milliseconds": 281.88429099999996,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+          "bytes": 2680439,
+          "milliseconds": 301.060375,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 100000,
+          "cid": "sha256:4f1f2b92a81c3d2562b97b8e91b9be085efad4fda485cb954525202450fd64ac",
+          "bytes": 2680439,
+          "milliseconds": 284.3416669999999,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 10721756,
+        "admittedWriteBytes": 10721756,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 10721756,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 3.121499999999969,
+      "processCycleMs": 1567.6701670000039
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 13555.595292,
+      "validationMs": 2504.103458,
+      "validationRows": 1000000,
+      "validationCid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 1000000,
+          "cid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+          "bytes": 27804845,
+          "milliseconds": 2758.077834,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 1000000,
+          "cid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+          "bytes": 27804845,
+          "milliseconds": 2777.6635420000002,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 1000000,
+          "cid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+          "bytes": 27804845,
+          "milliseconds": 2755.267,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 1000000,
+          "cid": "sha256:f2ce2691f2a2c616970374d65732deefc13933010dbda786d15e21baf0498ffd",
+          "bytes": 27804845,
+          "milliseconds": 2750.5890419999996,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 111219380,
+        "admittedWriteBytes": 111219380,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 111219380,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 4.546709000000192,
+      "processCycleMs": 13992.498667000007
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 5272.049749999999,
+      "validationMs": 989.6135830000001,
+      "validationRows": 10000,
+      "validationCid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+          "bytes": 6275800,
+          "milliseconds": 1086.6239160000002,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+          "bytes": 6275800,
+          "milliseconds": 1083.8421250000001,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+          "bytes": 6275800,
+          "milliseconds": 1084.3933329999995,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 10000,
+          "cid": "sha256:f0f9917156f2addb23984864ca96060363a2152a245424acaea9e6d0790848cd",
+          "bytes": 6275800,
+          "milliseconds": 1017.0284169999995,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 25103200,
+        "admittedWriteBytes": 25103200,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 25103200,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 5.585209000000759,
+      "processCycleMs": 5469.858625000008
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 50747.365165999996,
+      "validationMs": 9435.052415999999,
+      "validationRows": 100000,
+      "validationCid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+          "bytes": 62859016,
+          "milliseconds": 10503.333832999999,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+          "bytes": 62859016,
+          "milliseconds": 10211.094582999998,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+          "bytes": 62859016,
+          "milliseconds": 10313.030375000002,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 100000,
+          "cid": "sha256:6e1900c329407b2b8c9e685811212da453234726b198350fe4c799567d1a9fcb",
+          "bytes": 62859016,
+          "milliseconds": 10273.826207999999,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 251436064,
+        "admittedWriteBytes": 251436064,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 251436064,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 7.298416999998153,
+      "processCycleMs": 52001.251833999995
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 2843.768458,
+      "validationMs": 498.014041,
+      "validationRows": 10000,
+      "validationCid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 10000,
+          "cid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+          "bytes": 10488891,
+          "milliseconds": 590.403792,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 10000,
+          "cid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+          "bytes": 10488891,
+          "milliseconds": 593.07375,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 10000,
+          "cid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+          "bytes": 10488891,
+          "milliseconds": 578.606,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 10000,
+          "cid": "sha256:ae464273194de75635630c3c8ba9acb3554c7cc985bbfa98548b0db9b4c4394b",
+          "bytes": 10488891,
+          "milliseconds": 573.402458,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 41955564,
+        "admittedWriteBytes": 41955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 41955564,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 3.142749999999978,
+      "processCycleMs": 2945.128125000003
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/100000",
+      "status": "diagnostic-completed",
+      "acceptanceEligible": false,
+      "comparator": "independent-obligation-assembly",
+      "executionMs": 27910.178582999997,
+      "validationMs": 4740.8372500000005,
+      "validationRows": 100000,
+      "validationCid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+      "stages": [
+        {
+          "stage": "capture",
+          "rows": 100000,
+          "cid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+          "bytes": 104988891,
+          "milliseconds": 5757.380708000001,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 0
+        },
+        {
+          "stage": "a",
+          "rows": 100000,
+          "cid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+          "bytes": 104988891,
+          "milliseconds": 5739.604292,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "b",
+          "rows": 100000,
+          "cid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+          "bytes": 104988891,
+          "milliseconds": 5846.699874999998,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        },
+        {
+          "stage": "c",
+          "rows": 100000,
+          "cid": "sha256:cc4d80b479e542cf20b92f0c29f1428f95ad5a6d73e63a35f78451bea3e172f2",
+          "bytes": 104988891,
+          "milliseconds": 5815.3113749999975,
+          "parameterInsertRows": 0,
+          "reusedMeasurements": 1
+        }
+      ],
+      "holding": {
+        "capacityBytes": 1073741824,
+        "reservedBytes": 419955564,
+        "admittedWriteBytes": 419955564,
+        "uncertainWriteBytes": 0,
+        "delegatedWriteBytes": 0,
+        "holdings": 4,
+        "cleanupPending": false
+      },
+      "capacity": {
+        "independentRetention": {
+          "limitBytes": 1073741824,
+          "fileReservedBytes": 419955564,
+          "scope": "Store files only; completion metadata not yet accounted"
+        },
+        "execution": {
+          "limitBytes": 4294967296,
+          "configuredEngineBytes": 4294967296,
+          "scope": "DB copies belong to execution capacity; JS/semantic scratch not yet reserved"
+        },
+        "conformance": "incomplete"
+      },
+      "missing": [
+        "matched process/cold timing boundaries",
+        "complete expression-demand/guard failure parity",
+        "independent file-plus-metadata retention and shared DB-plus-scratch execution admission",
+        "acquisition evidence metadata parity",
+        "transfer/work accounting equivalence",
+        "complete negative conformance fixtures"
+      ],
+      "cleanupMs": 16.387582999999722,
+      "processCycleMs": 28280.119959000003
+    }
+  ]
+}

@@ -98,6 +98,25 @@ Still required before equivalence approval:
   cleanup-failure fixtures (beyond injected settlement actions).
 - All 27 cases, followed by the registered alternating-pair experiment.
 
+### Full prototype matrix (not equivalence acceptance)
+
+Clean `f0a5dd95e0a985633ec6d61d421253751f0a4c55` completed all 27 registered
+cases in fresh per-case processes. Source generation ran separately before
+each child; the runner checked unchanged source before and after every case.
+`equivalent-prototype-fixed-f0a5dd95.json` preserves reports, required final CID
+checks, intermediate holdings, cleanup, phase times and explicit missing duties.
+No sample is acceptance-eligible. These runs establish prototype coverage only,
+not complete resource/semantic parity or the registered paired performance gate.
+
+Illustrative diagnostic execution times: narrow million-row join/count 10.40 s;
+narrow million-row reuse 13.56 s; numeric-64/100000 reuse 50.75 s; text-1024/100000
+reuse 27.91 s. Child process-cycle and cleanup times are separately recorded.
+The wide reuse case spent 9.44 s validating the source and roughly 10.2–10.5 s
+in each of its four stages, despite reusing input measurements. Stage intervals
+include native computation, output validation, identity and independent storage;
+they do not isolate hashing. Do not divide product timings by these incomplete
+comparator timings to claim an overhead ratio.
+
 Do not turn a successful prototype run or its lower elapsed time into a 1.25
 comparison result until this list is closed with inspected evidence.
 
