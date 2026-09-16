@@ -157,6 +157,8 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
+
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]

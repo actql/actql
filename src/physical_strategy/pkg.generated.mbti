@@ -132,6 +132,8 @@ pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
 pub fn resident_environment_resource_binding(ResidentEnvironment) -> @connector_sdk.ResourceBinding?
@@ -159,6 +161,8 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -199,6 +203,8 @@ pub fn strategy_revision_number(StrategyRevision) -> Int
 pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
 
 pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
+
+pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
@@ -362,6 +368,8 @@ pub struct TaskOperationRequirement {
 }
 
 type TaskPublication
+
+type TaskRetainedAllocation
 
 // Type aliases
 

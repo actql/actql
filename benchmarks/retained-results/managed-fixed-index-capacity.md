@@ -10,7 +10,7 @@ nonnegative `Int`, so the representation preserves the prior domain.
 The buffer is allocated once from the admitted cell ceiling. It does not grow
 while values are measured, and selected/computed output indexes use the same
 representation. Cancellation and failed one-shot installation replace the
-backing buffer with an empty one; successful issuance transfers the same packed
+backing buffer with an empty one; successful issuance transfers the same fixed
 index into the output receipt. The representation retains exact cell order,
 including equal values at distinct row occurrences, and leaves aggregate
 measurements, diagnostic precedence and logical charges unchanged.
@@ -19,18 +19,19 @@ measurements, diagnostic precedence and logical charges unchanged.
 capacity for this allocation: 64 bytes per admitted cell plus a fixed
 512-byte owner/array header allowance. It rejects negative and overflowing
 counts.
-This makes the index itself reservable before allocation; it is not a claim
-that selection occurrence arrays, copied column summaries, duplicate-detection
-maps or other preparation scratch fit within that amount. Those allocations
-need their own execution/overlap capacity and ledger connection.
+This makes the index itself reservable before allocation. The managed retained
+DuckDB strategy entry now reserves this amount in its selected task and turns
+it into a distinct holding only when the exact configured index is enabled;
+see `managed-index-ledger-connection.md`. This is not a claim that selection
+occurrence arrays, copied column summaries, duplicate-detection maps or other
+preparation scratch fit within that amount. Those allocations still need their
+own execution/overlap capacity and ledger connection.
 
 The fixed representation removes the previous runtime-dependent tuple and
-growable-array sizing problem. It does **not** by itself complete physical
-resource accounting: the installed Host must still reserve the returned index
-capacity before enabling it, convert the reservation to a retained holding on
-successful issuance, and release it only after use and reclamation are
-confirmed. Existing entry/work limits remain logical preparation limits, not a
-physical-byte reservation.
+growable-array sizing problem. Strategy-managed output now performs the
+reservation, allocation and explicit revocation described above. Other Hosts
+must provide an equivalent physical accounting boundary. Existing entry/work
+limits remain logical preparation limits, not a physical-byte reservation.
 
 Regression coverage fixes empty, ordinary and maximum signed measurement
 round-trips; exact allocation length; overflow and invalid-position rejection;

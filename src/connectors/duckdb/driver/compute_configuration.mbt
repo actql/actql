@@ -74,6 +74,7 @@ pub fn start_configured_strategy_compute_host(
   execution_bytes : Int64,
   resident? : DuckDBResidentInputs,
   retained_storage? : (Int64, () -> Bool),
+  auxiliary_retention_bytes? : Int64,
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   if setup.output_file_bytes is Some(expected) {
     match (expected, retained_storage) {
@@ -96,6 +97,7 @@ pub fn start_configured_strategy_compute_host(
     verify,
     resident?,
     retained_storage?,
+    auxiliary_retention_bytes?,
   )
 }
 

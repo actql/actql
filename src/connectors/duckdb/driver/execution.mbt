@@ -38,6 +38,7 @@ pub fn start_captured_duckdb_task(
   verify : (@compute.DuckDBComputeAttempt) -> Bool,
   resident? : DuckDBResidentInputs,
   retained_storage? : (Int64, () -> Bool),
+  auxiliary_retention_bytes? : Int64,
 ) -> Result[CapturedDuckDBTask, @strategy.RunIssue] {
   let retained_required = retained_storage is Some(_)
   guard (if retained_required {
@@ -62,7 +63,11 @@ pub fn start_captured_duckdb_task(
     return Err(Physical(InvalidLimits))
   }
   let storage_bytes = retained_storage.map(value => value.0).unwrap_or(0L)
-  if storage_bytes < 0L || retention > 9223372036854775807L - storage_bytes {
+  let auxiliary_retention_bytes = auxiliary_retention_bytes.unwrap_or(0L)
+  if storage_bytes < 0L ||
+    auxiliary_retention_bytes < 0L ||
+    retention > 9223372036854775807L - storage_bytes ||
+    retention + storage_bytes > 9223372036854775807L - auxiliary_retention_bytes {
     return Err(Physical(InvalidLimits))
   }
   let output_plan : Ref[@compute.DuckDBResidentOutput?] = Ref(None)
@@ -131,7 +136,7 @@ pub fn start_captured_duckdb_task(
     prepared,
     {
       transfer_bytes,
-      retained_bytes: retention + storage_bytes,
+      retained_bytes: retention + storage_bytes + auxiliary_retention_bytes,
       scratch_bytes: scratch,
       execution_bytes: native_execution_bytes + scratch,
     },

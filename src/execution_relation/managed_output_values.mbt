@@ -40,7 +40,7 @@ struct ManagedOutputValueReceipt {
   column_maxima : Array[Int]
   column_nulls : Array[Int]
   measured_depth : Int
-  row_measurements : ManagedRowMeasurements?
+  mut row_measurements : ManagedRowMeasurements?
 }
 
 ///|

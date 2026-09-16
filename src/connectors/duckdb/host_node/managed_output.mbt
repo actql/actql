@@ -8,6 +8,7 @@ struct ManagedNodeOutput {
   retention : @execution.ManagedOutputRetentionPort[ManagedNodeHolding, Int]
   mut receipt : @execution.ManagedOutputValueReceipt?
   mut material : @execution.ManagedRetainedOutput[Int]?
+  mut index_allocation : @strategy.TaskRetainedAllocation?
   mut open : Bool
   valid : Ref[Bool]
 }
@@ -226,6 +227,7 @@ pub fn managed_view_output_open(
     retention,
     receipt: None,
     material: None,
+    index_allocation: None,
     open: true,
     valid: Ref(true),
   }
@@ -272,15 +274,17 @@ pub fn managed_selected_output_open(
     retention,
     receipt: None,
     material: None,
+    index_allocation: None,
     open: true,
     valid: Ref(true),
   }
 }
 
 ///|
-/// Optional metadata for future selected-row measurements. This entry only
-/// enforces a cell-count cap; the installed Host must separately reserve its
-/// physical storage, including temporary metadata, before enabling it.
+/// Optional metadata for future selected-row measurements. A strategy run must
+/// have admitted the exact cell ceiling at open; this call converts that part
+/// of the same task reservation into an independently releasable allocation.
+/// Non-strategy callers still own their separate physical accounting boundary.
 /// Configure once before the selected Compute emits its first row.
 #export_name("computeHostManagedOutputEnableIndex")
 pub fn compute_host_managed_output_enable_index(
@@ -290,13 +294,38 @@ pub fn compute_host_managed_output_enable_index(
   guard output.receiver is Compute(run, receiver) && !run.closed && output.open else {
     raise InvalidCommand
   }
+  let allocation = match run.strategy {
+    None => None
+    Some((graph, _, task_handle)) => {
+      guard run.managed_index_cells is Some(expected) &&
+        expected == max_cells &&
+        run.managed_index_bytes > 0L &&
+        output.index_allocation is None else {
+        raise InvalidCommand
+      }
+      match
+        @strategy.retain_task_execution_allocation(
+          graph,
+          @duckdb_driver.captured_duckdb_execution(task_handle),
+          run.managed_index_bytes,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => raise Physical(issue)
+      }
+    }
+  }
   match
     @execution.enable_managed_row_measurements(
       @duckdb_compute.managed_duckdb_compute_output_values(receiver),
       max_cells,
     ) {
-    Ok(_) => ()
-    Err(issue) => raise ManagedValues(Values(issue))
+    Ok(_) => output.index_allocation = allocation
+    Err(issue) => {
+      if allocation is Some(value) {
+        @strategy.release_task_execution_allocation(value) |> ignore
+      }
+      raise ManagedValues(Values(issue))
+    }
   }
 }
 
@@ -353,6 +382,7 @@ fn managed_node_output(
     retention,
     receipt: None,
     material: None,
+    index_allocation: None,
     open: true,
     valid: Ref(true),
   }
@@ -398,6 +428,13 @@ pub fn managed_output_cancel(value : ManagedNodeOutput) -> Unit {
     View(port) => @execution.cancel_managed_view_output_port(port) |> ignore
   }
   @execution.cancel_managed_output_retention_port(value.retention) |> ignore
+  if value.receipt is Some(receipt) {
+    @execution.discard_managed_output_measurement_index(receipt) |> ignore
+  }
+  if value.index_allocation is Some(allocation) {
+    @strategy.release_task_execution_allocation(allocation) |> ignore
+    value.index_allocation = None
+  }
 }
 
 ///|

@@ -5,6 +5,8 @@ struct ComputeNodeRun {
   strategy : (@strategy.CapturedDAG, Int, @duckdb_driver.CapturedDuckDBTask)?
   mut closed : Bool
   stream_owner : Ref[Bool]
+  managed_index_cells : Int?
+  managed_index_bytes : Int64
 }
 
 ///|
@@ -47,6 +49,8 @@ pub fn compute_host_open(
         strategy: None,
         closed: false,
         stream_owner: Ref(true),
+        managed_index_cells: None,
+        managed_index_bytes: 0L,
       }
     Err(issue) => raise Compute(issue)
   }
@@ -81,6 +85,35 @@ pub fn compute_retained_strategy_host_open(
     transfer_bytes,
     execution_bytes,
     retained_storage=(file_bytes, released),
+  )
+}
+
+///|
+/// New-profile retained execution with one bounded measurement index. The
+/// index capacity is admitted in the same selected task reservation as the
+/// file output, but remains a distinct physical allocation with its own
+/// explicit release token.
+#export_name("computeManagedRetainedStrategyHostOpen")
+pub fn compute_managed_retained_strategy_host_open(
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  verify : (@duckdb_compute.DuckDBComputeAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  file_bytes : Int64,
+  released : () -> Bool,
+  max_index_cells : Int,
+) -> ComputeNodeRun raise NodeHostFailure {
+  guard @execution.managed_row_measurement_capacity_bytes(max_index_cells)
+    is Some(index_bytes) else {
+    raise Physical(InvalidLimits)
+  }
+  open_strategy_compute_host(
+    setup,
+    verify,
+    transfer_bytes,
+    execution_bytes,
+    retained_storage=(file_bytes, released),
+    managed_index=(max_index_cells, index_bytes),
   )
 }
 
@@ -132,6 +165,7 @@ fn open_strategy_compute_host(
   execution_bytes : Int64,
   resident? : @duckdb_driver.DuckDBResidentInputs,
   retained_storage? : (Int64, () -> Bool),
+  managed_index? : (Int, Int64),
 ) -> ComputeNodeRun raise NodeHostFailure {
   match
     @duckdb_driver.start_configured_strategy_compute_host(
@@ -141,6 +175,7 @@ fn open_strategy_compute_host(
       execution_bytes,
       resident?,
       retained_storage?,
+      auxiliary_retention_bytes?=managed_index.map(value => value.1),
     ) {
     Ok(task_handle) =>
       {
@@ -155,6 +190,8 @@ fn open_strategy_compute_host(
         ),
         closed: false,
         stream_owner: Ref(true),
+        managed_index_cells: managed_index.map(value => value.0),
+        managed_index_bytes: managed_index.map(value => value.1).unwrap_or(0L),
       }
     Err(issue) => raise Strategy(issue)
   }

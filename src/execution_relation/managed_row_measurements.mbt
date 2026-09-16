@@ -29,7 +29,7 @@ fn new_managed_row_measurements(max_cells : Int) -> ManagedRowMeasurements? {
 }
 
 ///|
-/// Conservative retained allocation bound for the packed payload and its
+/// Conservative retained allocation bound for the fixed tuple payload and its
 /// fixed owner object. Selection arrays and preparation scratch are separate.
 pub fn managed_row_measurement_capacity_bytes(max_cells : Int) -> Int64? {
   if max_cells < 0 ||
@@ -110,6 +110,19 @@ pub fn managed_output_measurement_index_cells(
   receipt : ManagedOutputValueReceipt,
 ) -> Int? {
   receipt.row_measurements.map(index => index.count)
+}
+
+///|
+/// Revoke and physically clear the retained measurement index. This does not
+/// revoke the Store representation by itself; the installed owner must couple
+/// it with that output's availability and physical-allocation release.
+pub fn discard_managed_output_measurement_index(
+  receipt : ManagedOutputValueReceipt,
+) -> Bool {
+  guard receipt.row_measurements is Some(index) else { return false }
+  discard_managed_row_measurements(index)
+  receipt.row_measurements = None
+  true
 }
 
 ///|

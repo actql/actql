@@ -81,7 +81,7 @@ test "managed row measurement index is optional bounded and sealed only on full 
 }
 
 ///|
-test "managed row measurement index has fixed packed capacity and exact cells" {
+test "managed row measurement index has fixed capacity and exact cells" {
   assert_eq(managed_row_measurement_capacity_bytes(0), Some(512L))
   assert_eq(managed_row_measurement_capacity_bytes(3), Some(704L))
   assert_true(managed_row_measurement_capacity_bytes(-1) is None)
@@ -102,6 +102,31 @@ test "managed row measurement index has fixed packed capacity and exact cells" {
   discard_managed_row_measurements(index)
   assert_eq(index.count, 0)
   assert_eq(index.cells.length(), 0)
+}
+
+///|
+test "retained measurement index revocation clears its backing allocation once" {
+  let owner = capture_fixture()
+  let source = managed_read_fixture(owner, Ref(true), index_cells=4)
+  let receipt = source.material.receipt
+  assert_eq(managed_output_measurement_index_cells(receipt), Some(4))
+  assert_true(discard_managed_output_measurement_index(receipt))
+  assert_true(managed_output_measurement_index_cells(receipt) is None)
+  assert_false(discard_managed_output_measurement_index(receipt))
+  let receiver = typed_receiver(owner, "[{\"filter\":\"n > 0\"}]")
+  let input = prepare_managed_producer_read(
+    receiver, 0, owner, source, 1000, 10000,
+  ).unwrap()
+  let plan = prepare_managed_view_plan(
+    input,
+    [row_kernel(receiver, 0)],
+    1000,
+    10000,
+    100,
+  ).unwrap()
+  assert_true(
+    managed_view_selection_measurements(plan, [0], 100) is Err(MissingIndex),
+  )
 }
 
 ///|

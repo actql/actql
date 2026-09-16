@@ -9,7 +9,7 @@ metadata capacity accounting follows from that fixture's successful execution.
 
 | Boundary | Current allocation / responsibility |
 | --- | --- |
-| `enable_managed_row_measurements` | Fixed packed byte buffer for byte/node/null cells. Its exact cell payload is now bounded before allocation; the Host ledger connection remains separate. |
+| `enable_managed_row_measurements` | Fixed-capacity byte/node/null index. The managed retained DuckDB strategy path now reserves and owns this allocation through the existing task ledger; non-strategy Hosts still require their own accounting boundary. |
 | `prepare_managed_take_selection` | Creates the expected occurrence array before Core preparation. |
 | `prepare_managed_view_selection_base` | Defensively copies occurrences, builds column summaries, copies cell metadata; source and destination overlap. |
 | `managed_view_selection_measurements` | Reads the source index; arbitrary permutations require temporary duplicate-detection metadata. |
@@ -23,16 +23,17 @@ operations distinguish cancellation from acknowledged reclamation. It should
 remain the accounting owner; a separate metadata quota must not silently enlarge
 the selected physical allowance.
 
-The index now has a supported fixed representation and exposed retained
-capacity bound. The remaining connection requires reservation **before**
-preparation, capacity for occurrence arrays, summaries, maps and copy overlap,
-and an independently tracked retained
-allocation for metadata that survives into receipts. Preparation temporaries
-and retained indexes have different release times. Dropping a reference or
-marking the body file unavailable is not proof that all metadata allocation has
-been reclaimed. Entry count, canonical value bytes and physical file bytes must
-not be substituted for one another. The old bounded row executor's separate
-`generated_sequence_capacity` estimate does not establish this new path's bound.
+The fixed index's retained connection is now implemented for the managed
+retained DuckDB strategy entry: reservation precedes execution, exact enable
+creates a separate holding from the same task reservation, and output
+revocation clears the index before releasing that holding. The remaining
+connection concerns occurrence arrays, summaries, maps and copy overlap.
+Preparation temporaries and retained indexes have different release times.
+Dropping a reference or marking the body file unavailable is not proof that all
+metadata allocation has been reclaimed. Entry count, canonical value bytes and
+physical file bytes must not be substituted for one another. The old bounded
+row executor's separate `generated_sequence_capacity` estimate does not
+establish these remaining bounds.
 
 ## Remove a needless temporary before reserving it
 

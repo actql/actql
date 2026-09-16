@@ -16,6 +16,17 @@ struct TaskExecution {
 }
 
 ///|
+/// One auxiliary retained allocation charged to an already admitted task.
+/// This is not another attempt and does not create completion authority. The
+/// trusted Host that owns the concrete allocation must release this token when
+/// that allocation is no longer reachable by any admitted consumer.
+struct TaskRetainedAllocation {
+  owner : CapturedDAG
+  holding : @resources.Holding
+  mut live : Bool
+}
+
+///|
 /// Registered asynchronous execution. A selected shared-resource realization
 /// must supply its exact resource admission; omitting it cannot evade the
 /// selected reuse contract.
@@ -174,6 +185,57 @@ pub fn charge_task_execution_transfer(
     return Err(ClosedReservation)
   }
   @resources.charge_transfer(run.ledger, execution.reservation, bytes)
+}
+
+///|
+/// Convert part of this task's existing retention reservation into one exact
+/// auxiliary physical allocation. This is used for bounded retained metadata
+/// that is distinct from the task's primary output allocation. Capacity must
+/// have been present in the selected task envelope before execution started.
+pub fn retain_task_execution_allocation(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  bytes : Int64,
+) -> Result[TaskRetainedAllocation, @resources.LedgerIssue] {
+  if !task_execution_matches(run, execution) {
+    return Err(ForeignOwner)
+  }
+  if execution.disposed || !@resources.reservation_open(execution.reservation) {
+    return Err(ClosedReservation)
+  }
+  match @resources.retain_allocation(run.ledger, execution.reservation, bytes) {
+    Err(issue) => Err(issue)
+    Ok(holding) => Ok({ owner: run, holding, live: true, })
+  }
+}
+
+///|
+/// Idempotently release the exact auxiliary allocation. Releasing it does not
+/// close the task, settle native execution, or revoke any other allocation.
+/// The token remains releasable after task cleanup so a late Host cleanup
+/// acknowledgement cannot strand ledger capacity.
+pub fn release_task_execution_allocation(
+  allocation : TaskRetainedAllocation,
+) -> Result[Bool, @resources.LedgerIssue] {
+  if !allocation.live {
+    return Ok(false)
+  }
+  match
+    @resources.release_allocation(allocation.owner.ledger, allocation.holding) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      allocation.live = false
+      Ok(true)
+    }
+  }
+}
+
+///|
+pub fn task_execution_allocation_available(
+  allocation : TaskRetainedAllocation,
+) -> Bool {
+  allocation.live &&
+  @resources.holding_available(allocation.owner.ledger, allocation.holding)
 }
 
 ///|

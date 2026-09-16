@@ -19,6 +19,7 @@ import { checked } from '../runtime-result.mjs';
 import { runExample } from '../examples/physical-strategy.mjs';
 import {installCompletionObserver} from '../../host-common/completion-observer.mjs';
 import {retainedStorageBody} from '../../store-local/representations.mjs';
+import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -906,6 +907,80 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   } finally {
     if (phaseRun) { bridge.computeHostAbort(phaseRun); bridge.computeHostClose(phaseRun); }
     phaseCapture.close();
+  }
+  // Managed retained metadata consumes the selected task's existing physical
+  // reservation. It is not admitted as a second attempt and unused capacity is
+  // returned when the task closes before creating an index allocation.
+  const managedLedgerFixture = fixture.strategyFixtureCreate(...args, program);
+  const managedLedgerCapture = await runNativeHostQuery(grant,
+    fixture.strategyFixtureAcquisition(managedLedgerFixture), suppliedLimits);
+  let managedLedgerRun;
+  let managedLedgerResult;
+  let managedLedgerOutput;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
+    const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
+    const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
+    const indexBytes = 512n + 4n * 64n;
+    let attempt;
+    let port;
+    let consume;
+    managedLedgerRun = accepted(bridge.computeManagedRetainedStrategyHostOpen(
+      setup, current => current === attempt && matchesFixedCompute(managedLedgerResult, port, consume),
+      100000n, 134217728n, 100000n, () => true, 4));
+    attempt = bridge.computeHostAttempt(managedLedgerRun);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
+      baseRetention + 100000n + indexBytes);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
+      'metadata capacity must not create another physical attempt');
+    port = Object.freeze({
+      importCount: () => bridge.computeHostImportCount(managedLedgerRun),
+      rowCount: index => Number(accepted(bridge.computeHostCount(managedLedgerRun, index, false))),
+      columnCount: index => Number(accepted(bridge.computeHostCount(managedLedgerRun, index, true))),
+      createSql: index => accepted(bridge.computeHostSql(managedLedgerRun, 0, index)),
+      insertSql: index => accepted(bridge.computeHostSql(managedLedgerRun, 1, index)),
+      parameter: (index, row, column) => JSON.parse(accepted(
+        bridge.computeHostParameter(managedLedgerRun, row, column, false, index))),
+      querySql: () => accepted(bridge.computeHostSql(managedLedgerRun, 2, 0)),
+      queryParameters: () => Array.from({length: bridge.computeHostQueryParameterCount(managedLedgerRun)},
+        (_, index) => JSON.parse(accepted(
+          bridge.computeHostParameter(managedLedgerRun, 0, index, true, 0)))),
+    });
+    consume = chunk => {
+      if (!managedLedgerOutput) {
+        const fields = JSON.stringify(chunk.fields.map(({name, type}) =>
+          [name, type.id, type.precision == null ? null : String(type.precision),
+            type.scale == null ? null : String(type.scale)]));
+        managedLedgerOutput = accepted(
+          bridge.computeHostManagedOutputBegin(managedLedgerRun, fields));
+        assert.throws(() => accepted(
+          bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 3)));
+        assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n,
+          'a mismatched index ceiling must not allocate from the task reservation');
+        accepted(bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 4));
+        assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes);
+        assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
+          baseRetention + 100000n);
+      }
+      accepted(bridge.managedOutputAccept(managedLedgerOutput, chunk.rowCount,
+        JSON.stringify(chunk.columns)));
+    };
+    managedLedgerResult = await runFixedCompute(port, suppliedLimits,
+      {maxRows: 100, maxCells: 1000}, consume);
+    accepted(bridge.managedOutputFinish(managedLedgerOutput));
+    assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 2);
+    accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, true));
+    bridge.managedOutputCancel(managedLedgerOutput);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n,
+      'index holding is returned only when its managed output is revoked');
+    bridge.computeHostClose(managedLedgerRun);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);
+  } finally {
+    if (managedLedgerOutput) bridge.managedOutputCancel(managedLedgerOutput);
+    if (managedLedgerRun) bridge.computeHostClose(managedLedgerRun);
+    if (managedLedgerResult) releaseFixedCompute(managedLedgerResult);
+    managedLedgerCapture.close();
   }
   let freshDuckDBTransfer;
   for (const layout of [[true, true, true], [true, false, true], [false, true, false]]) {

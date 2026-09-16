@@ -126,6 +126,8 @@ pub fn compute_host_stream_readable(@execution_relation.RetainedOutputHandle[Com
 
 pub fn compute_host_stream_retain(ComputeNodeRun, ComputeStreamNodeReceipt, () -> Bool) -> @execution_relation.RetainedOutputHandle[ComputeStreamNodeReceipt] raise NodeHostFailure
 
+pub fn compute_managed_retained_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, Int64, () -> Bool, Int) -> ComputeNodeRun raise NodeHostFailure
+
 pub fn compute_resident_cleanup_sql(ComputeNodeRun) -> Array[String] raise NodeHostFailure
 
 pub fn compute_resident_commit(ComputeNodeRun) -> Unit raise NodeHostFailure
