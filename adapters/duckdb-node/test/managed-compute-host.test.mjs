@@ -191,17 +191,29 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                     {select: [{amount: 'a'}]}, {take: {count: 1, offset: 1}}], ['2'], ['日本語']],
                   [[{take: 1}, {select: ['amount']}, {take: {count: 2, offset: 1}}], [], []],
                   [[{take: 3}, {take: {count: 2, offset: 1}}, {select: ['amount']}], ['1', '2'], [null, '日本語']],
+                  [[{take: 3}, {derive: {copy: 'amount'}}, {select: [{amount: 'copy'}]},
+                    {take: {count: 2, offset: 1}}], ['1', '2'], [null, '日本語']],
+                  [[{derive: {copy: 'amount'}}, {derive: {second: 'copy'}},
+                    {select: [{amount: 'second'}]}, {take: 2}], ['0', '1'], ['日本語', null]],
                   [[{take: {count: 9007199254740991, offset: 9007199254740991}},
                     {take: {count: 9007199254740991, offset: 9007199254740991}}, {select: ['amount']}], [], []],
                 ]) {
-                  const [sql, ...selected] = checked(fixture.managedTakeChainCompileFixture(configured, completed,
-                    JSON.stringify(steps)));
+                  let compiled;
+                  try {
+                    compiled = checked(fixture.managedTakeChainCompileFixture(configured, completed,
+                      JSON.stringify(steps)));
+                  } catch (cause) {
+                    throw new Error(`managed chain failed: ${JSON.stringify(steps)}`, {cause});
+                  }
+                  const [sql, ...selected] = compiled;
                   assert.deepEqual(selected, empty ? [] : occurrences);
                   const actual = (await connection.runAndReadAll(sql)).getRowObjects();
                   assert.deepEqual(actual.map(row => row.occurrence.toString()), selected);
                   assert.deepEqual(actual.map(row => row.amount), empty ? [] : expected);
                 }
-                for (const unsupported of [[{select: ['amount']}], [{take: 2}, {filter: 'true'}]]) {
+                for (const unsupported of [[{select: ['amount']}], [{take: 2}, {filter: 'true'}],
+                  [{take: 2}, {derive: {unused: '1 + 1'}}, {select: ['amount']}],
+                  [{take: 2}, {derive: {unused: '1 / 0'}}, {select: ['amount']}]]) {
                   assert.throws(() => checked(fixture.managedTakeChainCompileFixture(configured, completed,
                     JSON.stringify(unsupported))));
                 }

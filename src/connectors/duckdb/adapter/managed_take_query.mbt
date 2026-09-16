@@ -1,5 +1,5 @@
 ///|
-/// Prepared take/projection over an exact managed input. The installed Host
+/// Prepared take/projection/exact-copy path over an exact managed input. The installed Host
 /// must bind `ordinal` to the input's proven logical occurrence order, with one
 /// distinct zero-based ordinal per row. A provider's incidental order or a
 /// user-supplied integer column does not satisfy that physical binding.
@@ -76,6 +76,22 @@ pub fn[T] prepare_managed_take_query(
         count = Int64::min(next_count, count - skipped)
       }
       @lower.Select(_) => ()
+      @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) =>
+        // Check every binding, not only surviving output columns: a later
+        // projection must not erase a demanded failing computation. Only
+        // exact checked field/slot copies have no new expression to execute.
+        for (_, expression) in bindings {
+          let inspected = @lower.expression_view_entries(expression)
+          if inspected > entries {
+            return Err(Limit)
+          }
+          entries -= inspected
+          match @lower.expression_body(expression) {
+            @lower.Field(_, @relation.InputField(_))
+            | @lower.Field(_, @relation.PriorSlot(_)) => ()
+            _ => return Err(UnsupportedShape)
+          }
+        }
       _ => return Err(UnsupportedShape)
     }
     stages.push((count, offset))

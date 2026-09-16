@@ -91,7 +91,7 @@ fn managed_take_fixture_base(
   let owner = issued_fixture_consumer(
     producer,
     steps=if chained {
-      "[{\"select\":[{\"temporary\":\"amount\"}]},{\"take\":3},{\"select\":[{\"amount\":\"temporary\"}]},{\"take\":2}]"
+      "[{\"derive\":{\"temporary\":\"amount\"}},{\"take\":3},{\"select\":[{\"amount\":\"temporary\"}]},{\"take\":2}]"
     } else if deriving {
       "[{\"take\":2},{\"derive\":{\"copy\":\"amount\",\"marker\":\"1 + 1\"}}]"
     } else {
@@ -189,8 +189,8 @@ fn managed_take_fixture_base(
     registry,
     values_contract,
     fragment,
-    deriving,
-    fragment_start=1,
+    deriving || chained,
+    fragment_start=if chained { 0 } else { 1 },
   )
   let completion = @execution.prepare_managed_completion_port(
     profile,
