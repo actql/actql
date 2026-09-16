@@ -178,9 +178,15 @@ pub fn fixed_query_target(FixedQuery) -> @pipeline_typing.Target
 
 pub fn identify_native_receipts(NativeReceiving, @execution_relation.RowWireLimits, Int, Int) -> Result[NativeReceiptIdentities, NativeReceiptIdentityIssue]
 
+pub fn managed_fixed_compute_demand_matches(ManagedFixedComputeDemand, FixedCompute, @execution_relation.ManagedOutputValueReceipt, Int) -> Bool
+
+pub fn managed_fixed_compute_demand_usage(ManagedFixedComputeDemand) -> FixedComputeDemandUsage
+
 pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_fixed_compute_stream_demand(FixedCompute, FixedComputeStreamReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeStreamDemand, NativeDemandIssue]
+
+pub fn measure_managed_fixed_compute_demand(FixedCompute, @execution_relation.ManagedOutputValueReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[ManagedFixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_native_demand(NativeReceiving, @execution_relation.FixedInputGuardMeasureLimits) -> Result[NativeDemandMeasurement, NativeDemandIssue]
 
@@ -426,6 +432,8 @@ pub enum FixedQuery {
   CountGroup(NativeCountGroup)
   InnerJoin(NativeInnerJoin)
 }
+
+type ManagedFixedComputeDemand
 
 type ManagedPhysicalOutput
 
