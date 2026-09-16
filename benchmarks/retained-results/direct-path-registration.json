@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "status": "registered-not-measured",
+  "experimentSha256": "83fc5ce32f20de2492ef862726e057a03b43d46e0488023742550a25b4fff305",
+  "retentionBytes": "1073741824",
+  "scope": "existing task boundaries; same Run including admitted delegated execution processes",
+  "largeCaseIds": [
+    "native-acquisition-full-validation-low-selectivity/narrow/10000",
+    "native-acquisition-full-validation-low-selectivity/narrow/100000",
+    "native-acquisition-full-validation-low-selectivity/narrow/1000000",
+    "native-acquisition-full-validation-low-selectivity/numeric-64/10000",
+    "native-acquisition-full-validation-low-selectivity/numeric-64/100000",
+    "native-acquisition-full-validation-low-selectivity/text-1024/10000",
+    "native-acquisition-full-validation-low-selectivity/text-1024/100000",
+    "fixed-join-count-shrinking-intermediate/narrow/10000",
+    "fixed-join-count-shrinking-intermediate/narrow/100000",
+    "fixed-join-count-shrinking-intermediate/narrow/1000000",
+    "fixed-join-count-shrinking-intermediate/numeric-64/10000",
+    "fixed-join-count-shrinking-intermediate/numeric-64/100000",
+    "fixed-join-count-shrinking-intermediate/text-1024/10000",
+    "fixed-join-count-shrinking-intermediate/text-1024/100000",
+    "retained-large-output-downstream-reuse/narrow/10000",
+    "retained-large-output-downstream-reuse/narrow/100000",
+    "retained-large-output-downstream-reuse/narrow/1000000",
+    "retained-large-output-downstream-reuse/numeric-64/10000",
+    "retained-large-output-downstream-reuse/numeric-64/100000",
+    "retained-large-output-downstream-reuse/text-1024/10000",
+    "retained-large-output-downstream-reuse/text-1024/100000"
+  ],
+  "requirements": [
+    "normal candidate comparison and admission, not forced selection",
+    "document initial data placement, estimate evidence and preparation costs",
+    "include resident creation and first import; preexisting resident is a separate condition",
+    "no mandatory full row JSON reconstruction followed by parameter INSERT",
+    "preserve required validation, logical identities, ordering, intermediate guards and independent holding",
+    "measure selected representations, location, row expansion, imports, repeated validation and hashing",
+    "unsupported cases remain incomplete; do not reduce this list after measurement"
+  ],
+  "reportSeparately": ["contract-review", "27-case-functional-conformance", "21-case-direct-path-conformance", "performance-acceptance", "absolute-resource-and-latency-observations"],
+  "excluded": ["new task fusion or splitting search", "cross-Run evidence reuse", "new remote authentication", "assuming approval of logical CID omission"]
+}

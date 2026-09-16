@@ -6,6 +6,28 @@ ActQL Program text, source construction SQL, cardinalities, independent expected
 result identities and explicit resource/timeout ceilings. This is not a record
 of passing performance measurements.
 
+`direct-path-registration.json` fixes the 21 large case IDs before direct-path
+implementation. All remain mandatory, with normal cost-grounded selection and
+admission; forced selection is conformance evidence only. Preparation costs are
+included and preexisting resident state is a separate condition. The original
+27-case functional and performance gates remain unchanged. The
+[identity contract review](identity-contract-review.md) tracks proposed boundary
+decisions and the concrete content-verification/consumer-guard coupling; it is
+not evidence of main agreement or permission to omit a CID.
+
+The approved [capacity comparison addendum](acceptance-addendum-2026-09-16.md)
+preserves that registration and the 1 GiB ceiling. Nine capacity-impossible
+baseline cases have no speed ratio; they do not exempt the new implementation
+or the equivalent-obligations comparator from any of the 27 cases.
+`comparison-eligibility.mjs` verifies the original registration and archived
+capacity evidence before classifying a case. Its output is eligibility only,
+never formal performance acceptance. Reported completions still require
+semantic/resource verification and the registered paired timing assessment.
+
+```sh
+node --test benchmarks/retained-results/comparison-eligibility.test.mjs benchmarks/retained-results/paired-assessment.test.mjs benchmarks/retained-results/baseline-feasibility.test.mjs
+```
+
 Development observations are recorded separately in
 [2026-09-16 diagnostic observations](observations-2026-09-16.md). They include
 failures and exclude unperformed comparisons; they are not acceptance results.
