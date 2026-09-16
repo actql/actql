@@ -758,3 +758,26 @@ was 242.430 ms execution / 0.413 ms cleanup, not a paired acceptance result.
 The actual adapted files match the pure transformations byte for byte. All 17
 benchmark helper tests pass. Wide/join/large-output baseline adaptations and the
 equivalent-obligations comparator remain unfinished.
+
+## Follow-up: distinguish baseline data and completion metadata capacity
+
+The first selective/narrow/100000 baseline attempt rejected retention before
+execution. Inspection found that the adapter had expanded completion-record and
+capture metadata with source size, and allocated the multi-task cumulative value
+allowance to each held copy. This was an overly conservative benchmark assembly,
+not evidence that the old runtime inherently cannot process 100000 rows.
+
+The revised adapter leaves record/capture metadata limits unchanged and derives
+the value-node allowance from this fixture's flat two-scalar rows. All runtime
+limit checks remain in place. A regression checks the original metadata block
+byte for byte. The rebuilt archive `/tmp/actql-baseline-100k-4QRjMZ` completed
+acquisition, three Compute tasks, independent expected CID verification and
+cleanup within the 1 GiB retention / 4 GiB execution Run ceilings. One diagnostic
+public-entry interval was 523.461 ms, cleanup 0.367 ms.
+
+The retained registered 100000-row case also passed, with controller wire traffic
+90583 submitted / 17063 received bytes and sampled RSS increase 56098816 bytes.
+Its inclusive readiness diagnostic was 954.623 ms. These two timings have
+different boundaries and are not paired; no speedup ratio or acceptance result
+is inferred from them. All 17 benchmark helper tests passed. Full comparator
+coverage and formal performance acceptance remain open.

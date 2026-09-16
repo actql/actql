@@ -260,7 +260,10 @@ Use these transformations only in a separate baseline archive, then rebuild its
 three JS entries. Acquisition gets scaled copies of the original pure capacity
 helpers so the shared Compute defaults do not change. The adapter deliberately
 rejects wide, join and large-output profiles; it is not the full-matrix baseline.
-It has executed selective/narrow/10000 successfully, not merely generated text.
+It has executed selective/narrow/10000 and /100000 successfully, not merely
+generated text. Flat-row value allowances scale with the scan; completion-record
+and two-row capture metadata retain their original limits. Giving every metadata
+object the cumulative multi-task value allowance would distort the comparison.
 
 For the selective narrow 1000-row baseline diagnostic, apply
 `baseline-receipt-1004.patch` to a separate clean archive of the pinned baseline

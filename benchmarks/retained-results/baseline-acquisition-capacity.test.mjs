@@ -27,6 +27,8 @@ test('baseline receiver adaptation preserves original dispatch and query logic',
       original.slice(original.indexOf('fn dispatch_limits(')));
     const query = value => value.slice(value.indexOf('fn native_query_limits('), value.indexOf('fn transport('));
     assert.equal(query(result.source), query(original));
+    const records = value => value.slice(value.indexOf('      records: {'), value.indexOf('    retention: {'));
+    assert.equal(records(result.source), records(original));
     assert(result.changes.every(change => change.after > change.before));
     assert(result.changes.some(change => change.field === 'max_received_rows' && change.after === rows + 4));
     // The two helper copies prevent Acquisition bounds changing Compute.

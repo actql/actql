@@ -46,7 +46,9 @@ export function adaptBaselineAcquisitionCapacity(source, fixture) {
   const rows = fixture.fields.length + fixture.rows + fixture.cardinalities.capture;
   const cells = rows * fixture.fields.length;
   const bytes = Math.max(100000, fixture.limits.representationBytes * 4);
-  const nodes = Math.max(10000, fixture.limits.cumulativeValueNodes);
+  // This fixture has flat two-scalar rows, not nested values. Do not reserve
+  // the cumulative multi-task work allowance separately for every held copy.
+  const nodes = Math.max(10000, (rows + 1) * (fixture.fields.length + 1));
   const work = Math.max(1000000, fixture.limits.cumulativeGuardWork);
   const text = Math.max(100000, fixture.limits.cumulativeValueTextBytes);
   if (![rows, cells, bytes, nodes, work, text].every(value =>
@@ -62,7 +64,15 @@ export function adaptBaselineAcquisitionCapacity(source, fixture) {
     const end = source.indexOf(`fn ${next}(`, start);
     if (start < 0 || end < start) throw Error('MissingBaselineCapacitySection');
     const original = source.slice(start, end);
-    const replaced = original.replace(/\b([a-z_]+): (\d+)(?=[, ])/g, (match, key, number) => {
+    const recordsStart = name === 'acquisition_limits' ? original.indexOf('      records: {') : -1;
+    const recordsEnd = name === 'acquisition_limits' ? original.indexOf('    retention: {') : -1;
+    if (name === 'acquisition_limits' && (recordsStart < 0 || recordsEnd <= recordsStart)) {
+      throw Error('MissingBaselineRecordSection');
+    }
+    const replaced = original.replace(/\b([a-z_]+): (\d+)(?=[, ])/g, (match, key, number, offset) => {
+      // Records contain contracts/identities and the two-row capture. Scaling
+      // their allowances with the source scan fabricates retention pressure.
+      if (recordsStart >= 0 && offset >= recordsStart && offset < recordsEnd) return match;
       if (!(key in fields)) return match;
       const value = Math.max(Number(number), fields[key]);
       if (value !== Number(number)) changes.push({section: name, field: key, before: Number(number), after: value});
