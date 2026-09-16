@@ -735,3 +735,26 @@ resident cost estimate cannot bypass the delegated Run ceiling.
 The combined test passes its five positive managed profiles, the independent
 in-process long-text check and this budget-refusal case. No capacity threshold,
 performance acceptance rule or execution semantics changed in this follow-up.
+
+## Follow-up: reproducible 10000-row baseline acquisition adaptation
+
+The baseline capacity transformations now reject source-hash mismatches and
+unrelated profiles, return auditable numeric changes, and keep query/dispatch
+algorithms unchanged. Original capacity helpers remain available to Compute;
+scaled copies are used by Acquisition only. An earlier shared-helper attempt
+raised Compute scratch unintentionally and was rejected at start; it was not
+recorded as a successful sample.
+
+A new archive at `/tmp/actql-baseline-scaled-mlQGqW` was rebuilt with the pinned
+toolchain. The original 500000-byte transfer / 200000000-byte retention ledger
+rejected the larger acquisition reservations. The explicit diagnostic ledger
+now allows acquisition plus three unchanged Compute transfer envelopes, with
+the registered managed benchmark's 1 GiB retention and 4 GiB execution caps.
+Reservation checks and candidate envelopes remain active.
+
+Selective/narrow/10000 completed acquisition and all three Compute tasks,
+matched the independent CID and completed cleanup. A single diagnostic interval
+was 242.430 ms execution / 0.413 ms cleanup, not a paired acceptance result.
+The actual adapted files match the pure transformations byte for byte. All 17
+benchmark helper tests pass. Wide/join/large-output baseline adaptations and the
+equivalent-obligations comparator remain unfinished.

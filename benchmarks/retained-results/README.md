@@ -247,6 +247,21 @@ node --test benchmarks/retained-results/*.test.mjs
 
 ### Selective baseline receiver profile
 
+`baseline-acquisition-capacity.mjs` now provides pure transformations for the
+pinned baseline's `host_limits.mbt` and application ledger. Both reject unknown
+source hashes. The `.mbt.txt` snapshots are exact test fixtures from the pinned
+revision, not production source or semantic authorities. The receiver transform
+returns adapted source, a numeric-change inventory and the resulting hash;
+the ledger transform supplies one acquisition plus three unchanged Compute
+transfer reservations and the benchmark's 1 GiB retention / 4 GiB execution
+Run ceilings. Runtime algorithms and per-Compute envelopes are unchanged.
+
+Use these transformations only in a separate baseline archive, then rebuild its
+three JS entries. Acquisition gets scaled copies of the original pure capacity
+helpers so the shared Compute defaults do not change. The adapter deliberately
+rejects wide, join and large-output profiles; it is not the full-matrix baseline.
+It has executed selective/narrow/10000 successfully, not merely generated text.
+
 For the selective narrow 1000-row baseline diagnostic, apply
 `baseline-receipt-1004.patch` to a separate clean archive of the pinned baseline
 (instead of the 104 patch), rebuild the three baseline JS entries, and select
