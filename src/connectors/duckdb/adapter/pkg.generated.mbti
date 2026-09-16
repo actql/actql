@@ -32,6 +32,8 @@ pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> 
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
+pub fn append_comparison_measurement(ComparisonMeasurement, @value_admission.Value) -> Result[Unit, NativeDemandIssue]
+
 pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
 
 pub fn append_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
@@ -79,6 +81,8 @@ pub fn drain_native_output_row(NativeReceiving) -> Result[String?, NativeReceivi
 pub fn emit_physical_parameter(PhysicalParameter, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn finish_broad_receiving(BroadReceiving) -> Result[@execution_relation.CapturedRows, BroadReceivingIssue]
+
+pub fn finish_comparison_measurement(ComparisonMeasurement, Int) -> Result[NativeDemandUsage, NativeDemandIssue]
 
 pub fn finish_fixed_compute_receiving(FixedComputeReceiving) -> Result[FixedComputeReceipt, FixedComputeReceivingIssue]
 
@@ -242,6 +246,8 @@ pub fn prepare_broad_receiving(BroadTable, Array[(String, PhysicalType)], Physic
 
 pub fn prepare_broad_scan(@lowering_relation.BoundPrepared, Int, String, String, Int, Int) -> Result[BroadScan, NativeQueryIssue]
 
+pub fn prepare_comparison_measurement(@value_admission.Value, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ComparisonMeasurement, NativeDemandIssue]
+
 pub fn prepare_fixed_compute(@execution_relation.ProducerRead, String, NativeQueryLimits) -> Result[FixedCompute, NativeQueryIssue]
 
 pub fn prepare_fixed_compute_join_stream(FixedCompute) -> Result[@execution_relation.FixedJoinStream?, @execution_relation.RowIssue]
@@ -352,6 +358,8 @@ pub(all) enum BroadReceivingIssue {
 type BroadScan
 
 type BroadTable
+
+type ComparisonMeasurement
 
 type FixedCompute
 
