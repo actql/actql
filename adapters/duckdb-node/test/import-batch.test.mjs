@@ -48,6 +48,28 @@ test('failed or cancelled batch does not retry or accept further rows', async ()
   assert.equal(writes, 2);
 });
 
+test('batch boundaries deliver queued cancellation before native writes', async () => {
+  for (const partial of [false, true]) {
+    const abort = new AbortController();
+    const reason = Error('queued host cancellation');
+    let writes = 0;
+    const batch = createImportBatch(1, 4, limits, sql, async () => { writes++; }, abort.signal);
+    const queued = setImmediate(() => abort.abort(reason));
+    try {
+      await batch.append([parameter('1')]);
+      await batch.append([parameter('2')]);
+      if (partial) {
+        await assert.rejects(batch.finish(), error => error === reason);
+      } else {
+        await batch.append([parameter('3')]);
+        await assert.rejects(batch.append([parameter('4')]), error => error === reason);
+      }
+      assert.equal(writes, 0);
+      await assert.rejects(batch.finish(), {code: 'ImportBatchUnavailable'});
+    } finally { clearImmediate(queued); }
+  }
+});
+
 test('real batched fixed import preserves duplicate and NULL order with fewer native commands', async () => {
   const values = ['3', null, '3', '1', '2', null, '1', '3', '0'];
   const makePort = batched => ({

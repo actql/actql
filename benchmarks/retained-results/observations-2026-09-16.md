@@ -392,3 +392,43 @@ release the outstanding common responsibility. Explicit cleanup still reports
 pending. The standard Host integration passed with this case, and the shared
 retained-boundary suite passed 76/76. These results do not constitute the final
 all-target/all-connector verification or a new performance sample.
+
+## Follow-up: cancellation delivery at import batch boundaries
+
+Bounded parameter batches now yield to the Node event loop before each native
+write, then recheck cancellation. Awaiting already-resolved row callbacks alone
+does not allow queued timer/IPC cancellation to run. The yield is per batch, not
+per row; it neither interrupts an already-started native operation nor establishes
+a cleanup receipt. A cancelled batch is poisoned and cannot be retried.
+
+Regression tests schedule cancellation in the event loop while append calls
+continue through microtasks. Both a full batch and a final partial batch reject
+before any native write. The real DuckDB import/session/resident tests passed
+29/29, and benchmark fixture/selection/paired-assessment tests passed 9/9.
+The existing duplicate/NULL payload and reduced statement-count checks still
+pass. No timing comparison was rerun for this scheduling change; prior diagnostic
+durations do not certify its performance or the four-comparator acceptance gate.
+
+## Follow-up: executable raw DuckDB reference
+
+The raw comparator now executes all declared stages without fusion, retains the
+A/B and A-to-C dependencies, and verifies intermediate cardinalities plus final
+values against the pinned independent fixtures. It records execution, per-stage,
+post-execution verification and rollback separately. The diagnostic runner uses
+one DuckDB thread, the fixture memory ceiling and an in-memory deterministic
+source prepared outside timing. It is not the equivalent-obligations comparator:
+ActQL validation, logical identity, independent holding and admission are absent.
+
+All 27 registered cases completed in a diagnostic run. The three real-DuckDB
+regressions passed, including all nine 100-row shapes, changed payload rejection,
+pre-start cancellation, and cancellation after one stage with rollback before the
+next stage. These are executable-reference/readiness results, not seven paired
+measurements or performance acceptance. Raw computation and independent result
+verification have distinct costs; neither is comparable to the managed smoke's
+inclusive elapsed time without a matched harness. No threshold or timeout changed.
+
+The fixed original baseline still needs a benchmark adapter for the larger
+registered profiles: its shipped example has fixed small input/column/transport
+caps and no parameterized managed-retention entrance. Do not retrofit the new
+algorithm into that baseline, label a different implementation as baseline, or
+drop unsupported cases to obtain a passing comparison.

@@ -14,7 +14,7 @@ base, for the retained execution implementation described here.
 | Local and DuckDB use the same retained-input contract | Managed all-Local, all-DuckDB, DuckDB-to-Local and Local-to-DuckDB cases check selected realizations and result identities | Final fixed-revision regression |
 | Ordinary candidate comparison includes independent file work and resident reuse | Managed fresh cost 1 selects fresh; cost 20 selects resident with one import; all outputs remain independently held | Large-profile resident estimates remain conservative; no general optimal-placement claim |
 | Ownership, obligations and failure rules remain enforced | Foreign-input and obligation regressions; real corruption after resident import refuses completion; native stop alone does not settle failed Store reads | Final all-target/real-connector verification |
-| Explicit release reclaims held files, while uncertain stop remains pending | Managed exit/close tests, Store/custody tests, actual native rollback/holding tests | Combined abnormal process-exit coverage must be audited before final sign-off |
+| Explicit release reclaims held files, while uncertain stop remains pending | Managed exit/close tests, Store/custody tests, actual native rollback/holding tests; combined actual writer-crash/process-capacity/Store regression | Final fixed-revision run; physical file survival alone is not proof of task completion |
 | No unnecessary control-side whole-row transfer or materialization | Installed worker writes delegated files directly; controller receives metadata/custody reports | Measure control memory growth, transferred bytes, hash passes and copies under registered workloads |
 | Reuse in a fresh process | Readmission and exact producer binding plus actual bounded Store read are exercised | A subsequent genuine Compute is not yet demonstrated; read-only success must not be called execution continuation |
 | Performance acceptance | Registered 27-case readiness passed earlier; bounded imports substantially reduced diagnostic time | Four-comparator runner/samples, alternating pairs and confidence gates are not complete |
@@ -63,3 +63,27 @@ refresh was separately covered by Workers and no-DuckDB checks. Further product
 changes require rerunning the relevant gates before final sign-off.
 Linux/GitHub Actions has not been verified here. Remaining functional and
 performance items in the requirement table are not closed by this checkpoint.
+
+## Subsequent working-tree verification
+
+The combined physical-lifecycle regression now starts a real writer through
+`createManagedProcessHost`, seals one file and exits with code 9 while writing a
+second. Actual process exit releases its exact process reservation but leaves
+Store cleanup pending and the missing writer report's 100-byte uncertainty intact.
+The first file remains readable. Explicit cleanup reclaims only the provisional
+file, is repeatable, and keeps the earlier 10-byte holding until Store close.
+The process-capacity, Store-service and completion-custody suites passed 28/28.
+This fixture deliberately does not issue an ActQL completion from a file seal;
+the managed standard-Host tests remain the evidence for task completion.
+
+The raw DuckDB reference leg now executes all 27 registered cases and verifies
+stage cardinalities/final values. It is still not an equivalent-obligations leg
+or paired performance acceptance. See the benchmark README and observations for
+the excluded work and the remaining baseline-harness requirement.
+
+After the per-batch cancellation yield, raw-reference additions and combined
+writer-crash regression, the complete real-DuckDB suite passed 72/72 in about
+72.3 seconds with the pinned MoonBit toolchain. This includes the 27-case smoke,
+standard managed Local/DuckDB and retained/resident integration, scalar parity,
+and failure/cleanup cases. It is not the registered large retained matrix or a
+new performance sample. JavaScript syntax and whitespace checks also passed.

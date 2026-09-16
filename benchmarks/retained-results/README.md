@@ -113,6 +113,33 @@ has no timing samples or performance acceptance result.
 
 ## Paired timing assessment
 
+The benchmark-only raw DuckDB leg can now be exercised against all 27 registered
+cases (or one exact `ACTQL_RETAINED_CASE`):
+
+```sh
+node adapters/duckdb-node/bench/raw-retained-probe.mjs
+node --test adapters/duckdb-node/test/raw-retained-comparator.test.mjs
+```
+
+It uses one thread and the case's memory ceiling, creates the deterministic source
+outside execution timing, and materializes every capture/Compute stage separately.
+It preserves A/B sharing and A-to-C consumption without cross-task fusion. It
+checks every intermediate cardinality and reads final values in native chunks
+against independent fixture expectations. Verification and transaction rollback
+have separate timers; a verification, cancellation or rollback failure cannot
+yield a completed report. The caller closes the dedicated connection/database.
+
+This is `raw-engine-diagnostic`, not an equivalent-obligations implementation or
+paired acceptance sample. It omits ActQL validation, logical identity generation,
+independent retention, admission and logical budgets. Its source is in memory and
+its result lifetime ends at rollback. Process startup and connection shutdown are
+not measured by its execution timer. Do not compare its execution time directly
+with the managed smoke's setup-through-cleanup diagnostic total as a gate ratio.
+The formal runner still needs paired source/configuration provenance and all four
+comparator implementations. In particular, the pinned baseline's default public
+example fixes small row/column/transport limits: large-case compatibility needs
+an explicit benchmark harness, not silent baseline edits or omitted cases.
+
 `paired-assessment.mjs` provides the timing-only statistic for the future sample
 runner. It checks contiguous pair indices, a single case, completed samples,
 finite durations, and alternating retained/reference order. Missing, timed-out

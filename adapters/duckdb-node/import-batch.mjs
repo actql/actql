@@ -1,5 +1,6 @@
 // Connector-private transport batching, not value admission or completion.
 import {DuckDBTransportError} from './configuration.mjs';
+import {setImmediate as yieldToHost} from 'node:timers/promises';
 
 const emptyFrameBytes = Buffer.byteLength('{"parameters":[]}\n', 'utf8');
 
@@ -11,6 +12,12 @@ export function createImportBatch(columns, rows, limits, sqlForRows, write, sign
   const flush = async () => {
     signal?.throwIfAborted();
     if (!count) return;
+    // Awaiting row callbacks alone can keep execution in the microtask queue.
+    // Give timers/IPC a bounded opportunity to deliver cancellation before the
+    // next native write. This is per batch, never per row, and does not claim to
+    // preempt an already-started native operation or confirm its cleanup.
+    await yieldToHost();
+    signal?.throwIfAborted();
     // The trusted MoonBit compiler owns identifiers and tuple construction.
     const compiled = sqlForRows(count);
     if (compiled.rows !== count || typeof compiled.sql !== 'string' ||
