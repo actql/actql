@@ -70,3 +70,47 @@ pub fn[T] managed_fixed_selection_sql(
   }
   Ok(compiled.sql)
 }
+
+///|
+/// Convert observed ordered filter occurrences to provisional copied evidence.
+/// The installed verifier still has to establish predicate truth, completeness,
+/// execution/attempt binding and physical output correspondence.
+pub fn[T] prepare_managed_filter_selection(
+  query : ManagedFixedQuery[T],
+  rows : Array[Int],
+  limits : NativeQueryLimits,
+  max_cells : Int,
+  max_work : Int,
+) -> Result[@execution.ManagedViewSelection[T], NativeQueryIssue] {
+  if max_cells < 0 || max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if rows.length() > max_work {
+    return Err(Limit)
+  }
+  let plan = match prepare_managed_fixed_view_plan(query, limits) {
+    Ok(plan) => plan
+    Err(issue) => return Err(issue)
+  }
+  let available = @execution.managed_producer_read_row_count(query.input)
+  let mut previous = -1
+  for row in rows {
+    if row <= previous || row >= available {
+      return Err(UnsupportedShape)
+    }
+    previous = row
+  }
+  match
+    @execution.prepare_managed_view_selection(
+      plan,
+      rows,
+      max_cells,
+      max_work - rows.length(),
+    ) {
+    Ok(selection) => Ok(selection)
+    Err(ForeignInput) => Err(InputUnavailable)
+    Err(Limit) => Err(Limit)
+    Err(InvalidLimits) => Err(InvalidLimits)
+    Err(_) => Err(UnsupportedShape)
+  }
+}

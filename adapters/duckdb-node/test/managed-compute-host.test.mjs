@@ -359,6 +359,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             if (nativeSettled && revoke === 'completion-input') invalidateInputOnAuthorization = true;
             return nativeSettled && fixture.managedFixedQueryMatches(nativeQuery, countInput);
           }));
+        checked(fixture.managedFixtureEnableIndex(moon.managedInputOutputValues(downstreamPort)));
         downstreamOutput = checked(moon.managedOutputOpen(moon.managedInputOutputValues(downstreamPort),
           JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
           fixture.managedFileTransportLimits(), 100));
@@ -481,14 +482,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               [1, 1, 1, 1, 0]);
             const filterQuery = fixture.managedFixedQuery(filterInput);
             let settled = false;
-            let selectedRows;
             const filterPort = checked(fixture.managedQueryCompletion(filterQuery, profile, ...contracts, ceiling,
               () => true, () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
-            const filterOutput = representation === 'preserved'
-              ? checked(moon.managedViewOutputOpen(moon.managedInputOutputValues(filterPort),
-              checked(fixture.managedFixedViewPlan(filterQuery)), fixture.managedFileTransportLimits(),
-              () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput),
-              () => checked(fixture.managedSingleRowSelectionFacts(filterInput, selectedRows))))
+            let filterOutput = representation === 'preserved'
+              ? undefined
               : checked(moon.managedOutputOpen(moon.managedInputOutputValues(filterPort),
                 JSON.stringify([['n', 'DOUBLE', null, null]]), fixture.managedFilePhysicalLimits(),
                 fixture.managedFileTransportLimits(), 100));
@@ -524,7 +521,16 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               await writer.start();
               await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
               filterBody = await writer.sealPhysical();
-              selectedRows = rows.length;
+              if (representation === 'preserved') {
+                const occurrences = rows.map(row => Number(row.occurrence));
+                for (const invalid of [[-1], [1], [0, 0]]) {
+                  assert.throws(() => checked(fixture.managedFilterSelection(filterQuery, invalid)));
+                }
+                filterOutput = checked(moon.managedSelectedOutputOpen(moon.managedInputOutputValues(filterPort),
+                  checked(fixture.managedFilterSelection(filterQuery, occurrences)),
+                  fixture.managedFileTransportLimits(),
+                  () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
+              }
               settled = true;
               if (representation === 'validated') {
                 checked(moon.managedOutputAccept(filterOutput, rows.length, JSON.stringify(columns)));
@@ -533,6 +539,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const admission = checked(moon.managedOutputAdmissionUsage(filterOutput));
               if (representation === 'preserved') {
                 assert.deepEqual(admission, [0, 0, 0], 'unchanged selected values must not be readmitted in Core');
+                assert.equal(checked(moon.managedOutputMeasurementIndexCells(filterOutput)), rows.length);
               } else if (!empty) {
                 assert.ok(admission[0] > 0 && admission[1] > 0, 'ordinary admission remains a real control');
               }
@@ -548,10 +555,21 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 (empty ? [1, 1, 1, 0, 1, 0, 5, 3, 1, 1] : [1, 1, 1, 1, 0, 0, 4, 3, 1, 1]).map(String));
               assert.equal(moon.managedCompletedProfileCid(filtered), profileCid);
               assert.equal(moon.managedCompletedAvailable(filtered), true);
+              if (representation === 'preserved') {
+                for (let consumer = 0; consumer < 2; consumer++) {
+                  const next = fixture.ownedFixedManagedFilterInput(filterQuery, filtered);
+                  const nextQuery = fixture.managedFixedQuery(next);
+                  assert.deepEqual(fixture.managedColumnMeasurement(next),
+                    empty ? [0, 0, 0, 0, 0] : [1, 1, 1, 1, 0]);
+                  // The new output's index, not singleton inferred facts,
+                  // supplies both independently bound downstream selections.
+                  checked(fixture.managedFilterSelection(nextQuery, empty ? [] : [0]));
+                }
+              }
               assert.deepEqual(checked(moon.managedOutputReusedMeasurements(filterOutput)),
                 empty ? [2, 1, 1] : [4, 2, 2]);
             } finally {
-              moon.managedOutputCancel(filterOutput);
+              if (filterOutput) moon.managedOutputCancel(filterOutput);
               filterBody?.close();
               connection.closeSync(); db.closeSync();
               await store.cleanup();

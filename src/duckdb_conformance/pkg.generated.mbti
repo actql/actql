@@ -152,6 +152,8 @@ pub fn managed_file_values() -> @execution_relation.ManagedOutputValues
 
 pub fn managed_filter_occurrence_sql(@adapter.ManagedFixedQuery[Int], String, String) -> String raise
 
+pub fn managed_filter_selection(@adapter.ManagedFixedQuery[Int], Array[Int]) -> @execution_relation.ManagedViewSelection[Int] raise
+
 pub fn managed_fixed_query(@execution_relation.ManagedProducerRead[Int]) -> @adapter.ManagedFixedQuery[Int]
 
 pub fn managed_fixed_query_matches(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedProducerRead[Int]) -> Bool
@@ -161,6 +163,8 @@ pub fn managed_fixed_query_parameter(@adapter.ManagedFixedQuery[Int]) -> String 
 pub fn managed_fixed_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
 
 pub fn managed_fixed_view_plan(@adapter.ManagedFixedQuery[Int]) -> @execution_relation.ManagedViewPlan[Int] raise
+
+pub fn managed_fixture_enable_index(@execution_relation.ManagedOutputValues) -> Unit raise
 
 pub fn managed_query_completion(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedExecutionProfile, String, String, String, Int, () -> Bool, (@execution_relation.ManagedOutputValueReceipt) -> Bool) -> @compute.ManagedInputDuckDBCompletion[Int] raise
 

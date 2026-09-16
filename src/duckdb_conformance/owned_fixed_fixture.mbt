@@ -581,6 +581,40 @@ pub fn managed_filter_occurrence_sql(
 }
 
 ///|
+#export_name("managedFilterSelection")
+pub fn managed_filter_selection(
+  query : @duckdb.ManagedFixedQuery[Int],
+  rows : Array[Int],
+) -> @execution.ManagedViewSelection[Int] raise {
+  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
+  @duckdb.prepare_managed_filter_selection(
+    query,
+    rows,
+    {
+      max_entries: 100,
+      max_sql_bytes: 10000,
+      expressions: {
+        max_nodes: 1000,
+        max_work: 10000,
+        max_depth: 100,
+        max_literal_nodes: 1000,
+        max_literal_text_bytes: 10000,
+      },
+    },
+    100,
+    1000,
+  ).unwrap()
+}
+
+///|
+#export_name("managedFixtureEnableIndex")
+pub fn managed_fixture_enable_index(
+  values : @execution.ManagedOutputValues,
+) -> Unit raise {
+  assert_true(@execution.enable_managed_row_measurements(values, 100) is Ok(_))
+}
+
+///|
 /// Fixture issuer restricted to selecting zero/one rows from one admitted
 /// scalar count. Real native execution and sealed-output binding are checked
 /// by the Node test Host; no arbitrary subset totals are inferred here.
