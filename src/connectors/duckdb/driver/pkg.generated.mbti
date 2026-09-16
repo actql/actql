@@ -97,6 +97,8 @@ pub fn prepare_resident_store(@physical_strategy.ResidentEnvironment) -> DuckDBR
 
 pub fn prepare_resident_table(@physical_strategy.CapturedDAG, DuckDBResidentStore, Int, Int64, Int, Int, Int) -> Result[@physical_strategy.ResidentTable, @physical_strategy.RunIssue]
 
+pub fn resident_input_scan_reuse(DuckDBResidentInputs, Int, @execution_relation.ProducerRead) -> @execution_relation.RetainedScanReuse?
+
 pub fn resident_inputs_read_plans(DuckDBResidentInputs) -> Array[@compute.DuckDBResidentRead]
 
 pub fn resident_store_environment(DuckDBResidentStore) -> @physical_strategy.ResidentEnvironment

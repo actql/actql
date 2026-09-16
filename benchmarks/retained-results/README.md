@@ -381,6 +381,12 @@ result, finalization (including awaited independent holding), and temporary SQL
 cleanup. Their sum is `workMilliseconds`. Reusing a DB copy reports zero imported
 rows/cells, but does not omit input verification or its cost.
 
+`reusedInputIdentities` counts exact resident input leases whose existing
+canonical identity replaced re-encoding/hashing. `directInputScans` still counts
+their bounded typed scans: value admission, demand, guard and join work remain.
+These counts are structural diagnostics, not a performance acceptance result;
+no fresh file input gains this authority merely by matching a path or CID.
+
 These intervals cover the callback inside the resident transaction, not BEGIN,
 COMMIT/ROLLBACK, environment provisioning, first-copy imports or final environment
 close. Those operations remain in the surrounding session/Host measurements.

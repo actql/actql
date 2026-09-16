@@ -136,6 +136,8 @@ pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
 pub fn resident_environment_resource_binding(ResidentEnvironment) -> @connector_sdk.ResourceBinding?
 
+pub fn resident_input_content_available(CapturedDAG, ResidentInputs, Int, @execution_relation.ProducerRead) -> Bool
+
 pub fn resident_profile_import(ResidentProfile, Int) -> ResidentImportEstimate?
 
 pub fn resident_profile_matches(CapturedDAG, ResidentProfile) -> Bool

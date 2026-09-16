@@ -6,6 +6,16 @@ and makes logical CID conditional in a separate new profile. See the
 handoff and unfinished integration. Evidence reuse alone does not complete that
 change. Existing 27-case/1 GiB acceptance requirements remain unchanged.
 
+Resident identity reuse follow-up: the managed resident consumer now reuses its
+exact admitted content receipt while a claimed table-generation lease remains
+valid. Standard managed tests check `reusedInputIdentities == directInputScans`
+for eligible resident cases and unchanged final CIDs/cleanup. Common tests cover
+foreign input binding, revocation during/after reading, truncation, foreign value
+contracts, wire-row rejection and consumer/encoding capacity. Value admission,
+consumer demand and join scans still run; fresh-file input does not use this
+authority. This is partial evidence reuse, not direct output, conditional-CID
+publication, calibrated large-case placement or a new performance result.
+
 Latest bounded follow-up: clean `19e947e1` passed all 27 registered cases with
 unchanged 1 GiB retention and existing timeouts. All 21 large cases used native
 file input without parameter INSERT on every Compute port, through the standard

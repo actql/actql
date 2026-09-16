@@ -10,6 +10,14 @@ struct FixedImportStream {
 }
 
 ///|
+pub fn reuse_fixed_import_identity(
+  stream : FixedImportStream,
+  evidence : @execution.RetainedScanReuse,
+) -> Bool {
+  @execution.reuse_retained_scan_identity(stream.scan, evidence)
+}
+
+///|
 pub(all) enum FixedImportStreamIssue {
   Content(@execution.CompletedImportIssue)
   Parameter(ValueIssue)

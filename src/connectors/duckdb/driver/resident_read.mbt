@@ -32,6 +32,7 @@ pub fn borrow_resident_table(
 
 ///|
 struct DuckDBResidentInputs {
+  run : @strategy.CapturedDAG
   store : DuckDBResidentStore
   leases : @strategy.ResidentInputs
   plans : Array[@compute.DuckDBResidentRead]
@@ -106,5 +107,26 @@ pub fn prepare_resident_inputs(
       plans.push(plan)
       Ok(bytes)
     },
-  ).map(leases => { store, leases, plans, })
+  ).map(leases => { run, store, leases, plans, })
+}
+
+///|
+/// Installed driver attests the exact committed, immutable DB generation held
+/// by this task. SQL execution remains in the private managed environment.
+pub fn resident_input_scan_reuse(
+  inputs : DuckDBResidentInputs,
+  port : Int,
+  input : @execution.ProducerRead,
+) -> @execution.RetainedScanReuse? {
+  @execution.prepare_trusted_retained_scan_reuse(input, inputs, fn(
+    inputs,
+    input,
+  ) {
+    @strategy.resident_input_content_available(
+      inputs.run,
+      inputs.leases,
+      port,
+      input,
+    )
+  })
 }

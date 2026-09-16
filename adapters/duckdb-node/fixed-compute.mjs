@@ -163,6 +163,7 @@ export async function runResidentFixedCompute(
     let boundary = workStarted;
     const phases = {};
     let directInputScans = 0;
+    let reusedInputIdentities = 0;
     const endPhase = name => {
       const now = performance.now();
       phases[name] = now - boundary;
@@ -173,8 +174,10 @@ export async function runResidentFixedCompute(
     if (port.consumeInput) {
       for (let input = 0; input < port.importCount(); input++) {
         signal?.throwIfAborted();
-        if (port.verifyResidentInput && await port.verifyResidentInput(input, session)) {
+        const verified = port.verifyResidentInput && await port.verifyResidentInput(input, session);
+        if (verified) {
           directInputScans++;
+          if (verified.identityReused === true) reusedInputIdentities++;
           continue;
         }
         await port.consumeInput(input, discard);
@@ -195,7 +198,8 @@ export async function runResidentFixedCompute(
     }
     endPhase('temporaryCleanupMilliseconds');
     return Object.freeze({ fields, importedRows: 0, importedCells: 0,
-      diagnostics: Object.freeze({...phases, directInputScans, workMilliseconds: boundary - workStarted}) });
+      diagnostics: Object.freeze({...phases, directInputScans, reusedInputIdentities,
+        workMilliseconds: boundary - workStarted}) });
   }, signal, accounting);
   // Preserve completed Host-output provenance independently of future DB loss.
   // Reusing the DB table still requires its separate live table-generation proof.

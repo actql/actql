@@ -332,6 +332,8 @@ pub fn resident_query_read_sql(ResidentQuery) -> String
 
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
 
+pub fn reuse_fixed_import_identity(FixedImportStream, @execution_relation.RetainedScanReuse) -> Bool
+
 pub fn stream_native_output(NativeReceiving, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int, Int) -> Result[Unit, NativeReceivingIssue]
 
 pub fn stream_native_validation(NativeReceiving, @execution_relation.RowWireLimits, @execution_relation.FixedInputGuardMeasureLimits, Int) -> Result[Unit, NativeReceivingIssue]

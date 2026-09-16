@@ -35,11 +35,24 @@ scan, leaving the checked file-read path; it cannot substitute a user column for
 the physical ordinal. Query traffic is charged by the resident session, and file
 traffic by the file reader when used. Copy reuse does not waive logical obligations.
 Their validation-only input stream does not construct or serialize SQL parameters
-for cells already held by the resident table. It still decodes the retained
-content, checks the receiving physical types, verifies canonical identity and
-finishes the same consumer measurement, demand and join checks. This removes an
-unused transport representation, not any content or consumer verification.
-Producer and storage verification scans use the canonical encoder's hash-only
+for cells already held by the resident table. It still checks the receiving
+physical types and finishes the same consumer measurement, demand and join checks.
+For an exact claimed resident read, the installed driver may reuse the previously
+admitted ordered identity. Its typed evidence binds the exact receiving input,
+retained material and committed table generation through the active lease.
+Unstarted, returned, retiring, foreign or unavailable leases cannot authorize
+reuse. Availability is checked while reading and at stream completion.
+
+This path omits canonical re-encoding/hashing only: per-value admission and its
+cumulative limits still run. The trusted private DB reader supplies checked
+values; arbitrary wire-row appends cannot use this evidence. Row-count mismatch,
+value admission failure and consumer-budget failure still reject the input.
+If the stored canonical byte/node/depth quantities exceed this receiving stream's
+limits, it uses the ordinary verification path, preserving failure precedence.
+The driver attestation relies on the managed connection preventing mutation of
+committed table generations; a table name or equal CID cannot create it. No
+cross-Run, restart or external-file reuse is implied.
+Other producer and storage verification scans use the canonical encoder's hash-only
 sink: they do not reconstruct canonical output strings that no consumer stores.
 The ordered CID and cumulative byte/node/depth limits are unchanged. Output
 creation still uses bounded buffered encoding, because those bytes must reach

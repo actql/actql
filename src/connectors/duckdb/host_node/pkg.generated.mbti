@@ -92,6 +92,8 @@ pub fn compute_host_physical_settle(ComputeNodeRun, Bool) -> Unit raise NodeHost
 
 pub fn compute_host_query_parameter_count(ComputeNodeRun) -> Int
 
+pub fn compute_host_resident_input_reuse(ComputeNodeRun, @driver.DuckDBResidentInputs, Int) -> Bool raise NodeHostFailure
+
 pub fn compute_host_sql(ComputeNodeRun, Int, Int) -> String raise NodeHostFailure
 
 pub fn compute_host_stream_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure

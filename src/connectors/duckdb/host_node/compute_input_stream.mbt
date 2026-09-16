@@ -1,4 +1,23 @@
 ///|
+#export_name("computeHostResidentInputReuse")
+pub fn compute_host_resident_input_reuse(
+  run : ComputeNodeRun,
+  inputs : @duckdb_driver.DuckDBResidentInputs,
+  port : Int,
+) -> Bool raise NodeHostFailure {
+  let input = compute_host_input_read(run, port)
+  guard @duckdb_driver.resident_input_scan_reuse(inputs, port, input)
+    is Some(evidence) else {
+    return false
+  }
+  @duckdb_compute.reuse_duckdb_compute_input_identity(
+    run.attempt,
+    port,
+    evidence,
+  )
+}
+
+///|
 #export_name("computeHostInputFileSql")
 pub fn compute_host_input_file_sql(
   run : ComputeNodeRun,

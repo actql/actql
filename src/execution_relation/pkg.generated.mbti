@@ -273,6 +273,8 @@ pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_
 
 pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
+pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
+
 pub fn producer_read_available(ProducerRead) -> Bool
 
 pub fn producer_read_cell(ProducerRead, Int, Int) -> Value?
@@ -330,6 +332,8 @@ pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) 
 pub fn[T] retained_producer_payload(RetainedOutputHandle[T], ProducerRead) -> T?
 
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
+
+pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool
 
 pub fn row_wire_cid(RowWireIdentity) -> String
 
@@ -714,6 +718,8 @@ pub(all) struct RetainedRowDecodeLimits {
   max_depth : Int
   max_text_bytes : Int
 }
+
+type RetainedScanReuse
 
 type RetainedStorageScan
 

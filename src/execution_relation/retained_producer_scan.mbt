@@ -5,6 +5,8 @@ struct RetainedProducerScan {
   input : ProducerRead
   wire_columns : Array[Int]
   stream : AdmittedOutputStream
+  wire : RowWireLimits
+  mut reuse : RetainedScanReuse?
   mut open : Bool
   mut measurement : FixedProducerMeasurement?
   mut guard_issue : FixedInputGuardIssue?
@@ -12,8 +14,8 @@ struct RetainedProducerScan {
 }
 
 ///|
-/// Full ordered content verification for one exact receiving read. This does
-/// not discharge the consumer's guard/demand budgets or prove a DB import.
+/// Ordered content verification (or exact trusted representation reuse) for one
+/// receiving read. This alone does not discharge demand or prove a DB import.
 struct VerifiedProducerScan {
   input : ProducerRead
   receipt : AdmittedOutputStreamReceipt
@@ -86,6 +88,8 @@ pub fn prepare_retained_producer_scan(
     input,
     wire_columns,
     stream,
+    wire,
+    reuse: None,
     open: true,
     measurement: None,
     guard_issue: None,
@@ -99,6 +103,7 @@ pub fn cancel_retained_producer_scan(scan : RetainedProducerScan) -> Bool {
     return false
   }
   scan.open = false
+  scan.reuse = None
   if scan.join_validation is Some(value) {
     cancel_fixed_join_stream(value)
   }
@@ -119,6 +124,12 @@ pub fn append_retained_producer_scan_wire(
 ) -> Result[Array[@admitted.CheckedValue], CompletedImportIssue] {
   if !scan.open {
     return Err(Closed)
+  }
+  // Representation reuse is only for the installed typed reader, not arbitrary
+  // JSON rows presented alongside an otherwise valid representation proof.
+  if scan.reuse is Some(_) {
+    cancel_retained_producer_scan(scan) |> ignore
+    return Err(IdentityMismatch)
   }
   if !producer_read_available(scan.input) {
     cancel_retained_producer_scan(scan) |> ignore
@@ -151,10 +162,18 @@ pub fn append_retained_producer_scan_values(
     cancel_retained_producer_scan(scan) |> ignore
     return Err(Unavailable)
   }
-  match
+  let appended = if scan.reuse is Some(evidence) {
+    if !retained_scan_reuse_available(evidence) {
+      cancel_retained_producer_scan(scan) |> ignore
+      return Err(Unavailable)
+    }
+    append_reused_retained_row(scan, values).map(_ => "")
+  } else {
     append_admitted_output_stream(scan.stream, values.length(), column => {
       values.get(column)
-    }) {
+    })
+  }
+  match appended {
     Err(issue) => {
       cancel_retained_producer_scan(scan) |> ignore
       return Err(Encoding(issue))
@@ -189,7 +208,22 @@ pub fn finish_retained_producer_scan(
     cancel_retained_producer_scan(scan) |> ignore
     return Err(Unavailable)
   }
-  let (receipt, _) = match finish_admitted_output_stream(scan.stream) {
+  let finished = if scan.reuse is Some(evidence) {
+    if !retained_scan_reuse_available(evidence) {
+      cancel_retained_producer_scan(scan) |> ignore
+      return Err(Unavailable)
+    }
+    let expected = evidence.material.receipt
+    if scan.stream.rows != expected.rows {
+      cancel_retained_producer_scan(scan) |> ignore
+      return Err(IdentityMismatch)
+    }
+    cancel_admitted_output_stream(scan.stream) |> ignore
+    Ok((expected, ""))
+  } else {
+    finish_admitted_output_stream(scan.stream)
+  }
+  let (receipt, _) = match finished {
     Ok(value) => value
     Err(issue) => {
       cancel_retained_producer_scan(scan) |> ignore
@@ -197,6 +231,7 @@ pub fn finish_retained_producer_scan(
     }
   }
   scan.open = false
+  scan.reuse = None
   let expected = scan.input.bound.output.representation.unwrap().receipt
   if receipt.cid != expected.cid ||
     receipt.rows != expected.rows ||

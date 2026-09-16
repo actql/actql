@@ -1,4 +1,18 @@
 ///|
+pub fn reuse_duckdb_compute_input_identity(
+  value : DuckDBComputeAttempt,
+  port : Int,
+  evidence : @execution.RetainedScanReuse,
+) -> Bool {
+  guard value.live &&
+    value.receiving is None &&
+    value.input_streams.get(port) is Some(Some(stream)) else {
+    return false
+  }
+  @duckdb.reuse_fixed_import_identity(stream, evidence)
+}
+
+///|
 pub fn duckdb_compute_input_file_sql(
   value : DuckDBComputeAttempt,
   port : Int,

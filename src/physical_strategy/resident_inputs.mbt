@@ -13,6 +13,25 @@ struct ResidentInputs {
 }
 
 ///|
+/// Exact claimed read lease for trusted representation-content reuse. Returned,
+/// retired, foreign and unstarted leases cannot authorize this shortcut.
+pub fn resident_input_content_available(
+  run : CapturedDAG,
+  value : ResidentInputs,
+  port : Int,
+  input : @execution.ProducerRead,
+) -> Bool {
+  guard !run.stopped &&
+    value.claimed &&
+    !value.returned &&
+    physical_equal(value.owner, run.offer_owner) &&
+    value.reads.get(port) is Some(read) else {
+    return false
+  }
+  resident_read_matches(run, read, input)
+}
+
+///|
 pub fn prepare_resident_inputs(
   run : CapturedDAG,
   env : ResidentEnvironment,

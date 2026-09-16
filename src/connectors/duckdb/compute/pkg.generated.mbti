@@ -89,6 +89,8 @@ pub fn receive_duckdb_compute_stream_chunk(DuckDBComputeAttempt, Int, Array[@dec
 
 pub fn retained_duckdb_compute_bytes(DuckDBComputeAttempt) -> Int?
 
+pub fn reuse_duckdb_compute_input_identity(DuckDBComputeAttempt, Int, @execution_relation.RetainedScanReuse) -> Bool
+
 pub fn stage_retained_duckdb_compute_material(DuckDBComputeAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, DuckDBComputeIssue]
 
 pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@adapter.FixedCompute], @execution_relation.CompletionPreparation, DuckDBComputeLimits, (DuckDBComputeAttempt) -> Bool, retained_required? : Bool, stream_transport? : @adapter.TransportColumnLimits) -> Result[DuckDBComputeAttempt, DuckDBComputeIssue]

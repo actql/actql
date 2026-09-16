@@ -439,6 +439,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       if (material == null) return false;
       const {wire, maxFrameBytes} = retainedInputContract(material, input);
       beginInputStream(port, wire, maxFrameBytes);
+      const identityReused = checked(moon.computeHostResidentInputReuse(run, resident.inputs, port));
       let physical;
       const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
       const fields = await session.command(sql, [], chunk => {
@@ -450,7 +451,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       begin(fields);
       signal?.throwIfAborted();
       checked(moon.computeHostInputStreamFinish(run, port));
-      return true;
+      return Object.freeze({identityReused});
     },
     async consumeInput(port, accept) {
       const input = checked(moon.computeHostInputRead(run, port));
