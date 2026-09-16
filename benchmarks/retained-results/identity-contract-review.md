@@ -1,13 +1,56 @@
-# Identity boundary review — main decision recorded; implementation pending
+# Identity boundary review — existing contract and new profile
+
+## Latest approved direction — 2026-09-16
+
+The user's subsequent decision supersedes the universal no-omission wording of
+the earlier main answer below: **preserve the existing contract, and make logical
+content identity conditional in a new profile**. This is an approved direction,
+not merely a proposal to reconsider CID requirements. It is not permission to
+omit mandatory fields while claiming the existing contract.
+
+The local main checkout inspected for this update remains `3820ea11`. The new
+profile's normative identifier, boundary-specific requirements, wire/pins and
+independent fixtures have not been identified in that checkout. Consequently,
+shared-contract integration and new-profile execution remain unfinished; this
+record does not invent a profile identifier or change a canonical preimage.
+
+| Track | Decision | Remaining work |
+| --- | --- | --- |
+| Existing contract | Keep required observation and published Result identities; improve physical paths and reuse valid evidence | Product evidence reuse, direct output, conformance and formal measurements |
+| New profile | Require logical content CID only under the agreed applicable obligations | Main-owned normative contract, implementation, independent fixtures and separately registered measurements |
+| Existing experiment | Preserve all 27 cases, 21 large direct-path targets, 1 GiB and registered performance criteria | Independent equivalent-obligation comparison and formal acceptance; new-profile timings cannot substitute |
+
+The main shared-contract handoff must specify:
+
+1. The profile identifier and explicit selection/admission rules, and exactly
+   which acquisition, internal completion and publication boundaries require
+   which identity. Existing profiles retain their guarantees.
+2. Required versus unestablished logical identity representation, consumer
+   permissions, and later identity requests via additional admission. No dummy
+   CID or physical digest may stand in for logical content identity.
+3. The applicable semantic/execution contract, consumer/publication requirements,
+   Host policy and additional user requirements that determine the obligation
+   set before candidate comparison. The planner cannot lower that set.
+4. Normative prose, affected machine contracts and pins, compatibility rules and
+   independent positive/negative fixtures. Canonical preimages for identities
+   that are computed remain explicit and distinct from execution provenance.
+
+Physical-path work under the existing contract continues in parallel. Reusing
+an already computed CID does not implement conditional CID in the new profile.
+Report contract integration, physical-path conformance and performance acceptance
+separately. New-profile implementation is not complete until the adopted shared
+contract, implementation, fixtures and separate measurements are connected.
+
+## Earlier main answer — applicable to the existing contract
 
 Initial implementation inspection: `86429b48`. On 2026-09-16 the user relayed
 main's contract answer, following the checker integration at `3820ea11`.
 The agreement below records that answer, not an independently rerun main audit.
-It authorizes no omission of mandatory identities. The registered experiment
+That answer authorized no omission of mandatory identities. The registered experiment
 continues to require its original guarantees. Implementation, independent
 fixtures and measured cost attribution remain separate unfinished work.
 
-## Agreed decision and exact identity domains
+### Existing-contract decision and exact identity domains
 
 - Acquisition observation: retain mandatory content identities and the distinct
   observation/access/evidence associations used by fixed-observation consumers.
@@ -50,9 +93,10 @@ unverified transfer/deserialization invalidate reuse. Process evidence cannot be
 restored from JSON after process loss. Ordinary consumer failure does not revoke
 an independently completed upstream observation.
 
-This is a clarification of implementation conditions, not a wire/preimage or
+The earlier answer is a clarification of implementation conditions, not a wire/preimage or
 mandatory-field change. No machine-contract CID/pin change is required for this
-decision. No contract/version update or CID-free publication is authorized.
+earlier decision. The later new-profile decision above is separate and must not
+be represented as this identity-neutral clarification.
 
 ## Boundaries, beneficiaries and costs
 
@@ -106,7 +150,9 @@ not ordinary additional-computation failures.
 
 ## Evidence still required
 
-- Implement the recorded agreement without speculative CID omission.
+- Implement existing-contract evidence reuse without omitting its required CIDs.
+- Connect the approved conditional-CID profile to main's shared contract,
+  implementation, independent fixtures and separately registered measurements.
 - Measured validation, canonical encoding/hash, physical integrity and holding
   costs, with interval nesting and shared work identified.
 - Positive reuse tests and negative generation/owner/attempt/corruption/expiry

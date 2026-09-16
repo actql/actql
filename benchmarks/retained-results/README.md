@@ -11,9 +11,11 @@ implementation. All remain mandatory, with normal cost-grounded selection and
 admission; forced selection is conformance evidence only. Preparation costs are
 included and preexisting resident state is a separate condition. The original
 27-case functional and performance gates remain unchanged. The
-[identity contract review](identity-contract-review.md) tracks proposed boundary
-decisions and the concrete content-verification/consumer-guard coupling; it is
-not evidence of main agreement or permission to omit a CID.
+[identity contract review](identity-contract-review.md) records the approved
+separate tracks: preserve the existing contract and make logical CID conditional
+in a new profile. New-profile shared-contract integration and implementation are
+unfinished. This does not authorize omission of an existing mandatory CID or
+substitution of new-profile timings for this experiment's acceptance evidence.
 
 The approved [capacity comparison addendum](acceptance-addendum-2026-09-16.md)
 preserves that registration and the 1 GiB ceiling. Nine capacity-impossible

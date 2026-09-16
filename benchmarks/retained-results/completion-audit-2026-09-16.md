@@ -1,5 +1,11 @@
 # Retained execution completion audit
 
+Contract follow-up: the approved direction now preserves the existing contract
+and makes logical CID conditional in a separate new profile. See the
+[identity review](identity-contract-review.md) for the main shared-contract
+handoff and unfinished integration. Evidence reuse alone does not complete that
+change. Existing 27-case/1 GiB acceptance requirements remain unchanged.
+
 Latest bounded follow-up: clean `19e947e1` passed all 27 registered cases with
 unchanged 1 GiB retention and existing timeouts. All 21 large cases used native
 file input without parameter INSERT on every Compute port, through the standard
@@ -30,8 +36,11 @@ base, for the retained execution implementation described here.
 | Performance acceptance | Registered 27-case readiness passed earlier; bounded imports substantially reduced diagnostic time | Four-comparator runner/samples, alternating pairs and confidence gates are not complete |
 
 Formal Run/Result publication, control-Host restart recovery, remote authentication,
-cross-Run process pools, cross-task fusion and new semantics are excluded. They
-must not be introduced merely to satisfy one integration test.
+cross-Run process pools and cross-task fusion are excluded from this retained
+execution checkpoint. The subsequently approved new identity profile is a
+separate contract/implementation track, not a relaxation of this checkpoint's
+experiment. These other capabilities must not be introduced merely to satisfy
+one integration test.
 
 ## Regression results and outstanding runs
 
