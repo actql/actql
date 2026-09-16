@@ -108,8 +108,9 @@ fn input_cursor(text : String) -> @decode.Cursor {
 /// generated from a checked Program or an execution result.
 fn join_graph_capacity_material(
   environment : @environment.WireEnvironment,
+  stage : String,
   steps? : Array[Int] = [0],
-) -> @host.HostSources raise {
+) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
       max_bytes: 10000,
@@ -155,12 +156,19 @@ fn join_graph_capacity_material(
     max_witnesses: 10,
     max_references: 20,
   }).unwrap()
-  @host.bind_claim_sources(claims, [policy], {
+  let sources = @host.bind_claim_sources(claims, [policy], {
     max_entries: 10,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
+  {
+    stage,
+    sources,
+    uses: Array::makei(steps.length(), i => {
+      Join(step=steps[i], output=@wire.mixed_limit_at(mixed, i).unwrap())
+    }),
+  }
 }
 
 ///|
@@ -285,91 +293,33 @@ fn query_catalog_from_wire(
 
 ///|
 /// Fixture owner: query_integration/query_checked_limits_wbtest.mbt
-fn query_checked_limits(stage_count : Int) -> @program_check.SourceLimits {
+fn query_checked_limits(stage_count : Int) -> @program_check.CompileLimits {
   {
-    topology: {
-      max_stages: stage_count,
-      max_steps: stage_count,
-      max_results: stage_count,
-      max_work: 1000000,
-      max_nodes: 100000,
-      max_tokens: 10000,
-      max_text_bytes: 1000000,
-      max_depth: 100,
+    work: 100000000,
+    artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
+    structure: {
+      stages: stage_count,
+      steps: stage_count,
+      results: stage_count,
+      parameters: 1,
+      bindings: 100,
+      slots: 1000,
+      references: 1000,
+      requirements: 1000,
+      tokens: 10000,
     },
-    context: {
-      stages: {
-        max_work: 10000000,
-        max_text_bytes: 10000000,
-        max_name_bytes: 1000000,
-        max_input_work: 1000000,
-        max_operand_work: 1000000,
-      },
-      max_policy_bytes: 10000,
-      max_policy_nodes: 100,
-      max_policy_depth: 10,
-      max_local_input_nodes: 100000,
-    },
-    requests: {
-      max_work: 10000000,
-      max_pairs: 1000,
-      values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 100000, },
-    },
-    checks: {
-      work: 10000000,
+    traversal: {
+      nodes: 100000,
+      depth: 100,
       text_bytes: 10000000,
-      source_value_nodes: 1000000,
-      source_comparison_pairs: 1000000,
-      policy_nodes: 1000000,
-      local_input_nodes: 1000000,
-      pattern_ast_bytes: 1000000,
-      pattern_ast_nodes: 1000000,
+      string_bytes: 100000,
+      name_bytes: 1000000,
+      pointer_units: 1000000,
+      comparison_pairs: 1000000,
     },
-    identity: {
-      body: {
-        max_work: 1000000,
-        selectors: {
-          max_nodes: 10000,
-          max_depth: 100,
-          max_text_bytes: 100000,
-          max_tokens: 1000,
-          tree: {
-            max_nodes: 10000,
-            max_depth: 100,
-            max_string_bytes: 100000,
-            max_total_string_bytes: 100000,
-          },
-        },
-      },
-      uses: {
-        max_work: 1000000,
-        max_slots: 1000,
-        max_references: 1000,
-        max_pointer_units: 100000,
-        max_direct_text_bytes: 100000,
-      },
-      references: {
-        max_work: 4000000,
-        max_slots: 1000,
-        max_references: 1000,
-        max_pointer_units: 1000000,
-        max_request_text_bytes: 100000,
-      },
-      identity: {
-        max_work: 10000000,
-        max_stages: stage_count,
-        max_hash_bytes: 100000,
-        max_hash_nodes: 10000,
-        max_depth: 100,
-      },
-      max_bindings: 100,
-    },
-    max_parameters: 1,
-    max_bindings: 100,
-    max_slots: 1000,
-    max_policy_depth: 100,
-    max_requirements: 1000,
-    max_regex_depth: 100,
+    values: { nodes: 1000000, depth: 100, text_bytes: 100000, },
+    policy: { bytes: 10000, nodes: 1000000, depth: 100, },
+    patterns: { bytes: 1000000, nodes: 1000000, depth: 100, },
   }
 }
 
@@ -449,20 +399,17 @@ fn query_checked_program_fixture(
   }
   let text = text.replace(old="id > $minimum", new=acquisition_filter)
   let text = text.replace(old="id > 2", new=compute_filter)
-  let program = @syntax.parse(
-    text,
-    {
-      source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-      tree: {
-        max_nodes: 100000,
-        max_depth: 100,
-        max_string_bytes: 1000000,
-        max_total_string_bytes: 1000000,
-      },
-      max_stages: 10,
+  let input_limits : @syntax.Limits = {
+    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    tree: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1000000,
+      max_total_string_bytes: 1000000,
     },
-    format=Json,
-  ).unwrap()
+    max_stages: 10,
+  }
+  let program = @syntax.parse(text, input_limits, format=Json).unwrap()
   let policies = @environment.value_contract_policies(
     @environment.source_view_shape_values(
       @environment.read_mode_shapes(
@@ -487,60 +434,33 @@ fn query_checked_program_fixture(
       ),
     ),
   )
-  let mixed = @wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
-    max_witnesses: 0,
-    max_references: 0,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let join_sources = if dag_join {
-    Some(join_graph_capacity_material(environment, steps=join_steps))
+  let evidence = if dag_join {
+    [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else {
-    None
+    []
   }
-  @program_check.check(
-    program,
-    environment,
-    Some(input_cursor(parameter_json)),
-    if dag {
-      let visits = if dag_join { [1, 2, 2, 5, 6] } else { [1, 2, 2, 3] }
-      Array::makei(visits.length(), stage => {
-        Array::makei(visits[stage], visit => {
-          if ((stage == 3 && visit == 0) || (stage == 4 && visit == 1)) &&
-            join_sources is Some(join_sources) {
-            {
-              sources: join_sources,
-              consumers: Array::makei(join_steps.length(), i => {
-                @capacity.Join(step=join_steps[i], output=i)
-              }),
-            }
-          } else {
-            { sources, consumers: [], }
-          }
-        })
-      })
-    } else {
-      [[{ sources, consumers: [], }]]
-    },
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    query_checked_limits(10),
-    max_work=100000000,
-    max_bytes=10000000,
-    max_nodes=1000000,
-    max_depth=100,
-  )
+  match
+    @program_check.check_parsed_with_evidence(
+      program,
+      @program_check.checking_environment(
+        environment,
+        { text_time: false, veca: false, },
+        {
+          rela: true,
+          sga: false,
+          tea: false,
+          calendar: false,
+          text_rank: false,
+        },
+      ),
+      Some(input_cursor(parameter_json)),
+      evidence,
+      { input: input_limits, compilation: query_checked_limits(10), },
+    ) {
+    Checked(value) => value
+    NeedsInputs(_) => fail("fixture requires complete checking inputs")
+    Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
+  }
 }
 
 ///|

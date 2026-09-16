@@ -130,15 +130,15 @@ fn prepare_application_internal(
     fail("invalid application data profile")
   }
   let input_limits : @syntax.Limits = {
-        source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-        tree: {
-          max_nodes: 100000,
-          max_depth: 100,
-          max_string_bytes: 1000000,
-          max_total_string_bytes: 1000000,
-        },
-        max_stages: 5,
-      }
+    source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    tree: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1000000,
+      max_total_string_bytes: 1000000,
+    },
+    max_stages: 5,
+  }
   let program = match @syntax.parse(program_json, input_limits, format=Json) {
     Ok(program) => program
     Err(issue) => raise Syntax(issue)

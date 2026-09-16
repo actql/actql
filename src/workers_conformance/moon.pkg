@@ -23,7 +23,6 @@ import {
   "actql/actql/capacity_witness" @wire,
   "actql/actql/capacity_host_witness" @host,
   "actql/actql/capacity_policy",
-  "actql/actql/capacity_graph_preflight" @capacity,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/execution_relation" @execution,
