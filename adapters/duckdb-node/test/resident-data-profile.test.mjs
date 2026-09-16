@@ -71,6 +71,30 @@ test('explicit data profiles select resident reuse with independent retained out
         if (result) assert.equal(result.cleanupHandle.status().pending, false);
       }
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
+      if (fixture.workload === workloads[2] && fixture.layout === 'narrow') {
+        // Acquisition and root import cannot borrow a third attempt to start
+        // Compute. A cheap resident estimate never overrides the Run ceiling.
+        const limited = await createManagedExampleHost(config.limits);
+        let rejected;
+        try {
+          rejected = await limited.run({...config.input, resident: true, nativeMilliseconds: '20'},
+            {run: `${fixture.id}/attempt-limit`, childLimits: {...config.childLimits, attempts: 2}},
+            AbortSignal.timeout(config.timeoutMs));
+          assert.equal(rejected.report.status, 'host-tasks-failed');
+          assert.deepEqual(rejected.report.completed, []);
+          assert(BigInt(rejected.report.explanation.ledger.attempts) <= 2n);
+          assert.equal(rejected.completion(1), undefined);
+          assert.equal(rejected.process().exited, true);
+          assert.equal(limited.usage().reserved_execution_bytes, 0n);
+        } finally {
+          await rejected?.close();
+          if (rejected) {
+            assert.equal(rejected.cleanupHandle.status().pending, false);
+            assert.equal(rejected.storageUsage().holdings, 0);
+          }
+        }
+        assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
+      }
     }
   } finally { await rm(directory, {recursive: true, force: true}); }
 });

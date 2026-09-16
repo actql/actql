@@ -722,3 +722,16 @@ resident placement. All five managed cases (three narrow workloads, wide reuse,
 long-text reuse) pass. `check:docs` and cross-target API checks also passed before
 the final conservative-estimate adjustment. After that adjustment, the JS
 application test, cross-target API check and whitespace check passed again.
+
+## Follow-up: resident profile refusal under a delegated attempt ceiling
+
+The managed resident profile regression now also runs narrow retained reuse
+with only two delegated attempts. It reports `host-tasks-failed`, publishes no
+Compute completion, records no more than two attempts, and confirms actual child
+exit with zero outstanding execution reservation. Explicit close removes the
+capture holding and leaves neither pending cleanup nor output files. The cheap
+resident cost estimate cannot bypass the delegated Run ceiling.
+
+The combined test passes its five positive managed profiles, the independent
+in-process long-text check and this budget-refusal case. No capacity threshold,
+performance acceptance rule or execution semantics changed in this follow-up.
