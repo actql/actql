@@ -74,6 +74,8 @@ pub fn compute_host_input_stream_begin(ComputeNodeRun, Int, @execution_relation.
 
 pub fn compute_host_input_stream_finish(ComputeNodeRun, Int) -> Unit raise NodeHostFailure
 
+pub fn compute_host_input_stream_verify(ComputeNodeRun, Int, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise NodeHostFailure
+
 pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool, Int) -> String raise NodeHostFailure

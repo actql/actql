@@ -13,7 +13,7 @@ import {
 // Values
 pub fn abort_duckdb_compute_attempt(DuckDBComputeAttempt) -> Unit
 
-pub fn append_duckdb_compute_input_stream(DuckDBComputeAttempt, Int, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[@adapter.PhysicalParameter], DuckDBComputeIssue]
+pub fn append_duckdb_compute_input_stream(DuckDBComputeAttempt, Int, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[@adapter.PhysicalParameter], DuckDBComputeIssue]
 
 pub fn begin_duckdb_compute_input_stream(DuckDBComputeAttempt, Int, @execution_relation.RowWireLimits, Int) -> Result[Unit, DuckDBComputeIssue]
 

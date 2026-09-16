@@ -110,7 +110,9 @@ test "retained Compute fixes frame capacity before streaming and rejects full ro
 
 ///|
 test "retained Compute inputs must finish exact import before result receiving" {
-  for mode in 0..<3 {
+  for case_index in 0..<6 {
+    let mode = case_index / 2
+    let materialize_parameters = case_index % 2 == 0
     let producer_transport : FixedComputeTestTransport = { settled: None, }
     let (producer, producer_input) = fixed_compute_attempt_fixture(
       producer_transport,
@@ -168,7 +170,7 @@ test "retained Compute inputs must finish exact import before result receiving" 
       retained_attempt_wire_limits(),
       64,
     ).unwrap()
-    @duckdb_compute.append_duckdb_compute_input_stream(
+    let parameters = @duckdb_compute.append_duckdb_compute_input_stream(
       attempt,
       0,
       if mode == 1 {
@@ -177,8 +179,9 @@ test "retained Compute inputs must finish exact import before result receiving" 
         "{\"id\":3}"
       },
       { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      materialize_parameters~,
     ).unwrap()
-    |> ignore
+    assert_eq(parameters.length(), if materialize_parameters { 1 } else { 0 })
     if mode == 2 {
       @duckdb_compute.close_duckdb_compute_attempt(producer)
     }

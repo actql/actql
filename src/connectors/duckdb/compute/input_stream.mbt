@@ -80,6 +80,7 @@ pub fn append_duckdb_compute_input_stream(
   port : Int,
   row : String,
   limits : @execution.RetainedRowDecodeLimits,
+  materialize_parameters? : Bool = true,
 ) -> Result[Array[@duckdb.PhysicalParameter], DuckDBComputeIssue] {
   guard value.live &&
     value.receiving is None &&
@@ -96,7 +97,13 @@ pub fn append_duckdb_compute_input_stream(
         max_text_bytes: Int::min(limits.max_text_bytes, bound.max_text_bytes),
       }
   }
-  match @duckdb.append_fixed_import_stream(stream, row, limits) {
+  match
+    @duckdb.append_fixed_import_stream(
+      stream,
+      row,
+      limits,
+      materialize_parameters~,
+    ) {
     Ok(parameters) => Ok(parameters)
     Err(issue) => {
       abort_duckdb_compute_attempt(value)

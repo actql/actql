@@ -4,6 +4,101 @@ fn stream_value_limits() -> ValueLimits {
 }
 
 ///|
+test "verification-only encoder preserves identity usage and rejects foreign values" {
+  let owner = capture_fixture()
+  let expected = "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]"
+  let writer = @encode.hashing_writer(1000, 100, 10)
+  @encode.emit_json(@json.parse(expected), writer)
+  let (hash, bytes, nodes) = @encode.finish_hash_usage(writer)
+  let scan = prepare_admitted_stream(
+    owner,
+    Step(1),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    0,
+    false,
+  ).unwrap()
+  for row in 0..<2 {
+    let values = output_fixture_row(owner, row)
+    assert_eq(
+      append_admitted_output_stream(scan, values.length(), column => {
+        values.get(column)
+      }).unwrap(),
+      "",
+    )
+    assert_true(scan.buffer.rows.is_empty())
+  }
+  let (receipt, tail) = finish_admitted_output_stream(scan).unwrap()
+  assert_eq(tail, "")
+  assert_eq(
+    output_stream_identity(receipt),
+    ("sha256:" + hash, bytes, nodes, 2),
+  )
+  assert_eq(output_stream_value_usage(receipt), {
+    nodes: 6,
+    text_bytes: 10,
+    work: 16,
+  })
+  assert_true(finish_admitted_output_stream(scan) is Err(Closed))
+  let foreign_scan = prepare_admitted_stream(
+    owner,
+    Step(1),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    0,
+    false,
+  ).unwrap()
+  let foreign = output_fixture_row(capture_fixture(), 0)
+  assert_true(
+    append_admitted_output_stream(foreign_scan, foreign.length(), column => {
+      foreign.get(column)
+    })
+    is Err(Admission(ForeignCheckedValue(0, _))),
+  )
+  assert_true(finish_admitted_output_stream(foreign_scan) is Err(Closed))
+}
+
+///|
+test "verification-only encoder preserves cumulative byte and row ceilings" {
+  let owner = capture_fixture()
+  let limits = row_wire_limits()
+  for mode in 0..<2 {
+    let scan = prepare_admitted_stream(
+      owner,
+      Step(1),
+      if mode == 0 {
+        1
+      } else {
+        2
+      },
+      stream_value_limits(),
+      if mode == 0 {
+        limits
+      } else {
+        { ..limits, max_bytes: 25, }
+      },
+      0,
+      false,
+    ).unwrap()
+    let first = output_fixture_row(owner, 0)
+    append_admitted_output_stream(scan, first.length(), column => {
+      first.get(column)
+    }).unwrap()
+    |> ignore
+    let second = output_fixture_row(owner, 1)
+    assert_true(
+      append_admitted_output_stream(scan, second.length(), column => {
+        second.get(column)
+      })
+      is Err(_),
+    )
+    assert_true(finish_admitted_output_stream(scan) is Err(Closed))
+  }
+}
+
+///|
 test "output stream retains no rows and shares canonical encoding with ordered output" {
   let owner = capture_fixture()
   let stream = prepare_admitted_output_stream(

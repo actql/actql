@@ -396,8 +396,12 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
         maxRowBytes: maxFrameBytes, maxDepth: depth, maxFrameBytes,
       }, async row => {
         signal?.throwIfAborted();
-        const parameters = JSON.parse(checked(moon.computeHostInputStreamAppend(run, port, row, decode)));
-        await accept(parameters);
+        if (resident) {
+          checked(moon.computeHostInputStreamVerify(run, port, row, decode));
+        } else {
+          const parameters = JSON.parse(checked(moon.computeHostInputStreamAppend(run, port, row, decode)));
+          await accept(parameters);
+        }
       });
       checked(moon.computeHostInputStreamBegin(run, port, wire, maxFrameBytes));
       try {

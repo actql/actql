@@ -90,6 +90,41 @@ pub fn compute_host_input_stream_append(
 }
 
 ///|
+/// Validate an existing resident input without serializing unused SQL parameters.
+/// This is not a readiness shortcut: finish still checks content and consumer
+/// demand, measurement and join obligations through the same stream.
+#export_name("computeHostInputStreamVerify")
+pub fn compute_host_input_stream_verify(
+  run : ComputeNodeRun,
+  port : Int,
+  row : String,
+  limits : @execution.RetainedRowDecodeLimits,
+) -> Unit raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb_compute.append_duckdb_compute_input_stream(
+      run.attempt,
+      port,
+      row,
+      {
+        max_bytes: Int::min(limits.max_bytes, run.transport.max_bytes),
+        max_nodes: Int::min(limits.max_nodes, run.transport.max_nodes),
+        max_depth: limits.max_depth,
+        max_text_bytes: Int::min(
+          limits.max_text_bytes,
+          run.transport.max_text_bytes,
+        ),
+      },
+      materialize_parameters=false,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
 #export_name("computeHostInputStreamFinish")
 pub fn compute_host_input_stream_finish(
   run : ComputeNodeRun,

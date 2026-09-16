@@ -8,6 +8,7 @@ struct AdmittedOutputStream {
   buffer : AdmittedRowBuffer
   order : RowWireOrder
   writer : @encode.Writer
+  retain_text : Bool
   max_rows : Int
   mut rows : Int
   mut open : Bool
@@ -47,6 +48,23 @@ pub fn prepare_admitted_output_stream(
   wire : RowWireLimits,
   max_batch_bytes : Int,
 ) -> Result[AdmittedOutputStream, OutputStreamIssue] {
+  prepare_admitted_stream(
+    owner, target, max_rows, values, wire, max_batch_bytes, true,
+  )
+}
+
+///|
+/// Content verification uses the same encoder without allocating discarded
+/// canonical output. Row parsing and cumulative encoding budgets remain bounded.
+fn prepare_admitted_stream(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  max_batch_bytes : Int,
+  retain_text : Bool,
+) -> Result[AdmittedOutputStream, OutputStreamIssue] {
   if !row_wire_valid_limits(wire) || max_batch_bytes < 0 {
     return Err(Wire(InvalidLimits))
   }
@@ -69,12 +87,16 @@ pub fn prepare_admitted_output_stream(
     Err(issue) => return Err(Wire(issue))
   }
   try {
-    let writer = @encode.buffered_hashing_writer(
-      wire.max_bytes,
-      wire.max_nodes,
-      wire.max_depth,
-      max_batch_bytes,
-    )
+    let writer = if retain_text {
+      @encode.buffered_hashing_writer(
+        wire.max_bytes,
+        wire.max_nodes,
+        wire.max_depth,
+        max_batch_bytes,
+      )
+    } else {
+      @encode.hashing_writer(wire.max_bytes, wire.max_nodes, wire.max_depth)
+    }
     @encode.begin_array(writer)
     Ok({
       owner,
@@ -82,6 +104,7 @@ pub fn prepare_admitted_output_stream(
       buffer: output.buffer,
       order,
       writer,
+      retain_text,
       max_rows,
       rows: 0,
       open: true,
@@ -162,7 +185,13 @@ fn append_output_stream_row(
       @admitted.emit_wire_value(row[column], stream.writer)
     }
     @encode.end_object(stream.writer)
-    Ok(@encode.drain_hash_output(stream.writer))
+    Ok(
+      if stream.retain_text {
+        @encode.drain_hash_output(stream.writer)
+      } else {
+        ""
+      },
+    )
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }
@@ -183,7 +212,11 @@ pub fn finish_admitted_output_stream(
   stream.measurement = None
   try {
     @encode.end_array(stream.writer)
-    let tail = @encode.drain_hash_output(stream.writer)
+    let tail = if stream.retain_text {
+      @encode.drain_hash_output(stream.writer)
+    } else {
+      ""
+    }
     let (hash, bytes, nodes, depth) = @encode.finish_hash_metrics(stream.writer)
     let budget = stream.buffer.budget
     Ok(

@@ -63,13 +63,14 @@ pub fn prepare_retained_producer_scan(
     return Err(Admission(CaptureLimit))
   }
   let stream = match
-    prepare_admitted_output_stream(
+    prepare_admitted_stream(
       receipt.owner,
       receipt.target,
       max_rows,
       values,
       wire,
       max_batch_bytes,
+      false,
     ) {
     Ok(stream) => stream
     Err(issue) => return Err(Encoding(issue))

@@ -28,6 +28,16 @@ table, and publishes only after native settlement and common completion. The
 resident environment can close without invalidating the independently held file.
 Later resident consumers avoid reimport but still perform their required bounded
 input checks and charge file reads; copy reuse does not waive logical obligations.
+Their validation-only input stream does not construct or serialize SQL parameters
+for cells already held by the resident table. It still decodes the retained
+content, checks the receiving physical types, verifies canonical identity and
+finishes the same consumer measurement, demand and join checks. This removes an
+unused transport representation, not any content or consumer verification.
+Producer and storage verification scans use the canonical encoder's hash-only
+sink: they do not reconstruct canonical output strings that no consumer stores.
+The ordered CID and cumulative byte/node/depth limits are unchanged. Output
+creation still uses bounded buffered encoding, because those bytes must reach
+independent storage before publication.
 
 Native stop and retained-input read stop are separate facts. If Store consumption
 rejects without a read-stop receipt, the Compute Host cannot use DB settlement to

@@ -32,7 +32,7 @@ pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> 
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
-pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
+pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
 
 pub fn append_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
 

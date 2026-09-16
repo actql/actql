@@ -38,13 +38,14 @@ pub fn prepare_retained_storage_scan(
     return Err(Admission(CaptureLimit))
   }
   match
-    prepare_admitted_output_stream(
+    prepare_admitted_stream(
       expected.owner,
       expected.target,
       max_rows,
       values,
       wire,
       max_batch_bytes,
+      false,
     ) {
     Err(issue) => Err(Encoding(issue))
     Ok(stream) => Ok({ storage, expected, stream, open: true, })

@@ -24,6 +24,7 @@ test "retained producer scan validates whole identity without retaining rows" {
     row_wire_limits(),
     64,
   ).unwrap()
+  assert_false(scan.stream.retain_text)
   for row in ["{\"n\":1,\"s\":\"é\"}", "{\"n\":2,\"s\":\"😀\"}"] {
     let values = append_retained_producer_scan_wire(
       scan,
