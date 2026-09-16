@@ -9,7 +9,7 @@ import {RetainedFileError} from './files.mjs';
 const fail = code => { throw new RetainedFileError(code); };
 const quantity = value => Number.isSafeInteger(value) && value >= 0;
 
-export async function withVerifiedDelegatedFile(supplied, use, signal) {
+export async function withVerifiedDelegatedFile(supplied, use, signal, beforeRead) {
   const lease = Object.freeze({...supplied});
   if (lease.version !== 'actql-local-file-read/0.1' ||
       typeof lease.session !== 'string' || !lease.session.length || lease.session.length > 256 ||
@@ -18,7 +18,12 @@ export async function withVerifiedDelegatedFile(supplied, use, signal) {
       !quantity(lease.device) || !quantity(lease.inode) || !quantity(lease.bytes) ||
       typeof lease.cid !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(lease.cid) ||
       !quantity(lease.maxFrameBytes) || !lease.maxFrameBytes || lease.maxFrameBytes > 16777216 ||
-      typeof use !== 'function') fail('InvalidStoreReadDelegation');
+      typeof use !== 'function' ||
+      (beforeRead !== undefined && typeof beforeRead !== 'function')) fail('InvalidStoreReadDelegation');
+  signal?.throwIfAborted();
+  // Reserve/charge the complete known physical read before opening or hashing.
+  // This callback is installed accounting, not a source of content evidence.
+  await beforeRead?.(lease.bytes);
   signal?.throwIfAborted();
   const fd = await open(lease.path, constants.O_RDONLY | constants.O_NOFOLLOW);
   let value;

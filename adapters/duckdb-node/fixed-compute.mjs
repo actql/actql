@@ -77,10 +77,10 @@ async function executeFixedCompute(port, limits, importLimits, consume, signal, 
       let insertMilliseconds = 0;
       const { rows, columns, batchRows, direct } = imports[input];
       if (direct) {
-        await direct.run(session);
+        const work = await direct.run(session);
         signal?.throwIfAborted();
         inputTimings.push(Object.freeze({input, rows, milliseconds: performance.now() - inputStarted,
-          representation: 'verified-file-native-read', parameterInsertRows: 0}));
+          representation: 'verified-file-native-read', ...work}));
         continue;
       }
       await session.command(port.createSql(input), [], discard);

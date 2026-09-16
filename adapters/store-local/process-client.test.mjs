@@ -39,10 +39,12 @@ test('completion storage lookup keeps exact material, lease and process binding 
     // binding that created this lease. Wire/copied settings grant nothing.
     assert.throws(() => processRetainedBodyIdentity(body, bindProcessStore(context)), {code: 'ForeignRetainedStoreBody'});
     assert.throws(() => processRetainedBodyIdentity(body, {...binding}), /ForeignProcessStoreBinding/);
+    let admittedBytes = 0;
     assert.equal(await body.withVerifiedFile(async file => {
+      assert.equal(admittedBytes, 2);
       assert.equal(await readFile(file.path, 'utf8'), '[]');
       return 'native-result';
-    }), 'native-result');
+    }, undefined, bytes => { admittedBytes += bytes; }), 'native-result');
     assert.equal(body.available(), true);
     body.close();
     assert.throws(() => processRetainedBodyIdentity(body, binding), {code: 'ForeignRetainedStoreBody'});

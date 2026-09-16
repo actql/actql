@@ -61,6 +61,15 @@ test('installed retained timing leg verifies every workload and independently re
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
       assert(report.tasks.every(task => task.phases.inputs.every(input =>
         input.representation === 'verified-file-native-read' && input.parameterInsertRows === 0)));
+      for (const input of report.tasks.flatMap(task => task.phases.inputs)) {
+        assert.equal(input.validationRows, input.rows);
+        assert.equal(input.validationCells, input.rows * (workload === workloads[2] ? 2 : 1));
+        assert.equal(input.storedRowJsonDecodes, 0);
+        assert.equal(input.logicalCidPasses, 1);
+        assert.equal(input.physicalIntegrityPasses, 1);
+        assert.equal(input.nativeFileReads, 1);
+        assert(input.fileBytes > 0);
+      }
       assert.equal(report.controlMemory.status, 'observed');
       assert(BigInt(report.controlTransport.receivedBytes) > 0n);
       assert(report.executionMs > 0 && report.cleanupMs >= 0);

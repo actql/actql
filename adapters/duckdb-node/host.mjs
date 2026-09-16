@@ -402,12 +402,10 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       return Object.freeze({path, run: async session => {
         beginInputStream(port, wire, maxFrameBytes);
         inputReadUnconfirmed = true;
+        let fileBytes = 0, validationRows = 0, validationCells = 0;
         await withRetainedInputFile(material, input, async file => {
           if (file.path !== path) throw new DuckDBTransportError('ForeignRetainedFile');
-          // Physical integrity scan plus native file read. Logical per-consumer
-          // measurements are separately charged by the typed scan below.
-          checked(moon.computeHostPhysicalCharge(run, BigInt(file.bytes) * 2n));
-          directInputBytes += file.bytes * 2;
+          fileBytes = file.bytes;
           await session.command(sql._0, [{type: {id: 'VARCHAR'}, value: file.path}], () => {});
           let physical;
           const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));
@@ -416,11 +414,21 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
             begin(chunk.fields);
             checked(moon.computeHostInputPhysicalAccept(run, port, physical,
               rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+            validationRows += chunk.rowCount;
+            validationCells += chunk.rowCount * chunk.fields.length;
           });
           begin(fields);
           checked(moon.computeHostInputStreamFinish(run, port));
-        }, signal);
+        }, signal, bytes => {
+          // Physical integrity scan plus native file read, before either starts.
+          // Logical consumer measurements are charged by the typed scan above.
+          checked(moon.computeHostPhysicalCharge(run, BigInt(bytes) * 2n));
+          directInputBytes += bytes * 2;
+        });
         inputReadUnconfirmed = false;
+        return Object.freeze({fileBytes, physicalIntegrityPasses: 1, nativeFileReads: 1,
+          validationRows, validationCells, logicalCidPasses: 1,
+          storedRowJsonDecodes: 0, parameterInsertRows: 0});
       }});
     },
     async verifyResidentInput(port, session) {

@@ -91,8 +91,8 @@ export function createProcessStoreLease(binding, output, capacityBytes, maxFrame
                 report: await consumeDelegatedFile(descriptor, accept, readSignal),
               }), readSignal);
             },
-            async withVerifiedFile(use, readSignal) {
-              return read(descriptor => withVerifiedDelegatedFile(descriptor, use, readSignal), readSignal);
+            async withVerifiedFile(use, readSignal, beforeRead) {
+              return read(descriptor => withVerifiedDelegatedFile(descriptor, use, readSignal, beforeRead), readSignal);
             },
           });
           origins.set(body, Object.freeze({binding, identity: Object.freeze({

@@ -39,6 +39,22 @@ test('corrupt bytes are refused before native access', async t => {
   assert.equal(called, false);
 });
 
+test('physical read admission rejects before opening or hashing the file', async t => {
+  const {borrow} = await fixture(t);
+  const rejected = Error('transfer budget exceeded');
+  let calls = 0, native = false;
+  // A nonexistent path would fail with ENOENT if physical I/O started first.
+  await assert.rejects(withVerifiedDelegatedFile({...borrow.descriptor,
+    path: borrow.descriptor.path + '-missing'}, () => { native = true; }, undefined,
+  bytes => { calls++; assert.equal(bytes, 3); throw rejected; }), error => error === rejected);
+  assert.equal(calls, 1);
+  assert.equal(native, false);
+  const result = await withVerifiedDelegatedFile(borrow.descriptor, () => {
+    assert.equal(calls, 2); return 'admitted';
+  }, undefined, bytes => { calls++; assert.equal(bytes, 3); });
+  assert.equal(result.value, 'admitted');
+});
+
 test('mutation during native use cannot return a successful receipt', async t => {
   const {borrow} = await fixture(t);
   await assert.rejects(withVerifiedDelegatedFile(borrow.descriptor, async file => {

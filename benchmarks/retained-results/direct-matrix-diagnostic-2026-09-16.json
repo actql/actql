@@ -1,0 +1,1063 @@
+{
+  "scope": "exploratory-working-tree-not-acceptance",
+  "baseRevision": "112f262e49e52b45c4e95a23567e0eee87fad8c3",
+  "notes": [
+    "Telemetry counters added before cases 23-26; not a fixed-source timing experiment.",
+    "No formal performance ratio or calibrated normal-selection claim.",
+    "Source generated separately for each case; no preexisting resident copies."
+  ],
+  "selection": {
+    "resident": true,
+    "nativeMilliseconds": "1"
+  },
+  "retentionBytes": "1073741824",
+  "rows": [
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 543.854709,
+      "cleanupMs": 0.783292000000074,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 3.081209000000001,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 2.3077499999999986,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.5073749999999677,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 403.6568749999999,
+      "cleanupMs": 0.702541999999994,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 4.6078750000000355,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.6342500000000086,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.7631660000000124,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 434.970417,
+      "cleanupMs": 0.6860830000000533,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 2.9163750000000164,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.6159579999999778,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.459666000000027,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 681.7598329999998,
+      "cleanupMs": 0.7557499999998072,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 2.9573749999999563,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.708708999999999,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.8204170000000204,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 3129.561209,
+      "cleanupMs": 0.7186670000000959,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 2.971625000000131,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.752208999999766,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.5557919999996557,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1395.3892919999998,
+      "cleanupMs": 0.6572919999998703,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 3.3624170000000504,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.4057920000000195,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.581583000000137,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 9999.679082999999,
+      "cleanupMs": 0.6664579999996931,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 3.44800000000032,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.7704999999987194,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.7674580000002607,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 944.5717079999995,
+      "cleanupMs": 0.6547499999978754,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 3.5081670000000713,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.892708999999968,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 2.6473340000000007,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "native-acquisition-full-validation-low-selectivity/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 5643.27925,
+      "cleanupMs": 0.6860840000008466,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 3.152874999999767,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.712916999999834,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2,
+          "milliseconds": 1.6790829999999914,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 434.5720419999998,
+      "cleanupMs": 0.6227500000022701,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 4.56087500000001,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 2.8018749999999955,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 2.457290999999998,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 100,
+          "milliseconds": 2.7515000000000214,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 200,
+          "milliseconds": 2.688625000000002,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 497.30354200000147,
+      "cleanupMs": 0.9850829999995767,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 13.531166999999982,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 5.994082999999989,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 4.842957999999953,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 1000,
+          "milliseconds": 3.696041999999977,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2000,
+          "milliseconds": 5.129250000000013,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 685.8926670000001,
+      "cleanupMs": 0.7728749999987485,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 30.030666999999994,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 19.373582999999996,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 18.265833000000043,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 10000,
+          "milliseconds": 17.926916000000006,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 20000,
+          "milliseconds": 32.11395900000002,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 2591.7059169999993,
+      "cleanupMs": 3.3133750000015425,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 183.13908300000003,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 166.97262499999988,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 150.06124999999997,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 100000,
+          "milliseconds": 149.96274999999991,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 200000,
+          "milliseconds": 293.90112499999987,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 21975.857792,
+      "cleanupMs": 7.416500000006636,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 1650.037625,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 1666.3591250000009,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 1548.0237920000018,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 1000000,
+          "milliseconds": 1494.9230420000004,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 2000000,
+          "milliseconds": 2995.3530409999985,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1731.253417,
+      "cleanupMs": 0.8362919999999576,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 28.50133299999993,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 19.90029199999981,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 17.713917000000038,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 10000,
+          "milliseconds": 17.041625000000067,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 20000,
+          "milliseconds": 33.68112499999984,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 11976.271250000005,
+      "cleanupMs": 1.9155840000021271,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 180.3539579999997,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 170.70541699999922,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 153.5973329999997,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 100000,
+          "milliseconds": 153.85583299999962,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 200000,
+          "milliseconds": 303.9312920000011,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 1155.6370840000018,
+      "cleanupMs": 0.8971659999951953,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 31.49979200000007,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 19.43441699999994,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 18.048374999999965,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 10000,
+          "milliseconds": 18.040292000000022,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 20000,
+          "milliseconds": 33.028458,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "fixed-join-count-shrinking-intermediate/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 7337.690417000005,
+      "cleanupMs": 1.7960409999941476,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 177.45899999999983,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 170.83691699999963,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 150.6644580000002,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 1,
+          "rows": 100000,
+          "milliseconds": 156.80154200000015,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 200000,
+          "milliseconds": 294.87395800000013,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 395.77883300000394,
+      "cleanupMs": 0.6313329999975394,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 5.8185830000000465,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 3.2256250000000364,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100,
+          "milliseconds": 2.927792000000011,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000",
+      "large": false,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 441.59500000000116,
+      "cleanupMs": 0.68895799999882,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 12.204250000000002,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 6.633583999999985,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000,
+          "milliseconds": 5.484541999999976,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 682.6080419999926,
+      "cleanupMs": 0.6387499999982538,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 41.42758300000003,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 33.436082999999996,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 31.572457999999983,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 2881.5497919999907,
+      "cleanupMs": 2.34375,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 306.22808299999997,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 296.81337499999995,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 285.0017499999999,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/narrow/1000000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 25239.026458000008,
+      "cleanupMs": 5.103250000000116,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 3034.176625,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 2986.3432919999996,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 1000000,
+          "milliseconds": 2939.5963330000013,
+          "representation": "verified-file-native-read",
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 9081.402499999997,
+      "cleanupMs": 4.747083000009297,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 1028.685959,
+          "representation": "verified-file-native-read",
+          "fileBytes": 6275800,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 640000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 998.7297079999998,
+          "representation": "verified-file-native-read",
+          "fileBytes": 6275800,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 640000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 1038.413584,
+          "representation": "verified-file-native-read",
+          "fileBytes": 6275800,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 640000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/numeric-64/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 84312.23062500001,
+      "cleanupMs": 7.32116700001643,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 9936.389541,
+          "representation": "verified-file-native-read",
+          "fileBytes": 62859016,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 6400000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 9890.549541,
+          "representation": "verified-file-native-read",
+          "fileBytes": 62859016,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 6400000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 9970.705832999993,
+          "representation": "verified-file-native-read",
+          "fileBytes": 62859016,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 6400000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/10000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 5068.837708999985,
+      "cleanupMs": 1.9427909999794792,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 553.321375,
+          "representation": "verified-file-native-read",
+          "fileBytes": 10488891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 20000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 539.4207499999998,
+          "representation": "verified-file-native-read",
+          "fileBytes": 10488891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 20000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 10000,
+          "milliseconds": 535.9315840000004,
+          "representation": "verified-file-native-read",
+          "fileBytes": 10488891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 10000,
+          "validationCells": 20000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        }
+      ]
+    },
+    {
+      "caseId": "retained-large-output-downstream-reuse/text-1024/100000",
+      "large": true,
+      "status": "completed",
+      "allInputsNative": true,
+      "executionMs": 45866.63525000002,
+      "cleanupMs": 8.825166000024183,
+      "inputs": [
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 5259.813,
+          "representation": "verified-file-native-read",
+          "fileBytes": 104988891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 200000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 5175.900291999998,
+          "representation": "verified-file-native-read",
+          "fileBytes": 104988891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 200000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        },
+        {
+          "input": 0,
+          "rows": 100000,
+          "milliseconds": 5319.654290999999,
+          "representation": "verified-file-native-read",
+          "fileBytes": 104988891,
+          "physicalIntegrityPasses": 1,
+          "nativeFileReads": 1,
+          "validationRows": 100000,
+          "validationCells": 200000,
+          "logicalCidPasses": 1,
+          "storedRowJsonDecodes": 0,
+          "parameterInsertRows": 0
+        }
+      ]
+    }
+  ]
+}

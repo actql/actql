@@ -58,6 +58,25 @@ test('unsupported direct access and already-cancelled use do not enter native co
   await assert.rejects(withRetainedInputFile(material, input, () => {}, controller.signal), error => error === reason);
 });
 
+test('direct physical admission is forwarded only for the exact live input', async () => {
+  const material = {}, input = {};
+  const rejected = Error('physical budget exceeded');
+  let charged = 0, used = 0;
+  registerRetainedInput(material, value => value === input, {
+    async consume() {}, nativeFilePath() { return '/trusted-fixture'; },
+    async withVerifiedFile(use, signal, beforeRead) {
+      await beforeRead(12); used++; return use({path: '/trusted-fixture', bytes: 12});
+    },
+  }, {maxFrameBytes: 12, wire: {max_bytes: 12}});
+  const charge = bytes => { charged += bytes; throw rejected; };
+  await assert.rejects(withRetainedInputFile(material, {}, () => {}, undefined, charge),
+    {code: 'RetainedInputUnavailable'});
+  assert.equal(charged, 0);
+  await assert.rejects(withRetainedInputFile(material, input, () => {}, undefined, charge),
+    error => error === rejected);
+  assert.equal(charged, 12); assert.equal(used, 0);
+});
+
 test('release or cancellation during a provisional read cannot become verified consumption', async () => {
   for (const cancel of [false, true]) {
     const material = {};

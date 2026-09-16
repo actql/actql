@@ -994,3 +994,35 @@ tests passed three; resident data-profile test passed one; retained boundary
 tests passed 84; semantic dependency tests passed four. Generated interfaces
 match across targets. All 21 direct cases, independent equivalent-obligation
 comparison and formal performance acceptance remain outstanding.
+
+### Full native-input exploratory matrix
+
+`direct-matrix-diagnostic-2026-09-16.json` preserves all 27 outcomes from a
+sequential exploratory run based on `112f262e`. All completed with the registered
+1 GiB retention limit, independent expected final CIDs and confirmed cleanup.
+Every Compute input used native file reads with zero parameter INSERT rows,
+including all 21 registered large cases. Each fixture source was created in its
+own setup process; no resident table was preloaded. The normal planner was used
+with resident alternatives enabled and the existing 1 ms example estimate.
+These estimates are not calibrated, so Q7 normal-selection acceptance is open.
+
+This run is deliberately **not** fixed-revision performance evidence: telemetry
+counters were added before cases 23–26, and a small Store regression test ran
+during the last case. The revised `direct-matrix.mjs` runner detects source
+changes before/after each future sample instead of silently accepting them.
+No formal paired samples or confidence assessment are claimed.
+
+Large diagnostic times: narrow million-row join/count 21.976 s; narrow
+million-row reuse 25.239 s; numeric-64/100000 reuse 84.312 s; text-1024/100000
+reuse 45.867 s. Wide reuse still performs three full consumer identity scans:
+numeric-64 records 6.4 million validated cells per input, about 9.9 s per input,
+and about 11 s per query/output interval. Native parsing removes row restoration
+and parameter imports, not these validation/hash/output costs. Direct output,
+safe proof reuse and the independent equivalent-obligation comparator remain
+implementation work, not completed items.
+
+Follow-up inspection found that the native input charged its physical file bytes
+after the initial integrity scan. The Store now invokes installed read admission
+before opening/hashing, and the adapter charges integrity plus native read there.
+Negative tests show budget rejection wins even over a nonexistent file path,
+does not enter native use, and cannot charge through a foreign consumer handle.

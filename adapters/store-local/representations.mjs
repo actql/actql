@@ -42,7 +42,7 @@ export function retainedInputFilePath(material, input) {
   return body.nativeFilePath();
 }
 
-export async function withRetainedInputFile(material, input, use, signal) {
+export async function withRetainedInputFile(material, input, use, signal, beforeRead) {
   signal?.throwIfAborted();
   const held = admitted(material, input);
   if (typeof held.body.withVerifiedFile !== 'function' || typeof use !== 'function') {
@@ -52,7 +52,11 @@ export async function withRetainedInputFile(material, input, use, signal) {
     signal?.throwIfAborted();
     admitted(material, input);
     return use(file);
-  }, signal);
+  }, signal, beforeRead === undefined ? undefined : bytes => {
+    signal?.throwIfAborted();
+    admitted(material, input);
+    return beforeRead(bytes);
+  });
   signal?.throwIfAborted();
   admitted(material, input);
   return value;
