@@ -5,7 +5,7 @@
 /// or source material. One issuance consumes the metadata transfer opportunity.
 struct ManagedViewSelection[T] {
   plan : ManagedViewPlan[T]
-  rows : Array[Int]
+  rows : ManagedOccurrences
   facts : ManagedViewOutputFacts
   index : ManagedRowMeasurements
   mut claimed : Bool
@@ -31,6 +31,46 @@ fn[T] prepare_managed_view_selection_base(
   max_work : Int,
   computed : Bool,
 ) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
+  prepare_managed_occurrence_selection(
+    plan,
+    Indices(selected_rows),
+    max_cells,
+    max_work,
+    computed,
+  )
+}
+
+///|
+/// Contiguous source occurrences, without allocating a row-sized map. The
+/// interval is exact, not clamped; the checked executor must still verify it.
+pub fn[T] prepare_managed_view_slice(
+  plan : ManagedViewPlan[T],
+  start : Int,
+  count : Int,
+  max_cells : Int,
+  max_work : Int,
+) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
+  let available = plan.input.output.material.receipt.rows
+  if start < 0 || count < 0 || start > available || count > available - start {
+    return Err(InvalidSelection)
+  }
+  prepare_managed_occurrence_selection(
+    plan,
+    Slice(start, count),
+    max_cells,
+    max_work,
+    false,
+  )
+}
+
+///|
+fn[T] prepare_managed_occurrence_selection(
+  plan : ManagedViewPlan[T],
+  selected_rows : ManagedOccurrences,
+  max_cells : Int,
+  max_work : Int,
+  computed : Bool,
+) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
   if max_cells < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -39,18 +79,21 @@ fn[T] prepare_managed_view_selection_base(
     return Err(Limit)
   }
   let count = selected_rows.length() * width
-  if count > max_work || selected_rows.length() > max_work - count {
+  let copy_work = match selected_rows {
+    Indices(rows) => rows.length()
+    Slice(_, _) => 0
+  }
+  if count > max_work || copy_work > max_work - count {
     return Err(Limit)
   }
   // Charge the copied cells and defensive row-map copy in addition to the
   // aggregate metadata traversal's existing bounded work.
-  let rows = selected_rows.copy()
+  let rows = match selected_rows {
+    Indices(rows) => Indices(rows.copy())
+    Slice(start, count) => Slice(start, count)
+  }
   let measurements = match
-    managed_view_selection_measurements(
-      plan,
-      rows,
-      max_work - count - rows.length(),
-    ) {
+    managed_occurrence_measurements(plan, rows, max_work - count - copy_work) {
     Ok(facts) => facts
     Err(issue) => return Err(issue)
   }
@@ -77,7 +120,8 @@ fn[T] prepare_managed_view_selection_base(
   let source = receipt.row_measurements.unwrap()
   let source_width = @schema.field_count(receipt.schema)
   let cells = []
-  for row in rows {
+  for position in 0..<rows.length() {
+    let row = rows.get(position).unwrap()
     for origin in plan.columns {
       match origin {
         Some(origin) => {

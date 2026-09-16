@@ -240,11 +240,11 @@ pub fn[T] prepare_managed_take_selection(
   if query.width > 0 && count > max_cells / query.width {
     return Err(Limit)
   }
-  let rows = Array::makei(count, i => offset + i)
-  @execution.prepare_managed_view_selection(
+  @execution.prepare_managed_view_slice(
     query.plan,
-    rows,
+    offset,
+    count,
     max_cells,
-    max_work - count,
+    max_work,
   )
 }

@@ -379,6 +379,8 @@ pub fn[T] prepare_managed_view_plan(ManagedProducerRead[T], Array[@lowering_rela
 
 pub fn[T] prepare_managed_view_selection(ManagedViewPlan[T], Array[Int], Int, Int) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue]
 
+pub fn[T] prepare_managed_view_slice(ManagedViewPlan[T], Int, Int, Int, Int) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue]
+
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
 pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]

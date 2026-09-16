@@ -52,6 +52,15 @@ pub fn[T] managed_view_selection_measurements(
   selected_rows : Array[Int],
   max_work : Int,
 ) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue] {
+  managed_occurrence_measurements(plan, Indices(selected_rows), max_work)
+}
+
+///|
+fn[T] managed_occurrence_measurements(
+  plan : ManagedViewPlan[T],
+  selected_rows : ManagedOccurrences,
+  max_work : Int,
+) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
@@ -72,7 +81,8 @@ pub fn[T] managed_view_selection_measurements(
   let mut work = max_work - selected_rows.length()
   let mut increasing = true
   let mut previous = -1
-  for position, row in selected_rows {
+  for position in 0..<selected_rows.length() {
+    let row = selected_rows.get(position).unwrap()
     if row < 0 ||
       row >= receipt.rows ||
       row == previous ||
@@ -93,7 +103,8 @@ pub fn[T] managed_view_selection_measurements(
     }
     work -= selected_rows.length()
     let seen : Map[Int, Bool] = Map([])
-    for row in selected_rows {
+    for position in 0..<selected_rows.length() {
+      let row = selected_rows.get(position).unwrap()
       if seen.contains(row) {
         return Err(InvalidSelection)
       }
@@ -120,7 +131,8 @@ pub fn[T] managed_view_selection_measurements(
     let mut nodes = 0
     let mut maximum = 0
     let mut null_rows = 0
-    for row in selected_rows {
+    for position in 0..<selected_rows.length() {
+      let row = selected_rows.get(position).unwrap()
       // Completed indexes have exactly rows * width cells, checked at sealing.
       let (cell_bytes, cell_nodes, is_null) = index.cells[row * width +
         source_column]
