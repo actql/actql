@@ -534,3 +534,30 @@ verification cases, not acceptance measurements. Its interval includes Host and
 process setup, so no ratio against the raw comparator's compute-only interval is
 claimed. Baseline/equivalent-obligations implementations and paired provenance/
 timing boundaries remain required before applying registered thresholds.
+
+## Follow-up: unchanged baseline compatibility, actually executed
+
+An exact `git archive` of baseline
+`b87584fed46217659589315c1f819994dc0cfe77` was extracted to
+`/tmp/actql-retained-baseline-gsZV6e`. Its DuckDB Host bridge, generated Node
+composition and example assembly were freshly built in release mode using the
+pinned MoonBit 0.10.12 toolchain. The baseline's pinned DuckDB 1.5.5-r.4 dependency
+was supplied from the installed connector dependency tree. No baseline source or
+limit was modified.
+
+The new capability probe invoked that exact example entry with all 27 pinned
+fixtures and separately generated input databases. **0 verified, 27 incomplete**:
+21 cases raised transport `Rows`; six numeric-64 cases rejected preparation.
+Even 100-row narrow cases exceed the example's fixed 100 received-row ceiling
+when full-scan validation and projected acquisition output are both received.
+The six wide cases exceed the original example's supported preparation profile.
+The probe returned exit code 1 and did not discard any failed case. No pending
+cleanup was reported, and its per-case temporary directories were removed.
+
+This is a compatibility result, not evidence that baseline execution is slow,
+and supplies no denominator for a speedup ratio. A benchmark adapter must expose
+the registered capacities through old public contracts, or clearly identify any
+capacity-only assembly adaptation, without importing new execution algorithms.
+The unchanged baseline cannot silently be replaced by current materialized code.
+Until comparable execution is established, the baseline performance gate remains
+incomplete even though retained readiness has passed.

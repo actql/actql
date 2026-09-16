@@ -134,6 +134,23 @@ has no timing samples or performance acceptance result.
 
 ## Paired timing assessment
 
+To diagnose the unchanged baseline's capacity before attempting timings, first
+independently extract and release-build `experiment.baselineRevision` with the
+pinned toolchain and DuckDB dependency, then run:
+
+```sh
+ACTQL_RETAINED_BASELINE_ROOT=/path/to/verified-baseline node adapters/duckdb-node/bench/baseline-retained-probe.mjs
+```
+
+The probe executes all registered cases (or one exact `ACTQL_RETAINED_CASE`) and
+reports every incomplete case with nonzero exit status. It never raises baseline
+caps, rewrites its source, omits rejected cases, or treats its output as a timing
+sample. It verifies successful final identities and attempts explicit cleanup;
+unconfirmed cleanup preserves the temporary directory and reports it. The path
+alone does not attest revision/build provenance: the caller must verify that
+separately. The unchanged baseline is currently unable to run this matrix through
+its default example limits; see observations before interpreting its exit code.
+
 `managed-configuration.mjs` is shared by the readiness gate and the retained
 comparison leg so their Program, envelopes, estimates, child limits and retention
 settings do not drift. It preserves the existing fixture ceilings; estimates are
