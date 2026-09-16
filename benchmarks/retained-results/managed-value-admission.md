@@ -46,9 +46,9 @@ DuckDB `adapter` 22 tests per target. Public interface consistency, documentatio
 and contract checks, formatting and whitespace checks passed. These are package
 tests, not a new-profile live DuckDB end-to-end or large-case performance run.
 
-Tests cover value admission, shared budgets and the typed chunk adapter. They
-do not yet drive new-profile output from an actual DuckDB execution into a sealed
-physical manifest and common Host completion. Value admission is not evidence of
+The initial tests cover value admission, shared budgets and the typed chunk
+adapter. The live-file integration below additionally exercises actual DuckDB
+and Store data, but not common Host completion. Value admission is not evidence of
 correct computation, an authorized attempt, retention or read permission.
 
 Remaining integration must bind this receipt to the actual generated material,
@@ -93,3 +93,41 @@ unverified/invalid/unavailable material, one-use issuance, reentrancy and callba
 cancellation. Cross-target public interfaces, documentation/contracts and
 formatting checks passed. These tests use installed test verifiers; they do not
 establish the correctness of a live Store or DuckDB verifier.
+
+## Product Node receiver with a real physical file
+
+The installed DuckDB Node module now exports a managed content receiver. Its
+configuration takes an opaque checked value-admission stream (including a shared
+fixed-input measurement session when needed), bounded physical/transport limits
+and physical field descriptors. Production transport decoding feeds the typed
+adapter; malformed or over-limit frames cancel reception. No test schema or SQL
+is embedded in this module. The conformance package supplies only its fixed
+checked schema and limits.
+
+The real-DuckDB physical-manifest test now connects this product receiver to a
+sealed local Store body. Native Parquet preserves three ordered rows including
+a duplicate, NULL and non-ASCII text. The first verified-file read admits the
+actual typed cells, finishes their receipt, and binds that exact reception to
+the Store body. The second verified-file read reuses the established receipt
+without invoking value admission again. Both reads produce the independent
+expected rows. Literal measurement remains `(rows=3, work=9, bytes=15, nodes=6)`.
+The harness explicitly selects that reuse; it is not yet an automatic common
+planner or consumer-admission decision.
+Store cleanup and receiver cancellation both make the binding unavailable;
+receiver cancellation alone does not pretend to free the still-owned file.
+
+The boundary also rejects a real later Parquet Infinity value, cancelled
+reception, malformed transport and an oversized frame, with no retained receipt.
+The COPY inode-replacement rejection remains intact. The four live-file/transport
+tests passed through the product receiver, not a replacement test receiver.
+The existing standard-Host real-DuckDB integration also passed, together with
+JS checking with warnings denied, cross-target API consistency, documentation
+and contract checks, formatting and whitespace checks. This Node-only bridge
+does not add a new Wasm/native execution path.
+
+This is a content/retention integration, not new-profile task completion or
+consumer dispatch. The test's installed file/codec binding remains in the trusted
+test harness, and its interpretation pins are fixture-specific. It uses one
+physical byte copy into the Store and a typed first read; it does not demonstrate
+direct native output adoption, arbitrary Parquet support, zero-copy or avoided
+physical integrity reads. No end-to-end throughput improvement is claimed.

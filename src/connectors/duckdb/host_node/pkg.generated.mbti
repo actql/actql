@@ -132,6 +132,20 @@ pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfigurat
 
 pub fn compute_strategy_scratch_capacity(@driver.StrategyComputeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
+pub fn managed_output_accept(ManagedNodeOutput, Int, String) -> Unit raise NodeHostFailure
+
+pub fn managed_output_available(ManagedNodeOutput) -> Bool
+
+pub fn managed_output_cancel(ManagedNodeOutput) -> Unit
+
+pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
+
+pub fn managed_output_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
+
+pub fn managed_output_open(@execution_relation.ManagedOutputValues, String, @adapter.PhysicalResultLimits, @adapter.TransportColumnLimits, Int) -> ManagedNodeOutput raise NodeHostFailure
+
+pub fn managed_output_retain(ManagedNodeOutput, Int64, () -> Bool) -> Unit raise NodeHostFailure
+
 pub fn native_host_abort(NativeNodeRun) -> Unit
 
 pub fn native_host_accept(NativeNodeRun, Int, String) -> Unit raise NodeHostFailure
@@ -255,6 +269,8 @@ pub(all) suberror NodeHostFailure {
   InvalidCommand
   Encoding(@encode_core.EncodeFailure)
   Completion(@execution_relation.TrustedOutputIssue)
+  ManagedValues(@adapter.ManagedPhysicalOutputIssue)
+  ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)
 }
 
 // Types and methods
@@ -263,6 +279,8 @@ type BroadNodeRun
 type ComputeNodeRun
 
 type ComputeStreamNodeReceipt
+
+type ManagedNodeOutput
 
 type NativeNodeRun
 

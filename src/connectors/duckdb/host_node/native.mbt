@@ -23,6 +23,8 @@ pub(all) suberror NodeHostFailure {
   InvalidCommand
   Encoding(@encode.EncodeFailure)
   Completion(@execution.TrustedOutputIssue)
+  ManagedValues(@duckdb.ManagedPhysicalOutputIssue)
+  ManagedRetention(@execution.ManagedOutputRetentionIssue)
 }
 
 ///|

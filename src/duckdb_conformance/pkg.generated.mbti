@@ -129,6 +129,12 @@ pub fn issued_native_sql(IssuedNativeFixture, Int) -> String
 
 pub fn issued_native_verify(IssuedNativeFixture) -> Bool
 
+pub fn managed_file_physical_limits() -> @adapter.PhysicalResultLimits
+
+pub fn managed_file_transport_limits() -> @adapter.TransportColumnLimits
+
+pub fn managed_file_values() -> @execution_relation.ManagedOutputValues
+
 pub fn metadata(@adapter.NativeReceiving, Int, String, String) -> Bool
 
 pub fn owned_count_create(IssuedNativeFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
