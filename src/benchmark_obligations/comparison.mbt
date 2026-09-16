@@ -7,7 +7,7 @@ struct ObligationComparison {
 }
 
 ///|
-struct ComparisonSlot {
+priv struct ComparisonSlot {
   measurement : @duckdb.ComparisonMeasurement
   mut issue : @duckdb.NativeDemandIssue?
 }
