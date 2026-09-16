@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assessPairedTiming} from './paired-assessment.mjs';
+
+const comparator = 'baseline-actql';
+const options = {comparator, field: 'executionMs', mode: 'ratio', threshold: 1};
+function samples(ratios) {
+  return ratios.map((ratio, index) => ({index, caseId: 'fixed/narrow/10000',
+    order: index % 2 ? ['retained-actql', comparator] : [comparator, 'retained-actql'],
+    samples: {[comparator]: {status: 'completed', executionMs: 100},
+      'retained-actql': {status: 'completed', executionMs: ratio * 100}}}));
+}
+
+test('paired confidence gates distinguish pass failure and uncertainty reproducibly', () => {
+  const fast = assessPairedTiming(samples(Array(7).fill(0.5)), options);
+  assert.equal(fast.status, 'pass');
+  assert.equal(fast.lower, 0.5);
+  assert.equal(fast.upper, 0.5);
+  assert.equal(assessPairedTiming(samples(Array(7).fill(2)), options).status, 'fail');
+  const variable = samples([0.4, 1.6, 0.5, 1.5, 0.6, 1.4, 1]);
+  const uncertain = assessPairedTiming(variable, options);
+  assert.equal(uncertain.status, 'indeterminate');
+  assert.deepEqual(uncertain, assessPairedTiming(variable, options));
+  assert.equal(uncertain.scope, 'paired-timing-only');
+});
+
+test('failed missing malformed and nonalternating samples cannot be omitted into success', () => {
+  assert.equal(assessPairedTiming([], options).status, 'incomplete');
+  assert.equal(assessPairedTiming(samples(Array(6).fill(0.5)), options).status, 'incomplete');
+  for (const mutate of [
+    pair => { pair.samples['retained-actql'].status = 'timeout'; },
+    pair => { delete pair.samples[comparator]; },
+    pair => { pair.samples[comparator].executionMs = 0; },
+    pair => { pair.samples['retained-actql'].executionMs = NaN; },
+    pair => { pair.caseId = 'different-case'; },
+    pair => { pair.index = 0; },
+    pair => { pair.order.reverse(); },
+  ]) {
+    const pairs = samples(Array(7).fill(0.5));
+    mutate(pairs[3]);
+    assert.equal(assessPairedTiming(pairs, options).status, 'incomplete');
+  }
+});
+
+test('absolute overhead uses a difference, not a ratio or a raw-engine equivalence claim', () => {
+  const pairs = samples(Array(7).fill(1));
+  for (const pair of pairs) {
+    pair.samples[comparator].warmMs = 2;
+    pair.samples['retained-actql'].warmMs = 7;
+  }
+  const report = assessPairedTiming(pairs, {...options, field: 'warmMs', mode: 'difference', threshold: 10});
+  assert.equal(report.status, 'pass');
+  assert(Math.abs(report.estimate - 5) < 1e-12);
+  assert.throws(() => assessPairedTiming(pairs, {...options, minimumPairs: 1}));
+  assert.throws(() => assessPairedTiming(pairs, {...options, resamples: 100}));
+  assert.throws(() => assessPairedTiming(pairs, {...options, comparator: 'made-up-baseline'}));
+  assert.throws(() => assessPairedTiming(samples(Array(11).fill(1)),
+    {...options, resamples: 1000000}), /TimingAssessmentWorkLimit/);
+});

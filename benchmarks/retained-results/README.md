@@ -110,3 +110,28 @@ Do not use a synthetic sleep or a configured cost estimate as measured work.
 Changing the fixture pin after samples exist requires a new experiment record
 and fresh samples, not overwriting inconvenient measurements. The current record
 has no timing samples or performance acceptance result.
+
+## Paired timing assessment
+
+`paired-assessment.mjs` provides the timing-only statistic for the future sample
+runner. It checks contiguous pair indices, a single case, completed samples,
+finite durations, and alternating retained/reference order. Missing, timed-out
+or unsupported samples remain `incomplete`; they cannot be dropped from a pair.
+At least seven pairs and 10000 bootstrap resamples are required.
+
+The statistic is the ratio of paired arithmetic means for ratios, or their
+difference for absolute overhead. A reproducible seeded bootstrap resamples whole
+pairs and reports a two-sided percentile interval. Its upper endpoint must meet
+the threshold to pass; an interval crossing the threshold is `indeterminate`,
+not success. The seed, interval, pair count and configuration are included in the
+report. Cleanup is a separate field and must not be added to an overlapping timer.
+
+This helper deliberately reports `paired-timing-only`. It does not validate
+source/configuration identity, comparator obligation equivalence, correctness,
+memory/copy counters or matrix completeness. The eventual experiment runner must
+bind those checks and the registered thresholds to its actual samples; passing
+helper tests is not a performance result. Test it without DuckDB using:
+
+```sh
+node --test benchmarks/retained-results/*.test.mjs
+```
