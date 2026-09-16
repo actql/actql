@@ -10,6 +10,7 @@ struct ManagedTakeQuery[T] {
   count : Int64
   offset : Int64
   width : Int
+  stages : Array[(Int64, Int64)]
 }
 
 ///|
@@ -31,12 +32,20 @@ pub fn[T] prepare_managed_take_query(
   let preparation = @lower.bound_preparation(owner)
   if @execution.managed_producer_read_input_index(input) != 0 ||
     @lower.preparation_input_count(preparation) != 1 ||
-    @lower.node_count(preparation) != 2 {
+    @lower.node_count(preparation) == 0 {
     return Err(UnsupportedShape)
   }
+  let steps = @lower.node_count(preparation)
+  if steps > limits.max_entries {
+    return Err(Limit)
+  }
   let kernels = []
-  let mut entries = limits.max_entries
-  for step in 0..<2 {
+  let mut entries = limits.max_entries - steps
+  let mut count = 9007199254740991L
+  let mut offset = 0L
+  let mut has_take = false
+  let stages = []
+  for step in 0..<steps {
     let kernel = match
       @lower.prepare_kernel(
         owner,
@@ -53,19 +62,29 @@ pub fn[T] prepare_managed_take_query(
       return Err(Limit)
     }
     entries -= used
+    match @lower.kernel_body(kernel) {
+      @lower.Limit(next_count, next_offset, order) => {
+        // Physical occurrence order cannot replace candidate-key completion.
+        if @pipeline.order_key_completion(order) is Some(_) {
+          return Err(UnsupportedShape)
+        }
+        has_take = true
+        let skipped = Int64::min(next_offset, count)
+        // Both operands are at most the safe-integer bound, so this sum fits
+        // Int64. Saturation is beyond the exact input's Int-sized row domain.
+        offset = Int64::min(9007199254740991L, offset + skipped)
+        count = Int64::min(next_count, count - skipped)
+      }
+      @lower.Select(_) => ()
+      _ => return Err(UnsupportedShape)
+    }
+    stages.push((count, offset))
     kernels.push(kernel)
   }
-  guard @lower.kernel_body(kernels[0]) is @lower.Limit(count, offset, order) else {
+  if !has_take {
     return Err(UnsupportedShape)
   }
-  // This realization preserves existing order; it cannot silently replace a
-  // required candidate-key completion with physical occurrence order.
-  if @pipeline.order_key_completion(order) is Some(_) {
-    return Err(UnsupportedShape)
-  }
-  guard @lower.kernel_body(kernels[1]) is @lower.Select(fields) else {
-    return Err(UnsupportedShape)
-  }
+  let final_schema = @lower.preparation_schema_at(preparation, Step(steps - 1)).unwrap()
   let schema = @execution.managed_producer_read_schema(input)
   if @schema.field_count(schema) > entries {
     return Err(Limit)
@@ -90,9 +109,7 @@ pub fn[T] prepare_managed_take_query(
     }
   }
   if !physical_column_names_unique(schema) ||
-    !physical_column_names_unique(
-      @lower.preparation_schema_at(preparation, Step(1)).unwrap(),
-    ) {
+    !physical_column_names_unique(final_schema) {
     return Err(UnsupportedField)
   }
   let plan = match
@@ -116,9 +133,14 @@ pub fn[T] prepare_managed_take_query(
     sql_identifier(out, ordinal)
     sql_text(out, " AS ")
     sql_identifier(out, occurrence_alias)
-    for field in fields {
-      guard field.input is @schema.Unqualified(source) &&
-        field.output is @schema.Unqualified(target) else {
+    for column in 0..<@schema.field_count(final_schema) {
+      guard @execution.managed_view_plan_column(plan, column) is Some(origin) else {
+        return Err(UnsupportedShape)
+      }
+      guard @schema.field_at(schema, origin).unwrap().name
+        is @schema.Unqualified(source) &&
+        @schema.field_at(final_schema, column).unwrap().name
+        is @schema.Unqualified(target) else {
         return Err(UnsupportedField)
       }
       if physical_column_name_key(target) ==
@@ -154,8 +176,20 @@ pub fn[T] prepare_managed_take_query(
     sql: out.builder.to_string(),
     count,
     offset,
-    width: fields.length(),
+    width: @schema.field_count(final_schema),
+    stages,
   })
+}
+
+///|
+/// Composed (limit, offset) after a checked step, not its actual row count.
+/// Bounds may extend beyond the input. These are conditional slice facts, not
+/// discharge of per-step guards, accounting or execution obligations.
+pub fn[T] managed_take_query_stage_range(
+  query : ManagedTakeQuery[T],
+  step : Int,
+) -> (Int64, Int64)? {
+  query.stages.get(step)
 }
 
 ///|

@@ -131,12 +131,13 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         const material = moon.managedOutputMaterial(output);
         const codec = `sha256:${'4'.repeat(64)}`; // Fixture physical-frame interpretation only.
         registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
-        if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed']) {
+        if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed', 'chained']) {
           let settled = false;
           const deriving = representation === 'computed';
-          const setup = checked((deriving ? fixture.managedDeriveFixture : fixture.managedTakeFixture)(
+          const setup = checked((deriving ? fixture.managedDeriveFixture
+            : representation === 'chained' ? fixture.managedChainedTakeFixture : fixture.managedTakeFixture)(
             configured, completed, profile, ...contracts, () => settled));
-          let taken = deriving ? undefined : representation === 'preserved'
+          let taken = deriving ? undefined : representation !== 'validated'
             ? checked(moon.managedSelectedOutputOpen(fixture.managedTakeValues(setup),
               fixture.managedTakeSelection(setup), fixture.managedFileTransportLimits(), () => settled))
             : checked(moon.managedOutputOpen(fixture.managedTakeValues(setup),
@@ -144,6 +145,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               fixture.managedFileTransportLimits(), 100));
           const held = {setup, output: taken, representation};
           heldTakes.push(held);
+          if (representation === 'chained') {
+            assert.deepEqual(fixture.managedTakeStageRanges(setup),
+              ['9007199254740991', '0', '3', '0', '3', '0', '2', '0']);
+          }
           const db = await DuckDBInstance.create(':memory:', {threads: '1', memory_limit: '128MB'});
           const connection = await db.connect();
           try {
@@ -180,6 +185,25 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 const renamed = (await connection.runAndReadAll(renamedSql)).getRowObjects();
                 assert.deepEqual(renamed.map(row => row.rowid), empty ? [] : ['日本語', null],
                   'projection alias must not redirect ORDER BY from the bound physical ordinal');
+                for (const [steps, occurrences, expected] of [
+                  [[{select: [{a: 'amount'}]}, {take: {count: 2, offset: 1}},
+                    {select: [{amount: 'a'}]}, {take: {count: 1, offset: 1}}], ['2'], ['日本語']],
+                  [[{take: 1}, {select: ['amount']}, {take: {count: 2, offset: 1}}], [], []],
+                  [[{take: 3}, {take: {count: 2, offset: 1}}, {select: ['amount']}], ['1', '2'], [null, '日本語']],
+                  [[{take: {count: 9007199254740991, offset: 9007199254740991}},
+                    {take: {count: 9007199254740991, offset: 9007199254740991}}, {select: ['amount']}], [], []],
+                ]) {
+                  const [sql, ...selected] = checked(fixture.managedTakeChainCompileFixture(configured, completed,
+                    JSON.stringify(steps)));
+                  assert.deepEqual(selected, empty ? [] : occurrences);
+                  const actual = (await connection.runAndReadAll(sql)).getRowObjects();
+                  assert.deepEqual(actual.map(row => row.occurrence.toString()), selected);
+                  assert.deepEqual(actual.map(row => row.amount), empty ? [] : expected);
+                }
+                for (const unsupported of [[{select: ['amount']}], [{take: 2}, {filter: 'true'}]]) {
+                  assert.throws(() => checked(fixture.managedTakeChainCompileFixture(configured, completed,
+                    JSON.stringify(unsupported))));
+                }
               }
               return (await connection.runAndReadAll(deriving
                 ? 'SELECT rowid AS occurrence, amount, amount AS copy, CAST(1 + 1 AS DOUBLE) AS marker FROM take_source ORDER BY rowid LIMIT 2'
@@ -242,7 +266,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             if (deriving) {
               assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), empty ? [0, 0, 0] : [16, 4, 12]);
               assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length * 3);
-            } else if (representation === 'preserved') {
+            } else if (representation !== 'validated') {
               assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), [0, 0, 0]);
               assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length);
             } else if (!empty) {

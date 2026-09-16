@@ -13,20 +13,48 @@ pub fn managed_take_compile_fixture(
   sql_bytes : Int,
   rename_ordinal : Bool,
 ) -> Array[String] raise {
+  let steps = "[{\"take\":{\"count\":" +
+    count.to_string() +
+    ",\"offset\":" +
+    offset.to_string() +
+    (if rename_ordinal {
+      "}},{\"select\":[{\"rowid\":\"amount\"}]}]"
+    } else {
+      "}},{\"select\":[\"amount\"]}]"
+    })
+  managed_take_compile_steps(
+    source, output, steps, table, ordinal, occurrence_alias, sql_bytes,
+  )
+}
+
+///|
+#export_name("managedTakeChainCompileFixture")
+pub fn managed_take_chain_compile_fixture(
+  source : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  steps : String,
+) -> Array[String] raise {
+  managed_take_compile_steps(
+    source, output, steps, "take_source", "rowid", "occurrence", 10000,
+  )
+}
+
+///|
+fn managed_take_compile_steps(
+  source : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  steps : String,
+  table : String,
+  ordinal : String,
+  occurrence_alias : String,
+  sql_bytes : Int,
+) -> Array[String] raise {
   let producer = @duckdb.fixed_query_owner(
     @duckdb.fixed_compute_query(source.compute),
   )
   let owner = issued_fixture_consumer(
     producer,
-    steps="[{\"take\":{\"count\":" +
-      count.to_string() +
-      ",\"offset\":" +
-      offset.to_string() +
-      (if rename_ordinal {
-        "}},{\"select\":[{\"rowid\":\"amount\"}]}]"
-      } else {
-        "}},{\"select\":[\"amount\"]}]"
-      }),
+    steps~,
     target=@duckdb.fixed_query_target(
       @duckdb.fixed_compute_query(source.compute),
     ),

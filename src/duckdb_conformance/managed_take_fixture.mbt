@@ -7,6 +7,7 @@ struct ManagedTakeFixture {
   selection : @execution.ManagedViewSelection[Int]?
   computed : @execution.ManagedComputedView[Int]?
   query : @duckdb.ManagedTakeQuery[Int]?
+  target : @pipeline.Target
   completion : @execution.ManagedCompletionPort[
     (
       @execution.ManagedOutputValueReceipt,
@@ -49,6 +50,30 @@ pub fn managed_derive_fixture(
 }
 
 ///|
+#export_name("managedChainedTakeFixture")
+pub fn managed_chained_take_fixture(
+  source : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+  profile : @execution.ManagedExecutionProfile,
+  registry : String,
+  values_contract : String,
+  fragment : String,
+  verify : () -> Bool,
+) -> ManagedTakeFixture raise {
+  managed_take_fixture_base(
+    source,
+    output,
+    profile,
+    registry,
+    values_contract,
+    fragment,
+    verify,
+    false,
+    chained=true,
+  )
+}
+
+///|
 fn managed_take_fixture_base(
   source : OwnedFixedFixture,
   output : @execution.ManagedCompletedOutput[Int],
@@ -58,13 +83,16 @@ fn managed_take_fixture_base(
   fragment : String,
   verify : () -> Bool,
   deriving : Bool,
+  chained? : Bool = false,
 ) -> ManagedTakeFixture raise {
   let producer = @duckdb.fixed_query_owner(
     @duckdb.fixed_compute_query(source.compute),
   )
   let owner = issued_fixture_consumer(
     producer,
-    steps=if deriving {
+    steps=if chained {
+      "[{\"select\":[{\"temporary\":\"amount\"}]},{\"take\":3},{\"select\":[{\"amount\":\"temporary\"}]},{\"take\":2}]"
+    } else if deriving {
       "[{\"take\":2},{\"derive\":{\"copy\":\"amount\",\"marker\":\"1 + 1\"}}]"
     } else {
       "[{\"take\":2},{\"select\":[\"amount\"]}]"
@@ -76,7 +104,9 @@ fn managed_take_fixture_base(
   let input = @execution.prepare_managed_producer_read(
     owner, 0, producer, output, 100, 10000,
   ).unwrap()
-  let kernels = Array::makei(2, i => {
+  let steps = if chained { 4 } else { 2 }
+  let target : @pipeline.Target = Step(steps - 1)
+  let kernels = Array::makei(steps, i => {
     @lower.prepare_kernel(owner, i, max_bindings=100, max_name_bytes=1000, {
       max_nodes: 100,
       max_work: 1000,
@@ -142,7 +172,7 @@ fn managed_take_fixture_base(
   }
   let measured = @execution.prepare_reused_managed_producer_measurement(
     [input],
-    Step(1),
+    target,
     max_rows=100,
     max_value_bytes=10000,
     { max_work: 10000, max_bytes: 10000, max_nodes: 1000, max_depth: 100, },
@@ -165,7 +195,7 @@ fn managed_take_fixture_base(
   let completion = @execution.prepare_managed_completion_port(
     profile,
     @execution.generated_completion_preparation(generated),
-    Step(1),
+    target,
     1000,
     10000,
     (
@@ -187,13 +217,29 @@ fn managed_take_fixture_base(
     },
     managed_inputs=[input],
   ).unwrap()
-  { owner, input, values, selection, computed, query, completion, }
+  { owner, input, values, selection, computed, query, target, completion, }
 }
 
 ///|
 #export_name("managedTakeSql")
 pub fn managed_take_sql(value : ManagedTakeFixture) -> String {
   @duckdb.managed_take_query_sql(value.query.unwrap())
+}
+
+///|
+#export_name("managedTakeStageRanges")
+pub fn managed_take_stage_ranges(value : ManagedTakeFixture) -> Array[String] {
+  let result = []
+  let steps = @lower.node_count(@lower.bound_preparation(value.owner))
+  for step in 0..<steps {
+    let (count, offset) = @duckdb.managed_take_query_stage_range(
+      value.query.unwrap(),
+      step,
+    ).unwrap()
+    result.push(count.to_string())
+    result.push(offset.to_string())
+  }
+  result
 }
 
 ///|
@@ -282,7 +328,11 @@ fn managed_take_next_input_base(
   output : @execution.ManagedCompletedOutput[Int],
   steps : String,
 ) -> @execution.ManagedProducerRead[Int] {
-  let receiver = issued_fixture_consumer(value.owner, steps~, target=Step(1))
+  let receiver = issued_fixture_consumer(
+    value.owner,
+    steps~,
+    target=value.target,
+  )
   @execution.prepare_managed_producer_read(
     receiver,
     0,

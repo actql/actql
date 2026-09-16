@@ -204,6 +204,8 @@ pub fn[T] managed_take_query_matches(ManagedTakeQuery[T], @execution_relation.Ma
 
 pub fn[T] managed_take_query_sql(ManagedTakeQuery[T]) -> String
 
+pub fn[T] managed_take_query_stage_range(ManagedTakeQuery[T], Int) -> (Int64, Int64)?
+
 pub fn measure_fixed_compute_demand(FixedCompute, FixedComputeReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeDemand, NativeDemandIssue]
 
 pub fn measure_fixed_compute_stream_demand(FixedCompute, FixedComputeStreamReceipt, Int, @execution_relation.FixedInputGuardMeasureLimits, input_demand? : FixedImportDemand) -> Result[FixedComputeStreamDemand, NativeDemandIssue]
