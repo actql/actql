@@ -110,9 +110,9 @@ test "retained fixed import demand uses exact decoded input and single receiving
     100,
     10000,
   ).unwrap()
-  for case_index in 0..<6 {
-    let mode = case_index / 2
-    let materialize_parameters = case_index % 2 == 0
+  for case_index in 0..<9 {
+    let mode = case_index / 3
+    let materialize_parameters = case_index % 3 == 0
     let ceiling = if mode == 1 { 4 } else { 5 }
     let physical : @execution.FixedInputGuardMeasureLimits = {
       max_work: 7,
@@ -138,7 +138,20 @@ test "retained fixed import demand uses exact decoded input and single receiving
     ).unwrap()
     @duckdb.attach_fixed_import_demand(stream, compute, ceiling, physical).unwrap()
     assert_true(@duckdb.fixed_import_verified_demand(stream) is None)
-    for row in ["{\"id\":3}", "{\"id\":2}"] {
+    for index, row in ["{\"id\":3}", "{\"id\":2}"] {
+      if case_index % 3 == 2 {
+        let field = @schema.field_at(
+          @execution.output_stream_schema(receipt),
+          0,
+        ).unwrap()
+        let value = @admitted.admit(
+          field.contract,
+          input_cursor((3 - index).to_string()),
+          { max_nodes: 10, max_text_bytes: 100, max_depth: 2, },
+        ).unwrap()
+        @duckdb.verify_fixed_import_values(stream, [value]).unwrap()
+        continue
+      }
       let parameters = @duckdb.append_fixed_import_stream(
         stream,
         row,

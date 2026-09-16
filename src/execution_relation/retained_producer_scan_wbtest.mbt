@@ -13,6 +13,75 @@ fn retained_scan_fixture(
 }
 
 ///|
+test "typed retained input verifies full ordered source without JSON reconstruction" {
+  let owner = capture_fixture()
+  for mode in 0..<5 {
+    let live = Ref(true)
+    let (source, _) = retained_fixture(owner, live)
+    let input = retained_scan_fixture(owner, source)
+    let scan = prepare_retained_producer_scan(
+      input,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      64,
+    ).unwrap()
+    let measurement = prepare_streamed_fixed_producer_measurement(
+      [input],
+      Step(0),
+      max_rows=2,
+      max_value_bytes=100,
+      {
+        max_work: 1000,
+        max_bytes: if mode == 4 {
+          1
+        } else {
+          1000
+        },
+        max_nodes: 1000,
+        max_depth: 10,
+      },
+    ).unwrap()
+    attach_retained_producer_measurement(measurement, scan).unwrap()
+    if mode == 2 {
+      let foreign = output_fixture_row(capture_fixture(), 0)
+      assert_true(append_retained_producer_scan_values(scan, foreign) is Err(_))
+    } else {
+      let first = output_fixture_row(owner, if mode == 1 { 1 } else { 0 })
+      let projected = append_retained_producer_scan_values(scan, first).unwrap()
+      assert_eq(projected.length(), 2)
+      assert_false(fixed_producer_inputs_measured(measurement))
+      if mode == 3 {
+        live.val = false
+        assert_true(
+          append_retained_producer_scan_values(
+            scan,
+            output_fixture_row(owner, 1),
+          )
+          is Err(Unavailable),
+        )
+      } else {
+        append_retained_producer_scan_values(
+          scan,
+          output_fixture_row(owner, if mode == 1 { 0 } else { 1 }),
+        ).unwrap()
+        |> ignore
+      }
+    }
+    let result = finish_retained_producer_scan(scan)
+    if mode == 0 {
+      assert_true(verified_producer_scan_matches(result.unwrap(), input))
+      assert_true(fixed_producer_inputs_measured(measurement))
+      assert_eq(1000 - measurement.budget.bytes, 12)
+    } else {
+      assert_true(result is Err(_))
+      assert_false(fixed_producer_inputs_measured(measurement))
+    }
+    assert_true(scan.stream.buffer.rows.is_empty())
+  }
+}
+
+///|
 test "retained producer scan validates whole identity without retaining rows" {
   let owner = capture_fixture()
   let (source, _) = retained_fixture(owner, Ref(true))

@@ -125,6 +125,25 @@ pub fn append_retained_producer_scan_wire(
       return Err(WireRow(issue))
     }
   }
+  append_retained_producer_scan_values(scan, values)
+}
+
+///|
+/// Admit one bounded row supplied by a typed representation reader. Values must
+/// belong to the exact stored schema, including fields omitted by the consumer.
+/// Neither the typed entry nor successful append grants readiness: ordered
+/// identity, measurement and join obligations are still finished below.
+pub fn append_retained_producer_scan_values(
+  scan : RetainedProducerScan,
+  values : Array[@admitted.CheckedValue],
+) -> Result[Array[@admitted.CheckedValue], CompletedImportIssue] {
+  if !scan.open {
+    return Err(Closed)
+  }
+  if !producer_read_available(scan.input) {
+    cancel_retained_producer_scan(scan) |> ignore
+    return Err(Unavailable)
+  }
   match
     append_admitted_output_stream(scan.stream, values.length(), column => {
       values.get(column)

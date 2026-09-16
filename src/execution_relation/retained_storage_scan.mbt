@@ -82,6 +82,23 @@ pub fn append_retained_storage_scan_wire(
       return Err(WireRow(issue))
     }
   }
+  append_retained_storage_scan_values(scan, values)
+}
+
+///|
+/// Typed, bounded representation conversion through the same exact content
+/// verifier. This does not assert import success or consumer readiness.
+pub fn append_retained_storage_scan_values(
+  scan : RetainedStorageScan,
+  values : Array[@admitted.CheckedValue],
+) -> Result[Array[@admitted.CheckedValue], CompletedImportIssue] {
+  if !scan.open {
+    return Err(Closed)
+  }
+  if !producer_storage_available(scan.storage) {
+    cancel_retained_storage_scan(scan) |> ignore
+    return Err(Unavailable)
+  }
   match
     append_admitted_output_stream(scan.stream, values.length(), column => {
       values.get(column)

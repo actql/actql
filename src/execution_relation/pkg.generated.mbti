@@ -45,7 +45,11 @@ pub fn append_completed_output_import_wire(CompletedOutputImport, String, Retain
 
 pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
 
+pub fn append_retained_producer_scan_values(RetainedProducerScan, Array[@value_admission.CheckedValue]) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
+
 pub fn append_retained_producer_scan_wire(RetainedProducerScan, String, RetainedRowDecodeLimits) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
+
+pub fn append_retained_storage_scan_values(RetainedStorageScan, Array[@value_admission.CheckedValue]) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
 
 pub fn append_retained_storage_scan_wire(RetainedStorageScan, String, RetainedRowDecodeLimits) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
 

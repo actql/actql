@@ -47,6 +47,31 @@ pub fn append_fixed_import_stream(
     Ok(values) => values
     Err(issue) => return Err(Content(issue))
   }
+  finish_fixed_import_row(stream, values, materialize_parameters)
+}
+
+///|
+/// Existing resident/column readers can supply checked values without first
+/// serializing them as retained row JSON. All content and consumer obligations
+/// remain on the same stream; successful verification alone grants no execution.
+pub fn verify_fixed_import_values(
+  stream : FixedImportStream,
+  values : Array[@admitted.CheckedValue],
+) -> Result[Unit, FixedImportStreamIssue] {
+  let projected = match
+    @execution.append_retained_producer_scan_values(stream.scan, values) {
+    Ok(projected) => projected
+    Err(issue) => return Err(Content(issue))
+  }
+  finish_fixed_import_row(stream, projected, false).map(_ => ())
+}
+
+///|
+fn finish_fixed_import_row(
+  stream : FixedImportStream,
+  values : Array[@admitted.CheckedValue],
+  materialize_parameters : Bool,
+) -> Result[Array[PhysicalParameter], FixedImportStreamIssue] {
   let parameters = []
   accumulate_fixed_import_demand(stream, values)
   stream.rows += 1

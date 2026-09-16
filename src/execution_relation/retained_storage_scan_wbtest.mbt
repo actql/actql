@@ -32,6 +32,53 @@ test "full retained storage scan is bounded and exact without constructing a con
 }
 
 ///|
+test "typed storage transfer preserves exact provenance and rejects reordered values" {
+  let owner = capture_fixture()
+  for mode in 0..<3 {
+    let (output, _) = retained_fixture(owner, Ref(true))
+    let storage = prepare_producer_storage(output, 1000, 10000).unwrap()
+    let scan = prepare_retained_storage_scan(
+      storage,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      64,
+    ).unwrap()
+    if mode == 2 {
+      assert_true(
+        append_retained_storage_scan_values(
+          scan,
+          output_fixture_row(capture_fixture(), 0),
+        )
+        is Err(_),
+      )
+    } else {
+      for row in 0..<2 {
+        let values = output_fixture_row(
+          owner,
+          if mode == 1 {
+            1 - row
+          } else {
+            row
+          },
+        )
+        assert_eq(
+          append_retained_storage_scan_values(scan, values).unwrap().length(),
+          2,
+        )
+        assert_true(scan.stream.buffer.rows.is_empty())
+      }
+    }
+    let result = finish_retained_storage_scan(scan)
+    if mode == 0 {
+      assert_true(verified_storage_scan_matches(result.unwrap(), storage))
+    } else {
+      assert_true(result is Err(_))
+    }
+  }
+}
+
+///|
 test "storage transfer cannot verify reordered truncated or changed content" {
   let (output, _) = retained_fixture(capture_fixture(), Ref(true))
   let storage = prepare_producer_storage(output, 1000, 10000).unwrap()

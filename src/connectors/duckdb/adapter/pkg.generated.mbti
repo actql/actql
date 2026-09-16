@@ -328,6 +328,8 @@ pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.F
 
 pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relation.FixedJoinValidation, @execution_relation.RowIssue]
 
+pub fn verify_fixed_import_values(FixedImportStream, Array[@value_admission.CheckedValue]) -> Result[Unit, FixedImportStreamIssue]
+
 // Errors
 
 // Types and methods
