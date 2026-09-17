@@ -310,6 +310,7 @@ pub fn[C, E] dispatch_reference_compute(
 pub fn[E] dispatch_managed_duckdb(
   value : ConfiguredComputeModules[E],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
   @binding3.ManagedStrategyComputeHostConfiguration[Int],
@@ -319,7 +320,7 @@ pub fn[E] dispatch_managed_duckdb(
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
       @binding3.prepare_duckdb_managed_dispatch(
-        installed, completed, output_file_bytes,
+        installed, completed, obligations, output_file_bytes,
       ).map_err(issue => Implementation(project(issue)))
   }
 }

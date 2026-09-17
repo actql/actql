@@ -27,11 +27,15 @@ pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[
 
 pub fn strategy_host_close_outputs(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
+pub fn strategy_host_configure_managed_identity(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool) -> Bool
+
 pub fn strategy_host_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
 pub fn strategy_host_explain(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn strategy_host_managed_obligations(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @execution_relation.ManagedObligations raise NodeHostFailure
 
 pub fn strategy_host_managed_output_matches(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
 

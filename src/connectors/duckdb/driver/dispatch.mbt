@@ -240,6 +240,7 @@ pub fn[C, E] take_duckdb_dispatch(
 pub fn prepare_duckdb_managed_dispatch(
   installed : DuckDBDispatchModule,
   outputs : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
@@ -271,9 +272,7 @@ pub fn prepare_duckdb_managed_dispatch(
     @connector.prepare_managed_fixed_compute_request(
       inputs,
       installed.limits.capacity,
-      @execution.process_managed_obligations(
-        @execution.managed_producer_read_receiver(inputs[0]),
-      ),
+      obligations,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))

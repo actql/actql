@@ -27,6 +27,10 @@ struct CapturedDAG {
   mut search_report : Array[StrategyAssessment]
   mut search_report_complete : Bool
   revision_history : Array[StrategyRevision]
+  mut managed_publication_identity : Bool
+  mut managed_consumer_identity : Bool
+  mut managed_host_identity : Bool
+  mut managed_identity_policy_sealed : Bool
 }
 
 ///|
@@ -162,7 +166,96 @@ pub fn open_captured_dag(
     search_report: [],
     search_report_complete: false,
     revision_history: [],
+    managed_publication_identity: false,
+    managed_consumer_identity: false,
+    managed_host_identity: false,
+    managed_identity_policy_sealed: false,
   })
+}
+
+///|
+/// Install the Host-owned logical-identity policy before any managed request is
+/// prepared. Program text and connector code cannot weaken this policy later.
+pub fn configure_captured_managed_identity_policy(
+  run : CapturedDAG,
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Bool {
+  let mut started = false
+  for index in 1..<run.done.length() {
+    if run.done[index] {
+      started = true
+    }
+  }
+  if run.managed_identity_policy_sealed || run.running is Some(_) || started {
+    return false
+  }
+  run.managed_publication_identity = publication
+  run.managed_consumer_identity = consumer
+  run.managed_host_identity = host_policy
+  run.managed_identity_policy_sealed = true
+  true
+}
+
+///|
+/// Derive the next task's obligations from checked graph destinations, known
+/// consumers and the installed Host policy. Connectors receive this opaque
+/// value and may reject it, but cannot replace it with process-local defaults.
+pub fn captured_next_managed_obligations(
+  run : CapturedDAG,
+  max_entries : Int,
+) -> Result[@execution.ManagedObligations, @execution.ManagedObligationIssue] {
+  guard next_captured_task(run) is Some(task) &&
+    run.graph.owners.get(task) is Some(owner) else {
+    return Err(@execution.InvalidLimits)
+  }
+  run.managed_identity_policy_sealed = true
+  let mut has_consumer = false
+  for edge in run.graph.data {
+    if edge.producer == task {
+      has_consumer = true
+      break
+    }
+  }
+  let publication_required = run.managed_publication_identity && !has_consumer
+  let consumer_required = run.managed_consumer_identity && has_consumer
+  let identity_required = publication_required ||
+    consumer_required ||
+    run.managed_host_identity
+  let subject = if publication_required {
+    @execution.NamedResult
+  } else {
+    @execution.TaskOutput
+  }
+  let need = if identity_required {
+    @execution.EstablishedBy(
+      if publication_required {
+        @execution.BeforePublication
+      } else if consumer_required {
+        @execution.BeforeCidOperation
+      } else {
+        @execution.BeforeDiscard
+      },
+    )
+  } else {
+    @execution.UnestablishedRetained
+  }
+  @execution.prepare_managed_obligations(
+    owner,
+    [{ domain: @execution.OrderedRows, subject, need, }],
+    if publication_required || run.managed_host_identity {
+      @execution.LogicalContentAddressed
+    } else {
+      @execution.ManagedUse
+    },
+    if consumer_required || run.managed_host_identity {
+      @execution.LogicalContentIdentity
+    } else {
+      @execution.MaterialBinding
+    },
+    max_entries,
+  )
 }
 
 ///|

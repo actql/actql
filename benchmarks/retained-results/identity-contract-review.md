@@ -16,6 +16,35 @@ new-profile measurements remain unfinished; earlier statements below about
 the absence of an identifier describe the earlier main checkout, not this
 branch's current contract state.
 
+### Standard Host obligation wiring — 2026-09-17
+
+The standard managed dispatcher no longer manufactures
+`process_managed_obligations()` inside the DuckDB driver. The trusted Host
+installs an opaque managed-identity policy before execution. The common
+captured-DAG scheduler combines that policy with the checked graph destination:
+an internal output with a known downstream consumer and a sink retained for
+publication are distinguished before constructing `ManagedObligations`.
+The exact Host-owned value is then passed through the generated implementation
+assembly into `prepare_duckdb_managed_dispatch()` and the managed fixed-compute
+request. Connector candidate code may reject it but cannot replace it with the
+process-local default.
+
+The product black-box fixture now covers three cases through the standard Host
+entry. A process-managed internal consumer selects the current DuckDB path. A
+known consumer logical-identity requirement rejects that path before the
+consumer task starts. A sink publication logical-identity requirement likewise
+rejects the path before the sink task starts. Either requirement strengthens
+the default; neither can be overwritten by DuckDB configuration.
+
+This closes the fixed-obligation product-wiring defect, not the complete
+identity feature. The current DuckDB candidate cannot establish a logical
+content identity, delayed CID generation has no product issuer yet, and the
+installed managed dispatcher has no second CID-capable realization to select.
+Consequently the negative pre-start exclusion is tested, while successful
+fallback to a CID-capable candidate remains an explicit completion item. The
+Host policy is an opaque execution API capability, not authored Program syntax
+or a caller-provided CID.
+
 ### Resumption clarification: managed Run scope and quantity-specific duties
 
 The user explicitly reaffirmed the new-contract decision after relaying a main

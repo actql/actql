@@ -62,6 +62,42 @@ pub fn strategy_host_next_task(
 }
 
 ///|
+/// Install the trusted Host policy before connector preparation. These flags
+/// strengthen checked consumer and publication requirements; they are not
+/// Program-controlled optimization hints.
+#export_name("strategyHostConfigureManagedIdentity")
+pub fn strategy_host_configure_managed_identity(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Bool {
+  @strategy.configure_captured_managed_identity_policy(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    publication,
+    consumer,
+    host_policy,
+  )
+}
+
+///|
+/// Common scheduler derivation. Connector implementations receive this exact
+/// opaque obligation set and cannot substitute their own default profile.
+#export_name("strategyHostManagedObligations")
+pub fn strategy_host_managed_obligations(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @execution.ManagedObligations raise NodeHostFailure {
+  match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      1,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyHostManagedOutputMatches")
 pub fn strategy_host_managed_output_matches(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],

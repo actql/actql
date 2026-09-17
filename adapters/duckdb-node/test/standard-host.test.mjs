@@ -14,6 +14,9 @@ import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
+import {
+  prepareManagedIdentityPolicy,
+} from '../../host-node/managed-identity-policy.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
 import { runExample } from '../examples/physical-strategy.mjs';
@@ -1017,7 +1020,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       })},
     );
     assert.equal(managedStandardExecution.status, 'host-tasks-completed',
-      `${managedStandardExecution.failure?.code ?? ''}: ${managedStandardExecution.failure?.stack ?? managedStandardExecution.failure}`);
+      `${managedStandardExecution.completed.length} tasks: ` +
+      `${managedStandardExecution.failure?.code ?? ''}: ` +
+      `${managedStandardExecution.failure?.stack ?? managedStandardExecution.failure}`);
     assert.deepEqual(
       managedStandardExecution.completed.map(item => item.realization),
       Array(3).fill('duckdb-managed'),
@@ -1040,6 +1045,66 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(managedStandardExecution.usage().reservedExecutionBytes, 0n);
     }
     managedStandardCapture.close();
+  }
+  // The common Host derives obligations before connector comparison. Either a
+  // known logical-identity consumer or a publication contract must exclude the
+  // CID-free DuckDB candidate before that task starts.
+  for (const identityCase of [
+    {name: 'consumer', policy: {consumer: true}, completed: 1},
+    {name: 'publication', policy: {publication: true}, completed: 2},
+  ]) {
+    const identityFixture = fixture.strategyFixtureCreate(
+      ...args,
+      JSON.stringify(managedStandardProgram),
+    );
+    const identityCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(identityFixture),
+      suppliedLimits,
+    );
+    let identityExecution;
+    try {
+      assert.equal(
+        fixture.strategyFixtureOpen(identityFixture, identityCapture.source()),
+        true,
+      );
+      identityExecution = await runCapturedStrategy(
+        fixture.strategyFixtureManagedDispatch(identityFixture),
+        {
+          managedIdentityPolicy: prepareManagedIdentityPolicy(
+            identityCase.policy,
+          ),
+          duckdb: prepareDuckDBStrategyConfiguration({
+            transportLimits: suppliedLimits,
+            importLimits: {maxRows: 100, maxCells: 1000},
+            managedOutput: {
+              parentDirectory: fileParent,
+              maxFrameBytes: 4096,
+              wire: {
+                max_bytes: 100000,
+                max_nodes: 10000,
+                max_depth: 64,
+                max_columns: 10,
+                max_order_work: 10000,
+              },
+            },
+          }),
+        },
+      );
+      assert.equal(identityExecution.status, 'host-tasks-failed');
+      assert.equal(
+        identityExecution.completed.length,
+        identityCase.completed,
+        `${identityCase.name} identity requirement started an unsupported task`,
+      );
+      assert(identityExecution.failure != null);
+    } finally {
+      await identityExecution?.close();
+      if (identityExecution) {
+        assert.equal(await identityExecution.cleanup(), true);
+      }
+      identityCapture.close();
+    }
   }
   // The product dispatcher preserves exact input-port order for managed
   // binary fan-in. Join creates and admits new values once; the downstream

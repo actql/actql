@@ -103,8 +103,16 @@ pub fn ${name}_managed_dispatch(
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
 ) -> ${managedResult} raise NodeHostFailure {
+  let obligations = match @strategy.captured_next_managed_obligations(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    1,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
   match @builtin.dispatch_managed_${name}(
-    @builtin.configured_host_modules(setup), completed, output_file_bytes,
+    @builtin.configured_host_modules(setup), completed, obligations,
+    output_file_bytes,
   ) {
     Ok(value) => value
     Err(MissingImplementation) => raise InvalidCommand

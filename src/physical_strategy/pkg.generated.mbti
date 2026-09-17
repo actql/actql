@@ -42,6 +42,8 @@ pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.Mana
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
+pub fn captured_next_managed_obligations(CapturedDAG, Int) -> Result[@execution_relation.ManagedObligations, @execution_relation.ManagedObligationIssue]
+
 pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
@@ -85,6 +87,8 @@ pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution
 pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
 pub fn complete_task_execution(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
+
+pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool) -> Bool
 
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 
