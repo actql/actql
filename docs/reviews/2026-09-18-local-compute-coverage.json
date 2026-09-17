@@ -282,9 +282,9 @@
       "canonical_operations": ["REL.unionAll"],
       "machine_registry": "registered",
       "variant_scope": ["literal and referenced right input", "schema alignment", "left then right order", "empty sides", "shared and distinct producers"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common two-input lowering and Local append execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/execution_relation/append_rows_wbtest.mbt","src/query_integration/local_managed_append_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_append_wbtest.mbt"],"conformance":["src/execution_relation/append_rows_wbtest.mbt","src/query_integration/local_managed_append_wbtest.mbt"],"performance":[]},
+      "gaps": ["Managed append preserves alignment and feeds two consumers; empty sides, shared external producers, full type coverage, and performance evidence remain."]
     },
     {
       "operation": "values",

@@ -40,7 +40,7 @@ fn run_local_managed_test_task(
     @strategy.captured_managed_task_output_matches(
       run,
       task,
-      @pipeline.Step(0),
+      @strategy.captured_task_target(run, task).unwrap(),
       completed,
     ),
   )

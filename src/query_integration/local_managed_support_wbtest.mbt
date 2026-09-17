@@ -15,6 +15,7 @@ test "initial Local managed support is a finite unary surface" {
       "[{\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
       true,
     ),
+    ("[{\"append\":{\"with\":\"prior\"}}]", true),
   ]
   for (wire, expected) in shapes {
     let receiver = typed_receiver(source, wire)
