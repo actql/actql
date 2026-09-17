@@ -1219,3 +1219,35 @@ comparator shape. The pair remains `diagnostic-completed` and not acceptance
 eligible. Complete expression-demand and guard failure parity, complete
 negative conformance fixtures and final equivalent-obligation admission remain
 open.
+
+### Fixed-revision failure and demand conformance checkpoint
+
+The clean `7d25114edefca455261f2d5471759cbe834d1192` revision passed all 116
+DuckDB Node adapter tests. The suite includes the standard managed Host,
+retained and direct material paths, ownership and revocation, cancellation,
+resource settlement, comparator assembly and the registered workload smoke.
+This is a conformance checkpoint, not a timing sample.
+
+The registered comparator's expression domain is finite: acquisition and
+downstream stages use eager numeric scalar comparisons. The independent
+assembly feeds those operands through the adapter's shared comparison
+measurement law; the product fixed-input paths use the same accumulation and
+finish law. Targeted JS MoonBit runs passed two shared comparison tests, two
+managed fixed-demand tests and two fixed-native demand tests. Together they
+cover successful true/false/NULL accounting, empty demand, RHS and operand
+measurement exhaustion, predicate-value ceilings, exact binding and one-use
+consumption. This evidence does not claim parity for arbitrary ActQL expression
+forms outside the registered benchmark.
+
+Five end-to-end cross-leg negatives also passed: an invalid excluded source
+value, a deferred record guard, a later invalid value preceding that guard,
+complete-source row exhaustion and join expansion before the final count. Each
+leg rejected without leaving a retained file. Independent Store-open failure
+entered common settlement, and a real pathname/inode replacement prevented a
+successful sample, retained the exact `RetainedPathReplaced` cleanup cause and
+left the unconfirmed Store visible.
+
+The implementation report still conservatively lists expression/negative
+closure as missing at this revision. Connecting this fixed finite evidence to
+the explicit equivalent-obligation admission remains a separate code change;
+the checkpoint itself does not make prior diagnostic pairs acceptance-eligible.
