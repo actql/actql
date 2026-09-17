@@ -121,6 +121,16 @@ sample. This does not yet certify real native-close or filesystem-failure
 recovery. The independent column-order test caught a schema/transport index
 confusion during development, before acceptance use.
 
+A cross-leg failure-parity regression now corrupts a value that the acquisition
+predicate would otherwise exclude. Both the product and independent legs reject
+it during complete source admission, before filtering, and confirm retained-file
+cleanup. A second regression keeps source cardinality legal but makes every join
+key equal. The independent preflight and product common row guard both reject
+the expanded intermediate before the final global count, and neither leaves a
+holding behind. These close two registered-workload precedence holes; they do
+not replace the remaining expression combinations or real cleanup-failure
+fixtures.
+
 Still required before equivalence approval:
 
 - Comparator-equivalence admission before either matched timing is accepted.

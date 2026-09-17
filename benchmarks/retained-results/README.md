@@ -333,6 +333,13 @@ comparison measurement. These are observed quantities, not configured cost
 estimates. Product-side domain parity and pair admission are still required
 before the registered transfer/work obligation is closed.
 
+`equivalent-failure-parity.test.mjs` exercises two cross-leg negative cases:
+an invalid source value excluded by the later predicate, and legal source
+cardinality whose duplicate join keys exceed the intermediate-row guard. Both
+legs must reject at the required earlier boundary and reclaim their holdings.
+The remaining failure-precedence and cleanup-failure matrix stays explicit in
+the comparator-boundary inventory.
+
 ### Selective baseline receiver profile
 
 `baseline-acquisition-capacity.mjs` now provides pure transformations for the
