@@ -78,6 +78,33 @@ test('native-created file over reservation is rejected and remains cleanup-owned
   assert.equal(store.status().reservedBytes, 0);
 });
 
+test('stopped native creation without a report still reclaims the exact file', async t => {
+  const {store, write} = await fixture(t, false);
+  const lease = write.delegateCreate('native-no-report');
+  await writeFile(lease.path, 'unreported', {flag: 'wx', mode: 0o600});
+  write.cancel();
+  assert.equal(await write.cleanupHandle.retry(), false);
+  assert.equal(store.status().reservedBytes, 20);
+  assert.equal(write.confirmDelegatedStopped(), true);
+  assert.equal(write.confirmDelegatedStopped(), false);
+  assert.equal(await write.cleanupHandle.retry(), true);
+  assert.equal(store.status().reservedBytes, 0);
+  assert.equal(store.status().uncertainWriteBytes, 20);
+  await assert.rejects(stat(lease.path), {code: 'ENOENT'});
+});
+
+test('stopped native creation verifies absence before releasing capacity', async t => {
+  const {store, write} = await fixture(t, false);
+  write.delegateCreate('native-no-file');
+  write.cancel();
+  assert.equal(await write.cleanupHandle.retry(), false);
+  assert.equal(store.status().reservedBytes, 20);
+  assert.equal(write.confirmDelegatedStopped(), true);
+  assert.equal(await write.cleanupHandle.retry(), true);
+  assert.equal(store.status().reservedBytes, 0);
+  assert.equal(store.status().uncertainWriteBytes, 20);
+});
+
 test('native-created generation replacement is rejected before Store adoption', async t => {
   const {store, write} = await fixture(t, false);
   const lease = write.delegateCreate('native-replaced');

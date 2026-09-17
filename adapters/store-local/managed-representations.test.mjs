@@ -79,3 +79,83 @@ test('managed registry rejects mismatched row, codec and chunk identity', async 
     ), {code: 'InvalidManagedInputRegistration'});
   }
 });
+
+test('pending native stop retains duplicate input pins until cleanup settles', async t => {
+  const {store, body} = await fixture(t);
+  const material = {}, input = {};
+  const representation = managedPhysicalRepresentation(
+    body, 2, codec, fields, [0],
+  );
+  registerManagedInput(
+    material, value => value === input, store, body, codec,
+    representation.manifest,
+  );
+  let stopped = false;
+  const native = Object.freeze({
+    status: () => Object.freeze({pending: !stopped}),
+    retry: async () => { stopped = true; },
+  });
+  let failure;
+  try {
+    await withManagedInputFiles([
+      {material, input, codecContractCid: codec},
+      {material, input, codecContractCid: codec},
+    ], () => true, () => {
+      const error = new Error('cancel deadline');
+      error.code = 'Cancelled';
+      error.cleanupPending = true;
+      error.cleanupHandle = native;
+      throw error;
+    });
+  } catch (error) { failure = error; }
+  assert.equal(failure.code, 'Cancelled');
+  assert.equal(failure.primaryFailure.message, 'cancel deadline');
+  assert.equal(store.status().activeReaders, 1,
+    'duplicate logical inputs retain one physical borrow');
+  body.close();
+  assert.equal(await body.cleanupHandle.retry(), false);
+  assert.equal(store.status().reservedBytes, body.bytes);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(store.status().activeReaders, 0);
+  await body.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
+});
+
+test('unknown native cleanup status cannot release an input pin', async t => {
+  const {store, body} = await fixture(t);
+  const material = {}, input = {};
+  const representation = managedPhysicalRepresentation(
+    body, 2, codec, fields, [0],
+  );
+  registerManagedInput(
+    material, value => value === input, store, body, codec,
+    representation.manifest,
+  );
+  let statusAvailable = false;
+  const native = Object.freeze({
+    status() {
+      if (!statusAvailable) throw new Error('status unavailable');
+      return Object.freeze({pending: false});
+    },
+    retry: async () => { statusAvailable = true; },
+  });
+  let failure;
+  try {
+    await withManagedInputFiles([
+      {material, input, codecContractCid: codec},
+    ], () => true, () => {
+      const error = new Error('unconfirmed');
+      error.cleanupPending = true;
+      error.cleanupHandle = native;
+      throw error;
+    });
+  } catch (error) { failure = error; }
+  assert.equal(store.status().activeReaders, 1);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(store.status().activeReaders, 0);
+  body.close();
+  await body.cleanupHandle.retry();
+});

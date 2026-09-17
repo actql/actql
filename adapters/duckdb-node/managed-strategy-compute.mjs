@@ -13,6 +13,7 @@ import {encodeManagedColumnFrame, managedColumnCodecContractCid} from './managed
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
+import {ownedHostFailure} from './failure-envelope.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
@@ -323,9 +324,11 @@ export async function runManagedColumnStrategyHostCompute(
         closed = true;
       },
     });
-  } catch (error) {
+  } catch (reason) {
+    const error = ownedHostFailure(reason, 'ManagedStrategyFailed');
     authorized = false;
-    const nativeCleanup = error.cleanupPending ? error.cleanupHandle : undefined;
+    const nativeCleanup = error.cleanupPending === true
+      ? error.cleanupHandle : undefined;
     const nativePending = () => {
       if (!nativeCleanup) return false;
       try { return nativeCleanup.status().pending === true; }
@@ -370,10 +373,20 @@ export async function runManagedColumnStrategyHostCompute(
       error.cleanupHandle = Object.freeze({
         status: cleanupStatus,
         retry: async () => {
-          if (nativePending()) await nativeCleanup.retry();
+          const retryErrors = [];
+          if (nativePending()) {
+            try { await nativeCleanup?.retry(); }
+            catch (cleanupError) { retryErrors.push(cleanupError); }
+          }
           confirmDirectStopped();
-          await store?.cleanup();
+          try { await store?.cleanup(); }
+          catch (cleanupError) { retryErrors.push(cleanupError); }
           if (run) moon.managedStrategyRefreshRetention(run);
+          if (retryErrors.length) {
+            error.cleanupErrors = Object.freeze([
+              ...error.cleanupErrors, ...retryErrors,
+            ]);
+          }
           return cleanupStatus();
         },
       });

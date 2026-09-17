@@ -55,9 +55,44 @@ export async function createLocalRetainedStore(options) {
   let cleanupInFlight;
   let activeReaders = 0, reservedReadBufferBytes = 0;
 
+  const resolveStoppedExternalCreate = async entry => {
+    if (!entry.externalCreate || entry.createResolved) return;
+    let pathState;
+    try { pathState = await lstat(entry.path); }
+    catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      entry.createResolved = true;
+      entry.delegation = undefined;
+      return;
+    }
+    if (!pathState.isFile()) fail('RetainedPathReplaced');
+    const fd = await open(entry.path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const descriptorState = await fd.stat();
+      const confirmedPath = await lstat(entry.path);
+      if (!descriptorState.isFile() || !confirmedPath.isFile() ||
+          descriptorState.dev !== pathState.dev ||
+          descriptorState.ino !== pathState.ino ||
+          confirmedPath.dev !== pathState.dev ||
+          confirmedPath.ino !== pathState.ino) fail('RetainedPathReplaced');
+      entry.fd = fd;
+      entry.identity = descriptorState;
+      entry.created = true;
+      entry.createResolved = true;
+      entry.delegation = undefined;
+    } catch (error) {
+      try { await fd.close(); } catch {}
+      throw error;
+    }
+  };
+
   const releaseEntry = async entry => {
     if (entry.released) return true;
     if (!entry.revoked || entry.busy || entry.readers) return false;
+    // A stopped external writer may have created its allowed file before its
+    // success report was accepted. Resolve that exact path generation before
+    // returning the reservation or forgetting the cleanup owner.
+    await resolveStoppedExternalCreate(entry);
     if (entry.fd) {
       if (!entry.identity) entry.identity = await entry.fd.stat();
       await entry.fd.close();
@@ -111,6 +146,7 @@ export async function createLocalRetainedStore(options) {
       busy: false, readers: 0, revoked: false, released: false, sealed: false,
       bytes: 0, hash: createHash('sha256'), cid: undefined,
       delegation: undefined,
+      externalCreate: false, createResolved: false, writerStopped: false,
     };
     entries.add(entry);
     const revoke = () => { entry.revoked = true; };
@@ -353,6 +389,9 @@ export async function createLocalRetainedStore(options) {
         path: entry.path, maxBytes: entry.reservation, maxFrameBytes,
       });
       entry.delegation = descriptor;
+      entry.externalCreate = true;
+      entry.createResolved = false;
+      entry.writerStopped = false;
       delegatedWriteBytes += descriptor.maxBytes;
       entry.busy = true;
       return descriptor;
@@ -403,6 +442,7 @@ export async function createLocalRetainedStore(options) {
         fd = undefined;
         entry.identity = after;
         entry.created = true;
+        entry.createResolved = true;
         entry.bytes = before.size;
         admittedWriteBytes += before.size;
         delegatedWriteBytes -= lease.maxBytes;
@@ -432,12 +472,16 @@ export async function createLocalRetainedStore(options) {
     };
     const confirmDelegatedStopped = () => {
       // Host-only actual process exit/confirmed writer stop, never cancellation.
-      if (!entry.delegation) return false;
+      if (!entry.delegation || entry.writerStopped) return false;
       // No terminal byte receipt survived. Charge the granted upper bound in a
       // separate conservative counter; never report unknown traffic as zero.
       uncertainWriteBytes += entry.delegation.maxBytes;
       delegatedWriteBytes -= entry.delegation.maxBytes;
-      entry.delegation = undefined;
+      entry.writerStopped = true;
+      // A create grant remains attached until cleanup resolves whether its
+      // exact allowed path was created. Ordinary descriptor delegation already
+      // has an owned generation and can discard the terminal grant now.
+      if (!entry.externalCreate) entry.delegation = undefined;
       entry.busy = false;
       revoke();
       return true;

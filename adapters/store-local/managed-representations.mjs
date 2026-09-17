@@ -7,6 +7,81 @@ import {snapshotPhysicalManifest} from './managed-manifest.mjs';
 const representations = new WeakMap();
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 const issue = code => Object.assign(new Error(code), {code});
+const member = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
+const cleanupState = handle => {
+  if (!handle || typeof member(handle, 'status') !== 'function') {
+    return Object.freeze({pending: true, errors: Object.freeze([])});
+  }
+  try {
+    const state = handle.status();
+    if (!state || typeof state.pending !== 'boolean') {
+      return Object.freeze({pending: true, errors: Object.freeze([])});
+    }
+    return Object.freeze({
+      pending: state.pending,
+      errors: Object.freeze(Array.isArray(state.errors) ? [...state.errors] : []),
+    });
+  } catch (error) {
+    return Object.freeze({pending: true, errors: Object.freeze([error])});
+  }
+};
+
+// Transfer input pins only when an inner operation explicitly reports
+// unconfirmed native cleanup. Ordinary failures have already stopped using the
+// file and release synchronously. The returned failure is Host-owned and never
+// requires the original throwable to be mutable or even be an Error.
+function retainBorrowsUntilStopped(reason, borrows) {
+  const native = member(reason, 'cleanupHandle');
+  if (member(reason, 'cleanupPending') !== true) return undefined;
+  let released = false;
+  const release = () => {
+    if (released) return false;
+    released = true;
+    for (const borrow of borrows) borrow?.confirmStopped();
+    return true;
+  };
+  const initial = cleanupState(native);
+  if (!initial.pending) {
+    release();
+    return undefined;
+  }
+  const status = () => {
+    const state = cleanupState(native);
+    return Object.freeze({
+      pending: !released,
+      errors: state.errors,
+    });
+  };
+  const failure = issue(typeof member(reason, 'code') === 'string'
+    ? member(reason, 'code') : 'ManagedInputUseFailed');
+  failure.cause = reason;
+  failure.primaryFailure = reason;
+  failure.cleanupPending = true;
+  failure.cleanupErrors = initial.errors;
+  failure.cleanupHandle = Object.freeze({
+    status,
+    async retry() {
+      if (released) return status();
+      if (typeof member(native, 'retry') !== 'function') return status();
+      try { await native.retry(); }
+      catch (error) {
+        failure.cleanupErrors = Object.freeze([
+          ...failure.cleanupErrors, error,
+        ]);
+      }
+      if (!cleanupState(native).pending) release();
+      failure.cleanupPending = !released;
+      return status();
+    },
+  });
+  return failure;
+}
 
 export function registerManagedInput(
   material, readable, store, body, codecContractCid, physicalManifest,
@@ -88,14 +163,13 @@ export async function withManagedInputFile(material, input, codecContractCid, au
     });
     borrow.verify(result.report);
     admit();
+    borrow.confirmStopped();
     return result.value;
   } catch (error) {
     if (['RetainedBodyChanged', 'RetainedBodyTruncated', 'ForeignStoreFile', 'ENOENT'].includes(error?.code)) held.body.close();
-    throw error;
-  } finally {
-    // The awaited local use has stopped, including failure. Remote callbacks
-    // must not use this local helper to pretend an unconfirmed worker stopped.
-    borrow.confirmStopped();
+    const retained = retainBorrowsUntilStopped(error, [borrow]);
+    if (!retained) borrow.confirmStopped();
+    throw retained ?? error;
   }
 }
 
@@ -197,8 +271,16 @@ export async function withManagedInputFiles(
         `managed-local-${randomUUID()}`,
       );
     }
-    return await verify(0);
-  } finally {
+    const value = await verify(0);
     for (const entry of unique) entry.borrow?.confirmStopped();
+    return value;
+  } catch (error) {
+    const retained = retainBorrowsUntilStopped(
+      error, unique.map(entry => entry.borrow),
+    );
+    if (!retained) {
+      for (const entry of unique) entry.borrow?.confirmStopped();
+    }
+    throw retained ?? error;
   }
 }
