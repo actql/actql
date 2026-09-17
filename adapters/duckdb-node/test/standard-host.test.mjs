@@ -1086,10 +1086,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         Array(4).fill('duckdb-managed'),
       );
       const joinPhases = managedJoinExecution.completed[2].phases;
-      assert.equal(joinPhases.nativeFileImportCommands, 2);
+      assert.equal(joinPhases.nativeFileImportCommands, 0);
+      assert.equal(joinPhases.nativeFileScanCommands, 2);
       assert.equal(joinPhases.inputIntegrityPasses, selfJoin ? 1 : 2);
+      assert.equal(joinPhases.inputNativeScanBytes,
+        selfJoin ? joinPhases.inputPhysicalBytes * 2 : joinPhases.inputPhysicalBytes);
       assert.equal(joinPhases.logicalContentCidComputations, 0);
-      assert.equal(managedJoinExecution.completed[3].phases.nativeFileImportCommands, 1);
+      assert.equal(managedJoinExecution.completed[3].phases.nativeFileImportCommands, 0);
+      assert.equal(managedJoinExecution.completed[3].phases.nativeFileScanCommands, 1);
       assert.equal(managedJoinExecution.completed[3].phases.logicalContentCidComputations, 0);
     } finally {
       await managedJoinExecution?.close();
@@ -1446,8 +1450,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 2, managedDownstream.completed), true,
     'the product Host publishes task 2 through the common managed DAG');
     assert.deepEqual(managedDownstream.diagnostics, {
-      inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
-      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      inputPhysicalBytes: Number(managedBodyBytes),
+      inputNativeScanBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 0, nativeFileScanCommands: 1,
+      parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 3, selectionOccurrenceRows: 3,
       outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
@@ -1497,8 +1503,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'a second downstream consumer reuses the managed path without legacy rows');
     assert.deepEqual(managedTerminal.diagnostics, {
-      inputPhysicalBytes: Number(managedDownstreamBytes), inputIntegrityPasses: 1,
-      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      inputPhysicalBytes: Number(managedDownstreamBytes),
+      inputNativeScanBytes: Number(managedDownstreamBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 0, nativeFileScanCommands: 1,
+      parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
@@ -1544,8 +1552,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 4, managedGroup.completed), true,
     'the newly computed group result enters the common managed DAG');
     assert.deepEqual(managedGroup.diagnostics, {
-      inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
-      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      inputPhysicalBytes: Number(managedBodyBytes),
+      inputNativeScanBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 0, nativeFileScanCommands: 1,
+      parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 1,
       reusedMeasurementCells: 0, selectionOccurrenceRows: 0,
       outputFrames: 1, outputPhysicalBytes: managedGroup.diagnostics.outputPhysicalBytes,
@@ -1611,8 +1621,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedInputCodecContractCid(managedGroup.material), suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.deepEqual(managedGroupFirst.diagnostics, {
-      inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
-      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      inputPhysicalBytes: Number(managedGroupBytes),
+      inputNativeScanBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 0, nativeFileScanCommands: 1,
+      parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 1,
@@ -1644,8 +1656,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedInputCodecContractCid(managedGroup.material), suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.deepEqual(managedGroupSecond.diagnostics, {
-      inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
-      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      inputPhysicalBytes: Number(managedGroupBytes),
+      inputNativeScanBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 0, nativeFileScanCommands: 1,
+      parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 1,

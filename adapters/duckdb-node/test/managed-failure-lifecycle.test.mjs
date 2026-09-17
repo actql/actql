@@ -72,6 +72,8 @@ export const managedStrategyInputCount=()=>1;
 export const managedStrategyInputAt=()=>({});
 export const managedStrategyCreateSql=()=>'';
 export const managedStrategyInputFileSqlAt=()=>'';
+export const managedStrategyInputFileViewSqlAt=()=>'';
+export const managedStrategyInputParquetViewSqlAt=()=>'';
 export const managedStrategyOccurrenceSql=()=>undefined;
 export const managedStrategySql=()=>'';
 export const managedStrategyParameterCount=()=>0;

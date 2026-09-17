@@ -288,6 +288,24 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     );
     return promise;
   };
+  const createFileView = (sql, inputPath, consume) => {
+    if (typeof sql !== 'string' || typeof inputPath !== 'string' ||
+        typeof consume !== 'function' || !inputFiles.includes(inputPath) ||
+        !sql.startsWith('CREATE TEMP VIEW ') ||
+        sql.indexOf('?') < 0 || sql.indexOf('?') !== sql.lastIndexOf('?')) {
+      throw new DuckDBTransportError('InvalidFileView');
+    }
+    // DuckDB does not allow prepared parameters in CREATE VIEW. Only this
+    // installed Host operation may substitute one exact session-authorized
+    // path into an adapter-compiled template. General external access remains
+    // disabled and the resulting complete SQL is checked by runCommand.
+    const quoted = `'${inputPath.replaceAll("'", "''")}'`;
+    const pathBytes = Buffer.byteLength(JSON.stringify({
+      type: {id: 'VARCHAR'}, value: inputPath,
+    }), 'utf8');
+    chargeBytes(pathBytes);
+    return command(sql.replace('?', quoted), [], consume);
+  };
   let result;
   let failure;
   let failed = false;
@@ -354,6 +372,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     result = await body(Object.freeze({
       command,
       insert: (sql, parameters, consume) => command(sql, parameters, consume, true),
+      createFileView,
       // Installed Host operation only. The output path must be one of the exact
       // paths admitted when this private session was created; callers cannot
       // choose a format, option, glob or arbitrary destination.

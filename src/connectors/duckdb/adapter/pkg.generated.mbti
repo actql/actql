@@ -199,6 +199,8 @@ pub fn[T] managed_fixed_query_column_file_sql(ManagedFixedQuery[T], Int) -> Stri
 
 pub fn[T] managed_fixed_query_column_file_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
 
+pub fn[T] managed_fixed_query_column_file_view_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
+
 pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
 
 pub fn[T] managed_fixed_query_create_sql_at(ManagedFixedQuery[T], Int) -> String?
@@ -234,6 +236,8 @@ pub fn[T] managed_fixed_query_parameter_count(ManagedFixedQuery[T]) -> Int
 pub fn[T] managed_fixed_query_parquet_file_sql(ManagedFixedQuery[T], Int) -> String?
 
 pub fn[T] managed_fixed_query_parquet_file_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
+
+pub fn[T] managed_fixed_query_parquet_file_view_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
 
 pub fn[T] managed_fixed_query_requires_fragment(ManagedFixedQuery[T]) -> Bool
 

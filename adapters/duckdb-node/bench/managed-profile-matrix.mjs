@@ -97,6 +97,12 @@ try {
       );
       const counters = report.tasks.reduce((sum, task) => {
         const phase = task.phases ?? {};
+        sum.inputPhysicalBytes += phase.inputPhysicalBytes ?? 0;
+        sum.inputNativeScanBytes += phase.inputNativeScanBytes ?? 0;
+        sum.inputIntegrityPasses += phase.inputIntegrityPasses ?? 0;
+        sum.nativeFileImportCommands +=
+          phase.nativeFileImportCommands ?? 0;
+        sum.nativeFileScanCommands += phase.nativeFileScanCommands ?? 0;
         sum.directOutputCopies += phase.directOutputCopies ?? 0;
         sum.outputJsMaterializedCells +=
           phase.outputJsMaterializedCells ?? 0;
@@ -105,6 +111,11 @@ try {
           phase.logicalContentCidComputations ?? 0;
         return sum;
       }, {
+        inputPhysicalBytes: 0,
+        inputNativeScanBytes: 0,
+        inputIntegrityPasses: 0,
+        nativeFileImportCommands: 0,
+        nativeFileScanCommands: 0,
         directOutputCopies: 0,
         outputJsMaterializedCells: 0,
         outputFrameReencodes: 0,

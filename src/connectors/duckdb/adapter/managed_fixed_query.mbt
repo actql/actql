@@ -597,6 +597,88 @@ pub fn[T] managed_fixed_query_column_file_sql_at(
 }
 
 ///|
+/// Compile a direct scan view over the installed managed-column file. The
+/// exact path is substituted only by the Host's authorized file-view command;
+/// this template is never exposed as Program-provided SQL. The producer's
+/// admitted immutable generation already owns value validation, while the
+/// ordinal remains part of the checked logical view.
+pub fn[T] managed_fixed_query_column_file_view_sql_at(
+  value : ManagedFixedQuery[T],
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  guard value.inputs.get(input_index) is Some(input) else { return None }
+  let schema = @execution.managed_producer_read_schema(input)
+  guard max_sql_bytes > 0 &&
+    @schema.field_count(schema) > 0 &&
+    managed_fixed_query_input_table(value, input_index) is Some(table) else {
+    return None
+  }
+  let physical = []
+  for index in 0..<@schema.field_count(schema) {
+    guard @schema.field_at(schema, index) is Some(field) else { return None }
+    match field.contract.shape {
+      @contract.Number => physical.push("DOUBLE")
+      @contract.Text(_) => physical.push("VARCHAR")
+      _ => return None
+    }
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, "CREATE TEMP VIEW ")
+    sql_identifier(output, table)
+    sql_text(output, " AS SELECT ")
+    for index, _ in physical {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      physical_input_identifier(
+        output,
+        "__actql_import",
+        "c" + index.to_string(),
+      )
+      sql_text(output, " AS ")
+      sql_identifier(
+        output,
+        @schema.reference_name(@schema.field_at(schema, index).unwrap().name),
+      )
+    }
+    sql_text(output, ", ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " AS ")
+    sql_identifier(output, managed_input_ordinal_column())
+    sql_text(output, " FROM (SELECT ")
+    for index, _ in physical {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      sql_text(output, "unnest(c" + index.to_string() + ") AS ")
+      sql_identifier(output, "c" + index.to_string())
+    }
+    sql_text(output, ", unnest(o) AS ")
+    sql_identifier(output, "o")
+    sql_text(
+      output, " FROM read_json(?, format='newline_delimited', auto_detect=false, columns={",
+    )
+    for index, kind in physical {
+      if index > 0 {
+        sql_text(output, ",")
+      }
+      sql_text(output, "c" + index.to_string() + ":'" + kind + "[]'")
+    }
+    if physical.length() > 0 {
+      sql_text(output, ",")
+    }
+    sql_text(output, "o:'BIGINT[]'")
+    sql_text(output, "}, ignore_errors=false)) AS ")
+    sql_identifier(output, "__actql_import")
+    Some(output.builder.to_string())
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// Import the installed direct DuckDB Parquet representation. The file keeps
 /// logical columns in positional `cN` fields, an exact dense output ordinal and
 /// the source occurrence used by the checked evidence-transfer path. This is
@@ -656,6 +738,61 @@ pub fn[T] managed_fixed_query_parquet_file_sql_at(
     sql_identifier(output, "__actql_import")
     sql_text(output, " ORDER BY ")
     physical_input_identifier(output, "__actql_import", "o")
+    Some(output.builder.to_string())
+  } catch {
+    _ => None
+  }
+}
+
+///|
+/// Compile a direct Parquet scan view without first copying every row into a
+/// temporary table. The physical manifest and Store pin remain mandatory; the
+/// file digest is not promoted to logical identity.
+pub fn[T] managed_fixed_query_parquet_file_view_sql_at(
+  value : ManagedFixedQuery[T],
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  guard value.inputs.get(input_index) is Some(input) else { return None }
+  let schema = @execution.managed_producer_read_schema(input)
+  guard max_sql_bytes > 0 &&
+    @schema.field_count(schema) > 0 &&
+    managed_fixed_query_input_table(value, input_index) is Some(table) else {
+    return None
+  }
+  for index in 0..<@schema.field_count(schema) {
+    guard @schema.field_at(schema, index) is Some(field) else { return None }
+    match field.contract.shape {
+      @contract.Number | @contract.Text(_) => ()
+      _ => return None
+    }
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, "CREATE TEMP VIEW ")
+    sql_identifier(output, table)
+    sql_text(output, " AS SELECT ")
+    for index in 0..<@schema.field_count(schema) {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      physical_input_identifier(
+        output,
+        "__actql_import",
+        "c" + index.to_string(),
+      )
+      sql_text(output, " AS ")
+      sql_identifier(
+        output,
+        @schema.reference_name(@schema.field_at(schema, index).unwrap().name),
+      )
+    }
+    sql_text(output, ", ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " AS ")
+    sql_identifier(output, managed_input_ordinal_column())
+    sql_text(output, " FROM read_parquet(?) AS ")
+    sql_identifier(output, "__actql_import")
     Some(output.builder.to_string())
   } catch {
     _ => None

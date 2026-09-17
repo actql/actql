@@ -79,7 +79,8 @@ export async function runManagedColumnStrategyHostCompute(
   const moon = await loadRuntime();
   const capacity = computePhysicalCapacity(limits);
   let store, writer, body, output, completed, run;
-  let inputPhysicalBytes = 0, inputIntegrityPasses = 0, outputFrames = 0;
+  let inputPhysicalBytes = 0, inputNativeScanBytes = 0;
+  let inputIntegrityPasses = 0, outputFrames = 0;
   let outputValueAdmissionCells = 0, outputJsMaterializedCells = 0;
   let reusedMeasurementCells = 0;
   let outputRows = 0;
@@ -106,13 +107,11 @@ export async function runManagedColumnStrategyHostCompute(
     }
     const inputs = Array.from({length: inputCount}, (_, index) =>
       checked(moon.managedStrategyInputAt(run, index)));
-    const createSqls = inputs.map((_, index) =>
-      checked(moon.managedStrategyCreateSql(run, index)));
-    const importSqls = inputs.map((_, index) =>
+    const viewSqls = inputs.map((_, index) =>
       inputCodecContractCids[index] === managedColumnCodecContractCid
-        ? moon.managedStrategyInputFileSqlAt(run, index, limits.maxSqlBytes)
-        : moon.managedStrategyInputParquetSqlAt(run, index, limits.maxSqlBytes));
-    if (importSqls.some(sql => typeof sql !== 'string')) {
+        ? moon.managedStrategyInputFileViewSqlAt(run, index, limits.maxSqlBytes)
+        : moon.managedStrategyInputParquetViewSqlAt(run, index, limits.maxSqlBytes));
+    if (viewSqls.some(sql => typeof sql !== 'string')) {
       throw new DuckDBTransportError('UnsupportedManagedInputRepresentation');
     }
     const occurrenceSql = moon.managedStrategyOccurrenceSql(run);
@@ -144,9 +143,9 @@ export async function runManagedColumnStrategyHostCompute(
       async files => withComputeDatabase(limits, async session => {
         const discard = () => {};
         for (let index = 0; index < files.length; index++) {
-          await session.command(createSqls[index], [], discard);
-          await session.command(importSqls[index],
-            [{type: {id: 'VARCHAR'}, value: files[index].path}], discard);
+          await session.createFileView(
+            viewSqls[index], files[index].path, discard,
+          );
         }
         if (preservesCheckedValues) {
           let outputFields;
@@ -219,11 +218,16 @@ export async function runManagedColumnStrategyHostCompute(
         ...files.map(file => file.path),
       ]),
       signal,
-      (_indices, bytes) => {
-        // One complete Store integrity pass and one native read of the exact
-        // pinned file. Logical consumer charges are handled by managed demand.
-        checked(moon.managedStrategyCharge(run, BigInt(bytes) * 2n));
+      (indices, bytes) => {
+        // A duplicate logical occurrence shares this integrity pass and pin,
+        // but DuckDB still scans the admitted file once for every input view.
+        // Logical consumer charges remain separate in managed demand.
+        const scanBytes = bytes * indices.length;
+        checked(moon.managedStrategyCharge(
+          run, BigInt(bytes + scanBytes),
+        ));
         inputPhysicalBytes += bytes;
+        inputNativeScanBytes += scanBytes;
         inputIntegrityPasses++;
       },
     );
@@ -270,8 +274,10 @@ export async function runManagedColumnStrategyHostCompute(
       usage: result.usage,
       diagnostics: Object.freeze({
         inputPhysicalBytes,
+        inputNativeScanBytes,
         inputIntegrityPasses,
-        nativeFileImportCommands: inputCount,
+        nativeFileImportCommands: 0,
+        nativeFileScanCommands: inputCount,
         parameterInsertRows: 0,
         logicalContentCidComputations: 0,
         outputValueAdmissionCells,

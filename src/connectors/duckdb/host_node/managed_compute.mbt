@@ -288,6 +288,23 @@ pub fn managed_strategy_input_file_sql_at(
 }
 
 ///|
+#export_name("managedStrategyInputFileViewSqlAt")
+pub fn managed_strategy_input_file_view_sql_at(
+  run : ManagedComputeNodeRun,
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_column_file_view_sql_at(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+    input_index,
+    max_sql_bytes,
+  )
+}
+
+///|
 #export_name("managedStrategyInputParquetSql")
 pub fn managed_strategy_input_parquet_sql(
   run : ManagedComputeNodeRun,
@@ -313,6 +330,23 @@ pub fn managed_strategy_input_parquet_sql_at(
     return None
   }
   @duckdb.managed_fixed_query_parquet_file_sql_at(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+    input_index,
+    max_sql_bytes,
+  )
+}
+
+///|
+#export_name("managedStrategyInputParquetViewSqlAt")
+pub fn managed_strategy_input_parquet_view_sql_at(
+  run : ManagedComputeNodeRun,
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_parquet_file_view_sql_at(
     @duckdb_driver.captured_managed_duckdb_query(run.task),
     input_index,
     max_sql_bytes,

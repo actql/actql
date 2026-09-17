@@ -36,6 +36,27 @@ test('native file grants permit exact files while external access remains disabl
       return rows(session, query, parameter(allowed));
     }, undefined, undefined, [allowed]);
     assert.deepEqual(result.value, [['3ff0000000000000'], ['4000000000000000']]);
+    const direct = await withComputeDatabase(limits, async session => {
+      await session.createFileView(
+        "CREATE TEMP VIEW admitted AS SELECT id FROM read_json(?, columns={id: 'DOUBLE'}, format='array')",
+        allowed,
+        discard,
+      );
+      return rows(session, 'SELECT id FROM admitted ORDER BY id');
+    }, undefined, undefined, [allowed]);
+    assert.deepEqual(direct.value, [
+      ['3ff0000000000000'],
+      ['4000000000000000'],
+    ]);
+    await assert.rejects(withComputeDatabase(limits, session =>
+      session.createFileView(
+        "CREATE TEMP VIEW denied AS SELECT id FROM read_json(?, columns={id: 'DOUBLE'}, format='array')",
+        denied,
+        discard,
+      ), undefined, undefined, [allowed]), hasCode('InvalidFileView'));
+    await assert.rejects(withComputeDatabase(limits, session =>
+      session.createFileView('SELECT * FROM read_json(?)', allowed, discard),
+    undefined, undefined, [allowed]), hasCode('InvalidFileView'));
     await assert.rejects(withComputeDatabase(limits, session => rows(session, query, parameter(denied)),
       undefined, undefined, [allowed]), /Permission Error/);
     await assert.rejects(withComputeDatabase(limits, session => rows(session, query, parameter(allowed))),

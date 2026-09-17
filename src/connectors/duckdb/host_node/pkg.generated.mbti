@@ -244,9 +244,13 @@ pub fn managed_strategy_input_file_sql(ManagedComputeNodeRun, Int) -> String?
 
 pub fn managed_strategy_input_file_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
 
+pub fn managed_strategy_input_file_view_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
+
 pub fn managed_strategy_input_parquet_sql(ManagedComputeNodeRun, Int) -> String?
 
 pub fn managed_strategy_input_parquet_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
+
+pub fn managed_strategy_input_parquet_view_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
 
 pub fn managed_strategy_occurrence_sql(ManagedComputeNodeRun) -> String?
 
