@@ -27,11 +27,10 @@ pub fn[T] prepare_managed_input_duckdb_completion(
   authorize : () -> Bool,
   transport_matches : (@execution.ManagedOutputValueReceipt) -> Bool,
 ) -> Result[ManagedInputDuckDBCompletion[T], DuckDBComputeIssue] {
-  let native = @duckdb.managed_fixed_query_query(query)
   let input = @duckdb.managed_fixed_query_input(query)
   if !physical_equal(
       @execution.completion_preparation_owner(generated),
-      @duckdb.fixed_query_owner(native),
+      @duckdb.managed_fixed_query_owner(query),
     ) ||
     !@duckdb.managed_fixed_query_matches(query, input) {
     return Err(ForeignPreparation)
@@ -42,7 +41,7 @@ pub fn[T] prepare_managed_input_duckdb_completion(
   let measurement = match
     @execution.prepare_reused_managed_producer_measurement(
       [input],
-      @duckdb.fixed_query_target(native),
+      @duckdb.managed_fixed_query_target(query),
       max_rows~,
       max_value_bytes~,
       limits.values,
@@ -75,7 +74,7 @@ pub fn[T] prepare_managed_input_duckdb_completion(
     @execution.prepare_managed_completion_port(
       profile,
       generated,
-      @duckdb.fixed_query_target(native),
+      @duckdb.managed_fixed_query_target(query),
       limits.completion_entries,
       limits.completion_name_bytes,
       fn(

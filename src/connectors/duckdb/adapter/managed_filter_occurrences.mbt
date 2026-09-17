@@ -15,7 +15,7 @@ pub fn[T] managed_fixed_selection_sql(
   if !managed_fixed_query_matches(query, query.input) {
     return Err(InputUnavailable)
   }
-  guard query.query is FilterSelect(native) else {
+  guard query.body is Fixed(FilterSelect(native)) else {
     return Err(UnsupportedShape)
   }
   let input = @execution.managed_producer_read_schema(query.input)

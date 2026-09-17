@@ -153,9 +153,9 @@ pub fn managed_file_transport_limits() -> @adapter.TransportColumnLimits
 
 pub fn managed_file_values() -> @execution_relation.ManagedOutputValues
 
-pub fn managed_filter_occurrence_sql(@adapter.ManagedFixedQuery[Int], String, String) -> String raise
+pub fn managed_filter_occurrence_sql(@adapter.ManagedFixedQuery[Int], String, String) -> String
 
-pub fn managed_filter_selection(@adapter.ManagedFixedQuery[Int], Array[Int]) -> @execution_relation.ManagedViewSelection[Int] raise
+pub fn managed_filter_selection(@adapter.ManagedFixedQuery[Int], Array[Int]) -> @execution_relation.ManagedViewSelection[Int]
 
 pub fn managed_fixed_query(@execution_relation.ManagedProducerRead[Int]) -> @adapter.ManagedFixedQuery[Int]
 
@@ -165,7 +165,7 @@ pub fn managed_fixed_query_parameter(@adapter.ManagedFixedQuery[Int]) -> String 
 
 pub fn managed_fixed_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
 
-pub fn managed_fixed_view_plan(@adapter.ManagedFixedQuery[Int]) -> @execution_relation.ManagedViewPlan[Int] raise
+pub fn managed_fixed_view_plan(@adapter.ManagedFixedQuery[Int]) -> @execution_relation.ManagedViewPlan[Int]
 
 pub fn managed_fixture_enable_index(@execution_relation.ManagedOutputValues) -> Unit raise
 
@@ -318,6 +318,8 @@ pub fn strategy_fixture_managed_request_input_count(@connector_sdk.ManagedFixedC
 pub fn strategy_fixture_managed_request_query(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int]) -> @adapter.ManagedFixedQuery[Int]
 
 pub fn strategy_fixture_managed_request_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
+
+pub fn strategy_fixture_managed_selection_matches(@adapter.ManagedFixedQuery[Int], Array[Int]) -> Bool
 
 pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 

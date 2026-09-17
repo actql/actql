@@ -12,6 +12,7 @@ struct FixedComputeDemand {
 pub enum FixedComputeDemandUsage {
   Comparison(NativeDemandUsage)
   DirectCount(input_rows~ : Int, output_rows~ : Int)
+  DirectView(input_rows~ : Int, output_rows~ : Int)
   DirectJoin(left_rows~ : Int, right_rows~ : Int, output_rows~ : Int)
 }
 

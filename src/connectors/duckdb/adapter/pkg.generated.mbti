@@ -203,7 +203,17 @@ pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.
 
 pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
 
-pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
+pub fn[T] managed_fixed_query_owner(ManagedFixedQuery[T]) -> @lowering_relation.BoundPrepared
+
+pub fn[T] managed_fixed_query_parameter(ManagedFixedQuery[T], Int) -> PhysicalParameter?
+
+pub fn[T] managed_fixed_query_parameter_count(ManagedFixedQuery[T]) -> Int
+
+pub fn[T] managed_fixed_query_requires_fragment(ManagedFixedQuery[T]) -> Bool
+
+pub fn[T] managed_fixed_query_sql(ManagedFixedQuery[T]) -> String
+
+pub fn[T] managed_fixed_query_target(ManagedFixedQuery[T]) -> @pipeline_typing.Target
 
 pub fn[T] managed_fixed_selection_sql(ManagedFixedQuery[T], String, String, NativeQueryLimits) -> Result[String, NativeQueryIssue]
 
@@ -441,6 +451,7 @@ type FixedComputeDemand
 pub enum FixedComputeDemandUsage {
   Comparison(NativeDemandUsage)
   DirectCount(input_rows~ : Int, output_rows~ : Int)
+  DirectView(input_rows~ : Int, output_rows~ : Int)
   DirectJoin(left_rows~ : Int, right_rows~ : Int, output_rows~ : Int)
 }
 

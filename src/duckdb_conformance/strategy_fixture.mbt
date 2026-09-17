@@ -662,19 +662,17 @@ pub fn strategy_fixture_managed_configuration(
   }
   let query = @connector.managed_fixed_compute_choice_payload(choice, prepared).unwrap()
   let generated = fixture_generated(
-    @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
+    @duckdb.managed_fixed_query_owner(query),
     f.registry_json,
     f.values_json,
     f.fragment_json,
-    true,
+    @duckdb.managed_fixed_query_requires_fragment(query),
   ) catch {
     _ => abort("managed completion fixture")
   }
   let output_schema = @lower.preparation_schema_at(
-    @lower.bound_preparation(
-      @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
-    ),
-    @duckdb.fixed_query_target(@duckdb.managed_fixed_query_query(query)),
+    @lower.bound_preparation(@duckdb.managed_fixed_query_owner(query)),
+    @duckdb.managed_fixed_query_target(query),
   ).unwrap()
   let row_ceiling = @connector.managed_fixed_compute_request_capacity(request).max_rows
   let width = @schema.field_count(output_schema)
@@ -782,8 +780,20 @@ pub fn strategy_fixture_managed_request_query_sql(
 ) -> Array[String] {
   [
     @duckdb.managed_fixed_query_create_sql(query),
-    @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query)),
+    @duckdb.managed_fixed_query_sql(query),
   ]
+}
+
+///|
+/// Conformance probe for the product wrapper's exact native occurrence check.
+/// It neither executes SQL nor issues completion evidence.
+#export_name("strategyFixtureManagedSelectionMatches")
+pub fn strategy_fixture_managed_selection_matches(
+  query : @duckdb.ManagedFixedQuery[Int],
+  rows : Array[Int],
+) -> Bool {
+  @duckdb.prepare_managed_fixed_query_selection(query, rows, 1000, 10000)
+  is Ok(_)
 }
 
 ///|

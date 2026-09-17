@@ -928,8 +928,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   }
   managedProgram.stages[2].steps[1].select = [{kept: 'id'}];
   managedProgram.stages[2].results.r.fields = ['kept'];
-  managedProgram.stages[3].steps[0].filter = 'kept < 9';
-  managedProgram.stages[3].steps[1].select = [{id: 'kept'}];
+  managedProgram.stages[3].steps = [
+    {take: {count: 1, offset: 1}},
+    {select: [{id: 'kept'}], as: 'out'},
+  ];
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
   managedProgram.stages[3].inputs.x.result.stage = 'compute_b';
   const managedLedgerFixture = fixture.strategyFixtureCreate(
@@ -950,6 +952,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
     const indexBytes = 512n + 6n * 64n;
     const projectedIndexBytes = 512n + 2n * 64n;
+    const terminalIndexBytes = 512n + 64n;
     let attempt;
     let port;
     let consume;
@@ -1107,6 +1110,19 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     'task 3 binds the exact independent body published by task 2');
     const terminalRequest = fixture.strategyFixtureManagedRequest(
       managedLedgerFixture, 3, managedDownstream.completed);
+    const terminalQuery = fixture.strategyFixtureManagedRequestQuery(
+      managedLedgerFixture, terminalRequest);
+    const [, terminalQuerySql] =
+      fixture.strategyFixtureManagedRequestQuerySql(terminalQuery);
+    assert.match(terminalQuerySql, /ORDER BY .* LIMIT 1 OFFSET 1$/);
+    assert.equal(fixture.strategyFixtureManagedSelectionMatches(
+      terminalQuery, [1]), true);
+    assert.equal(fixture.strategyFixtureManagedSelectionMatches(
+      terminalQuery, [0]), false,
+    'a different valid source row cannot satisfy the checked take');
+    assert.equal(fixture.strategyFixtureManagedSelectionMatches(
+      terminalQuery, [1, 2]), false,
+    'extra native occurrences cannot satisfy the checked take');
     const terminalConfiguration = fixture.strategyFixtureManagedConfiguration(
       managedLedgerFixture, 3, terminalRequest, managedProfile, 100000n);
     managedTerminal = await runManagedColumnStrategyHostCompute(
@@ -1120,12 +1136,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       inputPhysicalBytes: Number(managedDownstreamBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
-      reusedMeasurementCells: 2, selectionOccurrenceRows: 2,
+      reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
     });
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
-    assert.equal(managedTerminalBytes, managedDownstreamBytes,
-      'the second checked filter preserves the same two physical rows');
+    assert.equal(managedTerminalBytes, 19n,
+      'the checked take writes only its one selected physical row');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
@@ -1133,7 +1149,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'successful downstream completion returns its unused metadata reservation');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
       indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
-      projectedIndexBytes * 2n,
+      projectedIndexBytes + terminalIndexBytes,
       'both downstream results own independent retained bodies');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
@@ -1151,7 +1167,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     'the terminal result survives revocation of its transitive ancestor');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
       managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
-      projectedIndexBytes * 2n,
+      projectedIndexBytes + terminalIndexBytes,
     'revocation releases only the initial measurement index');
     await managedTerminal.close();
     managedTerminal = undefined;

@@ -99,7 +99,7 @@ pub fn managed_strategy_sql(
   if create {
     @duckdb.managed_fixed_query_create_sql(query)
   } else {
-    @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query))
+    @duckdb.managed_fixed_query_sql(query)
   }
 }
 
@@ -230,10 +230,8 @@ pub fn managed_strategy_parameter_count(run : ManagedComputeNodeRun) -> Int {
   if run.closed {
     return 0
   }
-  @duckdb.fixed_query_parameter_count(
-    @duckdb.managed_fixed_query_query(
-      @duckdb_driver.captured_managed_duckdb_query(run.task),
-    ),
+  @duckdb.managed_fixed_query_parameter_count(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
   )
 }
 
@@ -246,10 +244,8 @@ pub fn managed_strategy_parameter(
   if run.closed {
     raise InvalidCommand
   }
-  guard @duckdb.fixed_query_parameter(
-      @duckdb.managed_fixed_query_query(
-        @duckdb_driver.captured_managed_duckdb_query(run.task),
-      ),
+  guard @duckdb.managed_fixed_query_parameter(
+      @duckdb_driver.captured_managed_duckdb_query(run.task),
       index,
     )
     is Some(parameter) else {

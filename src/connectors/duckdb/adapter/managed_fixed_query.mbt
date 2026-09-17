@@ -3,9 +3,16 @@
 /// No legacy CID-bearing input is manufactured. This is preparation only:
 /// dispatch still needs input obligations, a physical representation matching
 /// the checked view, a live pin, current authority and resource admission.
+priv enum ManagedFixedQueryBody[T] {
+  Fixed(FixedQuery)
+  Take(ManagedTakeQuery[T])
+}
+
+///|
 struct ManagedFixedQuery[T] {
   input : @execution.ManagedProducerRead[T]
-  query : FixedQuery
+  body : ManagedFixedQueryBody[T]
+  table : String
   create_sql : String
   compilation : NativeQueryLimits
 }
@@ -121,14 +128,27 @@ pub fn[T] prepare_managed_fixed_query(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let query = match compile_fixed_query(owner, "main", table, limits) {
-    Ok(query) => query
+  let body = match
+    prepare_managed_take_query(
+      input,
+      "main",
+      table,
+      managed_input_ordinal_column(),
+      "__actql_occurrence",
+      limits,
+    ) {
+    Ok(query) => Take(query)
+    Err(UnsupportedShape) =>
+      match compile_fixed_query(owner, "main", table, limits) {
+        Ok(query) => Fixed(query)
+        Err(issue) => return Err(issue)
+      }
     Err(issue) => return Err(issue)
   }
   if !@execution.managed_producer_read_available(input) {
     return Err(InputUnavailable)
   }
-  Ok({ input, query, create_sql, compilation: limits, })
+  Ok({ input, body, table, create_sql, compilation: limits, })
 }
 
 ///|
@@ -143,8 +163,66 @@ pub fn[T] managed_fixed_query_matches(
 }
 
 ///|
-pub fn[T] managed_fixed_query_query(value : ManagedFixedQuery[T]) -> FixedQuery {
-  value.query
+pub fn[T] managed_fixed_query_owner(
+  value : ManagedFixedQuery[T],
+) -> @lower.BoundPrepared {
+  match value.body {
+    Fixed(query) => fixed_query_owner(query)
+    Take(_) => @execution.managed_producer_read_receiver(value.input)
+  }
+}
+
+///|
+pub fn[T] managed_fixed_query_target(
+  value : ManagedFixedQuery[T],
+) -> @pipeline.Target {
+  match value.body {
+    Fixed(query) => fixed_query_target(query)
+    Take(_) => {
+      let prepared = @lower.bound_preparation(
+        @execution.managed_producer_read_receiver(value.input),
+      )
+      Step(@lower.node_count(prepared) - 1)
+    }
+  }
+}
+
+///|
+pub fn[T] managed_fixed_query_sql(value : ManagedFixedQuery[T]) -> String {
+  match value.body {
+    Fixed(query) => fixed_query_sql(query)
+    Take(query) => managed_take_query_sql(query)
+  }
+}
+
+///|
+pub fn[T] managed_fixed_query_parameter_count(
+  value : ManagedFixedQuery[T],
+) -> Int {
+  match value.body {
+    Fixed(query) => fixed_query_parameter_count(query)
+    Take(_) => 0
+  }
+}
+
+///|
+pub fn[T] managed_fixed_query_parameter(
+  value : ManagedFixedQuery[T],
+  index : Int,
+) -> PhysicalParameter? {
+  match value.body {
+    Fixed(query) => fixed_query_parameter(query, index)
+    Take(_) => None
+  }
+}
+
+///|
+/// Whether the installed fixed realization consumes a runtime expression
+/// fragment. Checked take/projection/copy uses only its finite view plan.
+pub fn[T] managed_fixed_query_requires_fragment(
+  value : ManagedFixedQuery[T],
+) -> Bool {
+  value.body is Fixed(FilterSelect(_))
 }
 
 ///|
@@ -168,15 +246,19 @@ pub fn[T] managed_fixed_query_create_sql(
 pub fn[T] managed_fixed_query_occurrence_sql(
   value : ManagedFixedQuery[T],
 ) -> String? {
-  match
-    managed_fixed_selection_sql(
-      value,
-      managed_input_ordinal_column(),
-      "__actql_occurrence",
-      value.compilation,
-    ) {
-    Ok(sql) => Some(sql)
-    Err(_) => None
+  match value.body {
+    Take(query) => Some(managed_take_query_sql(query))
+    Fixed(_) =>
+      match
+        managed_fixed_selection_sql(
+          value,
+          managed_input_ordinal_column(),
+          "__actql_occurrence",
+          value.compilation,
+        ) {
+        Ok(sql) => Some(sql)
+        Err(_) => None
+      }
   }
 }
 
@@ -190,13 +272,35 @@ pub fn[T] prepare_managed_fixed_query_selection(
   max_cells : Int,
   max_work : Int,
 ) -> Result[@execution.ManagedViewSelection[T], NativeQueryIssue] {
-  prepare_managed_filter_selection(
-    value,
-    rows,
-    value.compilation,
-    max_cells,
-    max_work,
-  )
+  match value.body {
+    Fixed(_) =>
+      prepare_managed_filter_selection(
+        value,
+        rows,
+        value.compilation,
+        max_cells,
+        max_work,
+      )
+    Take(query) => {
+      let selection = match
+        prepare_managed_take_selection(query, max_cells, max_work) {
+        Ok(value) => value
+        Err(@execution.InvalidLimits) => return Err(InvalidLimits)
+        Err(@execution.Limit) => return Err(Limit)
+        Err(_) => return Err(UnsupportedShape)
+      }
+      for index, row in rows {
+        if @execution.managed_view_selection_row(selection, index) != Some(row) {
+          return Err(UnsupportedShape)
+        }
+      }
+      if @execution.managed_view_selection_row(selection, rows.length())
+        is Some(_) {
+        return Err(UnsupportedShape)
+      }
+      Ok(selection)
+    }
+  }
 }
 
 ///|
@@ -211,7 +315,7 @@ pub fn[T] managed_fixed_query_column_file_sql(
   let schema = @execution.managed_producer_read_schema(value.input)
   guard max_sql_bytes > 0 &&
     @schema.field_count(schema) > 0 &&
-    fixed_query_input_table(value.query, 0) is Some(table) else {
+    managed_fixed_query_input_table(value) is Some(table) else {
     return None
   }
   let physical = []
@@ -256,6 +360,14 @@ pub fn[T] managed_fixed_query_column_file_sql(
 }
 
 ///|
+fn[T] managed_fixed_query_input_table(value : ManagedFixedQuery[T]) -> String? {
+  match value.body {
+    Fixed(query) => fixed_query_input_table(query, 0)
+    Take(_) => Some(value.table)
+  }
+}
+
+///|
 /// Compile the finite preservation path for the already accepted native
 /// filter/select realization. Group creates new values and needs its separate
 /// validation issuer; compilation is not execution evidence.
@@ -263,18 +375,22 @@ pub fn[T] prepare_managed_fixed_view_plan(
   query : ManagedFixedQuery[T],
   limits : NativeQueryLimits,
 ) -> Result[@execution.ManagedViewPlan[T], NativeQueryIssue] {
-  guard query.query is FilterSelect(_) else { return Err(UnsupportedShape) }
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
   if !managed_fixed_query_matches(query, query.input) {
     return Err(InputUnavailable)
   }
+  match query.body {
+    Take(take) => return Ok(take.plan)
+    Fixed(FilterSelect(_)) => ()
+    Fixed(_) => return Err(UnsupportedShape)
+  }
   let kernels = []
   for step in 0..<2 {
     match
       @lower.prepare_kernel(
-        fixed_query_owner(query.query),
+        managed_fixed_query_owner(query),
         step,
         max_bindings=limits.max_entries,
         max_name_bytes=limits.max_sql_bytes,

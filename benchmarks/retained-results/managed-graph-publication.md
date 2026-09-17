@@ -68,10 +68,11 @@ row ceiling below the retained input count and rejects unavailable material.
 `ManagedFixedComputeCandidate<T>` applies the same installed capability,
 quantity and serial-cost checks to this request. Candidate comparison remains
 pure preparation, not a pin or execution authority. The DuckDB implementation
-compiles its existing checked FilterSelect query as the candidate payload; it
-does not manufacture a legacy request or decode the input while compiling. The
-real regression selects that candidate through the registered DuckDB
-capability before inspecting its SQL.
+compiles either its existing checked FilterSelect query or the finite checked
+take/projection/copy view as the candidate payload. It does not manufacture a
+legacy request or decode the input while compiling. The real regression selects
+that candidate through the registered DuckDB capability before inspecting its
+SQL.
 
 `PreparedManagedExecution` then carries the selected private payload and common
 physical envelope into `start_captured_managed_execution`. DuckDB driver code,
@@ -108,8 +109,9 @@ ResultArtifact contract. The Host:
    current authority and material binding;
 3. grants that exact file to the DuckDB session and imports it with checked,
    adapter-generated `read_json` SQL and no parameter-row INSERT path;
-4. runs the selected query and, for an installed checked filter/select, reads
-   the selected logical occurrence ordinals from a private hidden column;
+4. runs the selected query and, for an installed checked filter/select or take
+   view, reads the selected logical occurrence ordinals from a private hidden
+   column;
 5. transfers the corresponding per-cell measurements from the exact producer
    index, checks the selected row count and demand, and writes the unchanged
    values in logical schema order to a new Store body;
@@ -130,17 +132,19 @@ first, and the common allocation is returned only after Store cleanup confirms
 release and the Host refreshes the graph retention ledger.
 
 The product entry reports finite work counters rather than inferring savings
-from elapsed time. For each installed downstream task the regression observes
-one physical-integrity pass, one native file-import command, zero parameter
-INSERT rows, zero logical-content CID computations, zero Core output-value
-admission cells, two transferred measurement cells, two selected logical
-occurrences, one output frame and the exact input/output physical byte counts.
-The first downstream task projects and renames `id` to `kept`; the second
-consumes `kept` and renames it back to `id`. These counters do not claim that
-DuckDB performs only one internal filesystem read or that no typed-value work
-occurs. DuckDB still evaluates the predicate, the Host still validates
-occurrence framing and storage order, and the common boundary still checks
-demand, ownership, holding and native settlement.
+from elapsed time. Each downstream task observes one physical-integrity pass,
+one native file-import command, zero parameter INSERT rows, zero
+logical-content CID computations and zero Core output-value admission cells.
+The first task transfers two measurement cells for two selected occurrences
+while projecting and renaming `id` to `kept`. The second executes checked
+`take(count=1, offset=1)`, transfers one measurement cell for exactly source
+occurrence 1 and renames `kept` back to `id`. Both write one output frame and
+report exact input/output physical byte counts. The Host rejects a different
+or additional occurrence even when it is a valid input row. These counters do
+not claim that DuckDB performs only one internal filesystem read or that no
+typed-value work occurs. DuckDB still evaluates required operations, the Host
+still validates occurrence framing and storage order, and the common boundary
+still checks demand, ownership, holding and native settlement.
 
 ## Real strategy regression
 
@@ -154,8 +158,8 @@ DuckDB execution and checks the following sequence:
 | native settlement | unchanged | 939 | no success yet |
 | task-1 managed publication | 0 | 939 | task 1 done, task 2 ready |
 | task-2 selected-evidence publication | 0 | 1,602 | tasks 1 and 2 done, task 3 ready |
-| task-3 selected-evidence publication | 0 | 2,265 | all three tasks done |
-| task-1 output revoke | 0 | 1,369 | task-1 index released; all bodies remain graph-owned |
+| task-3 selected-evidence publication | 0 | 2,197 | all three tasks done |
+| task-1 output revoke | 0 | 1,301 | task-1 index released; all bodies remain graph-owned |
 | task-3 close and physical cleanup | 0 | 706 | task-1 and task-2 bodies remain graph-owned |
 | task-2 close and physical cleanup | 0 | 43 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
@@ -168,13 +172,14 @@ mode per task, and ownership transfer through cancellation.
 ## Remaining production work
 
 The product path is intentionally limited to the installed Number/Text column
-representation and the checked FilterSelect query family. It now implements a
-finite Q6 evidence-transfer path for unchanged values selected by that checked
-query, including projection/rename, logical-schema column reordering, explicit
-row-occurrence mapping and repeated downstream reuse. It does not yet implement
-derive, sort/take, join/group-result reuse, general
-schemas/codecs, mixed acquisition/managed input families, resident-table
-publication, Local execution or named Result bridging. The finite
+representation and finite checked FilterSelect and take/projection/copy query
+families. It now implements a Q6 evidence-transfer path for unchanged values,
+including projection/rename, logical-schema column reordering, explicit
+row-occurrence mapping, checked slice composition and repeated downstream
+reuse. It does not yet implement computed derive values, sort/permutation,
+join/group-result reuse, general schemas/codecs, mixed acquisition/managed input
+families, resident-table publication, Local execution or named Result bridging.
+The finite
 representation identifier must either become an adopted machine contract or be
 replaced by the shared registered representation boundary before portable use
 is claimed.

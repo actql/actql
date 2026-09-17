@@ -505,12 +505,11 @@ pub fn owned_fixed_managed_filter_input(
   query : @duckdb.ManagedFixedQuery[Int],
   output : @execution.ManagedCompletedOutput[Int],
 ) -> @execution.ManagedProducerRead[Int] {
-  let native = @duckdb.managed_fixed_query_query(query)
-  let owner = @duckdb.fixed_query_owner(native)
+  let owner = @duckdb.managed_fixed_query_owner(query)
   let receiver = issued_fixture_consumer(
     owner,
     steps="[{\"filter\":\"n > 1\"},{\"select\":[\"n\"]}]",
-    target=@duckdb.fixed_query_target(native),
+    target=@duckdb.managed_fixed_query_target(query),
   )
   @execution.prepare_managed_producer_read(
     receiver, 0, owner, output, 100, 10000,
@@ -522,10 +521,7 @@ pub fn owned_fixed_managed_filter_input(
 pub fn managed_fixed_query_parameter(
   query : @duckdb.ManagedFixedQuery[Int],
 ) -> String raise {
-  let parameter = @duckdb.fixed_query_parameter(
-    @duckdb.managed_fixed_query_query(query),
-    0,
-  ).unwrap()
+  let parameter = @duckdb.managed_fixed_query_parameter(query, 0).unwrap()
   let writer = @encode.writer(10000, 100, 10)
   @duckdb.emit_physical_parameter(parameter, writer)
   @encode.finish(writer)
@@ -544,8 +540,7 @@ pub fn managed_column_measurement(
 #export_name("managedFixedViewPlan")
 pub fn managed_fixed_view_plan(
   query : @duckdb.ManagedFixedQuery[Int],
-) -> @execution.ManagedViewPlan[Int] raise {
-  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
+) -> @execution.ManagedViewPlan[Int] {
   @duckdb.prepare_managed_fixed_view_plan(query, {
     max_entries: 100,
     max_sql_bytes: 10000,
@@ -565,8 +560,7 @@ pub fn managed_filter_occurrence_sql(
   query : @duckdb.ManagedFixedQuery[Int],
   ordinal : String,
   occurrence_name : String,
-) -> String raise {
-  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
+) -> String {
   @duckdb.managed_fixed_selection_sql(query, ordinal, occurrence_name, {
     max_entries: 100,
     max_sql_bytes: 10000,
@@ -585,8 +579,7 @@ pub fn managed_filter_occurrence_sql(
 pub fn managed_filter_selection(
   query : @duckdb.ManagedFixedQuery[Int],
   rows : Array[Int],
-) -> @execution.ManagedViewSelection[Int] raise {
-  assert_true(@duckdb.managed_fixed_query_query(query) is FilterSelect(_))
+) -> @execution.ManagedViewSelection[Int] {
   @duckdb.prepare_managed_filter_selection(
     query,
     rows,
@@ -662,7 +655,7 @@ pub fn managed_fixed_query_sql(
 ) -> Array[String] {
   [
     @duckdb.managed_fixed_query_create_sql(query),
-    @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query)),
+    @duckdb.managed_fixed_query_sql(query),
   ]
 }
 
@@ -679,11 +672,11 @@ pub fn managed_query_completion(
   transport : (@execution.ManagedOutputValueReceipt) -> Bool,
 ) -> @duckdb_compute.ManagedInputDuckDBCompletion[Int] raise {
   let generated = fixture_generated(
-    @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
+    @duckdb.managed_fixed_query_owner(query),
     registry_json,
     values_json,
     fragment_json,
-    @duckdb.managed_fixed_query_query(query) is FilterSelect(_),
+    @duckdb.managed_fixed_query_requires_fragment(query),
   )
   @duckdb_compute.prepare_managed_input_duckdb_completion(
     query,
@@ -726,12 +719,11 @@ pub fn managed_count_read(
   query : @duckdb.ManagedFixedQuery[Int],
   output : @execution.ManagedCompletedOutput[Int],
 ) -> @execution.ManagedProducerRead[Int] {
-  let native = @duckdb.managed_fixed_query_query(query)
-  let owner = @duckdb.fixed_query_owner(native)
+  let owner = @duckdb.managed_fixed_query_owner(query)
   let reader = issued_fixture_consumer(
     owner,
     steps="[{\"select\":[\"n\"]}]",
-    target=@duckdb.fixed_query_target(native),
+    target=@duckdb.managed_fixed_query_target(query),
   )
   @execution.prepare_managed_producer_read(reader, 0, owner, output, 100, 10000).unwrap()
 }

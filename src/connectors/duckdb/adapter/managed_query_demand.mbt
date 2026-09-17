@@ -5,6 +5,7 @@
 struct ManagedQueryDemand[T] {
   query : ManagedFixedQuery[T]
   state : ComparisonDemand?
+  direct_view : Bool
   budget : NativeValueBudget
   physical : @execution.FixedInputGuardMeasureLimits
   mut consumed : Bool
@@ -34,10 +35,11 @@ pub fn[T] prepare_managed_query_demand(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  let state = match query.query {
-    CountGroup(_) => None
-    InnerJoin(_) => return Err(InvalidLayout)
-    FilterSelect(native) => {
+  let (state, direct_view) = match query.body {
+    Take(_) => (None, true)
+    Fixed(CountGroup(_)) => (None, false)
+    Fixed(InnerJoin(_)) => return Err(InvalidLayout)
+    Fixed(FilterSelect(native)) => {
       let column = match
         fixed_comparison_column(
           @execution.managed_producer_read_schema(query.input),
@@ -78,22 +80,25 @@ pub fn[T] prepare_managed_query_demand(
           },
         )
       }
-      Some(ComparisonDemand::{
-        rows,
-        field_bytes: facts.bytes.to_int64(),
-        rhs_bytes,
-        null_rows: if rhs is Null || rhs is Admitted(@admitted.Null) {
-          rows
-        } else {
-          facts.null_rows
-        },
-      })
+      (
+        Some(ComparisonDemand::{
+          rows,
+          field_bytes: facts.bytes.to_int64(),
+          rhs_bytes,
+          null_rows: if rhs is Null || rhs is Admitted(@admitted.Null) {
+            rows
+          } else {
+            facts.null_rows
+          },
+        }),
+        false,
+      )
     }
   }
   if !managed_fixed_query_matches(query, query.input) {
     return Err(InvalidState)
   }
-  Ok({ query, state, budget, physical, consumed: false, })
+  Ok({ query, state, direct_view, budget, physical, consumed: false, })
 }
 
 ///|
@@ -110,8 +115,8 @@ pub fn[T] finish_managed_query_demand(
     !managed_fixed_query_matches(query, query.input) ||
     !@execution.managed_output_value_receipt_matches(
       receipt,
-      fixed_query_owner(query.query),
-      fixed_query_target(query.query),
+      managed_fixed_query_owner(query),
+      managed_fixed_query_target(query),
     ) {
     return Err(InvalidState)
   }
@@ -120,10 +125,17 @@ pub fn[T] finish_managed_query_demand(
   match demand.state {
     None =>
       Ok(
-        DirectCount(
-          input_rows=@execution.managed_producer_read_row_count(query.input),
-          output_rows~,
-        ),
+        if demand.direct_view {
+          DirectView(
+            input_rows=@execution.managed_producer_read_row_count(query.input),
+            output_rows~,
+          )
+        } else {
+          DirectCount(
+            input_rows=@execution.managed_producer_read_row_count(query.input),
+            output_rows~,
+          )
+        },
       )
     Some(state) =>
       finish_comparison_demand(
