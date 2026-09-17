@@ -342,8 +342,10 @@ guard, a later invalid value that takes precedence over that guard, excess
 source cardinality before filtering, and legal source cardinality whose
 duplicate join keys exceed the intermediate-row guard. Both legs must reject at
 the required earlier boundary and reclaim their holdings. The remaining
-expression-demand and actual cleanup-failure matrix stays explicit in the
-comparator-boundary inventory.
+expression-demand and native-close failure matrix stays explicit in the
+comparator-boundary inventory. A separate real-filesystem fixture replaces an
+active retained pathname and requires an unconfirmed cleanup result with its
+exact path-identity failure preserved.
 
 ### Selective baseline receiver profile
 

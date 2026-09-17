@@ -141,9 +141,9 @@ real second output writer, and Store cleanup. Independent settlement attempts
 rollback, connection close, instance close, Store revocation and Store cleanup
 even if an earlier action fails. Injected settlement failures preserve both the
 execution cause and every failed cleanup phase and cannot yield a successful
-sample. This does not yet certify real native-close or filesystem-failure
-recovery. The independent column-order test caught a schema/transport index
-confusion during development, before acceptance use.
+sample. This does not yet certify a real native-close failure. The independent
+column-order test caught a schema/transport index confusion during development,
+before acceptance use.
 
 The cross-leg failure-parity regression now fixes five registered-workload
 boundaries. It covers an invalid value that filtering would exclude, a record
@@ -156,8 +156,14 @@ Independent Store creation is also inside the common settlement boundary. A
 failed Store open cannot bypass release of the already admitted execution and
 retention domains. Unit fixtures continue to require all settlement actions to
 run and preserve primary plus cleanup failures. These cases still do not replace
-the remaining expression-demand combinations or actual native-close and
-filesystem cleanup-failure fixtures.
+the remaining expression-demand combinations or an actual native-close failure
+fixture.
+
+An actual filesystem cleanup fixture replaces the pathname of an active
+retained body with a different inode. The comparator emits no successful sample,
+preserves `RetainedPathReplaced` under the settlement failure and leaves the
+unconfirmed Store directory visible. Cleanup therefore cannot be inferred from
+normal execution completion or from a missing original pathname.
 
 Still required before equivalence approval:
 
@@ -165,8 +171,9 @@ Still required before equivalence approval:
 - Complete expression-demand/guard failure parity and its negative fixtures.
 - Acquisition evidence metadata construction/validation parity.
 - Transfer and logical-work accounting equivalence.
-- Broader ownership, cancellation at other execution phases and actual resource
-  cleanup-failure fixtures (beyond injected settlement actions).
+- Broader ownership, cancellation at other execution phases and an actual
+  native-close failure fixture (beyond injected settlement actions and the real
+  retained-path replacement fixture).
 - All 27 cases, followed by the registered alternating-pair experiment.
 
 ### Matched pair boundary
