@@ -914,6 +914,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // reservation. It is not admitted as a second attempt and unused capacity is
   // returned when the task closes before creating an index allocation.
   const managedProgram = JSON.parse(program);
+  managedProgram.stages[0].steps[1].select = ['id', 'amount'];
+  managedProgram.stages[0].results.r.fields = ['id', 'amount'];
+  for (const index of [1, 2, 3]) {
+    managedProgram.stages[index].steps[1].select = ['id', 'amount'];
+    managedProgram.stages[index].results.r.fields = ['id', 'amount'];
+  }
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
   managedProgram.stages[3].inputs.x.result.stage = 'compute_b';
   const managedLedgerFixture = fixture.strategyFixtureCreate(
@@ -986,15 +992,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       }
       accepted(bridge.managedOutputAccept(managedLedgerOutput, chunk.rowCount,
         JSON.stringify(chunk.columns)));
-      assert.equal(chunk.fields.length, 1);
-      assert.equal(chunk.fields[0].type.id, 'DOUBLE');
+      assert.deepEqual(chunk.fields.map(field => field.type.id),
+        ['DOUBLE', 'DOUBLE']);
       await managedLedgerWriter.appendBytes(encodeManagedColumnFrame(
         chunk.fields, chunk.columns, chunk.rowCount));
     };
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
       {maxRows: 100, maxCells: 1000}, consume);
     accepted(bridge.managedOutputFinish(managedLedgerOutput));
-    assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 2);
+    assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 4);
     assert.throws(() => accepted(
       bridge.managedOutputRetain(managedLedgerOutput, 100001n, () => true)));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes,
