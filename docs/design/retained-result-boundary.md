@@ -103,6 +103,14 @@ source column and the output receives a new copied measurement entry. This does
 not cover computed expressions: a new value still requires actual evaluation,
 value admission and a new measurement before it can be reused.
 
+When an installed operation creates a new value, the standard Host enables a
+bounded measurement index before accepting its output. The value is admitted
+once while it is produced; later checked views may transfer that measurement
+without admitting the same value again. The index ceiling comes from the
+consumer row guard and a query-specific finite row bound. A global count has an
+exact one-row ceiling, including for empty input. The bound reserves storage;
+it is not execution evidence or permission to publish a row.
+
 The installed transfer rule is deliberately finite. It applies only when the
 compiled query exposes the private occurrence result and the output fields map
 exactly to the checked logical schema through registered projection/rename or
@@ -112,7 +120,7 @@ typed output admission. Predicate evaluation, slice execution, physical
 integrity, current use authority, task settlement and graph publication remain
 required. The transferred measurements avoid another Core per-cell admission
 pass for unchanged selected values, but do not claim computed derive,
-sort/permutation, join/group or general codec evidence transfer.
+sort/permutation, join/keyed-group or general codec evidence transfer.
 
 A resident consumer verifies the selected DB copy rather than reading every
 independent representation. File corruption is rejected when the file is

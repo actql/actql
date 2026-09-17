@@ -935,6 +935,24 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   ];
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
   managedProgram.stages[3].inputs.x.result.stage = 'compute_b';
+  managedProgram.stages.push({
+    id: 'group_d',
+    inputs: {x: {result: {stage: 'compute_a', result: 'r'}}},
+    steps: [{group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'out'}],
+    results: {r: {from: 'out', fields: ['n']}},
+  }, {
+    id: 'group_e',
+    inputs: {x: {result: {stage: 'group_d', result: 'r'}}},
+    steps: [{filter: 'n > 0'}, {select: ['n'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['n']}},
+  }, {
+    id: 'group_f',
+    inputs: {x: {result: {stage: 'group_d', result: 'r'}}},
+    steps: [{filter: 'n > 0'}, {select: ['n'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['n']}},
+  });
+  managedProgram.results.group_e = {from: {stage: 'group_e', result: 'r'}};
+  managedProgram.results.group_f = {from: {stage: 'group_f', result: 'r'}};
   const managedLedgerFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(managedProgram));
   const managedLedgerCapture = await runNativeHostQuery(grant,
@@ -947,6 +965,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   let managedLedgerBody;
   let managedDownstream;
   let managedTerminal;
+  let managedGroup;
+  let managedGroupFirst;
+  let managedGroupSecond;
   try {
     assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
@@ -1143,7 +1164,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
     assert.equal(managedTerminalBytes, 19n,
       'the checked take writes only its one selected physical row');
-    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 4);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
@@ -1152,6 +1173,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
       projectedIndexBytes + terminalIndexBytes,
       'both downstream results own independent retained bodies');
+
+    const groupInput = fixture.strategyFixtureManagedInput(
+      managedLedgerFixture, 4, managedCompleted);
+    assert.equal(bridge.managedInputMatchesMaterial(
+      groupInput, managedMaterial), true,
+    'the group binds the original retained producer occurrence');
+    const groupRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 4, managedCompleted);
+    const groupQuery = fixture.strategyFixtureManagedRequestQuery(
+      managedLedgerFixture, groupRequest);
+    const [, groupQuerySql] =
+      fixture.strategyFixtureManagedRequestQuerySql(groupQuery);
+    assert.match(groupQuerySql, /count\(\*\)/i);
+    const groupConfiguration = fixture.strategyFixtureManagedConfiguration(
+      managedLedgerFixture, 4, groupRequest, managedProfile, 100000n);
+    managedGroup = await runManagedColumnStrategyHostCompute(
+      groupConfiguration, managedMaterial, managedColumnCodecContractCid,
+      suppliedLimits, {parentDirectory: fileParent, maxFrameBytes: 4096});
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 4, managedGroup.completed), true,
+    'the newly computed group result enters the common managed DAG');
+    assert.deepEqual(managedGroup.diagnostics, {
+      inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      logicalContentCidComputations: 0, outputValueAdmissionCells: 1,
+      reusedMeasurementCells: 0, selectionOccurrenceRows: 0,
+      outputFrames: 1, outputPhysicalBytes: managedGroup.diagnostics.outputPhysicalBytes,
+    });
+    const managedGroupBytes = BigInt(managedGroup.diagnostics.outputPhysicalBytes);
+    assert.equal(managedGroupBytes, 19n,
+      'the new count value is admitted into one retained column frame');
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 5);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
+      projectedIndexBytes + 2n * terminalIndexBytes + managedGroupBytes,
+      'the group owns one newly measured body and index');
+
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), false,
@@ -1166,25 +1224,104 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'the terminal result survives revocation of its transitive ancestor');
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 4, managedGroup.completed), true,
+    'the newly admitted group survives revocation of its consumed input');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
       managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
-      projectedIndexBytes + terminalIndexBytes,
+      projectedIndexBytes + 2n * terminalIndexBytes + managedGroupBytes,
     'revocation releases only the initial measurement index');
     await managedTerminal.close();
     managedTerminal = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      managedBodyBytes + managedDownstreamBytes + projectedIndexBytes,
+      managedBodyBytes + managedDownstreamBytes + projectedIndexBytes +
+      terminalIndexBytes + managedGroupBytes,
     'closing task 3 releases only its own body');
     await managedDownstream.close();
     managedDownstream = undefined;
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      managedBodyBytes + terminalIndexBytes + managedGroupBytes,
+      'the independent group remains after the projection chain closes');
+
+    const groupFirstInput = fixture.strategyFixtureManagedInput(
+      managedLedgerFixture, 5, managedGroup.completed);
+    assert.equal(bridge.managedInputMatchesMaterial(
+      groupFirstInput, managedGroup.material), true);
+    const groupFirstRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 5, managedGroup.completed);
+    const groupFirstConfiguration = fixture.strategyFixtureManagedConfiguration(
+      managedLedgerFixture, 5, groupFirstRequest, managedProfile, 100000n);
+    managedGroupFirst = await runManagedColumnStrategyHostCompute(
+      groupFirstConfiguration, managedGroup.material,
+      managedColumnCodecContractCid, suppliedLimits,
+      {parentDirectory: fileParent, maxFrameBytes: 4096});
+    assert.deepEqual(managedGroupFirst.diagnostics, {
+      inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
+      reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
+      outputFrames: 1,
+      outputPhysicalBytes: managedGroupFirst.diagnostics.outputPhysicalBytes,
+    });
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 5, managedGroupFirst.completed), true);
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 6);
+    const managedGroupFirstBytes = BigInt(
+      managedGroupFirst.diagnostics.outputPhysicalBytes);
+
+    const groupSecondInput = fixture.strategyFixtureManagedInput(
+      managedLedgerFixture, 6, managedGroup.completed);
+    assert.equal(bridge.managedInputMatchesMaterial(
+      groupSecondInput, managedGroup.material), true,
+    'the second consumer binds the same live group result independently');
+    const groupSecondRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 6, managedGroup.completed);
+    const groupSecondConfiguration = fixture.strategyFixtureManagedConfiguration(
+      managedLedgerFixture, 6, groupSecondRequest, managedProfile, 100000n);
+    managedGroupSecond = await runManagedColumnStrategyHostCompute(
+      groupSecondConfiguration, managedGroup.material,
+      managedColumnCodecContractCid, suppliedLimits,
+      {parentDirectory: fileParent, maxFrameBytes: 4096});
+    assert.deepEqual(managedGroupSecond.diagnostics, {
+      inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
+      reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
+      outputFrames: 1,
+      outputPhysicalBytes: managedGroupSecond.diagnostics.outputPhysicalBytes,
+    });
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 6, managedGroupSecond.completed), true);
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
+    const managedGroupSecondBytes = BigInt(
+      managedGroupSecond.diagnostics.outputPhysicalBytes);
+    assert.equal(managedGroupFirstBytes, managedGroupBytes);
+    assert.equal(managedGroupSecondBytes, managedGroupBytes);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      managedBodyBytes + managedGroupBytes + managedGroupFirstBytes +
+      managedGroupSecondBytes + 3n * terminalIndexBytes,
+    'the group and both consumers own independent managed holdings');
+
+    await managedGroupFirst.close();
+    managedGroupFirst = undefined;
+    await managedGroupSecond.close();
+    managedGroupSecond = undefined;
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      managedBodyBytes + managedGroupBytes + terminalIndexBytes,
+    'closing both consumers leaves the shared group result live');
+    await managedGroup.close();
+    managedGroup = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
-      'revocation releases the index but graph ownership keeps the body holding');
+      'revocation leaves only the graph-owned initial body holding');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
       'closing the settled downstream task releases its unused managed completion capacity');
     bridge.computeHostClose(managedLedgerRun);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);
   } finally {
+    await managedGroupSecond?.close();
+    await managedGroupFirst?.close();
+    await managedGroup?.close();
     await managedTerminal?.close();
     await managedDownstream?.close();
     if (managedLedgerOutput) bridge.managedOutputCancel(managedLedgerOutput);

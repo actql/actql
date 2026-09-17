@@ -246,6 +246,28 @@ pub fn[T] managed_fixed_query_input(
 }
 
 ///|
+/// Finite row ceiling for retained measurement metadata. Every installed
+/// single-input query emits no more rows than its input, except a global count,
+/// which emits exactly one row even for empty input. This is a capacity bound,
+/// not evidence that execution produced that many rows.
+pub fn[T] managed_fixed_query_output_row_ceiling(
+  value : ManagedFixedQuery[T],
+  request_max_rows : Int,
+) -> Int {
+  if request_max_rows <= 0 {
+    return 0
+  }
+  let query_ceiling = match value.body {
+    Fixed(CountGroup(query)) if @lower.count_group_key_count(
+        fixed_count_group_profile(query),
+      ) ==
+      0 => 1
+    _ => @execution.managed_producer_read_row_count(value.input)
+  }
+  Int::min(request_max_rows, query_ceiling)
+}
+
+///|
 pub fn[T] managed_fixed_query_create_sql(
   value : ManagedFixedQuery[T],
 ) -> String {

@@ -113,8 +113,9 @@ fn strategy_fixture_create_impl(
         ).unwrap()
       }
     })
-    let graph = @strategy.prepare_checked_dag(program, owners, 5, 10000).unwrap()
+    let graph = @strategy.prepare_checked_dag(program, owners, 10, 10000).unwrap()
     @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
+    let extended = @program_check.unit_count(program) > 5
     let ledger = @resources.create_ledger({
       planning_work: if join || multiple_resources {
         100000
@@ -126,7 +127,7 @@ fn strategy_fixture_create_impl(
       } else {
         10
       },
-      holdings: if join || multiple_resources {
+      holdings: if join || multiple_resources || extended {
         20
       } else {
         10
@@ -676,7 +677,10 @@ pub fn strategy_fixture_managed_configuration(
     @lower.bound_preparation(@duckdb.managed_fixed_query_owner(query)),
     @duckdb.managed_fixed_query_target(query),
   ).unwrap()
-  let row_ceiling = @connector.managed_fixed_compute_request_capacity(request).max_rows
+  let row_ceiling = @duckdb.managed_fixed_query_output_row_ceiling(
+    query,
+    @connector.managed_fixed_compute_request_capacity(request).max_rows,
+  )
   let width = @schema.field_count(output_schema)
   let max_index_cells = if width == 0 || row_ceiling <= 0 {
     0

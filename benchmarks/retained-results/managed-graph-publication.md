@@ -147,6 +147,14 @@ operations, the Host still validates occurrence framing and storage order, and
 the common boundary still checks demand, ownership, holding and native
 settlement.
 
+The same product regression also runs a global count over the original managed
+producer. That operation creates a new value, so the Host admits exactly one
+output cell and retains its one-cell measurement index. Two independent
+filter/select consumers then read that same group result. Each reports one
+reused measurement cell, zero Core output-value admission cells and zero
+logical-content CID computations. Revoking the group's original input does not
+revoke the independently admitted group result or either later consumer.
+
 ## Real strategy regression
 
 The standard Node/DuckDB Host regression runs the selected task through actual
@@ -159,10 +167,15 @@ DuckDB execution and checks the following sequence:
 | native settlement | unchanged | 939 | no success yet |
 | task-1 managed publication | 0 | 939 | task 1 done, task 2 ready |
 | task-2 selected-evidence publication | 0 | 1,602 | tasks 1 and 2 done, task 3 ready |
-| task-3 selected-evidence publication | 0 | 2,197 | all three tasks done |
-| task-1 output revoke | 0 | 1,301 | task-1 index released; all bodies remain graph-owned |
-| task-3 close and physical cleanup | 0 | 706 | task-1 and task-2 bodies remain graph-owned |
-| task-2 close and physical cleanup | 0 | 43 | task-1 body remains graph-owned |
+| task-3 selected-evidence publication | 0 | 2,197 | projection chain done; group task ready |
+| global-count publication | 0 | 2,792 | one new value admitted with a one-cell index |
+| task-1 output revoke | 0 | 1,896 | task-1 index released; descendants remain valid |
+| task-3 close and physical cleanup | 0 | 1,301 | task-1, task-2 and group bodies remain |
+| task-2 close and physical cleanup | 0 | 638 | task-1 and group bodies remain |
+| first group consumer publication | 0 | 1,233 | one group measurement reused |
+| second group consumer publication | 0 | 1,828 | the same group measurement reused again |
+| both group consumers closed | 0 | 638 | shared group result remains live |
+| group result closed | 0 | 43 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
 The same regression rejects a 100,001-byte body despite the adjacent stream
@@ -177,8 +190,10 @@ representation and finite checked FilterSelect and take/projection/copy query
 families. It now implements a Q6 evidence-transfer path for unchanged values,
 including projection/rename, exact-copy derive, logical-schema column
 reordering, explicit row-occurrence mapping, checked slice composition and
-repeated downstream reuse. It does not yet implement computed derive values,
-sort/permutation, join/group-result reuse, general schemas/codecs, mixed
+repeated downstream reuse. A newly computed global-count result is admitted
+once and its measurement evidence is reused by two later consumers. It does
+not yet implement computed derive values, sort/permutation, join or keyed-group
+result reuse, general schemas/codecs, mixed
 acquisition/managed input families, resident-table publication, Local
 execution or named Result bridging. The finite
 representation identifier must either become an adopted machine contract or be

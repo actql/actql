@@ -316,6 +316,33 @@ pub fn managed_strategy_output_begin(
     run.transport,
     run.limits.metadata_work,
   )
+  errdefer managed_output_cancel(output)
+  if run.max_index_cells > 0 {
+    guard @execution.managed_row_measurement_capacity_bytes(run.max_index_cells)
+      is Some(bytes) else {
+      raise InvalidCommand
+    }
+    match
+      @execution.enable_managed_row_measurements(
+        @duckdb_compute.managed_input_duckdb_output_values(
+          @duckdb_driver.captured_managed_duckdb_completion(run.task),
+        ),
+        run.max_index_cells,
+      ) {
+      Ok(_) => ()
+      Err(issue) => raise ManagedValues(Values(issue))
+    }
+    let allocation = match
+      @strategy.retain_task_execution_allocation(
+        @duckdb_driver.captured_managed_duckdb_run(run.task),
+        @duckdb_driver.captured_managed_duckdb_execution(run.task),
+        bytes,
+      ) {
+      Ok(value) => value
+      Err(issue) => raise Physical(issue)
+    }
+    output.index_allocation = Some(allocation)
+  }
   output.strategy_allocation = Some(
     (
       @duckdb_driver.captured_managed_duckdb_run(run.task),

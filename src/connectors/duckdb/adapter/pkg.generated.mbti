@@ -205,6 +205,8 @@ pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.
 
 pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
 
+pub fn[T] managed_fixed_query_output_row_ceiling(ManagedFixedQuery[T], Int) -> Int
+
 pub fn[T] managed_fixed_query_owner(ManagedFixedQuery[T]) -> @lowering_relation.BoundPrepared
 
 pub fn[T] managed_fixed_query_parameter(ManagedFixedQuery[T], Int) -> PhysicalParameter?

@@ -70,7 +70,7 @@ fn issued_fixture_checked(
       ),
       Some(cursor("{\"minimum\":1}")),
       evidence,
-      { input: input_limits, compilation: fixture_query_limits(10), },
+      { input: input_limits, compilation: fixture_query_limits(20), },
     ) {
     Checked(value) => value
     NeedsInputs(_) => fail("fixture requires complete checking inputs")
