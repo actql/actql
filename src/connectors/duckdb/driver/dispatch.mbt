@@ -242,7 +242,7 @@ pub fn prepare_duckdb_managed_dispatch(
   outputs : Array[@execution.ManagedCompletedOutput[Int]],
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
-) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue] {
+) -> Result[ManagedStrategyComputeHostConfiguration[Int]?, DuckDBDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
     installed.sequences.get(task - 1) is Some(sequence) &&
     @connector.capability_registration_available(installed.registration) else {
@@ -272,6 +272,11 @@ pub fn prepare_duckdb_managed_dispatch(
       obligations,
     ) {
     Ok(value) => value
+    Err(
+      LogicalIdentityUnsupported
+      | CommonFragmentUnsupported
+      | UnsupportedInputShape
+    ) => return Ok(None)
     Err(issue) => return Err(Candidate(issue))
   }
   let prepared = match
@@ -285,7 +290,12 @@ pub fn prepare_duckdb_managed_dispatch(
       installed.limits.candidate_work,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(NativeCandidate(issue))
+    Err(issue) => {
+      if @compute.duckdb_managed_candidate_unsupported(issue) {
+        return Ok(None)
+      }
+      return Err(NativeCandidate(issue))
+    }
   }
   let choice = match
     @connector.choose_managed_fixed_compute_candidate(
@@ -336,5 +346,7 @@ pub fn prepare_duckdb_managed_dispatch(
     output_file_bytes,
     max_index_cells,
     join_output_ceilings,
-  ).map_err(issue => Run(issue))
+  )
+  .map(value => Some(value))
+  .map_err(issue => Run(issue))
 }

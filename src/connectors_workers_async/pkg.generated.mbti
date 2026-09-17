@@ -26,7 +26,7 @@ pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.Co
 
 pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @driver.NumericComputeContribution?
 
-pub fn[E] dispatch_managed_reference_compute(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.NumericManagedDispatchConfiguration[Int], ConfiguredDispatchIssue[E]]
+pub fn[E] dispatch_managed_reference_compute(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.NumericManagedDispatchConfiguration[Int]?, ConfiguredDispatchIssue[E]]
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

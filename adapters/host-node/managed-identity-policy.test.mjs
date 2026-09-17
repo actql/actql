@@ -5,7 +5,7 @@ import {
   preparedManagedIdentityPolicy,
 } from './managed-identity-policy.mjs';
 
-test('managed identity policy is opaque, immutable and defaults to local use', () => {
+test('managed identity policy is opaque immutable caller strengthening', () => {
   assert.deepEqual(preparedManagedIdentityPolicy(undefined), {
     publication: false,
     consumer: false,

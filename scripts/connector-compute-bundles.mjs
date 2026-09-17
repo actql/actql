@@ -30,9 +30,12 @@ export function generateComputeAssembly(entries) {
       Object.hasOwn(m, 'managed_dispatch_result');
     const managedStart = Object.hasOwn(m, 'managed_start') ||
       Object.hasOwn(m, 'managed_start_result');
+    const managedOptional = m.managed_dispatch_optional === true;
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
+        (Object.hasOwn(m, 'managed_dispatch_optional') &&
+          (!managed || typeof m.managed_dispatch_optional !== 'boolean')) ||
         (managed && (!identifier(m.managed_dispatch) ||
           !keys(m.managed_dispatch_result, ['package', 'type']) ||
           !packageName(m.managed_dispatch_result.package) ||
@@ -135,7 +138,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
   const managedDispatches = entries.filter(({manifest:m}) => m.managed_dispatch)
     .map(({name, manifest:m}) =>
       `\n///|\n/// Prepare one managed task through the configured implementation.\n` +
-    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : Array[@execution.ManagedCompletedOutput[Int]], obligations : @execution.ManagedObligations, output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int], ConfiguredDispatchIssue[E]] {\n` +
+    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : Array[@execution.ManagedCompletedOutput[Int]], obligations : @execution.ManagedObligations, output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int]${m.managed_dispatch_optional === true ? '?' : ''}, ConfiguredDispatchIssue[E]] {\n` +
     `  match value.installed_${name} {\n` +
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.managed_dispatch}(installed, completed, obligations, output_file_bytes).map_err(issue => Implementation(project(issue)))\n` +

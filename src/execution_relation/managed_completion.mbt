@@ -26,26 +26,93 @@ priv struct ManagedCompletedIdentity {
 }
 
 ///|
-/// Host-installed trusted implementation for one checked output owner. The
-/// implementation receives the exact admitted requirement and the generation
-/// bound by completion; callers cannot submit an arbitrary CID for approval.
-struct ManagedIdentityIssuer[T] {
-  owner : @lower.BoundPrepared
-  issue : (ManagedIdentityRequirement, ManagedRetainedOutput[T]) -> (
-    String,
-    String,
-  )?
+/// Host-registered finite identity implementation. This is issuance authority,
+/// not an identity result, and is fixed to one canonical preimage contract.
+struct ManagedIdentityIssuanceCapability {
+  identity : Ref[Unit]
+  domain : ManagedIdentityDomain
+  subject : ManagedIdentitySubject
+  occurrence : ManagedResultOccurrence?
+  canonical_contract_cid : String
 }
 
 ///|
-pub fn[T] prepare_managed_identity_issuer(
-  owner : @lower.BoundPrepared,
-  issue : (ManagedIdentityRequirement, ManagedRetainedOutput[T]) -> (
-    String,
-    String,
-  )?,
+/// Attempt authority is derived before an output generation exists. It binds
+/// the registered implementation to the exact checked preparation and demand.
+struct ManagedIdentityAttemptPermit {
+  capability : ManagedIdentityIssuanceCapability
+  preparation : CompletionPreparation
+  requirement : ManagedIdentityRequirement
+}
+
+///|
+/// The issuer exists only after the exact retained generation is known. The
+/// callback computes a CID; common code owns authority and canonical scope.
+struct ManagedIdentityIssuer[T] {
+  permit : ManagedIdentityAttemptPermit
+  material : ManagedRetainedOutput[T]
+  issue : (ManagedRetainedOutput[T]) -> String?
+}
+
+///|
+pub fn register_managed_identity_issuance_capability(
+  domain : ManagedIdentityDomain,
+  subject : ManagedIdentitySubject,
+  occurrence : ManagedResultOccurrence?,
+  canonical_contract_cid : String,
+) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue] {
+  let registered_contract = match domain {
+    OrderedRows => Some(ordered_rows_canonical_contract_cid())
+    _ => None
+  }
+  if !valid_managed_cid(canonical_contract_cid) ||
+    registered_contract != Some(canonical_contract_cid) {
+    return Err(InvalidCapability)
+  }
+  match (subject, occurrence) {
+    (NamedResult, Some(_)) | (_, None) => ()
+    _ => return Err(InvalidCapability)
+  }
+  Ok({ identity: Ref(()), domain, subject, occurrence, canonical_contract_cid, })
+}
+
+///|
+pub fn managed_identity_issuance_capability_same(
+  left : ManagedIdentityIssuanceCapability,
+  right : ManagedIdentityIssuanceCapability,
+) -> Bool {
+  physical_equal(left.identity, right.identity)
+}
+
+///|
+pub fn authorize_managed_identity_attempt(
+  capability : ManagedIdentityIssuanceCapability,
+  preparation : CompletionPreparation,
+  requirement : ManagedIdentityRequirement,
+) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue] {
+  let owner = completion_preparation_owner(preparation)
+  if capability.domain != requirement.domain ||
+    capability.subject != requirement.subject ||
+    !managed_result_occurrence_equal(
+      capability.occurrence,
+      requirement.occurrence,
+    ) {
+    return Err(ForeignRequirement)
+  }
+  if requirement.occurrence is Some(occurrence) &&
+    !physical_equal(occurrence.owner, owner) {
+    return Err(ForeignAttempt)
+  }
+  Ok({ capability, preparation, requirement, })
+}
+
+///|
+pub fn[T] bind_managed_identity_issuer(
+  permit : ManagedIdentityAttemptPermit,
+  material : ManagedRetainedOutput[T],
+  issue : (ManagedRetainedOutput[T]) -> String?,
 ) -> ManagedIdentityIssuer[T] {
-  { owner, issue, }
+  { permit, material, issue, }
 }
 
 ///|
@@ -125,8 +192,16 @@ pub fn[P, T] prepare_managed_completion_port(
   if !physical_equal(managed_obligations_owner(selected_obligations), owner) {
     return Err(ForeignOutput)
   }
-  if identity_issuer is Some(issuer) && !physical_equal(issuer.owner, owner) {
-    return Err(ForeignOutput)
+  if identity_issuer is Some(issuer) {
+    if !physical_equal(issuer.permit.preparation, preparation) ||
+      !selected_obligations.identities.any(requirement => {
+        managed_identity_requirement_equal(
+          requirement,
+          issuer.permit.requirement,
+        )
+      }) {
+      return Err(ForeignOutput)
+    }
   }
   Ok({
     profile,
@@ -174,6 +249,10 @@ pub fn[P, T] complete_managed_output(
   let material = match result {
     Ok(material) => material
     Err(issue) => return Err(issue)
+  }
+  if port.identity_issuer is Some(issuer) &&
+    !physical_equal(issuer.material, material) {
+    return Err(ForeignOutput)
   }
   Ok({
     identity: Ref(()),
@@ -267,10 +346,18 @@ pub fn[T] establish_managed_completed_identity(
   guard output.identity_issuer is Some(issuer) else {
     return Err(IssuerUnavailable)
   }
-  guard (issuer.issue)(identity.requirement, output.material)
-    is Some((canonical_contract_cid, cid)) else {
+  if !physical_equal(issuer.permit.preparation, output.preparation) ||
+    !physical_equal(issuer.material, output.material) ||
+    !managed_identity_requirement_equal(
+      issuer.permit.requirement,
+      identity.requirement,
+    ) {
     return Err(UnverifiedIdentity)
   }
+  guard (issuer.issue)(output.material) is Some(cid) else {
+    return Err(UnverifiedIdentity)
+  }
+  let canonical_contract_cid = issuer.permit.capability.canonical_contract_cid
   if !valid_managed_cid(canonical_contract_cid) || !valid_managed_cid(cid) {
     return Err(InvalidIdentity)
   }

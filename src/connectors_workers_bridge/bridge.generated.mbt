@@ -74,12 +74,14 @@ pub fn strategy_host_next_task(
 #export_name("strategyHostConfigureManagedIdentity")
 pub fn strategy_host_configure_managed_identity(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  publish_checked_results : Bool,
   publication : Bool,
   consumer : Bool,
   host_policy : Bool,
 ) -> Bool {
   @strategy.configure_captured_managed_identity_policy(
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    publish_checked_results,
     publication,
     consumer,
     host_policy,
@@ -393,7 +395,7 @@ pub fn local_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding7.LocalManagedDispatchConfiguration[Int] raise NodeHostFailure {
+) -> @binding7.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),

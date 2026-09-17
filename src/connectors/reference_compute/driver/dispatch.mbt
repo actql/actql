@@ -20,6 +20,7 @@ struct NumericDispatchModule {
   ]
   limits : @numeric.NumericExecutionLimits
   expressions : @lower.ExpressionLimits
+  identity_capability : @execution.ManagedIdentityIssuanceCapability
 }
 
 ///|
@@ -46,7 +47,26 @@ pub fn prepare_numeric_dispatch_module(
     Ok(value) => value
     Err(_) => return Err(Unsupported)
   }
-  Ok({ driver, context, registry, registration, channel, limits, expressions, })
+  let identity_capability = match
+    @execution.register_managed_identity_issuance_capability(
+      @execution.OrderedRows,
+      @execution.TaskOutput,
+      None,
+      @execution.ordered_rows_canonical_contract_cid(),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Limit)
+  }
+  Ok({
+    driver,
+    context,
+    registry,
+    registration,
+    channel,
+    limits,
+    expressions,
+    identity_capability,
+  })
 }
 
 ///|

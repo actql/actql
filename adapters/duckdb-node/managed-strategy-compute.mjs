@@ -314,6 +314,7 @@ export async function runManagedColumnStrategyHostCompute(
     authorized = false;
     const nativeCleanup = error.cleanupPending === true
       ? error.cleanupHandle : undefined;
+    let taskCleanupConfirmed = false;
     const nativePending = () => {
       if (!nativeCleanup) return false;
       try { return nativeCleanup.status().pending === true; }
@@ -336,11 +337,21 @@ export async function runManagedColumnStrategyHostCompute(
         // opened native session remains responsible for its own receipt.
         if (!sessionStarted) checked(moon.managedStrategySettle(run, true));
         moon.managedStrategyClose(run);
-        moon.managedStrategyRefreshRetention(run);
+        try {
+          taskCleanupConfirmed = checked(
+            moon.managedStrategyCleanupRefresh(run),
+          );
+        } catch (cleanupError) {
+          error.cleanupErrors = Object.freeze([
+            ...error.cleanupErrors, cleanupError,
+          ]);
+        }
       }
     }
     const cleanupStatus = () => Object.freeze({
-      pending: nativePending() || (store?.status().cleanupPending ?? false),
+      pending: nativePending() ||
+        (store?.status().cleanupPending ?? false) ||
+        (run !== undefined && !taskCleanupConfirmed),
     });
     if (cleanupStatus().pending || (error.cleanupErrors?.length ?? 0) > 0) {
       error.cleanupPending = cleanupStatus().pending;
@@ -354,7 +365,13 @@ export async function runManagedColumnStrategyHostCompute(
           }
           try { await store?.cleanup(); }
           catch (cleanupError) { retryErrors.push(cleanupError); }
-          if (run) moon.managedStrategyRefreshRetention(run);
+          if (run) {
+            try {
+              taskCleanupConfirmed = checked(
+                moon.managedStrategyCleanupRefresh(run),
+              );
+            } catch (cleanupError) { retryErrors.push(cleanupError); }
+          }
           if (retryErrors.length) {
             error.cleanupErrors = Object.freeze([
               ...error.cleanupErrors, ...retryErrors,

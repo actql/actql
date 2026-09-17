@@ -94,7 +94,7 @@ pub fn ${name}_dispatch(setup : ${host}, task : @host_driver.PreparedTaskDispatc
 }
 `;
   if (c.managed_dispatch) {
-    const managedResult = `${type(c.managed_dispatch_result)}[Int]`;
+    const managedResult = `${type(c.managed_dispatch_result)}[Int]${c.managed_dispatch_optional === true ? '?' : ''}`;
     bridge += `
 ///|
 #export_name("strategyModule_${name}_ManagedDispatch")

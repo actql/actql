@@ -224,6 +224,8 @@ pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @ex
 
 pub fn managed_strategy_charge(ManagedComputeNodeRun, Int64) -> Unit raise NodeHostFailure
 
+pub fn managed_strategy_cleanup_refresh(ManagedComputeNodeRun) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn managed_strategy_close(ManagedComputeNodeRun) -> Unit
 
 pub fn managed_strategy_comparison_usage(ManagedComputeNodeRun) -> Array[String] raise NodeHostFailure

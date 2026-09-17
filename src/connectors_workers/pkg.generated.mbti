@@ -27,7 +27,7 @@ pub fn[E] configured_local_module(ConfiguredComputeModules[E]) -> @driver.LocalD
 
 pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@driver.LocalDispatchOperations, ConfiguredDispatchIssue[E]]
 
-pub fn[E] dispatch_managed_local(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.LocalManagedDispatchConfiguration[Int], ConfiguredDispatchIssue[E]]
+pub fn[E] dispatch_managed_local(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.LocalManagedDispatchConfiguration[Int]?, ConfiguredDispatchIssue[E]]
 
 pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

@@ -12,6 +12,7 @@ struct NumericManagedDispatchConfiguration[T] {
   generated : @execution.CompletionPreparation
   limits : @numeric.NumericExecutionLimits
   capacity : @connector.ExecutionCapacity
+  identity_capability : @execution.ManagedIdentityIssuanceCapability
 }
 
 ///|
@@ -35,6 +36,14 @@ pub struct NumericManagedDispatchOperations[T] {
   material : () -> @execution.ManagedRetainedOutput[T]?
   storage_bytes : Int64
   close : () -> Unit
+  cleanup_refresh : () -> Bool
+}
+
+///|
+priv enum NumericManagedPreparationIssue {
+  Inapplicable
+  Fatal(@strategy.RunIssue)
+  Plan(@numeric.PlanIssue)
 }
 
 ///|
@@ -114,11 +123,14 @@ fn[T] prepare_numeric_managed_dispatch_installed(
   outputs : Array[@execution.ManagedCompletedOutput[T]],
   obligations : @execution.ManagedObligations,
   _output_file_bytes : Int64,
-) -> Result[NumericManagedDispatchConfiguration[T], @numeric.PlanIssue] {
+) -> Result[
+  NumericManagedDispatchConfiguration[T],
+  NumericManagedPreparationIssue,
+] {
   let run = @host.dispatch_driver_run(installed.driver)
   guard @strategy.next_captured_task(run) is Some(task) &&
     @host.compute_author_sequence(installed.context, task) is Some(generated) else {
-    return Err(@numeric.Unsupported)
+    return Err(Inapplicable)
   }
   let inputs = []
   for index, output in outputs {
@@ -132,7 +144,7 @@ fn[T] prepare_numeric_managed_dispatch_installed(
         input_index=index,
       ) {
       Ok(value) => inputs.push(value)
-      Err(_) => return Err(@numeric.Unsupported)
+      Err(issue) => return Err(Fatal(issue))
     }
   }
   let request = match
@@ -147,7 +159,17 @@ fn[T] prepare_numeric_managed_dispatch_installed(
       obligations,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(@numeric.ManagedCandidate(issue))
+    Err(issue) => return Err(Plan(@numeric.ManagedCandidate(issue)))
+  }
+  for requirement in @execution.managed_obligations_identities(obligations) {
+    if requirement.need is @execution.EstablishedBy(_) &&
+      (
+        requirement.domain != @execution.OrderedRows ||
+        requirement.subject != @execution.TaskOutput ||
+        requirement.occurrence is Some(_)
+      ) {
+      return Err(Inapplicable)
+    }
   }
   let prepared = match
     @numeric.offer_managed_numeric_compute(
@@ -161,7 +183,8 @@ fn[T] prepare_numeric_managed_dispatch_installed(
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(@numeric.Unsupported) => return Err(Inapplicable)
+    Err(issue) => return Err(Plan(issue))
   }
   let choice = match
     @connector.choose_managed_fixed_compute_candidate(
@@ -172,12 +195,12 @@ fn[T] prepare_numeric_managed_dispatch_installed(
       installed.limits.max_work,
     ) {
     Ok(@connector.Proposed(value)) => value
-    Ok(_) => return Err(@numeric.Unsupported)
-    Err(issue) => return Err(@numeric.ManagedCandidate(issue))
+    Ok(_) => return Err(Inapplicable)
+    Err(issue) => return Err(Plan(@numeric.ManagedCandidate(issue)))
   }
   let capacity = match managed_numeric_capacity(installed.limits) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(Plan(issue))
   }
   Ok({
     run,
@@ -187,6 +210,7 @@ fn[T] prepare_numeric_managed_dispatch_installed(
     generated,
     limits: installed.limits,
     capacity,
+    identity_capability: installed.identity_capability,
   })
 }
 
@@ -198,13 +222,19 @@ pub fn[T] prepare_numeric_managed_dispatch(
   outputs : Array[@execution.ManagedCompletedOutput[T]],
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
-) -> Result[NumericManagedDispatchConfiguration[T], @strategy.RunIssue] {
-  prepare_numeric_managed_dispatch_installed(
-    configured.installed,
-    outputs,
-    obligations,
-    output_file_bytes,
-  ).map_err(numeric_dispatch_issue)
+) -> Result[NumericManagedDispatchConfiguration[T]?, @strategy.RunIssue] {
+  match
+    prepare_numeric_managed_dispatch_installed(
+      configured.installed,
+      outputs,
+      obligations,
+      output_file_bytes,
+    ) {
+    Ok(value) => Ok(Some(value))
+    Err(Inapplicable) => Ok(None)
+    Err(Fatal(issue)) => Err(issue)
+    Err(Plan(issue)) => Err(numeric_dispatch_issue(issue))
+  }
 }
 
 ///|
@@ -220,6 +250,28 @@ pub fn[T] start_numeric_managed_dispatch(
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
+  let identity_permit : @execution.ManagedIdentityAttemptPermit? = {
+    let mut selected = None
+    for
+      requirement in @execution.managed_obligations_identities(
+        @connector.managed_fixed_compute_request_obligations(request),
+      ) {
+      if requirement.domain == @execution.OrderedRows &&
+        requirement.subject == @execution.TaskOutput &&
+        requirement.occurrence is None {
+        match
+          @execution.authorize_managed_identity_attempt(
+            setup.identity_capability,
+            setup.generated,
+            requirement,
+          ) {
+          Ok(value) => selected = Some(value)
+          Err(_) => return Err(@numeric.Unsupported)
+        }
+      }
+    }
+    selected
+  }
   let managed_inputs = @connector.managed_fixed_compute_request_inputs(request)
   let bound = match
     @connector.bind_prepared_managed_execution(
@@ -417,27 +469,16 @@ pub fn[T] start_numeric_managed_dispatch(
       // The issuer is installed for this exact attempt only after the output
       // generation and its retained material both exist. It computes, rather
       // than approves, the registered canonical ordered-row identity.
-      let issuer = @execution.prepare_managed_identity_issuer(owner, (
-        requirement : @execution.ManagedIdentityRequirement,
-        source : @execution.ManagedRetainedOutput[T],
-      ) => {
-        if requirement.domain != @execution.OrderedRows ||
-          requirement.subject != @execution.TaskOutput ||
-          requirement.occurrence is Some(_) ||
-          !physical_equal(source, material) ||
-          !available() {
-          return None
-        }
-        match @execution.identify_completed_rows(output, wire_limits) {
-          Ok(identity) =>
-            Some(
-              (
-                @execution.ordered_rows_canonical_contract_cid(),
-                @execution.row_wire_cid(identity),
-              ),
-            )
-          Err(_) => None
-        }
+      let issuer = identity_permit.map(permit => {
+        @execution.bind_managed_identity_issuer(permit, material, fn(source) {
+          if !physical_equal(source, material) || !available() {
+            return None
+          }
+          match @execution.identify_completed_rows(output, wire_limits) {
+            Ok(identity) => Some(@execution.row_wire_cid(identity))
+            Err(_) => None
+          }
+        })
       })
       let port = match
         @execution.prepare_managed_completion_port(
@@ -457,7 +498,7 @@ pub fn[T] start_numeric_managed_dispatch(
           obligations=@connector.managed_fixed_compute_request_obligations(
             request,
           ),
-          identity_issuer=issuer,
+          identity_issuer?=issuer,
         ) {
         Ok(value) => value
         Err(_) => return Err(@numeric.Unsupported)
@@ -544,6 +585,11 @@ pub fn[T] start_numeric_managed_dispatch(
     material: fn() { retained.val },
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() { @strategy.close_task_execution(setup.run, execution) },
+    cleanup_refresh: fn() {
+      @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(
+        false,
+      )
+    },
   })
 }
 

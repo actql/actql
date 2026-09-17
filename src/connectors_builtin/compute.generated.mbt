@@ -313,7 +313,7 @@ pub fn[E] dispatch_managed_duckdb(
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
-  @binding3.ManagedStrategyComputeHostConfiguration[Int],
+  @binding3.ManagedStrategyComputeHostConfiguration[Int]?,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_duckdb {
@@ -333,7 +333,7 @@ pub fn[E] dispatch_managed_local(
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
-  @binding4.LocalManagedDispatchConfiguration[Int],
+  @binding4.LocalManagedDispatchConfiguration[Int]?,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_local {
@@ -353,7 +353,7 @@ pub fn[E] dispatch_managed_reference_compute(
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
-  @binding5.NumericManagedDispatchConfiguration[Int],
+  @binding5.NumericManagedDispatchConfiguration[Int]?,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_reference_compute {

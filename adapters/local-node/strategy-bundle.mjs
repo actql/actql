@@ -5,6 +5,8 @@ import {localRetainedStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {managedInputSupportsRows, registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
+import {settleFailedManagedOperations} from
+  '../host-common/managed-failure.mjs';
 
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
@@ -30,6 +32,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           0n,
         ),
       );
+      if (managedConfiguration == null) return undefined;
       return Object.freeze({
         task,
         durationMilliseconds: 1n,
@@ -51,6 +54,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         moon.strategyModule_local_ManagedStart(prepared.configuration),
       );
       let available = true;
+      let settled = false;
       try {
         const transfers = operations.inputs;
         if (!Array.isArray(transfers) ||
@@ -74,6 +78,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             for (const transfer of transfers) checked(transfer.finish());
             checked(operations.execute());
             checked(operations.settle());
+            settled = true;
             completed = checked(operations.complete(
               nextMaterial++,
               operations.storage_bytes,
@@ -115,8 +120,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         });
       } catch (error) {
         available = false;
-        operations.close();
-        throw error;
+        throw settleFailedManagedOperations(
+          operations, checked, error, settled,
+        );
       }
     },
     async run(task, signal) {

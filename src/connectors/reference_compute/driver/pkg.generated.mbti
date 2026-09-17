@@ -35,7 +35,7 @@ pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.S
 
 pub fn prepare_numeric_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.CompletionPreparation], @reference_compute.NumericExecutionLimits, @lowering_relation.ExpressionLimits) -> Result[NumericDispatchModule, @reference_compute.PlanIssue]
 
-pub fn[T] prepare_numeric_managed_dispatch(NumericComputeContribution, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[NumericManagedDispatchConfiguration[T], @physical_strategy.RunIssue]
+pub fn[T] prepare_numeric_managed_dispatch(NumericComputeContribution, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[NumericManagedDispatchConfiguration[T]?, @physical_strategy.RunIssue]
 
 pub fn settle_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_strategy.RunIssue]
 
@@ -72,6 +72,7 @@ pub struct NumericManagedDispatchOperations[T] {
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
   storage_bytes : Int64
   close : () -> Unit
+  cleanup_refresh : () -> Bool
 }
 
 pub struct NumericManagedInputTransfer[T] {

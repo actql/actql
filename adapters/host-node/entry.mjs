@@ -11,7 +11,9 @@ import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 let runtime;
 
-export async function runCapturedStrategy(setup, options = {}, signal, observer) {
+async function runCapturedStrategyTarget(
+  setup, options, signal, observer, publishCheckedResults,
+) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
   const configurations = snapshotConfigurations(options);
@@ -22,6 +24,7 @@ export async function runCapturedStrategy(setup, options = {}, signal, observer)
   signal?.throwIfAborted();
   if (!moon.strategyHostConfigureManagedIdentity(
     setup,
+    publishCheckedResults,
     identityPolicy.publication,
     identityPolicy.consumer,
     // Mandatory policy is owned by this installed Host entry, not by caller
@@ -34,4 +37,19 @@ export async function runCapturedStrategy(setup, options = {}, signal, observer)
   const installed = await installStrategyContributions(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
   return runInstalledStrategy(setup, core, installed, signal, observeCompletion);
+}
+
+// The standard entry executes the checked Program's named Result request.
+// Until an installed implementation can satisfy its publication identity,
+// that task is rejected before start rather than silently treated as internal.
+export function runCapturedStrategy(setup, options = {}, signal, observer) {
+  return runCapturedStrategyTarget(setup, options, signal, observer, true);
+}
+
+// Explicit task-only entry. It does not request Program Result publication;
+// caller policy can still strengthen it, and cannot weaken consumer/Host rules.
+export function runCapturedInternalStrategy(
+  setup, options = {}, signal, observer,
+) {
+  return runCapturedStrategyTarget(setup, options, signal, observer, false);
 }

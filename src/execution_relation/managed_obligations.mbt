@@ -88,6 +88,17 @@ fn managed_result_occurrence_equal(
 }
 
 ///|
+fn managed_identity_requirement_equal(
+  left : ManagedIdentityRequirement,
+  right : ManagedIdentityRequirement,
+) -> Bool {
+  left.domain == right.domain &&
+  left.subject == right.subject &&
+  managed_result_occurrence_equal(left.occurrence, right.occurrence) &&
+  left.need == right.need
+}
+
+///|
 pub(all) enum ManagedIdentityEstablishmentIssue {
   UnknownIdentity
   InvalidIdentity
@@ -95,6 +106,14 @@ pub(all) enum ManagedIdentityEstablishmentIssue {
   IssuerUnavailable
   UnverifiedIdentity
   ConflictingIdentity
+} derive(Eq, Debug)
+
+///|
+pub(all) enum ManagedIdentityIssuanceIssue {
+  InvalidCapability
+  ForeignAttempt
+  ForeignRequirement
+  ForeignMaterial
 } derive(Eq, Debug)
 
 ///|

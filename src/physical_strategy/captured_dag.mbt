@@ -210,6 +210,7 @@ pub fn select_captured_managed_registration(
 /// prepared. Program text and connector code cannot weaken this policy later.
 pub fn configure_captured_managed_identity_policy(
   run : CapturedDAG,
+  publish_checked_results : Bool,
   publication : Bool,
   consumer : Bool,
   host_policy : Bool,
@@ -226,10 +227,11 @@ pub fn configure_captured_managed_identity_policy(
   // Acquisition publication needs its own observation/receipt identity
   // capability. This managed Compute increment must reject that requirement
   // before comparing or starting any Compute candidate.
-  if publication && run.graph.results.any(result => result.task == 0) {
+  let publication_required = publish_checked_results || publication
+  if publication_required && run.graph.results.any(result => result.task == 0) {
     return false
   }
-  run.managed_publication_identity = publication
+  run.managed_publication_identity = publication_required
   run.managed_consumer_identity = consumer
   run.managed_host_identity = host_policy
   run.managed_identity_policy_sealed = true

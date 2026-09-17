@@ -5,7 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DuckDBInstance} from '@duckdb/node-api';
 import {encodeManagedColumnFrame,
-  managedColumnCodecContractCid} from '../managed-column-codec.mjs';
+  managedColumnCodecContractCid,
+  managedColumnRowProvider} from '../managed-column-codec.mjs';
 
 const double = value => {
   const bytes = Buffer.alloc(8);
@@ -52,4 +53,56 @@ test('managed column frames preserve bounded heterogeneous column occurrences', 
     instance?.closeSync();
     await rm(directory, {recursive: true, force: true});
   }
+});
+
+test('managed row provider stops its real file read before returning', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-managed-read-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const path = join(directory, 'rows.ndjson');
+  const frame = encodeManagedColumnFrame(
+    fields,
+    [Array(5000).fill(double(1)), Array(5000).fill('雪'.repeat(256))],
+    5000,
+    0,
+  );
+  await writeFile(path, frame);
+
+  for (const mode of ['emit', 'cancel']) {
+    const provider = managedColumnRowProvider(JSON.stringify(fields.map(field =>
+      [field.name, field.type.id, null, null])));
+    const controller = new AbortController();
+    let rows = 0;
+    await assert.rejects(provider.read(
+      {path},
+      async () => {
+        rows++;
+        if (mode === 'cancel') controller.abort(new Error('cancelled'));
+        else throw new Error('consumer failed');
+      },
+      controller.signal,
+    ));
+    assert.equal(rows, 1);
+    assert.deepEqual(provider.status(), {activeReads: 0, completedReads: 1});
+  }
+
+  const normal = managedColumnRowProvider(JSON.stringify(fields.map(field =>
+    [field.name, field.type.id, null, null])));
+  let normalRows = 0;
+  await normal.read({path}, async () => { normalRows++; });
+  assert.equal(normalRows, 5000);
+  assert.deepEqual(normal.status(), {activeReads: 0, completedReads: 1});
+
+  const emptyPath = join(directory, 'empty.ndjson');
+  await writeFile(emptyPath, '');
+  const empty = managedColumnRowProvider(JSON.stringify(fields.map(field =>
+    [field.name, field.type.id, null, null])));
+  await empty.read({path: emptyPath}, async () => assert.fail('empty row'));
+  assert.deepEqual(empty.status(), {activeReads: 0, completedReads: 1});
+
+  const invalid = managedColumnRowProvider(JSON.stringify(fields.map(field =>
+    [field.name, field.type.id, null, null])));
+  await assert.rejects(
+    invalid.read({path: directory}, async () => {}),
+  );
+  assert.deepEqual(invalid.status(), {activeReads: 0, completedReads: 1});
 });

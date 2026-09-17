@@ -34,6 +34,19 @@ pub struct LocalManagedDispatchOperations[T] {
   material : () -> @execution.ManagedRetainedOutput[T]?
   storage_bytes : Int64
   close : () -> Unit
+  cleanup_refresh : () -> Bool
+}
+
+///|
+/// Exact physical transfer unit used by the managed row wire. MoonBit String
+/// length is UTF-16 code units and cannot be charged as transported bytes.
+fn managed_row_transfer_bytes(
+  row : String,
+  max_bytes : Int,
+) -> Result[Int64, LocalDispatchIssue] {
+  @scalar.admit_utf8_length64(row, max_bytes.to_int64()).map_err(_ => {
+    Configuration(InputUnavailable)
+  })
 }
 
 ///|
@@ -42,10 +55,10 @@ pub fn[T] prepare_local_managed_dispatch(
   outputs : Array[@execution.ManagedCompletedOutput[T]],
   obligations : @execution.ManagedObligations,
   _output_file_bytes : Int64,
-) -> Result[LocalManagedDispatchConfiguration[T], LocalDispatchIssue] {
+) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
     installed.import_policy is Some((imports, _)) else {
-    return Err(Configuration(ComputeUnsupported))
+    return Ok(None)
   }
   let inputs = []
   for index, output in outputs {
@@ -69,6 +82,11 @@ pub fn[T] prepare_local_managed_dispatch(
       obligations,
     ) {
     Ok(value) => value
+    Err(
+      LogicalIdentityUnsupported
+      | CommonFragmentUnsupported
+      | UnsupportedInputShape
+    ) => return Ok(None)
     Err(issue) => return Err(Configuration(issue))
   }
   let (prepared, choice) = match
@@ -78,6 +96,14 @@ pub fn[T] prepare_local_managed_dispatch(
       request,
     ) {
     Ok(value) => value
+    Err(
+      Candidate(
+        LogicalIdentityUnsupported
+        | CommonFragmentUnsupported
+        | UnsupportedInputShape
+        | ComputeUnsupported
+      )
+    ) => return Ok(None)
     Err(issue) => return Err(Preparation(issue))
   }
   guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
@@ -104,26 +130,28 @@ pub fn[T] prepare_local_managed_dispatch(
     ) {
     return Err(Configuration(InvalidLimits))
   }
-  Ok({
-    run: installed.run,
-    task,
-    choice,
-    prepared,
-    sequence,
-    execution: @local.local_module_execution_limits(installed.implementation),
-    measurement: @local.local_module_measurement_limits(
-      installed.implementation,
-    ),
-    imports,
-    capacity: {
-      transfer_bytes: count * imports.wire.max_bytes.to_int64(),
-      retained_bytes: base.retained_bytes,
-      // The checked output view, independent copy and imported input may
-      // overlap until the copy commits and every bridge is closed.
-      scratch_bytes: base.execution_bytes + base.retained_bytes + imported,
-      execution_bytes: base.execution_bytes + base.retained_bytes + imported,
-    },
-  })
+  Ok(
+    Some({
+      run: installed.run,
+      task,
+      choice,
+      prepared,
+      sequence,
+      execution: @local.local_module_execution_limits(installed.implementation),
+      measurement: @local.local_module_measurement_limits(
+        installed.implementation,
+      ),
+      imports,
+      capacity: {
+        transfer_bytes: count * imports.wire.max_bytes.to_int64(),
+        retained_bytes: base.retained_bytes,
+        // The checked output view, independent copy and imported input may
+        // overlap until the copy commits and every bridge is closed.
+        scratch_bytes: base.execution_bytes + base.retained_bytes + imported,
+        execution_bytes: base.execution_bytes + base.retained_bytes + imported,
+      },
+    }),
+  )
 }
 
 ///|
@@ -213,12 +241,13 @@ pub fn[T] start_local_managed_dispatch(
     LocalManagedInputTransfer::{
       input: managed_inputs[index],
       append: fn(row) {
+        let bytes = match
+          managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
         match
-          @strategy.charge_task_execution_transfer(
-            setup.run,
-            execution,
-            row.length().to_int64(),
-          ) {
+          @strategy.charge_task_execution_transfer(setup.run, execution, bytes) {
           Err(issue) => Err(Execution(Physical(issue)))
           Ok(_) =>
             @execution.append_managed_producer_bridge_wire(
@@ -423,6 +452,11 @@ pub fn[T] start_local_managed_dispatch(
     material: fn() { retained.val },
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() { @strategy.close_task_execution(setup.run, execution) },
+    cleanup_refresh: fn() {
+      @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(
+        false,
+      )
+    },
   })
 }
 

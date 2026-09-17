@@ -508,9 +508,9 @@ pub fn managed_strategy_settle(
   run : ManagedComputeNodeRun,
   confirmed : Bool,
 ) -> Unit raise NodeHostFailure {
-  if run.closed {
-    raise InvalidCommand
-  }
+  // Cancellation may close logical use before the native session reports its
+  // actual stop. This exact task must still be able to settle its physical
+  // reservation afterward; every execution/output operation remains closed.
   match
     @duckdb_driver.settle_captured_managed_duckdb_task(run.task, confirmed) {
     Ok(_) => ()
@@ -607,5 +607,19 @@ pub fn managed_strategy_close(run : ManagedComputeNodeRun) -> Unit {
 pub fn managed_strategy_refresh_retention(run : ManagedComputeNodeRun) -> Unit {
   @strategy.refresh_captured_retention(
     @duckdb_driver.captured_managed_duckdb_run(run.task),
+  )
+}
+
+///|
+/// Confirm disposal of a failed managed task only after its native settlement
+/// and installed retention-release predicate are both true. Merely rescanning
+/// completed output retention cannot discharge this execution reservation.
+#export_name("managedStrategyCleanupRefresh")
+pub fn managed_strategy_cleanup_refresh(
+  run : ManagedComputeNodeRun,
+) -> Result[Bool, @resources.LedgerIssue] {
+  @strategy.refresh_task_execution_cleanup(
+    @duckdb_driver.captured_managed_duckdb_run(run.task),
+    @duckdb_driver.captured_managed_duckdb_execution(run.task),
   )
 }

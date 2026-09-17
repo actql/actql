@@ -88,7 +88,7 @@ pub fn complete_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit,
 
 pub fn complete_task_execution(CapturedDAG, TaskExecution) -> Result[Unit, RunIssue]
 
-pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool) -> Bool
+pub fn configure_captured_managed_identity_policy(CapturedDAG, Bool, Bool, Bool, Bool) -> Bool
 
 pub fn configure_strategy_search(CapturedDAG, SearchLimits) -> Result[Unit, SearchIssue]
 

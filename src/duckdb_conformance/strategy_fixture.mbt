@@ -581,7 +581,7 @@ pub fn strategy_fixture_managed_obligation_labels(
 ) -> Array[String] {
   guard f.run is Some(run) &&
     @strategy.configure_captured_managed_identity_policy(
-      run, publication, consumer, host_policy,
+      run, true, publication, consumer, host_policy,
     ) else {
     return []
   }
@@ -628,7 +628,7 @@ pub fn strategy_fixture_managed_policy_accepted(
 ) -> Bool {
   guard f.run is Some(run) else { return false }
   @strategy.configure_captured_managed_identity_policy(
-    run, publication, consumer, host_policy,
+    run, true, publication, consumer, host_policy,
   )
 }
 

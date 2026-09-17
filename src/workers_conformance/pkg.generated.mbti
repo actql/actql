@@ -18,7 +18,7 @@ pub fn async_scenario_host(AsyncScenario) -> @connectors_workers_async.Configure
 
 pub fn async_strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
-pub fn async_strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool) -> Bool
+pub fn async_strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool
 
 pub fn async_strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
@@ -88,7 +88,7 @@ pub fn foreign_dispatch() -> Array[Bool] raise
 
 pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
 
-pub fn local_managed_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int] raise NodeHostFailure
+pub fn local_managed_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure
 
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
@@ -104,7 +104,7 @@ pub fn prepare_scenario(Array[String], Bool, Int, String) -> Scenario raise
 
 pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise AsyncHostFailure
 
-pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int] raise AsyncHostFailure
+pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]? raise AsyncHostFailure
 
 pub fn reference_compute_managed_start(@actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/reference_compute/driver.NumericManagedDispatchOperations[Int] raise AsyncHostFailure
 
@@ -118,7 +118,7 @@ pub fn settle_async_probe(@actql/actql/connectors/reference_compute/driver.Async
 
 pub fn strategy_host_close_outputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
-pub fn strategy_host_configure_managed_identity(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool) -> Bool
+pub fn strategy_host_configure_managed_identity(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool
 
 pub fn strategy_host_count(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 

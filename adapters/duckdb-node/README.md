@@ -694,6 +694,12 @@ error/cleanup handle, `usage()` reads the same cumulative ledger, and `output(ta
 is an internal Host handle for a still-retained completed result. Call `close()`
 to close task output ports; close the owned capture separately. A failure never
 authorizes continuing an unstarted branch or publishing partial Program success.
+The standard entry nevertheless includes the checked Program's named Result
+identity requirements before comparing managed candidates. It does not publish
+an Artifact, but a caller setting publication policy to `false` cannot erase
+that prerequisite. Explicit task-only tooling can instead call
+`runCapturedInternalStrategy`; its returned records remain internal and carry no
+Program Result publication claim.
 
 To select the managed-retained profile for supported DuckDB tasks, add the
 explicit Host policy `managedOutput: {parentDirectory, maxFrameBytes, wire}` to

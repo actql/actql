@@ -72,6 +72,8 @@ pub fn attach_retained_join_scan(RetainedProducerScan, FixedJoinStream) -> Resul
 
 pub fn attach_retained_producer_measurement(FixedProducerMeasurement, RetainedProducerScan) -> Result[Unit, FixedInputGuardIssue]
 
+pub fn authorize_managed_identity_attempt(ManagedIdentityIssuanceCapability, CompletionPreparation, ManagedIdentityRequirement) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue]
+
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
@@ -79,6 +81,8 @@ pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_rel
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
+
+pub fn[T] bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> ManagedIdentityIssuer[T]
 
 pub fn bind_managed_result_occurrence(@lowering_relation.BoundPrepared, String, @relation_results.ResultPort) -> Result[ManagedResultOccurrence, ManagedResultOccurrenceIssue]
 
@@ -294,6 +298,8 @@ pub fn[T] managed_computed_view_source_column(ManagedComputedView[T], Int) -> In
 
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
 
+pub fn managed_identity_issuance_capability_same(ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceCapability) -> Bool
+
 pub fn managed_obligations_identities(ManagedObligations) -> Array[ManagedIdentityRequirement]
 
 pub fn managed_obligations_owner(ManagedObligations) -> @lowering_relation.BoundPrepared
@@ -422,8 +428,6 @@ pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, Completion
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
 
-pub fn[T] prepare_managed_identity_issuer(@lowering_relation.BoundPrepared, (ManagedIdentityRequirement, ManagedRetainedOutput[T]) -> (String, String)?) -> ManagedIdentityIssuer[T]
-
 pub fn prepare_managed_obligations(@lowering_relation.BoundPrepared, Array[ManagedIdentityRequirement], ManagedPublicationRequirement, ManagedConsumerRequirement, Int) -> Result[ManagedObligations, ManagedObligationIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
@@ -511,6 +515,8 @@ pub fn producer_storage_schema(ProducerStorage) -> @relation_schema.Schema
 pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
 
 pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[ProducerRead, ProducerReadIssue]
+
+pub fn register_managed_identity_issuance_capability(ManagedIdentityDomain, ManagedIdentitySubject, ManagedResultOccurrence?, String) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue]
 
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
@@ -833,6 +839,8 @@ pub(all) enum ManagedConsumerRequirement {
 
 type ManagedExecutionProfile
 
+type ManagedIdentityAttemptPermit
+
 pub(all) enum ManagedIdentityDeadline {
   BeforeCidOperation
   BeforePublication
@@ -852,6 +860,15 @@ pub(all) enum ManagedIdentityEstablishmentIssue {
   IssuerUnavailable
   UnverifiedIdentity
   ConflictingIdentity
+} derive(Eq, @debug.Debug)
+
+type ManagedIdentityIssuanceCapability
+
+pub(all) enum ManagedIdentityIssuanceIssue {
+  InvalidCapability
+  ForeignAttempt
+  ForeignRequirement
+  ForeignMaterial
 } derive(Eq, @debug.Debug)
 
 type ManagedIdentityIssuer[T]

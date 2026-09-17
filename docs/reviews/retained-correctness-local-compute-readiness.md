@@ -166,6 +166,12 @@ Program text and connectors cannot lower this set. A caller passing `false`
 must not erase a requirement already implied by a named Result, consumer or
 Host policy.
 
+The standard captured-Program entry requests its checked named Results and
+therefore always includes that floor. A separate, explicitly named internal
+task entry may omit Program publication; this is an execution target, not a
+false publication-policy value. It returns internal task records only and does
+not claim Result publication.
+
 ### Required implementation
 
 1. Represent the prepared requirements as one opaque Host-owned value per task,

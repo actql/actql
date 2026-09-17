@@ -43,6 +43,9 @@ pub fn[T] local_managed_fixed_compute_candidate(
   @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
   @connector.FixedComputeIssue,
 ] {
+  if !@execution.generated_sequence_is_projection_only(sequence) {
+    return Err(UnsupportedInputShape)
+  }
   if @execution.managed_obligations_require_logical_identity(
       @connector.managed_fixed_compute_request_obligations(request),
     ) {

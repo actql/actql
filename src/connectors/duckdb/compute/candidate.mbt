@@ -7,6 +7,24 @@ pub(all) enum DuckDBComputeCandidateIssue {
 }
 
 ///|
+/// Finite managed applicability classification. Ownership, limits and internal
+/// inconsistencies are planning failures, not reasons to hide this candidate.
+pub fn duckdb_managed_candidate_unsupported(
+  issue : DuckDBComputeCandidateIssue,
+) -> Bool {
+  match issue {
+    Request(
+      LogicalIdentityUnsupported
+      | CommonFragmentUnsupported
+      | UnsupportedInputShape
+    ) => true
+    Compilation(UnsupportedShape | UnsupportedPredicate | UnsupportedField) =>
+      true
+    _ => false
+  }
+}
+
+///|
 /// Managed-profile native candidate. It retains the common fixed capacity and
 /// cost comparison but never constructs a legacy ProducerRead or logical
 /// content receipt.

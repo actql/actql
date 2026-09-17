@@ -59,6 +59,8 @@ pub fn duckdb_dispatch_preflight_work(DuckDBDispatchPreparation) -> Int?
 
 pub fn duckdb_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, String, @adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@adapter.FixedCompute], DuckDBComputeCandidateIssue]
 
+pub fn duckdb_managed_candidate_unsupported(DuckDBComputeCandidateIssue) -> Bool
+
 pub fn[T] duckdb_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], String, @adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedManagedCompute[T, @adapter.ManagedFixedQuery[T]], DuckDBComputeCandidateIssue]
 
 pub fn duckdb_managed_stream_scratch_capacity(DuckDBComputeLimits, @adapter.TransportColumnLimits, ManagedStreamScratchFacts) -> Int64?

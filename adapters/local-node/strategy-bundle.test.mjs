@@ -3,8 +3,14 @@ import assert from 'node:assert/strict';
 import {localStrategyContribution} from './strategy-bundle.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runInstalledStrategy} from '../host-common/strategy.mjs';
+import {numericStrategyContribution} from
+  '../reference-compute-node/strategy-bundle.mjs';
+import {registerManagedMemoryInput} from
+  '../store-local/managed-memory-representations.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
+const failed = value => ({$tag: 0, _0: value});
 function installed(consume, completionFailure) {
   const events = [], material = {}, input = {}, task = {}, setup = {};
   registerRetainedInput(material, value => value === input, {consume},
@@ -76,4 +82,98 @@ test('reader rejection retains its cleanup handle and completion failure does no
   await assert.rejects(f.entry.run(f.task), {code: 'MoonBitHostFailure'});
   assert.equal(f.events.filter(value => value === 'settle').length, 1);
   assert.equal(f.events.at(-1), 'close');
+});
+
+test('an inapplicable managed connector does not hide a capable alternative', async () => {
+  for (const [localSupported, reverse] of [[false, false], [false, true],
+    [true, false], [true, true]]) {
+    const setup = {}, inputMaterial = {}, inputCompleted = {};
+    registerManagedMemoryInput(
+      inputMaterial,
+      () => true,
+      () => true,
+      {async read() {}},
+      () => {},
+    );
+    const registrations = {source: {}, local: {}, alternate: {}};
+    const local = localStrategyContribution({
+      strategyModule_local_Registration: () => registrations.local,
+      strategyHostRegistrationSelectionKey: () => 'local',
+      strategyHostNextTask: () => 2,
+      strategyHostManagedProducers: () => [1],
+      strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+      strategyHostReleasableManagedProducers: () => [],
+      strategyModule_local_ManagedDispatch: () => ok(
+        localSupported ? {configuration: true} : undefined),
+    }, setup, checked);
+    let complete = false, selected, ran;
+    const core = {
+      count: () => 3,
+      next: () => ({task: 1}),
+      task: task => task.task,
+      registration: () => registrations.source,
+      nextTask: () => complete ? -1 : 2,
+      managedProducers: () => complete ? [] : [1],
+      selectManaged: (_, __, registration) => { selected = registration; return true; },
+      managedMatches: () => true,
+      completed: (_, task) => task === 1 || complete,
+      finished: () => complete,
+      stop: () => {}, closeOutputs: () => {},
+      output: () => undefined, usage: () => ({}), explain: () => ({}),
+    };
+    const source = {
+      registration: registrations.source,
+      run() {
+        return {completed: inputCompleted, material: inputMaterial};
+      },
+    };
+    const alternate = {
+      registration: registrations.alternate,
+      managedSelectionKey: 'alternate',
+      run() { assert.fail('legacy alternate'); },
+      prepareNext(outputs) {
+        return outputs.size && !localSupported
+          ? {task: 2, durationMilliseconds: 1n} : undefined;
+      },
+      runPrepared() {
+        ran = 'alternate'; complete = true;
+        return {completed: {}, material: {}};
+      },
+    };
+    const productLocal = {
+      ...local,
+      runPrepared() {
+        ran = 'local'; complete = true;
+        return {completed: {}, material: {}};
+      },
+    };
+    const candidates = reverse
+      ? [alternate, productLocal] : [productLocal, alternate];
+    const result = await runInstalledStrategy(
+      setup, core, [source, ...candidates],
+    );
+    assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+    assert.equal(ran, localSupported ? 'local' : 'alternate');
+    assert.equal(selected, registrations[ran]);
+  }
+});
+
+test('reference preparation propagates fatal failures instead of hiding them as unsupported', async () => {
+  const setup = {}, material = {};
+  registerManagedMemoryInput(
+    material, () => true, () => true, {async read() {}}, () => {},
+  );
+  const fatal = new Error('ForeignPreparation');
+  const entry = numericStrategyContribution({
+    strategyModule_reference_compute_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'reference',
+    strategyHostNextTask: () => 2,
+    strategyHostManagedProducers: () => [1],
+    strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+    strategyModule_reference_compute_ManagedDispatch: () => failed(fatal),
+  }, setup, checked);
+  await assert.rejects(
+    entry.prepareNext(new Map([[1, {material, completed: {}}]])),
+    error => error.code === 'MoonBitHostFailure' && error.cause === fatal,
+  );
 });

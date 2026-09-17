@@ -125,7 +125,7 @@ pub fn prepare_duckdb_estimate_module(DuckDBDispatchModule, Array[@physical_cost
 
 pub fn prepare_duckdb_estimate_settings(DuckDBDispatchModule, DuckDBEstimateSettings) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue]
 
-pub fn prepare_duckdb_managed_dispatch(DuckDBDispatchModule, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue]
+pub fn prepare_duckdb_managed_dispatch(DuckDBDispatchModule, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[ManagedStrategyComputeHostConfiguration[Int]?, DuckDBDispatchIssue]
 
 pub fn prepare_duckdb_resource_estimate_settings(DuckDBDispatchModule, DuckDBResourceEstimateSettings) -> Result[DuckDBResourceEstimatePolicy, DuckDBEstimateIssue]
 

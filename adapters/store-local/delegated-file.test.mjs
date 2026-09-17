@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   chmod,
   mkdtemp,
+  rename,
   rmdir,
   stat,
   unlink,
@@ -144,16 +145,25 @@ test('native-created generation replacement is rejected before Store adoption', 
   const lease = write.delegateCreate('native-replaced');
   await writeFile(lease.path, 'first', {flag: 'wx', mode: 0o600});
   const reported = await stat(lease.path);
-  await unlink(lease.path);
-  await writeFile(lease.path, 'other', {flag: 'wx', mode: 0o600});
-  await assert.rejects(write.finishCreated({version: lease.version,
-    session: lease.session, token: lease.token, device: reported.dev,
-    inode: reported.ino, bytes: reported.size}), {code: 'StoreIdentityMismatch'});
-  assert.equal(store.status().reservedBytes, 20);
-  assert.equal(store.status().uncertainWriteBytes, 20);
-  assert.equal(store.status().cleanupPending, true);
-  await write.cleanupHandle.retry();
-  assert.equal(store.status().reservedBytes, 0);
+  const displaced = `${lease.path}.displaced`;
+  // Keep the reported inode alive at another path so the replacement cannot
+  // accidentally reuse it on Linux and turn this into a probabilistic test.
+  try {
+    await rename(lease.path, displaced);
+    await writeFile(lease.path, 'other', {flag: 'wx', mode: 0o600});
+    const replacement = await stat(lease.path);
+    assert.notEqual(replacement.ino, reported.ino);
+    await assert.rejects(write.finishCreated({version: lease.version,
+      session: lease.session, token: lease.token, device: reported.dev,
+      inode: reported.ino, bytes: reported.size}), {code: 'StoreIdentityMismatch'});
+    assert.equal(store.status().reservedBytes, 20);
+    assert.equal(store.status().uncertainWriteBytes, 20);
+    assert.equal(store.status().cleanupPending, true);
+    await write.cleanupHandle.retry();
+    assert.equal(store.status().reservedBytes, 0);
+  } finally {
+    await unlink(displaced).catch(() => {});
+  }
 });
 
 test('delegated binary frames copy before await and reject capacity before writing', async t => {

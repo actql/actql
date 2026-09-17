@@ -43,7 +43,7 @@ pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.R
 
 pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
-pub fn[T] prepare_local_managed_dispatch(LocalDispatchModule, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[LocalManagedDispatchConfiguration[T], LocalDispatchIssue]
+pub fn[T] prepare_local_managed_dispatch(LocalDispatchModule, Array[@execution_relation.ManagedCompletedOutput[T]], @execution_relation.ManagedObligations, Int64) -> Result[LocalManagedDispatchConfiguration[T]?, LocalDispatchIssue]
 
 pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
 
@@ -136,6 +136,7 @@ pub struct LocalManagedDispatchOperations[T] {
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
   storage_bytes : Int64
   close : () -> Unit
+  cleanup_refresh : () -> Bool
 }
 
 pub struct LocalManagedInputTransfer[T] {

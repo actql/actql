@@ -241,6 +241,14 @@ awaiting, retaining exact immutable Connector-owned handles without copying thei
 contents. Accessor properties in that mapping are rejected. In-process Local or
 numeric-only setups require no transport options. The entry fixes its runtime,
 ABI checking and driver; execution options cannot replace them.
+The standard entry includes the checked Program's named Result identity floor.
+Caller policy can strengthen that floor but cannot disable it. Implementations
+which cannot establish a required identity are excluded before task start; this
+does not by itself publish a Result Artifact. The separately named
+`runCapturedInternalStrategy` entry is limited to task-only execution and makes
+no Program Result publication claim. Choosing that entry, rather than passing a
+false policy value, is the explicit distinction between the two execution
+targets.
 Installation failure or cancellation before execution rejects the call without
 starting a task. Cancellation stops further loads and factories, but an already
 started import is observed until settlement; it is not abandoned in the background.

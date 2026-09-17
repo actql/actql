@@ -3,6 +3,8 @@
 import {managedInputCodecContractCid, managedInputSupportsRows,
   registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
+import {settleFailedManagedOperations} from
+  '../host-common/managed-failure.mjs';
 
 export function numericStrategyContribution(moon, setup, checked) {
   const registration = moon.strategyModule_reference_compute_Registration(setup);
@@ -28,18 +30,14 @@ export function numericStrategyContribution(moon, setup, checked) {
             managedInputCodecContractCid(input.material) !== undefined)) {
         return undefined;
       }
-      let configuration;
-      try {
-        configuration = checked(
-          moon.strategyModule_reference_compute_ManagedDispatch(
-            setup,
-            inputs.map(input => input.completed),
-            0n,
-          ),
-        );
-      } catch {
-        return undefined;
-      }
+      const configuration = checked(
+        moon.strategyModule_reference_compute_ManagedDispatch(
+          setup,
+          inputs.map(input => input.completed),
+          0n,
+        ),
+      );
+      if (configuration == null) return undefined;
       return Object.freeze({
         task,
         durationMilliseconds: 1n,
@@ -63,6 +61,7 @@ export function numericStrategyContribution(moon, setup, checked) {
         ),
       );
       let available = true;
+      let settled = false;
       try {
         const transfers = operations.inputs;
         if (!Array.isArray(transfers) ||
@@ -85,6 +84,7 @@ export function numericStrategyContribution(moon, setup, checked) {
             for (const transfer of transfers) checked(transfer.finish());
             checked(operations.execute());
             checked(operations.settle());
+            settled = true;
             completed = checked(operations.complete(
               nextMaterial++,
               operations.storage_bytes,
@@ -126,8 +126,9 @@ export function numericStrategyContribution(moon, setup, checked) {
         });
       } catch (error) {
         available = false;
-        operations.close();
-        throw error;
+        throw settleFailedManagedOperations(
+          operations, checked, error, settled,
+        );
       }
     },
     async run(task) {

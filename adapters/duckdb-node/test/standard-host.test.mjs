@@ -7,13 +7,17 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { authorizeLocalDatabase } from '../session.mjs';
+import { authorizeLocalDatabase, withComputeDatabase } from '../session.mjs';
 import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute, runManagedColumnStrategyHostCompute, managedColumnCodecContractCid, encodeManagedColumnFrame,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
-import { runCapturedStrategy } from '../../host-node/entry.mjs';
+import {runCapturedInternalStrategy,
+  runCapturedStrategy} from '../../host-node/entry.mjs';
+import {runInstalledStrategy} from '../../host-common/strategy.mjs';
+import {runtimeCore} from '../../host-common/runtime-core.mjs';
+import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
 import {
   prepareManagedIdentityPolicy,
 } from '../../host-node/managed-identity-policy.mjs';
@@ -25,15 +29,133 @@ import {retainedStorageBody} from '../../store-local/representations.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {registerManagedInput,
-  managedInputCodecContractCid} from '../../store-local/managed-representations.mjs';
+  managedInputCodecContractCid, withManagedInputFiles} from
+  '../../store-local/managed-representations.mjs';
+import {managedRepresentation} from
+  '../../store-local/managed-memory-representations.mjs';
 import {managedPhysicalRepresentation} from
   '../../store-local/managed-physical-representation.mjs';
+import {computePhysicalCapacity} from '../physical-capacity.mjs';
+import {ownedHostFailure} from '../failure-envelope.mjs';
+import {managedParquetCodecContractCid} from '../managed-parquet-codec.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+
+// Conformance-only contribution body. It uses the selected product
+// configuration and real Store/session boundaries, but deliberately keeps the
+// session unsettled after its native command so cancellation can return before
+// actual access stops. It is not a product configuration hook.
+async function runDelayedManagedStop(
+  moon, prepared, suppliedLimits, signal, control,
+) {
+  const capacity = computePhysicalCapacity(suppliedLimits);
+  let run;
+  let sessionStarted = false;
+  let taskCleanupConfirmed = false;
+  try {
+    run = checked(moon.managedStrategyHostOpen(
+      prepared.configuration,
+      capacity.transferBytes,
+      capacity.executionBytes,
+      () => !signal?.aborted,
+      () => true,
+    ));
+    const inputCount = moon.managedStrategyInputCount(run);
+    assert.equal(inputCount, prepared.inputs.length);
+    const inputs = Array.from({length: inputCount}, (_, index) =>
+      checked(moon.managedStrategyInputAt(run, index)));
+    const views = inputs.map((_, index) =>
+      prepared.inputCodecContractCids[index] === managedColumnCodecContractCid
+        ? moon.managedStrategyInputFileViewSqlAt(
+          run, index, suppliedLimits.maxSqlBytes,
+        )
+        : prepared.inputCodecContractCids[index] ===
+            managedParquetCodecContractCid
+          ? moon.managedStrategyInputParquetViewSqlAt(
+            run, index, suppliedLimits.maxSqlBytes,
+          )
+          : undefined);
+    assert(views.every(value => typeof value === 'string'));
+    control.representations = prepared.inputs.map(input =>
+      managedRepresentation(input.material));
+    const accounting = Object.freeze({
+      started() { sessionStarted = true; },
+      chargeTransfer(bytes) {
+        checked(moon.managedStrategyCharge(run, BigInt(bytes)));
+      },
+      settled(confirmed) {
+        control.settlements.push(confirmed);
+        checked(moon.managedStrategySettle(run, confirmed));
+      },
+    });
+    await withManagedInputFiles(
+      inputs.map((input, index) => ({
+        material: prepared.inputs[index].material,
+        input,
+        codecContractCid: prepared.inputCodecContractCids[index],
+      })),
+      () => !signal?.aborted,
+      files => withComputeDatabase(
+        {...suppliedLimits, cancelWaitMs: 0},
+        async session => {
+          for (let index = 0; index < files.length; index++) {
+            await session.createFileView(
+              views[index], files[index].path, () => {},
+            );
+          }
+          control.entered();
+          await control.wait;
+        },
+        signal,
+        accounting,
+        files.map(file => file.path),
+      ),
+      signal,
+      (indices, bytes) => checked(moon.managedStrategyCharge(
+        run, BigInt(bytes * (indices.length + 1)),
+      )),
+    );
+    throw new Error('DelayedStopDidNotCancel');
+  } catch (reason) {
+    const failure = ownedHostFailure(reason, 'DelayedManagedStopFailed');
+    const native = failure.cleanupHandle;
+    if (run) {
+      if (!sessionStarted) checked(moon.managedStrategySettle(run, true));
+      moon.managedStrategyClose(run);
+      taskCleanupConfirmed = checked(
+        moon.managedStrategyCleanupRefresh(run),
+      );
+    }
+    if (failure.cleanupPending === true && native) {
+      failure.cleanupHandle = Object.freeze({
+        status() {
+          const state = native.status();
+          return Object.freeze({
+            pending: state.pending || !taskCleanupConfirmed,
+            errors: state.errors,
+          });
+        },
+        async retry() {
+          const state = await native.retry();
+          if (run) {
+            taskCleanupConfirmed = checked(
+              moon.managedStrategyCleanupRefresh(run),
+            );
+          }
+          return Object.freeze({
+            pending: state.pending || !taskCleanupConfirmed,
+            errors: state.errors,
+          });
+        },
+      });
+    }
+    throw failure;
+  }
+}
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -1007,7 +1129,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(
       managedStandardFixture, managedStandardCapture.source()), true);
-    managedStandardExecution = await runCapturedStrategy(
+    managedStandardExecution = await runCapturedInternalStrategy(
       fixture.strategyFixtureManagedDispatch(managedStandardFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
@@ -1049,6 +1171,51 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     }
     managedStandardCapture.close();
   }
+  // The public entry executes the checked Program Result contract. Omission
+  // and caller false cannot erase that floor; true is only a strengthening.
+  for (const callerPublication of [undefined, false, true]) {
+    const publicFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(managedStandardProgram));
+    const publicCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(publicFixture),
+      suppliedLimits,
+    );
+    let publicExecution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        publicFixture, publicCapture.source()), true);
+      const publicOptions = {
+        duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000},
+          managedOutput: {
+            parentDirectory: fileParent,
+            maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000},
+          },
+        }),
+      };
+      if (callerPublication !== undefined) {
+        publicOptions.managedIdentityPolicy = prepareManagedIdentityPolicy({
+          publication: callerPublication,
+        });
+      }
+      publicExecution = await runCapturedStrategy(
+        fixture.strategyFixtureManagedDispatch(publicFixture),
+        publicOptions,
+      );
+      assert.equal(publicExecution.status, 'host-tasks-failed');
+      assert.equal(publicExecution.failure?.code,
+        'NoCompatibleManagedStrategy');
+      assert.deepEqual(publicExecution.completed.map(item => item.task), [1]);
+    } finally {
+      await publicExecution?.close();
+      if (publicExecution) assert.equal(await publicExecution.cleanup(), true);
+      publicCapture.close();
+    }
+  }
   // The common Host derives obligations before connector comparison. Either a
   // known logical-identity consumer or a publication contract must exclude the
   // CID-free DuckDB candidate before that task starts.
@@ -1070,7 +1237,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureOpen(aliasedFixture, aliasedCapture.source()), true);
     assert.deepEqual(
       fixture.strategyFixtureManagedObligationLabels(
-        aliasedFixture, true, false, false,
+        aliasedFixture, false, false, false,
       ),
       [
         'ordered-rows:task-output:retained:-',
@@ -1128,7 +1295,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         fixture.strategyFixtureOpen(identityFixture, identityCapture.source()),
         true,
       );
-      identityExecution = await runCapturedStrategy(
+      identityExecution = await runCapturedInternalStrategy(
         fixture.strategyFixtureManagedDispatch(identityFixture),
         {
           managedIdentityPolicy: prepareManagedIdentityPolicy(
@@ -1162,7 +1329,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       if (identityCase.succeeds) {
         assert.deepEqual(identityExecution.completed.map(item => item.realization),
           ['duckdb-managed', 'reference-numeric-managed',
-            'local-managed']);
+            'reference-numeric-managed'],
+        'equal-cost managed candidates use the stable registration key');
       } else {
         assert(identityExecution.failure != null);
       }
@@ -1198,7 +1366,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try {
       assert.equal(fixture.strategyFixtureOpen(
         managedJoinFixture, managedJoinCapture.source()), true);
-      managedJoinExecution = await runCapturedStrategy(
+      managedJoinExecution = await runCapturedInternalStrategy(
         fixture.strategyFixtureManagedDispatch(managedJoinFixture),
         {duckdb: prepareDuckDBStrategyConfiguration({
           transportLimits: suppliedLimits,
@@ -1270,7 +1438,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(
       managedGroupFixture, managedGroupCapture.source()), true);
-    managedGroupExecution = await runCapturedStrategy(
+    managedGroupExecution = await runCapturedInternalStrategy(
       fixture.strategyFixtureManagedDispatch(managedGroupFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
@@ -1325,7 +1493,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(
       managedFailureFixture, managedFailureCapture.source()), true);
-    managedFailureExecution = await runCapturedStrategy(
+    managedFailureExecution = await runCapturedInternalStrategy(
       fixture.strategyFixtureManagedDispatch(managedFailureFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
@@ -1377,7 +1545,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(
       managedCancelFixture, managedCancelCapture.source()), true);
-    managedCancelExecution = await runCapturedStrategy(
+    managedCancelExecution = await runCapturedInternalStrategy(
       fixture.strategyFixtureManagedDispatch(managedCancelFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
@@ -1406,6 +1574,158 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(managedCancelExecution.usage().reservedExecutionBytes, 0n);
     }
     managedCancelCapture.close();
+  }
+  // Q7 lifetime integration: use the ordinary product registry and standard
+  // Host selection, then replace only the selected execution contribution
+  // with a conformance body that remains unsettled after a real DuckDB
+  // command. This proves that the outer cancellation deadline cannot release
+  // Store pins before the real session scope ends. It does not claim an
+  // arbitrary C++ instruction is interruptible at this exact point.
+  const delayedStopProgram = JSON.parse(program);
+  delayedStopProgram.stages[3] = {
+    id: 'compute_c',
+    inputs: {
+      l: {result: {stage: 'compute_a', result: 'r'}},
+      r: {result: {stage: 'compute_b', result: 'r'}},
+    },
+    steps: [{
+      join: {with: 'r', kind: 'inner',
+        on: [{left: 'id', right: 'id'}], select: {id: 'left.id'}},
+      from: 'l',
+      as: 'out',
+    }],
+    results: {r: {from: 'out', fields: ['id']}},
+  };
+  delayedStopProgram.stages.push({
+    id: 'count_d',
+    inputs: {x: {result: {stage: 'compute_c', result: 'r'}}},
+    steps: [{
+      group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'out',
+    }],
+    results: {r: {from: 'out', fields: ['n']}},
+  });
+  delayedStopProgram.results = {
+    out: {from: {stage: 'count_d', result: 'r'}},
+  };
+  const delayedStopFixture = fixture.strategyFixtureJoinCreate(
+    ...args, JSON.stringify(delayedStopProgram));
+  const delayedStopCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(delayedStopFixture),
+    suppliedLimits,
+  );
+  const delayedStopCancellation = new AbortController();
+  let enterDelayedStop;
+  let releaseDelayedStop;
+  const delayedStopEntered = new Promise(resolve => {
+    enterDelayedStop = resolve;
+  });
+  const delayedStopWait = new Promise(resolve => {
+    releaseDelayedStop = resolve;
+  });
+  const delayedStopControl = {
+    entered: enterDelayedStop,
+    wait: delayedStopWait,
+    representations: [],
+    settlements: [],
+  };
+  let delayedStopExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      delayedStopFixture, delayedStopCapture.source()), true);
+    const delayedStopSetup = fixture.strategyFixtureManagedDispatch(
+      delayedStopFixture);
+    assert.equal(hostRuntime.strategyHostConfigureManagedIdentity(
+      delayedStopSetup, false, false, false, false,
+    ), true);
+    const delayedStopConfiguration = prepareDuckDBStrategyConfiguration({
+      transportLimits: suppliedLimits,
+      importLimits: {maxRows: 100, maxCells: 1000},
+      managedOutput: {
+        parentDirectory: fileParent,
+        maxFrameBytes: 4096,
+        wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+          max_columns: 10, max_order_work: 10000},
+      },
+    });
+    const productContribution = duckdbStrategyContribution(
+      hostRuntime, delayedStopSetup, checked, delayedStopConfiguration,
+    );
+    const contribution = Object.freeze({
+      ...productContribution,
+      runPrepared(prepared, signal) {
+        return prepared.task === 3
+          ? runDelayedManagedStop(
+            bridge, prepared, suppliedLimits, signal, delayedStopControl,
+          )
+          : productContribution.runPrepared(prepared, signal);
+      },
+    });
+    const running = runInstalledStrategy(
+      delayedStopSetup,
+      runtimeCore(hostRuntime),
+      [contribution],
+      delayedStopCancellation.signal,
+    );
+    await delayedStopEntered;
+    delayedStopCancellation.abort();
+    delayedStopExecution = await running;
+    assert.equal(delayedStopExecution.status, 'host-tasks-failed');
+    assert.equal(delayedStopExecution.failure?.code, 'Cancelled');
+    assert.deepEqual(
+      delayedStopExecution.completed.map(item => item.task), [1, 2],
+    );
+    assert.equal(delayedStopExecution.cleanupPending(), true);
+    assert.equal(delayedStopControl.representations.length, 2);
+    assert.notEqual(
+      delayedStopControl.representations[0].body,
+      delayedStopControl.representations[1].body,
+      'the join pins two distinct physical generations',
+    );
+    for (const representation of delayedStopControl.representations) {
+      assert(representation?.store);
+      assert(representation?.body);
+      assert(representation.store.status().activeReaders > 0,
+        'an unsettled native session retains every exact input generation');
+    }
+    await assert.rejects(
+      delayedStopExecution.close(),
+      {code: 'RetainedCleanupPending'},
+      'graph close reports the still-pinned producer as cleanup pending',
+    );
+    for (const representation of delayedStopControl.representations) {
+      assert(representation.store.status().activeReaders > 0,
+        'graph close cannot turn an unsettled session into stopped access');
+    }
+    releaseDelayedStop();
+    let delayedStopCleaned = false;
+    for (let retry = 0; retry < 4 && !delayedStopCleaned; retry++) {
+      delayedStopCleaned = await delayedStopExecution.cleanup();
+    }
+    assert.equal(delayedStopCleaned, true,
+      'bounded cleanup retries converge after native stop and pin release');
+    assert.deepEqual(delayedStopControl.settlements, [false, true],
+      'deadline marks cleanup pending before actual native settlement');
+    for (const representation of delayedStopControl.representations) {
+      assert.equal(representation.store.status().activeReaders, 0);
+    }
+    delayedStopCapture.close();
+    assert.equal(delayedStopExecution.usage().heldBytes, 0n,
+      JSON.stringify(delayedStopExecution.usage(), (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value));
+    assert.equal(delayedStopExecution.usage().reservedRetentionBytes, 0n);
+    assert.equal(delayedStopExecution.usage().reservedExecutionBytes, 0n);
+  } finally {
+    releaseDelayedStop();
+    try { await delayedStopExecution?.close(); } catch (error) {
+      assert.equal(error?.code, 'RetainedCleanupPending');
+    }
+    for (let retry = 0;
+      retry < 4 && delayedStopExecution?.cleanupPending(); retry++) {
+      await delayedStopExecution.cleanup();
+    }
+    delayedStopCapture.close();
   }
   const managedLedgerFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(managedProgram));

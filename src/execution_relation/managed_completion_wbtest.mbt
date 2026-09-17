@@ -136,21 +136,8 @@ test "managed completion distinguishes delayed identity from source lifetime" {
   ).unwrap()
   let live = Ref(true)
   let material = managed_test_material(owner, Step(1), live)
-  let contract = "sha256:" + "1".repeat(64)
+  let contract = ordered_rows_canonical_contract_cid()
   let cid = "sha256:" + "2".repeat(64)
-  let issuer = prepare_managed_identity_issuer(owner, (
-    requirement : ManagedIdentityRequirement,
-    source : ManagedRetainedOutput[Int],
-  ) => {
-    if requirement.domain == OrderedRows &&
-      requirement.subject == TaskOutput &&
-      requirement.occurrence is None &&
-      physical_equal(source, material) {
-      Some((contract, cid))
-    } else {
-      None
-    }
-  })
   let obligations = prepare_managed_obligations(
     owner,
     [
@@ -165,6 +152,24 @@ test "managed completion distinguishes delayed identity from source lifetime" {
     MaterialBinding,
     1,
   ).unwrap()
+  let capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    TaskOutput,
+    None,
+    contract,
+  ).unwrap()
+  assert_true(managed_identity_issuance_capability_same(capability, capability))
+  let requirement = managed_obligations_identities(obligations)[0]
+  let permit = authorize_managed_identity_attempt(
+    capability, preparation, requirement,
+  ).unwrap()
+  let issuer = bind_managed_identity_issuer(permit, material, source => {
+    if physical_equal(source, material) {
+      Some(cid)
+    } else {
+      None
+    }
+  })
   let port = prepare_managed_completion_port(
     managed_test_profile(),
     preparation,
@@ -223,6 +228,115 @@ test "managed completion distinguishes delayed identity from source lifetime" {
   assert_true(
     establish_managed_completed_identity(unavailable, OrderedRows, TaskOutput)
     is Err(SourceUnavailable),
+  )
+}
+
+///|
+test "managed identity authority rejects another attempt generation and canonical contract" {
+  let owner = capture_fixture()
+  let sequence = prepared_sequence(owner)
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    sequence,
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let another_attempt = prepare_completion(
+    registered_relation_contracts(),
+    sequence,
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let material = managed_test_material(owner, Step(1), Ref(true))
+  let another_generation = managed_test_material(owner, Step(1), Ref(true))
+  let requirement : ManagedIdentityRequirement = {
+    domain: OrderedRows,
+    subject: TaskOutput,
+    occurrence: None,
+    need: EstablishedBy(BeforeDiscard),
+  }
+  let obligations = prepare_managed_obligations(
+    owner,
+    [requirement],
+    ManagedUse,
+    MaterialBinding,
+    1,
+  ).unwrap()
+  assert_true(
+    register_managed_identity_issuance_capability(
+      OrderedRows,
+      TaskOutput,
+      None,
+      "sha256:" + "9".repeat(64),
+    )
+    is Err(InvalidCapability),
+  )
+  let capability = register_managed_identity_issuance_capability(
+    OrderedRows,
+    TaskOutput,
+    None,
+    ordered_rows_canonical_contract_cid(),
+  ).unwrap()
+  let permit = authorize_managed_identity_attempt(
+    capability, preparation, requirement,
+  ).unwrap()
+  let issuer = bind_managed_identity_issuer(permit, material, _ => {
+    Some("sha256:" + "4".repeat(64))
+  })
+  assert_true(
+    prepare_managed_completion_port(
+      managed_test_profile(),
+      another_attempt,
+      Step(1),
+      1000,
+      10000,
+      (_ : Unit) => Some(material),
+      obligations~,
+      identity_issuer=issuer,
+    )
+    is Err(ForeignOutput),
+  )
+  let another_deadline = prepare_managed_obligations(
+    owner,
+    [
+      {
+        domain: OrderedRows,
+        subject: TaskOutput,
+        occurrence: None,
+        need: EstablishedBy(BeforePublication),
+      },
+    ],
+    ManagedUse,
+    MaterialBinding,
+    1,
+  ).unwrap()
+  assert_true(
+    prepare_managed_completion_port(
+      managed_test_profile(),
+      preparation,
+      Step(1),
+      1000,
+      10000,
+      (_ : Unit) => Some(material),
+      obligations=another_deadline,
+      identity_issuer=issuer,
+    )
+    is Err(ForeignOutput),
+  )
+  let generation_port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(another_generation),
+    obligations~,
+    identity_issuer=issuer,
+  ).unwrap()
+  assert_true(
+    complete_managed_output(generation_port, ()) is Err(ForeignOutput),
   )
 }
 

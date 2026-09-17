@@ -14,7 +14,7 @@ import {
 // Values
 pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
 
-pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @driver.NumericManagedDispatchConfiguration[Int] raise NodeHostFailure
+pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @driver.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure
 
 pub fn reference_compute_managed_start(@driver.NumericManagedDispatchConfiguration[Int]) -> @driver.NumericManagedDispatchOperations[Int] raise NodeHostFailure
 
@@ -22,7 +22,7 @@ pub fn reference_compute_registration(@connectors_workers_async.ConfiguredComput
 
 pub fn strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
-pub fn strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool) -> Bool
+pub fn strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool
 
 pub fn strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 

@@ -63,14 +63,21 @@ export function managedColumnRowProvider(fieldsFrame) {
     typeof field[0] !== 'string' || !['DOUBLE', 'VARCHAR'].includes(field[1]))) {
     throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
   }
-  return Object.freeze({
+  const active = new Set();
+  let completedReads = 0;
+  const provider = {
     async read(file, emit, signal) {
       if (!file || typeof file.path !== 'string' || typeof emit !== 'function') {
         throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
       }
       let expectedOrdinal = 0;
+      const input = createReadStream(file.path, {encoding: 'utf8'});
+      active.add(input);
+      const closed = input.closed ? Promise.resolve() : new Promise(resolve => {
+        input.once('close', resolve);
+      });
       const lines = createInterface({
-        input: createReadStream(file.path, {encoding: 'utf8'}),
+        input,
         crlfDelay: Infinity,
       });
       try {
@@ -96,6 +103,7 @@ export function managedColumnRowProvider(fieldsFrame) {
             throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
           }
           for (let row = 0; row < rows; row++) {
+            signal?.throwIfAborted();
             if (frame.o[row] !== expectedOrdinal) {
               throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
             }
@@ -116,7 +124,20 @@ export function managedColumnRowProvider(fieldsFrame) {
         }
       } finally {
         lines.close();
+        // readline.close() only releases the interface. The provider owns the
+        // underlying file access and must not return until that access has
+        // actually stopped, because its caller releases the Store pin next.
+        if (!input.closed) input.destroy();
+        await closed;
+        active.delete(input);
+        completedReads++;
       }
     },
-  });
+    // Diagnostics for conformance tests and Host observability only. This is
+    // not a completion proof or authority to release the Store generation.
+    status() {
+      return Object.freeze({activeReads: active.size, completedReads});
+    },
+  };
+  return Object.freeze(provider);
 }

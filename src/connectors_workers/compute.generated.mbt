@@ -164,7 +164,7 @@ pub fn[E] dispatch_managed_local(
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
-  @binding3.LocalManagedDispatchConfiguration[Int],
+  @binding3.LocalManagedDispatchConfiguration[Int]?,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_local {

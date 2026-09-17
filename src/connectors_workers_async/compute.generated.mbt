@@ -164,7 +164,7 @@ pub fn[E] dispatch_managed_reference_compute(
   obligations : @execution.ManagedObligations,
   output_file_bytes : Int64,
 ) -> Result[
-  @binding3.NumericManagedDispatchConfiguration[Int],
+  @binding3.NumericManagedDispatchConfiguration[Int]?,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_reference_compute {

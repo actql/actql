@@ -65,6 +65,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
           BigInt(options.managedOutput.wire.max_bytes),
         ),
       );
+      if (managedConfiguration == null) return undefined;
       return Object.freeze({
         task,
         durationMilliseconds: 1n,

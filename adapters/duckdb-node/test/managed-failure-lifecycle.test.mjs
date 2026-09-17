@@ -89,6 +89,10 @@ export const managedStrategyParameterCount=()=>0;
 export const managedStrategySettle=()=>{state().calls.settle++;};
 export const managedStrategyClose=()=>{state().calls.close++;};
 export const managedStrategyRefreshRetention=()=>{state().calls.refresh++;};
+export const managedStrategyCleanupRefresh=()=>{
+  state().calls.refresh++;
+  return true;
+};
 `);
     state.controller = new AbortController();
     state.reason = reason;
