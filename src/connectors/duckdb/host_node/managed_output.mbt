@@ -144,11 +144,7 @@ pub fn managed_completed_task_output_identity_status(
   value : @execution.ManagedCompletedOutput[Int],
 ) -> Array[String] raise NodeHostFailure {
   match
-    @execution.managed_completed_identity_status(
-      value,
-      OrderedRows,
-      TaskOutput,
-    ) {
+    @execution.managed_completed_identity_status(value, OrderedRows, TaskOutput) {
     Some(UnestablishedSourceRetained) => ["unestablished", "retained"]
     Some(UnestablishedSourceUnavailable) => ["unestablished", "unavailable"]
     Some(EstablishedSourceRetained(contract, cid)) =>

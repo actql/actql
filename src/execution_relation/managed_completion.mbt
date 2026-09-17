@@ -176,14 +176,12 @@ pub fn[P, T] complete_managed_output(
     bindings: port.bindings,
     managed_bindings: port.managed_inputs.map(input => input.identity),
     material,
-    identities: managed_obligations_identities(port.obligations).map(
-      requirement => {
-        domain: requirement.domain,
-        subject: requirement.subject,
-        canonical_contract_cid: Ref(None),
-        cid: Ref(None),
-      },
-    ),
+    identities: managed_obligations_identities(port.obligations).map(requirement => {
+      domain: requirement.domain,
+      subject: requirement.subject,
+      canonical_contract_cid: Ref(None),
+      cid: Ref(None),
+    }),
     identity_issuer: port.identity_issuer,
   })
 }

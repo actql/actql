@@ -166,7 +166,8 @@ test "managed completion distinguishes delayed identity from source lifetime" {
       TaskOutput,
       "invalid",
       cid,
-    ) is Err(InvalidIdentity),
+    )
+    is Err(InvalidIdentity),
   )
   assert_true(managed_completed_output_available(output))
   establish_managed_completed_identity(
@@ -187,7 +188,8 @@ test "managed completion distinguishes delayed identity from source lifetime" {
       TaskOutput,
       contract,
       "sha256:" + "3".repeat(64),
-    ) is Err(ConflictingIdentity),
+    )
+    is Err(ConflictingIdentity),
   )
   live.val = false
   assert_eq(
@@ -217,16 +219,13 @@ test "managed completion distinguishes delayed identity from source lifetime" {
       TaskOutput,
       contract,
       cid,
-    ) is Err(IssuerUnavailable),
+    )
+    is Err(IssuerUnavailable),
   )
   assert_true(managed_completed_output_available(unavailable))
   unavailable_live.val = false
   assert_eq(
-    managed_completed_identity_status(
-      unavailable,
-      OrderedRows,
-      TaskOutput,
-    ),
+    managed_completed_identity_status(unavailable, OrderedRows, TaskOutput),
     Some(UnestablishedSourceUnavailable),
   )
   assert_true(
@@ -236,7 +235,8 @@ test "managed completion distinguishes delayed identity from source lifetime" {
       TaskOutput,
       contract,
       cid,
-    ) is Err(SourceUnavailable),
+    )
+    is Err(SourceUnavailable),
   )
 }
 
