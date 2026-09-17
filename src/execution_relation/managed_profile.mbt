@@ -42,3 +42,10 @@ pub fn managed_execution_profile_cid(
 ) -> String {
   profile.cid
 }
+
+///|
+/// The registered managed execution profile selected by a trusted Host API.
+/// Program text cannot construct or select this authority-bearing value.
+pub fn selected_managed_execution_profile() -> ManagedExecutionProfile {
+  { cid: selected_managed_profile_cid, }
+}

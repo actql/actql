@@ -231,3 +231,92 @@ pub fn[C, E] take_duckdb_dispatch(
     Dispatch(issue)
   })
 }
+
+///|
+/// Prepare the next unary managed task inside the installed DuckDB module.
+/// The standard dispatcher supplies only the exact predecessor completion;
+/// this function constructs the receiving request, compiles the registered
+/// candidate, compares it and fixes the common completion configuration.
+pub fn prepare_duckdb_managed_dispatch(
+  installed : DuckDBDispatchModule,
+  output : @execution.ManagedCompletedOutput[Int],
+  output_file_bytes : Int64,
+) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue] {
+  guard @strategy.next_captured_task(installed.run) is Some(task) &&
+    installed.sequences.get(task - 1) is Some(sequence) &&
+    @strategy.captured_dag_strategy(installed.run) is Some(revision) &&
+    @strategy.strategy_registration(revision, task) is Some(selected) &&
+    physical_equal(selected, installed.registration) &&
+    @connector.capability_registration_available(installed.registration) else {
+    return Err(ForeignSelection)
+  }
+  let input = match
+    @strategy.captured_managed_task_input(
+      installed.run,
+      task,
+      output,
+      installed.limits.query.max_entries,
+      installed.limits.query.max_sql_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Run(issue))
+  }
+  let request = match
+    @connector.prepare_managed_fixed_compute_request(
+      [input],
+      installed.limits.capacity,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(issue))
+  }
+  let prepared = match
+    @compute.duckdb_managed_fixed_compute_candidate(
+      installed.registration,
+      request,
+      "managed_input",
+      installed.limits.query,
+      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      installed.limits.candidate_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(NativeCandidate(issue))
+  }
+  let choice = match
+    @connector.choose_managed_fixed_compute_candidate(
+      installed.registry,
+      request,
+      [@connector.prepared_managed_compute_candidate(prepared)],
+      None,
+      installed.limits.candidate_work,
+    ) {
+    Ok(Proposed(value)) => value
+    Ok(_) => return Err(ForeignSelection)
+    Err(issue) => return Err(Candidate(issue))
+  }
+  guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
+    is Some(query) else {
+    return Err(ForeignSelection)
+  }
+  let rows = @duckdb.managed_fixed_query_output_row_ceiling(
+    query,
+    installed.limits.capacity.max_rows,
+  )
+  let width = @duckdb.managed_fixed_query_output_column_count(query)
+  if rows < 0 || width < 0 || (width > 0 && rows > 2147483647 / width) {
+    return Err(InvalidConfiguration)
+  }
+  let max_index_cells = rows * width
+  configure_managed_strategy_compute_host(
+    installed.run,
+    task,
+    choice,
+    prepared,
+    sequence,
+    @execution.selected_managed_execution_profile(),
+    installed.limits.execution,
+    installed.limits.transport,
+    output_file_bytes,
+    max_index_cells,
+  ).map_err(issue => Run(issue))
+}

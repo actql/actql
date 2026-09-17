@@ -39,6 +39,7 @@ export async function runManagedColumnStrategyHostCompute(
   let outputRows = 0;
   let disposed = false;
   let authorized = true;
+  let sessionStarted = false;
   const storageReleased = () => disposed && (!store ||
     (store.status().reservedBytes === 0 && !store.status().cleanupPending));
   try {
@@ -67,7 +68,7 @@ export async function runManagedColumnStrategyHostCompute(
     const parameters = Array.from({length: moon.managedStrategyParameterCount(run)}, (_, index) =>
       JSON.parse(checked(moon.managedStrategyParameter(run, index))));
     const accounting = Object.freeze({
-      started() {},
+      started() { sessionStarted = true; },
       chargeTransfer(bytes) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
       settled(confirmed) { checked(moon.managedStrategySettle(run, confirmed)); },
     });
@@ -197,6 +198,10 @@ export async function runManagedColumnStrategyHostCompute(
       });
     } finally {
       if (run) {
+        // A failure before the native session starts has a confirmed zero
+        // physical execution. Settle that reservation before disposal; an
+        // opened native session remains responsible for its own receipt.
+        if (!sessionStarted) checked(moon.managedStrategySettle(run, true));
         moon.managedStrategyClose(run);
         moon.managedStrategyRefreshRetention(run);
       }

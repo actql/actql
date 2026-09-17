@@ -77,6 +77,8 @@ pub fn configured_strategy_compute_ledger(StrategyComputeHostConfiguration) -> @
 
 pub fn configured_strategy_compute_transport(StrategyComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
+pub fn configured_strategy_managed_index_cells(StrategyComputeHostConfiguration) -> Int?
+
 pub fn configured_strategy_output_file_bytes(StrategyComputeHostConfiguration) -> Int64?
 
 pub fn configured_strategy_retention_capacity(StrategyComputeHostConfiguration, retained? : Bool) -> Int64?
@@ -116,6 +118,8 @@ pub fn prepare_duckdb_dispatch_module(@physical_host.DispatchDriver, @connector_
 pub fn prepare_duckdb_estimate_module(DuckDBDispatchModule, Array[@physical_cost.RateSchedule], Array[@physical_strategy.PhysicalEnvelope], Int) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue]
 
 pub fn prepare_duckdb_estimate_settings(DuckDBDispatchModule, DuckDBEstimateSettings) -> Result[DuckDBEstimateModule, DuckDBEstimateIssue]
+
+pub fn prepare_duckdb_managed_dispatch(DuckDBDispatchModule, @execution_relation.ManagedCompletedOutput[Int], Int64) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue]
 
 pub fn prepare_duckdb_resource_estimate_settings(DuckDBDispatchModule, DuckDBResourceEstimateSettings) -> Result[DuckDBResourceEstimatePolicy, DuckDBEstimateIssue]
 

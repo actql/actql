@@ -278,6 +278,19 @@ pub fn[T] managed_fixed_query_output_row_ceiling(
 }
 
 ///|
+/// Checked output width used only to reserve bounded measurement metadata.
+pub fn[T] managed_fixed_query_output_column_count(
+  value : ManagedFixedQuery[T],
+) -> Int {
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(managed_fixed_query_owner(value)),
+    managed_fixed_query_target(value),
+  )
+  .map(@schema.field_count)
+  .unwrap_or(0)
+}
+
+///|
 pub fn[T] managed_fixed_query_create_sql(
   value : ManagedFixedQuery[T],
 ) -> String {

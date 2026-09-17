@@ -379,6 +379,21 @@ pub fn[T] captured_managed_task_input(
 }
 
 ///|
+/// Exact producer of the next unary task, for standard managed dispatch.
+/// Multi-input tasks remain outside the initial managed realization.
+pub fn captured_next_managed_producer(run : CapturedDAG) -> Int? {
+  guard next_captured_task(run) is Some(task) && run.inputs[task].length() == 1 else {
+    return None
+  }
+  for edge in run.graph.data {
+    if edge.consumer == task && edge.input == 0 && edge.producer > 0 {
+      return Some(edge.producer)
+    }
+  }
+  None
+}
+
+///|
 /// No callback can inject arbitrary CompletedOutput as a task success.
 /// The selected synchronous realization supplies execution, never a backend tag.
 pub fn execute_captured_synchronous_task(

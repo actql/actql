@@ -115,7 +115,7 @@ fn strategy_fixture_create_impl(
     })
     let graph = @strategy.prepare_checked_dag(program, owners, 10, 10000).unwrap()
     @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
-    let extended = @program_check.unit_count(program) > 5
+    let extended = @program_check.unit_count(program) > 4
     let ledger = @resources.create_ledger({
       planning_work: if join || multiple_resources {
         100000
@@ -132,12 +132,16 @@ fn strategy_fixture_create_impl(
       } else {
         10
       },
-      transfer_bytes: if join || multiple_resources {
+      transfer_bytes: if join || multiple_resources || extended {
         1000000L
       } else {
         300000L
       },
-      retained_bytes: 32000000L,
+      retained_bytes: if extended {
+        64000000L
+      } else {
+        32000000L
+      },
       execution_bytes: if multiple_resources {
         536870912L
       } else {

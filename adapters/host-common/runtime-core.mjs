@@ -9,6 +9,9 @@ export function runtimeCore(moon) {
   return Object.freeze({
     count: moon.strategyHostCount,
     next: value => checked(moon.strategyHostNext(value)),
+    nextTask: moon.strategyHostNextTask,
+    managedProducer: moon.strategyHostManagedProducer,
+    managedMatches: moon.strategyHostManagedOutputMatches,
     task: moon.strategyHostTask,
     registration: moon.strategyHostRegistration,
     completed: moon.strategyHostTaskCompleted,

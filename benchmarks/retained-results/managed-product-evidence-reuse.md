@@ -98,3 +98,39 @@ same-obligation comparator remain separate required measurements. The new
 profile also needs registered large-case runs that compare total decode,
 admission, canonicalization, hash, copy, read/write, holding and cleanup work;
 the zero-admission counters above are not by themselves a throughput claim.
+
+## Subsequent standard-dispatch integration
+
+The managed path is no longer limited to a test that manually assembles the
+receiving request, candidate and per-task configuration. The generated DuckDB
+bundle registers a managed-dispatch entrypoint. Given only a checked
+Program-derived setup and explicit Host `managedOutput` policy, the ordinary
+serial dispatcher now:
+
+1. runs the first selected DuckDB task through managed completion;
+2. obtains the exact next task and unary producer from the common captured DAG;
+3. constructs and compares the installed managed candidate;
+4. runs the consumer against the producer's exact managed material; and
+5. owns every task close handle through graph close and cleanup.
+
+The black-box product regression covers a three-task A-to-B-to-C chain and a
+global group whose new one-cell result is reused by two downstream consumers.
+The group value is admitted once; both consumers perform zero logical-content
+CID computations and reuse the producer measurement. Separate regressions stop
+after A when B's Store cannot start and when cancellation is requested after A
+completion. Neither case authorizes B or C. Graph close and explicit cleanup
+return held, retention-reserved and execution-reserved bytes to zero.
+
+The failure regression also found a pre-native-session settlement gap. Managed
+consumer setup could reserve common task capacity and then fail while creating
+its output Store, before the native session's accounting callback ran. The Host
+now records whether a native session started. A pre-start failure settles the
+confirmed zero physical execution before task disposal; a started session still
+requires its own receipt. This distinction is lifecycle correctness, not a
+performance shortcut.
+
+This closes standard-dispatch wiring and the required finite graph lifecycle
+cases. It does not close direct DuckDB-to-Store output: the current managed
+consumer still receives DuckDB chunks as JavaScript columns and encodes managed
+frames in the control process. Direct output, its 27-case counters and the final
+paired measurements remain subsequent work.

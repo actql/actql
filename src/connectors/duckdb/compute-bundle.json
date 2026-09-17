@@ -5,6 +5,8 @@
   "module": "DuckDBDispatchModule",
   "dispatch": "take_duckdb_dispatch",
   "dispatch_result": {"package":"actql/actql/connectors/duckdb/driver","type":"StrategyComputeHostConfiguration"},
+  "managed_dispatch": "prepare_duckdb_managed_dispatch",
+  "managed_dispatch_result": {"package":"actql/actql/connectors/duckdb/driver","type":"ManagedStrategyComputeHostConfiguration"},
   "configuration": "DuckDBComputeConfiguration",
   "configure": "configure_duckdb_compute",
   "registration": "duckdb_dispatch_registration",

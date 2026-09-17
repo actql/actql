@@ -180,6 +180,33 @@ pub fn configured_strategy_scratch_capacity(
 }
 
 ///|
+/// Bounded cell ceiling for the first standard task when it publishes a
+/// managed output. It derives from the selected request and checked schema.
+pub fn configured_strategy_managed_index_cells(
+  setup : StrategyComputeHostConfiguration,
+) -> Int? {
+  let c = setup.compute
+  guard @connector.fixed_compute_choice_payload(c.choice, c.prepared)
+    is Some(compute) else {
+    return None
+  }
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(c.prepared),
+  )
+  let mut rows = @connector.fixed_compute_request_capacity(request).max_rows
+  if @duckdb.fixed_compute_join_output_ceiling(compute) is Some(ceiling) &&
+    ceiling < rows {
+    rows = ceiling
+  }
+  let width = @duckdb.fixed_compute_output_column_count(compute)
+  if rows < 0 || width < 0 || (width > 0 && rows > 2147483647 / width) {
+    None
+  } else {
+    Some(rows * width)
+  }
+}
+
+///|
 /// Trusted application preparation for one selected managed task. The exact
 /// request, query payload and completion owner are already fixed; configuration
 /// performs no Store access or native I/O.

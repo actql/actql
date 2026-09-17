@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -954,6 +954,225 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   });
   managedProgram.results.group_e = {from: {stage: 'group_e', result: 'r'}};
   managedProgram.results.group_f = {from: {stage: 'group_f', result: 'r'}};
+  // Product black-box path: Program-derived setup plus Host configuration are
+  // the only inputs. The standard dispatcher constructs every managed request,
+  // compares the installed candidate and owns all task close handles.
+  const managedStandardProgram = structuredClone(numericProgram);
+  managedStandardProgram.stages[2].inputs.x.result.stage = 'compute_a';
+  managedStandardProgram.stages[3].inputs.x.result.stage = 'compute_b';
+  const managedStandardFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(managedStandardProgram));
+  const managedStandardCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(managedStandardFixture),
+    suppliedLimits,
+  );
+  let managedStandardExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      managedStandardFixture, managedStandardCapture.source()), true);
+    managedStandardExecution = await runCapturedStrategy(
+      fixture.strategyFixtureManagedDispatch(managedStandardFixture),
+      {duckdb: prepareDuckDBStrategyConfiguration({
+        transportLimits: suppliedLimits,
+        importLimits: {maxRows: 100, maxCells: 1000},
+        managedOutput: {
+          parentDirectory: fileParent,
+          maxFrameBytes: 4096,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000},
+        },
+      })},
+    );
+    assert.equal(managedStandardExecution.status, 'host-tasks-completed',
+      `${managedStandardExecution.failure?.code ?? ''}: ${managedStandardExecution.failure?.stack ?? managedStandardExecution.failure}`);
+    assert.deepEqual(
+      managedStandardExecution.completed.map(item => item.realization),
+      Array(3).fill('duckdb-managed'),
+    );
+    assert(managedStandardExecution.completed.slice(1).every(item =>
+      item.phases.logicalContentCidComputations === 0),
+    JSON.stringify(managedStandardExecution.completed.slice(1)));
+    assert(managedStandardExecution.usage().heldBytes > 0n,
+      'the dispatcher retains managed task bodies through graph use');
+  } finally {
+    await managedStandardExecution?.close();
+    if (managedStandardExecution) {
+      assert.equal(await managedStandardExecution.cleanup(), true);
+      assert.equal(managedStandardExecution.usage().heldBytes, 0n);
+      assert.equal(managedStandardExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(managedStandardExecution.usage().reservedExecutionBytes, 0n);
+    }
+    managedStandardCapture.close();
+  }
+  const managedGroupProgram = structuredClone(numericProgram);
+  managedGroupProgram.stages = [managedGroupProgram.stages[0],
+    managedGroupProgram.stages[1], {
+      id: 'group_d',
+      inputs: {x: {result: {stage: 'compute_a', result: 'r'}}},
+      steps: [{group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'out'}],
+      results: {r: {from: 'out', fields: ['n']}},
+    }, {
+      id: 'group_e',
+      inputs: {x: {result: {stage: 'group_d', result: 'r'}}},
+      steps: [{filter: 'n > 0'}, {select: ['n'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['n']}},
+    }, {
+      id: 'group_f',
+      inputs: {x: {result: {stage: 'group_d', result: 'r'}}},
+      steps: [{filter: 'n > 0'}, {select: ['n'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['n']}},
+    }];
+  managedGroupProgram.results = {
+    group_e: {from: {stage: 'group_e', result: 'r'}},
+    group_f: {from: {stage: 'group_f', result: 'r'}},
+  };
+  const managedGroupFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(managedGroupProgram));
+  const managedGroupCapture = await runNativeHostQuery(
+    grant, fixture.strategyFixtureAcquisition(managedGroupFixture), suppliedLimits,
+  );
+  let managedGroupExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      managedGroupFixture, managedGroupCapture.source()), true);
+    managedGroupExecution = await runCapturedStrategy(
+      fixture.strategyFixtureManagedDispatch(managedGroupFixture),
+      {duckdb: prepareDuckDBStrategyConfiguration({
+        transportLimits: suppliedLimits,
+        importLimits: {maxRows: 100, maxCells: 1000},
+        managedOutput: {
+          parentDirectory: fileParent,
+          maxFrameBytes: 4096,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000},
+        },
+      })},
+    );
+    assert.equal(managedGroupExecution.status, 'host-tasks-completed',
+      `${managedGroupExecution.failure?.code ?? ''}: ${managedGroupExecution.failure?.stack ?? managedGroupExecution.failure}\n${JSON.stringify(managedGroupExecution.explain())}`);
+    assert.deepEqual(
+      managedGroupExecution.completed.map(item => item.realization),
+      Array(4).fill('duckdb-managed'),
+    );
+    assert.equal(
+      managedGroupExecution.completed[1].phases.outputValueAdmissionCells,
+      1,
+      'the group admits its new value once',
+    );
+    assert(managedGroupExecution.completed.slice(2).every(item =>
+      item.phases.logicalContentCidComputations === 0 &&
+      item.phases.reusedMeasurementCells === 1));
+  } finally {
+    await managedGroupExecution?.close();
+    if (managedGroupExecution) {
+      assert.equal(await managedGroupExecution.cleanup(), true);
+      assert.equal(managedGroupExecution.usage().heldBytes, 0n);
+      assert.equal(managedGroupExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(managedGroupExecution.usage().reservedExecutionBytes, 0n);
+    }
+    managedGroupCapture.close();
+  }
+  // A downstream Store failure cannot authorize B or C. The independently
+  // completed A remains owned until graph close. The failure is injected at
+  // the physical Store boundary, not through a replacement execution hook.
+  const managedFailureParent = join(fileParent, 'managed-failure');
+  await mkdir(managedFailureParent);
+  const managedFailureFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(managedStandardProgram));
+  const managedFailureCapture = await runNativeHostQuery(
+    grant, fixture.strategyFixtureAcquisition(managedFailureFixture), suppliedLimits,
+  );
+  const managedFailureObserver = installCompletionObserver(async ({task}) => {
+    assert.equal(task, 1);
+    await chmod(managedFailureParent, 0o500);
+  });
+  let managedFailureExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      managedFailureFixture, managedFailureCapture.source()), true);
+    managedFailureExecution = await runCapturedStrategy(
+      fixture.strategyFixtureManagedDispatch(managedFailureFixture),
+      {duckdb: prepareDuckDBStrategyConfiguration({
+        transportLimits: suppliedLimits,
+        importLimits: {maxRows: 100, maxCells: 1000},
+        managedOutput: {
+          parentDirectory: managedFailureParent,
+          maxFrameBytes: 4096,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000},
+        },
+      })},
+      undefined,
+      managedFailureObserver,
+    );
+    assert.equal(managedFailureExecution.status, 'host-tasks-failed');
+    assert.deepEqual(
+      managedFailureExecution.completed.map(item => item.task), [1],
+      `B admission failure cannot authorize B or C: ${managedFailureExecution.failure?.stack ?? managedFailureExecution.failure}`,
+    );
+    assert(managedFailureExecution.usage().heldBytes > 0n,
+      'completed A remains held until graph close');
+  } finally {
+    await chmod(managedFailureParent, 0o700);
+    await managedFailureExecution?.close();
+    if (managedFailureExecution) {
+      assert.equal(await managedFailureExecution.cleanup(), true);
+      assert.equal(managedFailureExecution.usage().heldBytes, 0n,
+        JSON.stringify(managedFailureExecution.usage(), (_, value) =>
+          typeof value === 'bigint' ? value.toString() : value));
+      assert.equal(managedFailureExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(managedFailureExecution.usage().reservedExecutionBytes, 0n);
+    }
+    managedFailureCapture.close();
+  }
+  // Cancellation after A's atomic completion stops the dispatcher before B.
+  // The observer sees only the exact common completion and cannot publish a
+  // substitute output or bypass graph-owned cleanup.
+  const managedCancelFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(managedStandardProgram));
+  const managedCancelCapture = await runNativeHostQuery(
+    grant, fixture.strategyFixtureAcquisition(managedCancelFixture), suppliedLimits,
+  );
+  const managedCancellation = new AbortController();
+  const managedCancelObserver = installCompletionObserver(({task}) => {
+    assert.equal(task, 1);
+    managedCancellation.abort();
+  });
+  let managedCancelExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      managedCancelFixture, managedCancelCapture.source()), true);
+    managedCancelExecution = await runCapturedStrategy(
+      fixture.strategyFixtureManagedDispatch(managedCancelFixture),
+      {duckdb: prepareDuckDBStrategyConfiguration({
+        transportLimits: suppliedLimits,
+        importLimits: {maxRows: 100, maxCells: 1000},
+        managedOutput: {
+          parentDirectory: fileParent,
+          maxFrameBytes: 4096,
+          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+            max_columns: 10, max_order_work: 10000},
+        },
+      })},
+      managedCancellation.signal,
+      managedCancelObserver,
+    );
+    assert.equal(managedCancelExecution.status, 'host-tasks-failed');
+    assert.equal(managedCancelExecution.failure?.name, 'AbortError');
+    assert.deepEqual(managedCancelExecution.completed.map(item => item.task), [1]);
+    assert(managedCancelExecution.usage().heldBytes > 0n,
+      'cancel does not silently release a completed output');
+  } finally {
+    await managedCancelExecution?.close();
+    if (managedCancelExecution) {
+      assert.equal(await managedCancelExecution.cleanup(), true);
+      assert.equal(managedCancelExecution.usage().heldBytes, 0n);
+      assert.equal(managedCancelExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(managedCancelExecution.usage().reservedExecutionBytes, 0n);
+    }
+    managedCancelCapture.close();
+  }
   const managedLedgerFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(managedProgram));
   const managedLedgerCapture = await runNativeHostQuery(grant,

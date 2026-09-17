@@ -7,19 +7,19 @@ pub fn[E] assemble_compute_contributions(
   registry : @connector.CapabilityRegistry,
   max_entries : Int,
   with_duckdb? : (
-    @binding2.DuckDBDispatchModule,
-    (@binding2.DuckDBDispatchIssue) -> E,
-    (@binding2.DuckDBEstimateIssue) -> E,
+    @binding3.DuckDBDispatchModule,
+    (@binding3.DuckDBDispatchIssue) -> E,
+    (@binding3.DuckDBEstimateIssue) -> E,
   )? = None,
   with_local? : (
-    @binding3.LocalDispatchModule,
-    (@binding3.LocalDispatchIssue) -> E,
-    (@binding3.LocalEstimateIssue) -> E,
+    @binding4.LocalDispatchModule,
+    (@binding4.LocalDispatchIssue) -> E,
+    (@binding4.LocalEstimateIssue) -> E,
   )? = None,
   with_reference_compute? : (
-    @binding4.NumericComputeContribution,
-    (@binding5.RunIssue) -> E,
-    (@binding5.RunIssue) -> E,
+    @binding5.NumericComputeContribution,
+    (@binding6.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
   )? = None,
 ) -> Result[
   @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]],
@@ -47,8 +47,8 @@ pub fn[E] assemble_compute_contributions(
   if with_duckdb is Some((installed, dispatch_issue, estimate_issue)) {
     entries.push(
       (
-        @binding2.duckdb_dispatch_registration(installed),
-        @binding2.duckdb_compute_contribution(
+        @binding3.duckdb_dispatch_registration(installed),
+        @binding3.duckdb_compute_contribution(
           installed, dispatch_issue, estimate_issue,
         ),
       ),
@@ -57,8 +57,8 @@ pub fn[E] assemble_compute_contributions(
   if with_local is Some((installed, dispatch_issue, estimate_issue)) {
     entries.push(
       (
-        @binding3.local_dispatch_registration(installed),
-        @binding3.local_compute_contribution(
+        @binding4.local_dispatch_registration(installed),
+        @binding4.local_compute_contribution(
           installed, dispatch_issue, estimate_issue,
         ),
       ),
@@ -67,8 +67,8 @@ pub fn[E] assemble_compute_contributions(
   if with_reference_compute is Some((installed, dispatch_issue, estimate_issue)) {
     entries.push(
       (
-        @binding4.numeric_contribution_registration(installed),
-        @binding4.numeric_compute_contribution(
+        @binding5.numeric_contribution_registration(installed),
+        @binding5.numeric_compute_contribution(
           installed, dispatch_issue, estimate_issue,
         ),
       ),
@@ -86,19 +86,19 @@ pub fn[E] assemble_compute_contributions(
 struct ConfiguredComputeModules[E] {
   driver : @host.DispatchDriver
   installed_duckdb : (
-    @binding2.DuckDBDispatchModule,
-    (@binding2.DuckDBDispatchIssue) -> E,
-    (@binding2.DuckDBEstimateIssue) -> E,
+    @binding3.DuckDBDispatchModule,
+    (@binding3.DuckDBDispatchIssue) -> E,
+    (@binding3.DuckDBEstimateIssue) -> E,
   )?
   installed_local : (
-    @binding3.LocalDispatchModule,
-    (@binding3.LocalDispatchIssue) -> E,
-    (@binding3.LocalEstimateIssue) -> E,
+    @binding4.LocalDispatchModule,
+    (@binding4.LocalDispatchIssue) -> E,
+    (@binding4.LocalEstimateIssue) -> E,
   )?
   installed_reference_compute : (
-    @binding4.NumericComputeContribution,
-    (@binding5.RunIssue) -> E,
-    (@binding5.RunIssue) -> E,
+    @binding5.NumericComputeContribution,
+    (@binding6.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
   )?
   contributions : @connector.CapabilityImplementations[
     @host.ComputeContribution[Unit, E],
@@ -115,21 +115,21 @@ pub fn[E] configure_compute_modules(
   installation_issue : (@connector.CapabilityInstallationIssue) -> E,
   with_duckdb? : (
     @connector.CapabilityRegistration,
-    @binding2.DuckDBComputeConfiguration,
-    (@binding2.DuckDBDispatchIssue) -> E,
-    (@binding2.DuckDBEstimateIssue) -> E,
+    @binding3.DuckDBComputeConfiguration,
+    (@binding3.DuckDBDispatchIssue) -> E,
+    (@binding3.DuckDBEstimateIssue) -> E,
   )? = None,
   with_local? : (
     @connector.CapabilityRegistration,
-    @binding3.LocalComputeConfiguration,
-    (@binding3.LocalDispatchIssue) -> E,
-    (@binding3.LocalEstimateIssue) -> E,
+    @binding4.LocalComputeConfiguration,
+    (@binding4.LocalDispatchIssue) -> E,
+    (@binding4.LocalEstimateIssue) -> E,
   )? = None,
   with_reference_compute? : (
     @connector.CapabilityRegistration,
-    @binding4.NumericComputeConfiguration,
-    (@binding5.RunIssue) -> E,
-    (@binding5.RunIssue) -> E,
+    @binding5.NumericComputeConfiguration,
+    (@binding6.RunIssue) -> E,
+    (@binding6.RunIssue) -> E,
   )? = None,
 ) -> Result[ConfiguredComputeModules[E], E] {
   let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
@@ -153,7 +153,7 @@ pub fn[E] configure_compute_modules(
     None => None
     Some((registration, configuration, dispatch_issue, estimate_issue)) =>
       match
-        @binding2.configure_duckdb_compute(
+        @binding3.configure_duckdb_compute(
           driver, registry, registration, configuration,
         ) {
         Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
@@ -164,7 +164,7 @@ pub fn[E] configure_compute_modules(
     None => None
     Some((registration, configuration, dispatch_issue, estimate_issue)) =>
       match
-        @binding3.configure_local_compute(
+        @binding4.configure_local_compute(
           driver, registry, registration, configuration,
         ) {
         Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
@@ -175,7 +175,7 @@ pub fn[E] configure_compute_modules(
     None => None
     Some((registration, configuration, dispatch_issue, estimate_issue)) =>
       match
-        @binding4.configure_numeric_compute(
+        @binding5.configure_numeric_compute(
           driver, registry, registration, configuration,
         ) {
         Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
@@ -212,21 +212,21 @@ pub fn[E] configured_compute_contributions(
 ///|
 pub fn[E] configured_duckdb_module(
   value : ConfiguredComputeModules[E],
-) -> @binding2.DuckDBDispatchModule? {
+) -> @binding3.DuckDBDispatchModule? {
   value.installed_duckdb.map(value => value.0)
 }
 
 ///|
 pub fn[E] configured_local_module(
   value : ConfiguredComputeModules[E],
-) -> @binding3.LocalDispatchModule? {
+) -> @binding4.LocalDispatchModule? {
   value.installed_local.map(value => value.0)
 }
 
 ///|
 pub fn[E] configured_reference_compute_module(
   value : ConfiguredComputeModules[E],
-) -> @binding4.NumericComputeContribution? {
+) -> @binding5.NumericComputeContribution? {
   value.installed_reference_compute.map(value => value.0)
 }
 
@@ -261,13 +261,13 @@ pub fn[C, E] dispatch_duckdb(
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
 ) -> Result[
-  @binding2.StrategyComputeHostConfiguration,
+  @binding3.StrategyComputeHostConfiguration,
   ConfiguredDispatchIssue[E],
 ] {
   match value.installed_duckdb {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding2.take_duckdb_dispatch(installed, host, task).map_err(issue => {
+      @binding3.take_duckdb_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
   }
@@ -279,11 +279,11 @@ pub fn[C, E] dispatch_local(
   value : ConfiguredComputeModules[E],
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
-) -> Result[@binding3.LocalDispatchOperations, ConfiguredDispatchIssue[E]] {
+) -> Result[@binding4.LocalDispatchOperations, ConfiguredDispatchIssue[E]] {
   match value.installed_local {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding3.start_local_dispatch(installed, host, task).map_err(issue => {
+      @binding4.start_local_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
   }
@@ -299,9 +299,28 @@ pub fn[C, E] dispatch_reference_compute(
   match value.installed_reference_compute {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding4.execute_numeric_contribution(installed, host, task).map_err(issue => {
+      @binding5.execute_numeric_contribution(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
+  }
+}
+
+///|
+/// Prepare one managed task through the configured implementation.
+pub fn[E] dispatch_managed_duckdb(
+  value : ConfiguredComputeModules[E],
+  completed : @execution.ManagedCompletedOutput[Int],
+  output_file_bytes : Int64,
+) -> Result[
+  @binding3.ManagedStrategyComputeHostConfiguration[Int],
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_duckdb {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding3.prepare_duckdb_managed_dispatch(
+        installed, completed, output_file_bytes,
+      ).map_err(issue => Implementation(project(issue)))
   }
 }
 
@@ -319,24 +338,24 @@ pub fn[E] install_configured_estimate_policy(
 
 ///|
 pub fn duckdb_estimate_work_slots() -> Int {
-  @binding2.duckdb_dispatch_work_slots()
+  @binding3.duckdb_dispatch_work_slots()
 }
 
 ///|
 /// Prepare without installing; installation retains the exact module and policy.
 pub fn[E] prepare_duckdb_estimate_policy(
   value : ConfiguredComputeModules[E],
-  settings : @binding2.DuckDBEstimateSettings,
+  settings : @binding3.DuckDBEstimateSettings,
 ) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
   guard value.installed_duckdb is Some((installed, _, project)) else {
     return Err(MissingImplementation)
   }
-  match @binding2.prepare_duckdb_estimate_settings(installed, settings) {
+  match @binding3.prepare_duckdb_estimate_settings(installed, settings) {
     Err(issue) => Err(Implementation(project(issue)))
     Ok(policy) =>
       Ok({
         install: () => {
-          @binding2.install_duckdb_dispatch_estimates(installed, policy).map_err(
+          @binding3.install_duckdb_dispatch_estimates(installed, policy).map_err(
             project,
           )
         },
@@ -346,25 +365,25 @@ pub fn[E] prepare_duckdb_estimate_policy(
 
 ///|
 pub fn duckdb_resource_work_slots() -> Int {
-  @binding2.duckdb_dispatch_work_slots()
+  @binding3.duckdb_dispatch_work_slots()
 }
 
 ///|
 /// Prepare without installing; installation retains the exact module and policy.
 pub fn[E] prepare_duckdb_resource_policy(
   value : ConfiguredComputeModules[E],
-  settings : @binding2.DuckDBResourceEstimateSettings,
+  settings : @binding3.DuckDBResourceEstimateSettings,
 ) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
   guard value.installed_duckdb is Some((installed, _, project)) else {
     return Err(MissingImplementation)
   }
   match
-    @binding2.prepare_duckdb_resource_estimate_settings(installed, settings) {
+    @binding3.prepare_duckdb_resource_estimate_settings(installed, settings) {
     Err(issue) => Err(Implementation(project(issue)))
     Ok(policy) =>
       Ok({
         install: () => {
-          @binding2.install_duckdb_resource_estimate_policy(installed, policy).map_err(
+          @binding3.install_duckdb_resource_estimate_policy(installed, policy).map_err(
             project,
           )
         },
@@ -374,24 +393,24 @@ pub fn[E] prepare_duckdb_resource_policy(
 
 ///|
 pub fn local_estimate_work_slots() -> Int {
-  @binding3.local_dispatch_work_slots()
+  @binding4.local_dispatch_work_slots()
 }
 
 ///|
 /// Prepare without installing; installation retains the exact module and policy.
 pub fn[E] prepare_local_estimate_policy(
   value : ConfiguredComputeModules[E],
-  settings : @binding3.LocalEstimateSettings,
+  settings : @binding4.LocalEstimateSettings,
 ) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
   guard value.installed_local is Some((installed, _, project)) else {
     return Err(MissingImplementation)
   }
-  match @binding3.prepare_local_estimate_settings(installed, settings) {
+  match @binding4.prepare_local_estimate_settings(installed, settings) {
     Err(issue) => Err(Implementation(project(issue)))
     Ok(policy) =>
       Ok({
         install: () => {
-          @binding3.install_local_dispatch_estimates(installed, policy).map_err(
+          @binding4.install_local_dispatch_estimates(installed, policy).map_err(
             project,
           )
         },
@@ -458,8 +477,8 @@ pub fn[E] execute_configured_in_process(
   let selected = @host.prepared_task_registration(task)
 
   if value.modules.installed_local is Some((installed, project, _)) &&
-    physical_equal(selected, @binding3.local_dispatch_registration(installed)) {
-    return @binding3.execute_local_dispatch(
+    physical_equal(selected, @binding4.local_dispatch_registration(installed)) {
+    return @binding4.execute_local_dispatch(
       installed,
       @host.compute_host_dispatch(value.runtime),
       task,
@@ -469,9 +488,9 @@ pub fn[E] execute_configured_in_process(
   if value.modules.installed_reference_compute is Some((installed, project, _)) &&
     physical_equal(
       selected,
-      @binding4.numeric_contribution_registration(installed),
+      @binding5.numeric_contribution_registration(installed),
     ) {
-    return @binding4.execute_numeric_contribution(
+    return @binding5.execute_numeric_contribution(
       installed,
       @host.compute_host_dispatch(value.runtime),
       task,

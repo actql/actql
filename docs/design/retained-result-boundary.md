@@ -181,6 +181,26 @@ handle, otherwise its owner remains unconfirmed. Cancellation during delivery
 does not authorize the next task. This supervision is not a replacement verifier
 and does not itself establish control-side custody or cross-process admission.
 
+The generated standard Compute bundle also declares its managed-dispatch
+entrypoint. For the first task, explicit Host `managedOutput` policy selects the
+managed completion path before execution. For each later unary task, the common
+dispatcher identifies the exact next task and producer, supplies the producer's
+common managed completion, and asks the installed module to construct and
+compare its own managed request and candidate. Tests do not supply that request,
+candidate or selected configuration. A missing producer, foreign completion,
+ambiguous installed proposal or mismatched completed output stops dispatch; it
+does not fall back after starting a consumer or authorize a later task.
+
+The serial dispatcher owns every successful task's close handle through graph
+use. It retains upstream material while descendants are executing, closes task
+results and then the common output ports at graph close, and keeps asynchronous
+cleanup visible through its cleanup state. A failure before a native session
+starts settles the confirmed zero physical execution before disposing the task.
+A started native session still requires its own settlement receipt. Thus a
+downstream Store setup failure cannot strand the task reservation, while an
+unconfirmed started operation is not reported as released merely because the
+dispatcher stopped.
+
 The local managed assembly can install a process completion observer. It obtains
 the genuine common evidence and exact material handle, then resolves that handle
 to the same sealed process-Store lease. A copied body, equal CID or output label

@@ -1,6 +1,8 @@
 // DuckDB-specific execution and resident session lifetime. The common serial
 // driver never interprets this resource policy, tables, imports or SQL.
-import { runStrategyHostCompute, runRetainedStrategyHostCompute, openResidentStrategyEnvironment,
+import { runStrategyHostCompute, runRetainedStrategyHostCompute,
+  runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
+  managedColumnCodecContractCid, openResidentStrategyEnvironment,
   importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
@@ -32,6 +34,41 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
   }
   return Object.freeze({
     registration: moon.strategyModule_duckdb_Registration(setup),
+    prepareNext(outputs) {
+      if (!options.managedOutput) return undefined;
+      const task = moon.strategyHostNextTask(setup);
+      const producer = moon.strategyHostManagedProducer(setup);
+      const input = outputs.get(producer);
+      if (task < 1 || producer < 1 || input == null) return undefined;
+      return Object.freeze({
+        task,
+        input,
+        configuration: checked(
+          moon.strategyModule_duckdb_ManagedDispatch(
+            setup, input.completed, BigInt(options.managedOutput.wire.max_bytes),
+          ),
+        ),
+      });
+    },
+    async runPrepared(prepared, signal) {
+      const result = await runManagedColumnStrategyHostCompute(
+        prepared.configuration,
+        prepared.input.material,
+        managedColumnCodecContractCid,
+        limits,
+        options.managedOutput,
+        signal,
+      );
+      return Object.freeze({
+        ...result,
+        diagnostic: Object.freeze({
+          realization: 'duckdb-managed',
+          transport: result.usage,
+          phases: result.diagnostics,
+          outputRepresentation: 'managed-column-file',
+        }),
+      });
+    },
     async beforeNext() {
       await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
     },
@@ -62,18 +99,26 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
         }
       }
       const selected = checked(moon.strategyModule_duckdb_Dispatch(setup, task));
-      const result = resident
+      const result = options.managedOutput
+        ? await runManagedRetainedStrategyHostCompute(
+          selected, limits, imports, options.managedOutput, signal, `task-${index}`,
+        )
+        : resident
         ? await runResidentStrategyHostCompute(selected, environment, inputs, limits, mapping, signal,
           options.retainedOutput, `task-${index}`)
         : options.retainedOutput
           ? await runRetainedStrategyHostCompute(selected, limits, imports, options.retainedOutput, signal, `task-${index}`)
           : await runStrategyHostCompute(selected, limits, imports, signal);
       return Object.freeze({
+        completed: result.completed,
+        material: result.material,
         close: () => result.close(),
         diagnostic: Object.freeze({
-          realization: resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,
+          realization: options.managedOutput ? 'duckdb-managed'
+            : resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,
           phases: result.diagnostics,
-          outputRepresentation: options.retainedOutput ? 'retained-file' : 'memory',
+          outputRepresentation: options.managedOutput ? 'managed-column-file'
+            : options.retainedOutput ? 'retained-file' : 'memory',
           preparation: Object.freeze({environmentCreated, imports: Object.freeze(imported)}),
         }),
       });

@@ -44,6 +44,24 @@ fn fixture_completion(
 pub fn strategy_fixture_duckdb_only(
   f : StrategyFixture,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_duckdb_only_impl(f, false)
+}
+
+///|
+/// The same product installation with managed file capacity selected before
+/// offers and strategy comparison.
+#export_name("strategyFixtureManagedDispatch")
+pub fn strategy_fixture_managed_dispatch(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  strategy_fixture_duckdb_only_impl(f, true)
+}
+
+///|
+fn strategy_fixture_duckdb_only_impl(
+  f : StrategyFixture,
+  managed : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   let sequences = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
     fixture_completion(
       @strategy.graph_task_owner(f.graph, i + 1).unwrap(),
@@ -127,6 +145,13 @@ pub fn strategy_fixture_duckdb_only(
       ),
     ),
   ).unwrap()
+  if managed {
+    @duckdb_driver.configure_duckdb_retained_output(
+      @builtin.configured_duckdb_module(modules).unwrap(),
+      100000L,
+      Some(1L),
+    ).unwrap()
+  }
   let slots = @builtin.duckdb_estimate_work_slots()
   let schedule = @physical_cost.prepare_rate_schedule(
     slots,

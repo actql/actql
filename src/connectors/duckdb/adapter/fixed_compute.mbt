@@ -157,6 +157,18 @@ pub fn fixed_compute_query(value : FixedCompute) -> FixedQuery {
 }
 
 ///|
+/// Checked output width used to reserve managed measurement metadata when a
+/// standard fixed task publishes through the managed profile.
+pub fn fixed_compute_output_column_count(value : FixedCompute) -> Int {
+  @lower.preparation_schema_at(
+    @lower.bound_preparation(fixed_query_owner(value.query)),
+    fixed_query_target(value.query),
+  )
+  .map(@schema.field_count)
+  .unwrap_or(0)
+}
+
+///|
 /// Invoke only after common input guards. Preparation binds immutable inputs
 /// but cannot choose a join failure before the consumer's input-value ceiling.
 pub fn validate_fixed_compute_join(

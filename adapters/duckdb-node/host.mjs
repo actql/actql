@@ -18,6 +18,9 @@ import { createRetainedRowFrames } from '../store-local/row-frames.mjs';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
   retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
   withRetainedInputFile, retainedInputFilePath} from '../store-local/representations.mjs';
+import {registerManagedInput} from '../store-local/managed-representations.mjs';
+import {encodeManagedColumnFrame,
+  managedColumnCodecContractCid} from './managed-column-codec.mjs';
 export {runManagedColumnStrategyHostCompute} from './managed-strategy-compute.mjs';
 export {encodeManagedColumnFrame,
   managedColumnCodecContractCid} from './managed-column-codec.mjs';
@@ -310,7 +313,37 @@ export async function runRetainedStrategyHostCompute(setup, limits, importLimits
   return runHostCompute(setup, limits, importLimits, signal, true, undefined, retained, outputKey);
 }
 
-async function runHostCompute(setup, limits, importLimits, signal, strategy, resident, retained, outputKey) {
+// The first managed task consumes the standard checked dispatch ticket, but
+// publishes the selected task through the managed completion boundary. This
+// is the product counterpart of downstream managed-to-managed dispatch.
+export async function runManagedRetainedStrategyHostCompute(
+  setup, limits, importLimits, retention, signal, outputKey,
+) {
+  signal?.throwIfAborted();
+  limits = validateLimits(limits);
+  importLimits = Object.freeze({
+    maxRows: importLimits?.maxRows, maxCells: importLimits?.maxCells,
+  });
+  if (Object.values(importLimits).some(value =>
+    !Number.isSafeInteger(value) || value < 0)) {
+    throw new DuckDBTransportError('InvalidImportLimits');
+  }
+  const retained = retainedConfiguration(retention);
+  if (retained.maxFrameBytes > limits.maxTransportBytes ||
+      (retainedProcessStore(retained) &&
+       (typeof outputKey !== 'string' || !outputKey.length || outputKey.length > 256))) {
+    throw new DuckDBTransportError('InvalidRetainedConfiguration');
+  }
+  return runHostCompute(
+    setup, limits, importLimits, signal, true, undefined, retained, outputKey,
+    true,
+  );
+}
+
+async function runHostCompute(
+  setup, limits, importLimits, signal, strategy, resident, retained, outputKey,
+  managed = false,
+) {
   const moon = await loadRuntime();
   const startedInputStreams = new Set();
   const beginInputStream = (port, wire, maxFrameBytes) => {
@@ -327,6 +360,9 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   const verify = current => current === attempt && matchesFixedCompute(result, port, consume);
   let run;
   let store, writer, body, retainedHandle;
+  let managedOutput, managedCompletion, managedRows = 0;
+  let managedStorageOrder;
+  let managedIndexCells = 0;
   let cleanupRun, disposed = false;
   const storageReleased = () => store === undefined ||
     (store.status().reservedBytes === 0 && !store.status().cleanupPending);
@@ -336,7 +372,15 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       retentionBytes: checked(moon.computeStrategyRetentionCapacity(setup, !!retained)) + BigInt(retained?.wire.max_bytes ?? 0),
       receiverScratchBytes: checked(moon.computeStrategyScratchCapacity(setup, !!retained)),
     }) : undefined;
-    run = checked(resident && retained
+    if (managed) managedIndexCells = checked(
+      moon.computeStrategyManagedIndexCells(setup),
+    );
+    run = checked(managed
+    ? moon.computeManagedRetainedStrategyHostOpen(
+      setup, verify, capacity.transferBytes, capacity.executionBytes,
+      BigInt(retained.wire.max_bytes), storageReleased, managedIndexCells,
+    )
+    : resident && retained
     ? moon.computeRetainedResidentStrategyHostOpen(setup, verify, capacity.transferBytes, capacity.scratchBytes,
       resident.inputs, BigInt(retained.wire.max_bytes), storageReleased)
     : resident
@@ -353,6 +397,11 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   }
   if (strategy && retained) cleanupRun = run;
   attempt = moon.computeHostAttempt(run);
+  if (managed) {
+    managedCompletion = checked(
+      moon.computeHostSelectedManagedPrepare(run, () => !disposed),
+    );
+  }
   let sessionStarted = false;
   let inputReadUnconfirmed = false;
   const accounting = strategy ? Object.freeze({
@@ -375,7 +424,17 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   });
   const begin = fields => {
     if (!began) {
-      if (retained) checked(moon.computeHostStreamBegin(run, fieldsFrame(fields), retained.wire, retained.maxFrameBytes));
+      if (managed) {
+        managedOutput = checked(
+          moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)),
+        );
+        managedStorageOrder = checked(
+          moon.managedOutputStorageOrder(managedOutput),
+        );
+        checked(moon.computeHostManagedOutputEnableIndex(
+          managedOutput, managedIndexCells,
+        ));
+      } else if (retained) checked(moon.computeHostStreamBegin(run, fieldsFrame(fields), retained.wire, retained.maxFrameBytes));
       else checked(moon.computeHostBegin(run, fieldsFrame(fields)));
       began = true;
     }
@@ -518,6 +577,19 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   });
   consume = async chunk => {
     begin(chunk.fields);
+    if (managed) {
+      checked(moon.managedOutputAccept(
+        managedOutput, rows(chunk.rowCount), JSON.stringify(chunk.columns),
+      ));
+      const storedFields = managedStorageOrder.map(index => chunk.fields[index]);
+      const storedColumns = managedStorageOrder.map(index => chunk.columns[index]);
+      await writer.appendBytes(encodeManagedColumnFrame(
+        storedFields, storedColumns, chunk.rowCount, managedRows,
+      ));
+      managedRows += chunk.rowCount;
+      signal?.throwIfAborted();
+      return;
+    }
     if (!retained) {
       checked(moon.computeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
       return;
@@ -547,7 +619,14 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
   const finishOutput = async fields => {
     signal?.throwIfAborted();
     begin(fields); // Empty results still require metadata and an identity.
-    if (retained) {
+    if (managed) {
+      checked(moon.managedOutputFinish(managedOutput));
+      body = await writer.sealPhysical();
+      signal?.throwIfAborted();
+      checked(moon.managedOutputRetain(
+        managedOutput, BigInt(body.bytes), () => body.available(),
+      ));
+    } else if (retained) {
       const { _0: token, _1: tail } = checked(moon.computeHostStreamFinish(run));
       await writer.append(tail);
       const { _0: cid, _1: bytes } = moon.computeHostStreamIdentity(token);
@@ -585,9 +664,29 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
     // Resident output must validate and secure independent holding before its
     // transaction commits. Fresh execution has no persistent DB table to publish.
     if (!resident) await finishOutput(result.value.fields);
-    let output = checked(moon.computeHostComplete(run));
-    if (retained) registerRetained(output, moon.computeHostStreamMaterial(retainedHandle),
-      input => moon.computeHostStreamReadable(retainedHandle, input), body, retained);
+    let output;
+    let material;
+    if (managed) {
+      checked(moon.managedOutputVerifyCompute(managedOutput));
+      output = checked(moon.managedOutputCompleteStrategyCompute(
+        managedOutput, managedCompletion,
+      ));
+      material = moon.managedOutputMaterial(managedOutput);
+      if (material == null) {
+        throw new DuckDBTransportError('MissingManagedOutputMaterial');
+      }
+      registerManagedInput(
+        material,
+        input => moon.managedInputMatchesMaterial(input, material),
+        store,
+        body,
+        managedColumnCodecContractCid,
+      );
+    } else {
+      output = checked(moon.computeHostComplete(run));
+      if (retained) registerRetained(output, moon.computeHostStreamMaterial(retainedHandle),
+        input => moon.computeHostStreamReadable(retainedHandle, input), body, retained);
+    }
     let closed = false;
     return Object.freeze({
       usage: Object.freeze({...result.usage,
@@ -601,6 +700,8 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       diagnostics: result.value.diagnostics,
       storageUsage: () => store?.status(),
       cleanupHandle: retained ? retainedCleanup : undefined,
+      completed: managed ? output : undefined,
+      material,
       output() {
         if (closed) throw new DuckDBTransportError('ReleasedCompute');
         return output;
@@ -608,7 +709,8 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       close() {
         if (closed) return;
         closed = true;
-        if (retained) retainedComputations.delete(output);
+        if (managed) moon.managedOutputCancel(managedOutput);
+        else if (retained) retainedComputations.delete(output);
         body?.close();
         store?.close();
         disposed = true;
@@ -617,6 +719,9 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
         // This successful session is already settled. Do not keep otherwise
         // unused completion/input buffers alive through a retained closed handle.
         output = undefined;
+        material = undefined;
+        managedOutput = undefined;
+        managedCompletion = undefined;
         run = undefined;
         result = undefined;
         attempt = undefined;
@@ -634,6 +739,7 @@ async function runHostCompute(setup, limits, importLimits, signal, strategy, res
       },
     });
   } catch (error) {
+    if (managedOutput) moon.managedOutputCancel(managedOutput);
     store?.close();
     if (strategy && !sessionStarted) checked(moon.computeHostPhysicalSettle(run, true));
     moon.computeHostAbort(run);

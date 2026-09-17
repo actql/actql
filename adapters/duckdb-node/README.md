@@ -694,6 +694,25 @@ error/cleanup handle, `usage()` reads the same cumulative ledger, and `output(ta
 is an internal Host handle for a still-retained completed result. Call `close()`
 to close task output ports; close the owned capture separately. A failure never
 authorizes continuing an unstarted branch or publishing partial Program success.
+
+To select the managed-retained profile for supported DuckDB tasks, add the
+explicit Host policy `managedOutput: {parentDirectory, maxFrameBytes, wire}` to
+that prepared configuration. This is mutually exclusive with legacy
+`retainedOutput`. The generated standard bundle creates the first managed task
+from the selected standard dispatch ticket. After each common managed
+completion, the standard dispatcher derives the exact next task and producer,
+builds and compares the installed managed candidate, and starts it with the
+producer's exact material. Application code does not construct a managed
+request, candidate or per-task configuration.
+
+The current finite product path covers the registered managed query shapes and
+uses the ordinary typed-admission fallback only within an admitted task where
+the finite evidence-transfer rule does not apply. It does not retry another
+backend after task start. Returned task close handles remain graph-owned until
+`close()`. Downstream failure or cancellation preserves already completed
+independent results until that close, prevents unstarted descendants, and keeps
+cleanup and ledger reservations visible until physical release is confirmed.
+
 For automatic bounded re-estimation, call MoonBit
 `configure_dispatch_estimates(setup, profiles, searchLimits)` before any search.
 Supply one `DispatchEstimateProfile` per Compute in checked task order. Its

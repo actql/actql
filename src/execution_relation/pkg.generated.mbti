@@ -511,6 +511,8 @@ pub fn row_wire_usage(RowWireIdentity) -> (Int, Int, Int)
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
 
+pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
+
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]

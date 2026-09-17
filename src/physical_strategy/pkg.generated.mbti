@@ -42,6 +42,8 @@ pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.Mana
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
+pub fn captured_next_managed_producer(CapturedDAG) -> Int?
+
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?

@@ -108,6 +108,8 @@ pub fn compute_host_query_parameter_count(ComputeNodeRun) -> Int
 
 pub fn compute_host_resident_input_reuse(ComputeNodeRun, @driver.DuckDBResidentInputs, Int) -> Bool raise NodeHostFailure
 
+pub fn compute_host_selected_managed_prepare(ComputeNodeRun, () -> Bool) -> @compute.ManagedDuckDBCompletion[Int] raise NodeHostFailure
+
 pub fn compute_host_sql(ComputeNodeRun, Int, Int) -> String raise NodeHostFailure
 
 pub fn compute_host_stream_accept(ComputeNodeRun, Int, String) -> Unit raise NodeHostFailure
@@ -141,6 +143,8 @@ pub fn compute_retained_resident_strategy_host_open(@driver.StrategyComputeHostC
 pub fn compute_retained_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64, Int64, () -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
 pub fn compute_strategy_host_open(@driver.StrategyComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool, Int64, Int64) -> ComputeNodeRun raise NodeHostFailure
+
+pub fn compute_strategy_managed_index_cells(@driver.StrategyComputeHostConfiguration) -> Int raise NodeHostFailure
 
 pub fn compute_strategy_retention_capacity(@driver.StrategyComputeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 

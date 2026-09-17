@@ -48,6 +48,21 @@ pub fn compute_host_managed_prepare(
 }
 
 ///|
+/// Product Host selection of the registered managed profile. Program input
+/// cannot supply a replacement profile body or proof.
+#export_name("computeHostSelectedManagedPrepare")
+pub fn compute_host_selected_managed_prepare(
+  run : ComputeNodeRun,
+  authorize : () -> Bool,
+) -> @duckdb_compute.ManagedDuckDBCompletion[Int] raise NodeHostFailure {
+  compute_host_managed_prepare(
+    run,
+    @execution.selected_managed_execution_profile(),
+    authorize,
+  )
+}
+
+///|
 #export_name("managedOutputCompleteCompute")
 pub fn managed_output_complete_compute(
   value : ManagedNodeOutput,

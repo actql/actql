@@ -14,7 +14,9 @@ const packageName = value => typeof value === 'string' && /^actql\/actql\/[a-z][
 export function generateComputeAssembly(entries) {
   const names = new Set();
   const dependencies = new Map([
-    ['actql/actql/connector_sdk', 'connector'], ['actql/actql/physical_host', 'host'],
+    ['actql/actql/connector_sdk', 'connector'],
+    ['actql/actql/physical_host', 'host'],
+    ['actql/actql/execution_relation', 'execution'],
   ]);
   const alias = path => {
     if (!dependencies.has(path)) dependencies.set(path, `binding${dependencies.size}`);
@@ -24,9 +26,15 @@ export function generateComputeAssembly(entries) {
   const resultType = value => value === 'Unit' ? 'Unit'
     : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
+    const managed = Object.hasOwn(m, 'managed_dispatch') ||
+      Object.hasOwn(m, 'managed_dispatch_result');
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
+        (managed && (!identifier(m.managed_dispatch) ||
+          !keys(m.managed_dispatch_result, ['package', 'type']) ||
+          !packageName(m.managed_dispatch_result.package) ||
+          !typeName(m.managed_dispatch_result.type))) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
         !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
@@ -54,6 +62,7 @@ export function generateComputeAssembly(entries) {
       }
       alias(result.package);
     }
+    if (managed) alias(m.managed_dispatch_result.package);
     for (const error of [m.dispatch_error, m.estimate_error]) {
       if (!keys(error, ['package', 'type']) || !packageName(error.package) || !typeName(error.type)) {
         throw new Error('Invalid Compute error projection');
@@ -116,6 +125,14 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
     `  }\n}\n`).join('');
+  const managedDispatches = entries.filter(({manifest:m}) => m.managed_dispatch)
+    .map(({name, manifest:m}) =>
+    `\n///|\n/// Prepare one managed task through the configured implementation.\n` +
+    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : @execution.ManagedCompletedOutput[Int], output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int], ConfiguredDispatchIssue[E]] {\n` +
+    `  match value.installed_${name} {\n` +
+    `    None => Err(MissingImplementation)\n` +
+    `    Some((installed, project, _)) => @${alias(m.package)}.${m.managed_dispatch}(installed, completed, output_file_bytes).map_err(issue => Implementation(project(issue)))\n` +
+    `  }\n}\n`).join('');
   return '\n///|\nstruct ConfiguredComputeModules[E] {\n  driver : @host.DispatchDriver\n' + fields +
     '  contributions : @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]]\n}\n' +
     '\n///|\n/// Validate the complete registration subset before invoking any connector factory.\n' +
@@ -132,7 +149,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
     '  ) {\n    Ok(value) => value\n    Err(issue) => return Err(installation_issue(issue))\n  }\n' +
     '  Ok({\n    driver,\n' + stored + '    contributions,\n  })\n}\n' +
     '\n///|\npub fn[E] configured_compute_contributions(value : ConfiguredComputeModules[E]) -> @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]] {\n  value.contributions\n}\n' +
-    getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + estimateAssembly(entries, alias) + hostAssembly() + synchronousAssembly(entries, alias);
+    getters + installedKeys + '\n///|\npub(all) enum ConfiguredDispatchIssue[E] {\n  MissingImplementation\n  Implementation(E)\n}\n' + dispatches + managedDispatches + estimateAssembly(entries, alias) + hostAssembly() + synchronousAssembly(entries, alias);
 }
 
 function synchronousAssembly(entries, alias) {

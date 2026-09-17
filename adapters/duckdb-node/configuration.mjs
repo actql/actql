@@ -26,7 +26,9 @@ export function validateLimits(limits) {
 
 const configurations = new WeakMap();
 
-export function prepareDuckDBStrategyConfiguration({transportLimits, importLimits, retainedOutput}) {
+export function prepareDuckDBStrategyConfiguration({
+  transportLimits, importLimits, retainedOutput, managedOutput,
+}) {
   const validated = validateLimits(transportLimits);
   const transport = Object.freeze(Object.fromEntries([
     'maxRows', 'maxCells', 'maxTransportBytes', 'maxSqlBytes', 'maxParameters',
@@ -37,11 +39,21 @@ export function prepareDuckDBStrategyConfiguration({transportLimits, importLimit
     if (!Number.isSafeInteger(value) || value < 0) throw new DuckDBTransportError('InvalidImportLimits');
   }
   const retained = retainedOutput === undefined ? undefined : retainedConfiguration(retainedOutput);
+  const managed = managedOutput === undefined ? undefined : retainedConfiguration(managedOutput);
+  if (retained && managed) throw new DuckDBTransportError('ConflictingOutputProfiles');
   if (retained && (retained.wire.max_bytes < 1 || retained.maxFrameBytes > transport.maxTransportBytes)) {
     throw new DuckDBTransportError('InvalidRetainedConfiguration');
   }
+  if (managed && (managed.wire.max_bytes < 1 || managed.maxFrameBytes > transport.maxTransportBytes)) {
+    throw new DuckDBTransportError('InvalidRetainedConfiguration');
+  }
   const handle = Object.freeze({});
-  configurations.set(handle, Object.freeze({transportLimits: transport, importLimits: imports, retainedOutput: retained}));
+  configurations.set(handle, Object.freeze({
+    transportLimits: transport,
+    importLimits: imports,
+    retainedOutput: retained,
+    managedOutput: managed,
+  }));
   return handle;
 }
 

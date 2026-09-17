@@ -19,6 +19,44 @@ pub fn strategy_host_next(
 }
 
 ///|
+/// Producer index needed by the next unary managed task. This exposes graph
+/// topology only; the exact opaque completion is still checked by preparation.
+#export_name("strategyHostManagedProducer")
+pub fn strategy_host_managed_producer(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.captured_next_managed_producer(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+#export_name("strategyHostNextTask")
+pub fn strategy_host_next_task(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.next_captured_task(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+#export_name("strategyHostManagedOutputMatches")
+pub fn strategy_host_managed_output_matches(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
 #export_name("strategyHostModules")
 pub fn strategy_host_modules(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],

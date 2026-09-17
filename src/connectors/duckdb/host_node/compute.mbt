@@ -37,6 +37,18 @@ pub fn compute_strategy_scratch_capacity(
 }
 
 ///|
+#export_name("computeStrategyManagedIndexCells")
+pub fn compute_strategy_managed_index_cells(
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+) -> Int raise NodeHostFailure {
+  guard @duckdb_driver.configured_strategy_managed_index_cells(setup)
+    is Some(cells) else {
+    raise Physical(InvalidLimits)
+  }
+  cells
+}
+
+///|
 #export_name("computeHostOpen")
 pub fn compute_host_open(
   setup : @duckdb_driver.ComputeHostConfiguration,

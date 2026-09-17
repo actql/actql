@@ -22,12 +22,17 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
       throw new StrategyHostError('InvalidStrategyInstallation');
     }
     installed.set(entry.registration, Object.freeze({
-      run: entry.run, beforeNext: entry.beforeNext, finish: entry.finish,
+      run: entry.run,
+      prepareNext: entry.prepareNext,
+      runPrepared: entry.runPrepared,
+      beforeNext: entry.beforeNext,
+      finish: entry.finish,
     }));
   }
   active.add(setup);
   const completed = [];
   const outputs = [];
+  const managedOutputs = new Map();
   const pendingCleanup = new Set();
   const pendingCloses = new Set();
   // A release without a recovery handle has no safe implicit retry contract.
@@ -72,20 +77,42 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         signal?.throwIfAborted();
       }
       signal?.throwIfAborted();
-      const task = core.next(setup);
+      const prepared = [];
+      for (const entry of installed.values()) {
+        const task = await entry.prepareNext?.(managedOutputs);
+        if (task != null) prepared.push({entry, task});
+      }
+      if (prepared.length > 1) {
+        throw new StrategyHostError('AmbiguousManagedStrategy');
+      }
+      const managed = prepared[0];
+      const task = managed ? managed.task : core.next(setup);
       if (task == null) break;
-      const index = core.task(task);
-      const entry = installed.get(core.registration(task));
-      if (!entry) throw new StrategyHostError('MissingStrategyImplementation');
+      const index = managed ? task.task : core.task(task);
+      const entry = managed ? managed.entry : installed.get(core.registration(task));
+      if (!entry || (managed && typeof entry.runPrepared !== 'function')) {
+        throw new StrategyHostError('MissingStrategyImplementation');
+      }
       signal?.throwIfAborted();
-      const result = await entry.run(task, signal);
+      const result = await (managed
+        ? entry.runPrepared(task, signal)
+        : entry.run(task, signal));
       if (result?.close) outputs.push(result);
       // A callback's resolved Promise is not a completion proof. The core must
       // already have installed this exact task's retained, verified output.
       if (!core.completed(setup, index)) throw new StrategyHostError('TaskNotCompleted');
+      if (result?.completed != null || result?.material != null) {
+        if (result.completed == null || result.material == null ||
+            !core.managedMatches(setup, index, result.completed)) {
+          throw new StrategyHostError('InvalidManagedCompletion');
+        }
+        managedOutputs.set(index, Object.freeze({
+          completed: result.completed, material: result.material,
+        }));
+      }
       completed.push(Object.freeze({ ...result?.diagnostic, task: index }));
       if (observeCompletion) {
-        const output = core.output(setup, index);
+        const output = result?.completed ?? core.output(setup, index);
         if (output == null) throw new StrategyHostError('MissingCompletedOutput');
         signal?.throwIfAborted();
         // Deliver the core's exact output, never a connector diagnostic/CID or
