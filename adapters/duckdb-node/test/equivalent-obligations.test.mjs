@@ -47,6 +47,27 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.capacity.independentRetention.fileReservedBytes, result.holding.reservedBytes);
       assert.equal(result.capacity.execution.limitBytes, fixture.limits.executionMemoryBytes);
       assert.equal(result.capacity.conformance, 'incomplete');
+      assert.equal(result.accounting.nativeSemanticRows,
+        fixture.rows + result.stages.reduce((sum, stage) => sum + stage.rows, 0));
+      assert.equal(result.accounting.nativeSemanticCells,
+        fixture.rows * fixture.fields.length + result.stages.reduce((sum, stage) =>
+          sum + stage.rows * (stage.stage === 'count' ? 2 :
+            fixture.workload === workloads[2] ? fixture.fields.length : 1), 0));
+      assert.equal(result.accounting.jsMaterializedCells,
+        result.accounting.nativeSemanticCells);
+      assert.equal(result.accounting.identityPasses, result.stages.length + 1);
+      assert.equal(result.accounting.retainedStoreBytes,
+        result.stages.reduce((sum, stage) => sum + stage.bytes, 0));
+      assert(result.accounting.nativeSemanticBytes > 0);
+      assert(result.accounting.identityPreimageBytes >=
+        result.accounting.retainedStoreBytes);
+      assert.equal(result.accounting.logicalGuardWork,
+        result.accounting.measuredGuardWork + result.accounting.reusedGuardWork);
+      assert.equal(result.accounting.logicalGuardBytes,
+        result.accounting.measuredGuardBytes + result.accounting.reusedGuardBytes);
+      assert.equal(result.accounting.logicalGuardNodes,
+        result.accounting.measuredGuardNodes + result.accounting.reusedGuardNodes);
+      assert(result.accounting.comparisonWork > 0);
       assert.equal(BigInt(result.retentionLedger.held_bytes), BigInt(result.holding.reservedBytes) +
         BigInt(result.capacity.independentRetention.metadataAllowanceBytes));
       assert.equal(result.releasedRetentionLedger.held_bytes, '0');

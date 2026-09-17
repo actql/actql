@@ -325,6 +325,13 @@ index after source setup. Its output remains diagnostic while the equivalent
 leg reports missing obligations; it cannot be passed directly to the timing
 assessment as an accepted sample.
 
+The independent-obligation report also exposes separate accounting domains for
+native-to-semantic JSON transport, JavaScript cell materialization, retained
+canonical bytes, identity preimages, measured and reused logical guards, and
+comparison measurement. These are observed quantities, not configured cost
+estimates. Product-side domain parity and pair admission are still required
+before the registered transfer/work obligation is closed.
+
 ### Selective baseline receiver profile
 
 `baseline-acquisition-capacity.mjs` now provides pure transformations for the

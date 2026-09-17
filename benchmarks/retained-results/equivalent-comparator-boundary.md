@@ -85,6 +85,22 @@ operand/predicate quantities and physical measurement usage. This connects
 comparison measurement, not the remaining logical-work charging, acquisition
 evidence metadata or full failure-precedence equivalence.
 
+The prototype report now separates accounting domains instead of presenting one
+ambiguous transfer total. It records the exact JSON bytes, rows and cells that
+cross from native DuckDB vectors into bounded semantic admission; the cells
+materialized in JavaScript; canonical bytes written to independent holdings;
+identity passes and preimage bytes actually hashed; initial guard measurement;
+guard measurement charged again for each accepted reuse; and comparison
+predicate work, bytes and nodes. Tests derive expected rows, cells, identity
+passes and retained bytes from every small workload/layout fixture.
+
+These counters make repeated materialization and logical charge visible and
+prevent physical control-channel traffic from being mislabeled as logical work.
+They do not yet close transfer/work accounting equivalence: the product leg
+must expose the same semantic domains and pair admission must compare required
+logical charges while allowing implementation-specific control traffic to
+differ.
+
 Source record guard failures are now deferred until complete source admission,
 as in `native_validation_stream.mbt`. Later batches still undergo bounded
 physical/value admission and identity encoding. A later invalid value can thus
@@ -107,7 +123,7 @@ confusion during development, before acceptance use.
 
 Still required before equivalence approval:
 
-- Matched execution-process/cold and warm timing boundaries.
+- Matched warm timing boundary; process/cold pair assembly is now fixed below.
 - Complete expression-demand/guard failure parity and its negative fixtures.
 - Validation of the declared completion-metadata allowance and shared
   DB-plus-scratch execution admission, not only the Store or engine limit.

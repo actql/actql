@@ -18,6 +18,24 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const started = performance.now();
   const moon = await import(runtime.href);
   const retention = checked(moon.obligationRetention(1073741824n));
+  const accounting = {
+    nativeSemanticRows: 0,
+    nativeSemanticCells: 0,
+    nativeSemanticBytes: 0,
+    jsMaterializedCells: 0,
+    identityPasses: 0,
+    identityPreimageBytes: 0,
+    retainedStoreBytes: 0,
+    measuredGuardWork: 0,
+    measuredGuardBytes: 0,
+    measuredGuardNodes: 0,
+    reusedGuardWork: 0,
+    reusedGuardBytes: 0,
+    reusedGuardNodes: 0,
+    comparisonWork: 0,
+    comparisonBytes: 0,
+    comparisonNodes: 0,
+  };
   const ledgerReport = () => Object.fromEntries(Object.entries(moon.obligationRetentionUsage(retention))
     .map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value]));
   assertBoundedVectorRuntime();
@@ -79,12 +97,25 @@ export async function runEquivalentObligations(fixture, database, directory, sup
           return Array.from({length: rows}, (_, row) => exportPhysicalValue(
             boundedVectorItem(vector, row, types[column], l.maxValueBytes), types[column]));
         });
-        const text = checked(moon.obligationAppend(stream, rows, JSON.stringify(columns)));
+        const transportText = JSON.stringify(columns);
+        accounting.nativeSemanticRows += rows;
+        accounting.nativeSemanticCells += rows * names.length;
+        accounting.nativeSemanticBytes += Buffer.byteLength(transportText);
+        accounting.jsMaterializedCells += rows * names.length;
+        const text = checked(moon.obligationAppend(stream, rows, transportText));
         if (writer && text) await writer.append(text);
         chunks++;
       }
     }
     const receipt = checked(moon.obligationFinish(stream));
+    accounting.measuredGuardWork += receipt._5.work;
+    accounting.measuredGuardBytes += receipt._5.bytes;
+    accounting.measuredGuardNodes += receipt._5.nodes;
+    if (identity) {
+      accounting.identityPasses++;
+      accounting.identityPreimageBytes += receipt._2;
+    }
+    if (retain) accounting.retainedStoreBytes += receipt._2;
     if (writer && receipt._0) await writer.append(receipt._0);
     const body = writer ? await writer.seal({cid: receipt._1, bytes: receipt._2}) : undefined;
     if (body) checked(moon.obligationHoldOutput(outputReservation, receipt._2));
@@ -105,7 +136,12 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       assert(producer.rows <= l.intermediateRows, 'input row guard');
       // Same immutable table and successful initial content admission; do not
       // import it again or recompute its content hash for the new consumer.
-      if (moon.obligationReuseMeasurement(producer.measurement, ownBudget)) reusedMeasurements++;
+      if (moon.obligationReuseMeasurement(producer.measurement, ownBudget)) {
+        reusedMeasurements++;
+        accounting.reusedGuardWork += producer.measurement.work;
+        accounting.reusedGuardBytes += producer.measurement.bytes;
+        accounting.reusedGuardNodes += producer.measurement.nodes;
+      }
       else await scan(`SELECT ${list(producer.names)} FROM bench_${input} ORDER BY rowid`,
         producer.names, ownBudget, {identity: false});
     }
@@ -126,6 +162,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     if (demandInput) {
       assert(demandInput.run === run && demandInput.demands.has(name), 'missing exact input demand');
       demand = checked(moon.obligationComparisonFinish(demandInput.demands.get(name), output.rows));
+      accounting.comparisonWork += demand.physical_work;
+      accounting.comparisonBytes += demand.physical_bytes;
+      accounting.comparisonNodes += demand.physical_nodes;
     }
     check();
     completed.set(name, Object.freeze({...output, names: Object.freeze([...names])}));
@@ -172,6 +211,22 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       comparator: 'independent-obligation-assembly', executionMs, validationMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
       holding: store.status(), retentionLedger: ledgerReport(),
+      accounting: Object.freeze({
+        ...accounting,
+        logicalGuardWork: accounting.measuredGuardWork +
+          accounting.reusedGuardWork,
+        logicalGuardBytes: accounting.measuredGuardBytes +
+          accounting.reusedGuardBytes,
+        logicalGuardNodes: accounting.measuredGuardNodes +
+          accounting.reusedGuardNodes,
+        domains: Object.freeze({
+          nativeSemanticBytes: 'JSON transport actually supplied to bounded semantic admission',
+          retainedStoreBytes: 'canonical row-array bytes written to independent holdings',
+          logicalGuard: 'measured values plus charged reuse for each consumer',
+          comparison: 'predicate measurement for exact input and consumer occurrence',
+          identity: 'canonical row-array preimages actually hashed',
+        }),
+      }),
       capacity: {
         independentRetention: {limitBytes: 1073741824, fileReservedBytes: store.status().reservedBytes,
           metadataAllowanceBytes: stages.reduce((sum, stage) => sum + stage.metadataBytes, 0),
