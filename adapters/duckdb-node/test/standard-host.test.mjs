@@ -915,7 +915,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // returned when the task closes before creating an index allocation.
   const managedProgram = JSON.parse(program);
   managedProgram.stages[1].steps[0].filter = 'id > 0';
-  managedProgram.stages[2].steps[0].filter = 'id > 2';
+  managedProgram.stages[2].steps[0].filter = 'id > 0';
   managedProgram.stages[0].steps[1].select = ['id', 'amount'];
   managedProgram.stages[0].results.r.fields = ['id', 'amount'];
   for (const index of [1, 2, 3]) {
@@ -929,7 +929,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   managedProgram.stages[2].steps[1].select = [{kept: 'id'}];
   managedProgram.stages[2].results.r.fields = ['kept'];
   managedProgram.stages[3].steps = [
-    {take: {count: 1, offset: 1}},
+    {sort: [{kept: 'asc'}]},
+    {take: {count: 1, offset: 0}},
     {derive: {id: 'kept'}},
     {select: ['id'], as: 'out'},
   ];
@@ -973,7 +974,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
     const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
     const indexBytes = 512n + 6n * 64n;
-    const projectedIndexBytes = 512n + 2n * 64n;
+    const projectedIndexBytes = 512n + 3n * 64n;
     const terminalIndexBytes = 512n + 64n;
     let attempt;
     let port;
@@ -1116,11 +1117,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
-      reusedMeasurementCells: 2, selectionOccurrenceRows: 2,
+      reusedMeasurementCells: 3, selectionOccurrenceRows: 3,
       outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
     });
     const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
-    assert.equal(managedDownstreamBytes, 23n,
+    assert.equal(managedDownstreamBytes, 27n,
       'the projected one-column frame has the fixed installed representation');
     assert(managedDownstreamBytes > 0n && managedDownstreamBytes < managedBodyBytes,
       'the checked filter retains only its selected physical rows');
@@ -1136,15 +1137,19 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, terminalRequest);
     const [, terminalQuerySql] =
       fixture.strategyFixtureManagedRequestQuerySql(terminalQuery);
-    assert.match(terminalQuerySql, /ORDER BY .* LIMIT 1 OFFSET 1$/);
+    assert.match(terminalQuerySql,
+      /ORDER BY "__actql_input"\."kept" ASC NULLS LAST, .* LIMIT 1 OFFSET 0$/);
     assert.equal(fixture.strategyFixtureManagedSelectionMatches(
       terminalQuery, [1]), true);
     assert.equal(fixture.strategyFixtureManagedSelectionMatches(
-      terminalQuery, [0]), false,
-    'a different valid source row cannot satisfy the checked take');
+      terminalQuery, [0]), true,
+    'metadata selection alone does not claim that the checked sort executed');
     assert.equal(fixture.strategyFixtureManagedSelectionMatches(
       terminalQuery, [1, 2]), false,
-    'extra native occurrences cannot satisfy the checked take');
+    'extra native occurrences cannot satisfy the checked sorted take');
+    assert.equal(fixture.strategyFixtureManagedSelectionMatches(
+      terminalQuery, [3]), false,
+    'an occurrence outside the retained input cannot satisfy the sorted take');
     const terminalConfiguration = fixture.strategyFixtureManagedConfiguration(
       managedLedgerFixture, 3, terminalRequest, managedProfile, 100000n);
     managedTerminal = await runManagedColumnStrategyHostCompute(

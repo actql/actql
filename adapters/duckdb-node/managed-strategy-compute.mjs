@@ -95,8 +95,7 @@ export async function runManagedColumnStrategyHostCompute(
                 throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
               }
               const occurrence = Number(value);
-              if (!Number.isSafeInteger(occurrence) ||
-                  (occurrences.length && occurrence <= occurrences.at(-1))) {
+              if (!Number.isSafeInteger(occurrence)) {
                 throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
               }
               occurrences.push(occurrence);

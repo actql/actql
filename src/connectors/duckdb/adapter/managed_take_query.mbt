@@ -1,8 +1,16 @@
 ///|
-/// Prepared take/projection/exact-copy path over an exact managed input. The installed Host
+/// Prepared sort/take/projection/exact-copy path over an exact managed input. The installed Host
 /// must bind `ordinal` to the input's proven logical occurrence order, with one
 /// distinct zero-based ordinal per row. A provider's incidental order or a
 /// user-supplied integer column does not satisfy that physical binding.
+priv struct ManagedTakeSortTerm {
+  field : String
+  descending : Bool
+  nulls_first : Bool
+  text : Bool
+}
+
+///|
 struct ManagedTakeQuery[T] {
   input : @execution.ManagedProducerRead[T]
   plan : @execution.ManagedViewPlan[T]
@@ -12,6 +20,7 @@ struct ManagedTakeQuery[T] {
   width : Int
   stages : Array[(Int64, Int64)]
   fragment_start : Int
+  sorted : Bool
 }
 
 ///|
@@ -31,6 +40,7 @@ pub fn[T] prepare_managed_take_query(
   }
   let owner = @execution.managed_producer_read_receiver(input)
   let preparation = @lower.bound_preparation(owner)
+  let schema = @execution.managed_producer_read_schema(input)
   if @execution.managed_producer_read_input_index(input) != 0 ||
     @lower.preparation_input_count(preparation) != 1 ||
     @lower.node_count(preparation) == 0 {
@@ -45,8 +55,11 @@ pub fn[T] prepare_managed_take_query(
   let mut count = 9007199254740991L
   let mut offset = 0L
   let mut has_take = false
+  let mut has_sort = false
+  let mut shape_changed = false
   let mut fragment_start = -1
   let stages = []
+  let sort_terms : Array[ManagedTakeSortTerm] = []
   for step in 0..<steps {
     let kernel = match
       @lower.prepare_kernel(
@@ -77,7 +90,7 @@ pub fn[T] prepare_managed_take_query(
         offset = Int64::min(9007199254740991L, offset + skipped)
         count = Int64::min(next_count, count - skipped)
       }
-      @lower.Select(_) => ()
+      @lower.Select(_) => shape_changed = true
       @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) => {
         if fragment_start < 0 {
           fragment_start = step
@@ -97,17 +110,42 @@ pub fn[T] prepare_managed_take_query(
             _ => return Err(UnsupportedShape)
           }
         }
+        shape_changed = true
+      }
+      @lower.StableSort(_) => {
+        let terms = @lower.kernel_sort_term_count(kernel)
+        if terms > 0 {
+          // This finite compiler accepts one sort over the original managed
+          // schema, before slicing or shape changes. Later copies/projections
+          // remain supported by the checked view plan.
+          if has_sort || has_take || shape_changed {
+            return Err(UnsupportedShape)
+          }
+          for index in 0..<terms {
+            guard @lower.kernel_sort_term_at(kernel, index)
+              is Some((@schema.Unqualified(field), descending, nulls_first)) &&
+              @schema.lookup(schema, @schema.Unqualified(field))
+              is Some(contract) else {
+              return Err(UnsupportedField)
+            }
+            let text = contract.shape is @contract.Text(_)
+            if !text && !(contract.shape is @contract.Number) {
+              return Err(UnsupportedField)
+            }
+            sort_terms.push({ field, descending, nulls_first, text, })
+          }
+          has_sort = true
+        }
       }
       _ => return Err(UnsupportedShape)
     }
     stages.push((count, offset))
     kernels.push(kernel)
   }
-  if !has_take {
+  if !has_take && !has_sort {
     return Err(UnsupportedShape)
   }
   let final_schema = @lower.preparation_schema_at(preparation, Step(steps - 1)).unwrap()
-  let schema = @execution.managed_producer_read_schema(input)
   if @schema.field_count(schema) > entries {
     return Err(Limit)
   }
@@ -179,7 +217,30 @@ pub fn[T] prepare_managed_take_query(
     sql_identifier(out, database_schema)
     sql_text(out, ".")
     sql_identifier(out, table)
-    sql_text(out, " AS \"__actql_input\" ORDER BY \"__actql_input\".")
+    sql_text(out, " AS \"__actql_input\" ORDER BY ")
+    for index, term in sort_terms {
+      if index > 0 {
+        sql_text(out, ", ")
+      }
+      if term.text {
+        emit_utf16_order_key_from(out, "__actql_input", term.field)
+      } else {
+        physical_input_identifier(out, "__actql_input", term.field)
+      }
+      sql_text(out, if term.descending { " DESC" } else { " ASC" })
+      sql_text(
+        out,
+        if term.nulls_first {
+          " NULLS FIRST"
+        } else {
+          " NULLS LAST"
+        },
+      )
+    }
+    if sort_terms.length() > 0 {
+      sql_text(out, ", ")
+    }
+    sql_text(out, "\"__actql_input\".")
     sql_identifier(out, ordinal)
     sql_text(out, " ASC LIMIT ")
     sql_text(out, count.to_string())
@@ -201,6 +262,7 @@ pub fn[T] prepare_managed_take_query(
     width: @schema.field_count(final_schema),
     stages,
     fragment_start,
+    sorted: has_sort,
   })
 }
 
@@ -252,6 +314,9 @@ pub fn[T] prepare_managed_take_selection(
   if !managed_take_query_matches(query, query.input) {
     return Err(ForeignInput)
   }
+  if query.sorted {
+    return Err(InvalidSelection)
+  }
   let available = @execution.managed_producer_read_row_count(query.input)
   let offset = if query.offset >= available.to_int64() {
     available
@@ -274,6 +339,60 @@ pub fn[T] prepare_managed_take_selection(
     query.plan,
     offset,
     count,
+    max_cells,
+    max_work,
+  )
+}
+
+///|
+/// Bind the actual private occurrence output to this compiled view. A sorted
+/// query cannot predict its permutation from metadata alone; the installed
+/// native execution supplies it, while the common selection checker enforces
+/// bounds, uniqueness, row count and measurement ownership.
+fn[T] prepare_managed_take_actual_selection(
+  query : ManagedTakeQuery[T],
+  rows : Array[Int],
+  max_cells : Int,
+  max_work : Int,
+) -> Result[
+  @execution.ManagedViewSelection[T],
+  @execution.ManagedSelectionMeasureIssue,
+] {
+  if !query.sorted {
+    let selection = match
+      prepare_managed_take_selection(query, max_cells, max_work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    for index, row in rows {
+      if @execution.managed_view_selection_row(selection, index) != Some(row) {
+        return Err(InvalidSelection)
+      }
+    }
+    if @execution.managed_view_selection_row(selection, rows.length())
+      is Some(_) {
+      return Err(InvalidSelection)
+    }
+    return Ok(selection)
+  }
+  let available = @execution.managed_producer_read_row_count(query.input)
+  let offset = if query.offset >= available.to_int64() {
+    available
+  } else {
+    query.offset.to_int()
+  }
+  let remaining = available - offset
+  let expected = if query.count >= remaining.to_int64() {
+    remaining
+  } else {
+    query.count.to_int()
+  }
+  if rows.length() != expected {
+    return Err(InvalidSelection)
+  }
+  @execution.prepare_managed_view_selection(
+    query.plan,
+    rows,
     max_cells,
     max_work,
   )

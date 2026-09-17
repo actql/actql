@@ -85,13 +85,17 @@ fn managed_take_compile_steps(
     owner, 0, producer, output, 100, 10000,
   ).unwrap()
   assert_false(@duckdb.managed_take_query_matches(query, another))
-  let selected = @duckdb.prepare_managed_take_selection(query, 100, 1000).unwrap()
   let result = [@duckdb.managed_take_query_sql(query)]
-  for row in 0..<100 {
-    match @execution.managed_view_selection_row(selected, row) {
-      Some(occurrence) => result.push(occurrence.to_string())
-      None => break
-    }
+  match @duckdb.prepare_managed_take_selection(query, 100, 1000) {
+    Ok(selected) =>
+      for row in 0..<100 {
+        match @execution.managed_view_selection_row(selected, row) {
+          Some(occurrence) => result.push(occurrence.to_string())
+          None => break
+        }
+      }
+    Err(@execution.InvalidSelection) => () // sort order requires actual execution
+    Err(_) => abort("managed take selection")
   }
   if result.length() > 1 {
     assert_true(

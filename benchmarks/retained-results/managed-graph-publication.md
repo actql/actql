@@ -135,12 +135,13 @@ The product entry reports finite work counters rather than inferring savings
 from elapsed time. Each downstream task observes one physical-integrity pass,
 one native file-import command, zero parameter INSERT rows, zero
 logical-content CID computations and zero Core output-value admission cells.
-The first task transfers two measurement cells for two selected occurrences
+The first task transfers three measurement cells for three selected occurrences
 while projecting and renaming `id` to `kept`. The second executes checked
-`take(count=1, offset=1)`, copies `kept` to `id`, transfers one measurement cell
-for exactly source occurrence 1 and selects the copied field. Both write one
-output frame and report exact input/output physical byte counts. The Host
-rejects a different or additional occurrence even when it is a valid input row.
+`sort(kept asc)`, then `take(count=1, offset=0)`, copies `kept` to `id`,
+transfers one measurement cell for source occurrence 1 and selects the copied
+field. Sort SQL uses the checked Number order and the original occurrence as
+the stable tie-break. Both write one output frame and report exact input/output
+physical byte counts. An extra or out-of-range occurrence is rejected.
 These counters do not claim that DuckDB performs only one internal filesystem
 read or that no typed-value work occurs. DuckDB still evaluates required
 operations, the Host still validates occurrence framing and storage order, and
@@ -166,11 +167,11 @@ DuckDB execution and checks the following sequence:
 | index and actual 43-byte body retained | stream base + 99,957 | 939 | task 1 running |
 | native settlement | unchanged | 939 | no success yet |
 | task-1 managed publication | 0 | 939 | task 1 done, task 2 ready |
-| task-2 selected-evidence publication | 0 | 1,602 | tasks 1 and 2 done, task 3 ready |
-| task-3 selected-evidence publication | 0 | 2,197 | projection chain done; group task ready |
-| global-count publication | 0 | 2,792 | one new value admitted with a one-cell index |
-| task-1 output revoke | 0 | 1,896 | task-1 index released; descendants remain valid |
-| task-3 close and physical cleanup | 0 | 1,301 | task-1, task-2 and group bodies remain |
+| task-2 selected-evidence publication | 0 | 1,670 | tasks 1 and 2 done, task 3 ready |
+| task-3 selected-evidence publication | 0 | 2,265 | sorted chain done; group task ready |
+| global-count publication | 0 | 2,860 | one new value admitted with a one-cell index |
+| task-1 output revoke | 0 | 1,964 | task-1 index released; descendants remain valid |
+| task-3 close and physical cleanup | 0 | 1,369 | task-1, task-2 and group bodies remain |
 | task-2 close and physical cleanup | 0 | 638 | task-1 and group bodies remain |
 | first group consumer publication | 0 | 1,233 | one group measurement reused |
 | second group consumer publication | 0 | 1,828 | the same group measurement reused again |
@@ -192,8 +193,10 @@ including projection/rename, exact-copy derive, logical-schema column
 reordering, explicit row-occurrence mapping, checked slice composition and
 repeated downstream reuse. A newly computed global-count result is admitted
 once and its measurement evidence is reused by two later consumers. It does
-not yet implement computed derive values, sort/permutation, join or keyed-group
-result reuse, general schemas/codecs, mixed
+implement one checked Number/Text stable sort before slicing or shape changes;
+Text uses the existing UTF-16 logical order and ties retain source occurrence
+order. It does not yet implement computed derive values, general sort
+composition, join or keyed-group result reuse, general schemas/codecs, mixed
 acquisition/managed input families, resident-table publication, Local
 execution or named Result bridging. The finite
 representation identifier must either become an adopted machine contract or be

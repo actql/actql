@@ -211,9 +211,20 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   assert.deepEqual(actual.map(row => row.occurrence.toString()), selected);
                   assert.deepEqual(actual.map(row => row.amount), empty ? [] : expected);
                 }
+                const [sortedSql] = checked(fixture.managedTakeChainCompileFixture(
+                  configured, completed, JSON.stringify([
+                    {sort: [{amount: 'asc'}]}, {take: 2}, {select: ['amount']},
+                  ])));
+                const sorted = (await connection.runAndReadAll(sortedSql)).getRowObjects();
+                assert.deepEqual(sorted.map(row => row.occurrence.toString()),
+                  empty ? [] : ['0', '2']);
+                assert.deepEqual(sorted.map(row => row.amount),
+                  empty ? [] : ['日本語', '日本語']);
                 for (const unsupported of [[{select: ['amount']}], [{take: 2}, {filter: 'true'}],
                   [{take: 2}, {derive: {unused: '1 + 1'}}, {select: ['amount']}],
-                  [{take: 2}, {derive: {unused: '1 / 0'}}, {select: ['amount']}]]) {
+                  [{take: 2}, {derive: {unused: '1 / 0'}}, {select: ['amount']}],
+                  [{take: 2}, {sort: [{amount: 'asc'}]}],
+                  [{select: [{a: 'amount'}]}, {sort: [{a: 'asc'}]}, {take: 1}]]) {
                   assert.throws(() => checked(fixture.managedTakeChainCompileFixture(configured, completed,
                     JSON.stringify(unsupported))));
                 }
@@ -376,9 +387,11 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 // Fixture-only frame decoder inside DuckDB. No JS cell decode
                 // or parameter INSERT, and no second Core value admission.
                 const path = `'${file.path.replaceAll("'", "''")}'`;
-                await connection.run(`INSERT INTO managed_input SELECT unnest(columns[1])
-                  FROM read_json(${path}, format='newline_delimited',
-                    columns={rows: 'BIGINT', columns: 'VARCHAR[][]'})`);
+                await connection.run(`INSERT INTO managed_input
+                  SELECT amount, row_number() OVER () - 1
+                  FROM (SELECT unnest(columns[1]) AS amount
+                    FROM read_json(${path}, format='newline_delimited',
+                      columns={rows: 'BIGINT', columns: 'VARCHAR[][]'}))`);
               }
               return (await connection.runAndReadAll(querySql)).getRowObjects();
             }, undefined, bytes => { integrityBytes += bytes; });
@@ -503,7 +516,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             try {
               const [create, ordinarySql] = fixture.managedFixedQuerySql(filterQuery);
               const sql = representation === 'preserved'
-                ? checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'occurrence')) : ordinarySql;
+                ? fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'occurrence') : ordinarySql;
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, derived ? 'MARKER' : 'N', 'occurrence')));
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'rowid', 'N')));
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'bad\0ordinal', 'occurrence')));
@@ -514,11 +527,20 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 {
                   const path = `'${file.path.replaceAll("'", "''")}'`;
                   await connection.run(derived
-                    ? `INSERT INTO managed_input (amount, copy, marker)
-                      SELECT unnest(columns[1]), unnest(columns[2]), unnest(native_columns[1])
-                      FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]', native_columns:'DOUBLE[][]'})`
-                    : `INSERT INTO managed_input SELECT unnest(native_columns[1])
-                      FROM read_json(${path}, format='newline_delimited', columns={native_columns:'DOUBLE[][]'})`);
+                    ? `INSERT INTO managed_input
+                        (amount, copy, marker, "__actql_input_ordinal")
+                      SELECT amount, copy, marker, row_number() OVER () - 1
+                      FROM (SELECT unnest(columns[1]) AS amount,
+                        unnest(columns[2]) AS copy,
+                        unnest(native_columns[1]) AS marker
+                        FROM read_json(${path}, format='newline_delimited',
+                          columns={columns:'VARCHAR[][]', native_columns:'DOUBLE[][]'}))`
+                    : `INSERT INTO managed_input
+                        (n, "__actql_input_ordinal")
+                      SELECT n, row_number() OVER () - 1
+                      FROM (SELECT unnest(native_columns[1]) AS n
+                        FROM read_json(${path}, format='newline_delimited',
+                          columns={native_columns:'DOUBLE[][]'}))`);
                 }
                 const statement = await connection.prepare(sql);
                 try {
@@ -541,7 +563,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                   assert.throws(() => checked(fixture.managedFilterSelection(filterQuery, invalid)));
                 }
                 filterOutput = checked(moon.managedSelectedOutputOpen(moon.managedInputOutputValues(filterPort),
-                  checked(fixture.managedFilterSelection(filterQuery, occurrences)),
+                  fixture.managedFilterSelection(filterQuery, occurrences),
                   fixture.managedFileTransportLimits(),
                   () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
               }
@@ -584,7 +606,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                     empty ? [0, 0, 0, 0, 0] : derived ? [2, 2, 2, 1, 0] : [1, 1, 1, 1, 0]);
                   // The new output's index, not singleton inferred facts,
                   // supplies both independently bound downstream selections.
-                  checked(fixture.managedFilterSelection(nextQuery, expectedOccurrences));
+                  fixture.managedFilterSelection(nextQuery, expectedOccurrences);
                 }
               }
               if (!derived) assert.deepEqual(checked(moon.managedOutputReusedMeasurements(filterOutput)),

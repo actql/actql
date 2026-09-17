@@ -318,20 +318,11 @@ pub fn[T] prepare_managed_fixed_query_selection(
       )
     Take(query) => {
       let selection = match
-        prepare_managed_take_selection(query, max_cells, max_work) {
+        prepare_managed_take_actual_selection(query, rows, max_cells, max_work) {
         Ok(value) => value
         Err(@execution.InvalidLimits) => return Err(InvalidLimits)
         Err(@execution.Limit) => return Err(Limit)
         Err(_) => return Err(UnsupportedShape)
-      }
-      for index, row in rows {
-        if @execution.managed_view_selection_row(selection, index) != Some(row) {
-          return Err(UnsupportedShape)
-        }
-      }
-      if @execution.managed_view_selection_row(selection, rows.length())
-        is Some(_) {
-        return Err(UnsupportedShape)
       }
       Ok(selection)
     }

@@ -103,6 +103,16 @@ source column and the output receives a new copied measurement entry. This does
 not cover computed expressions: a new value still requires actual evaluation,
 value admission and a new measurement before it can be reused.
 
+The finite DuckDB view compiler also accepts one checked stable sort over the
+original managed schema before take, projection or exact-copy derive. Number
+terms use the admitted binary64 value. Text terms use ActQL's existing UTF-16
+order rather than DuckDB's default byte order. Explicit null placement is
+preserved, and the source occurrence ordinal is the final physical stable
+tie-break. The private native occurrence output determines the actual
+permutation; static measurement metadata alone does not claim that sorting ran.
+The common checker still enforces occurrence bounds, uniqueness, exact output
+count and producer ownership before transferring measurements.
+
 When an installed operation creates a new value, the standard Host enables a
 bounded measurement index before accepting its output. The value is admitted
 once while it is produced; later checked views may transfer that measurement
@@ -115,12 +125,16 @@ The installed transfer rule is deliberately finite. It applies only when the
 compiled query exposes the private occurrence result and the output fields map
 exactly to the checked logical schema through registered projection/rename or
 exact-copy origins. A take view must use checked occurrence order and contain no
-candidate-key completion or new computed value. Unsupported shapes use ordinary
-typed output admission. Predicate evaluation, slice execution, physical
+new computed value. A take's own candidate-key completion remains unsupported.
+Sort terms include compiler-added candidate-key completion when present; an
+admitted existing total order is preserved by stable source occurrence order.
+Sort after slicing or a shape change remains unsupported.
+Unsupported shapes use ordinary typed output admission. Predicate evaluation,
+sort/slice execution, physical
 integrity, current use authority, task settlement and graph publication remain
 required. The transferred measurements avoid another Core per-cell admission
 pass for unchanged selected values, but do not claim computed derive,
-sort/permutation, join/keyed-group or general codec evidence transfer.
+general sort composition, join/keyed-group or general codec evidence transfer.
 
 A resident consumer verifies the selected DB copy rather than reading every
 independent representation. File corruption is rejected when the file is
