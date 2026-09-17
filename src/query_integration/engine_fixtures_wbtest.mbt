@@ -159,23 +159,45 @@ fn sequence_fragment_context(
   step : Int,
   rows : Int64,
 ) -> @execution.FragmentRuntimeContext raise {
+  let logical : @lower.FragmentRowLimits = {
+    max_input_rows: rows,
+    max_value_bytes: 1000L,
+    max_live_value_bytes: 10000L,
+    max_work: 100000L,
+  }
   let pipeline = @lower.prepare_fragment_pipeline(sequence, step, {
     max_roots: 100,
     max_pointer_bytes: 10000,
     max_work: 100000,
   }).unwrap()
-  let request = @lower.prepare_fragment_request(pipeline, 10L, 1000L).unwrap()
+  let ordered = match @lower.sequence_step(sequence, step) {
+    Some(@lower.RowStep(kernel)) =>
+      if @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
+        Some(
+          @execution.admit_ordered_contract(
+            registered_relation_contracts(),
+            registered_ordered(),
+            registry_limits(),
+          ).unwrap(),
+        )
+      } else {
+        None
+      }
+    _ => None
+  }
+  let request = @lower.prepare_fragment_request(
+    pipeline,
+    10L,
+    1000L,
+    row_limits=if ordered is Some(_) { Some(logical) } else { None },
+  ).unwrap()
   @execution.prepare_runtime_fragment(
     request,
     test_fragment_contract(),
     material_demands(),
     registry_limits(),
-    {
-      max_input_rows: rows,
-      max_value_bytes: 1000L,
-      max_live_value_bytes: 10000L,
-      max_work: 100000L,
-    },
+    logical,
+    ordered~,
   ).unwrap()
 }
 

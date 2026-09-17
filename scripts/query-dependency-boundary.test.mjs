@@ -588,6 +588,11 @@ test('filesystem-free integration fixtures use the same adopted engine contract 
     .filter(([name]) => name));
   const engine = bodies('src/execution_relation/registry_vectors.generated_wbtest.mbt');
   const integration = bodies('src/query_integration/pinned_engine_contracts_wbtest.mbt');
-  assert.deepEqual([...integration.keys()], ['registered_body', 'registered_values', 'registered_fragment']);
+  assert.deepEqual([...integration.keys()], [
+    'registered_body',
+    'registered_values',
+    'registered_ordered',
+    'registered_fragment',
+  ]);
   for (const [name, body] of integration) assert.equal(body, engine.get(name), name);
 });
