@@ -271,9 +271,9 @@
       "canonical_operations": ["REL.assert_all", "REL.assert_unique"],
       "machine_registry": "registered",
       "variant_scope": ["where", "unique_by", "compound nullable key", "demanded predicate failures", "logical failure location"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and assertion execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/kernel_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/rows_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Where and single-field unique assertions reach two managed consumers and their core failures are atomic; compound nullable/reference keys, demanded-failure locations through Host, and performance evidence remain."]
     },
     {
       "operation": "append",

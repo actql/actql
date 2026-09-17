@@ -50,7 +50,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | group | C | P | P | - | Only count aggregation is lowered |
 | distinct | C | C | C | - | Managed execution and indexed evidence |
 | dedupe_rows | C | C | C | - | Managed representative-row execution |
-| assert_rows | C | - | - | - | Assertion lowering and diagnostics |
+| assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
 | append | C | - | - | - | Common two-input lowering |
 | values | C | C | C | - | Genuine zero-input Host path |
 | except | C | - | - | - | Registry, lowering, and execution |

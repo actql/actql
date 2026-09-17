@@ -30,7 +30,7 @@ fn task_test_generated(
   for step in 0..<@lower.sequence_count(sequence) {
     if @lower.sequence_step(sequence, step) is Some(RowStep(kernel)) {
       match @lower.kernel_body(kernel) {
-        SnapshotMap(_) | OrderedBindings(_) | Filter(_) =>
+        SnapshotMap(_) | OrderedBindings(_) | Filter(_) | AssertAll(_) =>
           contexts.push(sequence_fragment_context(sequence, step, 10L))
         _ => ()
       }

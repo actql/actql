@@ -2,6 +2,8 @@
 fn local_managed_unary_expected(kind : String) -> Array[String] {
   match kind {
     "filter_text" | "filter_structured" => ["{\"id\":2,\"amount\":null}"]
+    "assert_where" | "assert_unique" =>
+      ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
     "derive_map" =>
       [
         "{\"id\":1,\"amount\":10,\"next\":2}", "{\"id\":2,\"amount\":null,\"next\":3}",
@@ -146,7 +148,7 @@ test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
-      "drop",
+      "drop", "assert_where", "assert_unique",
     ] {
     run_local_managed_unary_case(kind)
   }

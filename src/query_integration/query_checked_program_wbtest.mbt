@@ -183,6 +183,9 @@ fn local_values_unary_program(kind : String) -> String {
       "{\"derive\":[{\"saved\":\"id\"},{\"id\":\"id + $minimum\"},{\"next\":\"saved + id\"}],\"as\":\"out\"}"
     "rename" => "{\"rename\":{\"amount\":\"total\"},\"as\":\"out\"}"
     "drop" => "{\"drop\":[\"amount\"],\"as\":\"out\"}"
+    "assert_where" => "{\"assert_rows\":{\"where\":\"id > 0\"},\"as\":\"out\"}"
+    "assert_unique" =>
+      "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"out\"}"
     _ => abort("unknown Local unary fixture")
   }
   let fields = match kind {
