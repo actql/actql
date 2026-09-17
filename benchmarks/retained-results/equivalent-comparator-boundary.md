@@ -1,11 +1,12 @@
 # Equivalent-obligation comparator boundary
 
 Q8 requires independent execution assembly, not an independent reimplementation
-of ActQL semantics. This inventory specifies that boundary; it does **not**
-claim that the equivalent-obligation comparator is accepted. An independent
-execution prototype now exists in `adapters/duckdb-node/bench/equivalent-obligations.mjs`.
-It always reports `acceptanceEligible: false` and names its missing obligations;
-it is not the registered equivalent comparator and cannot supply passing pairs.
+of ActQL semantics. This inventory specifies that boundary. The independent
+execution leg in `adapters/duckdb-node/bench/equivalent-obligations.mjs` always
+reports `acceptanceEligible: false`: a child leg cannot approve itself. The
+matched-pair parent may issue the registered equivalent-obligation admission
+only after both independently executed legs satisfy every finite requirement
+below. A pair without that explicit admission cannot supply a passing sample.
 
 ## Shared components and independent assembly
 
@@ -112,18 +113,20 @@ still receiving the full logical charge. The matched-pair driver requires exact
 equality for logical guard work/bytes/nodes and comparison work/bytes/nodes.
 Physical semantic rows/bytes and JavaScript materialization remain allowed to
 differ because avoiding repeated physical work is the optimization under test.
-Shared transfer/resource-ledger admission remains open separately.
+The matched-pair boundary compares the separately reported transfer and
+logical-work domains and requires terminal release of both ledgers. Physical
+implementation traffic remains observable but is not made equal artificially.
 
-The product retained leg now also exports the canonical evidence material owned
+The product retained leg also exports the canonical evidence material owned
 by its actual acquisition capture: the validation-scan and native-result
 receipts, the source-validation, filter and select records, and the completed
 observation. The export is read-only diagnostic material; it does not serialize
 or transfer the live issuer authority. Product tests verify every receipt and
 record CID edge, the common requirement/issuer/attempt/read-view binding, and
-the observation output cardinality after a real managed-worker run. This makes
-the product half of acquisition-evidence comparison observable. The independent
-leg must still construct and validate its own equivalent metadata; copying these
-documents into that leg would not close parity.
+the observation output cardinality after a real managed-worker run. The
+independent leg constructs and validates its own equivalent metadata. The
+matched parent compares only the separately verified semantic projections; it
+never copies one leg's documents into the other.
 
 Source record guard failures are now deferred until complete source admission,
 as in `native_validation_stream.mbt`. Later batches still undergo bounded
@@ -165,23 +168,26 @@ preserves `RetainedPathReplaced` under the settlement failure and leaves the
 unconfirmed Store directory visible. Cleanup therefore cannot be inferred from
 normal execution completion or from a missing original pathname.
 
-Still required before equivalence approval:
+The finite registered comparator now closes:
 
-- Comparator-equivalence admission before either matched timing is accepted.
-- Complete expression-demand/guard failure parity and its negative fixtures.
-- Acquisition evidence metadata construction/validation parity.
-- Transfer and logical-work accounting equivalence.
-- Broader ownership, cancellation at other execution phases and an actual
-  native-close failure fixture (beyond injected settlement actions and the real
-  retained-path replacement fixture).
-- All 27 cases, followed by the registered alternating-pair experiment.
+- explicit pair-level equivalent-obligation admission;
+- expression-demand and guard conformance for the registered scalar-comparison
+  domain, including its end-to-end negative fixtures;
+- independently constructed acquisition evidence metadata parity;
+- transfer-domain separation, logical-work equality and terminal ledger
+  release.
+
+Broader expression forms and an actual native-close failure fixture remain
+useful conformance hardening outside this registered benchmark shape. They do
+not replace the remaining performance work: all 27 cases must run as admitted,
+alternating matched pairs before the registered thresholds can be evaluated.
 
 ### Matched pair boundary
 
-`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` now assembles one
-alternating retained/equivalent pair without promoting the prototype to an
-accepted comparator. Both legs use the same immutable fixture database, clean
-revision and registered case, but execute in separate fresh child processes.
+`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` assembles one
+alternating retained/equivalent pair and owns the only promotion boundary. Both
+legs use the same immutable fixture database, clean revision and registered
+case, but execute in separate fresh child processes.
 The runner hashes the database before the first leg and after each leg, checks
 the checkout revision and cleanliness after each leg, and records the pinned
 experiment, source definition, Program and Node runtime in pair provenance.
@@ -214,11 +220,12 @@ it is no longer hidden inside control-channel traffic. Warm intervals were
 logical and resource obligations close.
 
 This closes the assembly ambiguity around source mutation, process placement,
-clock ownership, warm scope and alternating order. It does **not** close
-comparator equivalence. The equivalent child still reports
-`diagnostic-completed`, and the pair remains `acceptanceEligible: false` until
-both legs have independently admitted equivalent obligations. A successful
-timing-only diagnostic therefore cannot become an acceptance result.
+clock ownership, warm scope and alternating order. The equivalent child still
+reports `diagnostic-completed` and cannot approve itself. After both legs close
+the finite conformance, metadata, accounting and release requirements, the
+parent issues `actql-retained-equivalent-obligation-admission/0.1`; only then is
+that pair `acceptanceEligible: true`. A timing-only diagnostic still cannot
+become an acceptance result.
 
 The executable single-pair wrapper is
 `adapters/duckdb-node/bench/matched-equivalent-pair-case.mjs`. Source creation
