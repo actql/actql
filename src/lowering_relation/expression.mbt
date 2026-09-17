@@ -387,6 +387,7 @@ fn lower_expression_measured(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_)
+      | JsonPick(_)
       | InnerJoin(_)
       | AppendRows(_) => expression_fail(step.source, MissingCheckedBinding)
     }

@@ -94,6 +94,7 @@ fn emit_fragment_pipeline(
         AssertAll(_) => "REL.assert_all"
         Select(_)
         | AssertUnique(_)
+        | JsonPick(_, _, _)
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
@@ -136,6 +137,7 @@ fn emit_fragment_pipeline(
       }
       Select(_)
       | AssertUnique(_)
+      | JsonPick(_, _, _)
       | Limit(_, _, _)
       | DistinctRows
       | DedupeRows

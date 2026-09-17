@@ -120,6 +120,7 @@ pub fn prepare_kernel_roots(
       match kernel.body {
         Select(_)
         | AssertUnique(_)
+        | JsonPick(_, _, _)
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
@@ -157,6 +158,7 @@ fn prepare_root_range(
         match kernel.body {
           Select(_)
           | AssertUnique(_)
+          | JsonPick(_, _, _)
           | Limit(_, _, _)
           | DistinctRows
           | DedupeRows

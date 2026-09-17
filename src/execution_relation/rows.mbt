@@ -129,6 +129,7 @@ priv enum RowBodyView {
   Filter(@lower.Expression)
   AssertAll(@lower.Expression)
   AssertUnique(Array[@schema.FieldName])
+  JsonPick(@schema.FieldName, Array[String], String)
   Select(Array[@relation.ProjectionField])
 }
 
@@ -397,6 +398,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.Filter(expr) => Filter(expr)
         @lower.AssertAll(expr) => AssertAll(expr)
         @lower.AssertUnique(keys) => AssertUnique(keys)
+        @lower.JsonPick(column, path, output) => JsonPick(column, path, output)
         @lower.Select(fields) => Select(fields)
         @lower.Limit(_, _, _) => return Err(InvalidRows)
         @lower.DistinctRows => return Err(InvalidRows)
@@ -455,6 +457,20 @@ fn[T : RelationRows] evaluate_row_body_impl(
         }
         output_names.push(name)
       }
+    JsonPick(_, _, output) => {
+      for name in input_names {
+        if !spend_control(control, 1) || !reserve_slots(workspace, 1) {
+          return Err(RowLimit)
+        }
+        output_names.push(name)
+      }
+      if !spend_control(control, 1) ||
+        !spend_control_text(control, output) ||
+        !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      output_names.push(output)
+    }
     SnapshotMap(bindings) | OrderedBindings(bindings) => {
       for name in input_names {
         if !spend_control(control, 1) {
@@ -530,7 +546,11 @@ fn[T : RelationRows] evaluate_row_body_impl(
     }
     // One immutable operation-start snapshot; map siblings never update it.
     let snapshot : Map[String, Value] = Map([])
-    if !(kind is Select(_)) {
+    let needs_snapshot = match kind {
+      SnapshotMap(_) | OrderedBindings(_) | Filter(_) | AssertAll(_) => true
+      Select(_) | AssertUnique(_) | JsonPick(_, _, _) => false
+    }
+    if needs_snapshot {
       for i = 0; i < input_names.length(); i = i + 1 {
         if !spend_control(control, 1) ||
           !spend_control_text(control, input_names[i]) {
@@ -624,6 +644,25 @@ fn[T : RelationRows] evaluate_row_body_impl(
           }
           row.push(RowValues::value_at(source, i))
         }
+      JsonPick(column, path, _) => {
+        for i = 0; i < RowValues::value_count(source); i = i + 1 {
+          if !spend_control(control, 1) || !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
+          row.push(RowValues::value_at(source, i))
+        }
+        let name = @schema.reference_name(column)
+        guard ordinals.get(name) is Some(index) else { return Err(InvalidRows) }
+        let picked = match
+          json_pick_value(RowValues::value_at(source, index), path, control) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if !reserve_slots(workspace, 1) {
+          return Err(RowLimit)
+        }
+        row.push(picked)
+      }
       SnapshotMap(bindings) => {
         for i = 0; i < RowValues::value_count(source); i = i + 1 {
           if !spend_control(control, 1) {

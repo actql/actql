@@ -1267,6 +1267,9 @@ pub(all) enum RowIssue {
   Comparison(ScalarIssue)
   DedupeTopTie(Int, Int)
   DedupeIdentityCollision
+  AssertionPredicate(Int)
+  AssertionNullKey(Int, Int)
+  AssertionDuplicate(Int, Int)
   JoinNullKey(Bool, Int, Int)
   JoinDuplicateKey(Bool, Int, Int)
 }

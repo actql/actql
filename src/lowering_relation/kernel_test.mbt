@@ -227,3 +227,55 @@ test "assertion kernels preserve checked predicate and authored unique tuple" {
   }
   assert_eq(again.length(), 1)
 }
+
+///|
+test "json pick kernel retains exact checked field path and output" {
+  let pipeline = @pipeline.check(
+    cursor(
+      "[{\"values\":{\"schema\":{\"payload\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"inner\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"leaf\":{\"type\":\"number\",\"nullable\":false}}}}}},\"rows\":[{\"payload\":{\"inner\":{\"leaf\":3}}}]},\"as\":\"seed\"},{\"json_pick\":{\"column\":\"payload\",\"path\":[\"inner\",\"leaf\"],\"output\":\"picked\"}}]",
+    ),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(pipeline, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let kernel = @lowering_relation.prepare_kernel(
+    owner,
+    1,
+    max_bindings=4,
+    max_name_bytes=24,
+    expression_limits(),
+  ).unwrap()
+  guard @lowering_relation.kernel_body(kernel)
+    is @lowering_relation.JsonPick(column, path, output) else {
+    fail("json pick")
+  }
+  assert_eq(column, @schema.Unqualified("payload"))
+  assert_eq(path, ["inner", "leaf"])
+  assert_eq(output, "picked")
+  path.clear()
+  guard @lowering_relation.kernel_body(kernel)
+    is @lowering_relation.JsonPick(_, again, _) else {
+    fail("json pick")
+  }
+  assert_eq(again.length(), 2)
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_kernel_node(kernel, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"id\":\"json_pick_1\",\"in\":[\"values_0\"],\"op\":\"REL.json.pick\",\"params\":{\"column\":\"payload\",\"output\":\"picked\",\"path\":[\"inner\",\"leaf\"]}}",
+  )
+}

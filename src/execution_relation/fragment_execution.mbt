@@ -82,6 +82,7 @@ fn attach_fragment_budgets(
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) => ()
+          @lower.JsonPick(_, _, _) => ()
           @lower.AssertUnique(keys) => {
             let schema = @lower.kernel_input_schema(kernel)
             for name in keys {

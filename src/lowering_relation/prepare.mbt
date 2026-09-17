@@ -36,6 +36,7 @@ pub enum Payload {
   Sort(@relation.CheckedOperation)
   CountGroup(@relation.CheckedOperation)
   AssertRows(@relation.CheckedOperation)
+  JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
   AppendRows(@append.CheckedAppend)
 }
@@ -145,6 +146,7 @@ pub fn operation(value : PreparedNode) -> String {
         Some(@relation.AssertUnique(_)) => "REL.assert_unique"
         _ => "REL.assert_all"
       }
+    JsonPick(_) => "REL.json.pick"
     InnerJoin(_) => "REL.join"
     AppendRows(_) => "REL.unionAll"
   }
@@ -165,8 +167,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Sort => Some(Sort(v))
         Group => Some(CountGroup(v))
         AssertRows => Some(AssertRows(v))
-        JsonPick
-        | Unnest
+        JsonPick => Some(JsonPick(v))
+        Unnest
         | Unpivot
         | Pivot
         | Analytic
@@ -282,6 +284,7 @@ pub fn prepare(
       Sort(_) => ("sort", 1)
       CountGroup(_) => ("group", 1)
       AssertRows(_) => ("assert", 1)
+      JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
       AppendRows(_) => ("append", 2)
     }
@@ -345,6 +348,7 @@ pub fn prepare(
       | Sort(_)
       | CountGroup(_) => None
       AssertRows(_) => None
+      JsonPick(_) => None
       AppendRows(_) => None
     }
     let order_id = if payload is Limit(_) &&

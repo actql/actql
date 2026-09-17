@@ -84,6 +84,7 @@ pub fn local_managed_sequence_supported(
           | Filter(_)
           | AssertAll(_)
           | AssertUnique(_)
+          | JsonPick(_, _, _)
           | Select(_)
           | Limit(_, _, _)
           | StableSort(_)

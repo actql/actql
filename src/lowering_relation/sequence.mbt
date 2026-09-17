@@ -120,7 +120,8 @@ pub fn prepare_sequence(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_)
-      | AssertRows(_) => {
+      | AssertRows(_)
+      | JsonPick(_) => {
         let (kernel, remaining, used_names, used_bindings) = match
           prepare_kernel_measured(
             owner,

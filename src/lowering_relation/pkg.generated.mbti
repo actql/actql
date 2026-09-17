@@ -516,6 +516,9 @@ pub enum KernelBody {
   SnapshotMap(Array[(String, Expression)])
   OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
+  AssertAll(Expression)
+  AssertUnique(Array[@relation_schema.FieldName])
+  JsonPick(@relation_schema.FieldName, Array[String], String)
   Select(Array[@relation_typing.ProjectionField])
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
   DistinctRows
@@ -579,6 +582,8 @@ pub enum Payload {
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)
   CountGroup(@relation_typing.CheckedOperation)
+  AssertRows(@relation_typing.CheckedOperation)
+  JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
   AppendRows(@relation_append.CheckedAppend)
 }

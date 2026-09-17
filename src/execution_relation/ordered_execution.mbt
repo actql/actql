@@ -79,6 +79,7 @@ fn prepare_ordered_budgets(
           | @lower.Filter(_)
           | @lower.AssertAll(_)
           | @lower.AssertUnique(_)
+          | @lower.JsonPick(_, _, _)
           | @lower.Select(_)
           | @lower.Limit(_, _, _)
           | @lower.DistinctRows

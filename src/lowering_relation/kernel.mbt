@@ -16,6 +16,7 @@ pub enum KernelBody {
   Filter(Expression)
   AssertAll(Expression)
   AssertUnique(Array[@schema.FieldName])
+  JsonPick(@schema.FieldName, Array[String], String)
   Select(Array[@relation.ProjectionField])
   Limit(Int64, Int64, @pipeline.LogicalOrder)
   DistinctRows
@@ -76,6 +77,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | Filter(_)
     | AssertAll(_)
     | AssertUnique(_)
+    | JsonPick(_, _, _)
     | Select(_)
     | DistinctRows
     | DedupeRows
@@ -96,6 +98,7 @@ pub fn ordered_binding_at(
     | Filter(_)
     | AssertAll(_)
     | AssertUnique(_)
+    | JsonPick(_, _, _)
     | Select(_)
     | Limit(_, _, _)
     | DistinctRows
@@ -113,6 +116,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Filter(expr) => Filter(expr)
     AssertAll(expr) => AssertAll(expr)
     AssertUnique(keys) => AssertUnique(keys.copy())
+    JsonPick(column, path, output) => JsonPick(column, path.copy(), output)
     Select(fields) => Select(fields.copy())
     Limit(count, offset, order) => Limit(count, offset, order)
     DistinctRows => DistinctRows
@@ -129,6 +133,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
     AssertUnique(keys) => keys.length()
+    JsonPick(_, path, _) => path.length() + 2
     Filter(_)
     | AssertAll(_)
     | Limit(_, _, _)
@@ -186,6 +191,7 @@ fn prepare_kernel_measured(
     | Sort(op)
     | CountGroup(op)
     | AssertRows(op) => op
+    JsonPick(op) => op
     Values(_) | InnerJoin(_) | AppendRows(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -490,6 +496,38 @@ fn prepare_kernel_measured(
       }
       CountGroups(group)
     }
+    Reshape if @relation.operation(checked) == @relation.JsonPick => {
+      guard @relation.json_pick_source(checked) is Some((column, output)) else {
+        return Err(InvalidKernelWiring)
+      }
+      let count = @relation.json_pick_path_count(checked)
+      if count <= 0 ||
+        count > max_bindings - 2 ||
+        count > remaining.max_work - 2 {
+        return Err(KernelBudgetExceeded)
+      }
+      let path : Array[String] = []
+      for name in [@schema.reference_name(column), output] {
+        let size = @utf8.encode(name).length()
+        if size > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= size
+      }
+      for i = 0; i < count; i = i + 1 {
+        guard @relation.json_pick_path_at(checked, i) is Some(name) else {
+          return Err(InvalidKernelWiring)
+        }
+        let size = @utf8.encode(name).length()
+        if size > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= size
+        path.push(name)
+      }
+      remaining = { ..remaining, max_work: remaining.max_work - count - 2, }
+      JsonPick(column, path, output)
+    }
     Projection | Reshape => return Err(MissingKernelNode)
   }
   let binding_count = match body {
@@ -497,6 +535,7 @@ fn prepare_kernel_measured(
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) | AssertAll(_) => 1
     AssertUnique(keys) => keys.length()
+    JsonPick(_, path, _) => path.length() + 2
     Select(fields) => fields.length()
     Limit(_, _, _) =>
       take_completion(owner.prepared.owner, step_index)

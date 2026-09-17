@@ -89,6 +89,7 @@ pub fn emit_fragment_request(
     Filter(_) | AssertAll(_) => ()
     Select(_)
     | AssertUnique(_)
+    | JsonPick(_, _, _)
     | Limit(_, _, _)
     | DistinctRows
     | DedupeRows
@@ -111,6 +112,7 @@ pub fn emit_fragment_request(
       Filter(_)
       | AssertAll(_)
       | AssertUnique(_)
+      | JsonPick(_, _, _)
       | Select(_)
       | Limit(_, _, _)
       | DistinctRows

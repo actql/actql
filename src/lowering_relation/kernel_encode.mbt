@@ -62,6 +62,7 @@ pub fn emit_kernel_node(
       Filter(_) => "REL.where"
       AssertAll(_) => "REL.assert_all"
       AssertUnique(_) => "REL.assert_unique"
+      JsonPick(_, _, _) => "REL.json.pick"
       Select(_) => "REL.select"
       Limit(_, _, _) => "REL.limit"
       DistinctRows => "REL.distinct"
@@ -144,6 +145,18 @@ pub fn emit_kernel_node(
       @encode.begin_array(out)
       for field in keys {
         @encode.string_value(out, @schema.reference_name(field))
+      }
+      @encode.end_array(out)
+    }
+    JsonPick(column, path, output) => {
+      @encode.key(out, "column")
+      @encode.string_value(out, @schema.reference_name(column))
+      @encode.key(out, "output")
+      @encode.string_value(out, output)
+      @encode.key(out, "path")
+      @encode.begin_array(out)
+      for name in path {
+        @encode.string_value(out, name)
       }
       @encode.end_array(out)
     }

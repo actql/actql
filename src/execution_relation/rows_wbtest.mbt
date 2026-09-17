@@ -136,6 +136,23 @@ test "row assertions preserve exact rows and fail atomically" {
 }
 
 ///|
+test "json pick traverses admitted objects and composes nullable parents" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"inner\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"leaf\":{\"type\":\"number\",\"nullable\":false}}}}}},\"rows\":[{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}},{\"id\":2,\"payload\":null}]},\"as\":\"seed\"},{\"json_pick\":{\"column\":\"payload\",\"path\":[\"inner\",\"leaf\"],\"output\":\"picked\"}}]",
+  )
+  let result = evaluate_rows(
+    row_kernel(owner, 1),
+    row_capture(owner),
+    2,
+    { remaining: 10000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(result.names, ["id", "payload", "picked"])
+  assert_true(result.rows[0][2] is Number(3.0))
+  assert_true(result.rows[1][2] is Null)
+}
+
+///|
 test "capture conversion admits both layouts before copying and spends shared work" {
   let owner = row_owner("")
   let input = capture_values(owner, 0, max_rows=2, {
