@@ -129,4 +129,10 @@ test "generated row capability inspection rejects other prepared step kinds" {
     10000,
   ).unwrap()
   assert_false(generated_sequence_all_row_kernels(values_generated, _ => true))
+  assert_true(
+    generated_sequence_all_steps(values_generated, fn(step) {
+      step is @lower.ValuesStep(_)
+    }),
+  )
+  assert_false(generated_sequence_all_steps(values_generated, _ => false))
 }

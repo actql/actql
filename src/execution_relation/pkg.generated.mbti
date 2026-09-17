@@ -270,6 +270,8 @@ pub fn generated_satisfies_requirements(GeneratedSequence, @lowering_relation.Se
 
 pub fn generated_sequence_all_row_kernels(GeneratedSequence, (@lowering_relation.KernelBody) -> Bool) -> Bool
 
+pub fn generated_sequence_all_steps(GeneratedSequence, (@lowering_relation.PreparedStep) -> Bool) -> Bool
+
 pub fn generated_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 
 pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool

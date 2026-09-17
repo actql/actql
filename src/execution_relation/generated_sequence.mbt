@@ -148,14 +148,28 @@ pub fn generated_sequence_all_row_kernels(
   generated : GeneratedSequence,
   accepts : (@lower.KernelBody) -> Bool,
 ) -> Bool {
+  generated_sequence_all_steps(generated, fn(step) {
+    match step {
+      @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))
+      @lower.ValuesStep(_) | @lower.JoinStep(_) => false
+    }
+  })
+}
+
+///|
+/// Allocation-free typed capability inspection over the prepared step view.
+/// The owned sequence and its mutable construction arrays never escape.
+pub fn generated_sequence_all_steps(
+  generated : GeneratedSequence,
+  accepts : (@lower.PreparedStep) -> Bool,
+) -> Bool {
   let count = @lower.sequence_count(generated.sequence)
   if count == 0 {
     return false
   }
   for index in 0..<count {
-    guard @lower.sequence_step(generated.sequence, index)
-      is Some(@lower.RowStep(kernel)) &&
-      accepts(@lower.kernel_body(kernel)) else {
+    guard @lower.sequence_step(generated.sequence, index) is Some(step) &&
+      accepts(step) else {
       return false
     }
   }
