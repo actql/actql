@@ -8,6 +8,7 @@ import {
   "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_schema",
@@ -19,6 +20,24 @@ import {
 }
 
 // Values
+pub fn append_kernel_field_at(PreparedAppendKernel, Int) -> (@relation_schema.FieldName, Int, Int)?
+
+pub fn append_kernel_field_count(PreparedAppendKernel) -> Int
+
+pub fn append_kernel_input(PreparedAppendKernel, Bool) -> String
+
+pub fn append_kernel_matches_node(PreparedAppendKernel, PreparedNode) -> Bool
+
+pub fn append_kernel_name_bytes(PreparedAppendKernel) -> Int
+
+pub fn append_kernel_output(PreparedAppendKernel) -> String
+
+pub fn append_kernel_output_schema(PreparedAppendKernel) -> @relation_schema.Schema
+
+pub fn append_kernel_owner(PreparedAppendKernel) -> BoundPrepared
+
+pub fn append_kernel_step(PreparedAppendKernel) -> Int
+
 pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters~ : Int, max_name_bytes~ : Int) -> Result[BoundPrepared, BindingIssue]
 
 pub fn bound_preparation(BoundPrepared) -> Prepared
@@ -48,6 +67,8 @@ pub fn demand_source_pointer(DemandIndex, Int, Int, max_bytes~ : Int) -> Result[
 pub fn demand_source_tests(DemandIndex, Int, Int, max_tests~ : Int, max_pointer_bytes~ : Int) -> Result[Array[SourceDemandTest], DemandAddressIssue]
 
 pub fn demand_usage(DemandIndex) -> DemandUsage
+
+pub fn emit_append_kernel(PreparedAppendKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -231,6 +252,8 @@ pub fn preparation_schema_at(Prepared, @pipeline_typing.Target) -> @relation_sch
 
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
+pub fn prepare_append_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedAppendKernel, AppendIssue]
+
 pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
 
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
@@ -310,6 +333,12 @@ pub fn usage(Prepared) -> Usage
 // Errors
 
 // Types and methods
+pub(all) enum AppendIssue {
+  InvalidLimits
+  PreparationLimit
+  InvalidCheckedShape
+} derive(Eq, @debug.Debug)
+
 pub(all) enum BinaryOperator {
   Add
   Subtract
@@ -551,9 +580,12 @@ pub enum Payload {
   Sort(@relation_typing.CheckedOperation)
   CountGroup(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
+  AppendRows(@relation_append.CheckedAppend)
 }
 
 type Prepared
+
+type PreparedAppendKernel
 
 pub struct PreparedCount {
   name : String
@@ -579,6 +611,7 @@ pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  AppendStep(PreparedAppendKernel)
 }
 
 type PreparedValues
@@ -620,6 +653,7 @@ pub(all) enum SequenceIssue {
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  AppendFailure(Int, AppendIssue)
 }
 
 pub(all) struct SequenceLimits {

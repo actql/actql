@@ -175,7 +175,7 @@ fn prepare_kernel_measured(
     | Dedupe(op)
     | Sort(op)
     | CountGroup(op) => op
-    Values(_) | InnerJoin(_) => return Err(MissingKernelNode)
+    Values(_) | InnerJoin(_) | AppendRows(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

@@ -36,6 +36,7 @@ pub enum Payload {
   Sort(@relation.CheckedOperation)
   CountGroup(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
+  AppendRows(@append.CheckedAppend)
 }
 
 ///|
@@ -138,6 +139,7 @@ pub fn operation(value : PreparedNode) -> String {
     Sort(_) => "REL.orderByStable"
     CountGroup(_) => "REL.groupBy"
     InnerJoin(_) => "REL.join"
+    AppendRows(_) => "REL.unionAll"
   }
 }
 
@@ -172,8 +174,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
       } else {
         None
       }
-    Append(..)
-    | Nest(..)
+    Append(checked~, ..) => Some(AppendRows(checked))
+    Nest(..)
     | Set(..)
     | CrossJoin(..)
     | IntervalJoin(..)
@@ -273,6 +275,7 @@ pub fn prepare(
       Sort(_) => ("sort", 1)
       CountGroup(_) => ("group", 1)
       InnerJoin(_) => ("join", 2)
+      AppendRows(_) => ("append", 2)
     }
     let id = preferred + "_" + i.to_string()
     let projection_id = match payload {
@@ -333,6 +336,7 @@ pub fn prepare(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_) => None
+      AppendRows(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

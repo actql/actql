@@ -89,6 +89,7 @@ pub fn local_managed_sequence_supported(
           DistinctRows | DedupeRows => false
         }
       @lower.JoinStep(_) => false
+      @lower.AppendStep(_) => false
     }
   })
 }

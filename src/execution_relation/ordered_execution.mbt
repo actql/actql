@@ -63,7 +63,7 @@ fn prepare_ordered_budgets(
       return Err(InputLimit)
     }
     match @lower.sequence_step(sequence, i).unwrap() {
-      @lower.ValuesStep(_) | @lower.JoinStep(_) => ()
+      @lower.ValuesStep(_) | @lower.JoinStep(_) | @lower.AppendStep(_) => ()
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {

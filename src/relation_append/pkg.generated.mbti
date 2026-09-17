@@ -18,6 +18,8 @@ pub fn aligned_schema(AlignedSchemas) -> @relation_schema.Schema
 
 pub fn alignment(CheckedAppend) -> Array[Alignment]
 
+pub fn alignment_at(CheckedAppend, Int) -> (@relation_schema.FieldName, Int, Int)?
+
 pub fn alignment_usage(AlignedSchemas) -> Usage
 
 pub fn check(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Limits) -> Result[CheckedAppend, Issue]

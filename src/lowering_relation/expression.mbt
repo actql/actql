@@ -387,7 +387,8 @@ fn lower_expression_measured(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_)
-      | InnerJoin(_) => expression_fail(step.source, MissingCheckedBinding)
+      | InnerJoin(_)
+      | AppendRows(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

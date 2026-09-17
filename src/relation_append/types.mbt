@@ -94,6 +94,18 @@ pub fn alignment(v : CheckedAppend) -> Array[Alignment] {
 }
 
 ///|
+/// Bounded positional view used by typed lowering. The checked append remains
+/// the authority; callers cannot mutate or reconstruct its alignment table.
+pub fn alignment_at(
+  v : CheckedAppend,
+  index : Int,
+) -> (@schema.FieldName, Int, Int)? {
+  v.alignment
+  .get(index)
+  .map(value => (value.field, value.left_index, value.right_index))
+}
+
+///|
 pub fn usage(v : CheckedAppend) -> Usage {
   v.usage
 }

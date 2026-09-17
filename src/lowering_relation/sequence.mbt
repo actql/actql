@@ -11,6 +11,7 @@ pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  AppendStep(PreparedAppendKernel)
 }
 
 ///|
@@ -30,6 +31,7 @@ pub(all) enum SequenceIssue {
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  AppendFailure(Int, AppendIssue)
 }
 
 ///|
@@ -89,6 +91,15 @@ pub fn prepare_sequence(
         }
         JoinStep(kernel)
       }
+      AppendRows(_) => {
+        let kernel = match prepare_append_kernel(owner, i, bindings, names) {
+          Ok(value) => value
+          Err(issue) => return Err(AppendFailure(i, issue))
+        }
+        bindings -= append_kernel_field_count(kernel)
+        names -= append_kernel_name_bytes(kernel)
+        AppendStep(kernel)
+      }
       Values(values) => {
         let prepared = match
           prepare_values_node(owner, i, max_rows=rows, max_cells=cells) {
@@ -143,6 +154,7 @@ pub fn emit_sequence_steps(
     match step {
       ValuesStep(v) => emit_values_node(v, out)
       JoinStep(v) => emit_join_kernel(v, out)
+      AppendStep(v) => emit_append_kernel(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)
