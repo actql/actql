@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {
+  mkdtemp,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -169,6 +176,78 @@ test('Store construction failure enters the common settlement boundary',
       );
       assert.deepEqual((await readdir(directory)).sort(),
         ['not-a-directory', 'source.duckdb']);
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
+
+test('filesystem replacement prevents a successful sample and stays pending',
+  async () => {
+    const root = new URL('../../../', import.meta.url);
+    await promisify(execFile)('moon', [
+      'build',
+      'src/benchmark_obligations',
+      '--target',
+      'js',
+      '--release',
+    ], {cwd: root});
+    const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-tamper-'));
+    try {
+      const fixture = retainedCase(workloads[2], 'narrow', 10000);
+      const database = join(directory, 'source.duckdb');
+      await promisify(execFile)(process.execPath, [
+        fileURLToPath(new URL(
+          '../bench/create-retained-source.mjs',
+          import.meta.url,
+        )),
+        database,
+        fixture.workload,
+        fixture.layout,
+        String(fixture.rows),
+      ]);
+      let finished = false;
+      let replacedStore;
+      const outcome = runEquivalentObligations(
+        fixture,
+        database,
+        directory,
+      ).then(value => ({value}), error => ({error})).finally(() => {
+        finished = true;
+      });
+      while (!finished && !replacedStore) {
+        const stores = (await readdir(directory)).filter(name =>
+          name.startsWith('actql-retained-'));
+        for (const store of stores) {
+          const storeDirectory = join(directory, store);
+          const files = await readdir(storeDirectory).catch(error => {
+            if (error.code === 'ENOENT') return [];
+            throw error;
+          });
+          if (!files.includes('body-0')) continue;
+          await rename(
+            join(storeDirectory, 'body-0'),
+            join(storeDirectory, 'body-0-original'),
+          );
+          await writeFile(join(storeDirectory, 'body-0'), 'replacement');
+          replacedStore = storeDirectory;
+          break;
+        }
+        if (!replacedStore) await delay(1);
+      }
+      const result = await outcome;
+      assert(replacedStore, 'must replace an actual retained output pathname');
+      assert.equal(result.value, undefined,
+        'unconfirmed filesystem cleanup cannot yield a timing sample');
+      assert(result.error instanceof AggregateError);
+      assert.equal(result.error.message, 'ObligationRunCleanupUnconfirmed');
+      assert(result.error.errors.some(error =>
+        error.message === 'ObligationCleanupFailed:store-cleanup' &&
+        error.cause?.errors?.some(cause =>
+          cause.code === 'RetainedPathReplaced')),
+      'the exact path-identity failure must remain attached to settlement');
+      assert((await readdir(directory)).some(name =>
+        name.startsWith('actql-retained-')),
+      'the comparator must not claim that the replaced holding was reclaimed');
     } finally {
       await rm(directory, {recursive: true, force: true});
     }
