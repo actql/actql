@@ -29,9 +29,9 @@
       "canonical_operations": ["REL.where"],
       "machine_registry": "registered",
       "variant_scope": ["structured predicate", "text predicate", "parameter operands", "NULL and demanded evaluation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":["src/execution_relation/fragment_execution_wbtest.mbt"],"performance":[]},
-      "gaps": ["Managed eligibility is uncommitted and two-consumer standard Host coverage is absent."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/fragment_execution_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Text and structured parameter predicates reach two managed consumers on three targets; NULL, demanded-failure, full type, and performance coverage remain."]
     },
     {
       "operation": "select",
@@ -51,9 +51,9 @@
       "canonical_operations": ["REL.select"],
       "machine_registry": "registered",
       "variant_scope": ["single and multiple renames", "name collision rejection", "order preservation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Shared REL.select machinery exists but the rename source form has no Local connection evidence."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["A single rename reaches two managed consumers on three targets; multiple renames, collision rejection, full type, and performance coverage remain."]
     },
     {
       "operation": "drop",
@@ -62,9 +62,9 @@
       "canonical_operations": ["REL.select"],
       "machine_registry": "registered",
       "variant_scope": ["single and multiple drops", "empty result schema rules", "order preservation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Shared REL.select machinery exists but the drop source form has no Local connection evidence."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["A single drop reaches two managed consumers on three targets; multiple drops, empty-schema rules, full type, and performance coverage remain."]
     },
     {
       "operation": "derive",
@@ -73,9 +73,9 @@
       "canonical_operations": ["REL.derive"],
       "machine_registry": "registered",
       "variant_scope": ["snapshot map", "ordered bindings", "parameters", "demanded expressions", "overwrite and append fields"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":["src/execution_relation/ordered_execution_wbtest.mbt"],"performance":[]},
-      "gaps": ["Managed eligibility is in progress; ordered and snapshot forms need standard Host evidence."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/ordered_execution_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Snapshot-map and ordered parameter derives reach two managed consumers on three targets; demanded failures, full type and overwrite coverage, and performance evidence remain."]
     },
     {
       "operation": "sort",

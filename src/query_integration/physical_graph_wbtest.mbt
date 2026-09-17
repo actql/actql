@@ -78,6 +78,7 @@ fn captured_graph_fixture(
   values? : Bool = false,
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
+  local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
@@ -95,6 +96,7 @@ fn captured_graph_fixture(
     dag_values=values,
     local_values_group_chain~,
     local_values_append_chain~,
+    local_values_unary_chain~,
     join_steps~,
     compute_filter~,
   )

@@ -28,11 +28,11 @@ standard-Host candidate and execution support, not a direct kernel call.
 
 | Operation | Checked | Lowering | Kernel | Host | Main gap |
 | --- | :---: | :---: | :---: | :---: | --- |
-| filter | C | C | C | P | Finish managed two-consumer connection |
+| filter | C | C | C | P | Complete NULL, demanded-failure, type, and performance coverage |
 | select | C | C | C | C | Complete three-target and performance evidence |
-| rename | C | C | C | P | Source-form connection and E2E evidence |
-| drop | C | C | C | P | Source-form connection and E2E evidence |
-| derive | C | C | C | P | Snapshot and ordered forms through Host |
+| rename | C | C | C | P | Multiple rename, collision, type, and performance coverage |
+| drop | C | C | C | P | Multiple drop, empty-schema, type, and performance coverage |
+| derive | C | C | C | P | Demanded failure, type, overwrite, and performance coverage |
 | sort | C | C | C | P | Managed stability and performance floor |
 | take | C | C | C | P | Managed validation and boundary cases |
 | top_k | C | - | - | - | Common lowering and execution |

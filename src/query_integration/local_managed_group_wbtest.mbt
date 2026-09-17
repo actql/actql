@@ -31,7 +31,24 @@ fn run_local_managed_test_task(
     }
     (transfer.finish)().unwrap()
   }
-  (operations.execute)().unwrap()
+  match (operations.execute)() {
+    Ok(_) => ()
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+      )
+    ) => fail("Local managed execution exceeded its row budget")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(
+          @execution.Rows(_, @execution.MissingOrderedResourceContext)
+        )
+      )
+    ) => fail("Local managed execution lacked an ordered resource context")
+    Err(@local_driver.Configuration(@connector.Execution(_))) =>
+      fail("Local managed sequence failed")
+    Err(_) => fail("Local managed dispatch failed")
+  }
   (operations.settle)().unwrap()
   let completed = (operations.complete)(payload, operations.storage_bytes, fn() {
     available.val

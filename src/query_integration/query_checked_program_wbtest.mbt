@@ -11,6 +11,7 @@ fn query_checked_program_fixture(
   dag_values? : Bool = false,
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
+  local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
@@ -39,6 +40,10 @@ fn query_checked_program_fixture(
     )
   } else {
     text
+  }
+  let text = match local_values_unary_chain {
+    None => text
+    Some(kind) => local_values_unary_program(kind)
   }
   let text = if sort_take {
     text.replace(
@@ -165,6 +170,45 @@ fn query_checked_program_fixture(
     NeedsInputs(_) => fail("fixture requires complete checking inputs")
     Rejected(diagnostic) => raise @program_check.diagnostic_cause(diagnostic)
   }
+}
+
+///|
+fn local_values_unary_program(kind : String) -> String {
+  let operation = match kind {
+    "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"
+    "filter_structured" =>
+      "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
+    "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
+    "derive_ordered" =>
+      "{\"derive\":[{\"saved\":\"id\"},{\"id\":\"id + $minimum\"},{\"next\":\"saved + id\"}],\"as\":\"out\"}"
+    "rename" => "{\"rename\":{\"amount\":\"total\"},\"as\":\"out\"}"
+    "drop" => "{\"drop\":[\"amount\"],\"as\":\"out\"}"
+    _ => abort("unknown Local unary fixture")
+  }
+  let fields = match kind {
+    "derive_map" => "[\"id\",\"amount\",\"next\"]"
+    "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
+    "rename" => "[\"id\",\"total\"]"
+    "drop" => "[\"id\"]"
+    _ => "[\"id\",\"amount\"]"
+  }
+  let prefix =
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":true}},"rows":[{"id":1,"amount":10},{"id":2,"amount":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[
+  let consumer =
+    #|,"as":"out"}],"results":{"r":{"from":"out","fields":
+  prefix +
+  operation +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  consumer +
+  fields +
+  "}}},{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  consumer +
+  fields +
+  "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
