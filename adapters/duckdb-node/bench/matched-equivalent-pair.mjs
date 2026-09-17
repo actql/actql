@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {promisify} from 'node:util';
+import {isDeepStrictEqual, promisify} from 'node:util';
 
 const exec = promisify(execFile);
 
@@ -212,9 +212,15 @@ export async function runMatchedEquivalentPair({
   const logicalAccountingEquivalent = completed && exactLogicalDomains.every(
     key => accountingComparison[key].difference === 0,
   );
+  const acquisitionMetadataEquivalent = completed && isDeepStrictEqual(
+    retained.report?.acquisitionEvidenceMetadata,
+    equivalent.report?.acquisitionEvidenceMetadata,
+  );
   const closed = Object.freeze([
     'matched process/cold timing boundaries',
     'matched warm timing boundary',
+    ...(acquisitionMetadataEquivalent
+      ? ['acquisition evidence metadata parity'] : []),
   ]);
   const closedSet = new Set(closed);
   return Object.freeze({
@@ -235,12 +241,15 @@ export async function runMatchedEquivalentPair({
       executionBoundary: 'leg-owned setup through completed holdings',
       cleanupBoundary: 'leg-owned confirmed release interval',
     }),
-    status: completed && logicalAccountingEquivalent
+    status: completed && logicalAccountingEquivalent &&
+      acquisitionMetadataEquivalent
       ? 'diagnostic-completed' : 'failed',
     accountingComparison,
     logicalAccountingEquivalent,
+    acquisitionMetadataEquivalent,
     acceptanceEligible: completed && equivalent.acceptanceEligible === true &&
-      retained.acceptanceEligible === true && logicalAccountingEquivalent,
+      retained.acceptanceEligible === true && logicalAccountingEquivalent &&
+      acquisitionMetadataEquivalent,
     closed,
     missing: Object.freeze([
       ...new Set([
@@ -248,6 +257,8 @@ export async function runMatchedEquivalentPair({
           !closedSet.has(value)),
         ...(!logicalAccountingEquivalent
           ? ['logical guard and comparison charge parity'] : []),
+        ...(!acquisitionMetadataEquivalent
+          ? ['acquisition evidence metadata parity'] : []),
         'equivalent-obligation admission',
       ]),
     ]),

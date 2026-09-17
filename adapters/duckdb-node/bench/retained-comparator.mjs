@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 import {managedCaseConfiguration} from '../../../benchmarks/retained-results/managed-configuration.mjs';
 import {sampleControllerMemory} from '../../../benchmarks/retained-results/controller-memory.mjs';
 import {createManagedExampleHost} from '../examples/managed-host.mjs';
+import {productAcquisitionMetadata} from
+  './equivalent-acquisition-metadata.mjs';
 
 const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const usage = value => Object.fromEntries(Object.entries(value).map(([key, v]) =>
@@ -151,6 +153,10 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
       sourceDefinitionHash: hash(fixture.createSourceSql),
       acquisitionEvidence: result.report.acquisition_evidence,
+      acquisitionEvidenceMetadata: productAcquisitionMetadata(
+        fixture,
+        result.report.acquisition_evidence,
+      ),
       accounting,
       completionDescriptors: descriptors,
       controlMemory: memoryReport, controlTransport: result.process().transport,

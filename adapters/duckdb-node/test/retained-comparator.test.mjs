@@ -10,6 +10,8 @@ import {fileURLToPath} from 'node:url';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {runRetainedComparator, closeRetainedSample} from '../bench/retained-comparator.mjs';
 import {runEquivalentObligations} from '../bench/equivalent-obligations.mjs';
+import {productAcquisitionMetadata} from
+  '../bench/equivalent-acquisition-metadata.mjs';
 
 const hash = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
@@ -143,6 +145,20 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
       const equivalent = await runEquivalentObligations(
         fixture, database, directory,
+      );
+      assert.deepEqual(
+        report.acquisitionEvidenceMetadata,
+        equivalent.acquisitionEvidenceMetadata,
+      );
+      assert(!equivalent.missing.includes(
+        'acquisition evidence metadata parity',
+      ));
+      const alteredEvidence = structuredClone(report.acquisitionEvidence);
+      alteredEvidence.observation.coverage.filter_evidence_cid =
+        `sha256:${'0'.repeat(64)}`;
+      assert.throws(
+        () => productAcquisitionMetadata(fixture, alteredEvidence),
+        {code: 'ERR_ASSERTION'},
       );
       for (const domain of ['logicalGuardWork', 'logicalGuardBytes',
         'logicalGuardNodes', 'comparisonWork', 'comparisonBytes',

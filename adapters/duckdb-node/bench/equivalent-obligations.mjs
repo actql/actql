@@ -9,6 +9,8 @@ import {checked} from '../runtime-result.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {settleObligationRun} from './obligation-settlement.mjs';
 import {equivalentExecutionCapacity} from './equivalent-capacity.mjs';
+import {equivalentAcquisitionMetadata} from
+  './equivalent-acquisition-metadata.mjs';
 
 const runtime = new URL('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js',
   import.meta.url);
@@ -55,6 +57,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 1073741824,
     maxFrameBytes: l.batchBytes, maxEntries: 16});
   let instance, connection, transaction = false, primary, report;
+  let acquisitionEvidenceMetadata;
   const stages = [], completed = new Map();
   const run = Object.freeze({});
   const check = () => signal.throwIfAborted();
@@ -244,6 +247,11 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const validationMs = performance.now() - validationStarted;
     const names = f.workload === workloads[2] ? f.fields : ['id'];
     await stage('capture', `SELECT ${list(names)} FROM records WHERE id > ${f.minimum} ORDER BY rowid`, names, []);
+    acquisitionEvidenceMetadata = equivalentAcquisitionMetadata(
+      f,
+      validation,
+      completed.get('capture'),
+    );
     await stage('a', `SELECT ${list(names)} FROM bench_capture WHERE id >= 0 ORDER BY rowid`, names, ['capture']);
     await stage('b', `SELECT ${list(names)} FROM bench_capture WHERE id >= 0 ORDER BY rowid`, names, ['capture']);
     await exec('DROP TABLE bench_capture');
@@ -267,6 +275,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       comparator: 'independent-obligation-assembly', executionMs, validationMs,
       warmMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
+      acquisitionEvidenceMetadata,
       holding: store.status(), retentionLedger: ledgerReport(),
       executionLedger: executionLedgerReport(),
       accounting: Object.freeze({
@@ -302,7 +311,6 @@ export async function runEquivalentObligations(fixture, database, directory, sup
         conformance: 'registered-fixture-bounded',
       },
       missing: ['matched process/cold timing boundaries', 'complete expression-demand/guard failure parity',
-        'acquisition evidence metadata parity',
         'transfer/work accounting equivalence', 'complete negative conformance fixtures']};
   } catch (error) { primary = error; }
   finally {

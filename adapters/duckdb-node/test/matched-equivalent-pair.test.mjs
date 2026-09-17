@@ -39,6 +39,11 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         comparisonBytes: 20,
         comparisonNodes: 10,
       };
+      const acquisitionEvidenceMetadata = Object.freeze({
+        sourceRef: 'connector://fixture/source#view',
+        validationScan: Object.freeze({rows: 10}),
+        nativeResult: Object.freeze({rows: 2}),
+      });
       const runChild = async (label, arguments_, timeoutMs, script) => {
         calls.push({label, arguments_, timeoutMs, script});
         if (label === 'retained-actql') {
@@ -56,6 +61,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
               warmMs: 7,
               cleanupMs: 1,
               accounting,
+              acquisitionEvidenceMetadata,
             },
           });
         }
@@ -73,6 +79,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
             warmMs: 5,
             cleanupMs: 1,
             accounting: {...accounting, nativeSemanticRows: 8},
+            acquisitionEvidenceMetadata,
             missing: [
               'matched process/cold timing boundaries',
               'guard parity',
@@ -102,6 +109,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         : 'equivalent-case.mjs'));
       assert.equal(report.status, 'diagnostic-completed');
       assert.equal(report.logicalAccountingEquivalent, true);
+      assert.equal(report.acquisitionMetadataEquivalent, true);
       assert.equal(report.acceptanceEligible, false);
       assert(report.missing.includes('guard parity'));
       assert(!report.missing.includes(
@@ -110,6 +118,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       assert.deepEqual(report.closed, [
         'matched process/cold timing boundaries',
         'matched warm timing boundary',
+        'acquisition evidence metadata parity',
       ]);
       assert(report.missing.includes('equivalent-obligation admission'));
       assert.equal(report.provenance.processBoundary, 'fresh child per leg');
