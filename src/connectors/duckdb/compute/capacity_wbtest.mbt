@@ -64,14 +64,49 @@ test "bounded stream working capacity tracks frames not cumulative value counter
     duckdb_stream_scratch_capacity(larger, transport).unwrap() > expected,
   )
   assert_eq(
-    duckdb_managed_stream_scratch_capacity(larger, transport),
+    duckdb_managed_stream_scratch_capacity(larger, transport, {
+      input_count: 1,
+      retains_join_keys: false,
+    }),
     Some(expected),
   )
+  // The registered two-input join retains no Local key array, so its maximum
+  // input shape uses the same bounded frame estimate rather than a unary
+  // assumption or the full logical-input allowance.
   assert_eq(
-    duckdb_managed_stream_scratch_capacity(larger, {
-      ..transport,
-      max_columns: 0,
+    duckdb_managed_stream_scratch_capacity(larger, transport, {
+      input_count: 2,
+      retains_join_keys: false,
     }),
+    Some(expected),
+  )
+  assert_true(
+    duckdb_managed_stream_scratch_capacity(larger, transport, {
+      input_count: 2,
+      retains_join_keys: true,
+    }).unwrap() >
+    expected,
+  )
+  assert_eq(
+    duckdb_managed_stream_scratch_capacity(larger, transport, {
+      input_count: 0,
+      retains_join_keys: false,
+    }),
+    None,
+  )
+  assert_eq(
+    duckdb_managed_stream_scratch_capacity(larger, transport, {
+      input_count: 3,
+      retains_join_keys: false,
+    }),
+    None,
+  )
+  assert_eq(
+    duckdb_managed_stream_scratch_capacity(
+      larger,
+      { ..transport, max_columns: 0, },
+      { input_count: 2, retains_join_keys: false, },
+    ),
     None,
   )
 }

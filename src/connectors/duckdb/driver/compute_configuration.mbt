@@ -276,7 +276,23 @@ pub fn[T] configured_managed_strategy_retention_capacity(
 pub fn[T] configured_managed_strategy_scratch_capacity(
   setup : ManagedStrategyComputeHostConfiguration[T],
 ) -> Int64? {
-  @compute.duckdb_managed_stream_scratch_capacity(setup.limits, setup.transport)
+  guard @connector.managed_fixed_compute_choice_payload(
+      setup.choice,
+      setup.prepared,
+    )
+    is Some(query) else {
+    return None
+  }
+  @compute.duckdb_managed_stream_scratch_capacity(
+    setup.limits,
+    setup.transport,
+    {
+      input_count: @duckdb.managed_fixed_query_input_count(query),
+      retains_join_keys: @duckdb.managed_fixed_query_retains_host_join_keys(
+        query,
+      ),
+    },
+  )
 }
 
 ///|

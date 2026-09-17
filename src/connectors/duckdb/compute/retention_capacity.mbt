@@ -57,14 +57,28 @@ pub fn duckdb_stream_scratch_capacity(
 }
 
 ///|
-/// Managed fixed queries currently have exactly one input, so they cannot
-/// retain join keys. Their checked query is known even though it is represented
-/// separately from the legacy FixedCompute payload.
+/// Exact Host-side scratch facts from the selected managed query. Input count
+/// is recorded so adding a multi-input implementation cannot silently inherit
+/// the unary estimate. `retains_join_keys` concerns Host-side key arrays only;
+/// native engine working memory remains covered by its separate reservation.
+pub(all) struct ManagedStreamScratchFacts {
+  input_count : Int
+  retains_join_keys : Bool
+}
+
+///|
+/// Managed scratch is bounded only when the selected query explicitly proves
+/// that it keeps no Host-side join-key arrays. Query shape supplies these facts;
+/// this function does not infer them from the managed profile name.
 pub fn duckdb_managed_stream_scratch_capacity(
   limits : DuckDBComputeLimits,
   transport : @duckdb.TransportColumnLimits,
+  facts : ManagedStreamScratchFacts,
 ) -> Int64? {
-  stream_scratch_capacity(limits, transport, true, false)
+  if facts.input_count < 1 || facts.input_count > 2 {
+    return None
+  }
+  stream_scratch_capacity(limits, transport, true, facts.retains_join_keys)
 }
 
 ///|

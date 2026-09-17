@@ -237,6 +237,8 @@ pub fn[T] managed_fixed_query_parquet_file_sql_at(ManagedFixedQuery[T], Int, Int
 
 pub fn[T] managed_fixed_query_requires_fragment(ManagedFixedQuery[T]) -> Bool
 
+pub fn[T] managed_fixed_query_retains_host_join_keys(ManagedFixedQuery[T]) -> Bool
+
 pub fn[T] managed_fixed_query_sql(ManagedFixedQuery[T]) -> String
 
 pub fn[T] managed_fixed_query_target(ManagedFixedQuery[T]) -> @pipeline_typing.Target

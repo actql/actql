@@ -101,7 +101,9 @@ pub fn[T] prepare_managed_fixed_request_query(
   limits : NativeQueryLimits,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
   let inputs = @connector.managed_fixed_compute_request_inputs(request)
-  let obligations = @connector.managed_fixed_compute_request_obligations(request)
+  let obligations = @connector.managed_fixed_compute_request_obligations(
+    request,
+  )
   if inputs.length() == 1 {
     return prepare_managed_fixed_query_inputs(
       inputs,
@@ -361,6 +363,17 @@ pub fn[T] managed_fixed_query_obligations(
 ///|
 pub fn[T] managed_fixed_query_input_count(value : ManagedFixedQuery[T]) -> Int {
   value.inputs.length()
+}
+
+///|
+/// The current managed compiler delegates joins wholly to DuckDB and retains no
+/// Host-side key array. Keep this query fact separate from input count so a
+/// future implementation that adds such preflight cannot reuse the bounded
+/// scratch estimate without changing its selected-query facts.
+pub fn[T] managed_fixed_query_retains_host_join_keys(
+  _value : ManagedFixedQuery[T],
+) -> Bool {
+  false
 }
 
 ///|
