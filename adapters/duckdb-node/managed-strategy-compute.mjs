@@ -14,6 +14,38 @@ import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
+
+function logicalComparisonAccounting(values) {
+  if (values == null) return Object.freeze({
+    comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
+  });
+  if (!Array.isArray(values) || values.length !== 10) {
+    throw new DuckDBTransportError('InvalidLogicalComparisonUsage');
+  }
+  const [comparisonWork, comparisonBytes, comparisonNodes] = values
+    .slice(7)
+    .map(Number);
+  if (![comparisonWork, comparisonBytes, comparisonNodes].every(value =>
+    Number.isSafeInteger(value) && value >= 0)) {
+    throw new DuckDBTransportError('InvalidLogicalComparisonUsage');
+  }
+  return Object.freeze({comparisonWork, comparisonBytes, comparisonNodes});
+}
+
+function logicalMeasurementAccounting(values, prefix) {
+  if (values == null) return Object.freeze({
+    [`${prefix}Work`]: 0, [`${prefix}Bytes`]: 0, [`${prefix}Nodes`]: 0,
+  });
+  if (!Array.isArray(values) || values.length !== 3 ||
+      !values.every(value => Number.isSafeInteger(value) && value >= 0)) {
+    throw new DuckDBTransportError('InvalidLogicalMeasurementUsage');
+  }
+  return Object.freeze({
+    [`${prefix}Work`]: values[0],
+    [`${prefix}Bytes`]: values[1],
+    [`${prefix}Nodes`]: values[2],
+  });
+}
 function fieldsFrame(fields) {
   return JSON.stringify(fields.map(({name, type}) => [name, type.id,
     type.precision === undefined ? null : String(type.precision),
@@ -237,6 +269,19 @@ export async function runManagedColumnStrategyHostCompute(
       : await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
     completed = checked(moon.managedStrategyComplete(run, output));
+    const outputMeasurement = checked(
+      moon.managedOutputMeasurements(output),
+    ).slice(1);
+    const logicalDiagnostics = Object.freeze({
+      ...logicalMeasurementAccounting(outputMeasurement, 'measuredGuard'),
+      ...logicalMeasurementAccounting(
+        checked(moon.managedOutputInputMeasurements(output)),
+        'reusedGuard',
+      ),
+      ...logicalComparisonAccounting(
+        checked(moon.managedStrategyComparisonUsage(run)),
+      ),
+    });
     const material = moon.managedOutputMaterial(output);
     if (material == null) throw new DuckDBTransportError('MissingManagedOutputMaterial');
     registerManagedInput(material,
@@ -265,6 +310,7 @@ export async function runManagedColumnStrategyHostCompute(
         directOutputCopies: directLease ? 1 : 0,
         outputJsMaterializedCells: outputValueAdmissionCells,
         outputFrameReencodes: outputFrames,
+        ...logicalDiagnostics,
       }),
       storageUsage: () => store.status(),
       close: async () => {

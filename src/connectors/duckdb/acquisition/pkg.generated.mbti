@@ -89,7 +89,11 @@ pub fn duckdb_native_measurement_matches(DuckDBNativeMeasurement, DuckDBNativeAt
 
 pub fn duckdb_native_observation_cid(DuckDBNativeObservation) -> String
 
+pub fn duckdb_native_observation_demand_usage(DuckDBNativeObservation) -> @adapter.NativeDemandUsage
+
 pub fn duckdb_native_observation_document(DuckDBNativeObservation) -> @encode_core.EncodedDocument
+
+pub fn duckdb_native_observation_measurement_usage(DuckDBNativeObservation) -> (Int, Int, Int)
 
 pub fn duckdb_native_observation_receipt_at(DuckDBNativeObservation, Int) -> (@encode_core.EncodedDocument, String)?
 

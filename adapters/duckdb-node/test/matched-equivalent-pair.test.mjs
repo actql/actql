@@ -26,6 +26,18 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         identityPasses: 4,
         identityPreimageBytes: 40,
         retainedStoreBytes: 20,
+        measuredGuardWork: 30,
+        measuredGuardBytes: 40,
+        measuredGuardNodes: 20,
+        reusedGuardWork: 10,
+        reusedGuardBytes: 12,
+        reusedGuardNodes: 6,
+        logicalGuardWork: 40,
+        logicalGuardBytes: 52,
+        logicalGuardNodes: 26,
+        comparisonWork: 15,
+        comparisonBytes: 20,
+        comparisonNodes: 10,
       };
       const runChild = async (label, arguments_, timeoutMs, script) => {
         calls.push({label, arguments_, timeoutMs, script});
@@ -89,6 +101,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         ? 'retained-case.mjs'
         : 'equivalent-case.mjs'));
       assert.equal(report.status, 'diagnostic-completed');
+      assert.equal(report.logicalAccountingEquivalent, true);
       assert.equal(report.acceptanceEligible, false);
       assert(report.missing.includes('guard parity'));
       assert(!report.missing.includes(

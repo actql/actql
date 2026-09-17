@@ -14,7 +14,7 @@ pub fn obligation_begin(Array[String], Array[Int], Array[Bool], @adapter.Physica
 
 pub fn obligation_budget(Int, Int, Int, Int, Int) -> GuardBudget raise ObligationFailure
 
-pub fn obligation_comparison(ObligationStream, String, String, Int, @execution_relation.FixedInputGuardMeasureLimits) -> ObligationComparison raise ObligationFailure
+pub fn obligation_comparison(ObligationStream, String, String, Int, @execution_relation.FixedInputGuardMeasureLimits, Bool) -> ObligationComparison raise ObligationFailure
 
 pub fn obligation_comparison_finish(ObligationComparison, Int) -> @adapter.NativeDemandUsage raise ObligationFailure
 

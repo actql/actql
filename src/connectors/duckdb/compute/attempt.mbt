@@ -192,6 +192,33 @@ pub fn duckdb_compute_attempt_plan(
 }
 
 ///|
+/// Logical input-plus-output value measurement for a completed attempt. This
+/// reports the actual fixed path; it does not relabel scans as evidence reuse.
+pub fn duckdb_compute_measurement_usage(
+  value : DuckDBComputeAttempt,
+) -> (Int, Int, Int)? {
+  match (value.stream_measured, value.measured) {
+    (Some(measured), _) =>
+      Some(@execution.fixed_producer_stream_measurement_usage(measured))
+    (_, Some(measured)) =>
+      Some(@execution.fixed_producer_measurement_usage(measured))
+    _ => None
+  }
+}
+
+///|
+/// Completed fixed-query demand, kept separate from value measurement.
+pub fn duckdb_compute_demand_usage(
+  value : DuckDBComputeAttempt,
+) -> @duckdb.FixedComputeDemandUsage? {
+  match (value.stream_demand, value.demand) {
+    (Some(demand), _) => Some(@duckdb.fixed_compute_stream_demand_usage(demand))
+    (_, Some(demand)) => Some(@duckdb.fixed_compute_demand_usage(demand))
+    _ => None
+  }
+}
+
+///|
 pub fn begin_duckdb_compute_result(
   value : DuckDBComputeAttempt,
   fields : Array[(String, @duckdb.PhysicalType)],

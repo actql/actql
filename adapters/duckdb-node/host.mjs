@@ -31,6 +31,38 @@ const loadRuntime = () => runtime ??= import(runtimeUrl.href);
 const residentEnvironments = new WeakMap();
 const retainedComputations = new WeakMap();
 
+function logicalComparisonAccounting(values) {
+  if (values == null) return Object.freeze({
+    comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
+  });
+  if (!Array.isArray(values) || values.length !== 10) {
+    throw new DuckDBTransportError('InvalidLogicalComparisonUsage');
+  }
+  const [comparisonWork, comparisonBytes, comparisonNodes] = values
+    .slice(7)
+    .map(Number);
+  if (![comparisonWork, comparisonBytes, comparisonNodes].every(value =>
+    Number.isSafeInteger(value) && value >= 0)) {
+    throw new DuckDBTransportError('InvalidLogicalComparisonUsage');
+  }
+  return Object.freeze({comparisonWork, comparisonBytes, comparisonNodes});
+}
+
+function logicalMeasurementAccounting(values, prefix) {
+  if (values == null) return Object.freeze({
+    [`${prefix}Work`]: 0, [`${prefix}Bytes`]: 0, [`${prefix}Nodes`]: 0,
+  });
+  if (!Array.isArray(values) || values.length !== 3 ||
+      !values.every(value => Number.isSafeInteger(value) && value >= 0)) {
+    throw new DuckDBTransportError('InvalidLogicalMeasurementUsage');
+  }
+  return Object.freeze({
+    [`${prefix}Work`]: values[0],
+    [`${prefix}Bytes`]: values[1],
+    [`${prefix}Nodes`]: values[2],
+  });
+}
+
 function registerRetained(output, material, readable, body, configuration) {
   const held = Object.freeze({ readable, body, configuration });
   registerRetainedInput(material, readable, body, configuration);
@@ -687,6 +719,7 @@ async function runHostCompute(
     if (!resident) await finishOutput(result.value.fields);
     let output;
     let material;
+    let logicalDiagnostics = {};
     if (managed) {
       checked(moon.managedOutputVerifyCompute(managedOutput));
       output = checked(moon.managedOutputCompleteStrategyCompute(
@@ -703,10 +736,35 @@ async function runHostCompute(
         body,
         managedColumnCodecContractCid,
       );
+      const outputMeasurement = checked(
+        moon.managedOutputMeasurements(managedOutput),
+      ).slice(1);
+      logicalDiagnostics = {
+        ...logicalMeasurementAccounting(outputMeasurement, 'measuredGuard'),
+        ...logicalMeasurementAccounting(
+          checked(moon.managedOutputInputMeasurements(managedOutput)),
+          'reusedGuard',
+        ),
+        ...logicalComparisonAccounting(
+          checked(moon.managedOutputLogicalComparisonUsage(managedOutput)),
+        ),
+      };
     } else {
       output = checked(moon.computeHostComplete(run));
       if (retained) registerRetained(output, moon.computeHostStreamMaterial(retainedHandle),
         input => moon.computeHostStreamReadable(retainedHandle, input), body, retained);
+      logicalDiagnostics = {
+        ...logicalMeasurementAccounting(
+          checked(moon.computeHostMeasurementUsage(run)),
+          'measuredGuard',
+        ),
+        reusedGuardWork: 0,
+        reusedGuardBytes: 0,
+        reusedGuardNodes: 0,
+        ...logicalComparisonAccounting(
+          checked(moon.computeHostComparisonUsage(run)),
+        ),
+      };
     }
     let closed = false;
     return Object.freeze({
@@ -721,6 +779,7 @@ async function runHostCompute(
       diagnostics: Object.freeze({
         ...result.value.diagnostics,
         ...semantic,
+        ...logicalDiagnostics,
       }),
       storageUsage: () => store?.status(),
       cleanupHandle: retained ? retainedCleanup : undefined,
@@ -1055,12 +1114,24 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       observation: JSON.parse(moon.nativeHostDocument(captured.observation)),
     });
   };
+  const acquisitionMeasurement = logicalMeasurementAccounting(
+    moon.nativeHostMeasurementUsage(captured.observation),
+    'measuredGuard',
+  );
+  const acquisitionComparison = logicalComparisonAccounting(
+    moon.nativeHostComparisonUsage(captured.observation),
+  );
   return Object.freeze({
     observation: captured.observation,
     usage: captured.usage,
     diagnostics: Object.freeze({
       ...captured.diagnostics,
       ...semantic,
+      ...acquisitionMeasurement,
+      reusedGuardWork: 0,
+      reusedGuardBytes: 0,
+      reusedGuardNodes: 0,
+      ...acquisitionComparison,
     }),
     physicalCapacity: capacity === undefined ? undefined : Object.freeze({
       ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,

@@ -93,11 +93,13 @@ test('owned completed measurement can be charged again but never waives a consum
 test('comparison demand is bound to a finished scan and discharges each consumer once', () => {
   const stream = begin({names: ['id'], kinds: [0], nullable: [true]});
   const demand = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
-    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1}));
+    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1}, false));
+  const resolved = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
+    {max_work: 8, max_bytes: 8, max_nodes: 4, max_depth: 1}, true));
   assert.throws(() => checked(moon.obligationComparisonFinish(demand, 1)));
   checked(moon.obligationAppend(stream, 3, '[["3ff0000000000000",null,"bff0000000000000"]]'));
   assert.throws(() => checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 5,
-    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1})));
+    {max_work: 4, max_bytes: 8, max_nodes: 4, max_depth: 1}, false)));
   checked(moon.obligationFinish(stream));
   const usage = checked(moon.obligationComparisonFinish(demand, 1));
   assert.equal(usage.rows, 3);
@@ -105,6 +107,7 @@ test('comparison demand is bound to a finished scan and discharges each consumer
   assert.equal(usage.predicate_bytes, 13n);
   assert.equal(usage.physical_work, 4);
   assert.equal(usage.physical_bytes, 8);
+  assert.equal(checked(moon.obligationComparisonFinish(resolved, 1)).physical_work, 8);
   assert.throws(() => checked(moon.obligationComparisonFinish(demand, 1)));
 });
 
@@ -112,7 +115,7 @@ test('future consumer demand failure does not retroactively fail its producer', 
   for (const work of [1, 100]) {
     const stream = begin({names: ['id'], kinds: [0], nullable: [false]});
     const demand = checked(moon.obligationComparison(stream, 'id', '[["0000000000000000"]]', 4,
-      {max_work: work, max_bytes: 100, max_nodes: 100, max_depth: 1}));
+      {max_work: work, max_bytes: 100, max_nodes: 100, max_depth: 1}, false));
     const text = checked(moon.obligationAppend(stream, 1, '[["3ff0000000000000"]]'));
     const receipt = checked(moon.obligationFinish(stream));
     assert.equal(text + receipt._0, '[{"id":1}]');

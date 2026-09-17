@@ -9,6 +9,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {runRetainedComparator, closeRetainedSample} from '../bench/retained-comparator.mjs';
+import {runEquivalentObligations} from '../bench/equivalent-obligations.mjs';
 
 const hash = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
@@ -108,6 +109,15 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert.equal(report.accounting.retainedStoreBytes,
         evidence.receipts[1].received_bytes +
         report.completionDescriptors.reduce((sum, value) => sum + value.bytes, 0));
+      assert.equal(report.accounting.logicalGuardWork,
+        report.accounting.measuredGuardWork + report.accounting.reusedGuardWork);
+      assert.equal(report.accounting.logicalGuardBytes,
+        report.accounting.measuredGuardBytes + report.accounting.reusedGuardBytes);
+      assert.equal(report.accounting.logicalGuardNodes,
+        report.accounting.measuredGuardNodes + report.accounting.reusedGuardNodes);
+      assert(report.accounting.measuredGuardWork > 0);
+      assert.equal(report.accounting.reusedGuardWork, 0);
+      assert(report.accounting.comparisonWork > 0);
       assert.equal(report.accounting.logicalCidPasses, 0);
       assert.equal(report.accounting.physicalIntegrityPasses,
         report.tasks.flatMap(task => task.phases.inputs).length);
@@ -131,6 +141,15 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert(report.warmMs > 0 && report.warmMs <= report.executionMs);
       assert.doesNotThrow(() => JSON.stringify(report));
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
+      const equivalent = await runEquivalentObligations(
+        fixture, database, directory,
+      );
+      for (const domain of ['logicalGuardWork', 'logicalGuardBytes',
+        'logicalGuardNodes', 'comparisonWork', 'comparisonBytes',
+        'comparisonNodes']) {
+        assert.equal(report.accounting[domain], equivalent.accounting[domain],
+          `${fixture.id}:${domain}`);
+      }
       const reused = await runRetainedComparator(fixture, contracts, database, directory,
         {resident: true, nativeMilliseconds: '20'});
       assert.equal(reused.expectedRowsCid, report.expectedRowsCid);

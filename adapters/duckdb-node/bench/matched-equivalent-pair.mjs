@@ -74,6 +74,27 @@ const accountingDomains = Object.freeze([
   'identityPasses',
   'identityPreimageBytes',
   'retainedStoreBytes',
+  'measuredGuardWork',
+  'measuredGuardBytes',
+  'measuredGuardNodes',
+  'reusedGuardWork',
+  'reusedGuardBytes',
+  'reusedGuardNodes',
+  'logicalGuardWork',
+  'logicalGuardBytes',
+  'logicalGuardNodes',
+  'comparisonWork',
+  'comparisonBytes',
+  'comparisonNodes',
+]);
+
+const exactLogicalDomains = Object.freeze([
+  'logicalGuardWork',
+  'logicalGuardBytes',
+  'logicalGuardNodes',
+  'comparisonWork',
+  'comparisonBytes',
+  'comparisonNodes',
 ]);
 
 function compareAccounting(retained, equivalent) {
@@ -185,6 +206,12 @@ export async function runMatchedEquivalentPair({
   const retained = samples['retained-actql'];
   const completed = equivalent.status === 'diagnostic-completed' &&
     retained.status === 'completed';
+  const accountingComparison = completed
+    ? compareAccounting(retained, equivalent)
+    : undefined;
+  const logicalAccountingEquivalent = completed && exactLogicalDomains.every(
+    key => accountingComparison[key].difference === 0,
+  );
   const closed = Object.freeze([
     'matched process/cold timing boundaries',
     'matched warm timing boundary',
@@ -208,17 +235,19 @@ export async function runMatchedEquivalentPair({
       executionBoundary: 'leg-owned setup through completed holdings',
       cleanupBoundary: 'leg-owned confirmed release interval',
     }),
-    status: completed ? 'diagnostic-completed' : 'failed',
-    accountingComparison: completed
-      ? compareAccounting(retained, equivalent)
-      : undefined,
+    status: completed && logicalAccountingEquivalent
+      ? 'diagnostic-completed' : 'failed',
+    accountingComparison,
+    logicalAccountingEquivalent,
     acceptanceEligible: completed && equivalent.acceptanceEligible === true &&
-      retained.acceptanceEligible === true,
+      retained.acceptanceEligible === true && logicalAccountingEquivalent,
     closed,
     missing: Object.freeze([
       ...new Set([
         ...(equivalent.report?.missing ?? []).filter(value =>
           !closedSet.has(value)),
+        ...(!logicalAccountingEquivalent
+          ? ['logical guard and comparison charge parity'] : []),
         'equivalent-obligation admission',
       ]),
     ]),

@@ -219,6 +219,63 @@ pub fn managed_input_comparison_usage(
 }
 
 ///|
+/// Total form for common diagnostics. Direct count, view, and join demand are
+/// valid and report zero scalar-comparison usage.
+#export_name("managedInputLogicalComparisonUsage")
+pub fn managed_input_logical_comparison_usage(
+  completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],
+) -> Array[String] raise NodeHostFailure {
+  guard @duckdb_compute.managed_input_duckdb_demand_usage(completion)
+    is Some(demand) else {
+    raise InvalidCommand
+  }
+  guard demand is Comparison(usage) else {
+    return ["0", "0", "-1", "0", "0", "0", "0", "0", "0", "0"]
+  }
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
+/// Exact logical comparison demand established by the acquisition-fed
+/// managed output. Direct count and join demand report zero comparison usage.
+#export_name("managedOutputLogicalComparisonUsage")
+pub fn managed_output_logical_comparison_usage(
+  value : ManagedNodeOutput,
+) -> Array[String] raise NodeHostFailure {
+  guard value.receiver is Compute(_, output) &&
+    @duckdb_compute.managed_duckdb_compute_output_demand_usage(output)
+    is Some(demand) else {
+    raise InvalidCommand
+  }
+  guard demand is Comparison(usage) else {
+    return ["0", "0", "-1", "0", "0", "0", "0", "0", "0", "0"]
+  }
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
 #export_name("managedOutputMaterial")
 pub fn managed_output_material(
   value : ManagedNodeOutput,
@@ -743,4 +800,21 @@ pub fn managed_output_reused_measurements(
     raise InvalidCommand
   }
   [work, bytes, nodes]
+}
+
+///|
+/// Logical input measurement charged to this output, whether its producer was
+/// the legacy retained source or another managed output.
+#export_name("managedOutputInputMeasurements")
+pub fn managed_output_input_measurements(
+  value : ManagedNodeOutput,
+) -> Array[Int] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  let usage = match
+    @execution.managed_output_value_fixed_measurement_usage(receipt) {
+    Some(usage) => Some(usage)
+    None => @execution.managed_output_value_managed_measurement_usage(receipt)
+  }
+  guard usage is Some(pair) else { raise InvalidCommand }
+  [pair.0, pair.1, pair.2]
 }

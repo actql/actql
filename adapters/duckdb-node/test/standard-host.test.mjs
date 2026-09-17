@@ -1427,6 +1427,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       outputFrames: 0, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
+      measuredGuardWork: 6, measuredGuardBytes: 3, measuredGuardNodes: 3,
+      reusedGuardWork: 15, reusedGuardBytes: 12, reusedGuardNodes: 9,
+      comparisonWork: 13, comparisonBytes: 1, comparisonNodes: 1,
     });
     const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
     assert(managedDownstreamBytes > 0n,
@@ -1474,6 +1477,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       outputFrames: 0, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
+      measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
+      reusedGuardWork: 8, reusedGuardBytes: 4, reusedGuardNodes: 4,
+      comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
     });
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
     assert(managedTerminalBytes > 0n,
@@ -1517,6 +1523,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       outputFrames: 1, outputPhysicalBytes: managedGroup.diagnostics.outputPhysicalBytes,
       directOutputCopies: 0, outputJsMaterializedCells: 1,
       outputFrameReencodes: 1,
+      measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
+      reusedGuardWork: 11, reusedGuardBytes: 10, reusedGuardNodes: 7,
+      comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
     });
     const managedGroupBytes = BigInt(managedGroup.diagnostics.outputPhysicalBytes);
     assert.equal(managedGroupBytes, 19n,
@@ -1581,6 +1590,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       outputPhysicalBytes: managedGroupFirst.diagnostics.outputPhysicalBytes,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
+      measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
+      reusedGuardWork: 4, reusedGuardBytes: 2, reusedGuardNodes: 2,
+      comparisonWork: 3, comparisonBytes: 1, comparisonNodes: 1,
     });
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 5, managedGroupFirst.completed), true);
@@ -1610,6 +1622,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       outputPhysicalBytes: managedGroupSecond.diagnostics.outputPhysicalBytes,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
+      measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
+      reusedGuardWork: 4, reusedGuardBytes: 2, reusedGuardNodes: 2,
+      comparisonWork: 3, comparisonBytes: 1, comparisonNodes: 1,
     });
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 6, managedGroupSecond.completed), true);

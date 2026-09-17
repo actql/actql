@@ -84,6 +84,19 @@ pub fn managed_duckdb_compute_output_storage_order(
 }
 
 ///|
+/// Exact logical demand established while verifying this output. This is
+/// distinct from a later managed-input completion's demand.
+pub fn managed_duckdb_compute_output_demand_usage(
+  output : ManagedDuckDBComputeOutput,
+) -> @duckdb.FixedComputeDemandUsage? {
+  if output.verified && output.demand is Some(demand) {
+    Some(@duckdb.managed_fixed_compute_demand_usage(demand))
+  } else {
+    None
+  }
+}
+
+///|
 pub fn cancel_managed_duckdb_compute_output(
   output : ManagedDuckDBComputeOutput,
 ) -> Unit {

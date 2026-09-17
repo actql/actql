@@ -373,6 +373,40 @@ pub fn native_host_record_document(
 }
 
 ///|
+/// Logical value-measurement usage for the captured validation and native
+/// receipts. These values are charges, not observed CPU or transport work.
+#export_name("nativeHostMeasurementUsage")
+pub fn native_host_measurement_usage(
+  observation : @duckdb_query.DuckDBNativeObservation,
+) -> Array[Int] {
+  let (work, bytes, nodes) = @duckdb_query.duckdb_native_observation_measurement_usage(
+    observation,
+  )
+  [work, bytes, nodes]
+}
+
+///|
+/// Exact comparison demand for the captured validation occurrence.
+#export_name("nativeHostComparisonUsage")
+pub fn native_host_comparison_usage(
+  observation : @duckdb_query.DuckDBNativeObservation,
+) -> Array[String] {
+  let usage = @duckdb_query.duckdb_native_observation_demand_usage(observation)
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
 #export_name("nativeHostCapturedSource")
 pub fn native_host_captured_source(
   run : NativeNodeRun,

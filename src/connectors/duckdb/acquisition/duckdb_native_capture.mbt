@@ -101,6 +101,25 @@ pub fn duckdb_native_observation_usage(
 }
 
 ///|
+/// Logical value-measurement usage for the exact two receipts captured by this
+/// observation. Predicate demand is reported separately.
+pub fn duckdb_native_observation_measurement_usage(
+  value : DuckDBNativeObservation,
+) -> (Int, Int, Int) {
+  @duckdb.native_receiving_measurement_usage(
+    value.records.measurement.attempt.receiver,
+  )
+}
+
+///|
+/// Exact comparison demand established for this observation's validation scan.
+pub fn duckdb_native_observation_demand_usage(
+  value : DuckDBNativeObservation,
+) -> @duckdb.NativeDemandUsage {
+  duckdb_native_measured_demand(value.records.measurement)
+}
+
+///|
 /// Canonical receipt material owned by this exact captured observation.
 /// Exposing the document does not transfer issuer authority or make it a
 /// durable replay proof.

@@ -54,6 +54,8 @@ pub fn compute_host_cleanup_refresh(ComputeNodeRun) -> Bool raise NodeHostFailur
 
 pub fn compute_host_close(ComputeNodeRun) -> Unit
 
+pub fn compute_host_comparison_usage(ComputeNodeRun) -> Array[String] raise NodeHostFailure
+
 pub fn compute_host_complete(ComputeNodeRun) -> @execution_relation.CompletedOutput raise NodeHostFailure
 
 pub fn compute_host_count(ComputeNodeRun, Int, Bool) -> Int raise NodeHostFailure
@@ -95,6 +97,8 @@ pub fn compute_host_managed_output_begin(ComputeNodeRun, String) -> ManagedNodeO
 pub fn compute_host_managed_output_enable_index(ManagedNodeOutput, Int) -> Unit raise NodeHostFailure
 
 pub fn compute_host_managed_prepare(ComputeNodeRun, @execution_relation.ManagedExecutionProfile, () -> Bool) -> @compute.ManagedDuckDBCompletion[Int] raise NodeHostFailure
+
+pub fn compute_host_measurement_usage(ComputeNodeRun) -> Array[Int] raise NodeHostFailure
 
 pub fn compute_host_open(@driver.ComputeHostConfiguration, (@compute.DuckDBComputeAttempt) -> Bool) -> ComputeNodeRun raise NodeHostFailure
 
@@ -168,6 +172,8 @@ pub fn managed_input_comparison_usage(@compute.ManagedInputDuckDBCompletion[Int]
 
 pub fn managed_input_completion_cancel(@compute.ManagedInputDuckDBCompletion[Int]) -> Bool
 
+pub fn managed_input_logical_comparison_usage(@compute.ManagedInputDuckDBCompletion[Int]) -> Array[String] raise NodeHostFailure
+
 pub fn managed_input_matches_material(@execution_relation.ManagedProducerRead[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Bool
 
 pub fn managed_input_output_values(@compute.ManagedInputDuckDBCompletion[Int]) -> @execution_relation.ManagedOutputValues
@@ -192,6 +198,10 @@ pub fn managed_output_compute_verified(ManagedNodeOutput) -> Bool
 
 pub fn managed_output_finish(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
+pub fn managed_output_input_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
+
+pub fn managed_output_logical_comparison_usage(ManagedNodeOutput) -> Array[String] raise NodeHostFailure
+
 pub fn managed_output_material(ManagedNodeOutput) -> @execution_relation.ManagedRetainedOutput[Int]?
 
 pub fn managed_output_measurement_index_cells(ManagedNodeOutput) -> Int raise NodeHostFailure
@@ -213,6 +223,8 @@ pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @ex
 pub fn managed_strategy_charge(ManagedComputeNodeRun, Int64) -> Unit raise NodeHostFailure
 
 pub fn managed_strategy_close(ManagedComputeNodeRun) -> Unit
+
+pub fn managed_strategy_comparison_usage(ManagedComputeNodeRun) -> Array[String] raise NodeHostFailure
 
 pub fn managed_strategy_complete(ManagedComputeNodeRun, ManagedNodeOutput) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
 
@@ -278,11 +290,15 @@ pub fn native_host_captured_source(NativeNodeRun, @acquisition.DuckDBNativeObser
 
 pub fn native_host_close(NativeNodeRun) -> Unit
 
+pub fn native_host_comparison_usage(@acquisition.DuckDBNativeObservation) -> Array[String]
+
 pub fn native_host_complete(NativeNodeRun) -> @acquisition.DuckDBNativeObservation raise NodeHostFailure
 
 pub fn native_host_document(@acquisition.DuckDBNativeObservation) -> String
 
 pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
+
+pub fn native_host_measurement_usage(@acquisition.DuckDBNativeObservation) -> Array[Int]
 
 pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NodeHostFailure
 

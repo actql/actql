@@ -45,9 +45,13 @@ pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @co
 
 pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @adapter.FixedCompute
 
+pub fn duckdb_compute_demand_usage(DuckDBComputeAttempt) -> @adapter.FixedComputeDemandUsage?
+
 pub fn duckdb_compute_input_file_sql(DuckDBComputeAttempt, Int, @execution_relation.RowWireLimits, Int, Int) -> (String, String)?
 
 pub fn duckdb_compute_inputs_ready(DuckDBComputeAttempt) -> Bool
+
+pub fn duckdb_compute_measurement_usage(DuckDBComputeAttempt) -> (Int, Int, Int)?
 
 pub fn duckdb_compute_static_rejection(@lowering_relation.BoundPrepared, @connector_sdk.FixedComputeCapacity, @adapter.NativeQueryLimits) -> String?
 
@@ -90,6 +94,8 @@ pub fn finish_duckdb_compute_result(DuckDBComputeAttempt) -> Result[Unit, DuckDB
 pub fn finish_duckdb_compute_stream_result(DuckDBComputeAttempt) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String), DuckDBComputeIssue]
 
 pub fn finish_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Result[@execution_relation.ManagedOutputValueReceipt, DuckDBComputeIssue]
+
+pub fn managed_duckdb_compute_output_demand_usage(ManagedDuckDBComputeOutput) -> @adapter.FixedComputeDemandUsage?
 
 pub fn managed_duckdb_compute_output_storage_order(ManagedDuckDBComputeOutput) -> Array[Int]
 

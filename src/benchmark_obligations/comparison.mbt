@@ -9,6 +9,7 @@ struct ObligationComparison {
 ///|
 priv struct ComparisonSlot {
   measurement : @duckdb.ComparisonMeasurement
+  metadata_work : Int
   mut issue : @duckdb.NativeDemandIssue?
 }
 
@@ -20,16 +21,27 @@ pub fn obligation_comparison(
   rhs_columns : String,
   ceiling : Int,
   limits : @execution.FixedInputGuardMeasureLimits,
+  charge_field_resolution : Bool,
 ) -> ObligationComparison raise ObligationFailure {
   let (rows, _, _, _) = @duckdb.physical_result_usage(input.physical)
   if !input.open || rows != 0 {
     raise Closed
   }
   let mut column = None
+  let mut remaining_work = limits.max_work
   for index in 0..<input.width {
     let (name, position) = @execution.row_wire_order_column(input.order, index).unwrap()
+    if charge_field_resolution {
+      for size in [name.length(), field.length()] {
+        if size > remaining_work {
+          raise Demand(@duckdb.Predicate(@duckdb.MeasurementWork))
+        }
+        remaining_work -= size
+      }
+    }
     if name == field {
       column = Some(position)
+      break
     }
   }
   guard column is Some(column) else { raise InvalidLayout }
@@ -71,12 +83,16 @@ pub fn obligation_comparison(
     @duckdb.prepare_comparison_measurement(
       @duckdb.physical_batch_cell(batch, 0, 0).unwrap().value,
       ceiling,
-      limits,
+      { ..limits, max_work: remaining_work, },
     ) {
     Ok(value) => value
     Err(issue) => raise Demand(issue)
   }
-  let slot = { measurement, issue: None, }
+  let slot = {
+    measurement,
+    metadata_work: limits.max_work - remaining_work,
+    issue: None,
+  }
   input.comparisons.push((column, slot))
   { input, slot, consumed: false, }
 }
@@ -99,7 +115,11 @@ pub fn obligation_comparison_finish(
       comparison.slot.measurement,
       true_rows,
     ) {
-    Ok(value) => value
+    Ok(value) =>
+      {
+        ..value,
+        physical_work: value.physical_work + comparison.slot.metadata_work,
+      }
     Err(issue) => raise Demand(issue)
   }
 }

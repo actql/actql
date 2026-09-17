@@ -523,6 +523,39 @@ pub fn managed_strategy_complete(
 }
 
 ///|
+/// Exact logical comparison demand for this completed task. Direct count,
+/// view, and join demand report zero scalar-comparison usage.
+#export_name("managedStrategyComparisonUsage")
+pub fn managed_strategy_comparison_usage(
+  run : ManagedComputeNodeRun,
+) -> Array[String] raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  guard @duckdb_compute.managed_input_duckdb_demand_usage(
+      @duckdb_driver.captured_managed_duckdb_completion(run.task),
+    )
+    is Some(demand) else {
+    raise InvalidCommand
+  }
+  guard demand is Comparison(usage) else {
+    return ["0", "0", "-1", "0", "0", "0", "0", "0", "0", "0"]
+  }
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
 #export_name("managedStrategyClose")
 pub fn managed_strategy_close(run : ManagedComputeNodeRun) -> Unit {
   if run.closed {

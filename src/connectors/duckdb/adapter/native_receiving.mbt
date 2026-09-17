@@ -34,6 +34,7 @@ struct NativeReceiving {
   scan : NativeScan
   limits : PhysicalResultLimits
   metadata_work : Int
+  initial_measurement : @execution.FixedInputGuardMeasureLimits
   measurement : NativeValueBudget
   mut phase : ReceivingPhase
   mut validation : PhysicalResult?
@@ -76,6 +77,7 @@ pub fn prepare_native_receiving(
     scan,
     limits,
     metadata_work: max_metadata_work,
+    initial_measurement: measurement,
     measurement: {
       guards,
       work: measurement.max_work,
@@ -91,6 +93,19 @@ pub fn prepare_native_receiving(
     validation_stream: None,
     output_stream: None,
   })
+}
+
+///|
+/// Logical top-level value measurement charged while admitting both receipts.
+/// This is neither predicate demand nor observed physical CPU work.
+pub fn native_receiving_measurement_usage(
+  value : NativeReceiving,
+) -> (Int, Int, Int) {
+  (
+    value.initial_measurement.max_work - value.measurement.work,
+    value.initial_measurement.max_bytes - value.measurement.bytes,
+    value.initial_measurement.max_nodes - value.measurement.nodes,
+  )
 }
 
 ///|

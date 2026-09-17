@@ -82,8 +82,10 @@ using the actual SQL output cardinality. No extra input scan is added. Pending
 future-consumer demand failures are retained until that consumer completes;
 they do not fail its already completed producer. Each stage's report includes
 operand/predicate quantities and physical measurement usage. This connects
-comparison measurement, not the remaining logical-work charging, acquisition
-evidence metadata or full failure-precedence equivalence.
+comparison measurement and charges fixed-Compute field resolution where the
+product does. Acquisition already owns its predicate column, so that lookup is
+not charged there. Acquisition evidence metadata and full failure-precedence
+equivalence remain separate work.
 
 The prototype report now separates accounting domains instead of presenting one
 ambiguous transfer total. It records the exact JSON bytes, rows and cells that
@@ -96,14 +98,21 @@ passes and retained bytes from every small workload/layout fixture.
 
 These counters make repeated materialization and logical charge visible and
 prevent physical control-channel traffic from being mislabeled as logical work.
-They do not yet close transfer/work accounting equivalence: the product leg
-now exposes the same physical semantic-transfer, materialized-cell, identity
-preimage and retained-byte domains. Its counters cover the two acquisition
-receipts, every direct-input validation scan, and every retained Compute output;
-they are derived from the exact bounded payloads supplied to MoonBit and the
-control-side completion descriptors. Pair admission must still compare required
-logical guard and comparison charges while allowing implementation-specific
-physical work and control traffic to differ.
+The product leg exposes the same physical semantic-transfer, materialized-cell,
+identity-preimage and retained-byte domains, plus logical value measurement and
+comparison charges. Its counters cover the two acquisition receipts, every
+direct-input validation scan, every retained Compute output and each demanded
+comparison; they come from the exact bounded receivers and completion state.
+
+The independent acquisition output is measured as a record receipt, not
+silently substituted by its later scalar-input view. Record evidence cannot
+discharge a scalar consumer, so the first such use performs ordinary scalar
+measurement; compatible later consumers may reuse that exact summary while
+still receiving the full logical charge. The matched-pair driver requires exact
+equality for logical guard work/bytes/nodes and comparison work/bytes/nodes.
+Physical semantic rows/bytes and JavaScript materialization remain allowed to
+differ because avoiding repeated physical work is the optimization under test.
+Shared transfer/resource-ledger admission remains open separately.
 
 The product retained leg now also exports the canonical evidence material owned
 by its actual acquisition capture: the validation-scan and native-result

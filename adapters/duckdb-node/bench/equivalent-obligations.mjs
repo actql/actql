@@ -66,11 +66,14 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const stream = checked(moon.obligationBegin(names, names.map(kind), names.map(() => false),
       {...physical, max_rows: maxRows, max_cells: maxRows * names.length}, wire, transport,
       guardBudget, records, retain, identity, l.batchBytes));
-    const demands = new Map(comparisons.map(({consumer, rhs}) => [consumer,
+    const demands = new Map(comparisons.map(({
+      consumer, rhs, chargeFieldResolution = true,
+    }) => [consumer,
       checked(moon.obligationComparison(stream, 'id',
         JSON.stringify([[exportPhysicalValue(rhs, {id: 'DOUBLE'})]]), l.maxValueBytes,
         {max_work: l.cumulativeGuardWork, max_bytes: l.representationBytes * 4,
-          max_nodes: l.cumulativeValueNodes, max_depth: 64}))]));
+          max_nodes: l.cumulativeValueNodes, max_depth: 64},
+        chargeFieldResolution))]));
     if (retain) assert(outputReservation, 'output capacity must precede native execution');
     const writer = retain ? store.reserve(l.representationBytes) : undefined;
     if (writer) await writer.start();
@@ -155,7 +158,8 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const comparisons = name === 'capture' ? [{consumer: 'a', rhs: 0}, {consumer: 'b', rhs: 0}]
       : name === 'a' && f.workload !== workloads[1] ? [{consumer: 'c', rhs: 0}] : [];
     const output = await scan(`SELECT ${list(names)} FROM bench_${name} ORDER BY rowid`, names,
-      ownBudget, {retain: true, comparisons, outputReservation});
+      ownBudget, {retain: true, comparisons, outputReservation,
+        records: name === 'capture'});
     const demandInput = name === 'capture' ? sourceValidation
       : ['a', 'b', 'c'].includes(name) ? completed.get(inputs[0]) : undefined;
     let demand;
@@ -185,7 +189,8 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     const validationStarted = performance.now();
     const validation = await scan(`SELECT ${list(f.fields)} FROM records ORDER BY rowid`,
       f.fields, budget(), {records: true, maxRows: l.sourceRows,
-        comparisons: [{consumer: 'capture', rhs: f.minimum}]});
+        comparisons: [{consumer: 'capture', rhs: f.minimum,
+          chargeFieldResolution: false}]});
     sourceValidation = validation;
     const validationMs = performance.now() - validationStarted;
     const names = f.workload === workloads[2] ? f.fields : ['id'];

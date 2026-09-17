@@ -297,6 +297,8 @@ pub fn native_receipts_match(NativeReceiptIdentities, NativeReceiving) -> Bool
 
 pub fn native_receiving_has_both(NativeReceiving) -> Bool
 
+pub fn native_receiving_measurement_usage(NativeReceiving) -> (Int, Int, Int)
+
 pub fn native_receiving_scan(NativeReceiving) -> NativeScan
 
 pub fn native_root_guard_bound(NativeRootGuard) -> Int

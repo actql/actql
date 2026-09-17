@@ -316,6 +316,46 @@ pub fn compute_host_attempt(
 }
 
 ///|
+/// Logical value-measurement usage after successful fixed completion.
+#export_name("computeHostMeasurementUsage")
+pub fn compute_host_measurement_usage(
+  run : ComputeNodeRun,
+) -> Array[Int] raise NodeHostFailure {
+  guard @duckdb_compute.duckdb_compute_measurement_usage(run.attempt)
+    is Some(usage) else {
+    raise InvalidCommand
+  }
+  [usage.0, usage.1, usage.2]
+}
+
+///|
+/// Scalar-comparison demand after successful fixed completion. Direct count,
+/// view, and join demand return zero comparison usage.
+#export_name("computeHostComparisonUsage")
+pub fn compute_host_comparison_usage(
+  run : ComputeNodeRun,
+) -> Array[String] raise NodeHostFailure {
+  guard @duckdb_compute.duckdb_compute_demand_usage(run.attempt) is Some(demand) else {
+    raise InvalidCommand
+  }
+  guard demand is Comparison(usage) else {
+    return ["0", "0", "-1", "0", "0", "0", "0", "0", "0", "0"]
+  }
+  [
+    usage.rows.to_string(),
+    usage.field_bytes.to_string(),
+    usage.rhs_bytes.unwrap_or(-1).to_string(),
+    usage.true_rows.to_string(),
+    usage.false_rows.to_string(),
+    usage.null_rows.to_string(),
+    usage.predicate_bytes.to_string(),
+    usage.physical_work.to_string(),
+    usage.physical_bytes.to_string(),
+    usage.physical_nodes.to_string(),
+  ]
+}
+
+///|
 #export_name("computeHostCount")
 pub fn compute_host_count(
   run : ComputeNodeRun,

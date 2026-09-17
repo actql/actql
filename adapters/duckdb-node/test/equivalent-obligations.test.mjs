@@ -48,12 +48,16 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.capacity.independentRetention.fileReservedBytes, result.holding.reservedBytes);
       assert.equal(result.capacity.execution.limitBytes, fixture.limits.executionMemoryBytes);
       assert.equal(result.capacity.conformance, 'incomplete');
+      const captureColumns = workload === workloads[2]
+        ? fixture.fields.length : 1;
       assert.equal(result.accounting.nativeSemanticRows,
-        fixture.rows + result.stages.reduce((sum, stage) => sum + stage.rows, 0));
+        fixture.rows + result.stages.reduce((sum, stage) => sum + stage.rows, 0) +
+        2 * fixture.cardinalities.capture);
       assert.equal(result.accounting.nativeSemanticCells,
         fixture.rows * fixture.fields.length + result.stages.reduce((sum, stage) =>
           sum + stage.rows * (stage.stage === 'count' ? 2 :
-            fixture.workload === workloads[2] ? fixture.fields.length : 1), 0));
+            fixture.workload === workloads[2] ? fixture.fields.length : 1), 0) +
+        2 * fixture.cardinalities.capture * captureColumns);
       assert.equal(result.accounting.jsMaterializedCells,
         result.accounting.nativeSemanticCells);
       assert.equal(result.accounting.identityPasses, result.stages.length + 1);

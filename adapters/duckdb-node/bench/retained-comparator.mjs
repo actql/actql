@@ -75,12 +75,17 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       sum + warmTaskMilliseconds(task), 0);
     const semanticKeys = ['nativeSemanticRows', 'nativeSemanticCells',
       'nativeSemanticBytes', 'jsMaterializedCells'];
+    const logicalKeys = ['measuredGuardWork', 'measuredGuardBytes',
+      'measuredGuardNodes', 'reusedGuardWork', 'reusedGuardBytes',
+      'reusedGuardNodes', 'comparisonWork', 'comparisonBytes',
+      'comparisonNodes'];
     const acquisition = result.report.acquisition_diagnostics;
-    assert(acquisition && semanticKeys.every(key =>
+    assert(acquisition && [...semanticKeys, ...logicalKeys].every(key =>
       Number.isSafeInteger(acquisition[key]) && acquisition[key] >= 0));
     const compute = result.report.completed.map(task => task.phases);
-    assert(compute.every(value => value && semanticKeys.every(key =>
-      Number.isSafeInteger(value[key]) && value[key] >= 0)));
+    assert(compute.every(value => value && [...semanticKeys, ...logicalKeys].every(key =>
+      Number.isSafeInteger(value[key]) && value[key] >= 0)),
+    JSON.stringify(compute));
     const sum = key => acquisition[key] + compute.reduce((total, value) =>
       total + value[key], 0);
     const receiptBytes = result.report.acquisition_evidence.receipts.reduce(
@@ -91,6 +96,12 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       total + value.bytes, 0);
     const inputs = result.report.completed.flatMap(task =>
       task.phases.inputs ?? []);
+    const measuredGuardWork = sum('measuredGuardWork');
+    const measuredGuardBytes = sum('measuredGuardBytes');
+    const measuredGuardNodes = sum('measuredGuardNodes');
+    const reusedGuardWork = sum('reusedGuardWork');
+    const reusedGuardBytes = sum('reusedGuardBytes');
+    const reusedGuardNodes = sum('reusedGuardNodes');
     const accounting = Object.freeze({
       nativeSemanticRows: sum('nativeSemanticRows'),
       nativeSemanticCells: sum('nativeSemanticCells'),
@@ -101,6 +112,18 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       retainedStoreBytes:
         result.report.acquisition_evidence.receipts[1].received_bytes +
         outputBytes,
+      measuredGuardWork,
+      measuredGuardBytes,
+      measuredGuardNodes,
+      reusedGuardWork,
+      reusedGuardBytes,
+      reusedGuardNodes,
+      logicalGuardWork: measuredGuardWork + reusedGuardWork,
+      logicalGuardBytes: measuredGuardBytes + reusedGuardBytes,
+      logicalGuardNodes: measuredGuardNodes + reusedGuardNodes,
+      comparisonWork: sum('comparisonWork'),
+      comparisonBytes: sum('comparisonBytes'),
+      comparisonNodes: sum('comparisonNodes'),
       logicalCidPasses: inputs.reduce((total, value) =>
         total + (value.logicalCidPasses ?? 0), 0),
       physicalIntegrityPasses: inputs.reduce((total, value) =>
@@ -114,6 +137,10 @@ export async function runRetainedComparator(fixture, contracts, database, direct
           'canonical row-array bytes written to retained holdings',
         identity:
           'canonical row-array preimages actually hashed',
+        logicalGuard:
+          'measured values plus charged reuse for each consumer',
+        comparison:
+          'predicate measurement for exact input and consumer occurrence',
       }),
     });
     report = {comparator: 'retained-actql', scope: 'managed-host-cycle-diagnostic',
