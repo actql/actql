@@ -113,6 +113,110 @@ function compareAccounting(retained, equivalent) {
   })));
 }
 
+const usageInteger = (value, label) => {
+  const number = typeof value === 'string' && /^(0|[1-9][0-9]*)$/.test(value)
+    ? BigInt(value) : typeof value === 'number' && Number.isSafeInteger(value) &&
+      value >= 0 ? BigInt(value) : undefined;
+  assert.notEqual(number, undefined, `InvalidResourceUsage:${label}`);
+  return number;
+};
+
+const terminalUsage = (usage, label) => {
+  const unresolved = [
+    'uncertain_transfer_bytes',
+    'reserved_transfer_bytes',
+    'held_bytes',
+    'reserved_retention_bytes',
+    'reserved_execution_bytes',
+  ];
+  for (const key of unresolved) {
+    assert.equal(usageInteger(usage[key], `${label}.${key}`), 0n,
+      `UnsettledResourceUsage:${label}.${key}`);
+  }
+};
+
+function compareTransferWork(retained, equivalent, accounting) {
+  const product = retained.report?.usage;
+  const directRetention = equivalent.report?.retentionLedger;
+  const directExecution = equivalent.report?.executionLedger;
+  const releasedRetention = equivalent.report?.releasedRetentionLedger;
+  const releasedExecution = equivalent.report?.releasedExecutionLedger;
+  assert(product && directRetention && directExecution && releasedRetention &&
+    releasedExecution, 'CompletedPairWithoutResourceAccounting');
+  terminalUsage(product, 'retained');
+  terminalUsage(releasedRetention, 'equivalent.releasedRetention');
+  terminalUsage(releasedExecution, 'equivalent.releasedExecution');
+  for (const [label, usage] of [
+    ['equivalent.retention', directRetention],
+    ['equivalent.execution', directExecution],
+  ]) {
+    for (const key of ['planning_work', 'attempts', 'transferred_bytes']) {
+      usageInteger(usage[key], `${label}.${key}`);
+    }
+  }
+  const productAttempts = usageInteger(product.attempts,
+    'retained.attempts');
+  const directAttempts = usageInteger(directRetention.attempts,
+    'equivalent.retention.attempts') + usageInteger(directExecution.attempts,
+    'equivalent.execution.attempts');
+  assert.equal(productAttempts, directAttempts,
+    'LogicalAttemptBoundaryMismatch');
+  const directControlTransfer = usageInteger(
+    directRetention.transferred_bytes,
+    'equivalent.retention.transferred_bytes',
+  ) + usageInteger(
+    directExecution.transferred_bytes,
+    'equivalent.execution.transferred_bytes',
+  );
+  // The independent assembly has no child control channel. Native-to-semantic
+  // bytes remain visible in the physical accounting comparison instead.
+  assert.equal(directControlTransfer, 0n,
+    'IndependentControlTransferMustRemainSeparate');
+  const logical = Object.freeze({
+    retainedWork: accounting.logicalGuardWork.retained +
+      accounting.comparisonWork.retained,
+    equivalentWork: accounting.logicalGuardWork.equivalent +
+      accounting.comparisonWork.equivalent,
+    retainedBytes: accounting.logicalGuardBytes.retained +
+      accounting.comparisonBytes.retained,
+    equivalentBytes: accounting.logicalGuardBytes.equivalent +
+      accounting.comparisonBytes.equivalent,
+    retainedNodes: accounting.logicalGuardNodes.retained +
+      accounting.comparisonNodes.retained,
+    equivalentNodes: accounting.logicalGuardNodes.equivalent +
+      accounting.comparisonNodes.equivalent,
+  });
+  assert.equal(logical.retainedWork, logical.equivalentWork);
+  assert.equal(logical.retainedBytes, logical.equivalentBytes);
+  assert.equal(logical.retainedNodes, logical.equivalentNodes);
+  return Object.freeze({
+    logical,
+    attempts: Object.freeze({
+      retained: Number(productAttempts),
+      equivalent: Number(directAttempts),
+    }),
+    physical: Object.freeze({
+      retainedPlanningWork: Number(usageInteger(product.planning_work,
+        'retained.planning_work')),
+      equivalentPlanningWork: Number(usageInteger(
+        directRetention.planning_work,
+        'equivalent.retention.planning_work',
+      ) + usageInteger(
+        directExecution.planning_work,
+        'equivalent.execution.planning_work',
+      )),
+      retainedControlTransferBytes: product.transferred_bytes,
+      equivalentControlTransferBytes: directControlTransfer.toString(),
+      retainedSemanticTransferBytes:
+        accounting.nativeSemanticBytes.retained,
+      equivalentSemanticTransferBytes:
+        accounting.nativeSemanticBytes.equivalent,
+      scope: 'logical work is equal; physical planner, control-channel, and semantic transfer are observed separately',
+    }),
+    terminalReleaseConfirmed: true,
+  });
+}
+
 async function defaultRunChild(label, arguments_, timeoutMs, script) {
   const started = performance.now();
   try {
@@ -216,11 +320,18 @@ export async function runMatchedEquivalentPair({
     retained.report?.acquisitionEvidenceMetadata,
     equivalent.report?.acquisitionEvidenceMetadata,
   );
+  const transferWorkComparison = completed && logicalAccountingEquivalent &&
+    acquisitionMetadataEquivalent
+    ? compareTransferWork(retained, equivalent, accountingComparison)
+    : undefined;
+  const transferWorkAccountingEquivalent = Boolean(transferWorkComparison);
   const closed = Object.freeze([
     'matched process/cold timing boundaries',
     'matched warm timing boundary',
     ...(acquisitionMetadataEquivalent
       ? ['acquisition evidence metadata parity'] : []),
+    ...(transferWorkAccountingEquivalent
+      ? ['transfer and logical-work accounting equivalence'] : []),
   ]);
   const closedSet = new Set(closed);
   return Object.freeze({
@@ -242,14 +353,16 @@ export async function runMatchedEquivalentPair({
       cleanupBoundary: 'leg-owned confirmed release interval',
     }),
     status: completed && logicalAccountingEquivalent &&
-      acquisitionMetadataEquivalent
+      acquisitionMetadataEquivalent && transferWorkAccountingEquivalent
       ? 'diagnostic-completed' : 'failed',
     accountingComparison,
     logicalAccountingEquivalent,
     acquisitionMetadataEquivalent,
+    transferWorkAccountingEquivalent,
+    transferWorkComparison,
     acceptanceEligible: completed && equivalent.acceptanceEligible === true &&
       retained.acceptanceEligible === true && logicalAccountingEquivalent &&
-      acquisitionMetadataEquivalent,
+      acquisitionMetadataEquivalent && transferWorkAccountingEquivalent,
     closed,
     missing: Object.freeze([
       ...new Set([
@@ -259,6 +372,8 @@ export async function runMatchedEquivalentPair({
           ? ['logical guard and comparison charge parity'] : []),
         ...(!acquisitionMetadataEquivalent
           ? ['acquisition evidence metadata parity'] : []),
+        ...(!transferWorkAccountingEquivalent
+          ? ['transfer/work accounting equivalence'] : []),
         'equivalent-obligation admission',
       ]),
     ]),

@@ -44,6 +44,36 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         validationScan: Object.freeze({rows: 10}),
         nativeResult: Object.freeze({rows: 2}),
       });
+      const usage = Object.freeze({
+        planning_work: 10,
+        attempts: 5,
+        transferred_bytes: '20',
+        uncertain_transfer_bytes: '0',
+        reserved_transfer_bytes: '0',
+        held_bytes: '0',
+        reserved_retention_bytes: '0',
+        reserved_execution_bytes: '0',
+      });
+      const directRetention = Object.freeze({
+        ...usage,
+        planning_work: 0,
+        attempts: 4,
+        transferred_bytes: '0',
+        held_bytes: '10',
+      });
+      const directExecution = Object.freeze({
+        ...usage,
+        planning_work: 0,
+        attempts: 1,
+        transferred_bytes: '0',
+        reserved_execution_bytes: '100',
+      });
+      const released = Object.freeze({
+        ...usage,
+        planning_work: 0,
+        attempts: 0,
+        transferred_bytes: '0',
+      });
       const runChild = async (label, arguments_, timeoutMs, script) => {
         calls.push({label, arguments_, timeoutMs, script});
         if (label === 'retained-actql') {
@@ -62,6 +92,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
               cleanupMs: 1,
               accounting,
               acquisitionEvidenceMetadata,
+              usage,
             },
           });
         }
@@ -80,6 +111,10 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
             cleanupMs: 1,
             accounting: {...accounting, nativeSemanticRows: 8},
             acquisitionEvidenceMetadata,
+            retentionLedger: directRetention,
+            executionLedger: directExecution,
+            releasedRetentionLedger: released,
+            releasedExecutionLedger: released,
             missing: [
               'matched process/cold timing boundaries',
               'guard parity',
@@ -110,6 +145,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       assert.equal(report.status, 'diagnostic-completed');
       assert.equal(report.logicalAccountingEquivalent, true);
       assert.equal(report.acquisitionMetadataEquivalent, true);
+      assert.equal(report.transferWorkAccountingEquivalent, true);
       assert.equal(report.acceptanceEligible, false);
       assert(report.missing.includes('guard parity'));
       assert(!report.missing.includes(
@@ -119,6 +155,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         'matched process/cold timing boundaries',
         'matched warm timing boundary',
         'acquisition evidence metadata parity',
+        'transfer and logical-work accounting equivalence',
       ]);
       assert(report.missing.includes('equivalent-obligation admission'));
       assert.equal(report.provenance.processBoundary, 'fresh child per leg');
@@ -126,6 +163,16 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         {retained: 10, equivalent: 8, difference: 2});
       assert.deepEqual(report.accountingComparison.identityPasses,
         {retained: 4, equivalent: 4, difference: 0});
+      assert.deepEqual(report.transferWorkComparison.attempts,
+        {retained: 5, equivalent: 5});
+      assert.deepEqual(report.transferWorkComparison.logical, {
+        retainedWork: 55,
+        equivalentWork: 55,
+        retainedBytes: 72,
+        equivalentBytes: 72,
+        retainedNodes: 36,
+        equivalentNodes: 36,
+      });
     }
   } finally {
     await rm(directory, {recursive: true, force: true});
