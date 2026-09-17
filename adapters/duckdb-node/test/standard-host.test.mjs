@@ -1038,59 +1038,63 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // The product dispatcher preserves exact input-port order for managed
   // binary fan-in. Join creates and admits new values once; the downstream
   // count then reuses that verified retained result without a logical CID.
-  const managedJoinProgram = JSON.parse(program);
-  managedJoinProgram.stages[3] = {id: 'compute_c', inputs: {
-    l: {result: {stage: 'compute_a', result: 'r'}},
-    r: {result: {stage: 'compute_b', result: 'r'}},
-  }, steps: [{join: {with: 'r', kind: 'inner',
-    on: [{left: 'id', right: 'id'}], select: {id: 'left.id'}},
-  from: 'l', as: 'out'}], results: {r: {from: 'out', fields: ['id']}}};
-  managedJoinProgram.stages.push({id: 'count_d', inputs: {
-    x: {result: {stage: 'compute_c', result: 'r'}},
-  }, steps: [{group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'out'}],
-  results: {r: {from: 'out', fields: ['n']}}});
-  managedJoinProgram.results = {out: {from: {stage: 'count_d', result: 'r'}}};
-  const managedJoinFixture = fixture.strategyFixtureJoinCreate(
-    ...args, JSON.stringify(managedJoinProgram));
-  const managedJoinCapture = await runNativeHostQuery(
-    grant, fixture.strategyFixtureAcquisition(managedJoinFixture), suppliedLimits);
-  let managedJoinExecution;
-  try {
-    assert.equal(fixture.strategyFixtureOpen(
-      managedJoinFixture, managedJoinCapture.source()), true);
-    managedJoinExecution = await runCapturedStrategy(
-      fixture.strategyFixtureManagedDispatch(managedJoinFixture),
-      {duckdb: prepareDuckDBStrategyConfiguration({
-        transportLimits: suppliedLimits,
-        importLimits: {maxRows: 100, maxCells: 1000},
-        managedOutput: {
-          parentDirectory: fileParent,
-          maxFrameBytes: 4096,
-          wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
-            max_columns: 10, max_order_work: 10000},
-        },
-      })},
-    );
-    assert.equal(managedJoinExecution.status, 'host-tasks-completed',
-      `${managedJoinExecution.failure?.code ?? ''}: ` +
-      `${managedJoinExecution.failure?.stack ?? managedJoinExecution.failure}`);
-    assert.deepEqual(
-      managedJoinExecution.completed.map(item => item.realization),
-      Array(4).fill('duckdb-managed'),
-    );
-    assert.equal(managedJoinExecution.completed[2].phases.nativeFileImportCommands, 2);
-    assert.equal(managedJoinExecution.completed[2].phases.logicalContentCidComputations, 0);
-    assert.equal(managedJoinExecution.completed[3].phases.nativeFileImportCommands, 1);
-    assert.equal(managedJoinExecution.completed[3].phases.logicalContentCidComputations, 0);
-  } finally {
-    await managedJoinExecution?.close();
-    if (managedJoinExecution) {
-      assert.equal(await managedJoinExecution.cleanup(), true);
-      assert.equal(managedJoinExecution.usage().heldBytes, 0n);
-      assert.equal(managedJoinExecution.usage().reservedRetentionBytes, 0n);
-      assert.equal(managedJoinExecution.usage().reservedExecutionBytes, 0n);
+  for (const selfJoin of [false, true]) {
+    const managedJoinProgram = JSON.parse(program);
+    managedJoinProgram.stages[3] = {id: 'compute_c', inputs: {
+      l: {result: {stage: 'compute_a', result: 'r'}},
+      r: {result: {stage: selfJoin ? 'compute_a' : 'compute_b', result: 'r'}},
+    }, steps: [{join: {with: 'r', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], select: {id: 'left.id'}},
+    from: 'l', as: 'out'}], results: {r: {from: 'out', fields: ['id']}}};
+    managedJoinProgram.stages.push({id: 'count_d', inputs: {
+      x: {result: {stage: 'compute_c', result: 'r'}},
+    }, steps: [{group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'out'}],
+    results: {r: {from: 'out', fields: ['n']}}});
+    managedJoinProgram.results = {out: {from: {stage: 'count_d', result: 'r'}}};
+    const managedJoinFixture = fixture.strategyFixtureJoinCreate(
+      ...args, JSON.stringify(managedJoinProgram));
+    const managedJoinCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(managedJoinFixture), suppliedLimits);
+    let managedJoinExecution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        managedJoinFixture, managedJoinCapture.source()), true);
+      managedJoinExecution = await runCapturedStrategy(
+        fixture.strategyFixtureManagedDispatch(managedJoinFixture),
+        {duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000},
+          managedOutput: {
+            parentDirectory: fileParent,
+            maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000},
+          },
+        })},
+      );
+      assert.equal(managedJoinExecution.status, 'host-tasks-completed',
+        `${managedJoinExecution.failure?.code ?? ''}: ` +
+        `${managedJoinExecution.failure?.stack ?? managedJoinExecution.failure}`);
+      assert.deepEqual(
+        managedJoinExecution.completed.map(item => item.realization),
+        Array(4).fill('duckdb-managed'),
+      );
+      const joinPhases = managedJoinExecution.completed[2].phases;
+      assert.equal(joinPhases.nativeFileImportCommands, 2);
+      assert.equal(joinPhases.inputIntegrityPasses, selfJoin ? 1 : 2);
+      assert.equal(joinPhases.logicalContentCidComputations, 0);
+      assert.equal(managedJoinExecution.completed[3].phases.nativeFileImportCommands, 1);
+      assert.equal(managedJoinExecution.completed[3].phases.logicalContentCidComputations, 0);
+    } finally {
+      await managedJoinExecution?.close();
+      if (managedJoinExecution) {
+        assert.equal(await managedJoinExecution.cleanup(), true);
+        assert.equal(managedJoinExecution.usage().heldBytes, 0n);
+        assert.equal(managedJoinExecution.usage().reservedRetentionBytes, 0n);
+        assert.equal(managedJoinExecution.usage().reservedExecutionBytes, 0n);
+      }
+      managedJoinCapture.close();
     }
-    managedJoinCapture.close();
   }
   const managedGroupProgram = structuredClone(numericProgram);
   managedGroupProgram.stages = [managedGroupProgram.stages[0],

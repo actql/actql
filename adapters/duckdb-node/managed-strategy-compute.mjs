@@ -4,7 +4,8 @@
 // publication all remain inside this Host entry.
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {randomUUID} from 'node:crypto';
-import {registerManagedInput, withManagedInputFile} from '../store-local/managed-representations.mjs';
+import {registerManagedInput, withManagedInputFiles} from
+  '../store-local/managed-representations.mjs';
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
@@ -66,26 +67,6 @@ function directParquetSelect(querySql, fields, storageOrder) {
     identifier(source);
 }
 
-async function withManagedInputFiles(
-  materials, inputs, codecs, authorize, use, signal, charge,
-) {
-  const files = [];
-  async function acquire(index) {
-    if (index === inputs.length) return use(files);
-    return withManagedInputFile(
-      materials[index], inputs[index], codecs[index], authorize,
-      async file => {
-        files.push(file);
-        try { return await acquire(index + 1); }
-        finally { files.pop(); }
-      },
-      signal,
-      bytes => charge(index, bytes),
-    );
-  }
-  return acquire(0);
-}
-
 // outputStorage is Host policy, not Program input. Its directory and framing
 // are admitted before native work; capacity comes from the selected MoonBit
 // setup and cannot be enlarged here.
@@ -110,7 +91,7 @@ export async function runManagedColumnStrategyHostCompute(
   const moon = await loadRuntime();
   const capacity = computePhysicalCapacity(limits);
   let store, writer, body, output, completed, run, directLease, directReport;
-  let inputPhysicalBytes = 0, outputFrames = 0;
+  let inputPhysicalBytes = 0, inputIntegrityPasses = 0, outputFrames = 0;
   let outputValueAdmissionCells = 0, reusedMeasurementCells = 0;
   let outputRows = 0;
   let disposed = false;
@@ -166,9 +147,11 @@ export async function runManagedColumnStrategyHostCompute(
     const occurrences = [];
     let storageOrder;
     const result = await withManagedInputFiles(
-      inputMaterials,
-      inputs,
-      inputCodecContractCids,
+      inputs.map((input, index) => ({
+        material: inputMaterials[index],
+        input,
+        codecContractCid: inputCodecContractCids[index],
+      })),
       () => authorized && !signal?.aborted,
       async files => withComputeDatabase(limits, async session => {
         const discard = () => {};
@@ -249,11 +232,12 @@ export async function runManagedColumnStrategyHostCompute(
         ...(directLease ? [directLease.path] : []),
       ]),
       signal,
-      (_index, bytes) => {
+      (_indices, bytes) => {
         // One complete Store integrity pass and one native read of the exact
         // pinned file. Logical consumer charges are handled by managed demand.
         checked(moon.managedStrategyCharge(run, BigInt(bytes) * 2n));
         inputPhysicalBytes += bytes;
+        inputIntegrityPasses++;
       },
     );
     signal?.throwIfAborted();
@@ -298,7 +282,7 @@ export async function runManagedColumnStrategyHostCompute(
       usage: result.usage,
       diagnostics: Object.freeze({
         inputPhysicalBytes,
-        inputIntegrityPasses: inputCount,
+        inputIntegrityPasses,
         nativeFileImportCommands: inputCount,
         parameterInsertRows: 0,
         logicalContentCidComputations: 0,

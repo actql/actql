@@ -63,3 +63,103 @@ export async function withManagedInputFile(material, input, codecContractCid, au
     borrow.confirmStopped();
   }
 }
+
+// Logical input occurrences retain their independent authorization and view
+// checks. Exact duplicate physical bodies share one Store borrow and one
+// integrity pass while the callback receives one file occurrence per port.
+export async function withManagedInputFiles(
+  occurrences, authorize, use, signal, beforeRead,
+) {
+  if (!Array.isArray(occurrences) || occurrences.length === 0 ||
+      typeof authorize !== 'function' || typeof use !== 'function' ||
+      (beforeRead !== undefined && typeof beforeRead !== 'function')) {
+    throw issue('InvalidManagedInputUse');
+  }
+  const admit = index => {
+    signal?.throwIfAborted();
+    const occurrence = occurrences[index];
+    if (!occurrence || typeof occurrence !== 'object') {
+      throw issue('InvalidManagedInputUse');
+    }
+    const {material, input, codecContractCid} = occurrence;
+    const held = representations.get(material);
+    if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
+        !held.body.available() || !held.readable(input)) {
+      throw issue('ManagedInputUnavailable');
+    }
+    if (!cid(codecContractCid) || held.codecContractCid !== codecContractCid) {
+      throw issue('UnsupportedManagedCodec');
+    }
+    if (authorize(input, index) !== true) {
+      throw issue('ManagedInputUnauthorized');
+    }
+    if (!held.readable(input)) throw issue('ManagedInputUnavailable');
+    return held;
+  };
+  const held = occurrences.map((_, index) => admit(index));
+  const unique = [];
+  const byBody = new Map();
+  for (let index = 0; index < held.length; index++) {
+    let entry = byBody.get(held[index].body);
+    if (!entry) {
+      entry = {held: held[index], indices: [], borrow: undefined, file: undefined};
+      byBody.set(held[index].body, entry);
+      unique.push(entry);
+    } else if (entry.held.store !== held[index].store) {
+      throw issue('ManagedInputUnavailable');
+    }
+    entry.indices.push(index);
+  }
+  const live = () => {
+    for (const entry of unique) {
+      if (!localRetainedStoreAvailable(entry.held.store) ||
+          !entry.held.body.available()) throw issue('ManagedInputUnavailable');
+    }
+    for (let index = 0; index < occurrences.length; index++) admit(index);
+  };
+  async function verify(index) {
+    if (index === unique.length) {
+      live();
+      return use(held.map(value => byBody.get(value.body).file));
+    }
+    const entry = unique[index];
+    let result;
+    try {
+      result = await withVerifiedDelegatedFile(
+        entry.borrow.descriptor,
+        async file => {
+          live();
+          entry.file = file;
+          try { return await verify(index + 1); }
+          finally { entry.file = undefined; }
+        },
+        signal,
+        beforeRead === undefined
+          ? undefined
+          : bytes => {
+              live();
+              return beforeRead(Object.freeze(entry.indices.slice()), bytes);
+            },
+      );
+    } catch (error) {
+      if (['RetainedBodyChanged', 'RetainedBodyTruncated',
+        'ForeignStoreFile', 'ENOENT'].includes(error?.code)) {
+        entry.held.body.close();
+      }
+      throw error;
+    }
+    entry.borrow.verify(result.report);
+    live();
+    return result.value;
+  }
+  try {
+    for (const entry of unique) {
+      entry.borrow = entry.held.body.delegateRead(
+        `managed-local-${randomUUID()}`,
+      );
+    }
+    return await verify(0);
+  } finally {
+    for (const entry of unique) entry.borrow?.confirmStopped();
+  }
+}

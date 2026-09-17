@@ -12,7 +12,11 @@ import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid} from '../managed-column-codec.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
-import {registerManagedInput, withManagedInputFile} from '../../store-local/managed-representations.mjs';
+import {
+  registerManagedInput,
+  withManagedInputFile,
+  withManagedInputFiles,
+} from '../../store-local/managed-representations.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -360,6 +364,34 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           assert.equal(moon.managedCompletedAvailable(completed), true,
             'failed additional use does not undo prior completion');
         }
+        const duplicate = fixture.ownedFixedManagedInput(configured, completed);
+        const authorizedPorts = new Set();
+        let physicalPasses = 0;
+        const duplicateResult = await withManagedInputFiles([
+          {material, input: duplicate, codecContractCid: codec},
+          {material, input: duplicate, codecContractCid: codec},
+        ], (_input, index) => {
+          authorizedPorts.add(index);
+          return true;
+        }, async files => {
+          assert.equal(store.status().activeReaders, 1);
+          assert.equal(files.length, 2);
+          assert.equal(files[0].path, files[1].path);
+          return files.map(file => file.path);
+        }, undefined, (indices, bytes) => {
+          physicalPasses++;
+          assert.deepEqual(indices, [0, 1]);
+          assert.equal(bytes, body.bytes);
+        });
+        assert.equal(duplicateResult[0], duplicateResult[1]);
+        assert.deepEqual([...authorizedPorts], [0, 1]);
+        assert.equal(physicalPasses, 1);
+        assert.equal(store.status().activeReaders, 0);
+        await assert.rejects(withManagedInputFiles([
+          {material, input: duplicate, codecContractCid: codec},
+          {material, input: undefined, codecContractCid: codec},
+        ], () => true, () => assert.fail('foreign port reached native use')),
+        {code: 'ManagedInputUnavailable'});
         // Compile the receiving operation from its actual checked owner, not
         // test-authored aggregate SQL or a fabricated legacy CID input.
         const countInput = fixture.ownedFixedManagedCountInput(configured, completed);
