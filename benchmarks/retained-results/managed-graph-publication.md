@@ -2,10 +2,12 @@
 
 Date: 2026-09-17.
 
-The selected DuckDB strategy task can now publish a verified managed completion
-to `CapturedDAG` without constructing a legacy `CompletedOutput`, logical row
-CID or ResultArtifact. This is the first common scheduler connection for the
-new profile; it is not yet the complete production multi-task dispatch path.
+The selected DuckDB strategy task can now consume an exact managed Store body,
+execute its checked query through DuckDB, retain the native result and publish a
+verified managed completion to `CapturedDAG` without constructing a legacy
+`CompletedOutput`, logical row CID or ResultArtifact. This is the first actual
+multi-task product path for the new profile; its installed representation is
+deliberately finite rather than a claim of general managed dispatch.
 
 ## Boundary
 
@@ -79,9 +81,44 @@ has cancel, settle, dispose, release and ready checks, but deliberately has no
 legacy `CompletedOutput` finisher or publication callback. The captured DAG
 uses the same reservation and cleanup state machine for both execution
 families, while their success boundaries remain disjoint. A conformance start
-with no native I/O proves reservation/settlement and that the legacy finisher
-rejects a managed execution. This lifecycle test is not Store pin or native
-execution evidence.
+with no native I/O separately proves reservation/settlement and that the legacy
+finisher rejects a managed execution. The product Host path below supplies the
+Store pin and native execution evidence that this lifecycle-only fixture does
+not.
+
+## Installed Store/native product path
+
+`runManagedNumericStrategyHostCompute` accepts only the opaque selected Host
+configuration, the exact graph-owned material, the installed representation
+contract identifier, Host limits and Host storage policy. It accepts no SQL,
+verifier, completion callback or caller-authored evidence. The MoonBit driver
+owns the selected request, compiled query, typed completion port and task
+lifecycle.
+
+The initial installed representation is one ordered numeric column encoded as
+bounded newline-delimited physical frames. This is a finite implementation
+identifier, not a registered logical CID and not a portable ResultArtifact
+contract. The Host:
+
+1. resolves the exact `ManagedProducerRead` for task 2;
+2. acquires a Store read pin and checks path, generation, physical digest,
+   current authority and material binding;
+3. grants that exact file to the DuckDB session and imports it with checked,
+   adapter-generated `read_json` SQL and no parameter-row INSERT path;
+4. runs the selected query and sends its actual chunks through the common typed
+   output verifier while writing the same ordered numeric values to a new Store
+   body;
+5. settles actual physical use, retains the sealed output allocation and
+   publishes task 2 through `complete_managed_task_execution`; and
+6. registers the new material for a later exact managed reader without giving
+   the caller a pathname or completion authority.
+
+Logical content identity is not inferred from the Store digest. Store integrity,
+producer/attempt binding, typed value admission and graph completion remain
+distinct checks. Closing the input after task 2 completes does not revoke task
+2's independently held output. Physical cleanup is asynchronous: logical use is
+revoked first, and the common allocation is returned only after Store cleanup
+confirms release and the Host refreshes the graph retention ledger.
 
 ## Real strategy regression
 
@@ -91,12 +128,13 @@ DuckDB execution and checks the following sequence:
 | boundary | reserved retention | held bytes | graph state |
 | --- | ---: | ---: | --- |
 | admitted open | stream base + 100,000 body + 768 index | 0 | task 1 running |
-| index and 321-byte body retained | stream base + 99,679 | 1,089 | task 1 running |
-| native settlement | unchanged | 1,089 | no success yet |
-| managed graph publication | 0 | 1,089 | task 1 done, task 2 ready |
-| exact task-2 request/query preparation | 0 | 1,089 | checked task-1 occurrence bound |
-| managed output revoke | 0 | 321 | index released, graph body retained |
-| task close / cleanup confirmation | 0 | 0 | body reclaimed |
+| index and actual 27-byte body retained | stream base + 99,973 | 795 | task 1 running |
+| native settlement | unchanged | 795 | no success yet |
+| task-1 managed publication | 0 | 795 | task 1 done, task 2 ready |
+| task-2 pinned read, native execution and publication | 0 | 822 | tasks 1 and 2 done, task 3 ready |
+| task-1 output revoke | 0 | 54 | both independent bodies remain graph-owned |
+| task-2 close and physical cleanup | 0 | 27 | task-1 body remains graph-owned |
+| task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
 The same regression rejects a 100,001-byte body despite the adjacent stream
 base reservation, and rejects a legacy completion call after managed
@@ -105,16 +143,17 @@ mode and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The graph, common connector request/cost selection, lifecycle registration and
-DuckDB compiler can now prepare the next managed query, but the standard
-strategy dispatcher still constructs its installed task through legacy
-`ProducerRead`. Production dispatch must stage this managed lifecycle with the
-actual Store pin/authority/capacity and native execution, then publish the
-second task through the same graph path. Mixed
-acquisition/managed input families,
-resident-table publication, Local execution, named Result bridging and the full
-27-case/1 GiB measurements remain open.
+The product path is intentionally limited to the installed one-number-column
+representation and the checked FilterSelect query family. It does not yet
+implement the Q6 evidence-transfer rules for projection/filter/take/sort/derive,
+general schemas/codecs, mixed acquisition/managed input families,
+resident-table publication, Local execution or named Result bridging. The
+finite representation identifier must either become an adopted machine
+contract or be replaced by the shared registered representation boundary before
+portable use is claimed.
 
-This increment therefore proves common graph publication and retention
-ownership for one acquisition-fed selected task. It does not claim completion
-of the production managed graph or any performance acceptance ratio.
+The original 27-case/1 GiB acceptance measurements also remain open and must be
+reported separately from the new-profile measurement. This increment proves an
+actual pinned Store → DuckDB → Store → common graph path and independent
+downstream lifetime; it does not claim general managed execution or a
+performance acceptance ratio.

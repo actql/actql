@@ -125,6 +125,13 @@ pub fn[T] captured_managed_duckdb_query(
 }
 
 ///|
+pub fn[T] captured_managed_duckdb_run(
+  task : CapturedManagedDuckDBTask[T],
+) -> @strategy.CapturedDAG {
+  task.run
+}
+
+///|
 pub fn[T] captured_managed_duckdb_completion(
   task : CapturedManagedDuckDBTask[T],
 ) -> @compute.ManagedInputDuckDBCompletion[T] {

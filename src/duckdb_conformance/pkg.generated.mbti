@@ -295,6 +295,8 @@ pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
 pub fn strategy_fixture_managed_candidate_accepts(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int], @connector_sdk.ManagedFixedComputeRequest[Int]) -> Bool
 
+pub fn strategy_fixture_managed_configuration(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int], @execution_relation.ManagedExecutionProfile, Int64) -> @driver.ManagedStrategyComputeHostConfiguration[Int]
+
 pub fn strategy_fixture_managed_execution_close(StrategyFixture, @physical_strategy.TaskExecution) -> Unit
 
 pub fn strategy_fixture_managed_execution_legacy_complete(StrategyFixture, @physical_strategy.TaskExecution) -> Bool

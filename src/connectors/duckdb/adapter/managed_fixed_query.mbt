@@ -94,6 +94,36 @@ pub fn[T] managed_fixed_query_create_sql(
 }
 
 ///|
+/// Finite installed physical codec for one numeric column. The file contains
+/// newline-delimited objects whose `native_columns` member is one DOUBLE list.
+/// This compiles only the import; exact Store generation, integrity, use
+/// authority and the subsequent typed managed completion remain mandatory.
+pub fn[T] managed_fixed_query_numeric_file_sql(
+  value : ManagedFixedQuery[T],
+  max_sql_bytes : Int,
+) -> String? {
+  let schema = @execution.managed_producer_read_schema(value.input)
+  guard max_sql_bytes > 0 &&
+    @schema.field_count(schema) == 1 &&
+    @schema.field_at(schema, 0) is Some(field) &&
+    field.contract.shape is @contract.Number &&
+    fixed_query_input_table(value.query, 0) is Some(table) else {
+    return None
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, "INSERT INTO ")
+    sql_identifier(output, table)
+    sql_text(
+      output, " SELECT unnest(native_columns[1]) FROM read_json(?, format='newline_delimited', auto_detect=false, columns={native_columns:'DOUBLE[][]'}, ignore_errors=false)",
+    )
+    Some(output.builder.to_string())
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// Compile the finite preservation path for the already accepted native
 /// filter/select realization. Group creates new values and needs its separate
 /// validation issuer; compilation is not execution evidence.

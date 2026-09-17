@@ -257,6 +257,20 @@ pub fn[T] configured_managed_strategy_transport(
 }
 
 ///|
+pub fn[T] configured_managed_strategy_limits(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> @compute.DuckDBComputeLimits {
+  setup.limits
+}
+
+///|
+pub fn[T] configured_managed_strategy_output_file_bytes(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> Int64 {
+  setup.output_file_bytes
+}
+
+///|
 pub fn[T] start_configured_managed_strategy_compute_host(
   setup : ManagedStrategyComputeHostConfiguration[T],
   transfer_bytes : Int64,

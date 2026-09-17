@@ -199,6 +199,8 @@ pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation
 
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
 
+pub fn[T] managed_fixed_query_numeric_file_sql(ManagedFixedQuery[T], Int) -> String?
+
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
 
 pub fn[T] managed_fixed_selection_sql(ManagedFixedQuery[T], String, String, NativeQueryLimits) -> Result[String, NativeQueryIssue]

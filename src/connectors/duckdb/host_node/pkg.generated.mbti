@@ -204,6 +204,38 @@ pub fn managed_output_verify_compute(ManagedNodeOutput) -> Unit raise NodeHostFa
 
 pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewSelection[Int], @adapter.TransportColumnLimits, () -> Bool) -> ManagedNodeOutput raise NodeHostFailure
 
+pub fn managed_strategy_charge(ManagedComputeNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn managed_strategy_close(ManagedComputeNodeRun) -> Unit
+
+pub fn managed_strategy_complete(ManagedComputeNodeRun, ManagedNodeOutput) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
+
+pub fn managed_strategy_host_open(@driver.ManagedStrategyComputeHostConfiguration[Int], Int64, Int64, () -> Bool, () -> Bool) -> ManagedComputeNodeRun raise NodeHostFailure
+
+pub fn managed_strategy_input(ManagedComputeNodeRun) -> @execution_relation.ManagedProducerRead[Int] raise NodeHostFailure
+
+pub fn managed_strategy_input_file_sql(ManagedComputeNodeRun, Int) -> String?
+
+pub fn managed_strategy_output_begin(ManagedComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
+
+pub fn managed_strategy_output_file_capacity(ManagedComputeNodeRun) -> Int64
+
+pub fn managed_strategy_output_finish(ManagedComputeNodeRun, ManagedNodeOutput) -> Unit raise NodeHostFailure
+
+pub fn managed_strategy_parameter(ManagedComputeNodeRun, Int) -> String raise NodeHostFailure
+
+pub fn managed_strategy_parameter_count(ManagedComputeNodeRun) -> Int
+
+pub fn managed_strategy_refresh_retention(ManagedComputeNodeRun) -> Unit
+
+pub fn managed_strategy_retention_capacity(@driver.ManagedStrategyComputeHostConfiguration[Int]) -> Int64 raise NodeHostFailure
+
+pub fn managed_strategy_scratch_capacity(@driver.ManagedStrategyComputeHostConfiguration[Int]) -> Int64 raise NodeHostFailure
+
+pub fn managed_strategy_settle(ManagedComputeNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn managed_strategy_sql(ManagedComputeNodeRun, Bool) -> String raise NodeHostFailure
+
 pub fn managed_view_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewPlan[Int], @adapter.TransportColumnLimits, () -> Bool, () -> @execution_relation.ManagedViewOutputFacts) -> ManagedNodeOutput raise NodeHostFailure
 
 pub fn native_host_abort(NativeNodeRun) -> Unit
@@ -341,6 +373,8 @@ type BroadNodeRun
 type ComputeNodeRun
 
 type ComputeStreamNodeReceipt
+
+type ManagedComputeNodeRun
 
 type ManagedNodeComputed
 

@@ -638,16 +638,17 @@ pub fn strategy_fixture_managed_candidate_accepts(
 }
 
 ///|
-/// Common lifecycle conformance only: this registers the selected managed
-/// payload but performs no native I/O. Product dispatch must additionally own
-/// the Store pin, authority and concrete transport execution.
-#export_name("strategyFixtureManagedExecutionStart")
-pub fn strategy_fixture_managed_execution_start(
+/// Conformance construction of the product's opaque managed Host
+/// configuration. The selected request and generated completion owner are
+/// fixed here; callers cannot inject SQL or a replacement verifier.
+#export_name("strategyFixtureManagedConfiguration")
+pub fn strategy_fixture_managed_configuration(
   f : StrategyFixture,
   task : Int,
   request : @connector.ManagedFixedComputeRequest[Int],
   profile : @execution.ManagedExecutionProfile,
-) -> @strategy.TaskExecution {
+  output_file_bytes : Int64,
+) -> @duckdb_driver.ManagedStrategyComputeHostConfiguration[Int] {
   let prepared = strategy_fixture_managed_candidate(f, request)
   guard @connector.choose_managed_fixed_compute_candidate(
       f.registry,
@@ -669,7 +670,7 @@ pub fn strategy_fixture_managed_execution_start(
   ) catch {
     _ => abort("managed completion fixture")
   }
-  let configured = @duckdb_driver.configure_managed_strategy_compute_host(
+  @duckdb_driver.configure_managed_strategy_compute_host(
     f.run.unwrap(),
     task,
     choice,
@@ -702,9 +703,25 @@ pub fn strategy_fixture_managed_execution_start(
       max_rows: 100,
       max_text_bytes: 100000,
     },
-    0L,
+    output_file_bytes,
     0,
   ).unwrap()
+}
+
+///|
+/// Common lifecycle conformance only: this registers the selected managed
+/// payload but performs no native I/O. Product dispatch must additionally own
+/// the Store pin, authority and concrete transport execution.
+#export_name("strategyFixtureManagedExecutionStart")
+pub fn strategy_fixture_managed_execution_start(
+  f : StrategyFixture,
+  task : Int,
+  request : @connector.ManagedFixedComputeRequest[Int],
+  profile : @execution.ManagedExecutionProfile,
+) -> @strategy.TaskExecution {
+  let configured = strategy_fixture_managed_configuration(
+    f, task, request, profile, 0L,
+  )
   @duckdb_driver.start_configured_managed_strategy_compute_host(
     configured,
     0L,

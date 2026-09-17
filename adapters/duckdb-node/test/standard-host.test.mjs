@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute,
+import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute, runManagedNumericStrategyHostCompute, managedNumericColumnCodecContractCid,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
@@ -20,12 +20,15 @@ import { runExample } from '../examples/physical-strategy.mjs';
 import {installCompletionObserver} from '../../host-common/completion-observer.mjs';
 import {retainedStorageBody} from '../../store-local/representations.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
+import {createLocalRetainedStore} from '../../store-local/files.mjs';
+import {registerManagedInput} from '../../store-local/managed-representations.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+const physicalDouble = value => value === null ? null : Buffer.from(value, 'hex').readDoubleBE();
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -920,6 +923,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   let managedLedgerRun;
   let managedLedgerResult;
   let managedLedgerOutput;
+  let managedLedgerStore;
+  let managedLedgerWriter;
+  let managedLedgerBody;
+  let managedDownstream;
   try {
     assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
@@ -930,6 +937,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     let consume;
     const managedProfile = accepted(fixture.managedFileProfile(await readFile(join(root,
       'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
+    managedLedgerStore = await createLocalRetainedStore({
+      parentDirectory: fileParent, capacityBytes: 100000,
+      maxFrameBytes: 4096, maxEntries: 1,
+    });
+    managedLedgerWriter = managedLedgerStore.reserve(100000);
+    await managedLedgerWriter.start();
     let managedCompletion;
     managedLedgerRun = accepted(bridge.computeManagedRetainedStrategyHostOpen(
       setup, current => current === attempt && matchesFixedCompute(managedLedgerResult, port, consume),
@@ -954,7 +967,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         (_, index) => JSON.parse(accepted(
           bridge.computeHostParameter(managedLedgerRun, 0, index, true, 0)))),
     });
-    consume = chunk => {
+    consume = async chunk => {
       if (!managedLedgerOutput) {
         const fields = JSON.stringify(chunk.fields.map(({name, type}) =>
           [name, type.id, type.precision == null ? null : String(type.precision),
@@ -972,6 +985,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       }
       accepted(bridge.managedOutputAccept(managedLedgerOutput, chunk.rowCount,
         JSON.stringify(chunk.columns)));
+      assert.equal(chunk.fields.length, 1);
+      assert.equal(chunk.fields[0].type.id, 'DOUBLE');
+      const native = chunk.columns[0].map(physicalDouble);
+      await managedLedgerWriter.appendBytes(Buffer.from(
+        `${JSON.stringify({native_columns: [native]})}\n`));
     };
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
       {maxRows: 100, maxCells: 1000}, consume);
@@ -983,8 +1001,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'the stream base cannot enlarge the separately admitted file ceiling');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n);
-    const managedBodyBytes = 321n;
-    accepted(bridge.managedOutputRetain(managedLedgerOutput, managedBodyBytes, () => true));
+    managedLedgerBody = await managedLedgerWriter.sealPhysical();
+    const managedBodyBytes = BigInt(managedLedgerBody.bytes);
+    accepted(bridge.managedOutputRetain(
+      managedLedgerOutput, managedBodyBytes, () => managedLedgerBody.available()));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
       'sealed managed body and measurement index own distinct task holdings');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
@@ -1004,6 +1024,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedInput = fixture.strategyFixtureManagedInput(
       managedLedgerFixture, 2, managedCompleted);
     const managedMaterial = bridge.managedOutputMaterial(managedLedgerOutput);
+    registerManagedInput(managedMaterial,
+      input => bridge.managedInputMatchesMaterial(input, managedMaterial),
+      managedLedgerStore, managedLedgerBody, managedNumericColumnCodecContractCid);
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
       'the next task binds the exact retained occurrence through its checked graph edge');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 1), false,
@@ -1025,17 +1048,26 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       fixture.strategyFixtureManagedRequestQuerySql(managedQuery);
     assert.match(managedCreateSql, /CREATE TEMP TABLE "managed_input"/);
     assert.match(managedQuerySql, /FROM "main"\."managed_input"/);
-    const managedExecution = fixture.strategyFixtureManagedExecutionStart(
-      managedLedgerFixture, 2, managedRequest, managedProfile);
-    assert.equal(fixture.strategyFixtureManagedExecutionSettle(
-      managedLedgerFixture, managedExecution), true);
-    assert.equal(fixture.strategyFixtureManagedExecutionLegacyComplete(
-      managedLedgerFixture, managedExecution), false,
-    'a managed execution cannot be completed through the legacy finisher');
+    const managedConfiguration = fixture.strategyFixtureManagedConfiguration(
+      managedLedgerFixture, 2, managedRequest, managedProfile, 100000n);
+    await assert.rejects(runManagedNumericStrategyHostCompute(
+      managedConfiguration, managedMaterial, 'sha256:' + '0'.repeat(64),
+      suppliedLimits, {parentDirectory: fileParent, maxFrameBytes: 4096}),
+    {code: 'InvalidManagedStorageConfiguration'});
+    managedDownstream = await runManagedNumericStrategyHostCompute(
+      managedConfiguration, managedMaterial, managedNumericColumnCodecContractCid,
+      suppliedLimits, {parentDirectory: fileParent, maxFrameBytes: 4096});
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 2, managedDownstream.completed), true,
+    'the product Host publishes task 2 through the common managed DAG');
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
-    assert.ok(fixture.strategyFixtureUsage(managedLedgerFixture, 5) > 0n,
-      'the selected downstream completion metadata remains reserved until its task closes');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
+      'successful downstream completion returns its unused metadata reservation');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      indexBytes + managedBodyBytes * 2n,
+      'the downstream result owns an independent retained body');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), false,
@@ -1044,8 +1076,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'a prepared use-site is not permission to read revoked material');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), false,
       'revoked material cannot satisfy another managed request');
-    fixture.strategyFixtureManagedExecutionClose(
-      managedLedgerFixture, managedExecution);
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 2, managedDownstream.completed), true,
+    'the independent downstream result survives revocation of its consumed input');
+    await managedDownstream.close();
+    managedDownstream = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
       'revocation releases the index but graph ownership keeps the body holding');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
@@ -1054,9 +1089,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);
   } finally {
+    await managedDownstream?.close();
     if (managedLedgerOutput) bridge.managedOutputCancel(managedLedgerOutput);
     if (managedLedgerRun) bridge.computeHostClose(managedLedgerRun);
     if (managedLedgerResult) releaseFixedCompute(managedLedgerResult);
+    managedLedgerBody?.close();
+    managedLedgerStore?.close();
+    await managedLedgerStore?.cleanup();
     managedLedgerCapture.close();
   }
   let freshDuckDBTransfer;

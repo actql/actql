@@ -10,6 +10,11 @@ struct ManagedNodeOutput {
   mut material : @execution.ManagedRetainedOutput[Int]?
   mut material_allocation : @strategy.TaskRetainedAllocation?
   mut index_allocation : @strategy.TaskRetainedAllocation?
+  mut strategy_allocation : (
+    @strategy.CapturedDAG,
+    @strategy.TaskExecution,
+    Int64,
+  )?
   mut open : Bool
   valid : Ref[Bool]
 }
@@ -267,6 +272,7 @@ pub fn managed_view_output_open(
     material: None,
     material_allocation: None,
     index_allocation: None,
+    strategy_allocation: None,
     open: true,
     valid: Ref(true),
   }
@@ -315,6 +321,7 @@ pub fn managed_selected_output_open(
     material: None,
     material_allocation: None,
     index_allocation: None,
+    strategy_allocation: None,
     open: true,
     valid: Ref(true),
   }
@@ -424,6 +431,7 @@ fn managed_node_output(
     material: None,
     material_allocation: None,
     index_allocation: None,
+    strategy_allocation: None,
     open: true,
     valid: Ref(true),
   }
@@ -609,6 +617,19 @@ pub fn managed_output_retain(
   // before issuing the managed material. The Store callback proves continued
   // availability; it is not a substitute for physical capacity ownership.
   let allocation = match value.receiver {
+    _ if value.strategy_allocation is Some(context) => {
+      let (graph, execution, limit) = context
+      guard bytes >= 0L && bytes <= limit else { raise Physical(InvalidCharge) }
+      if bytes == 0L {
+        None
+      } else {
+        match
+          @strategy.retain_task_execution_allocation(graph, execution, bytes) {
+          Ok(value) => Some(value)
+          Err(issue) => raise Physical(issue)
+        }
+      }
+    }
     Compute(run, _) if run.strategy is Some(_) => {
       guard run.managed_storage_bytes is Some(limit) &&
         bytes >= 0L &&

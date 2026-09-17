@@ -18,6 +18,8 @@ import { createRetainedRowFrames } from '../store-local/row-frames.mjs';
 import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
   retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
   withRetainedInputFile, retainedInputFilePath} from '../store-local/representations.mjs';
+export {runManagedNumericStrategyHostCompute,
+  managedNumericColumnCodecContractCid} from './managed-strategy-compute.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
