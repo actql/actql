@@ -311,8 +311,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
         },
         conformance: 'registered-fixture-bounded',
       },
-      missing: ['matched process/cold timing boundaries', 'complete expression-demand/guard failure parity',
-        'complete negative conformance fixtures']};
+      missing: ['matched process/cold timing boundaries']};
   } catch (error) { primary = error; }
   finally {
     signal.removeEventListener('abort', interrupt);

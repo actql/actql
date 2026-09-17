@@ -6,6 +6,8 @@ import {execFile} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {isDeepStrictEqual, promisify} from 'node:util';
+import {admitEquivalentObligationPair} from
+  './equivalent-admission.mjs';
 
 const exec = promisify(execFile);
 
@@ -328,12 +330,35 @@ export async function runMatchedEquivalentPair({
   const closed = Object.freeze([
     'matched process/cold timing boundaries',
     'matched warm timing boundary',
+    'finite expression-demand and negative conformance',
     ...(acquisitionMetadataEquivalent
       ? ['acquisition evidence metadata parity'] : []),
     ...(transferWorkAccountingEquivalent
       ? ['transfer and logical-work accounting equivalence'] : []),
   ]);
   const closedSet = new Set(closed);
+  const unresolved = [...new Set([
+    ...(equivalent.report?.missing ?? []).filter(value =>
+      !closedSet.has(value)),
+    ...(!logicalAccountingEquivalent
+      ? ['logical guard and comparison charge parity'] : []),
+    ...(!acquisitionMetadataEquivalent
+      ? ['acquisition evidence metadata parity'] : []),
+    ...(!transferWorkAccountingEquivalent
+      ? ['transfer/work accounting equivalence'] : []),
+  ])];
+  let equivalentObligationAdmission;
+  if (completed && unresolved.length === 0) {
+    equivalentObligationAdmission = admitEquivalentObligationPair({
+      fixture,
+      retained,
+      equivalent,
+      logicalAccountingEquivalent,
+      acquisitionMetadataEquivalent,
+      transferWorkAccountingEquivalent,
+      unresolved,
+    });
+  }
   return Object.freeze({
     index,
     caseId: fixture.id,
@@ -360,22 +385,13 @@ export async function runMatchedEquivalentPair({
     acquisitionMetadataEquivalent,
     transferWorkAccountingEquivalent,
     transferWorkComparison,
-    acceptanceEligible: completed && equivalent.acceptanceEligible === true &&
-      retained.acceptanceEligible === true && logicalAccountingEquivalent &&
-      acquisitionMetadataEquivalent && transferWorkAccountingEquivalent,
+    equivalentObligationAdmission,
+    acceptanceEligible: equivalentObligationAdmission?.accepted === true,
     closed,
     missing: Object.freeze([
-      ...new Set([
-        ...(equivalent.report?.missing ?? []).filter(value =>
-          !closedSet.has(value)),
-        ...(!logicalAccountingEquivalent
-          ? ['logical guard and comparison charge parity'] : []),
-        ...(!acquisitionMetadataEquivalent
-          ? ['acquisition evidence metadata parity'] : []),
-        ...(!transferWorkAccountingEquivalent
-          ? ['transfer/work accounting equivalence'] : []),
-        'equivalent-obligation admission',
-      ]),
+      ...unresolved,
+      ...(equivalentObligationAdmission ? []
+        : ['equivalent-obligation admission']),
     ]),
   });
 }

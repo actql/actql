@@ -154,6 +154,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       assert.deepEqual(report.closed, [
         'matched process/cold timing boundaries',
         'matched warm timing boundary',
+        'finite expression-demand and negative conformance',
         'acquisition evidence metadata parity',
         'transfer and logical-work accounting equivalence',
       ]);
