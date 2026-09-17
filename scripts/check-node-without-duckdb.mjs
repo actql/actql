@@ -27,6 +27,11 @@ execFileSync(process.execPath,['--input-type=module','-e',`
   assert.throws(() => require.resolve('@duckdb/node-api'),{code:'MODULE_NOT_FOUND'});
   await import('./scripts/node-host-subset-fixture.mjs');
 `],{cwd:isolated,stdio:'inherit'});
-execFileSync(process.execPath,['--test','scripts/connector-node-bundles.test.mjs','adapters/host-node/strategy.test.mjs'],
+execFileSync(process.execPath,[
+  '--test',
+  'scripts/connector-node-bundles.test.mjs',
+  'adapters/host-node/strategy.test.mjs',
+  'adapters/host-common/managed-failure.test.mjs',
+],
   {cwd:isolated,stdio:'inherit'});
 console.log(`Dependency-free standard-entry evidence retained: ${isolated}`);
