@@ -63,6 +63,17 @@ test "bounded stream working capacity tracks frames not cumulative value counter
   assert_true(
     duckdb_stream_scratch_capacity(larger, transport).unwrap() > expected,
   )
+  assert_eq(
+    duckdb_managed_stream_scratch_capacity(larger, transport),
+    Some(expected),
+  )
+  assert_eq(
+    duckdb_managed_stream_scratch_capacity(larger, {
+      ..transport,
+      max_columns: 0,
+    }),
+    None,
+  )
 }
 
 ///|

@@ -199,6 +199,10 @@ fn dispatch_limits(data? : DataProfile? = None) -> @dbhost.TaskDispatchLimits {
           max_work: data.work,
         },
         guards: profile_measurement(data),
+        // Managed filter/select preparation inspects both the admitted input
+        // and output views. The data profile's finite metadata allowance, not
+        // the small example compiler default, bounds that work.
+        native_query: { ..base.native_query, max_entries: data.entries, },
         native: {
           ..base.native,
           metadata_work: 100000,

@@ -48,7 +48,33 @@ pub fn duckdb_stream_scratch_capacity(
   transport : @duckdb.TransportColumnLimits,
   compute? : @duckdb.FixedCompute,
 ) -> Int64? {
-  if compute is Some(_) &&
+  stream_scratch_capacity(
+    limits,
+    transport,
+    compute is Some(_),
+    compute.map(@duckdb.fixed_compute_retains_join_keys).unwrap_or(true),
+  )
+}
+
+///|
+/// Managed fixed queries currently have exactly one input, so they cannot
+/// retain join keys. Their checked query is known even though it is represented
+/// separately from the legacy FixedCompute payload.
+pub fn duckdb_managed_stream_scratch_capacity(
+  limits : DuckDBComputeLimits,
+  transport : @duckdb.TransportColumnLimits,
+) -> Int64? {
+  stream_scratch_capacity(limits, transport, true, false)
+}
+
+///|
+fn stream_scratch_capacity(
+  limits : DuckDBComputeLimits,
+  transport : @duckdb.TransportColumnLimits,
+  plan_known : Bool,
+  retains_join_keys : Bool,
+) -> Int64? {
+  if plan_known &&
     (
       transport.max_bytes <= 0 ||
       transport.max_nodes <= 0 ||
@@ -63,7 +89,7 @@ pub fn duckdb_stream_scratch_capacity(
     return None
   }
   let full = scratch + (if rows > retained { rows - retained } else { 0L })
-  if compute is Some(plan) && !@duckdb.fixed_compute_retains_join_keys(plan) {
+  if plan_known && !retains_join_keys {
     Some(Int64::min(full, bounded_stream_scratch_capacity(limits, transport)))
   } else {
     Some(full)

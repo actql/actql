@@ -83,11 +83,11 @@ test "managed row measurement index is optional bounded and sealed only on full 
 ///|
 test "managed row measurement index has fixed capacity and exact cells" {
   assert_eq(managed_row_measurement_capacity_bytes(0), Some(512L))
-  assert_eq(managed_row_measurement_capacity_bytes(3), Some(704L))
+  assert_eq(managed_row_measurement_capacity_bytes(3), Some(539L))
   assert_true(managed_row_measurement_capacity_bytes(-1) is None)
   assert_true(managed_row_measurement_capacity_bytes(238609295) is None)
   let index = new_managed_row_measurements(3).unwrap()
-  assert_eq(index.cells.length(), 3)
+  assert_eq(index.cells.length(), 27)
   assert_true(managed_row_measurement_push(index, (1, 2, false)))
   assert_true(
     managed_row_measurement_push(index, (2147483647, 2147483646, true)),

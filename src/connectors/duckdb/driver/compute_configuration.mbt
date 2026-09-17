@@ -273,7 +273,7 @@ pub fn[T] configured_managed_strategy_retention_capacity(
 pub fn[T] configured_managed_strategy_scratch_capacity(
   setup : ManagedStrategyComputeHostConfiguration[T],
 ) -> Int64? {
-  @compute.duckdb_stream_scratch_capacity(setup.limits, setup.transport)
+  @compute.duckdb_managed_stream_scratch_capacity(setup.limits, setup.transport)
 }
 
 ///|

@@ -18,6 +18,14 @@ fn managed_row_measurements_equal(
   left : ManagedRowMeasurements,
   right : ManagedRowMeasurements,
 ) -> Bool {
-  left.count == right.count &&
-  left.cells[0:left.count] == right.cells[0:right.count]
+  if left.count != right.count {
+    return false
+  }
+  for index in 0..<left.count {
+    if managed_row_measurement_get(left, index) !=
+      managed_row_measurement_get(right, index) {
+      return false
+    }
+  }
+  true
 }

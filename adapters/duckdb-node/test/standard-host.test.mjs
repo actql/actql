@@ -1193,9 +1193,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
     const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
-    const indexBytes = 512n + 6n * 64n;
-    const projectedIndexBytes = 512n + 3n * 64n;
-    const terminalIndexBytes = 512n + 64n;
+    const indexBytes = 512n + 6n * 9n;
+    const projectedIndexBytes = 512n + 3n * 9n;
+    const terminalIndexBytes = 512n + 9n;
     let attempt;
     let port;
     let consume;

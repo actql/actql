@@ -30,6 +30,8 @@ pub fn application_ledger_limits(@physical_resources.Ledger) -> @physical_resour
 
 pub fn application_ledger_usage(@physical_resources.Ledger) -> @physical_resources.LedgerUsage
 
+pub fn application_managed_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
+
 pub fn application_materializing_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
 pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?

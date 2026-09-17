@@ -5,7 +5,10 @@ import { parseArgs } from 'node:util';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runStrategyNativeHostQuery, runRetainedStrategyNativeHostQuery } from '../host.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
-import { prepareDuckDBStrategyConfiguration, preparedStrategyConfiguration } from '../configuration.mjs';
+import {
+  prepareDuckDBStrategyConfiguration,
+  preparedStrategyConfiguration,
+} from '../configuration.mjs';
 import {retainedConfiguration, bindRetainedProcessStore} from '../retained-configuration.mjs';
 import { checked } from '../runtime-result.mjs';
 import {configureLocalProcessStore} from '../../local-node/retained-process.mjs';
@@ -18,6 +21,22 @@ const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 });
 
+export function exampleDatabaseMemoryBytes(
+  dataProfile,
+  resourceLimits,
+  managedOutput,
+) {
+  const data = snapshotDataProfile(dataProfile);
+  const configured = resourceLimits?.execution_bytes;
+  if (data && managedOutput !== undefined && configured !== undefined &&
+      (typeof configured !== 'bigint' || configured < 2n ||
+       configured > BigInt(Number.MAX_SAFE_INTEGER))) {
+    throw new Error('Invalid execution memory limit');
+  }
+  return data && managedOutput !== undefined && configured !== undefined
+    ? Number(configured / 2n) : limits.memoryBytes;
+}
+
 async function boundedText(path) {
   if ((await stat(path)).size > 1000000) throw new Error('Example input exceeds 1000000 bytes');
   const bytes = await readFile(path);
@@ -29,7 +48,10 @@ async function boundedText(path) {
 // filesystem access. Preparation and semantic decisions stay in MoonBit.
 export async function runExample({ database, environment, environmentCid, program,
   parameters, schema = 'main', table = 'records', nativeMilliseconds = '5', resident = false,
-  retainedOutput, retainedWorkMilliseconds, localImportWorkMilliseconds, localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile, signal }, observer) {
+  retainedOutput, acquisitionRetainedOutput, managedOutput,
+  retainedWorkMilliseconds,
+  localImportWorkMilliseconds, localExportWorkMilliseconds,
+  nativeTaskMilliseconds, dataProfile, signal }, observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
@@ -40,7 +62,10 @@ export async function runExample({ database, environment, environmentCid, progra
       new URL('spec/contracts/actql-query-two-receipt.json', root)].map(boundedText));
   const plan = await prepareExampleText({database, environmentCid, schema, table,
     nativeMilliseconds, resident, programText, environmentText, parameterText,
-    adoptedText, query, evidence, receipts, retainedOutput, retainedWorkMilliseconds, localImportWorkMilliseconds, localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile});
+    adoptedText, query, evidence, receipts, retainedOutput,
+    acquisitionRetainedOutput, managedOutput,
+    retainedWorkMilliseconds, localImportWorkMilliseconds,
+    localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile});
   const opened = await plan.open(signal);
   let execution;
   try {
@@ -66,8 +91,16 @@ export async function runExample({ database, environment, environmentCid, progra
 export async function prepareExampleText({database, environmentCid, programText,
   environmentText, parameterText, adoptedText, query, evidence, receipts,
   schema = 'main', table = 'records', nativeMilliseconds = '5', resident = false,
-  retainedOutput, retainedWorkMilliseconds, localImportWorkMilliseconds, localExportWorkMilliseconds, nativeTaskMilliseconds, dataProfile}, resourceLimits) {
+  retainedOutput, acquisitionRetainedOutput, managedOutput,
+  retainedWorkMilliseconds,
+  localImportWorkMilliseconds, localExportWorkMilliseconds,
+  nativeTaskMilliseconds, dataProfile}, resourceLimits) {
   const data = snapshotDataProfile(dataProfile);
+  const memoryBytes = exampleDatabaseMemoryBytes(
+    data,
+    resourceLimits,
+    managedOutput,
+  );
   const transportLimits = data ? {...limits,
     // One session reads one table-metadata cell, validation and selected output.
     // Metadata is outside the receipts but still consumes transport capacity.
@@ -78,12 +111,25 @@ export async function prepareExampleText({database, environmentCid, programText,
     // Explicitly reserve the bounded batch parameter capacity before selecting
     // a candidate. SQL/frame ceilings may choose fewer rows at import time.
     maxColumns: data.columns, maxParameters: data.columns * 128,
+    // The bounded application ledger covers both the native database and the
+    // independently admitted transport/semantic scratch. This example policy
+    // gives each side half; it does not double-count the full limit for DuckDB.
+    memoryBytes,
     // Acquisition scans and result frames are distinct from Compute imports.
     maxTransportBytes: data.wire_bytes * 3} : limits;
   if (!/^\d{1,18}$/.test(nativeMilliseconds) || typeof resident !== 'boolean' || typeof database !== 'string') {
     throw new Error('Invalid example configuration');
   }
-  const retained = retainedOutput === undefined ? undefined : retainedConfiguration(retainedOutput);
+  if (retainedOutput !== undefined && managedOutput !== undefined) {
+    throw new Error('Conflicting output profiles');
+  }
+  const retained = retainedOutput === undefined
+    ? undefined : retainedConfiguration(retainedOutput);
+  const managed = managedOutput === undefined
+    ? undefined : retainedConfiguration(managedOutput);
+  const acquisitionRetained = acquisitionRetainedOutput === undefined
+    ? undefined : retainedConfiguration(acquisitionRetainedOutput);
+  const stored = retained ?? managed;
   if (nativeTaskMilliseconds !== undefined &&
       (localExportWorkMilliseconds === undefined || !Array.isArray(nativeTaskMilliseconds))) {
     throw new Error('Invalid native task estimates');
@@ -102,7 +148,7 @@ export async function prepareExampleText({database, environmentCid, programText,
     throw new Error('InvalidLocalImportWork');
   }
   if ((retainedWorkMilliseconds !== undefined && !/^\d{1,18}$/.test(retainedWorkMilliseconds)) ||
-      (retained && retainedWorkMilliseconds === undefined)) {
+      (stored && retainedWorkMilliseconds === undefined)) {
     throw new Error('Invalid retained example configuration');
   }
   const app = await import(runtimeUrl);
@@ -126,11 +172,13 @@ export async function prepareExampleText({database, environmentCid, programText,
     // These are cumulative physical transport counts, not logical row limits.
     maxRows: data.task_rows * 3 + 8,
     maxCells: data.task_rows * data.columns * 3 + 8,
+    maxColumns: data.columns + (managed === undefined ? 0 : 2),
     maxTransportBytes: Number(app.applicationComputeTransferCapacity(prepared)),
   } : transportLimits;
   const duckdbConfiguration = prepareDuckDBStrategyConfiguration({transportLimits: computeTransport,
     importLimits: {maxRows: data?.task_rows ?? 100,
-      maxCells: data ? 2 * data.task_rows * data.columns : 1000}, retainedOutput: retained});
+      maxCells: data ? 2 * data.task_rows * data.columns : 1000},
+    retainedOutput: retained, managedOutput: managed});
   const ledger = resourceLimits === undefined ? app.applicationLedger() : checked(app.applicationBoundedLedger(resourceLimits));
   const taskReferences = Array.from({length: app.applicationComputeCount(prepared)},
     (_, index) => checked(app.applicationTaskReference(prepared, index + 1)));
@@ -155,13 +203,28 @@ export async function prepareExampleText({database, environmentCid, programText,
     usage: () => Object.freeze({...app.applicationLedgerUsage(ledger)}), async open(signal, storeBinding) {
     signal?.throwIfAborted();
     if (localExportWorkMilliseconds !== undefined && !storeBinding) throw new Error('Local export requires the installed process Store');
-    if (storeBinding && (!retained || localImportWorkMilliseconds === undefined)) {
+    const acquisitionSource = acquisitionRetained ??
+      (storeBinding ? retained : undefined);
+    if (storeBinding && (!acquisitionSource ||
+        localImportWorkMilliseconds === undefined)) {
       throw new Error('Retained acquisition requires an explicit Local import policy');
     }
-    const acquisitionRetention = storeBinding ? bindRetainedProcessStore(retained, storeBinding) : undefined;
-    const configuration = acquisitionRetention ? prepareDuckDBStrategyConfiguration({
-      ...preparedStrategyConfiguration(duckdbConfiguration), retainedOutput: acquisitionRetention,
-    }) : duckdbConfiguration;
+    const acquisitionRetention = acquisitionSource === undefined
+      ? undefined
+      : storeBinding
+        ? bindRetainedProcessStore(acquisitionSource, storeBinding)
+        : acquisitionSource;
+    const computeRetention = storeBinding && retained
+      ? acquisitionSource === retained
+        ? acquisitionRetention
+        : bindRetainedProcessStore(retained, storeBinding)
+      : undefined;
+    const configuration = computeRetention
+      ? prepareDuckDBStrategyConfiguration({
+        ...preparedStrategyConfiguration(duckdbConfiguration),
+        retainedOutput: computeRetention,
+      })
+      : duckdbConfiguration;
     const grant = await authorizeLocalDatabase(database);
     signal?.throwIfAborted();
     const capture = acquisitionRetention
@@ -181,7 +244,11 @@ export async function prepareExampleText({database, environmentCid, programText,
     };
     try {
       const graph = capture.openDAG(app.applicationGraph(prepared));
-      const setup = checked(retained
+      const setup = checked(managed
+        ? app.applicationManagedDispatch(prepared, graph,
+          BigInt(nativeMilliseconds), BigInt(managed.wire.max_bytes),
+          BigInt(retainedWorkMilliseconds), resident)
+        : retained
         ? localExportWorkMilliseconds !== undefined
           ? app.applicationRetainedLocalDispatch(prepared, graph, BigInt(nativeMilliseconds),
             BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),

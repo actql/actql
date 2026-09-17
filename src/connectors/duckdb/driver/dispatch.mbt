@@ -255,8 +255,10 @@ pub fn prepare_duckdb_managed_dispatch(
       installed.run,
       task,
       output,
-      installed.limits.query.max_entries,
-      installed.limits.query.max_sql_bytes,
+      // Binding a checked schema is connector metadata work. Native-query
+      // entries and SQL bytes bound compilation, not producer-name matching.
+      installed.limits.execution.metadata_work,
+      installed.limits.execution.completion_name_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Run(issue))

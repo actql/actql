@@ -564,6 +564,26 @@ pub fn application_retained_dispatch(
 }
 
 ///|
+#export_name("applicationManagedDispatch")
+pub fn application_managed_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  resident : Bool,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
+  create_application_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    Some((file_bytes, Some(file_work_ms))),
+    managed_output=true,
+  )
+}
+
+///|
 #export_name("applicationMaterializingDispatch")
 pub fn application_materializing_dispatch(
   app : Application,
@@ -619,6 +639,7 @@ fn create_application_dispatch(
   local_import_ms? : Int64? = None,
   local_export_ms? : Int64? = None,
   native_task_ms? : Array[Int64] = [],
+  managed_output? : Bool = false,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
     fail("foreign graph")
@@ -718,7 +739,7 @@ fn create_application_dispatch(
       .map(value => {
         let limits = dispatch_limits(data=Some(value)).native
         let full = @duckdb_compute.duckdb_task_retention_capacity(limits).unwrap()
-        if retained is Some((bytes, _)) && bytes > 0L {
+        let base = if retained is Some((bytes, _)) && bytes > 0L {
           let streamed = @duckdb_compute.duckdb_stream_retention_capacity(
             limits,
           ).unwrap()
@@ -727,6 +748,19 @@ fn create_application_dispatch(
           streamed
         } else {
           full
+        }
+        if managed_output {
+          guard value.task_rows <= 2147483647 / value.columns &&
+            @execution.managed_row_measurement_capacity_bytes(
+              value.task_rows * value.columns,
+            )
+            is Some(index) &&
+            base <= 9223372036854775807L - index else {
+            fail("invalid managed measurement capacity")
+          }
+          base + index
+        } else {
+          base
         }
       })
       .unwrap_or(4000000L),

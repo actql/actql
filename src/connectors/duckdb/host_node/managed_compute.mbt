@@ -130,7 +130,9 @@ pub fn managed_strategy_selection(
       @duckdb_driver.captured_managed_duckdb_query(run.task),
       rows,
       run.max_index_cells,
-      run.limits.metadata_work,
+      // This pass copies bounded per-value measurements and row occurrences;
+      // schema-only metadata_work is not its contract or a row-count ceiling.
+      run.limits.values.max_work,
     ) {
     Ok(selection) => selection
     Err(_) => raise InvalidCommand

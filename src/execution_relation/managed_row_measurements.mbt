@@ -1,16 +1,16 @@
 ///|
 /// Optional bounded metadata captured during the original value measurement.
-/// Measurements use one fixed-capacity array rather than a growable array.
-/// The physical allowance is the pinned-runtime upper bound for one array slot
-/// and its three-field tuple; Native and Wasm use no more storage than JS.
+/// Two non-negative Ints use fixed little-endian words and the NULL fact uses
+/// one byte. This avoids one heap object per cell on JS while retaining the
+/// exact same facts on every target.
 priv struct ManagedRowMeasurements {
   max_cells : Int
-  mut cells : FixedArray[(Int, Int, Bool)]
+  mut cells : FixedArray[Byte]
   mut count : Int
 }
 
 ///|
-const MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL : Int = 64
+const MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL : Int = 9
 
 ///|
 const MANAGED_ROW_MEASUREMENT_HEADER_BYTES : Int64 = 512L
@@ -23,14 +23,18 @@ fn new_managed_row_measurements(max_cells : Int) -> ManagedRowMeasurements? {
   }
   Some({
     max_cells,
-    cells: FixedArray::make(max_cells, (0, 0, false)),
+    cells: FixedArray::make(
+      max_cells * MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL,
+      0,
+    ),
     count: 0,
   })
 }
 
 ///|
-/// Conservative retained allocation bound for the fixed tuple payload and its
-/// fixed owner object. Selection arrays and preparation scratch are separate.
+/// Exact retained allocation bound for the packed payload plus a conservative
+/// fixed owner allowance. Selection arrays and preparation scratch are
+/// separate.
 pub fn managed_row_measurement_capacity_bytes(max_cells : Int) -> Int64? {
   if max_cells < 0 ||
     max_cells > 2147483647 / MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL {
@@ -51,8 +55,34 @@ fn managed_row_measurement_set(
   if position < 0 || position >= index.max_cells || value.0 < 0 || value.1 < 0 {
     return false
   }
-  index.cells[position] = value
+  let offset = position * MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL
+  managed_row_measurement_write_int(index.cells, offset, value.0)
+  managed_row_measurement_write_int(index.cells, offset + 4, value.1)
+  index.cells[offset + 8] = if value.2 { 1 } else { 0 }
   true
+}
+
+///|
+fn managed_row_measurement_write_int(
+  cells : FixedArray[Byte],
+  offset : Int,
+  value : Int,
+) -> Unit {
+  cells[offset] = (value & 0xff).to_byte()
+  cells[offset + 1] = ((value >> 8) & 0xff).to_byte()
+  cells[offset + 2] = ((value >> 16) & 0xff).to_byte()
+  cells[offset + 3] = ((value >> 24) & 0xff).to_byte()
+}
+
+///|
+fn managed_row_measurement_read_int(
+  cells : FixedArray[Byte],
+  offset : Int,
+) -> Int {
+  cells[offset].to_int() |
+  (cells[offset + 1].to_int() << 8) |
+  (cells[offset + 2].to_int() << 16) |
+  (cells[offset + 3].to_int() << 24)
 }
 
 ///|
@@ -75,12 +105,19 @@ fn managed_row_measurement_get(
   if position < 0 || position >= index.count {
     return None
   }
-  Some(index.cells[position])
+  let offset = position * MANAGED_ROW_MEASUREMENT_BYTES_PER_CELL
+  Some(
+    (
+      managed_row_measurement_read_int(index.cells, offset),
+      managed_row_measurement_read_int(index.cells, offset + 4),
+      index.cells[offset + 8] != 0,
+    ),
+  )
 }
 
 ///|
 fn discard_managed_row_measurements(index : ManagedRowMeasurements) -> Unit {
-  index.cells = FixedArray::make(0, (0, 0, false))
+  index.cells = FixedArray::make(0, 0)
   index.count = 0
 }
 
