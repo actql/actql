@@ -46,6 +46,8 @@ function normalize(label, value, cycleMs) {
     'CompletedChildWithoutCleanupTiming');
   assert(!completed || Number.isFinite(report.executionMs) &&
     report.executionMs >= 0, 'CompletedChildWithoutExecutionTiming');
+  assert(!completed || Number.isFinite(report.warmMs) &&
+    report.warmMs >= 0, 'CompletedChildWithoutWarmTiming');
   // The parent cycle covers the same fresh-child boundary for both legs.
   // Subtract only the separately measured cleanup interval; never add the
   // overlapping child execution interval to it.
@@ -54,6 +56,7 @@ function normalize(label, value, cycleMs) {
   return Object.freeze({
     status: completed ? report.status : value.status ?? 'failed',
     executionMs: report?.executionMs,
+    warmMs: report?.warmMs,
     coldMs,
     cleanupMs,
     processCycleMs: cycleMs,
@@ -158,6 +161,7 @@ export async function runMatchedEquivalentPair({
     retained.status === 'completed';
   const closed = Object.freeze([
     'matched process/cold timing boundaries',
+    'matched warm timing boundary',
   ]);
   const closedSet = new Set(closed);
   return Object.freeze({
@@ -187,7 +191,6 @@ export async function runMatchedEquivalentPair({
         ...(equivalent.report?.missing ?? []).filter(value =>
           !closedSet.has(value)),
         'equivalent-obligation admission',
-        'warm-boundary paired samples',
       ]),
     ]),
   });

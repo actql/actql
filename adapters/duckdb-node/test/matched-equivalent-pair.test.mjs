@@ -24,16 +24,23 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
           return Object.freeze({
             status: 'completed',
             executionMs: 10,
+            warmMs: 7,
             coldMs: 12,
             cleanupMs: 1,
             processCycleMs: 13,
             acceptanceEligible: false,
-            report: {status: 'completed', executionMs: 10, cleanupMs: 1},
+            report: {
+              status: 'completed',
+              executionMs: 10,
+              warmMs: 7,
+              cleanupMs: 1,
+            },
           });
         }
         return Object.freeze({
           status: 'diagnostic-completed',
           executionMs: 8,
+          warmMs: 5,
           coldMs: 10,
           cleanupMs: 1,
           processCycleMs: 11,
@@ -41,6 +48,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
           report: {
             status: 'diagnostic-completed',
             executionMs: 8,
+            warmMs: 5,
             cleanupMs: 1,
             missing: [
               'matched process/cold timing boundaries',
@@ -77,6 +85,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       ));
       assert.deepEqual(report.closed, [
         'matched process/cold timing boundaries',
+        'matched warm timing boundary',
       ]);
       assert(report.missing.includes('equivalent-obligation admission'));
       assert.equal(report.provenance.processBoundary, 'fresh child per leg');

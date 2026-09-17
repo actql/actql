@@ -74,6 +74,7 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert.equal(report.controlMemory.status, 'observed');
       assert(BigInt(report.controlTransport.receivedBytes) > 0n);
       assert(report.executionMs > 0 && report.cleanupMs >= 0);
+      assert(report.warmMs > 0 && report.warmMs <= report.executionMs);
       assert.doesNotThrow(() => JSON.stringify(report));
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
       const reused = await runRetainedComparator(fixture, contracts, database, directory,
@@ -86,6 +87,7 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert.deepEqual(reused.tasks.map(task => task.preparation.imports.length),
         [1, ...Array(reused.tasks.length - 1).fill(0)]);
       assert(reused.executionMs > 0 && reused.cleanupMs >= 0);
+      assert(reused.warmMs > 0 && reused.warmMs <= reused.executionMs);
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
     }
     const fixture = retainedCase(workloads[2], 'narrow', 100);

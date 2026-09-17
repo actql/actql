@@ -123,7 +123,7 @@ confusion during development, before acceptance use.
 
 Still required before equivalence approval:
 
-- Matched warm timing boundary; process/cold pair assembly is now fixed below.
+- Comparator-equivalence admission before either matched timing is accepted.
 - Complete expression-demand/guard failure parity and its negative fixtures.
 - Validation of the declared completion-metadata allowance and shared
   DB-plus-scratch execution admission, not only the Store or engine limit.
@@ -144,15 +144,17 @@ the checkout revision and cleanliness after each leg, and records the pinned
 experiment, source definition, Program and Node runtime in pair provenance.
 
 The parent process measures both child cycles with the same clock. Each child
-continues to report its own setup-through-holding execution interval and
-confirmed cleanup interval. The pair records a non-overlapping cold interval as
-the parent child-cycle minus that child's separately measured cleanup interval;
-it never sums overlapping timers. Pair order alternates by the explicit pair
-index.
+continues to report its own setup-through-holding execution interval, warm
+downstream-consumer interval and confirmed cleanup interval. The warm interval
+starts after acquisition/capture and includes each consumer's input
+validation/reuse, query, output admission and independent holding. The pair
+records a non-overlapping cold interval as the parent child-cycle minus that
+child's separately measured cleanup interval; it never sums overlapping timers.
+Pair order alternates by the explicit pair index.
 
 This closes the assembly ambiguity around source mutation, process placement,
-clock ownership and alternating order. It does **not** close comparator
-equivalence or the registered warm boundary. The equivalent child still reports
+clock ownership, warm scope and alternating order. It does **not** close
+comparator equivalence. The equivalent child still reports
 `diagnostic-completed`, and the pair remains `acceptanceEligible: false` until
 both legs have independently admitted equivalent obligations. A successful
 timing-only diagnostic therefore cannot become an acceptance result.

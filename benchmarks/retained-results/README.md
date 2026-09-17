@@ -319,7 +319,8 @@ node --test benchmarks/retained-results/*.test.mjs
 lower-level runner boundary: one alternating retained/equivalent pair against
 one hashed immutable database and one clean revision, with a fresh child for
 each leg. It records matched parent-cycle, child execution and cleanup timing
-without declaring the independent comparator equivalent. The executable
+plus the downstream-consumer warm interval without declaring the independent
+comparator equivalent. The executable
 `matched-equivalent-pair-case.mjs` wrapper takes the explicit fixture and pair
 index after source setup. Its output remains diagnostic while the equivalent
 leg reports missing obligations; it cannot be passed directly to the timing

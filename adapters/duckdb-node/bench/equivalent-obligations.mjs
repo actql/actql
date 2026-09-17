@@ -205,10 +205,13 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       final = completed.get('c');
     }
     const executionMs = performance.now() - started;
+    const warmMs = stages.filter(stage => stage.stage !== 'capture')
+      .reduce((sum, stage) => sum + stage.milliseconds, 0);
     const expected = f.identity(); // Independent oracle is not execution work.
     assert.equal(final.cid, expected.rowsCid); assert.equal(final.rows, expected.rows);
     report = {caseId: f.id, status: 'diagnostic-completed', acceptanceEligible: false,
       comparator: 'independent-obligation-assembly', executionMs, validationMs,
+      warmMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
       holding: store.status(), retentionLedger: ledgerReport(),
       accounting: Object.freeze({

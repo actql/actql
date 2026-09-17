@@ -10,6 +10,17 @@ const hash = value => `sha256:${createHash('sha256').update(value).digest('hex')
 const usage = value => Object.fromEntries(Object.entries(value).map(([key, v]) =>
   [key, typeof v === 'bigint' ? v.toString() : v]));
 
+function warmTaskMilliseconds(task) {
+  const resident = task.phases?.workMilliseconds;
+  if (Number.isFinite(resident) && resident >= 0) return resident;
+  const inputs = task.phases?.inputs;
+  const query = task.phases?.queryAndReceiveMilliseconds;
+  assert(Array.isArray(inputs) && inputs.every(input =>
+    Number.isFinite(input.milliseconds) && input.milliseconds >= 0));
+  assert(Number.isFinite(query) && query >= 0);
+  return inputs.reduce((sum, input) => sum + input.milliseconds, 0) + query;
+}
+
 // Exported for failure-path tests; never creates a successful timing sample.
 export async function closeRetainedSample(result, finalTask) {
   const started = performance.now();
@@ -55,8 +66,11 @@ export async function runRetainedComparator(fixture, contracts, database, direct
     assert.equal(descriptor.rows, expected.rows);
     assert.equal(result.report.completed.length, config.finalTask);
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
+    const warmMs = result.report.completed.reduce((sum, task) =>
+      sum + warmTaskMilliseconds(task), 0);
     report = {comparator: 'retained-actql', scope: 'managed-host-cycle-diagnostic',
       caseId: fixture.id, executionMs: elapsed, expectedRowsCid: expected.rowsCid,
+      warmMs,
       selection, selectionHash: hash(JSON.stringify(selection)),
       rows: expected.rows, programHash: hash(config.input.programText),
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
