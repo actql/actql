@@ -13,6 +13,7 @@ struct TaskExecution {
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
   mut resident : ResidentExecution?
+  attempt : @execution.ManagedExecutionAttempt
 }
 
 ///|
@@ -188,6 +189,7 @@ pub fn[I, T] start_captured_managed_execution(
         disposed: false,
         failed_holding: None,
         resident: None,
+        attempt: @execution.issue_managed_execution_attempt(),
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -315,11 +317,26 @@ fn[T] start_task_execution(
         disposed: false,
         failed_holding: None,
         resident,
+        attempt: @execution.issue_managed_execution_attempt(),
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
       Ok((payload, execution))
     }
+  }
+}
+
+///|
+/// Return the opaque attempt only to an owner holding the exact registered
+/// execution. Preparations and connector registrations cannot derive it.
+pub fn task_execution_managed_attempt(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> @execution.ManagedExecutionAttempt? {
+  if task_execution_matches(run, execution) {
+    Some(execution.attempt)
+  } else {
+    None
   }
 }
 

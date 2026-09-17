@@ -143,6 +143,10 @@ pub fn[T] complete_managed_task_execution(
       output,
       run.graph.owners[task],
       target,
+    ) &&
+    @execution.managed_completed_output_matches_attempt(
+      output,
+      execution.attempt,
     ) else {
     return Err(ForeignCandidate)
   }

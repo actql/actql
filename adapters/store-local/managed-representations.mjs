@@ -178,11 +178,12 @@ export async function withManagedInputFile(material, input, codecContractCid, au
 // checks. Exact duplicate physical bodies share one Store borrow and one
 // integrity pass while the callback receives one file occurrence per port.
 export async function withManagedInputFiles(
-  occurrences, authorize, use, signal, beforeRead,
+  occurrences, authorize, use, signal, beforeRead, commit,
 ) {
   if (!Array.isArray(occurrences) || occurrences.length === 0 ||
       typeof authorize !== 'function' || typeof use !== 'function' ||
-      (beforeRead !== undefined && typeof beforeRead !== 'function')) {
+      (beforeRead !== undefined && typeof beforeRead !== 'function') ||
+      (commit !== undefined && typeof commit !== 'function')) {
     throw issue('InvalidManagedInputUse');
   }
   const admit = index => {
@@ -273,8 +274,13 @@ export async function withManagedInputFiles(
       );
     }
     const value = await verify(0);
+    live();
+    signal?.throwIfAborted();
+    const committed = typeof commit === 'function'
+      ? await commit(value)
+      : value;
     for (const entry of unique) entry.borrow?.confirmStopped();
-    return value;
+    return committed;
   } catch (error) {
     const retained = retainBorrowsUntilStopped(
       error, unique.map(entry => entry.borrow),
@@ -290,7 +296,7 @@ export async function withManagedInputFiles(
 // grouped operation is installed in the portable registry; portable consumers
 // do not import this Node implementation merely to use a memory generation.
 async function withManagedFileInputRows(
-  occurrences, authorize, append, use, signal, beforeRead,
+  occurrences, authorize, append, use, signal, beforeRead, commit,
 ) {
   const providers = occurrences.map(occurrence =>
     managedRepresentation(occurrence?.material)?.rowProvider);
@@ -323,5 +329,6 @@ async function withManagedFileInputRows(
     },
     signal,
     beforeRead,
+    commit,
   );
 }

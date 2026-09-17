@@ -77,6 +77,11 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           async () => {
             for (const transfer of transfers) checked(transfer.finish());
             checked(operations.execute());
+          },
+          signal,
+          undefined,
+          async () => {
+            signal?.throwIfAborted();
             checked(operations.settle());
             settled = true;
             completed = checked(operations.complete(
@@ -85,7 +90,6 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               () => available,
             ));
           },
-          signal,
         );
         const material = operations.material();
         if (completed == null || material == null) {

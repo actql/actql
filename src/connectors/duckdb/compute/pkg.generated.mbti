@@ -27,6 +27,10 @@ pub fn bind_duckdb_dispatch_candidate(DuckDBDispatchPreparation) -> Result[DuckD
 
 pub fn bind_duckdb_resident_output(DuckDBResidentOutput, @execution_relation.CompletedOutput) -> Result[@adapter.ResidentImport, DuckDBResidentOutputIssue]
 
+pub fn[T] bind_managed_duckdb_completion_attempt(ManagedDuckDBCompletion[T], @execution_relation.ManagedExecutionAttempt) -> Bool
+
+pub fn[T] bind_managed_input_duckdb_completion_attempt(ManagedInputDuckDBCompletion[T], @execution_relation.ManagedExecutionAttempt) -> Bool
+
 pub fn cancel_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Unit
 
 pub fn[T] cancel_managed_input_duckdb_completion(ManagedInputDuckDBCompletion[T]) -> Bool

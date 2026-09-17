@@ -236,6 +236,10 @@ pub fn[T] start_local_managed_dispatch(
     Ok((_, value)) => value
     Err(issue) => return Err(Execution(issue))
   }
+  guard @strategy.task_execution_managed_attempt(setup.run, execution)
+    is Some(execution_attempt) else {
+    return Err(Execution(ForeignCandidate))
+  }
   let transfers = Array::makei(bridges.length(), index => {
     let bridge = bridges[index]
     LocalManagedInputTransfer::{
@@ -398,6 +402,7 @@ pub fn[T] start_local_managed_dispatch(
           obligations=@connector.managed_fixed_compute_request_obligations(
             request,
           ),
+          attempt=execution_attempt,
         ) {
         Ok(value) => value
         Err(issue) => return Err(ManagedCompletion(issue))

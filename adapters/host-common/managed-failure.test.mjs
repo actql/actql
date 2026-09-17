@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {localStrategyContribution} from '../local-node/strategy-bundle.mjs';
@@ -22,7 +22,7 @@ const failed = _0 => ({$tag: 0, _0});
 
 function managedCase(factory, prefix, provider, overrides = {}) {
   const material = {}, input = {}, events = [];
-  registerManagedMemoryInput(
+  const memory = registerManagedMemoryInput(
     material,
     value => value === input,
     () => true,
@@ -54,7 +54,7 @@ function managedCase(factory, prefix, provider, overrides = {}) {
     inputs: [{material}],
     configuration: {},
   };
-  return {entry, prepared, events};
+  return {entry, prepared, events, memory};
 }
 
 for (const [name, factory, prefix] of [
@@ -95,8 +95,16 @@ for (const [name, factory, prefix] of [
     assert.equal(failure.primaryFailure, primary);
     assert.equal(failure.cleanupHandle.status().pending, true);
     assert.deepEqual(f.events, ['close']);
+    assert.equal(f.memory.status().readers, 1);
+    let sourceClosed = false;
+    const closing = f.memory.close().then(() => { sourceClosed = true; });
+    await Promise.resolve();
+    assert.equal(sourceClosed, false);
+    assert.equal(f.events.includes('released'), false);
     assert.equal((await failure.cleanupHandle.retry()).pending, false);
-    assert.deepEqual(f.events, ['close', 'settle']);
+    await closing;
+    assert.equal(f.memory.status().readers, 0);
+    assert.deepEqual(f.events, ['close', 'released', 'settle']);
   });
 
   test(`${name} managed close failure does not skip settlement`, async () => {
@@ -343,3 +351,133 @@ test('standard file-to-Local cancellation closes the real read before settlement
   body.close();
   await body.cleanupHandle.retry();
 });
+
+for (const [name, factory, prefix] of [
+  ['Local', localStrategyContribution, 'local'],
+  ['reference', numericStrategyContribution, 'reference_compute'],
+]) {
+  test(`${name} standard Host never completes before final file integrity`, async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), `actql-${prefix}-final-integrity-`,
+    ));
+    const store = await createLocalRetainedStore({
+      parentDirectory: directory,
+      capacityBytes: 1024 * 1024,
+      maxFrameBytes: 1024 * 1024,
+    });
+    t.after(async () => {
+      store.close();
+      await store.cleanup();
+      await rm(directory, {recursive: true, force: true});
+    });
+    const fields = Object.freeze([
+      Object.freeze({name: 'id', type: Object.freeze({id: 'DOUBLE'})}),
+    ]);
+    const number = Buffer.alloc(8);
+    number.writeDoubleBE(1);
+    const frame = encodeManagedColumnFrame(
+      fields, [[number.toString('hex')]], 1, 0,
+    );
+    const writer = store.reserve(frame.byteLength);
+    await writer.start();
+    await writer.appendBytes(frame);
+    const body = await writer.sealPhysical();
+    const material = {}, input = {}, completed = {};
+    const fieldsFrame = JSON.stringify([['id', 'DOUBLE', null, null]]);
+    const representation = managedPhysicalRepresentation(
+      body, 1, managedColumnCodecContractCid, fieldsFrame, [0],
+    );
+    const base = managedColumnRowProvider(fieldsFrame);
+    const changed = Buffer.from(frame);
+    changed[changed.length - 2] = changed[changed.length - 2] === 125 ? 93 : 125;
+    registerManagedInput(
+      material,
+      value => value === input,
+      store,
+      body,
+      managedColumnCodecContractCid,
+      representation.manifest,
+      Object.freeze({
+        async read(file, emit, signal) {
+          await base.read(file, emit, signal);
+          await writeFile(file.path, changed);
+        },
+      }),
+    );
+    const events = [];
+    let reservedExecutionBytes = 1024n;
+    let reservedRetentionBytes = 256n;
+    let commonCompleted = false;
+    const operations = {
+      inputs: [{
+        input,
+        append: () => ok(),
+        finish: () => { events.push('finish'); return ok(); },
+      }],
+      execute: () => { events.push('execute'); return ok(); },
+      settle: () => {
+        events.push('settle');
+        reservedExecutionBytes = 0n;
+        reservedRetentionBytes = 0n;
+        return ok();
+      },
+      complete: () => {
+        commonCompleted = true;
+        events.push('complete');
+        return ok({});
+      },
+      material: () => ({}),
+      output_rows: () => 0,
+      output_row: () => failed(new Error('NoRow')),
+      storage_bytes: 0n,
+      close: () => events.push('close'),
+      cleanup_refresh: () => true,
+    };
+    const registration = {};
+    const moon = {
+      [`strategyModule_${prefix}_Registration`]: () => registration,
+      strategyHostRegistrationSelectionKey: () => `${prefix}-integrity`,
+      [`strategyModule_${prefix}_ManagedStart`]: () => ok(operations),
+      strategyHostManagedInputMatchesMaterial: (actual, expected) =>
+        actual === input && expected === material,
+    };
+    const product = factory(moon, {}, checked);
+    const entry = Object.freeze({
+      ...product,
+      prepareNext: () => Object.freeze({
+        task: 1,
+        durationMilliseconds: 1n,
+        releasableProducers: [],
+        outputs: new Map(),
+        inputs: [{material, completed}],
+        configuration: {},
+      }),
+    });
+    const core = {
+      count: () => 2,
+      nextTask: () => 1,
+      managedProducers: () => [0],
+      selectManaged: (_, task, selected) =>
+        task === 1 && selected === registration,
+      managedMatches: () => false,
+      completed: () => commonCompleted,
+      finished: () => false,
+      stop: () => {},
+      closeOutputs: () => {},
+      output: () => undefined,
+      usage: () => ({reservedExecutionBytes, reservedRetentionBytes}),
+      explain: () => ({}),
+    };
+    const result = await runInstalledStrategy({}, core, [entry]);
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(commonCompleted, false);
+    assert.deepEqual(events, ['finish', 'execute', 'close', 'settle']);
+    assert.equal(store.status().activeReaders, 0);
+    assert.equal(result.usage().reservedExecutionBytes, 0n);
+    assert.equal(result.usage().reservedRetentionBytes, 0n);
+    result.close();
+    assert.equal(await result.cleanup(), true);
+    body.close();
+    await body.cleanupHandle.retry();
+  });
+}

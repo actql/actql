@@ -4,7 +4,7 @@
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {createInterface} from 'node:readline';
-import {DuckDBTransportError} from './session.mjs';
+import {DuckDBTransportError} from './configuration.mjs';
 
 const codecContract = 'actql-duckdb-managed-column-frames/0.2\n' +
   'newline-delimited-object:c0..cN=typed-column-lists;o=logical-row-ordinals\n' +

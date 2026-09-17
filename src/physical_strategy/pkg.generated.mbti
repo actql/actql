@@ -226,6 +226,8 @@ pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsag
 
 pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
+pub fn task_execution_managed_attempt(CapturedDAG, TaskExecution) -> @execution_relation.ManagedExecutionAttempt?
+
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
 // Errors

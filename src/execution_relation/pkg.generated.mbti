@@ -74,6 +74,8 @@ pub fn attach_retained_producer_measurement(FixedProducerMeasurement, RetainedPr
 
 pub fn authorize_managed_identity_attempt(ManagedIdentityIssuanceCapability, CompletionPreparation, ManagedIdentityRequirement) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue]
 
+pub fn authorize_managed_identity_execution_attempt(ManagedIdentityIssuanceCapability, ManagedExecutionAttempt, CompletionPreparation, ManagedIdentityRequirement) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue]
+
 pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
@@ -81,6 +83,8 @@ pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_rel
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
+
+pub fn[P, T] bind_managed_completion_attempt(ManagedCompletionPort[P, T], ManagedExecutionAttempt) -> Bool
 
 pub fn[T] bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> ManagedIdentityIssuer[T]
 
@@ -262,6 +266,8 @@ pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIden
 
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
+pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
+
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
 pub fn[T] managed_completed_deadline_satisfied(ManagedCompletedOutput[T], ManagedIdentityDeadline) -> Bool
@@ -269,6 +275,8 @@ pub fn[T] managed_completed_deadline_satisfied(ManagedCompletedOutput[T], Manage
 pub fn[T] managed_completed_identity_status(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> ManagedIdentityStatus?
 
 pub fn[T] managed_completed_output_available(ManagedCompletedOutput[T]) -> Bool
+
+pub fn[T] managed_completed_output_matches_attempt(ManagedCompletedOutput[T], ManagedExecutionAttempt) -> Bool
 
 pub fn[T] managed_completed_output_matches_inputs(ManagedCompletedOutput[T], Array[ProducerRead]) -> Bool
 
@@ -295,6 +303,8 @@ pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCo
 pub fn[T] managed_computed_view_schema(ManagedComputedView[T]) -> @relation_schema.Schema
 
 pub fn[T] managed_computed_view_source_column(ManagedComputedView[T], Int) -> Int?
+
+pub fn managed_execution_attempt_same(ManagedExecutionAttempt, ManagedExecutionAttempt) -> Bool
 
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
 
@@ -424,7 +434,7 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T], attempt? : ManagedExecutionAttempt) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
 
@@ -569,6 +579,8 @@ pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFa
 pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
+
+pub fn[T] try_bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue]
 
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
 
@@ -836,6 +848,8 @@ pub(all) enum ManagedConsumerRequirement {
   MaterialBinding
   LogicalContentIdentity
 } derive(Eq, @debug.Debug)
+
+type ManagedExecutionAttempt
 
 type ManagedExecutionProfile
 

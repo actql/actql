@@ -13,9 +13,33 @@ struct ManagedCompletionPort[P, T] {
   verify : (P) -> ManagedRetainedOutput[T]?
   obligations : ManagedObligations
   identity_issuer : ManagedIdentityIssuer[T]?
+  mut attempt : ManagedExecutionAttempt?
   mut open : Bool
   mut verifying : Bool
   mut revoked : Bool
+}
+
+///|
+/// One opaque physical execution attempt. Common execution management issues
+/// this token when it admits a task; preparations and output generations do
+/// not manufacture or substitute it.
+struct ManagedExecutionAttempt {
+  identity : Ref[Unit]
+}
+
+///|
+/// Trusted common-Host construction point. A token has no completion or CID
+/// authority until the physical strategy binds it to its admitted task.
+pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt {
+  { identity: Ref(()), }
+}
+
+///|
+pub fn managed_execution_attempt_same(
+  left : ManagedExecutionAttempt,
+  right : ManagedExecutionAttempt,
+) -> Bool {
+  physical_equal(left.identity, right.identity)
 }
 
 ///|
@@ -41,8 +65,10 @@ struct ManagedIdentityIssuanceCapability {
 /// the registered implementation to the exact checked preparation and demand.
 struct ManagedIdentityAttemptPermit {
   capability : ManagedIdentityIssuanceCapability
+  attempt : ManagedExecutionAttempt
   preparation : CompletionPreparation
   requirement : ManagedIdentityRequirement
+  mut bound : Bool
 }
 
 ///|
@@ -52,6 +78,7 @@ struct ManagedIdentityIssuer[T] {
   permit : ManagedIdentityAttemptPermit
   material : ManagedRetainedOutput[T]
   issue : (ManagedRetainedOutput[T]) -> String?
+  valid : Bool
 }
 
 ///|
@@ -90,6 +117,24 @@ pub fn authorize_managed_identity_attempt(
   preparation : CompletionPreparation,
   requirement : ManagedIdentityRequirement,
 ) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue] {
+  authorize_managed_identity_execution_attempt(
+    capability,
+    issue_managed_execution_attempt(),
+    preparation,
+    requirement,
+  )
+}
+
+///|
+/// Common execution management supplies the exact admitted attempt. The older
+/// detached authorization entry remains source-compatible for standalone
+/// tooling, but its fresh token can never match a common task execution.
+pub fn authorize_managed_identity_execution_attempt(
+  capability : ManagedIdentityIssuanceCapability,
+  attempt : ManagedExecutionAttempt,
+  preparation : CompletionPreparation,
+  requirement : ManagedIdentityRequirement,
+) -> Result[ManagedIdentityAttemptPermit, ManagedIdentityIssuanceIssue] {
   let owner = completion_preparation_owner(preparation)
   if capability.domain != requirement.domain ||
     capability.subject != requirement.subject ||
@@ -103,7 +148,7 @@ pub fn authorize_managed_identity_attempt(
     !physical_equal(occurrence.owner, owner) {
     return Err(ForeignAttempt)
   }
-  Ok({ capability, preparation, requirement, })
+  Ok({ capability, attempt, preparation, requirement, bound: false, })
 }
 
 ///|
@@ -112,7 +157,28 @@ pub fn[T] bind_managed_identity_issuer(
   material : ManagedRetainedOutput[T],
   issue : (ManagedRetainedOutput[T]) -> String?,
 ) -> ManagedIdentityIssuer[T] {
-  { permit, material, issue, }
+  match try_bind_managed_identity_issuer(permit, material, issue) {
+    Ok(value) => value
+    Err(_) => { permit, material, issue, valid: false, }
+  }
+}
+
+///|
+/// Bind once to one exact retained generation. A retry or transfer requires a
+/// new attempt permit; an arbitrary material cannot consume the old permit.
+pub fn[T] try_bind_managed_identity_issuer(
+  permit : ManagedIdentityAttemptPermit,
+  material : ManagedRetainedOutput[T],
+  issue : (ManagedRetainedOutput[T]) -> String?,
+) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue] {
+  if permit.bound {
+    return Err(ForeignMaterial)
+  }
+  if managed_retained_output_payload(material) is None {
+    return Err(ForeignMaterial)
+  }
+  permit.bound = true
+  Ok({ permit, material, issue, valid: true, })
 }
 
 ///|
@@ -130,6 +196,7 @@ struct ManagedCompletedOutput[T] {
   material : ManagedRetainedOutput[T]
   identities : Array[ManagedCompletedIdentity]
   identity_issuer : ManagedIdentityIssuer[T]?
+  attempt : ManagedExecutionAttempt?
 }
 
 ///|
@@ -154,6 +221,7 @@ pub fn[P, T] prepare_managed_completion_port(
   managed_inputs? : Array[ManagedProducerRead[T]],
   obligations? : ManagedObligations,
   identity_issuer? : ManagedIdentityIssuer[T],
+  attempt? : ManagedExecutionAttempt,
 ) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue] {
   // A fixed-input set has one explicit provenance family, never a partial mix
   // that silently drops the remaining ports. Acquisition may omit both.
@@ -193,13 +261,18 @@ pub fn[P, T] prepare_managed_completion_port(
     return Err(ForeignOutput)
   }
   if identity_issuer is Some(issuer) {
-    if !physical_equal(issuer.permit.preparation, preparation) ||
+    if !issuer.valid ||
+      !physical_equal(issuer.permit.preparation, preparation) ||
       !selected_obligations.identities.any(requirement => {
         managed_identity_requirement_equal(
           requirement,
           issuer.permit.requirement,
         )
       }) {
+      return Err(ForeignOutput)
+    }
+    if attempt is Some(selected) &&
+      !managed_execution_attempt_same(selected, issuer.permit.attempt) {
       return Err(ForeignOutput)
     }
   }
@@ -213,10 +286,33 @@ pub fn[P, T] prepare_managed_completion_port(
     verify,
     obligations: selected_obligations,
     identity_issuer,
+    attempt: match (attempt, identity_issuer) {
+      (Some(selected), _) => Some(selected)
+      (None, Some(issuer)) => Some(issuer.permit.attempt)
+      _ => None
+    },
     open: true,
     verifying: false,
     revoked: false,
   })
+}
+
+///|
+/// Bind a port prepared before common task admission to the exact admitted
+/// attempt. Rebinding, including to another retry, is rejected.
+pub fn[P, T] bind_managed_completion_attempt(
+  port : ManagedCompletionPort[P, T],
+  attempt : ManagedExecutionAttempt,
+) -> Bool {
+  if !port.open || port.attempt is Some(_) {
+    return false
+  }
+  if port.identity_issuer is Some(issuer) &&
+    !managed_execution_attempt_same(issuer.permit.attempt, attempt) {
+    return false
+  }
+  port.attempt = Some(attempt)
+  true
 }
 
 ///|
@@ -268,6 +364,7 @@ pub fn[P, T] complete_managed_output(
       cid: Ref(None),
     }),
     identity_issuer: port.identity_issuer,
+    attempt: port.attempt,
   })
 }
 
@@ -347,6 +444,11 @@ pub fn[T] establish_managed_completed_identity(
     return Err(IssuerUnavailable)
   }
   if !physical_equal(issuer.permit.preparation, output.preparation) ||
+    output.attempt is None ||
+    !managed_execution_attempt_same(
+      output.attempt.unwrap(),
+      issuer.permit.attempt,
+    ) ||
     !physical_equal(issuer.material, output.material) ||
     !managed_identity_requirement_equal(
       issuer.permit.requirement,
@@ -367,6 +469,15 @@ pub fn[T] establish_managed_completed_identity(
   identity.canonical_contract_cid.val = Some(canonical_contract_cid)
   identity.cid.val = Some(cid)
   Ok(())
+}
+
+///|
+pub fn[T] managed_completed_output_matches_attempt(
+  output : ManagedCompletedOutput[T],
+  attempt : ManagedExecutionAttempt,
+) -> Bool {
+  output.attempt is Some(actual) &&
+  managed_execution_attempt_same(actual, attempt)
 }
 
 ///|

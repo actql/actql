@@ -146,6 +146,14 @@ pub fn[T] managed_input_duckdb_output_values(
 }
 
 ///|
+pub fn[T] bind_managed_input_duckdb_completion_attempt(
+  completion : ManagedInputDuckDBCompletion[T],
+  attempt : @execution.ManagedExecutionAttempt,
+) -> Bool {
+  @execution.bind_managed_completion_attempt(completion.port, attempt)
+}
+
+///|
 pub fn[T] cancel_managed_input_duckdb_completion(
   completion : ManagedInputDuckDBCompletion[T],
 ) -> Bool {

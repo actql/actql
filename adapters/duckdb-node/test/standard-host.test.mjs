@@ -107,8 +107,30 @@ async function runDelayedManagedStop(
               views[index], files[index].path, () => {},
             );
           }
-          control.entered();
-          await control.wait;
+          if (control.mode === 'command-unsettled') {
+            const tables = views.map(sql => {
+              const matched = /^CREATE TEMP VIEW\s+("(?:[^"]|"")+")\s+AS\s+/u
+                .exec(sql);
+              assert(matched, `missing managed input table in ${sql}`);
+              return matched[1];
+            });
+            control.commandStarted = true;
+            try {
+              await session.command(
+                `SELECT count(*) AS n FROM ${tables[0]} l CROSS JOIN ${tables[1]} r`,
+                [],
+                async () => {
+                  control.entered();
+                  await control.wait;
+                },
+              );
+            } finally {
+              control.commandSettled = true;
+            }
+          } else {
+            control.entered();
+            await control.wait;
+          }
         },
         signal,
         accounting,
@@ -1608,30 +1630,34 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   delayedStopProgram.results = {
     out: {from: {stage: 'count_d', result: 'r'}},
   };
-  const delayedStopFixture = fixture.strategyFixtureJoinCreate(
-    ...args, JSON.stringify(delayedStopProgram));
-  const delayedStopCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(delayedStopFixture),
-    suppliedLimits,
-  );
-  const delayedStopCancellation = new AbortController();
-  let enterDelayedStop;
-  let releaseDelayedStop;
-  const delayedStopEntered = new Promise(resolve => {
-    enterDelayedStop = resolve;
-  });
-  const delayedStopWait = new Promise(resolve => {
-    releaseDelayedStop = resolve;
-  });
-  const delayedStopControl = {
-    entered: enterDelayedStop,
-    wait: delayedStopWait,
-    representations: [],
-    settlements: [],
-  };
-  let delayedStopExecution;
-  try {
+  for (const delayedStopMode of ['session-scope', 'command-unsettled']) {
+    const delayedStopFixture = fixture.strategyFixtureJoinCreate(
+      ...args, JSON.stringify(delayedStopProgram));
+    const delayedStopCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(delayedStopFixture),
+      suppliedLimits,
+    );
+    const delayedStopCancellation = new AbortController();
+    let enterDelayedStop;
+    let releaseDelayedStop;
+    const delayedStopEntered = new Promise(resolve => {
+      enterDelayedStop = resolve;
+    });
+    const delayedStopWait = new Promise(resolve => {
+      releaseDelayedStop = resolve;
+    });
+    const delayedStopControl = {
+      mode: delayedStopMode,
+      entered: enterDelayedStop,
+      wait: delayedStopWait,
+      commandStarted: false,
+      commandSettled: false,
+      representations: [],
+      settlements: [],
+    };
+    let delayedStopExecution;
+    try {
     assert.equal(fixture.strategyFixtureOpen(
       delayedStopFixture, delayedStopCapture.source()), true);
     const delayedStopSetup = fixture.strategyFixtureManagedDispatch(
@@ -1669,6 +1695,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       delayedStopCancellation.signal,
     );
     await delayedStopEntered;
+    if (delayedStopMode === 'command-unsettled') {
+      assert.equal(delayedStopControl.commandStarted, true);
+      assert.equal(delayedStopControl.commandSettled, false);
+    }
     delayedStopCancellation.abort();
     delayedStopExecution = await running;
     assert.equal(delayedStopExecution.status, 'host-tasks-failed');
@@ -1677,6 +1707,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       delayedStopExecution.completed.map(item => item.task), [1, 2],
     );
     assert.equal(delayedStopExecution.cleanupPending(), true);
+    if (delayedStopMode === 'command-unsettled') {
+      assert.equal(delayedStopControl.commandSettled, false,
+        'outer cancellation returns while the real session command is unsettled');
+    }
     assert.equal(delayedStopControl.representations.length, 2);
     assert.notEqual(
       delayedStopControl.representations[0].body,
@@ -1705,6 +1739,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     }
     assert.equal(delayedStopCleaned, true,
       'bounded cleanup retries converge after native stop and pin release');
+    if (delayedStopMode === 'command-unsettled') {
+      assert.equal(delayedStopControl.commandSettled, true);
+    }
     assert.deepEqual(delayedStopControl.settlements, [false, true],
       'deadline marks cleanup pending before actual native settlement');
     for (const representation of delayedStopControl.representations) {
@@ -1716,16 +1753,17 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         typeof value === 'bigint' ? value.toString() : value));
     assert.equal(delayedStopExecution.usage().reservedRetentionBytes, 0n);
     assert.equal(delayedStopExecution.usage().reservedExecutionBytes, 0n);
-  } finally {
-    releaseDelayedStop();
-    try { await delayedStopExecution?.close(); } catch (error) {
-      assert.equal(error?.code, 'RetainedCleanupPending');
+    } finally {
+      releaseDelayedStop();
+      try { await delayedStopExecution?.close(); } catch (error) {
+        assert.equal(error?.code, 'RetainedCleanupPending');
+      }
+      for (let retry = 0;
+        retry < 4 && delayedStopExecution?.cleanupPending(); retry++) {
+        await delayedStopExecution.cleanup();
+      }
+      delayedStopCapture.close();
     }
-    for (let retry = 0;
-      retry < 4 && delayedStopExecution?.cleanupPending(); retry++) {
-      await delayedStopExecution.cleanup();
-    }
-    delayedStopCapture.close();
   }
   const managedLedgerFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(managedProgram));

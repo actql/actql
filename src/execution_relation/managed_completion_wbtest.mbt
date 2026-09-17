@@ -160,16 +160,17 @@ test "managed completion distinguishes delayed identity from source lifetime" {
   ).unwrap()
   assert_true(managed_identity_issuance_capability_same(capability, capability))
   let requirement = managed_obligations_identities(obligations)[0]
-  let permit = authorize_managed_identity_attempt(
-    capability, preparation, requirement,
+  let execution_attempt = issue_managed_execution_attempt()
+  let permit = authorize_managed_identity_execution_attempt(
+    capability, execution_attempt, preparation, requirement,
   ).unwrap()
-  let issuer = bind_managed_identity_issuer(permit, material, source => {
+  let issuer = try_bind_managed_identity_issuer(permit, material, source => {
     if physical_equal(source, material) {
       Some(cid)
     } else {
       None
     }
-  })
+  }).unwrap()
   let port = prepare_managed_completion_port(
     managed_test_profile(),
     preparation,
@@ -279,12 +280,61 @@ test "managed identity authority rejects another attempt generation and canonica
     None,
     ordered_rows_canonical_contract_cid(),
   ).unwrap()
-  let permit = authorize_managed_identity_attempt(
+  let execution_attempt = issue_managed_execution_attempt()
+  let other_execution_attempt = issue_managed_execution_attempt()
+  let permit = authorize_managed_identity_execution_attempt(
+    capability, execution_attempt, preparation, requirement,
+  ).unwrap()
+  let issuer = try_bind_managed_identity_issuer(permit, material, _ => {
+    Some("sha256:" + "4".repeat(64))
+  }).unwrap()
+  assert_true(
+    try_bind_managed_identity_issuer(permit, another_generation, _ => None)
+    is Err(ForeignMaterial),
+  )
+  let retry_permit = authorize_managed_identity_execution_attempt(
+    capability, execution_attempt, preparation, requirement,
+  ).unwrap()
+  try_bind_managed_identity_issuer(retry_permit, another_generation, _ => {
+    Some("sha256:" + "4".repeat(64))
+  }).unwrap()
+  |> ignore
+  let detached_permit = authorize_managed_identity_attempt(
     capability, preparation, requirement,
   ).unwrap()
-  let issuer = bind_managed_identity_issuer(permit, material, _ => {
-    Some("sha256:" + "4".repeat(64))
-  })
+  let detached_issuer = bind_managed_identity_issuer(
+    detached_permit,
+    material,
+    _ => Some("sha256:" + "4".repeat(64)),
+  )
+  assert_true(
+    prepare_managed_completion_port(
+      managed_test_profile(),
+      preparation,
+      Step(1),
+      1000,
+      10000,
+      (_ : Unit) => Some(material),
+      obligations~,
+      identity_issuer=detached_issuer,
+      attempt=execution_attempt,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_managed_completion_port(
+      managed_test_profile(),
+      preparation,
+      Step(1),
+      1000,
+      10000,
+      (_ : Unit) => Some(material),
+      obligations~,
+      identity_issuer=issuer,
+      attempt=other_execution_attempt,
+    )
+    is Err(ForeignOutput),
+  )
   assert_true(
     prepare_managed_completion_port(
       managed_test_profile(),

@@ -36,7 +36,7 @@ pub fn compute_host_managed_prepare(
   if run.closed {
     raise InvalidCommand
   }
-  match
+  let completion = match
     @duckdb_compute.prepare_managed_duckdb_completion(
       run.attempt,
       profile,
@@ -45,6 +45,13 @@ pub fn compute_host_managed_prepare(
     Ok(port) => port
     Err(issue) => raise Compute(issue)
   }
+  guard @duckdb_compute.bind_managed_duckdb_completion_attempt(
+    completion,
+    run.managed_attempt,
+  ) else {
+    raise InvalidCommand
+  }
+  completion
 }
 
 ///|

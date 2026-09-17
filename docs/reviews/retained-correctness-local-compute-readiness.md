@@ -104,6 +104,32 @@ The following decisions are normative for this implementation increment.
 11. A fixed SHA passing all local gates is implementation-complete. The same SHA
     passing Linux CI is merge-ready. Any CI-driven fix creates a new SHA and a
     new verification record.
+12. An identity issuance permit is bound to one opaque execution-attempt token
+    issued by common execution management, in addition to its checked
+    preparation and requirement. The permit may bind exactly one retained
+    generation. A retry or transfer needs a newly authorized permit, and a
+    completion from one attempt cannot satisfy another attempt that shares the
+    same preparation.
+13. Memory representations obey the same actual-stop rule as file
+    representations. A provider reporting pending cleanup keeps every acquired
+    use until that cleanup is confirmed. Backing-release request, confirmation
+    and failure are distinct states; one release failure cannot skip the other
+    inputs, cannot be reported as confirmed, and is retried only through an
+    explicit cleanup contract.
+14. The standard-Host delayed-stop acceptance covers both the session-scope
+    boundary and a real file-reading `session.command` whose Promise is still
+    unsettled when outer cancellation returns. This proves the product lifetime
+    connection without claiming observation of an arbitrary C++ instruction.
+15. A Local or reference calculation may construct a provisional independent
+    output while input pins are held, but it commits common task completion only
+    after every input's final integrity report is accepted. The commit runs
+    before those pins are released and after a current cancellation and use
+    check. A failed final check never publishes and is not repaired by rolling
+    back an already completed task.
+16. Portable retained-boundary tests do not load an optional native backend SDK
+    merely to obtain a shared error type. Representation codecs import that
+    type from its dependency-neutral owner; real DuckDB loading remains in the
+    dedicated DuckDB jobs.
 
 ## Status at the implementation baseline
 
@@ -370,6 +396,25 @@ work is to prove the same ownership chain through the standard Host entry.
    start. Only the former may use confirmed-zero settlement.
 10. At terminal cleanup, require zero live task reservations, retention
     reservations, Store bytes, input readers and unresolved cleanup owners.
+11. Apply the same rules to memory providers. Pending or unknown provider
+    cleanup retains the exact use count. A backing-release failure keeps the
+    generation cleanup-owned, and all independently acquired inputs receive a
+    release attempt even when another release fails.
+12. Exercise a real file-reading session command that has started but remains
+    unsettled across the outer cancellation deadline. Assert that every input
+    pin remains held until the command and composed cleanup settle. Retain the
+    separate session-scope delayed-stop case as well.
+13. Keep calculation/output generation provisional until all input integrity
+    reports have passed. Run the one-shot common completion while all exact
+    pins are still held. Cover same-size mutation after initial verification,
+    failure of the last confirmation among multiple inputs, and cancellation
+    before the commit boundary; none may notify completion or dispatch a
+    descendant.
+14. Track backing-release failure independently from its throwable payload.
+    `undefined`, `null`, booleans, numbers and strings are still failures and
+    must terminate `close()` with Host-owned cleanup responsibility. Keep
+    retry diagnostics separate from current cleanup ownership so a later
+    confirmed stop can release every use and clear `pending`.
 
 The old native-COPY output route is not part of the current bounded product
 path. Keep its Store/session regression because the API still exists, but mark
@@ -453,7 +498,10 @@ requirements is not named-Result or acquisition publication support.
 
 The Local representation bridge is provider-owned. It acquires exact memory
 generations before an asynchronous read, keeps every acquired generation until
-the final read returns, and revokes a captured reader when its scope closes.
+the provider's actual stop is confirmed, and revokes a captured reader when
+its scope closes. A backing release is complete only after its callback or
+explicit cleanup owner confirms completion; arbitrary throwable values and
+transient retry diagnostics never stand in for that state.
 Its `storage_bytes` value is the charged safe holding upper bound, including
 generation-time input/output overlap; it is not observed RSS or serialized
 size. The current Local path may encode and re-admit a bounded row while
@@ -512,6 +560,21 @@ when all of the following are true:
 - incompatible candidates are rejected before any execution side effect;
 - cancellation and cleanup preserve ownership until actual stop and confirmed
   reclamation;
+- memory-provider cleanup and backing-release failures retain ownership, run
+  all independent finalizers, and never convert a failed release into a
+  confirmed one; arbitrary throwable payloads remain failures, while a later
+  successful cleanup clears pending responsibility even if earlier retries
+  failed;
+- identity authority is bound to the exact common execution attempt and one
+  retained generation, including rejection of same-preparation cross-attempt
+  reuse;
+- both session-scope and active file-reading-command cancellation tests retain
+  all pins until actual settlement;
+- Local and reference completions occur exactly once after all final input
+  checks and before input-pin release; integrity failure or cancellation before
+  that point leaves the task incomplete;
+- dependency-neutral retained-boundary gates pass without installing the
+  DuckDB Node SDK, while the dedicated real-DuckDB job remains green;
 - the worktree is clean and every mandatory validation passes at one fixed SHA;
 - the support matrix and remaining performance limitations are accurate;
 - no Result, acquisition, wire or CID guarantee is silently weakened.

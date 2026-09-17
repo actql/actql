@@ -250,28 +250,6 @@ pub fn[T] start_numeric_managed_dispatch(
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
-  let identity_permit : @execution.ManagedIdentityAttemptPermit? = {
-    let mut selected = None
-    for
-      requirement in @execution.managed_obligations_identities(
-        @connector.managed_fixed_compute_request_obligations(request),
-      ) {
-      if requirement.domain == @execution.OrderedRows &&
-        requirement.subject == @execution.TaskOutput &&
-        requirement.occurrence is None {
-        match
-          @execution.authorize_managed_identity_attempt(
-            setup.identity_capability,
-            setup.generated,
-            requirement,
-          ) {
-          Ok(value) => selected = Some(value)
-          Err(_) => return Err(@numeric.Unsupported)
-        }
-      }
-    }
-    selected
-  }
   let managed_inputs = @connector.managed_fixed_compute_request_inputs(request)
   let bound = match
     @connector.bind_prepared_managed_execution(
@@ -341,6 +319,33 @@ pub fn[T] start_numeric_managed_dispatch(
     @strategy.start_captured_managed_execution(setup.run, setup.task, bound) {
     Ok((_, value)) => value
     Err(_) => return Err(@numeric.Unsupported)
+  }
+  guard @strategy.task_execution_managed_attempt(setup.run, execution)
+    is Some(execution_attempt) else {
+    return Err(@numeric.Unsupported)
+  }
+  let identity_permit : @execution.ManagedIdentityAttemptPermit? = {
+    let mut selected = None
+    for
+      requirement in @execution.managed_obligations_identities(
+        @connector.managed_fixed_compute_request_obligations(request),
+      ) {
+      if requirement.domain == @execution.OrderedRows &&
+        requirement.subject == @execution.TaskOutput &&
+        requirement.occurrence is None {
+        match
+          @execution.authorize_managed_identity_execution_attempt(
+            setup.identity_capability,
+            execution_attempt,
+            setup.generated,
+            requirement,
+          ) {
+          Ok(value) => selected = Some(value)
+          Err(_) => return Err(@numeric.Unsupported)
+        }
+      }
+    }
+    selected
   }
   let row_limits = managed_numeric_row_limits(setup.limits)
   let wire_limits = managed_numeric_wire_limits(setup.limits)
@@ -469,17 +474,25 @@ pub fn[T] start_numeric_managed_dispatch(
       // The issuer is installed for this exact attempt only after the output
       // generation and its retained material both exist. It computes, rather
       // than approves, the registered canonical ordered-row identity.
-      let issuer = identity_permit.map(permit => {
-        @execution.bind_managed_identity_issuer(permit, material, fn(source) {
-          if !physical_equal(source, material) || !available() {
-            return None
+      let issuer = match identity_permit {
+        None => None
+        Some(permit) =>
+          match
+            @execution.try_bind_managed_identity_issuer(permit, material, fn(
+              source,
+            ) {
+              if !physical_equal(source, material) || !available() {
+                return None
+              }
+              match @execution.identify_completed_rows(output, wire_limits) {
+                Ok(identity) => Some(@execution.row_wire_cid(identity))
+                Err(_) => None
+              }
+            }) {
+            Ok(value) => Some(value)
+            Err(_) => return Err(@numeric.Unsupported)
           }
-          match @execution.identify_completed_rows(output, wire_limits) {
-            Ok(identity) => Some(@execution.row_wire_cid(identity))
-            Err(_) => None
-          }
-        })
-      })
+      }
       let port = match
         @execution.prepare_managed_completion_port(
           @execution.selected_managed_execution_profile(),
@@ -499,6 +512,7 @@ pub fn[T] start_numeric_managed_dispatch(
             request,
           ),
           identity_issuer?=issuer,
+          attempt=execution_attempt,
         ) {
         Ok(value) => value
         Err(_) => return Err(@numeric.Unsupported)

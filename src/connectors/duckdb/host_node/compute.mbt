@@ -1,6 +1,7 @@
 ///|
 struct ComputeNodeRun {
   attempt : @duckdb_compute.DuckDBComputeAttempt
+  managed_attempt : @execution.ManagedExecutionAttempt
   transport : @duckdb.TransportColumnLimits
   strategy : (@strategy.CapturedDAG, Int, @duckdb_driver.CapturedDuckDBTask)?
   mut closed : Bool
@@ -58,6 +59,7 @@ pub fn compute_host_open(
     Ok(attempt) =>
       {
         attempt,
+        managed_attempt: @execution.issue_managed_execution_attempt(),
         transport: @duckdb_driver.configured_compute_transport(setup),
         strategy: None,
         closed: false,
@@ -191,13 +193,22 @@ fn open_strategy_compute_host(
       retained_storage?,
       auxiliary_retention_bytes?=managed_index.map(value => value.1),
     ) {
-    Ok(task_handle) =>
+    Ok(task_handle) => {
+      let graph = @duckdb_driver.configured_strategy_compute_graph(setup).0
+      guard @strategy.task_execution_managed_attempt(
+          graph,
+          @duckdb_driver.captured_duckdb_execution(task_handle),
+        )
+        is Some(managed_attempt) else {
+        raise InvalidCommand
+      }
       {
         attempt: @duckdb_driver.captured_duckdb_attempt(task_handle),
+        managed_attempt,
         transport: @duckdb_driver.configured_strategy_compute_transport(setup),
         strategy: Some(
           (
-            @duckdb_driver.configured_strategy_compute_graph(setup).0,
+            graph,
             @duckdb_driver.configured_strategy_compute_graph(setup).1,
             task_handle,
           ),
@@ -212,6 +223,7 @@ fn open_strategy_compute_host(
         managed_index_cells: managed_index.map(value => value.0),
         managed_index_bytes: managed_index.map(value => value.1).unwrap_or(0L),
       }
+    }
     Err(issue) => raise Strategy(issue)
   }
 }

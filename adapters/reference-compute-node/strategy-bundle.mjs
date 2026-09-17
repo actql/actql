@@ -83,6 +83,11 @@ export function numericStrategyContribution(moon, setup, checked) {
           async () => {
             for (const transfer of transfers) checked(transfer.finish());
             checked(operations.execute());
+          },
+          signal,
+          undefined,
+          async () => {
+            signal?.throwIfAborted();
             checked(operations.settle());
             settled = true;
             completed = checked(operations.complete(
@@ -91,7 +96,6 @@ export function numericStrategyContribution(moon, setup, checked) {
               () => available,
             ));
           },
-          signal,
         );
         const material = operations.material();
         if (completed == null || material == null) {

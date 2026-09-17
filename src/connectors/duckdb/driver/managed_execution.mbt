@@ -116,6 +116,13 @@ pub fn[T] start_captured_managed_duckdb_task(
       guard completion.val is Some(completion) else {
         return Err(Implementation(DuckDBFailure::Compute(InvalidState)))
       }
+      guard @strategy.task_execution_managed_attempt(run, execution)
+        is Some(attempt) &&
+        @compute.bind_managed_input_duckdb_completion_attempt(
+          completion, attempt,
+        ) else {
+        return Err(Implementation(DuckDBFailure::Compute(InvalidState)))
+      }
       Ok({
         run,
         query,

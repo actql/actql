@@ -59,6 +59,14 @@ pub fn[T] prepare_managed_duckdb_completion(
 }
 
 ///|
+pub fn[T] bind_managed_duckdb_completion_attempt(
+  completion : ManagedDuckDBCompletion[T],
+  attempt : @execution.ManagedExecutionAttempt,
+) -> Bool {
+  @execution.bind_managed_completion_attempt(completion.port, attempt)
+}
+
+///|
 pub fn[T] complete_managed_duckdb_compute_attempt(
   completion : ManagedDuckDBCompletion[T],
   output : ManagedDuckDBComputeOutput,

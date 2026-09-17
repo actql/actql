@@ -25,10 +25,18 @@ const cleanupState = (handle, required = false) => {
 function ownedFailure(reason, fallbackCode) {
   const code = typeof member(reason, 'code') === 'string'
     ? member(reason, 'code') : fallbackCode;
-  const failure = new Error(code, {cause: reason});
+  const hasPrimary = reason !== null &&
+    (typeof reason === 'object' || typeof reason === 'function') &&
+    Object.hasOwn(reason, 'primaryFailure');
+  const primary = hasPrimary ? member(reason, 'primaryFailure') : reason;
+  const failure = new Error(code, {cause: primary});
   failure.code = code;
-  failure.primaryFailure = reason;
-  failure.cleanupErrors = Object.freeze([]);
+  failure.primaryFailure = primary;
+  failure.cleanupErrors = Object.freeze(
+    Array.isArray(member(reason, 'cleanupErrors'))
+      ? [...member(reason, 'cleanupErrors')]
+      : [],
+  );
   return failure;
 }
 
