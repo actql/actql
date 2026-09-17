@@ -3,7 +3,6 @@
 // SQL, verifier or content identity. Store pinning, native settlement and graph
 // publication all remain inside this Host entry.
 import {createLocalRetainedStore} from '../store-local/files.mjs';
-import {randomUUID} from 'node:crypto';
 import {registerManagedInput, withManagedInputFiles} from
   '../store-local/managed-representations.mjs';
 import {computePhysicalCapacity} from './physical-capacity.mjs';
@@ -55,20 +54,6 @@ function fieldsFrame(fields) {
     type.precision === undefined ? null : String(type.precision),
     type.scale === undefined ? null : String(type.scale)]));
 }
-const identifier = name => `"${name.replaceAll('"', '""')}"`;
-function directParquetSelect(querySql, fields, storageOrder) {
-  if (fields[0]?.name !== '__actql_occurrence' ||
-      storageOrder.length !== fields.length - 1) {
-    throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
-  }
-  const source = '__actql_direct_output';
-  const columns = storageOrder.map((field, index) =>
-    `${identifier(source)}.${identifier(fields[field + 1].name)} AS ${identifier(`c${index}`)}`);
-  return `SELECT ${identifier(source)}.${identifier('__actql_occurrence')} AS ` +
-    `${identifier('__actql_occurrence')}, ${columns.join(', ')}, ` +
-    `row_number() OVER () - 1 AS ${identifier('o')} FROM (${querySql}) AS ` +
-    identifier(source);
-}
 
 // outputStorage is Host policy, not Program input. Its directory and framing
 // are admitted before native work; capacity comes from the selected MoonBit
@@ -93,9 +78,10 @@ export async function runManagedColumnStrategyHostCompute(
   }
   const moon = await loadRuntime();
   const capacity = computePhysicalCapacity(limits);
-  let store, writer, body, output, completed, run, directLease, directReport;
+  let store, writer, body, output, completed, run;
   let inputPhysicalBytes = 0, inputIntegrityPasses = 0, outputFrames = 0;
-  let outputValueAdmissionCells = 0, reusedMeasurementCells = 0;
+  let outputValueAdmissionCells = 0, outputJsMaterializedCells = 0;
+  let reusedMeasurementCells = 0;
   let outputRows = 0;
   let disposed = false;
   let authorized = true;
@@ -131,11 +117,10 @@ export async function runManagedColumnStrategyHostCompute(
     }
     const occurrenceSql = moon.managedStrategyOccurrenceSql(run);
     const preservesCheckedValues = typeof occurrenceSql === 'string';
-    if (preservesCheckedValues) {
-      directLease = writer.delegateCreate(`duckdb-copy-${randomUUID()}`);
-    } else {
-      await writer.start();
-    }
+    // The local Store currently offers a hard bound only through appendBytes.
+    // DuckDB COPY-to-path can exceed a reservation before the post-write stat,
+    // so even evidence-preserving results use the bounded sink here.
+    await writer.start();
     const querySql = preservesCheckedValues
       ? occurrenceSql : checked(moon.managedStrategySql(run, false));
     const parameters = Array.from({length: moon.managedStrategyParameterCount(run)}, (_, index) =>
@@ -164,47 +149,46 @@ export async function runManagedColumnStrategyHostCompute(
             [{type: {id: 'VARCHAR'}, value: files[index].path}], discard);
         }
         if (preservesCheckedValues) {
-          const fields = await session.command(
-            `SELECT * FROM (${querySql}) AS ${identifier('__actql_metadata')} LIMIT 0`,
-            parameters, discard);
-          const outputFields = fields.slice(1);
-          storageOrder = checked(moon.managedStrategyStorageOrder(
-            run, fieldsFrame(outputFields)));
-          directReport = await session.copyParquet(
-            directParquetSelect(querySql, fields, storageOrder),
-            parameters,
-            directLease.path,
-          );
-          await session.command(
-            `SELECT ${identifier('__actql_occurrence')}, ${identifier('o')} ` +
-              `FROM read_parquet(?) ORDER BY ${identifier('o')}`,
-            [{type: {id: 'VARCHAR'}, value: directLease.path}],
-            async chunk => {
-              if (chunk.fields[0]?.name !== '__actql_occurrence' ||
-                  chunk.fields[0]?.type.id !== 'BIGINT' ||
-                  chunk.fields[1]?.name !== 'o' ||
-                  chunk.fields[1]?.type.id !== 'BIGINT') {
+          let outputFields;
+          const fields = await session.command(querySql, parameters, async chunk => {
+            signal?.throwIfAborted();
+            if (chunk.fields[0]?.name !== '__actql_occurrence' ||
+                chunk.fields[0]?.type.id !== 'BIGINT') {
+              throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
+            }
+            const values = chunk.fields.slice(1);
+            if (!outputFields) {
+              outputFields = values;
+              storageOrder = checked(moon.managedStrategyStorageOrder(
+                run, fieldsFrame(outputFields)));
+            }
+            const valueColumns = chunk.columns.slice(1);
+            for (let index = 0; index < chunk.rowCount; index++) {
+              const occurrence = chunk.columns[0][index];
+              if (typeof occurrence !== 'string' ||
+                  !/^(0|[1-9][0-9]*)$/.test(occurrence)) {
                 throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
               }
-              for (let index = 0; index < chunk.rowCount; index++) {
-                const occurrence = chunk.columns[0][index];
-                const ordinal = chunk.columns[1][index];
-                if (typeof occurrence !== 'string' ||
-                    !/^(0|[1-9][0-9]*)$/.test(occurrence) ||
-                    typeof ordinal !== 'string' ||
-                    ordinal !== String(outputRows)) {
-                  throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
-                }
-                const value = Number(occurrence);
-                if (!Number.isSafeInteger(value)) {
-                  throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
-                }
-                occurrences.push(value);
-                outputRows++;
+              const value = Number(occurrence);
+              if (!Number.isSafeInteger(value)) {
+                throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
               }
-            },
-          );
-          reusedMeasurementCells = outputRows * outputFields.length;
+              occurrences.push(value);
+            }
+            const storedFields = storageOrder.map(index => outputFields[index]);
+            const storedColumns = storageOrder.map(index => valueColumns[index]);
+            await writer.appendBytes(encodeManagedColumnFrame(
+              storedFields, storedColumns, chunk.rowCount, outputRows));
+            outputRows += chunk.rowCount;
+            outputJsMaterializedCells += chunk.rowCount * outputFields.length;
+            reusedMeasurementCells += chunk.rowCount * outputFields.length;
+            outputFrames++;
+          });
+          if (!outputFields) {
+            outputFields = fields.slice(1);
+            storageOrder = checked(moon.managedStrategyStorageOrder(
+              run, fieldsFrame(outputFields)));
+          }
           return outputFields;
         }
         const fields = await session.command(querySql, parameters, async chunk => {
@@ -216,6 +200,7 @@ export async function runManagedColumnStrategyHostCompute(
           checked(moon.managedOutputAccept(output, chunk.rowCount,
             JSON.stringify(outputColumns)));
           outputValueAdmissionCells += chunk.rowCount * outputFields.length;
+          outputJsMaterializedCells += chunk.rowCount * outputFields.length;
           if (!storageOrder) storageOrder = checked(moon.managedStrategyStorageOrder(
             run, fieldsFrame(outputFields)));
           const storedFields = storageOrder.map(index => outputFields[index]);
@@ -232,7 +217,6 @@ export async function runManagedColumnStrategyHostCompute(
         return fields;
       }, signal, accounting, [
         ...files.map(file => file.path),
-        ...(directLease ? [directLease.path] : []),
       ]),
       signal,
       (_indices, bytes) => {
@@ -249,11 +233,7 @@ export async function runManagedColumnStrategyHostCompute(
       output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
       checked(moon.managedStrategyOutputFinish(run, output));
     }
-    body = directLease
-      ? await writer.finishCreated({version: directLease.version,
-        session: directLease.session, token: directLease.token,
-        ...directReport})
-      : await writer.sealPhysical();
+    body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
     completed = checked(moon.managedStrategyComplete(run, output));
     const outputMeasurement = checked(
@@ -271,9 +251,7 @@ export async function runManagedColumnStrategyHostCompute(
     });
     const material = moon.managedOutputMaterial(output);
     if (material == null) throw new DuckDBTransportError('MissingManagedOutputMaterial');
-    const codecContractCid = directLease
-      ? managedParquetCodecContractCid
-      : managedColumnCodecContractCid;
+    const codecContractCid = managedColumnCodecContractCid;
     const representation = managedPhysicalRepresentation(
       body,
       outputRows,
@@ -288,8 +266,7 @@ export async function runManagedColumnStrategyHostCompute(
     return Object.freeze({
       completed,
       material,
-      representation: directLease ? 'managed-parquet-direct'
-        : 'managed-column-file',
+      representation: 'managed-column-file',
       usage: result.usage,
       diagnostics: Object.freeze({
         inputPhysicalBytes,
@@ -303,8 +280,8 @@ export async function runManagedColumnStrategyHostCompute(
         outputFrames,
         outputPhysicalBytes: body.bytes,
         physicalManifestCid: representation.cid,
-        directOutputCopies: directLease ? 1 : 0,
-        outputJsMaterializedCells: outputValueAdmissionCells,
+        directOutputCopies: 0,
+        outputJsMaterializedCells,
         outputFrameReencodes: outputFrames,
         ...logicalDiagnostics,
       }),
@@ -334,17 +311,6 @@ export async function runManagedColumnStrategyHostCompute(
       try { return nativeCleanup.status().pending === true; }
       catch { return true; }
     };
-    const confirmDirectStopped = () => {
-      if (directLease && !body && !nativePending()) {
-        // Only terminal native cleanup, never an abort request, confirms that
-        // DuckDB can no longer create or mutate the delegated path.
-        writer?.confirmDelegatedStopped();
-      }
-    };
-    if (directLease && !body) {
-      writer?.cancel();
-      confirmDirectStopped();
-    }
     if (output) moon.managedOutputCancel(output);
     body?.close();
     store?.close();
@@ -378,7 +344,6 @@ export async function runManagedColumnStrategyHostCompute(
             try { await nativeCleanup?.retry(); }
             catch (cleanupError) { retryErrors.push(cleanupError); }
           }
-          confirmDirectStopped();
           try { await store?.cleanup(); }
           catch (cleanupError) { retryErrors.push(cleanupError); }
           if (run) moon.managedStrategyRefreshRetention(run);

@@ -134,6 +134,19 @@ cases.
 
 ## Subsequent direct-output increment
 
+> **Superseded for product selection.** The direct-output implementation below
+> established the stated functional counters, but its `COPY TO` destination
+> was checked against the Store reservation only after DuckDB had finished
+> writing. A native write could therefore exceed the admitted physical bytes
+> before rejection. The standard managed Host no longer selects this path.
+> It writes every output through the Store's bounded `appendBytes` sink, which
+> rejects the next frame before I/O when the reservation would be exceeded.
+> Consequently, current product diagnostics report zero direct copies and the
+> actual JavaScript materialization/frame counts. Direct native output may be
+> restored only with a sink or filesystem quota that enforces the reservation
+> while bytes are written. The historical measurements below remain evidence
+> for the removed implementation, not evidence for the current product path.
+
 The value-preserving downstream path now writes DuckDB output directly into a
 Store-owned Parquet generation. The Host reads back only the source occurrence
 and dense output ordinal needed for the registered selection rule. It does not

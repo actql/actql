@@ -1441,18 +1441,18 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 3, selectionOccurrenceRows: 3,
-      outputFrames: 0, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
+      outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
       physicalManifestCid: managedDownstream.diagnostics.physicalManifestCid,
-      directOutputCopies: 1, outputJsMaterializedCells: 0,
-      outputFrameReencodes: 0,
+      directOutputCopies: 0, outputJsMaterializedCells: 3,
+      outputFrameReencodes: 1,
       measuredGuardWork: 6, measuredGuardBytes: 3, measuredGuardNodes: 3,
       reusedGuardWork: 15, reusedGuardBytes: 12, reusedGuardNodes: 9,
       comparisonWork: 13, comparisonBytes: 1, comparisonNodes: 1,
     });
     const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
     assert(managedDownstreamBytes > 0n,
-      'the direct Parquet generation has an independently retained body');
-    assert.equal(managedDownstream.representation, 'managed-parquet-direct');
+      'the bounded generation has an independently retained body');
+    assert.equal(managedDownstream.representation, 'managed-column-file');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
     const terminalInput = fixture.strategyFixtureManagedInput(
       managedLedgerFixture, 3, managedDownstream.completed);
@@ -1492,18 +1492,18 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 0, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
+      outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
       physicalManifestCid: managedTerminal.diagnostics.physicalManifestCid,
-      directOutputCopies: 1, outputJsMaterializedCells: 0,
-      outputFrameReencodes: 0,
+      directOutputCopies: 0, outputJsMaterializedCells: 1,
+      outputFrameReencodes: 1,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
       reusedGuardWork: 8, reusedGuardBytes: 4, reusedGuardNodes: 4,
       comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
     });
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
     assert(managedTerminalBytes > 0n,
-      'the checked take writes one direct retained Parquet generation');
-    assert.equal(managedTerminal.representation, 'managed-parquet-direct');
+      'the checked take writes one bounded retained generation');
+    assert.equal(managedTerminal.representation, 'managed-column-file');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 4);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
@@ -1606,11 +1606,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 0,
+      outputFrames: 1,
       outputPhysicalBytes: managedGroupFirst.diagnostics.outputPhysicalBytes,
       physicalManifestCid: managedGroupFirst.diagnostics.physicalManifestCid,
-      directOutputCopies: 1, outputJsMaterializedCells: 0,
-      outputFrameReencodes: 0,
+      directOutputCopies: 0, outputJsMaterializedCells: 1,
+      outputFrameReencodes: 1,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
       reusedGuardWork: 4, reusedGuardBytes: 2, reusedGuardNodes: 2,
       comparisonWork: 3, comparisonBytes: 1, comparisonNodes: 1,
@@ -1639,11 +1639,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 0,
+      outputFrames: 1,
       outputPhysicalBytes: managedGroupSecond.diagnostics.outputPhysicalBytes,
       physicalManifestCid: managedGroupSecond.diagnostics.physicalManifestCid,
-      directOutputCopies: 1, outputJsMaterializedCells: 0,
-      outputFrameReencodes: 0,
+      directOutputCopies: 0, outputJsMaterializedCells: 1,
+      outputFrameReencodes: 1,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
       reusedGuardWork: 4, reusedGuardBytes: 2, reusedGuardNodes: 2,
       comparisonWork: 3, comparisonBytes: 1, comparisonNodes: 1,
