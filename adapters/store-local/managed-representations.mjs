@@ -3,22 +3,53 @@
 import {randomUUID} from 'node:crypto';
 import {localStoreOwnsBody, localRetainedStoreAvailable} from './files.mjs';
 import {withVerifiedDelegatedFile} from './direct-file.mjs';
+import {snapshotPhysicalManifest} from './managed-manifest.mjs';
 const representations = new WeakMap();
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 const issue = code => Object.assign(new Error(code), {code});
 
-export function registerManagedInput(material, readable, store, body, codecContractCid) {
+export function registerManagedInput(
+  material, readable, store, body, codecContractCid, physicalManifest,
+) {
   if (!material || typeof material !== 'object' || representations.has(material) ||
       typeof readable !== 'function' || !localStoreOwnsBody(store, body) || !cid(codecContractCid)) {
     throw issue('InvalidManagedInputRegistration');
   }
-  representations.set(material, Object.freeze({readable, store, body, codecContractCid}));
+  let admitted;
+  try {
+    admitted = snapshotPhysicalManifest(physicalManifest, {
+      maxChunks: 1,
+      maxManifestBytes: 1024 * 1024,
+      maxReferencedBytes: body.bytes,
+    });
+  } catch {
+    throw issue('InvalidManagedInputRegistration');
+  }
+  const chunks = admitted.manifest.chunks;
+  if (admitted.manifest.codec_contract_cid !== codecContractCid ||
+      chunks.length !== 1 || chunks[0].cid !== body.cid ||
+      chunks[0].byte_length !== body.bytes ||
+      chunks[0].row_count !== admitted.manifest.row_count) {
+    throw issue('InvalidManagedInputRegistration');
+  }
+  representations.set(material, Object.freeze({
+    readable,
+    store,
+    body,
+    codecContractCid,
+    physicalManifest: admitted,
+  }));
+  return admitted;
 }
 
 // Installed dispatcher lookup for the exact opaque material. This does not
 // expose a path, grant a read, or let a callback relabel a representation.
 export function managedInputCodecContractCid(material) {
   return representations.get(material)?.codecContractCid;
+}
+
+export function managedInputPhysicalManifestCid(material) {
+  return representations.get(material)?.physicalManifest.cid;
 }
 
 // authorize and beforeRead belong to installed Host use/resource admission,
@@ -35,6 +66,10 @@ export async function withManagedInputFile(material, input, codecContractCid, au
     if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
         !held.body.available() || !held.readable(input)) throw issue('ManagedInputUnavailable');
     if (!cid(codecContractCid) || held.codecContractCid !== codecContractCid) throw issue('UnsupportedManagedCodec');
+    const chunk = held.physicalManifest.manifest.chunks[0];
+    if (chunk.cid !== held.body.cid || chunk.byte_length !== held.body.bytes) {
+      throw issue('ManagedInputUnavailable');
+    }
     if (authorize(input) !== true) throw issue('ManagedInputUnauthorized');
     if (!held.readable(input)) throw issue('ManagedInputUnavailable');
     return held;
@@ -89,6 +124,10 @@ export async function withManagedInputFiles(
     }
     if (!cid(codecContractCid) || held.codecContractCid !== codecContractCid) {
       throw issue('UnsupportedManagedCodec');
+    }
+    const chunk = held.physicalManifest.manifest.chunks[0];
+    if (chunk.cid !== held.body.cid || chunk.byte_length !== held.body.bytes) {
+      throw issue('ManagedInputUnavailable');
     }
     if (authorize(input, index) !== true) {
       throw issue('ManagedInputUnauthorized');

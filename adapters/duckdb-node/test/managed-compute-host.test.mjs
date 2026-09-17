@@ -17,6 +17,8 @@ import {
   withManagedInputFile,
   withManagedInputFiles,
 } from '../../store-local/managed-representations.mjs';
+import {managedPhysicalRepresentation} from
+  '../../store-local/managed-physical-representation.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -26,6 +28,14 @@ const profileCid = 'sha256:161b405aa85064521a44076212bb266d93f166fa1b383ca8948a8
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));
+const physicalManifest = (body, rows, codec, fields) =>
+  managedPhysicalRepresentation(
+    body,
+    rows,
+    codec,
+    fieldsFrame(fields),
+    fields.map((_, index) => index),
+  ).manifest;
 
 async function importManagedFile(connection, sql, path) {
   const statement = await connection.prepare(sql);
@@ -143,7 +153,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         assert.equal(moon.managedCompletedAvailable(completed), true, 'sealed independent output is not a live input verification');
         const material = moon.managedOutputMaterial(output);
         const codec = managedColumnCodecContractCid;
-        registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
+        registerManagedInput(material,
+          input => moon.managedInputMatchesMaterial(input, material),
+          store, body, codec,
+          physicalManifest(body, observed.length, codec, result.value.fields));
         if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed', 'chained']) {
           let settled = false;
           const deriving = representation === 'computed';
@@ -302,6 +315,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               : [{name: 'amount', type: {id: 'VARCHAR'}}];
             await writer.appendBytes(encodeManagedColumnFrame(
               storedFields, columns, rows.length, 0));
+            held.fields = storedFields;
+            held.rows = rows.length;
             held.body = await writer.sealPhysical();
             settled = true;
             if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
@@ -534,7 +549,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             }
             const takeMaterial = moon.managedOutputMaterial(held.output);
             const takeCodec = managedColumnCodecContractCid;
-            registerManagedInput(takeMaterial, input => moon.managedInputMatchesMaterial(input, takeMaterial), store, held.body, takeCodec);
+            registerManagedInput(takeMaterial,
+              input => moon.managedInputMatchesMaterial(input, takeMaterial),
+              store, held.body, takeCodec,
+              physicalManifest(held.body, held.rows, takeCodec, held.fields));
             for (let use = 0; use < 2; use++) {
               const input = fixture.managedTakeNextInput(held.setup, held.completed);
               const expected = empty ? [0, 0, 0, 0, 0] : [2, 15, 2, 11, 1];
@@ -560,7 +578,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const countMaterial = moon.managedOutputMaterial(downstreamOutput);
           const countCodec = managedColumnCodecContractCid;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
-            store, downstreamBody, countCodec);
+            store, downstreamBody, countCodec,
+            physicalManifest(downstreamBody, 1, countCodec,
+              [{name: 'n', type: {id: 'DOUBLE'}}]));
           if (revoke === 'none') for (const derived of [undefined, heldTakes.find(held => held.representation === 'computed')])
           for (const representation of ['validated', 'preserved']) for (const ceiling of derived ? [10000] : [10000, 4]) {
             const filterInput = derived

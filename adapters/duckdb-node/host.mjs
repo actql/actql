@@ -19,6 +19,8 @@ import {registerRetainedInput, retainedInputContract, consumeRetainedInput,
   retainedStorageBody, retainedStorageContract, retainedInputSupportsFile,
   withRetainedInputFile, retainedInputFilePath} from '../store-local/representations.mjs';
 import {registerManagedInput} from '../store-local/managed-representations.mjs';
+import {managedPhysicalRepresentation} from
+  '../store-local/managed-physical-representation.mjs';
 import {encodeManagedColumnFrame,
   managedColumnCodecContractCid} from './managed-column-codec.mjs';
 export {runManagedColumnStrategyHostCompute} from './managed-strategy-compute.mjs';
@@ -393,7 +395,7 @@ async function runHostCompute(
   let run;
   let store, writer, body, retainedHandle;
   let managedOutput, managedCompletion, managedRows = 0;
-  let managedStorageOrder;
+  let managedStorageOrder, managedFieldsFrame;
   let managedIndexCells = 0;
   let cleanupRun, disposed = false;
   const storageReleased = () => store === undefined ||
@@ -463,8 +465,9 @@ async function runHostCompute(
   const begin = fields => {
     if (!began) {
       if (managed) {
+        managedFieldsFrame = fieldsFrame(fields);
         managedOutput = checked(
-          moon.computeHostManagedOutputBegin(run, fieldsFrame(fields)),
+          moon.computeHostManagedOutputBegin(run, managedFieldsFrame),
         );
         managedStorageOrder = checked(
           moon.managedOutputStorageOrder(managedOutput),
@@ -735,6 +738,13 @@ async function runHostCompute(
         store,
         body,
         managedColumnCodecContractCid,
+        managedPhysicalRepresentation(
+          body,
+          managedRows,
+          managedColumnCodecContractCid,
+          managedFieldsFrame,
+          managedStorageOrder,
+        ).manifest,
       );
       const outputMeasurement = checked(
         moon.managedOutputMeasurements(managedOutput),

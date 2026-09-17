@@ -23,6 +23,8 @@ import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixe
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {registerManagedInput,
   managedInputCodecContractCid} from '../../store-local/managed-representations.mjs';
+import {managedPhysicalRepresentation} from
+  '../../store-local/managed-physical-representation.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -1290,7 +1292,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     let port;
     let consume;
     let managedRows = 0;
-    let managedStorageOrder;
+    let managedStorageOrder, managedFieldsFrame;
     const managedProfile = accepted(fixture.managedFileProfile(await readFile(join(root,
       'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
     managedLedgerStore = await createLocalRetainedStore({
@@ -1325,11 +1327,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     });
     consume = async chunk => {
       if (!managedLedgerOutput) {
-        const fields = JSON.stringify(chunk.fields.map(({name, type}) =>
+        managedFieldsFrame = JSON.stringify(chunk.fields.map(({name, type}) =>
           [name, type.id, type.precision == null ? null : String(type.precision),
             type.scale == null ? null : String(type.scale)]));
         managedLedgerOutput = accepted(
-          bridge.computeHostManagedOutputBegin(managedLedgerRun, fields));
+          bridge.computeHostManagedOutputBegin(
+            managedLedgerRun, managedFieldsFrame));
         managedStorageOrder = accepted(
           bridge.managedOutputStorageOrder(managedLedgerOutput));
         assert.deepEqual(managedStorageOrder, [1, 0],
@@ -1388,7 +1391,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedMaterial = bridge.managedOutputMaterial(managedLedgerOutput);
     registerManagedInput(managedMaterial,
       input => bridge.managedInputMatchesMaterial(input, managedMaterial),
-      managedLedgerStore, managedLedgerBody, managedColumnCodecContractCid);
+      managedLedgerStore, managedLedgerBody, managedColumnCodecContractCid,
+      managedPhysicalRepresentation(
+        managedLedgerBody,
+        managedRows,
+        managedColumnCodecContractCid,
+        managedFieldsFrame,
+        managedStorageOrder,
+      ).manifest);
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
       'the next task binds the exact retained occurrence through its checked graph edge');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 1), false,
@@ -1429,6 +1439,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 3, selectionOccurrenceRows: 3,
       outputFrames: 0, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
+      physicalManifestCid: managedDownstream.diagnostics.physicalManifestCid,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
       measuredGuardWork: 6, measuredGuardBytes: 3, measuredGuardNodes: 3,
@@ -1479,6 +1490,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 0, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
+      physicalManifestCid: managedTerminal.diagnostics.physicalManifestCid,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
@@ -1525,6 +1537,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       logicalContentCidComputations: 0, outputValueAdmissionCells: 1,
       reusedMeasurementCells: 0, selectionOccurrenceRows: 0,
       outputFrames: 1, outputPhysicalBytes: managedGroup.diagnostics.outputPhysicalBytes,
+      physicalManifestCid: managedGroup.diagnostics.physicalManifestCid,
       directOutputCopies: 0, outputJsMaterializedCells: 1,
       outputFrameReencodes: 1,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
@@ -1592,6 +1605,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 0,
       outputPhysicalBytes: managedGroupFirst.diagnostics.outputPhysicalBytes,
+      physicalManifestCid: managedGroupFirst.diagnostics.physicalManifestCid,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,
@@ -1624,6 +1638,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
       outputFrames: 0,
       outputPhysicalBytes: managedGroupSecond.diagnostics.outputPhysicalBytes,
+      physicalManifestCid: managedGroupSecond.diagnostics.physicalManifestCid,
       directOutputCopies: 1, outputJsMaterializedCells: 0,
       outputFrameReencodes: 0,
       measuredGuardWork: 2, measuredGuardBytes: 1, measuredGuardNodes: 1,

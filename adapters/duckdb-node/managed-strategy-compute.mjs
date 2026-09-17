@@ -11,6 +11,8 @@ import {withComputeDatabase, DuckDBTransportError, validateLimits} from './sessi
 import {checked} from './runtime-result.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
+import {managedPhysicalRepresentation} from
+  '../store-local/managed-physical-representation.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
@@ -268,11 +270,19 @@ export async function runManagedColumnStrategyHostCompute(
     });
     const material = moon.managedOutputMaterial(output);
     if (material == null) throw new DuckDBTransportError('MissingManagedOutputMaterial');
+    const codecContractCid = directLease
+      ? managedParquetCodecContractCid
+      : managedColumnCodecContractCid;
+    const representation = managedPhysicalRepresentation(
+      body,
+      outputRows,
+      codecContractCid,
+      fieldsFrame(result.value),
+      storageOrder,
+    );
     registerManagedInput(material,
       input => moon.managedInputMatchesMaterial(input, material),
-      store, body, directLease
-        ? managedParquetCodecContractCid
-        : managedColumnCodecContractCid);
+      store, body, codecContractCid, representation.manifest);
     let closed = false;
     return Object.freeze({
       completed,
@@ -291,6 +301,7 @@ export async function runManagedColumnStrategyHostCompute(
         selectionOccurrenceRows: occurrences.length,
         outputFrames,
         outputPhysicalBytes: body.bytes,
+        physicalManifestCid: representation.cid,
         directOutputCopies: directLease ? 1 : 0,
         outputJsMaterializedCells: outputValueAdmissionCells,
         outputFrameReencodes: outputFrames,
