@@ -236,6 +236,10 @@ This is `managed-host-cycle-diagnostic`, not a warm-task timer or full experimen
 It is not directly comparable to the raw engine's CTAS-only interval. The baseline
 and identical-obligations legs, common timing boundaries, immutable data/runtime
 provenance, alternating schedule and acceptance report still require integration.
+Managed input phases in this diagnostic require `identityReused: true` and
+`logicalCidPasses: 0`; the separate independent-obligation assembly still
+computes and checks the old logical CID and must not be replaced by that managed
+expectation.
 The real test covers all three 100-row narrow workloads and verifies that a wrong
 oracle rejects the sample while still removing completed files:
 

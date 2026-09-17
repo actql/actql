@@ -159,7 +159,11 @@ pub fn managed_filter_selection(@adapter.ManagedFixedQuery[Int], Array[Int]) -> 
 
 pub fn managed_fixed_query(@execution_relation.ManagedProducerRead[Int]) -> @adapter.ManagedFixedQuery[Int]
 
+pub fn managed_fixed_query_input_file_sql(@adapter.ManagedFixedQuery[Int]) -> String
+
 pub fn managed_fixed_query_matches(@adapter.ManagedFixedQuery[Int], @execution_relation.ManagedProducerRead[Int]) -> Bool
+
+pub fn managed_fixed_query_output_row_ceiling(@adapter.ManagedFixedQuery[Int], Int) -> Int
 
 pub fn managed_fixed_query_parameter(@adapter.ManagedFixedQuery[Int]) -> String raise
 
@@ -230,6 +234,8 @@ pub fn owned_fixed_managed_filter_input(@adapter.ManagedFixedQuery[Int], @execut
 pub fn owned_fixed_managed_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]?
 
 pub fn owned_fixed_managed_input_usage(OwnedFixedFixture, @execution_relation.ManagedProducerRead[Int]) -> Array[Int]
+
+pub fn owned_fixed_managed_keyed_count_input(OwnedFixedFixture, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn owned_fixed_next(OwnedFixedFixture, @execution_relation.CompletedOutput, String, String, String) -> OwnedFixedFixture
 

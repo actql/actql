@@ -482,6 +482,24 @@ pub fn owned_fixed_managed_count_input(
 }
 
 ///|
+#export_name("ownedFixedManagedKeyedCountInput")
+pub fn owned_fixed_managed_keyed_count_input(
+  value : OwnedFixedFixture,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  let query = @duckdb.fixed_compute_query(value.compute)
+  let owner = @duckdb.fixed_query_owner(query)
+  let receiver = issued_fixture_consumer(
+    owner,
+    steps="[{\"group\":{\"by\":[\"amount\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+    target=@duckdb.fixed_query_target(query),
+  )
+  @execution.prepare_managed_producer_read(
+    receiver, 0, owner, output, 100, 10000,
+  ).unwrap()
+}
+
+///|
 #export_name("managedFixedQuery")
 pub fn managed_fixed_query(
   input : @execution.ManagedProducerRead[Int],
@@ -657,6 +675,23 @@ pub fn managed_fixed_query_sql(
     @duckdb.managed_fixed_query_create_sql(query),
     @duckdb.managed_fixed_query_sql(query),
   ]
+}
+
+///|
+#export_name("managedFixedQueryInputFileSql")
+pub fn managed_fixed_query_input_file_sql(
+  query : @duckdb.ManagedFixedQuery[Int],
+) -> String {
+  @duckdb.managed_fixed_query_column_file_sql(query, 10000).unwrap()
+}
+
+///|
+#export_name("managedFixedQueryOutputRowCeiling")
+pub fn managed_fixed_query_output_row_ceiling(
+  query : @duckdb.ManagedFixedQuery[Int],
+  input_max_rows : Int,
+) -> Int {
+  @duckdb.managed_fixed_query_output_row_ceiling(query, input_max_rows)
 }
 
 ///|

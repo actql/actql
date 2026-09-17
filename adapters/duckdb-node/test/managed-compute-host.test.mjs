@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp, readFile, rmdir} from 'node:fs/promises';
+import {mkdtemp, readFile, rmdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -10,6 +10,7 @@ import {DuckDBInstance} from '@duckdb/node-api';
 import {exportPhysicalValue, bindPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
+import {encodeManagedColumnFrame, managedColumnCodecContractCid} from '../managed-column-codec.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {registerManagedInput, withManagedInputFile} from '../../store-local/managed-representations.mjs';
 
@@ -21,6 +22,14 @@ const profileCid = 'sha256:161b405aa85064521a44076212bb266d93f166fa1b383ca8948a8
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));
+
+async function importManagedFile(connection, sql, path) {
+  const statement = await connection.prepare(sql);
+  try {
+    statement.bindVarchar(1, path);
+    await statement.run();
+  } finally { statement.destroySync(); }
+}
 
 test('managed selected Compute verifies actual DuckDB transport and exact physical holding without output CID', async () => {
   const exec = promisify(execFile);
@@ -80,9 +89,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
       consume = async chunk => {
         begin(chunk.fields);
         checked(moon.managedOutputAccept(output, chunk.rowCount, JSON.stringify(chunk.columns)));
-        // Fixture-only physical frame codec, not a registered public Artifact.
-        // Values are native transport columns, not canonical logical row JSON.
-        await writer.appendBytes(Buffer.from(JSON.stringify({rows: chunk.rowCount, columns: chunk.columns}) + '\n'));
+        await writer.appendBytes(encodeManagedColumnFrame(
+          chunk.fields, chunk.columns, chunk.rowCount, observed.length));
         observed.push(...chunk.columns[0]);
       };
       result = await runFixedCompute(port, limits, {maxRows: 4, maxCells: 8}, consume);
@@ -130,7 +138,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         assert.equal(moon.managedOutputComputeVerified(output), false);
         assert.equal(moon.managedCompletedAvailable(completed), true, 'sealed independent output is not a live input verification');
         const material = moon.managedOutputMaterial(output);
-        const codec = `sha256:${'4'.repeat(64)}`; // Fixture physical-frame interpretation only.
+        const codec = managedColumnCodecContractCid;
         registerManagedInput(material, input => moon.managedInputMatchesMaterial(input, material), store, body, codec);
         if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed', 'chained']) {
           let settled = false;
@@ -156,8 +164,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             await connection.run('CREATE TABLE take_source(amount VARCHAR)');
             const rows = await withManagedInputFile(material, fixture.managedTakeInput(setup), codec, () => true, async file => {
               const path = `'${file.path.replaceAll("'", "''")}'`;
-              await connection.run(`INSERT INTO take_source SELECT unnest(columns[1])
-                FROM read_json(${path}, format='newline_delimited', columns={columns:'VARCHAR[][]'})`);
+              await connection.run(`INSERT INTO take_source SELECT unnest(c0)
+                FROM read_json(${path}, format='newline_delimited',
+                  auto_detect=false, columns={c0:'VARCHAR[]',o:'BIGINT[]'})`);
               if (!deriving && representation === 'preserved') {
                 for (const [count, offset, occurrences, expected] of [
                   [1n, 1n, ['1'], [null]],
@@ -282,8 +291,13 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             }
             const writer = store.reserve(4096);
             await writer.start();
-            await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns,
-              ...(deriving ? {native_columns: [rows.map(row => row.marker)]} : {})}) + '\n'));
+            const storedFields = deriving
+              ? [{name: 'amount', type: {id: 'VARCHAR'}},
+                {name: 'copy', type: {id: 'VARCHAR'}},
+                {name: 'marker', type: {id: 'DOUBLE'}}]
+              : [{name: 'amount', type: {id: 'VARCHAR'}}];
+            await writer.appendBytes(encodeManagedColumnFrame(
+              storedFields, columns, rows.length, 0));
             held.body = await writer.sealPhysical();
             settled = true;
             if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
@@ -322,7 +336,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             reads++;
             assert.equal(store.status().activeReaders, 1);
             const frames = (await readFile(file.path, 'utf8')).trim();
-            return frames ? frames.split('\n').flatMap(frame => JSON.parse(frame).columns[0]) : [];
+            return frames ? frames.split('\n').flatMap(frame => JSON.parse(frame).c0) : [];
           };
           await assert.rejects(withManagedInputFile(material, input, codec, () => false, use),
             {code: 'ManagedInputUnauthorized'});
@@ -354,6 +368,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
         assert.deepEqual(fixture.ownedFixedManagedInputUsage(configured, countInput),
           empty ? [0, 0, 0, 0] : [3, 6, 26, 3]);
         const nativeQuery = fixture.managedFixedQuery(countInput);
+        assert.equal(fixture.managedFixedQueryOutputRowCeiling(
+          nativeQuery, empty ? 0 : 3), 1,
+        'global count reserves its single output row even for empty input');
         assert.equal(fixture.managedFixedQueryMatches(nativeQuery, countInput), true);
         assert.equal(fixture.managedFixedQueryMatches(nativeQuery,
           fixture.ownedFixedManagedCountInput(configured, completed)), false,
@@ -383,21 +400,42 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           const rows = await withManagedInputFile(material, countInput, codec,
             () => fixture.managedFixedQueryMatches(nativeQuery, countInput), async file => {
               assert.equal(store.status().activeReaders, 1);
-              if (!empty) {
-                // Fixture-only frame decoder inside DuckDB. No JS cell decode
-                // or parameter INSERT, and no second Core value admission.
-                const path = `'${file.path.replaceAll("'", "''")}'`;
-                await connection.run(`INSERT INTO managed_input
-                  SELECT amount, row_number() OVER () - 1
-                  FROM (SELECT unnest(columns[1]) AS amount
-                    FROM read_json(${path}, format='newline_delimited',
-                      columns={rows: 'BIGINT', columns: 'VARCHAR[][]'}))`);
-              }
+              await importManagedFile(connection,
+                fixture.managedFixedQueryInputFileSql(nativeQuery), file.path);
               return (await connection.runAndReadAll(querySql)).getRowObjects();
             }, undefined, bytes => { integrityBytes += bytes; });
           assert.deepEqual(rows, [{n: empty ? 0 : 3}]);
           assert.equal(integrityBytes, body.bytes);
           assert.equal(store.status().activeReaders, 0);
+          if (empty) {
+            const keyedInput = fixture.ownedFixedManagedKeyedCountInput(configured, completed);
+            const keyedQuery = fixture.managedFixedQuery(keyedInput);
+            assert.equal(fixture.managedFixedQueryOutputRowCeiling(keyedQuery, 0), 0,
+              'an empty keyed group has no output-row reservation');
+            await connection.run('DROP TABLE managed_input');
+            const [keyedCreate, keyedSql] = fixture.managedFixedQuerySql(keyedQuery);
+            await connection.run(keyedCreate);
+            await withManagedInputFile(material, keyedInput, codec, () => true,
+              async file => importManagedFile(connection,
+                fixture.managedFixedQueryInputFileSql(keyedQuery), file.path));
+            assert.deepEqual((await connection.runAndReadAll(keyedSql)).getRowObjects(), []);
+          } else if (revoke === 'none') {
+            const importSql = fixture.managedFixedQueryInputFileSql(nativeQuery);
+            for (const [name, frame] of [
+              ['missing', {c0: ['a']}],
+              ['duplicate', {c0: ['a', 'b'], o: [0, 0]}],
+              ['reverse', {c0: ['a', 'b'], o: [1, 0]}],
+            ]) {
+              const invalidPath = join(directory, `invalid-${name}.ndjson`);
+              await writeFile(invalidPath, `${JSON.stringify(frame)}\n`);
+              try {
+                await connection.run('DROP TABLE managed_input');
+                await connection.run(createSql);
+                await assert.rejects(importManagedFile(
+                  connection, importSql, invalidPath));
+              } finally { await rm(invalidPath, {force: true}); }
+            }
+          }
           // Only this awaited exact native query supplies the downstream values.
           const columns = [[exportPhysicalValue(rows[0].n, {id: 'DOUBLE'})]];
           checked(moon.managedOutputAccept(downstreamOutput, 1, JSON.stringify(columns)));
@@ -406,8 +444,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             empty ? [2, 1, 1] : [8, 27, 4]);
           const downstreamWriter = store.reserve(4096);
           await downstreamWriter.start();
-          const native_columns = [[rows[0].n]]; // Fixture numeric file view of the same native result.
-          await downstreamWriter.appendBytes(Buffer.from(JSON.stringify({rows: 1, columns, native_columns}) + '\n'));
+          await downstreamWriter.appendBytes(encodeManagedColumnFrame(
+            [{name: 'n', type: {id: 'DOUBLE'}}], columns, 1, 0));
           const downstreamBody = await downstreamWriter.sealPhysical();
           checked(moon.managedOutputRetain(downstreamOutput, BigInt(downstreamBody.bytes),
             () => downstreamBody.available()));
@@ -463,7 +501,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 'prepared SQL does not keep the revoked source available');
             }
             const takeMaterial = moon.managedOutputMaterial(held.output);
-            const takeCodec = `sha256:${'7'.repeat(64)}`;
+            const takeCodec = managedColumnCodecContractCid;
             registerManagedInput(takeMaterial, input => moon.managedInputMatchesMaterial(input, takeMaterial), store, held.body, takeCodec);
             for (let use = 0; use < 2; use++) {
               const input = fixture.managedTakeNextInput(held.setup, held.completed);
@@ -477,8 +515,9 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               }
               const frame = await withManagedInputFile(takeMaterial, input, takeCodec, () => true,
                 async file => JSON.parse(await readFile(file.path, 'utf8')));
-              assert.deepEqual(frame.columns[0], empty ? [] : ['日本語', null]);
-              assert.equal(frame.columns.length, held.representation === 'computed' ? 3 : 1);
+              assert.deepEqual(frame.c0, empty ? [] : ['日本語', null]);
+              assert.equal(Object.keys(frame).filter(key => /^c\d+$/.test(key)).length,
+                held.representation === 'computed' ? 3 : 1);
             }
           }
           assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true);
@@ -487,7 +526,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           assert.equal(moon.managedCompletedAvailable(downstreamCompleted), true,
             'settled independent holding does not borrow the prior attempt');
           const countMaterial = moon.managedOutputMaterial(downstreamOutput);
-          const countCodec = `sha256:${'6'.repeat(64)}`;
+          const countCodec = managedColumnCodecContractCid;
           registerManagedInput(countMaterial, input => moon.managedInputMatchesMaterial(input, countMaterial),
             store, downstreamBody, countCodec);
           if (revoke === 'none') for (const derived of [undefined, heldTakes.find(held => held.representation === 'computed')])
@@ -522,26 +561,10 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               assert.throws(() => checked(fixture.managedFilterOccurrenceSql(filterQuery, 'bad\0ordinal', 'occurrence')));
               await connection.run(create);
               const material = derived ? moon.managedOutputMaterial(derived.output) : countMaterial;
-              const codec = derived ? `sha256:${'7'.repeat(64)}` : countCodec;
+              const codec = managedColumnCodecContractCid;
               const rows = await withManagedInputFile(material, filterInput, codec, () => true, async file => {
-                {
-                  const path = `'${file.path.replaceAll("'", "''")}'`;
-                  await connection.run(derived
-                    ? `INSERT INTO managed_input
-                        (amount, copy, marker, "__actql_input_ordinal")
-                      SELECT amount, copy, marker, row_number() OVER () - 1
-                      FROM (SELECT unnest(columns[1]) AS amount,
-                        unnest(columns[2]) AS copy,
-                        unnest(native_columns[1]) AS marker
-                        FROM read_json(${path}, format='newline_delimited',
-                          columns={columns:'VARCHAR[][]', native_columns:'DOUBLE[][]'}))`
-                    : `INSERT INTO managed_input
-                        (n, "__actql_input_ordinal")
-                      SELECT n, row_number() OVER () - 1
-                      FROM (SELECT unnest(native_columns[1]) AS n
-                        FROM read_json(${path}, format='newline_delimited',
-                          columns={native_columns:'DOUBLE[][]'}))`);
-                }
+                await importManagedFile(connection,
+                  fixture.managedFixedQueryInputFileSql(filterQuery), file.path);
                 const statement = await connection.prepare(sql);
                 try {
                   bindPhysicalValue(statement, 1, JSON.parse(checked(fixture.managedFixedQueryParameter(filterQuery))));
@@ -555,11 +578,14 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               const columns = [rows.map(row => exportPhysicalValue(row.n, {id: 'DOUBLE'}))];
               const writer = store.reserve(4096);
               await writer.start();
-              await writer.appendBytes(Buffer.from(JSON.stringify({rows: rows.length, columns}) + '\n'));
+              await writer.appendBytes(encodeManagedColumnFrame(
+                [{name: 'n', type: {id: 'DOUBLE'}}], columns, rows.length, 0));
               filterBody = await writer.sealPhysical();
               if (representation === 'preserved') {
                 const occurrences = rows.map(row => Number(row.occurrence));
-                for (const invalid of [[-1], [inputRows], [0, 0], [1, 0]]) {
+                const invalidSelections = [[-1], [inputRows], [0, 0], [1, 0]];
+                if (inputRows > 0) invalidSelections.push([]);
+                for (const invalid of invalidSelections) {
                   assert.throws(() => checked(fixture.managedFilterSelection(filterQuery, invalid)));
                 }
                 filterOutput = checked(moon.managedSelectedOutputOpen(moon.managedInputOutputValues(filterPort),
@@ -622,7 +648,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             const countRead = fixture.managedCountRead(nativeQuery, downstreamCompleted);
             const frame = await withManagedInputFile(countMaterial, countRead, countCodec, () => true,
               async file => JSON.parse(await readFile(file.path, 'utf8')));
-            assert.deepEqual(frame, {rows: 1, columns, native_columns});
+            assert.deepEqual(frame, {c0: [rows[0].n], o: [0]});
             assert.equal(store.status().activeReaders, 0);
           }
         } finally { connection.closeSync(); database.closeSync(); }

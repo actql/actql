@@ -33,7 +33,7 @@ test('retained comparator rejects invalid selection before preparing or executin
   }
 });
 
-test('installed retained timing leg verifies every workload and independently releases files', async () => {
+test('managed host-cycle diagnostic reuses identity and independently releases files', async () => {
   const root = new URL('../../../', import.meta.url);
   for (const target of ['connectors/duckdb/host_node', 'retained_host_bridge',
     'process_host_bridge', 'connectors_builtin_node', 'physical_strategy_example']) {
@@ -65,7 +65,8 @@ test('installed retained timing leg verifies every workload and independently re
         assert.equal(input.validationRows, input.rows);
         assert.equal(input.validationCells, input.rows * (workload === workloads[2] ? 2 : 1));
         assert.equal(input.storedRowJsonDecodes, 0);
-        assert.equal(input.logicalCidPasses, 1);
+        assert.equal(input.logicalCidPasses, 0);
+        assert.equal(input.identityReused, true);
         assert.equal(input.physicalIntegrityPasses, 1);
         assert.equal(input.nativeFileReads, 1);
         assert(input.fileBytes > 0);

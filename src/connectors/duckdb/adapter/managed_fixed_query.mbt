@@ -30,8 +30,14 @@ fn compile_managed_fixed_create_schema(
   max_sql_bytes : Int,
 ) -> Result[String, NativeQueryIssue] {
   let count = @schema.field_count(schema)
-  if count == 0 || count >= max_columns {
-    return Err(if count == 0 { UnsupportedShape } else { Limit })
+  if max_columns < 0 || max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if count == 0 {
+    return Err(UnsupportedShape)
+  }
+  if count > max_columns {
+    return Err(Limit)
   }
   if !physical_column_names_unique(schema) {
     return Err(UnsupportedField)
@@ -249,22 +255,26 @@ pub fn[T] managed_fixed_query_input(
 /// Finite row ceiling for retained measurement metadata. Every installed
 /// single-input query emits no more rows than its input, except a global count,
 /// which emits exactly one row even for empty input. This is a capacity bound,
-/// not evidence that execution produced that many rows.
+/// not evidence that execution produced that many rows. `input_max_rows` is the
+/// admitted input bound, so zero does not cap a global count's output to zero.
 pub fn[T] managed_fixed_query_output_row_ceiling(
   value : ManagedFixedQuery[T],
-  request_max_rows : Int,
+  input_max_rows : Int,
 ) -> Int {
-  if request_max_rows <= 0 {
+  if input_max_rows < 0 {
     return 0
   }
-  let query_ceiling = match value.body {
+  match value.body {
     Fixed(CountGroup(query)) if @lower.count_group_key_count(
         fixed_count_group_profile(query),
       ) ==
       0 => 1
-    _ => @execution.managed_producer_read_row_count(value.input)
+    _ =>
+      Int::min(
+        input_max_rows,
+        @execution.managed_producer_read_row_count(value.input),
+      )
   }
-  Int::min(request_max_rows, query_ceiling)
 }
 
 ///|
@@ -362,9 +372,37 @@ pub fn[T] managed_fixed_query_column_file_sql(
       if index > 0 {
         sql_text(output, ", ")
       }
-      sql_text(output, "unnest(c" + index.to_string() + ")")
+      physical_input_identifier(
+        output,
+        "__actql_import",
+        "c" + index.to_string(),
+      )
     }
-    sql_text(output, ", unnest(o)")
+    sql_text(output, ", CASE WHEN ")
+    physical_input_identifier(output, "__actql_import", "valid")
+    sql_text(output, " AND ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " = row_number() OVER () - 1 THEN ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " ELSE NULL END FROM (SELECT ")
+    for index, _ in physical {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      sql_text(output, "unnest(c" + index.to_string() + ") AS ")
+      sql_identifier(output, "c" + index.to_string())
+    }
+    sql_text(output, ", unnest(o) AS ")
+    sql_identifier(output, "o")
+    sql_text(output, ", ")
+    for index, _ in physical {
+      if index > 0 {
+        sql_text(output, " AND ")
+      }
+      sql_text(output, "length(c" + index.to_string() + ") = length(o)")
+    }
+    sql_text(output, " AS ")
+    sql_identifier(output, "valid")
     sql_text(
       output, " FROM read_json(?, format='newline_delimited', auto_detect=false, columns={",
     )
@@ -378,7 +416,8 @@ pub fn[T] managed_fixed_query_column_file_sql(
       sql_text(output, ",")
     }
     sql_text(output, "o:'BIGINT[]'")
-    sql_text(output, "}, ignore_errors=false)")
+    sql_text(output, "}, ignore_errors=false)) AS ")
+    sql_identifier(output, "__actql_import")
     Some(output.builder.to_string())
   } catch {
     _ => None

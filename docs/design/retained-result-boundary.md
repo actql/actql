@@ -91,6 +91,12 @@ from the exact producer index. For take, the native occurrence sequence must
 equal the slice derived from the checked operations; another valid row or an
 additional occurrence is rejected.
 
+The installed import compiler reads that ordinal from the managed frame; the
+test Host and product Host do not synthesize it from arrival order. Every frame
+must have equal value-list and ordinal-list lengths, and the complete imported
+stream must carry exactly `0..N-1`. A missing, duplicate or reversed ordinal
+therefore fails the native import before it can support a completion.
+
 The common boundary rechecks the selected count, scope, demand, producer and
 material binding, then issues a new result index and holding for the new
 physical body. This transfers a previously satisfied value obligation; it does
@@ -119,7 +125,9 @@ once while it is produced; later checked views may transfer that measurement
 without admitting the same value again. The index ceiling comes from the
 consumer row guard and a query-specific finite row bound. A global count has an
 exact one-row ceiling, including for empty input. The bound reserves storage;
-it is not execution evidence or permission to publish a row.
+it is not execution evidence or permission to publish a row. The request's row
+bound describes input cardinality, so an empty-input bound of zero does not
+turn global count into a zero-row result; an empty keyed group remains zero.
 
 The installed transfer rule is deliberately finite. It applies only when the
 compiled query exposes the private occurrence result and the output fields map

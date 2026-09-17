@@ -133,7 +133,13 @@ pub fn compile_fixed_count_group(
 /// Generate a lexicographic list of UTF16 code units entirely inside SQL.
 /// The helper list is physical scratch, never an output field or logical key.
 fn emit_utf16_order_key(sql : SqlText, field : String) -> Unit raise SqlFailure {
-  emit_utf16_order_key_from(sql, "__actql_source", field)
+  sql_text(sql, "flatten(list_transform(list_transform(range(1, length(")
+  group_input_identifier(sql, field)
+  sql_text(sql, ") + 1), lambda __actql_i: unicode(substr(")
+  group_input_identifier(sql, field)
+  sql_text(
+    sql, ", __actql_i, 1))), lambda __actql_cp: CASE WHEN __actql_cp > 65535 THEN [55296 + ((__actql_cp - 65536) // 1024), 56320 + ((__actql_cp - 65536) % 1024)] ELSE [__actql_cp] END))",
+  )
 }
 
 ///|
@@ -159,7 +165,8 @@ fn group_input_identifier(
   sql : SqlText,
   field : String,
 ) -> Unit raise SqlFailure {
-  physical_input_identifier(sql, "__actql_source", field)
+  sql_text(sql, "__actql_source.")
+  sql_identifier(sql, field)
 }
 
 ///|
