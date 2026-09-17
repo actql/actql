@@ -526,7 +526,7 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
   if run.running is Some((_, execution)) {
     // Revocation is not stop acknowledgement. The Host still owns cleanup.
-    (execution.hooks.unwrap().cancel)()
+    task_execution_cancel(execution)
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)
@@ -641,6 +641,19 @@ fn[T] captured_managed_inputs_match(
     }
   }
   true
+}
+
+///|
+fn[T] captured_managed_request_inputs_match(
+  run : CapturedDAG,
+  task : Int,
+  request : @connector.ManagedFixedComputeRequest[T],
+) -> Bool {
+  captured_managed_inputs_match(
+    run,
+    task,
+    @connector.managed_fixed_compute_request_inputs(request),
+  )
 }
 
 ///|

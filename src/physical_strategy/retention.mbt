@@ -107,7 +107,7 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
     }
     let mut needed = false
     if run.executions[task] is Some(execution) &&
-      (!execution.disposed || !(execution.hooks.unwrap().retention_released)()) {
+      (!execution.disposed || !task_execution_retention_released(execution)) {
       needed = true
     }
     for child in run.resources {

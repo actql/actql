@@ -14,6 +14,8 @@ pub fn[T, P] bind_managed_compute_candidate(CapabilityRegistration, ManagedFixed
 
 pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
 
+pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
+
 pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
@@ -114,11 +116,23 @@ pub fn[T, E, P] prepared_execution_retained_bytes(PreparedExecution[T, E, P]) ->
 
 pub fn[T, P] prepared_managed_compute_candidate(PreparedManagedCompute[T, P]) -> ManagedFixedComputeCandidate[T]
 
+pub fn[I, T, E] prepared_managed_execution_available(PreparedManagedExecution[I, T, E]) -> Bool
+
+pub fn[I, T, E] prepared_managed_execution_candidate(PreparedManagedExecution[I, T, E]) -> ManagedFixedComputeCandidate[I]
+
+pub fn[I, T, E] prepared_managed_execution_capacity(PreparedManagedExecution[I, T, E]) -> ExecutionCapacity
+
+pub fn[I, T, E] prepared_managed_execution_join_output_ceiling(PreparedManagedExecution[I, T, E], Int) -> Int64?
+
+pub fn[I, T, E] prepared_managed_execution_retained_bytes(PreparedManagedExecution[I, T, E]) -> Result[Int64, ExecutionPreparationIssue[E]]
+
 pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
 
 pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
 
 pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(T, ExecutionOperations[E, P]), ExecutionPreparationIssue[E]]
+
+pub fn[I, T, E] start_prepared_managed_execution(PreparedManagedExecution[I, T, E]) -> Result[(T, ManagedExecutionOperations[E]), ExecutionPreparationIssue[E]]
 
 pub fn synchronous_compute_available(SynchronousCompute) -> Bool
 
@@ -232,6 +246,15 @@ pub enum FixedComputeSelection {
 
 type InstalledBundles[A, C]
 
+pub(all) struct ManagedExecutionOperations[E] {
+  cancel : () -> Unit
+  dispose : () -> Unit
+  settled : () -> Unit
+  retention_released : () -> Bool
+  released : () -> Unit
+  ready : () -> Result[Unit, E]
+}
+
 type ManagedFixedComputeCandidate[T]
 
 type ManagedFixedComputeChoice[T]
@@ -249,6 +272,8 @@ type PreparedCompute[T]
 type PreparedExecution[T, E, P]
 
 type PreparedManagedCompute[T, P]
+
+type PreparedManagedExecution[I, T, E]
 
 pub(all) struct QueryQuantities {
   transfer_bytes : Int64?

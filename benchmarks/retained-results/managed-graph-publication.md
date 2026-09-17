@@ -71,6 +71,16 @@ does not manufacture a legacy request or decode the input while compiling. The
 real regression selects that candidate through the registered DuckDB
 capability before inspecting its SQL.
 
+`PreparedManagedExecution` then carries the selected private payload and common
+physical envelope into `start_captured_managed_execution`. Its lifecycle has
+cancel, settle, dispose, release and ready checks, but deliberately has no
+legacy `CompletedOutput` finisher or publication callback. The captured DAG
+uses the same reservation and cleanup state machine for both execution
+families, while their success boundaries remain disjoint. A conformance start
+with no native I/O proves reservation/settlement and that the legacy finisher
+rejects a managed execution. This lifecycle test is not Store pin or native
+execution evidence.
+
 ## Real strategy regression
 
 The standard Node/DuckDB Host regression runs the selected task through actual
@@ -93,12 +103,12 @@ mode and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The graph, common connector request/cost selection and DuckDB compiler can now
-prepare the next managed query, but the standard strategy dispatcher still
-constructs its installed task through legacy `ProducerRead`. Production
-dispatch must stage the selected managed payload, acquire its Store
-pin/authority/capacity, execute it and publish the second task through the same
-graph path. Mixed
+The graph, common connector request/cost selection, lifecycle registration and
+DuckDB compiler can now prepare the next managed query, but the standard
+strategy dispatcher still constructs its installed task through legacy
+`ProducerRead`. Production dispatch must stage this managed lifecycle with the
+actual Store pin/authority/capacity and native execution, then publish the
+second task through the same graph path. Mixed
 acquisition/managed input families,
 resident-table publication, Local execution, named Result bridging and the full
 27-case/1 GiB measurements remain open.

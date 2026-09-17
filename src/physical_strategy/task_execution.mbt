@@ -8,11 +8,67 @@ struct TaskExecution {
   reservation : @resources.Reservation
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
-  mut hooks : @connector.ExecutionOperations[RunIssue, TaskPublication]?
+  mut hooks : TaskExecutionHooks?
   mut execution_settled : Bool
   mut disposed : Bool
   mut failed_holding : @resources.Holding?
   mut resident : ResidentExecution?
+}
+
+///|
+/// Common physical lifecycle with explicitly distinct publication families.
+/// A managed execution cannot be coerced into the legacy output finisher.
+priv enum TaskExecutionHooks {
+  Legacy(@connector.ExecutionOperations[RunIssue, TaskPublication])
+  Managed(@connector.ManagedExecutionOperations[RunIssue])
+}
+
+///|
+fn task_execution_cancel(execution : TaskExecution) -> Unit {
+  match execution.hooks.unwrap() {
+    Legacy(hooks) => (hooks.cancel)()
+    Managed(hooks) => (hooks.cancel)()
+  }
+}
+
+///|
+fn task_execution_settled(execution : TaskExecution) -> Unit {
+  match execution.hooks.unwrap() {
+    Legacy(hooks) => (hooks.settled)()
+    Managed(hooks) => (hooks.settled)()
+  }
+}
+
+///|
+fn task_execution_ready(execution : TaskExecution) -> Result[Unit, RunIssue] {
+  match execution.hooks.unwrap() {
+    Legacy(hooks) => (hooks.ready)()
+    Managed(hooks) => (hooks.ready)()
+  }
+}
+
+///|
+fn task_execution_dispose(execution : TaskExecution) -> Unit {
+  match execution.hooks.unwrap() {
+    Legacy(hooks) => (hooks.dispose)()
+    Managed(hooks) => (hooks.dispose)()
+  }
+}
+
+///|
+fn task_execution_retention_released(execution : TaskExecution) -> Bool {
+  match execution.hooks.unwrap() {
+    Legacy(hooks) => (hooks.retention_released)()
+    Managed(hooks) => (hooks.retention_released)()
+  }
+}
+
+///|
+fn task_execution_released(hooks : TaskExecutionHooks) -> Unit {
+  match hooks {
+    Legacy(hooks) => (hooks.released)()
+    Managed(hooks) => (hooks.released)()
+  }
 }
 
 ///|
@@ -39,6 +95,105 @@ pub fn[T] start_captured_execution(
   resident? : ResidentExecution,
 ) -> Result[(T, TaskExecution), RunIssue] {
   start_task_execution(run, task, prepared, resident)
+}
+
+///|
+/// Register one selected managed-profile execution without manufacturing a
+/// legacy request or completion finisher. Store pin/use admission remains the
+/// installed Host's responsibility inside its prepared lifecycle.
+pub fn[I, T] start_captured_managed_execution(
+  run : CapturedDAG,
+  task : Int,
+  prepared : @connector.PreparedManagedExecution[I, T, RunIssue],
+) -> Result[(T, TaskExecution), RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) {
+    return Err(NotReady)
+  }
+  let candidate = @connector.prepared_managed_execution_candidate(prepared)
+  let request = @connector.managed_fixed_compute_candidate_request(candidate)
+  if !strategy_managed_candidate_matches(run, task, candidate) ||
+    !captured_managed_request_inputs_match(run, task, request) {
+    return Err(ForeignCandidate)
+  }
+  if !@connector.prepared_managed_execution_available(prepared) {
+    return Err(Compute(NotSelected))
+  }
+  for (step, claim) in run.join_limits[task] {
+    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+    guard @connector.prepared_managed_execution_join_output_ceiling(
+        prepared, step,
+      )
+      is Some(actual) &&
+      actual <= required else {
+      return Err(ForeignCandidate)
+    }
+  }
+  let capacity = @connector.prepared_managed_execution_capacity(prepared)
+  let transfer = capacity.transfer_bytes
+  let retention = capacity.retained_bytes
+  let scratch = capacity.scratch_bytes
+  let execution_capacity = capacity.execution_bytes
+  if transfer < 0L ||
+    retention < 0L ||
+    scratch < 0L ||
+    execution_capacity < scratch {
+    return Err(Physical(InvalidLimits))
+  }
+  if strategy_task_envelope(run, task) is Some(selected) &&
+    (
+      transfer > selected.transfer_bytes ||
+      retention > selected.retained_bytes ||
+      execution_capacity > selected.execution_bytes
+    ) {
+    return Err(Physical(InvalidCharge))
+  }
+  let reservation = match
+    @resources.reserve_attempt(
+      run.ledger,
+      transfer,
+      retention,
+      execution_capacity,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  match @connector.start_prepared_managed_execution(prepared) {
+    Err(issue) => {
+      @resources.settle_reservation(run.ledger, reservation) |> ignore
+      let failure = match issue {
+        Candidate(issue) => RunIssue::Compute(issue)
+        Implementation(issue) => issue
+      }
+      fail_captured_task(run, task, failure)
+      Err(failure)
+    }
+    Ok((payload, hooks)) => {
+      let execution : TaskExecution = {
+        owner: run.offer_owner,
+        task,
+        reservation,
+        retained_bytes: Some(fn() {
+          match @connector.prepared_managed_execution_retained_bytes(prepared) {
+            Ok(bytes) => Ok(bytes)
+            Err(Candidate(issue)) => Err(Compute(issue))
+            Err(Implementation(issue)) => Err(issue)
+          }
+        }),
+        scratch,
+        hooks: Some(Managed(hooks)),
+        execution_settled: false,
+        disposed: false,
+        failed_holding: None,
+        resident: None,
+      }
+      run.executions[task] = Some(execution)
+      run.running = Some((task, execution))
+      Ok((payload, execution))
+    }
+  }
 }
 
 ///|
@@ -155,7 +310,7 @@ fn[T] start_task_execution(
           }
         }),
         scratch,
-        hooks: Some(hooks),
+        hooks: Some(Legacy(hooks)),
         execution_settled: false,
         disposed: false,
         failed_holding: None,
@@ -271,7 +426,7 @@ pub fn settle_task_execution(
       if execution.resident is Some(resource) {
         return_resident_inputs(resource.inputs) |> ignore
       }
-      (execution.hooks.unwrap().settled)()
+      task_execution_settled(execution)
       if execution.disposed {
         release_task_execution(run, execution)
       }
@@ -298,7 +453,9 @@ pub fn complete_task_execution(
   if execution.disposed || !execution.execution_settled {
     return Err(Physical(InvalidCharge))
   }
-  let hooks = execution.hooks.unwrap()
+  guard execution.hooks.unwrap() is Legacy(hooks) else {
+    return Err(ForeignCandidate)
+  }
   if execution.resident is Some(resource) {
     guard resource.pending is Some(pending) &&
       pending.committed &&
@@ -306,7 +463,7 @@ pub fn complete_task_execution(
       return Err(NotReady)
     }
   }
-  match (hooks.ready)() {
+  match task_execution_ready(execution) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -371,7 +528,7 @@ pub fn close_task_execution(
   }
   execution.disposed = true
   execution.retained_bytes = None
-  (execution.hooks.unwrap().dispose)()
+  task_execution_dispose(execution)
   close_captured_task_output(run, execution.task)
   if execution.execution_settled {
     release_task_execution(run, execution)
@@ -387,7 +544,7 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
     !task_execution_matches(run, execution) {
     return
   }
-  if !(execution.hooks.unwrap().retention_released)() {
+  if !task_execution_retention_released(execution) {
     // Dispose has synchronously freed MoonBit scratch; external retained
     // storage has its own acknowledgement and must keep its reservation.
     if @resources.reservation_open(execution.reservation) {
@@ -412,7 +569,7 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   let hooks = execution.hooks.unwrap()
   execution.hooks = None
   execution.resident = None
-  (hooks.released)()
+  task_execution_released(hooks)
   collect_captured_retention(run)
 }
 

@@ -549,6 +549,27 @@ fn strategy_candidate_matches(
 }
 
 ///|
+/// Managed and legacy candidates share the selected implementation identity,
+/// but never share or coerce their request payloads.
+fn[T] strategy_managed_candidate_matches(
+  run : CapturedDAG,
+  task : Int,
+  candidate : @connector.ManagedFixedComputeCandidate[T],
+) -> Bool {
+  if run.search is None {
+    return true
+  }
+  guard run.strategy is Some(revision) &&
+    revision.choices.get(task).bind(value => value) is Some(offer) else {
+    return false
+  }
+  physical_equal(
+    offer.registration,
+    @connector.managed_fixed_compute_candidate_registration(candidate),
+  )
+}
+
+///|
 pub fn strategy_assessment(revision : StrategyRevision) -> StrategyAssessment {
   revision.assessment
 }

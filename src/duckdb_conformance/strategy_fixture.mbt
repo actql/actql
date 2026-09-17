@@ -638,6 +638,96 @@ pub fn strategy_fixture_managed_candidate_accepts(
 }
 
 ///|
+/// Common lifecycle conformance only: this registers the selected managed
+/// payload but performs no native I/O. Product dispatch must additionally own
+/// the Store pin, authority and concrete transport execution.
+#export_name("strategyFixtureManagedExecutionStart")
+pub fn strategy_fixture_managed_execution_start(
+  f : StrategyFixture,
+  task : Int,
+  request : @connector.ManagedFixedComputeRequest[Int],
+) -> @strategy.TaskExecution {
+  let prepared = strategy_fixture_managed_candidate(f, request)
+  guard @connector.choose_managed_fixed_compute_candidate(
+      f.registry,
+      request,
+      [@connector.prepared_managed_compute_candidate(prepared)],
+      None,
+      100,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("managed choice")
+  }
+  let inputs = @connector.managed_fixed_compute_request_inputs(request)
+  let selected = @connector.bind_prepared_managed_execution(
+    choice,
+    prepared,
+    {
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      scratch_bytes: 0L,
+      execution_bytes: 0L,
+    },
+    [],
+    query => {
+      let cancelled = Ref(false)
+      let disposed = Ref(false)
+      Ok(
+        (
+          query,
+          {
+            cancel: fn() { cancelled.val = true },
+            dispose: fn() { disposed.val = true },
+            settled: fn() { () },
+            retention_released: fn() { disposed.val },
+            released: fn() { () },
+            ready: fn() {
+              if cancelled.val || disposed.val {
+                return Err(@strategy.RunIssue::Stopped)
+              }
+              for input in inputs {
+                if !@execution.managed_producer_read_available(input) {
+                  return Err(@strategy.RunIssue::MissingOutput)
+                }
+              }
+              Ok(())
+            },
+          },
+        ),
+      )
+    },
+  ).unwrap()
+  @strategy.start_captured_managed_execution(f.run.unwrap(), task, selected).unwrap().1
+}
+
+///|
+#export_name("strategyFixtureManagedExecutionSettle")
+pub fn strategy_fixture_managed_execution_settle(
+  f : StrategyFixture,
+  execution : @strategy.TaskExecution,
+) -> Bool {
+  @strategy.settle_task_execution(f.run.unwrap(), execution, true) is Ok(_)
+}
+
+///|
+#export_name("strategyFixtureManagedExecutionLegacyComplete")
+pub fn strategy_fixture_managed_execution_legacy_complete(
+  f : StrategyFixture,
+  execution : @strategy.TaskExecution,
+) -> Bool {
+  @strategy.complete_task_execution(f.run.unwrap(), execution) is Ok(_)
+}
+
+///|
+#export_name("strategyFixtureManagedExecutionClose")
+pub fn strategy_fixture_managed_execution_close(
+  f : StrategyFixture,
+  execution : @strategy.TaskExecution,
+) -> Unit {
+  @strategy.close_task_execution(f.run.unwrap(), execution)
+}
+
+///|
 #export_name("strategyFixtureManagedRequestQuerySql")
 pub fn strategy_fixture_managed_request_query_sql(
   query : @duckdb.ManagedFixedQuery[Int],

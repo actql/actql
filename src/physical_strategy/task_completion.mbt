@@ -134,8 +134,7 @@ pub fn[T] complete_managed_task_execution(
     execution.resident is Some(_) {
     return Err(Physical(InvalidCharge))
   }
-  let hooks = execution.hooks.unwrap()
-  match (hooks.ready)() {
+  match task_execution_ready(execution) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

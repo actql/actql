@@ -295,6 +295,14 @@ pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 
 pub fn strategy_fixture_managed_candidate_accepts(StrategyFixture, @connector_sdk.ManagedFixedComputeRequest[Int], @connector_sdk.ManagedFixedComputeRequest[Int]) -> Bool
 
+pub fn strategy_fixture_managed_execution_close(StrategyFixture, @physical_strategy.TaskExecution) -> Unit
+
+pub fn strategy_fixture_managed_execution_legacy_complete(StrategyFixture, @physical_strategy.TaskExecution) -> Bool
+
+pub fn strategy_fixture_managed_execution_settle(StrategyFixture, @physical_strategy.TaskExecution) -> Bool
+
+pub fn strategy_fixture_managed_execution_start(StrategyFixture, Int, @connector_sdk.ManagedFixedComputeRequest[Int]) -> @physical_strategy.TaskExecution
+
 pub fn strategy_fixture_managed_input(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn strategy_fixture_managed_output_matches(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool

@@ -186,6 +186,8 @@ pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstima
 
 pub fn[T] start_captured_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue, TaskPublication], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
+pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
+
 pub fn stop_captured_dag(CapturedDAG) -> Unit
 
 pub fn strategy_assessment(StrategyRevision) -> StrategyAssessment

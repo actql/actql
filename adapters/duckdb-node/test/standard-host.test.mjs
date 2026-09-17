@@ -1025,6 +1025,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       fixture.strategyFixtureManagedRequestQuerySql(managedQuery);
     assert.match(managedCreateSql, /CREATE TEMP TABLE "managed_input"/);
     assert.match(managedQuerySql, /FROM "main"\."managed_input"/);
+    const managedExecution = fixture.strategyFixtureManagedExecutionStart(
+      managedLedgerFixture, 2, managedRequest);
+    assert.equal(fixture.strategyFixtureManagedExecutionSettle(
+      managedLedgerFixture, managedExecution), true);
+    assert.equal(fixture.strategyFixtureManagedExecutionLegacyComplete(
+      managedLedgerFixture, managedExecution), false,
+    'a managed execution cannot be completed through the legacy finisher');
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
@@ -1037,6 +1044,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'a prepared use-site is not permission to read revoked material');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), false,
       'revoked material cannot satisfy another managed request');
+    fixture.strategyFixtureManagedExecutionClose(
+      managedLedgerFixture, managedExecution);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
       'revocation releases the index but graph ownership keeps the body holding');
     bridge.computeHostClose(managedLedgerRun);
