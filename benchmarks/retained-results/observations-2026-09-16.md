@@ -1163,3 +1163,32 @@ fixtures and final equivalent-obligation admission remain open. The observed
 565.673 ms retained and 27.539 ms independent execution intervals are recorded
 only to identify this run; no ratio or performance conclusion is drawn from a
 single order-specific pair.
+
+### Fixed-revision acquisition metadata parity follow-up
+
+The clean `31eb70c82a2ccb49b9d66c71948aa9434595d4e1` revision repeated the
+small matched case with the independent leg first. Logical accounting remained
+exactly equal and the pair now also reports
+`acquisitionMetadataEquivalent: true`.
+
+Both legs independently produced the same semantic acquisition metadata:
+two receipt roles and three evidence roles, source and output contract CIDs,
+parameter and resolved-request CIDs, scan scope, snapshot and retention state,
+and the exact validation/native row CIDs, row counts, field order and canonical
+row-array byte counts. The validation receipt covered 100 rows, two fields and
+2,281 bytes; the native result covered two projected rows, one field and 21
+bytes.
+
+The comparison does not replace per-execution authority with a common token.
+The retained leg verifies that every receipt and record uses its exact issuer,
+attempt, read view and requirement, then verifies the receipt-to-record and
+record-to-observation CID references before projection. The independent leg
+uses its actual validation and capture outputs. The two projections are equal
+only after those separate checks succeed. A changed coverage CID is rejected
+rather than normalized away.
+
+This closes acquisition evidence metadata parity for the registered comparator
+shape, not complete failure or accounting equivalence. The pair remains
+`diagnostic-completed` and not acceptance eligible. Complete expression-demand
+and guard failure parity, transfer/work accounting equivalence, complete
+negative fixtures and final equivalent-obligation admission remain open.
