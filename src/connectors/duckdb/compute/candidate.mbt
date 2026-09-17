@@ -7,6 +7,39 @@ pub(all) enum DuckDBComputeCandidateIssue {
 }
 
 ///|
+/// Managed-profile unary native candidate. It retains the common fixed
+/// capacity and cost comparison but never constructs a legacy ProducerRead or
+/// logical content receipt.
+pub fn[T] duckdb_managed_fixed_compute_candidate(
+  registration : @connector.CapabilityRegistration,
+  request : @connector.ManagedFixedComputeRequest[T],
+  table : String,
+  compilation : @duckdb.NativeQueryLimits,
+  estimates : Array[@cost.SerialEstimateLine],
+  quantities : @connector.QueryQuantities,
+  max_entries : Int,
+) -> Result[
+  @connector.PreparedManagedCompute[T, @duckdb.ManagedFixedQuery[T]],
+  DuckDBComputeCandidateIssue,
+] {
+  if @connector.managed_fixed_compute_request_capacity(request).common_fragment
+    is Some(_) {
+    return Err(Request(CommonFragmentUnsupported))
+  }
+  if @connector.managed_fixed_compute_request_input_count(request) != 1 {
+    return Err(Request(UnsupportedInputShape))
+  }
+  let compiled = match
+    @duckdb.prepare_managed_fixed_request_query(request, table, compilation) {
+    Err(issue) => return Err(Compilation(issue))
+    Ok(value) => value
+  }
+  @connector.bind_managed_compute_candidate(
+    registration, request, compiled, 8, estimates, quantities, max_entries,
+  ).map_err(issue => Request(issue))
+}
+
+///|
 /// Serial inventory: session/table setup, import transfer, import conversion,
 /// native computation, result transfer, result conversion, retention, cleanup.
 /// Compilation/selection is not native completion or a consumer-budget waiver.

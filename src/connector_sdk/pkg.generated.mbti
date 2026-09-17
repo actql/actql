@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
+pub fn[T, P] bind_managed_compute_candidate(CapabilityRegistration, ManagedFixedComputeRequest[T], P, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedManagedCompute[T, P], FixedComputeIssue]
+
 pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
 
 pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
@@ -29,6 +31,8 @@ pub fn capability_registration_available(CapabilityRegistration) -> Bool
 pub fn capability_registration_matches(CapabilityRegistration, CapabilityRegistry) -> Bool
 
 pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
+
+pub fn[T] choose_managed_fixed_compute_candidate(CapabilityRegistry, ManagedFixedComputeRequest[T], Array[ManagedFixedComputeCandidate[T]], Array[Int]?, Int) -> Result[ManagedFixedComputeSelection[T], FixedComputeIssue]
 
 pub fn close_capability_registry(CapabilityRegistry) -> Unit
 
@@ -66,6 +70,18 @@ pub fn[A, C] installed_bundle_registry(InstalledBundles[A, C]) -> CapabilityRegi
 
 pub fn[A, C] installed_compute_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[C]
 
+pub fn[T] managed_fixed_compute_candidate_duration(ManagedFixedComputeCandidate[T]) -> @physical_cost.DurationEstimate
+
+pub fn[T] managed_fixed_compute_candidate_quantities(ManagedFixedComputeCandidate[T]) -> QueryQuantities
+
+pub fn[T] managed_fixed_compute_candidate_registration(ManagedFixedComputeCandidate[T]) -> CapabilityRegistration
+
+pub fn[T] managed_fixed_compute_candidate_request(ManagedFixedComputeCandidate[T]) -> ManagedFixedComputeRequest[T]
+
+pub fn[T, P] managed_fixed_compute_choice_payload(ManagedFixedComputeChoice[T], PreparedManagedCompute[T, P]) -> P?
+
+pub fn[T] managed_fixed_compute_choice_reason(ManagedFixedComputeChoice[T]) -> @physical_cost.CostChoice
+
 pub fn[T] managed_fixed_compute_request_capacity(ManagedFixedComputeRequest[T]) -> FixedComputeCapacity
 
 pub fn[T] managed_fixed_compute_request_input(ManagedFixedComputeRequest[T], Int) -> @execution_relation.ManagedProducerRead[T]?
@@ -95,6 +111,8 @@ pub fn[T, E, P] prepared_execution_capacity(PreparedExecution[T, E, P]) -> Execu
 pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P], Int) -> Int64?
 
 pub fn[T, E, P] prepared_execution_retained_bytes(PreparedExecution[T, E, P]) -> Result[Int64, ExecutionPreparationIssue[E]]
+
+pub fn[T, P] prepared_managed_compute_candidate(PreparedManagedCompute[T, P]) -> ManagedFixedComputeCandidate[T]
 
 pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
 
@@ -214,11 +232,23 @@ pub enum FixedComputeSelection {
 
 type InstalledBundles[A, C]
 
+type ManagedFixedComputeCandidate[T]
+
+type ManagedFixedComputeChoice[T]
+
 type ManagedFixedComputeRequest[T]
+
+pub enum ManagedFixedComputeSelection[T] {
+  Proposed(ManagedFixedComputeChoice[T])
+  Deferred
+  NoCandidates
+}
 
 type PreparedCompute[T]
 
 type PreparedExecution[T, E, P]
+
+type PreparedManagedCompute[T, P]
 
 pub(all) struct QueryQuantities {
   transfer_bytes : Int64?

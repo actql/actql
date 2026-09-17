@@ -63,9 +63,13 @@ The bound inputs enter connector selection through
 capacity contract, exact receiver and ordered input ports while remaining
 separate from the legacy CID-bearing `FixedComputeRequest`. It rejects a logical
 row ceiling below the retained input count and rejects unavailable material.
-The DuckDB adapter can compile its existing checked FilterSelect query directly
-from this request; it does not manufacture a legacy request or decode the input
-while compiling.
+`ManagedFixedComputeCandidate<T>` applies the same installed capability,
+quantity and serial-cost checks to this request. Candidate comparison remains
+pure preparation, not a pin or execution authority. The DuckDB implementation
+compiles its existing checked FilterSelect query as the candidate payload; it
+does not manufacture a legacy request or decode the input while compiling. The
+real regression selects that candidate through the registered DuckDB
+capability before inspecting its SQL.
 
 ## Real strategy regression
 
@@ -89,11 +93,12 @@ mode and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The graph, common connector request and DuckDB compiler can now prepare the next
-managed query, but the standard strategy dispatcher still constructs and
-selects candidates through legacy `ProducerRead`. Production dispatch must
-select this exact managed request, acquire its Store pin/authority/capacity,
-execute it and publish the second task through the same graph path. Mixed
+The graph, common connector request/cost selection and DuckDB compiler can now
+prepare the next managed query, but the standard strategy dispatcher still
+constructs its installed task through legacy `ProducerRead`. Production
+dispatch must stage the selected managed payload, acquire its Store
+pin/authority/capacity, execute it and publish the second task through the same
+graph path. Mixed
 acquisition/managed input families,
 resident-table publication, Local execution, named Result bridging and the full
 27-case/1 GiB measurements remain open.

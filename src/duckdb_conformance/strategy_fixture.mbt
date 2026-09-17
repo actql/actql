@@ -576,19 +576,65 @@ pub fn strategy_fixture_managed_request_accepts(
 ///|
 #export_name("strategyFixtureManagedRequestQuery")
 pub fn strategy_fixture_managed_request_query(
+  f : StrategyFixture,
   request : @connector.ManagedFixedComputeRequest[Int],
 ) -> @duckdb.ManagedFixedQuery[Int] {
-  @duckdb.prepare_managed_fixed_request_query(request, "managed_input", {
-    max_entries: 100,
-    max_sql_bytes: 10000,
-    expressions: {
-      max_nodes: 1000,
-      max_work: 10000,
-      max_depth: 100,
-      max_literal_nodes: 1000,
-      max_literal_text_bytes: 10000,
+  let prepared = strategy_fixture_managed_candidate(f, request)
+  guard @connector.choose_managed_fixed_compute_candidate(
+      f.registry,
+      request,
+      [@connector.prepared_managed_compute_candidate(prepared)],
+      None,
+      100,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("managed choice")
+  }
+  @connector.managed_fixed_compute_choice_payload(choice, prepared).unwrap()
+}
+
+///|
+fn strategy_fixture_managed_candidate(
+  f : StrategyFixture,
+  request : @connector.ManagedFixedComputeRequest[Int],
+) -> @connector.PreparedManagedCompute[Int, @duckdb.ManagedFixedQuery[Int]] {
+  @duckdb_compute.duckdb_managed_fixed_compute_candidate(
+    @connector.capability_registration_at(f.registry, 1).unwrap(),
+    request,
+    "managed_input",
+    {
+      max_entries: 100,
+      max_sql_bytes: 10000,
+      expressions: {
+        max_nodes: 1000,
+        max_work: 10000,
+        max_depth: 100,
+        max_literal_nodes: 1000,
+        max_literal_text_bytes: 10000,
+      },
     },
-  }).unwrap()
+    [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
+    { transfer_bytes: None, retained_bytes: None, money_units: None, },
+    100,
+  ).unwrap()
+}
+
+///|
+#export_name("strategyFixtureManagedCandidateAccepts")
+pub fn strategy_fixture_managed_candidate_accepts(
+  f : StrategyFixture,
+  candidate_request : @connector.ManagedFixedComputeRequest[Int],
+  selected_request : @connector.ManagedFixedComputeRequest[Int],
+) -> Bool {
+  let prepared = strategy_fixture_managed_candidate(f, candidate_request)
+  @connector.choose_managed_fixed_compute_candidate(
+    f.registry,
+    selected_request,
+    [@connector.prepared_managed_compute_candidate(prepared)],
+    None,
+    100,
+  )
+  is Ok(Proposed(_))
 }
 
 ///|

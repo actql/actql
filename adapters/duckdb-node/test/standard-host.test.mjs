@@ -1012,7 +1012,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedRequest = fixture.strategyFixtureManagedRequest(
       managedLedgerFixture, 2, managedCompleted);
     assert.equal(fixture.strategyFixtureManagedRequestInputCount(managedRequest), 1);
-    const managedQuery = fixture.strategyFixtureManagedRequestQuery(managedRequest);
+    const otherManagedRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 2, managedCompleted);
+    assert.equal(fixture.strategyFixtureManagedCandidateAccepts(
+      managedLedgerFixture, managedRequest, managedRequest), true);
+    assert.equal(fixture.strategyFixtureManagedCandidateAccepts(
+      managedLedgerFixture, managedRequest, otherManagedRequest), false,
+    'a candidate for another use-site request cannot enter comparison');
+    const managedQuery = fixture.strategyFixtureManagedRequestQuery(
+      managedLedgerFixture, managedRequest);
     const [managedCreateSql, managedQuerySql] =
       fixture.strategyFixtureManagedRequestQuerySql(managedQuery);
     assert.match(managedCreateSql, /CREATE TEMP TABLE "managed_input"/);
