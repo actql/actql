@@ -16,19 +16,31 @@ test('retention reserves metadata and retains uncertain allocations until confir
   const owner = checked(moon.obligationRetention(100n));
   const first = checked(moon.obligationReserveOutput(owner, 80, 10));
   assert.throws(() => checked(moon.obligationReserveOutput(owner, 10, 1)));
-  checked(moon.obligationHoldOutput(first, 20));
-  assert.equal(moon.obligationRetentionUsage(owner).held_bytes, 30n);
-  assert.throws(() => checked(moon.obligationHoldOutput(first, 20)));
-  assert.throws(() => checked(moon.obligationReserveOutput(owner, 61, 10)));
-  checked(moon.obligationReserveOutput(owner, 60, 10));
+  checked(moon.obligationHoldOutput(first, 20, 5));
+  assert.equal(moon.obligationRetentionUsage(owner).held_bytes, 25n);
+  assert.throws(() => checked(moon.obligationHoldOutput(first, 20, 5)));
+  assert.throws(() => checked(moon.obligationReserveOutput(owner, 66, 10)));
+  const second = checked(moon.obligationReserveOutput(owner, 60, 10));
+  assert.throws(() => checked(moon.obligationHoldOutput(second, 20, 11)));
   const pending = moon.obligationRetentionUsage(owner);
-  assert.equal(pending.held_bytes, 30n);
+  assert.equal(pending.held_bytes, 25n);
   assert.equal(pending.reserved_retention_bytes, 70n);
   checked(moon.obligationRetentionReleased(owner));
   assert.equal(moon.obligationRetentionUsage(owner).held_bytes, 0n);
   assert.equal(moon.obligationRetentionUsage(owner).reserved_retention_bytes, 0n);
   assert.throws(() => checked(moon.obligationRetentionReleased(owner)));
   assert.throws(() => checked(moon.obligationReserveOutput(owner, 1, 0)));
+});
+
+test('execution admission combines database and simultaneous scratch', () => {
+  const owner = checked(moon.obligationExecution(100n, 60n, 40n));
+  assert.equal(moon.obligationExecutionUsage(owner).reserved_execution_bytes,
+    100n);
+  assert.throws(() => checked(moon.obligationExecution(100n, 60n, 41n)));
+  checked(moon.obligationExecutionReleased(owner));
+  assert.equal(moon.obligationExecutionUsage(owner).reserved_execution_bytes,
+    0n);
+  assert.throws(() => checked(moon.obligationExecutionReleased(owner)));
 });
 function begin({work = 1000, ceiling = 1000, retain = true, identity = true, budget, records = false,
   names = ['z', 'a'], kinds = [0, 1], nullable = [false, true]} = {}) {

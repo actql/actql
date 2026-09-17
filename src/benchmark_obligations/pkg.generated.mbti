@@ -18,9 +18,15 @@ pub fn obligation_comparison(ObligationStream, String, String, Int, @execution_r
 
 pub fn obligation_comparison_finish(ObligationComparison, Int) -> @adapter.NativeDemandUsage raise ObligationFailure
 
+pub fn obligation_execution(Int64, Int64, Int64) -> ObligationExecution raise ExecutionCapacityFailure
+
+pub fn obligation_execution_released(ObligationExecution) -> Unit raise ExecutionCapacityFailure
+
+pub fn obligation_execution_usage(ObligationExecution) -> @physical_resources.LedgerUsage
+
 pub fn obligation_finish(ObligationStream) -> (String, String?, Int, Int, Int, GuardSummary) raise ObligationFailure
 
-pub fn obligation_hold_output(ObligationOutputReservation, Int) -> Unit raise RetentionFailure
+pub fn obligation_hold_output(ObligationOutputReservation, Int, Int) -> Unit raise RetentionFailure
 
 pub fn obligation_reserve_output(ObligationRetention, Int, Int) -> ObligationOutputReservation raise RetentionFailure
 
@@ -33,6 +39,8 @@ pub fn obligation_retention_usage(ObligationRetention) -> @physical_resources.Le
 pub fn obligation_reuse_measurement(GuardSummary, GuardBudget) -> Bool
 
 // Errors
+type ExecutionCapacityFailure
+
 type ObligationFailure
 
 type RetentionFailure
@@ -43,6 +51,8 @@ type GuardBudget
 type GuardSummary
 
 type ObligationComparison
+
+type ObligationExecution
 
 type ObligationOutputReservation
 

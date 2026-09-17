@@ -68,15 +68,20 @@ pub fn obligation_reserve_output(
 pub fn obligation_hold_output(
   output : ObligationOutputReservation,
   file_bytes : Int,
+  metadata_bytes : Int,
 ) -> Unit raise RetentionFailure {
-  if output.owner.closed || output.holding is Some(_) || file_bytes < 0 {
+  if output.owner.closed ||
+    output.holding is Some(_) ||
+    file_bytes < 0 ||
+    metadata_bytes < 0 ||
+    metadata_bytes > output.metadata {
     raise State
   }
   match
     @resources.retain_allocation(
       output.owner.ledger,
       output.reservation,
-      file_bytes.to_int64() + output.metadata.to_int64(),
+      file_bytes.to_int64() + metadata_bytes.to_int64(),
     ) {
     Ok(holding) => output.holding = Some(holding)
     Err(issue) => raise Capacity(issue)

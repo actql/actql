@@ -8,6 +8,7 @@ import {assertBoundedVectorRuntime, boundedVectorItem} from '../bounded-vector.m
 import {checked} from '../runtime-result.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {settleObligationRun} from './obligation-settlement.mjs';
+import {equivalentExecutionCapacity} from './equivalent-capacity.mjs';
 
 const runtime = new URL('../../../_build/js/release/build/benchmark_obligations/benchmark_obligations.js',
   import.meta.url);
@@ -18,6 +19,12 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const started = performance.now();
   const moon = await import(runtime.href);
   const retention = checked(moon.obligationRetention(1073741824n));
+  const executionCapacity = equivalentExecutionCapacity(f);
+  const execution = checked(moon.obligationExecution(
+    executionCapacity.limitBytes,
+    executionCapacity.databaseBytes,
+    executionCapacity.scratchBytes,
+  ));
   const accounting = {
     nativeSemanticRows: 0,
     nativeSemanticCells: 0,
@@ -38,6 +45,10 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   };
   const ledgerReport = () => Object.fromEntries(Object.entries(moon.obligationRetentionUsage(retention))
     .map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value]));
+  const executionLedgerReport = () => Object.fromEntries(Object.entries(
+    moon.obligationExecutionUsage(execution),
+  ).map(([key, value]) => [key,
+    typeof value === 'bigint' ? value.toString() : value]));
   assertBoundedVectorRuntime();
   const signal = suppliedSignal ? AbortSignal.any([suppliedSignal, AbortSignal.timeout(l.timeoutMs)])
     : AbortSignal.timeout(l.timeoutMs);
@@ -59,7 +70,16 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const kind = name => name === 'payload' && f.layout === 'text-1024' ? 1 : 0;
   const quote = name => '"' + name.replaceAll('"', '""') + '"';
   const list = names => names.map(quote).join(', ');
-  const exec = async sql => { check(); await connection.run(sql); check(); };
+  const boundedSql = sql => {
+    assert(Buffer.byteLength(sql) <= executionCapacity.maxSqlBytes,
+      'equivalent SQL exceeds admitted scratch');
+    return sql;
+  };
+  const exec = async sql => {
+    check();
+    await connection.run(boundedSql(sql));
+    check();
+  };
   async function scan(sql, names, guardBudget, {retain = false, identity = true, records = false,
     maxRows = l.intermediateRows, comparisons = [], outputReservation} = {}) {
     check();
@@ -77,7 +97,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     if (retain) assert(outputReservation, 'output capacity must precede native execution');
     const writer = retain ? store.reserve(l.representationBytes) : undefined;
     if (writer) await writer.start();
-    const result = await connection.stream(sql);
+    const result = await connection.stream(boundedSql(sql));
     assert.deepEqual(result.columnNames(), names);
     const types = names.map((name, index) => {
       const type = physicalType(result.columnType(index));
@@ -90,7 +110,8 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       if (!chunk || !chunk.rowCount) break;
       assert(chunk.rowCount <= 2048, 'unbounded native chunk');
       // Bounds are per chunk, not a full-result JS object representation.
-      const count = Math.max(1, Math.min(128, Math.floor(l.batchBytes /
+      const count = Math.max(1, Math.min(executionCapacity.maxChunkRows,
+        Math.floor(l.batchBytes /
         (names.length * (f.layout === 'text-1024' ? 1100 : 40) + 64))));
       for (let start = 0; start < chunk.rowCount; start += count) {
         check();
@@ -101,6 +122,8 @@ export async function runEquivalentObligations(fixture, database, directory, sup
             boundedVectorItem(vector, row, types[column], l.maxValueBytes), types[column]));
         });
         const transportText = JSON.stringify(columns);
+        assert(Buffer.byteLength(transportText) <= l.batchBytes,
+          'equivalent transport exceeds admitted scratch');
         accounting.nativeSemanticRows += rows;
         accounting.nativeSemanticCells += rows * names.length;
         accounting.nativeSemanticBytes += Buffer.byteLength(transportText);
@@ -121,7 +144,6 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     if (retain) accounting.retainedStoreBytes += receipt._2;
     if (writer && receipt._0) await writer.append(receipt._0);
     const body = writer ? await writer.seal({cid: receipt._1, bytes: receipt._2}) : undefined;
-    if (body) checked(moon.obligationHoldOutput(outputReservation, receipt._2));
     return Object.freeze({run, cid: receipt._1, bytes: receipt._2, rows: receipt._4,
       measurement: receipt._5, body, chunks, demands});
   }
@@ -170,17 +192,44 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       accounting.comparisonBytes += demand.physical_bytes;
       accounting.comparisonNodes += demand.physical_nodes;
     }
+    const comparisonDemand = demand && Object.fromEntries(
+      Object.entries(demand).map(([key, value]) =>
+        [key, typeof value === 'bigint' ? value.toString() : value]),
+    );
+    const metadata = JSON.stringify({
+      version: 'actql-benchmark-retained-completion/0.1',
+      stage: name,
+      inputs,
+      fields: names,
+      rows: output.rows,
+      rows_cid: output.cid,
+      bytes: output.bytes,
+      measurement: output.measurement,
+      comparison_demand: comparisonDemand ?? null,
+    });
+    const metadataActualBytes = Buffer.byteLength(metadata);
+    assert(metadataActualBytes <= metadataBytes,
+      'completion metadata exceeds pre-admitted allowance');
+    checked(moon.obligationHoldOutput(
+      outputReservation,
+      output.bytes,
+      metadataActualBytes,
+    ));
     check();
-    completed.set(name, Object.freeze({...output, names: Object.freeze([...names])}));
+    completed.set(name, Object.freeze({
+      ...output,
+      names: Object.freeze([...names]),
+      metadata,
+    }));
     stages.push({stage: name, rows: output.rows, cid: output.cid, bytes: output.bytes,
-      milliseconds: performance.now() - before, parameterInsertRows: 0, reusedMeasurements, metadataBytes,
-      comparisonDemand: demand && Object.fromEntries(Object.entries(demand).map(([key, value]) =>
-        [key, typeof value === 'bigint' ? value.toString() : value]))});
+      milliseconds: performance.now() - before, parameterInsertRows: 0,
+      reusedMeasurements, metadataAllowanceBytes: metadataBytes,
+      metadataActualBytes, comparisonDemand});
   }
   try {
     check();
     instance = await DuckDBInstance.create(database, {access_mode: 'READ_ONLY', threads: '1',
-      memory_limit: `${l.executionMemoryBytes}B`, max_temp_directory_size: '0B',
+      memory_limit: `${executionCapacity.databaseBytes}B`, max_temp_directory_size: '0B',
       preserve_insertion_order: 'true', enable_external_access: 'false',
       autoinstall_known_extensions: 'false', autoload_known_extensions: 'false'});
     connection = await instance.connect();
@@ -219,6 +268,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       warmMs,
       validationRows: validation.rows, validationCid: validation.cid, stages,
       holding: store.status(), retentionLedger: ledgerReport(),
+      executionLedger: executionLedgerReport(),
       accounting: Object.freeze({
         ...accounting,
         logicalGuardWork: accounting.measuredGuardWork +
@@ -237,14 +287,21 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       }),
       capacity: {
         independentRetention: {limitBytes: 1073741824, fileReservedBytes: store.status().reservedBytes,
-          metadataAllowanceBytes: stages.reduce((sum, stage) => sum + stage.metadataBytes, 0),
-          scope: 'file bytes plus declared bounded metadata allowance; not measured heap'},
-        execution: {limitBytes: l.executionMemoryBytes, configuredEngineBytes: l.executionMemoryBytes,
-          scope: 'DB copies belong to execution capacity; JS/semantic scratch not yet reserved'},
-        conformance: 'incomplete',
+          metadataAllowanceBytes: stages.reduce((sum, stage) =>
+            sum + stage.metadataAllowanceBytes, 0),
+          metadataActualBytes: stages.reduce((sum, stage) =>
+            sum + stage.metadataActualBytes, 0),
+          scope: 'file bytes plus actual serialized completion metadata'},
+        execution: {
+          limitBytes: Number(executionCapacity.limitBytes),
+          configuredEngineBytes: Number(executionCapacity.databaseBytes),
+          scratchBytes: Number(executionCapacity.scratchBytes),
+          admittedBytes: Number(executionCapacity.admittedBytes),
+          scope: 'one DB reservation plus simultaneous bounded transport, semantic, container, and SQL scratch',
+        },
+        conformance: 'registered-fixture-bounded',
       },
       missing: ['matched process/cold timing boundaries', 'complete expression-demand/guard failure parity',
-        'metadata allowance validation and shared DB-plus-scratch execution admission',
         'acquisition evidence metadata parity',
         'transfer/work accounting equivalence', 'complete negative conformance fixtures']};
   } catch (error) { primary = error; }
@@ -254,7 +311,11 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     await settleObligationRun(primary, [
       ['rollback', async () => { if (transaction) await connection.run('ROLLBACK'); }],
       ['connection-close', () => connection?.closeSync()],
-      ['instance-close', () => instance?.closeSync()],
+      ['instance-close', () => {
+        instance?.closeSync();
+        checked(moon.obligationExecutionReleased(execution));
+        if (report) report.releasedExecutionLedger = executionLedgerReport();
+      }],
       ['store-revoke', () => store.close()],
       ['store-cleanup', async () => {
         await store.cleanup();

@@ -46,8 +46,16 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert(result.missing.length > 0);
       assert.equal(result.capacity.independentRetention.limitBytes, 1073741824);
       assert.equal(result.capacity.independentRetention.fileReservedBytes, result.holding.reservedBytes);
+      assert(result.capacity.independentRetention.metadataActualBytes <=
+        result.capacity.independentRetention.metadataAllowanceBytes);
       assert.equal(result.capacity.execution.limitBytes, fixture.limits.executionMemoryBytes);
-      assert.equal(result.capacity.conformance, 'incomplete');
+      assert.equal(result.capacity.execution.admittedBytes,
+        result.capacity.execution.configuredEngineBytes +
+        result.capacity.execution.scratchBytes);
+      assert(result.capacity.execution.admittedBytes <=
+        result.capacity.execution.limitBytes);
+      assert.equal(result.capacity.conformance,
+        'registered-fixture-bounded');
       const captureColumns = workload === workloads[2]
         ? fixture.fields.length : 1;
       assert.equal(result.accounting.nativeSemanticRows,
@@ -73,10 +81,15 @@ test('independent assembly validates hashes and holds every named boundary witho
       assert.equal(result.accounting.logicalGuardNodes,
         result.accounting.measuredGuardNodes + result.accounting.reusedGuardNodes);
       assert(result.accounting.comparisonWork > 0);
-      assert.equal(BigInt(result.retentionLedger.held_bytes), BigInt(result.holding.reservedBytes) +
-        BigInt(result.capacity.independentRetention.metadataAllowanceBytes));
+      assert.equal(BigInt(result.retentionLedger.held_bytes),
+        BigInt(result.holding.reservedBytes) +
+        BigInt(result.capacity.independentRetention.metadataActualBytes));
+      assert.equal(BigInt(result.executionLedger.reserved_execution_bytes),
+        BigInt(result.capacity.execution.admittedBytes));
       assert.equal(result.releasedRetentionLedger.held_bytes, '0');
       assert.equal(result.releasedRetentionLedger.reserved_retention_bytes, '0');
+      assert.equal(result.releasedExecutionLedger.reserved_execution_bytes,
+        '0');
       assert((await readdir(directory)).every(name => /^source-\d-[a-z0-9-]+.duckdb$/.test(name)));
       if (i === 0 && layout === 'narrow') {
         // Row zero is excluded by the acquisition predicate, but full scan

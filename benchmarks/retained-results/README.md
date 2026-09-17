@@ -330,8 +330,11 @@ The independent-obligation report also exposes separate accounting domains for
 native-to-semantic JSON transport, JavaScript cell materialization, retained
 canonical bytes, identity preimages, measured and reused logical guards, and
 comparison measurement. These are observed quantities, not configured cost
-estimates. Product-side domain parity and pair admission are still required
-before the registered transfer/work obligation is closed.
+estimates. The pair runner now requires exact product-side logical guard and
+comparison parity. The independent leg also admits its database plus bounded
+scratch under the unchanged 4 GiB execution limit and settles actual retained
+completion-metadata bytes under the unchanged 1 GiB limit. Transfer/work parity
+and final pair admission are still required.
 
 `equivalent-failure-parity.test.mjs` exercises two cross-leg negative cases:
 an invalid source value excluded by the later predicate, and legal source

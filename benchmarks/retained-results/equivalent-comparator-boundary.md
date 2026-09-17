@@ -159,8 +159,6 @@ Still required before equivalence approval:
 
 - Comparator-equivalence admission before either matched timing is accepted.
 - Complete expression-demand/guard failure parity and its negative fixtures.
-- Validation of the declared completion-metadata allowance and shared
-  DB-plus-scratch execution admission, not only the Store or engine limit.
 - Acquisition evidence metadata construction/validation parity.
 - Transfer and logical-work accounting equivalence.
 - Broader ownership, cancellation at other execution phases and actual resource
@@ -257,21 +255,27 @@ The comparator must therefore account independently for:
   within it, and simultaneous semantic/transport scratch outside that resource.
   Table suballocations are not counted twice as independent holdings.
 
-The current prototype reports Store reservations and the configured DuckDB
-memory ceiling explicitly but marks resource conformance incomplete. An engine
-setting alone neither reserves the external JS/MoonBit scratch nor proves a
-whole-process RSS bound.
+The independent assembly now admits one combined execution allocation before it
+opens DuckDB. As in the registered managed example, half of the unchanged 4 GiB
+limit is assigned to the database. A finite allowance for simultaneous encoded,
+decoded and escaped frames, the delivered arrays, one 2048-row native vector,
+column containers and one bounded SQL string is reserved alongside it. Every SQL
+and transport frame is checked against the corresponding admitted bound. The
+execution reservation remains live until database close is confirmed.
 
 The independent assembly now uses the shared resource ledger to reserve file
 capacity plus a declared metadata allowance before each stage's native work.
-After sealing, it settles to actual file bytes plus that allowance. Pending
+Each completed stage constructs the concrete serialized completion metadata it
+retains. Settlement uses its actual UTF-8 byte count plus the sealed file bytes,
+and rejects a document larger than the pre-admitted allowance. Pending
 reservations and completed holdings are released only after confirmed Store
-cleanup; failed cleanup cannot produce a successful sample. Boundary tests cover
-metadata-induced capacity rejection, settlement, pending allocations and closed
-owners. This shares a resource primitive, not product Host/DAG orchestration.
+cleanup; failed cleanup cannot produce a successful sample.
 
-The metadata allowance (4096 bytes plus 256 bytes and eight times UTF-8 name
-length per column) is provisional, not measured heap or a proven bound. Its
-validation, and simultaneous DB-plus-scratch accounting, remain required before
-equivalent-obligation acceptance. This change does not establish performance
-acceptance or alter the registered capacity ceilings.
+Boundary tests cover insufficient combined execution capacity, metadata-induced
+retention rejection, actual-metadata settlement, pending allocations and closed
+owners. The nine small workload/layout combinations check that actual metadata
+fits its pre-admitted bound and that both execution and retention reservations
+return to zero. This closes the finite registered-fixture resource-admission
+item; it does not claim measured heap/RSS equivalence or performance acceptance,
+and it does not alter either registered capacity ceiling. The comparator shares
+resource primitives, not product Host/DAG orchestration.
