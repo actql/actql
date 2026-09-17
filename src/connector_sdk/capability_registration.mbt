@@ -36,8 +36,9 @@ struct CapabilityRegistration {
 }
 
 ///|
-/// Pure, bounded Host setup. Entries and descriptions are snapshotted; registration
-/// order and diagnostic names are not canonical Plan or acquisition identities.
+/// Pure, bounded Host setup. Entries and descriptions are snapshotted. The name
+/// is the Host-assigned stable registration key used to resolve equal physical
+/// costs; it is not a canonical Plan, value, or acquisition identity.
 pub fn prepare_capability_registry(
   descriptions : Array[CapabilityDescription],
   max_entries : Int,
@@ -93,6 +94,15 @@ pub fn capability_description(
   value : CapabilityRegistration,
 ) -> CapabilityDescription {
   value.description
+}
+
+///|
+/// Stable Host-assigned key for registration-order-independent physical choice.
+/// It never grants authority and must not be used as a semantic or content ID.
+pub fn capability_registration_selection_key(
+  value : CapabilityRegistration,
+) -> String {
+  value.description.name
 }
 
 ///|

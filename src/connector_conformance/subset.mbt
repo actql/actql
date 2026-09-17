@@ -48,6 +48,12 @@ pub fn configure_subset(
           @connector.capability_registration_at(registry, 0).unwrap(),
           {
             sequences,
+            managed_capacity: {
+              contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+              max_rows: 100,
+              max_value_bytes: 10000,
+              common_fragment: None,
+            },
             execution: {
               rows: {
                 max_rows: 100,
@@ -105,6 +111,28 @@ pub fn configure_subset(
     },
   ).unwrap()
   if mode != 1 {
+    @local_driver.configure_local_retained_inputs(
+      @builtin.configured_local_module(modules).unwrap(),
+      {
+        max_rows: 100,
+        values,
+        wire: {
+          max_columns: 100,
+          max_order_work: 10000,
+          max_bytes: 10000,
+          max_nodes: 10000,
+          max_depth: 64,
+        },
+        row: {
+          max_bytes: 10000,
+          max_nodes: 10000,
+          max_depth: 64,
+          max_text_bytes: 10000,
+        },
+        max_batch_bytes: 10000,
+      },
+      Some(1L),
+    ).unwrap()
     let schedule = @cost.prepare_rate_schedule(
       @builtin.local_estimate_work_slots(),
       [

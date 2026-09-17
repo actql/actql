@@ -33,6 +33,10 @@ pub(all) enum LocalDispatchIssue {
   Dispatch(@host.DispatchIssue)
   Execution(@strategy.RunIssue)
   Search(@strategy.SearchIssue)
+  ManagedValues(@execution.ManagedOutputValueIssue)
+  ManagedCopy(@execution.ManagedIndependentOutputIssue)
+  ManagedRetention(@execution.ManagedOutputRetentionIssue)
+  ManagedCompletion(@execution.TrustedOutputIssue)
 }
 
 ///|
@@ -44,6 +48,7 @@ pub fn prepare_local_dispatch_module(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_work : Int,
+  managed_capacity? : @connector.FixedComputeCapacity,
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
   let graph = @strategy.captured_dag_graph(run)
@@ -65,6 +70,7 @@ pub fn prepare_local_dispatch_module(
       measurement,
       max_work,
       sequences.length(),
+      managed_capacity?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))

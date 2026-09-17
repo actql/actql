@@ -4,6 +4,7 @@ package "actql/actql/connectors_workers_async"
 import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/reference_compute/driver",
+  "actql/actql/execution_relation",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
 }
@@ -24,6 +25,8 @@ pub fn[E] configured_host_modules(ConfiguredComputeHost[E]) -> ConfiguredCompute
 pub fn[E] configured_host_runtime(ConfiguredComputeHost[E]) -> @physical_host.ComputeHost[Unit, E]
 
 pub fn[E] configured_reference_compute_module(ConfiguredComputeModules[E]) -> @driver.NumericComputeContribution?
+
+pub fn[E] dispatch_managed_reference_compute(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_relation.ManagedObligations, Int64) -> Result[@driver.NumericManagedDispatchConfiguration[Int], ConfiguredDispatchIssue[E]]
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

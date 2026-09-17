@@ -17,6 +17,64 @@ priv struct ProducerBindingIdentity {
 }
 
 ///|
+/// Host-owned occurrence of one checked root Result. The authored name is
+/// diagnostic; identity is the exact checked Program owner and ResultPort.
+/// Two aliases of the same port remain distinct publication occurrences.
+struct ManagedResultOccurrence {
+  identity : Ref[Unit]
+  owner : @lower.BoundPrepared
+  name : String
+  port : @results.ResultPort
+}
+
+///|
+pub(all) enum ManagedResultOccurrenceIssue {
+  EmptyName
+  ForeignOwner
+} derive(Eq, Debug)
+
+///|
+/// Bind a root export already admitted by checked Result wiring. Possession of
+/// a name alone cannot construct or recover an occurrence.
+pub fn bind_managed_result_occurrence(
+  owner : @lower.BoundPrepared,
+  name : String,
+  port : @results.ResultPort,
+) -> Result[ManagedResultOccurrence, ManagedResultOccurrenceIssue] {
+  if name.is_empty() {
+    return Err(EmptyName)
+  }
+  if !physical_equal(
+      @pipeline.producer_pipeline(@results.port_input(port)),
+      @lower.pipeline(@lower.bound_preparation(owner)),
+    ) {
+    return Err(ForeignOwner)
+  }
+  Ok({ identity: Ref(()), owner, name, port, })
+}
+
+///|
+pub fn managed_result_occurrence_owner(
+  occurrence : ManagedResultOccurrence,
+) -> @lower.BoundPrepared {
+  occurrence.owner
+}
+
+///|
+pub fn managed_result_occurrence_name(
+  occurrence : ManagedResultOccurrence,
+) -> String {
+  occurrence.name
+}
+
+///|
+pub fn managed_result_occurrence_port(
+  occurrence : ManagedResultOccurrence,
+) -> @results.ResultPort {
+  occurrence.port
+}
+
+///|
 pub(all) enum ProducerBindingIssue {
   NotProducedInput
   ProducerOwnerMismatch

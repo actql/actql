@@ -11,6 +11,10 @@ test('Node installation touches only the configured module subset', async () => 
   const moon = new Proxy({
     strategyHostModules: value => { assert.equal(value, setup); return ['local']; },
     strategyModule_local_Registration: value => { assert.equal(value, setup); return registration; },
+    strategyHostRegistrationSelectionKey: value => {
+      assert.equal(value, registration);
+      return 'local-test';
+    },
     strategyModule_local_Dispatch: (owner, value) => {
       assert.equal(owner, setup); assert.equal(value, task); executions++;
       return {inputs: [], execute() {}, settle() {}, complete() {}, close() {}};

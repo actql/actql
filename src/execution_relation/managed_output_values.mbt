@@ -133,10 +133,9 @@ pub fn append_managed_output_values(
     cancel_managed_output_values(stream) |> ignore
     return Err(Admission(CaptureLimit))
   }
-  if stream.row_measurements is Some(index) &&
-    width > index.max_cells - index.count {
-    cancel_managed_output_values(stream) |> ignore
-    return Err(MeasurementIndexLimit)
+  match managed_output_row_start(stream, width) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   stream.reading = true
   let result = append_admitted_buffer_cells(stream.buffer, width, read)
@@ -156,6 +155,108 @@ pub fn append_managed_output_values(
     }
     Ok(_) => ()
   }
+  managed_output_row_finish(stream)
+}
+
+///|
+/// Finite preservation rule for checked Local execution. Only a freshly
+/// admitted table under the exact output owner, target and schema may move into
+/// the managed result; numeric/row or foreign representations fall back to
+/// another candidate instead of manufacturing checked cells.
+pub fn append_completed_projection_managed_values(
+  stream : ManagedOutputValues,
+  output : CompletedOutput,
+  row : Int,
+) -> Result[Unit, ManagedOutputValueIssue] {
+  if !stream.open || stream.reading || !completed_output_available(output) {
+    return Err(Closed)
+  }
+  guard output.table is Some(AdmittedTable(table)) &&
+    table.rows.get(row) is Some(values) &&
+    physical_equal(table.owner, stream.owner) &&
+    output.target == stream.target &&
+    @lower.preparation_schema_at(
+      @lower.bound_preparation(stream.owner),
+      stream.target,
+    )
+    is Some(schema) else {
+    return Err(Admission(InvalidCheckedRow))
+  }
+  match managed_output_row_start(stream, values.length()) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match append_admitted_buffer_values(stream.buffer, schema, values) {
+    Err(issue) => {
+      cancel_managed_output_values(stream) |> ignore
+      Err(Admission(issue))
+    }
+    Ok(_) => managed_output_row_finish(stream)
+  }
+}
+
+///|
+/// Finite Local fallback for an owned checked layout that is not already an
+/// admitted-value table. The registered bridge emits and re-admits one bounded
+/// row using the existing canonical value encoder and schema admission. This
+/// establishes value evidence only; it does not establish a logical CID.
+pub fn append_completed_projection_managed_wire(
+  stream : ManagedOutputValues,
+  output : CompletedOutput,
+  row : Int,
+  wire : RowWireLimits,
+  decode : RetainedRowDecodeLimits,
+) -> Result[Unit, ManagedOutputValueIssue] {
+  if !stream.open ||
+    stream.reading ||
+    !completed_output_matches_port(output, stream.owner, stream.target) ||
+    completed_column_count(output) > wire.max_columns {
+    return Err(Admission(InvalidCheckedRow))
+  }
+  let text = match
+    completed_output_row_wire(
+      output,
+      row,
+      wire.max_bytes,
+      wire.max_nodes,
+      wire.max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Admission(InvalidCheckedRow))
+  }
+  let values = match decode_retained_row(stream.buffer.schema, text, decode) {
+    Ok(value) => value
+    Err(_) => return Err(Admission(InvalidCheckedRow))
+  }
+  append_managed_output_values(stream, values.length(), column => {
+    values.get(column)
+  })
+}
+
+///|
+fn managed_output_row_start(
+  stream : ManagedOutputValues,
+  width : Int,
+) -> Result[Unit, ManagedOutputValueIssue] {
+  if !stream.open || stream.reading {
+    return Err(Closed)
+  }
+  if stream.rows >= stream.max_rows {
+    cancel_managed_output_values(stream) |> ignore
+    return Err(Admission(CaptureLimit))
+  }
+  if stream.row_measurements is Some(index) &&
+    width > index.max_cells - index.count {
+    cancel_managed_output_values(stream) |> ignore
+    return Err(MeasurementIndexLimit)
+  }
+  Ok(())
+}
+
+///|
+fn managed_output_row_finish(
+  stream : ManagedOutputValues,
+) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open {
     stream.buffer.rows.clear()
     return Err(Closed)

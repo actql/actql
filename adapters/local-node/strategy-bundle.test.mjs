@@ -28,6 +28,7 @@ function installed(consume, completionFailure) {
   };
   const entry = localStrategyContribution({
     strategyModule_local_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyModule_local_Dispatch: (owner, work) => {
       assert.equal(owner, setup); assert.equal(work, task);
       events.push('reserved'); return ok(operations);

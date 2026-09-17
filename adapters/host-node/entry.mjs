@@ -24,9 +24,11 @@ export async function runCapturedStrategy(setup, options = {}, signal, observer)
     setup,
     identityPolicy.publication,
     identityPolicy.consumer,
-    identityPolicy.hostPolicy,
+    // Mandatory policy is owned by this installed Host entry, not by caller
+    // options or connector contributions. This initial Host registers none.
+    false,
   )) {
-    throw new TypeError('Managed identity policy is already sealed');
+    throw new TypeError('Managed identity policy is not admissible');
   }
   const core = runtimeCore(moon);
   const installed = await installStrategyContributions(moon, setup, checked, configurations, signal);

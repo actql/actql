@@ -4,7 +4,11 @@ import {randomUUID} from 'node:crypto';
 import {localStoreOwnsBody, localRetainedStoreAvailable} from './files.mjs';
 import {withVerifiedDelegatedFile} from './direct-file.mjs';
 import {snapshotPhysicalManifest} from './managed-manifest.mjs';
-const representations = new WeakMap();
+import {installManagedRepresentation, managedRepresentation} from
+  './managed-memory-representations.mjs';
+export {managedInputCodecContractCid, managedInputPhysicalManifestCid,
+  managedInputSupportsRows, registerManagedMemoryInput,
+  withManagedInputRows} from './managed-memory-representations.mjs';
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 const issue = code => Object.assign(new Error(code), {code});
 const member = (value, name) => {
@@ -85,9 +89,14 @@ function retainBorrowsUntilStopped(reason, borrows) {
 
 export function registerManagedInput(
   material, readable, store, body, codecContractCid, physicalManifest,
+  rowProvider,
 ) {
-  if (!material || typeof material !== 'object' || representations.has(material) ||
-      typeof readable !== 'function' || !localStoreOwnsBody(store, body) || !cid(codecContractCid)) {
+  if (!material || typeof material !== 'object' ||
+      managedRepresentation(material) !== undefined ||
+      typeof readable !== 'function' || !localStoreOwnsBody(store, body) ||
+      !cid(codecContractCid) || (rowProvider !== undefined &&
+        (rowProvider === null || typeof rowProvider !== 'object' ||
+          typeof rowProvider.read !== 'function'))) {
     throw issue('InvalidManagedInputRegistration');
   }
   let admitted;
@@ -107,24 +116,16 @@ export function registerManagedInput(
       chunks[0].row_count !== admitted.manifest.row_count) {
     throw issue('InvalidManagedInputRegistration');
   }
-  representations.set(material, Object.freeze({
+  installManagedRepresentation(material, {
     readable,
     store,
     body,
     codecContractCid,
     physicalManifest: admitted,
-  }));
+    rowProvider,
+    rowUse: withManagedFileInputRows,
+  });
   return admitted;
-}
-
-// Installed dispatcher lookup for the exact opaque material. This does not
-// expose a path, grant a read, or let a callback relabel a representation.
-export function managedInputCodecContractCid(material) {
-  return representations.get(material)?.codecContractCid;
-}
-
-export function managedInputPhysicalManifestCid(material) {
-  return representations.get(material)?.physicalManifest.cid;
 }
 
 // authorize and beforeRead belong to installed Host use/resource admission,
@@ -137,7 +138,7 @@ export async function withManagedInputFile(material, input, codecContractCid, au
   }
   const admit = () => {
     signal?.throwIfAborted();
-    const held = representations.get(material);
+    const held = managedRepresentation(material);
     if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
         !held.body.available() || !held.readable(input)) throw issue('ManagedInputUnavailable');
     if (!cid(codecContractCid) || held.codecContractCid !== codecContractCid) throw issue('UnsupportedManagedCodec');
@@ -191,7 +192,7 @@ export async function withManagedInputFiles(
       throw issue('InvalidManagedInputUse');
     }
     const {material, input, codecContractCid} = occurrence;
-    const held = representations.get(material);
+    const held = managedRepresentation(material);
     if (!held || input == null || !localRetainedStoreAvailable(held.store) ||
         !held.body.available() || !held.readable(input)) {
       throw issue('ManagedInputUnavailable');
@@ -283,4 +284,44 @@ export async function withManagedInputFiles(
     }
     throw retained ?? error;
   }
+}
+
+// File providers retain exact generations through withManagedInputFiles. This
+// grouped operation is installed in the portable registry; portable consumers
+// do not import this Node implementation merely to use a memory generation.
+async function withManagedFileInputRows(
+  occurrences, authorize, append, use, signal, beforeRead,
+) {
+  const providers = occurrences.map(occurrence =>
+    managedRepresentation(occurrence?.material)?.rowProvider);
+  const held = occurrences.map(occurrence =>
+    managedRepresentation(occurrence.material));
+  // The installed representation provider owns the codec needed to decode its
+  // exact physical generation. A representation-neutral row consumer must not
+  // know, or be able to relabel, that codec. Direct file consumers still pass
+  // and validate an explicit codec through withManagedInputFiles().
+  const physicalOccurrences = occurrences.map((occurrence, index) =>
+    Object.freeze({
+      material: occurrence.material,
+      input: occurrence.input,
+      codecContractCid: held[index].codecContractCid,
+    }));
+  return withManagedInputFiles(
+    physicalOccurrences,
+    authorize,
+    async files => {
+      for (let index = 0; index < files.length; index++) {
+        signal?.throwIfAborted();
+        await providers[index].read(
+          files[index],
+          row => append(index, row),
+          signal,
+        );
+      }
+      signal?.throwIfAborted();
+      return use();
+    },
+    signal,
+    beforeRead,
+  );
 }

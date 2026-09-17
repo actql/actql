@@ -7,4 +7,5 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_cost" @cost,
+  "actql/actql/connectors/local/driver" @local_driver,
 }

@@ -11,9 +11,10 @@ test "managed obligations distinguish retained sources from required identity" {
     owner,
     [
       {
-        domain: LogicalRelation,
-        subject: NamedResult,
-        need: EstablishedBy(BeforePublication),
+        domain: OrderedRows,
+        subject: TaskOutput,
+        occurrence: None,
+        need: EstablishedBy(BeforeCidOperation),
       },
     ],
     LogicalContentAddressed,
@@ -27,6 +28,23 @@ test "managed obligations distinguish retained sources from required identity" {
 ///|
 test "managed obligations reject incomplete and duplicate identity demands" {
   let owner = capture_fixture()
+  assert_true(
+    prepare_managed_obligations(
+      owner,
+      [
+        {
+          domain: LogicalRelation,
+          subject: NamedResult,
+          occurrence: None,
+          need: EstablishedBy(BeforePublication),
+        },
+      ],
+      LogicalContentAddressed,
+      MaterialBinding,
+      1,
+    )
+    is Err(InvalidResultOccurrence),
+  )
   assert_true(
     prepare_managed_obligations(
       owner,
@@ -44,11 +62,13 @@ test "managed obligations reject incomplete and duplicate identity demands" {
         {
           domain: OrderedRows,
           subject: TaskOutput,
+          occurrence: None,
           need: UnestablishedRetained,
         },
         {
           domain: OrderedRows,
           subject: TaskOutput,
+          occurrence: None,
           need: EstablishedBy(BeforeDiscard),
         },
       ],

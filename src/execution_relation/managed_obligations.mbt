@@ -55,6 +55,7 @@ pub(all) enum ManagedIdentityStatus {
 pub(all) struct ManagedIdentityRequirement {
   domain : ManagedIdentityDomain
   subject : ManagedIdentitySubject
+  occurrence : ManagedResultOccurrence?
   need : ManagedIdentityNeed
 }
 
@@ -70,8 +71,21 @@ struct ManagedObligations {
 pub(all) enum ManagedObligationIssue {
   InvalidLimits
   DuplicateIdentity(ManagedIdentityDomain, ManagedIdentitySubject)
+  InvalidResultOccurrence
   MissingRequiredIdentity
 } derive(Eq, Debug)
+
+///|
+fn managed_result_occurrence_equal(
+  left : ManagedResultOccurrence?,
+  right : ManagedResultOccurrence?,
+) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(a), Some(b)) => physical_equal(a.identity, b.identity)
+    _ => false
+  }
+}
 
 ///|
 pub(all) enum ManagedIdentityEstablishmentIssue {
@@ -98,9 +112,21 @@ pub fn prepare_managed_obligations(
     return Err(InvalidLimits)
   }
   for index, identity in identities {
+    match (identity.subject, identity.occurrence) {
+      (NamedResult, Some(occurrence)) =>
+        if !physical_equal(occurrence.owner, owner) {
+          return Err(InvalidResultOccurrence)
+        }
+      (NamedResult, None) | (_, Some(_)) => return Err(InvalidResultOccurrence)
+      _ => ()
+    }
     for prior in 0..<index {
       if identities[prior].domain == identity.domain &&
-        identities[prior].subject == identity.subject {
+        identities[prior].subject == identity.subject &&
+        managed_result_occurrence_equal(
+          identities[prior].occurrence,
+          identity.occurrence,
+        ) {
         return Err(DuplicateIdentity(identity.domain, identity.subject))
       }
     }
@@ -124,7 +150,14 @@ pub fn process_managed_obligations(
 ) -> ManagedObligations {
   prepare_managed_obligations(
     owner,
-    [{ domain: OrderedRows, subject: TaskOutput, need: UnestablishedRetained, }],
+    [
+      {
+        domain: OrderedRows,
+        subject: TaskOutput,
+        occurrence: None,
+        need: UnestablishedRetained,
+      },
+    ],
     ManagedUse,
     MaterialBinding,
     1,

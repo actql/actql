@@ -326,6 +326,46 @@ pub fn[E] dispatch_managed_duckdb(
 }
 
 ///|
+/// Prepare one managed task through the configured implementation.
+pub fn[E] dispatch_managed_local(
+  value : ConfiguredComputeModules[E],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
+  output_file_bytes : Int64,
+) -> Result[
+  @binding4.LocalManagedDispatchConfiguration[Int],
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_local {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding4.prepare_local_managed_dispatch(
+        installed, completed, obligations, output_file_bytes,
+      ).map_err(issue => Implementation(project(issue)))
+  }
+}
+
+///|
+/// Prepare one managed task through the configured implementation.
+pub fn[E] dispatch_managed_reference_compute(
+  value : ConfiguredComputeModules[E],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
+  output_file_bytes : Int64,
+) -> Result[
+  @binding5.NumericManagedDispatchConfiguration[Int],
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_reference_compute {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding5.prepare_numeric_managed_dispatch(
+        installed, completed, obligations, output_file_bytes,
+      ).map_err(issue => Implementation(project(issue)))
+  }
+}
+
+///|
 struct ConfiguredEstimatePolicy[E] {
   install : () -> Result[Unit, E]
 }

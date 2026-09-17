@@ -3,6 +3,7 @@ package "actql/actql/connectors_workers_async_bridge"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute/driver",
   "actql/actql/connectors_workers_async",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
@@ -13,9 +14,15 @@ import {
 // Values
 pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
 
+pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @driver.NumericManagedDispatchConfiguration[Int] raise NodeHostFailure
+
+pub fn reference_compute_managed_start(@driver.NumericManagedDispatchConfiguration[Int]) -> @driver.NumericManagedDispatchOperations[Int] raise NodeHostFailure
+
 pub fn reference_compute_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
 pub fn strategy_host_close_outputs(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
+
+pub fn strategy_host_configure_managed_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool) -> Bool
 
 pub fn strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
@@ -23,13 +30,31 @@ pub fn strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@ph
 
 pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
+pub fn strategy_host_managed_input_matches_material(@execution_relation.ManagedProducerRead[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Bool
+
+pub fn strategy_host_managed_obligations(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @execution_relation.ManagedObligations raise NodeHostFailure
+
+pub fn strategy_host_managed_output_matches(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
+
+pub fn strategy_host_managed_producer(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
+pub fn strategy_host_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn strategy_host_managed_requires_logical_identity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool raise NodeHostFailure
+
 pub fn strategy_host_modules(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_next(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
 
+pub fn strategy_host_next_task(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
 pub fn strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
 pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
+
+pub fn strategy_host_releasable_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
 
@@ -38,6 +63,8 @@ pub fn strategy_host_resident_inputs(@connectors_workers_async.ConfiguredCompute
 pub fn strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
 
 pub fn strategy_host_run(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
+
+pub fn strategy_host_select_managed_registration(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, @connector_sdk.CapabilityRegistration) -> Bool
 
 pub fn strategy_host_stop(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 

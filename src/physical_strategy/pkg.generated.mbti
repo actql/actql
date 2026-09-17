@@ -186,6 +186,8 @@ pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.Le
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
+pub fn select_captured_managed_registration(CapturedDAG, Int, @connector_sdk.CapabilityRegistration) -> Result[Unit, RunIssue]
+
 pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]

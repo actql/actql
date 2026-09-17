@@ -24,6 +24,8 @@ pub fn[C, E] compute_host_exclusions(ComputeHost[C, E], Int) -> Result[Array[(In
 
 pub fn[C, E] compute_host_has_estimates(ComputeHost[C, E]) -> Bool
 
+pub fn[C, E] compute_host_max_entries(ComputeHost[C, E]) -> Int
+
 pub fn[C, E] compute_host_resident_inputs(ComputeHost[C, E], Int) -> Array[(Int, Int64, Int, Int)]?
 
 pub fn[C, E] configure_compute_host_estimates(ComputeHost[C, E], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[Unit, AdaptiveEstimateIssue[E]]

@@ -22,9 +22,11 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
       throw new StrategyHostError('InvalidStrategyInstallation');
     }
     installed.set(entry.registration, Object.freeze({
+      registration: entry.registration,
       run: entry.run,
       prepareNext: entry.prepareNext,
       runPrepared: entry.runPrepared,
+      managedSelectionKey: entry.managedSelectionKey,
       beforeNext: entry.beforeNext,
       finish: entry.finish,
     }));
@@ -82,10 +84,41 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         const task = await entry.prepareNext?.(managedOutputs);
         if (task != null) prepared.push({entry, task});
       }
-      if (prepared.length > 1) {
-        throw new StrategyHostError('AmbiguousManagedStrategy');
+      const managedTask = prepared.length ? core.nextTask(setup) : -1;
+      for (const candidate of prepared) {
+        const duration = candidate.task.durationMilliseconds;
+        const key = candidate.entry.managedSelectionKey;
+        if (candidate.task.task !== managedTask ||
+            (duration !== null && (typeof duration !== 'bigint' || duration < 0n)) ||
+            typeof key !== 'string' || key.length === 0) {
+          throw new StrategyHostError('InvalidManagedCandidate');
+        }
       }
+      if (new Set(prepared.map(value => value.entry.managedSelectionKey)).size !==
+          prepared.length) {
+        throw new StrategyHostError('DuplicateManagedSelectionKey');
+      }
+      prepared.sort((left, right) => {
+        const a = left.task.durationMilliseconds;
+        const b = right.task.durationMilliseconds;
+        if (a !== null && b !== null && a !== b) return a < b ? -1 : 1;
+        if (a === null && b !== null) return 1;
+        if (a !== null && b === null) return -1;
+        return left.entry.managedSelectionKey < right.entry.managedSelectionKey
+          ? -1 : left.entry.managedSelectionKey > right.entry.managedSelectionKey ? 1 : 0;
+      });
       const managed = prepared[0];
+      const managedInputs = core.managedProducers?.(setup) ?? [];
+      if (!managed && Array.isArray(managedInputs) && managedInputs.length !== 0) {
+        const retainedInputs = managedInputs.filter(producer =>
+          managedOutputs.has(producer));
+        // A task whose producers are all still legacy follows the existing
+        // dispatcher. Once any exact managed producer is selected, silently
+        // dropping it or mixing it with a legacy reconstruction is forbidden.
+        if (retainedInputs.length !== 0) {
+          throw new StrategyHostError('NoCompatibleManagedStrategy');
+        }
+      }
       const task = managed ? managed.task : core.next(setup);
       if (task == null) break;
       const index = managed ? task.task : core.task(task);
@@ -94,6 +127,9 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         throw new StrategyHostError('MissingStrategyImplementation');
       }
       signal?.throwIfAborted();
+      if (managed && !core.selectManaged(setup, index, managed.entry.registration)) {
+        throw new StrategyHostError('ManagedSelectionRejected');
+      }
       const result = await (managed
         ? entry.runPrepared(task, signal)
         : entry.run(task, signal));

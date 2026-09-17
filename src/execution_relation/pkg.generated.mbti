@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/lowering_relation",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_results",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -45,9 +46,15 @@ pub fn append_completed_output_import(CompletedOutputImport, Array[@value_admiss
 
 pub fn append_completed_output_import_wire(CompletedOutputImport, String, RetainedRowDecodeLimits) -> Result[Unit, CompletedImportIssue]
 
+pub fn append_completed_projection_managed_values(ManagedOutputValues, CompletedOutput, Int) -> Result[Unit, ManagedOutputValueIssue]
+
+pub fn append_completed_projection_managed_wire(ManagedOutputValues, CompletedOutput, Int, RowWireLimits, RetainedRowDecodeLimits) -> Result[Unit, ManagedOutputValueIssue]
+
 pub fn[T] append_managed_computed_view(ManagedComputedView[T], (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedComputedViewIssue]
 
 pub fn append_managed_output_values(ManagedOutputValues, Int, (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedOutputValueIssue]
+
+pub fn[T] append_managed_producer_bridge_wire(ManagedProducerBridge[T], String, RetainedRowDecodeLimits) -> Result[Unit, ManagedProducerBridgeIssue]
 
 pub fn append_retained_content_read(RetainedContentRead, String, RetainedRowDecodeLimits) -> Result[Unit, RetainedContentReadIssue]
 
@@ -72,6 +79,8 @@ pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_rel
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
+
+pub fn bind_managed_result_occurrence(@lowering_relation.BoundPrepared, String, @relation_results.ResultPort) -> Result[ManagedResultOccurrence, ManagedResultOccurrenceIssue]
 
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
@@ -125,6 +134,8 @@ pub fn captured_schema(CapturedRows) -> @relation_schema.Schema
 
 pub fn captured_usage(CapturedRows) -> ValueUsage
 
+pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
+
 pub fn[P, T] complete_managed_output(ManagedCompletionPort[P, T], P) -> Result[ManagedCompletedOutput[T], TrustedOutputIssue]
 
 pub fn[P] complete_trusted_output(TrustedOutputPort[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
@@ -149,6 +160,8 @@ pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> 
 
 pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
+pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
@@ -157,13 +170,15 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
+
 pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
 
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]
 
-pub fn[T] establish_managed_completed_identity(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject, String, String) -> Result[Unit, ManagedIdentityEstablishmentIssue]
+pub fn[T] establish_managed_completed_identity(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> Result[Unit, ManagedIdentityEstablishmentIssue]
 
 pub fn execute_fixed_input_guarded(GeneratedSequence, CapturedRows, @pipeline_typing.Target, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, record_values? : Bool, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
 
@@ -199,6 +214,8 @@ pub fn[T] finish_managed_computed_view(ManagedComputedView[T]) -> Result[Managed
 
 pub fn finish_managed_output_values(ManagedOutputValues) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue]
 
+pub fn[T] finish_managed_producer_bridge(ManagedProducerBridge[T], Int, Int) -> Result[ProducerRead, ManagedProducerBridgeIssue]
+
 pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
 
 pub fn finish_retained_content_read(RetainedContentRead) -> Result[AdmittedOutputStreamReceipt, RetainedContentReadIssue]
@@ -231,6 +248,8 @@ pub fn generated_satisfies_requirements(GeneratedSequence, @lowering_relation.Se
 
 pub fn generated_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 
+pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool
+
 pub fn generated_sequence_owner(GeneratedSequence) -> @lowering_relation.BoundPrepared
 
 pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@lowering_relation.SequenceRequirements, @lowering_relation.SequenceRequirementsIssue]
@@ -240,6 +259,8 @@ pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIden
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
+
+pub fn[T] managed_completed_deadline_satisfied(ManagedCompletedOutput[T], ManagedIdentityDeadline) -> Bool
 
 pub fn[T] managed_completed_identity_status(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> ManagedIdentityStatus?
 
@@ -329,6 +350,12 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
+
+pub fn managed_result_occurrence_owner(ManagedResultOccurrence) -> @lowering_relation.BoundPrepared
+
+pub fn managed_result_occurrence_port(ManagedResultOccurrence) -> @relation_results.ResultPort
+
 pub fn[T] managed_retained_output_matches(ManagedRetainedOutput[T], ManagedOutputValueReceipt) -> Bool
 
 pub fn[T] managed_retained_output_payload(ManagedRetainedOutput[T]) -> T?
@@ -356,6 +383,8 @@ pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, Co
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
+
+pub fn ordered_rows_canonical_contract_cid() -> String
 
 pub fn output_stream_identity(AdmittedOutputStreamReceipt) -> (String, Int, Int, Int)
 
@@ -389,15 +418,19 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : (ManagedIdentityDomain, ManagedIdentitySubject, String, String, ManagedRetainedOutput[T]) -> Bool) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : ManagedIdentityIssuer[T]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
+
+pub fn[T] prepare_managed_identity_issuer(@lowering_relation.BoundPrepared, (ManagedIdentityRequirement, ManagedRetainedOutput[T]) -> (String, String)?) -> ManagedIdentityIssuer[T]
 
 pub fn prepare_managed_obligations(@lowering_relation.BoundPrepared, Array[ManagedIdentityRequirement], ManagedPublicationRequirement, ManagedConsumerRequirement, Int) -> Result[ManagedObligations, ManagedObligationIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+
+pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
@@ -821,6 +854,8 @@ pub(all) enum ManagedIdentityEstablishmentIssue {
   ConflictingIdentity
 } derive(Eq, @debug.Debug)
 
+type ManagedIdentityIssuer[T]
+
 pub(all) enum ManagedIdentityNeed {
   UnestablishedRetained
   EstablishedBy(ManagedIdentityDeadline)
@@ -829,6 +864,7 @@ pub(all) enum ManagedIdentityNeed {
 pub(all) struct ManagedIdentityRequirement {
   domain : ManagedIdentityDomain
   subject : ManagedIdentitySubject
+  occurrence : ManagedResultOccurrence?
   need : ManagedIdentityNeed
 }
 
@@ -847,9 +883,16 @@ pub(all) enum ManagedIdentitySubject {
   NamedResult
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ManagedIndependentOutputIssue {
+  Unavailable
+  UnsupportedRepresentation
+  Limit
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ManagedObligationIssue {
   InvalidLimits
   DuplicateIdentity(ManagedIdentityDomain, ManagedIdentitySubject)
+  InvalidResultOccurrence
   MissingRequiredIdentity
 } derive(Eq, @debug.Debug)
 
@@ -876,6 +919,18 @@ type ManagedOutputValueReceipt
 
 type ManagedOutputValues
 
+type ManagedProducerBridge[T]
+
+pub(all) enum ManagedProducerBridgeIssue {
+  Unavailable
+  Admission(CaptureIssue)
+  Wire(RetainedRowDecodeIssue)
+  Completion(TrustedOutputIssue)
+  Binding(ProducerBindingIssue)
+  View(ProducerReadIssue)
+  Closed
+}
+
 type ManagedProducerMeasurement
 
 type ManagedProducerRead[T]
@@ -894,6 +949,13 @@ pub(all) enum ManagedProfileIssue {
 pub(all) enum ManagedPublicationRequirement {
   ManagedUse
   LogicalContentAddressed
+} derive(Eq, @debug.Debug)
+
+type ManagedResultOccurrence
+
+pub(all) enum ManagedResultOccurrenceIssue {
+  EmptyName
+  ForeignOwner
 } derive(Eq, @debug.Debug)
 
 type ManagedRetainedOutput[T]

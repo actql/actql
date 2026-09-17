@@ -53,6 +53,12 @@ pub fn prepare_scenario(
         @connector.capability_registration_at(registry, 0).unwrap(),
         {
           sequences,
+          managed_capacity: {
+            contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+            max_rows,
+            max_value_bytes: 10000,
+            common_fragment: None,
+          },
           execution: compute_test_limits(),
           measurement: {
             max_work: 100000,

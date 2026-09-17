@@ -7,9 +7,9 @@ pub fn[E] assemble_compute_contributions(
   registry : @connector.CapabilityRegistry,
   max_entries : Int,
   with_local? : (
-    @binding2.LocalDispatchModule,
-    (@binding2.LocalDispatchIssue) -> E,
-    (@binding2.LocalEstimateIssue) -> E,
+    @binding3.LocalDispatchModule,
+    (@binding3.LocalDispatchIssue) -> E,
+    (@binding3.LocalEstimateIssue) -> E,
   )? = None,
 ) -> Result[
   @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]],
@@ -31,8 +31,8 @@ pub fn[E] assemble_compute_contributions(
   if with_local is Some((installed, dispatch_issue, estimate_issue)) {
     entries.push(
       (
-        @binding2.local_dispatch_registration(installed),
-        @binding2.local_compute_contribution(
+        @binding3.local_dispatch_registration(installed),
+        @binding3.local_compute_contribution(
           installed, dispatch_issue, estimate_issue,
         ),
       ),
@@ -50,9 +50,9 @@ pub fn[E] assemble_compute_contributions(
 struct ConfiguredComputeModules[E] {
   driver : @host.DispatchDriver
   installed_local : (
-    @binding2.LocalDispatchModule,
-    (@binding2.LocalDispatchIssue) -> E,
-    (@binding2.LocalEstimateIssue) -> E,
+    @binding3.LocalDispatchModule,
+    (@binding3.LocalDispatchIssue) -> E,
+    (@binding3.LocalEstimateIssue) -> E,
   )?
   contributions : @connector.CapabilityImplementations[
     @host.ComputeContribution[Unit, E],
@@ -69,9 +69,9 @@ pub fn[E] configure_compute_modules(
   installation_issue : (@connector.CapabilityInstallationIssue) -> E,
   with_local? : (
     @connector.CapabilityRegistration,
-    @binding2.LocalComputeConfiguration,
-    (@binding2.LocalDispatchIssue) -> E,
-    (@binding2.LocalEstimateIssue) -> E,
+    @binding3.LocalComputeConfiguration,
+    (@binding3.LocalDispatchIssue) -> E,
+    (@binding3.LocalEstimateIssue) -> E,
   )? = None,
 ) -> Result[ConfiguredComputeModules[E], E] {
   let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
@@ -89,7 +89,7 @@ pub fn[E] configure_compute_modules(
     None => None
     Some((registration, configuration, dispatch_issue, estimate_issue)) =>
       match
-        @binding2.configure_local_compute(
+        @binding3.configure_local_compute(
           driver, registry, registration, configuration,
         ) {
         Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
@@ -118,7 +118,7 @@ pub fn[E] configured_compute_contributions(
 ///|
 pub fn[E] configured_local_module(
   value : ConfiguredComputeModules[E],
-) -> @binding2.LocalDispatchModule? {
+) -> @binding3.LocalDispatchModule? {
   value.installed_local.map(value => value.0)
 }
 
@@ -146,13 +146,33 @@ pub fn[C, E] dispatch_local(
   value : ConfiguredComputeModules[E],
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
-) -> Result[@binding2.LocalDispatchOperations, ConfiguredDispatchIssue[E]] {
+) -> Result[@binding3.LocalDispatchOperations, ConfiguredDispatchIssue[E]] {
   match value.installed_local {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding2.start_local_dispatch(installed, host, task).map_err(issue => {
+      @binding3.start_local_dispatch(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
+  }
+}
+
+///|
+/// Prepare one managed task through the configured implementation.
+pub fn[E] dispatch_managed_local(
+  value : ConfiguredComputeModules[E],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
+  output_file_bytes : Int64,
+) -> Result[
+  @binding3.LocalManagedDispatchConfiguration[Int],
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_local {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding3.prepare_local_managed_dispatch(
+        installed, completed, obligations, output_file_bytes,
+      ).map_err(issue => Implementation(project(issue)))
   }
 }
 
@@ -170,24 +190,24 @@ pub fn[E] install_configured_estimate_policy(
 
 ///|
 pub fn local_estimate_work_slots() -> Int {
-  @binding2.local_dispatch_work_slots()
+  @binding3.local_dispatch_work_slots()
 }
 
 ///|
 /// Prepare without installing; installation retains the exact module and policy.
 pub fn[E] prepare_local_estimate_policy(
   value : ConfiguredComputeModules[E],
-  settings : @binding2.LocalEstimateSettings,
+  settings : @binding3.LocalEstimateSettings,
 ) -> Result[ConfiguredEstimatePolicy[E], ConfiguredDispatchIssue[E]] {
   guard value.installed_local is Some((installed, _, project)) else {
     return Err(MissingImplementation)
   }
-  match @binding2.prepare_local_estimate_settings(installed, settings) {
+  match @binding3.prepare_local_estimate_settings(installed, settings) {
     Err(issue) => Err(Implementation(project(issue)))
     Ok(policy) =>
       Ok({
         install: () => {
-          @binding2.install_local_dispatch_estimates(installed, policy).map_err(
+          @binding3.install_local_dispatch_estimates(installed, policy).map_err(
             project,
           )
         },
@@ -254,8 +274,8 @@ pub fn[E] execute_configured_in_process(
   let selected = @host.prepared_task_registration(task)
 
   if value.modules.installed_local is Some((installed, project, _)) &&
-    physical_equal(selected, @binding2.local_dispatch_registration(installed)) {
-    return @binding2.execute_local_dispatch(
+    physical_equal(selected, @binding3.local_dispatch_registration(installed)) {
+    return @binding3.execute_local_dispatch(
       installed,
       @host.compute_host_dispatch(value.runtime),
       task,

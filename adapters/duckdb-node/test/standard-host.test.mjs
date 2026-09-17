@@ -331,7 +331,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           continue;
         }
         execution = await runCapturedStrategy(setup, settings, controller.signal);
-        assert.equal(execution.status, cancel ? 'host-tasks-failed' : 'host-tasks-completed', String(execution.failure));
+        assert.equal(execution.status, cancel ? 'host-tasks-failed' : 'host-tasks-completed',
+          `mode=${mode}: ${String(execution.failure)}`);
         if (cancel) {
           assert.equal(execution.completed.length, 0);
           assert.equal(execution.usage().attempts, 0n);
@@ -1040,7 +1041,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         pending: managedStandardExecution.cleanupPending(),
         usage: managedStandardExecution.usage(),
       }, (_, value) => typeof value === 'bigint' ? value.toString() : value));
-      assert.equal(managedStandardExecution.usage().heldBytes, 0n);
+      assert.equal(managedStandardExecution.usage().heldBytes, 0n,
+        JSON.stringify(managedStandardExecution.usage(), (_, value) =>
+          typeof value === 'bigint' ? value.toString() : value));
       assert.equal(managedStandardExecution.usage().reservedRetentionBytes, 0n);
       assert.equal(managedStandardExecution.usage().reservedExecutionBytes, 0n);
     }
@@ -1049,9 +1052,66 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // The common Host derives obligations before connector comparison. Either a
   // known logical-identity consumer or a publication contract must exclude the
   // CID-free DuckDB candidate before that task starts.
+  const aliasedResultProgram = JSON.parse(JSON.stringify(managedStandardProgram));
+  aliasedResultProgram.results = {
+    first: {from: {stage: 'compute_a', result: 'r'}},
+    second: {from: {stage: 'compute_a', result: 'r'}},
+  };
+  const aliasedFixture = fixture.strategyFixtureCreate(
+    ...args,
+    JSON.stringify(aliasedResultProgram),
+  );
+  const aliasedCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(aliasedFixture),
+    suppliedLimits,
+  );
+  try {
+    assert.equal(fixture.strategyFixtureOpen(aliasedFixture, aliasedCapture.source()), true);
+    assert.deepEqual(
+      fixture.strategyFixtureManagedObligationLabels(
+        aliasedFixture, true, false, false,
+      ),
+      [
+        'ordered-rows:task-output:retained:-',
+        'logical-relation:named-result:before-publication:first',
+        'logical-relation:named-result:before-publication:second',
+      ],
+      'checked Result aliases retain distinct publication occurrences',
+    );
+  } finally {
+    aliasedCapture.close();
+  }
+  const acquisitionResultProgram = JSON.parse(JSON.stringify(managedStandardProgram));
+  acquisitionResultProgram.results = {
+    acquired: {from: {stage: 'a', result: 'r'}},
+  };
+  const acquisitionResultFixture = fixture.strategyFixtureCreate(
+    ...args,
+    JSON.stringify(acquisitionResultProgram),
+  );
+  const acquisitionResultCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(acquisitionResultFixture),
+    suppliedLimits,
+  );
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      acquisitionResultFixture, acquisitionResultCapture.source()), true);
+    assert.equal(
+      fixture.strategyFixtureManagedPolicyAccepted(
+        acquisitionResultFixture, true, false, false,
+      ),
+      false,
+      'acquisition publication is rejected before managed Compute selection',
+    );
+  } finally {
+    acquisitionResultCapture.close();
+  }
   for (const identityCase of [
-    {name: 'consumer', policy: {consumer: true}, completed: 1},
-    {name: 'publication', policy: {publication: true}, completed: 2},
+    {name: 'consumer', policy: {consumer: true}, completed: 3, succeeds: true},
+    {name: 'publication', policy: {publication: true}, completed: 1,
+      succeeds: false},
   ]) {
     const identityFixture = fixture.strategyFixtureCreate(
       ...args,
@@ -1091,13 +1151,21 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           }),
         },
       );
-      assert.equal(identityExecution.status, 'host-tasks-failed');
+      assert.equal(identityExecution.status,
+        identityCase.succeeds ? 'host-tasks-completed' : 'host-tasks-failed',
+        `${identityCase.name}: ${identityExecution.failure?.stack ?? identityExecution.failure}`);
       assert.equal(
         identityExecution.completed.length,
         identityCase.completed,
         `${identityCase.name} identity requirement started an unsupported task`,
       );
-      assert(identityExecution.failure != null);
+      if (identityCase.succeeds) {
+        assert.deepEqual(identityExecution.completed.map(item => item.realization),
+          ['duckdb-managed', 'reference-numeric-managed',
+            'local-managed']);
+      } else {
+        assert(identityExecution.failure != null);
+      }
     } finally {
       await identityExecution?.close();
       if (identityExecution) {

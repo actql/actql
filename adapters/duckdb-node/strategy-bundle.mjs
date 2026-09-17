@@ -7,6 +7,8 @@ import { runStrategyHostCompute, runRetainedStrategyHostCompute,
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
 import {managedInputCodecContractCid} from '../store-local/managed-representations.mjs';
+import {managedColumnCodecContractCid} from './managed-column-codec.mjs';
+import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 
 export function duckdbStrategyContribution(moon, setup, checked, configuration) {
   const options = preparedStrategyConfiguration(configuration);
@@ -33,23 +35,30 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       });
     }
   }
+  const registration = moon.strategyModule_duckdb_Registration(setup);
   return Object.freeze({
-    registration: moon.strategyModule_duckdb_Registration(setup),
+    registration,
+    managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
     async prepareNext(outputs) {
       if (!options.managedOutput) return undefined;
-      for (const producer of moon.strategyHostReleasableManagedProducers(setup)) {
-        const output = outputs.get(producer);
-        if (output?.close) await output.close();
-        outputs.delete(producer);
-      }
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
       if (task < 1 || !Array.isArray(producers) || producers.length === 0) {
         return undefined;
       }
+      if (checked(moon.strategyHostManagedRequiresLogicalIdentity(setup))) {
+        return undefined;
+      }
       const inputs = producers.map(producer => outputs.get(producer));
+      const inputCodecContractCids = inputs.map(input =>
+        managedInputCodecContractCid(input?.material));
       if (producers.some(producer => producer < 1) ||
-          inputs.some(input => input == null)) return undefined;
+          inputs.some(input => input == null) ||
+          inputCodecContractCids.some(cid =>
+            ![managedColumnCodecContractCid, managedParquetCodecContractCid]
+              .includes(cid))) {
+        return undefined;
+      }
       const managedConfiguration = checked(
         moon.strategyModule_duckdb_ManagedDispatch(
           setup, inputs.map(input => input.completed),
@@ -58,13 +67,21 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       );
       return Object.freeze({
         task,
+        durationMilliseconds: 1n,
         inputs: Object.freeze(inputs),
-        inputCodecContractCids: Object.freeze(inputs.map(input =>
-          managedInputCodecContractCid(input.material))),
+        outputs,
+        releasableProducers: Object.freeze(
+          moon.strategyHostReleasableManagedProducers(setup)),
+        inputCodecContractCids: Object.freeze(inputCodecContractCids),
         configuration: managedConfiguration,
       });
     },
     async runPrepared(prepared, signal) {
+      for (const producer of prepared.releasableProducers) {
+        const output = prepared.outputs.get(producer);
+        if (output?.close) await output.close();
+        prepared.outputs.delete(producer);
+      }
       const result = await runManagedColumnStrategyHostCompute(
         prepared.configuration,
         prepared.inputs.map(input => input.material),

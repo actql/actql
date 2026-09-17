@@ -138,6 +138,33 @@ test "managed completion distinguishes delayed identity from source lifetime" {
   let material = managed_test_material(owner, Step(1), live)
   let contract = "sha256:" + "1".repeat(64)
   let cid = "sha256:" + "2".repeat(64)
+  let issuer = prepare_managed_identity_issuer(owner, (
+    requirement : ManagedIdentityRequirement,
+    source : ManagedRetainedOutput[Int],
+  ) => {
+    if requirement.domain == OrderedRows &&
+      requirement.subject == TaskOutput &&
+      requirement.occurrence is None &&
+      physical_equal(source, material) {
+      Some((contract, cid))
+    } else {
+      None
+    }
+  })
+  let obligations = prepare_managed_obligations(
+    owner,
+    [
+      {
+        domain: OrderedRows,
+        subject: TaskOutput,
+        occurrence: None,
+        need: EstablishedBy(BeforeDiscard),
+      },
+    ],
+    ManagedUse,
+    MaterialBinding,
+    1,
+  ).unwrap()
   let port = prepare_managed_completion_port(
     managed_test_profile(),
     preparation,
@@ -145,52 +172,23 @@ test "managed completion distinguishes delayed identity from source lifetime" {
     1000,
     10000,
     (_ : Unit) => Some(material),
-    obligations=process_managed_obligations(owner),
-    identity_issuer=(domain, subject, supplied_contract, supplied_cid, source) => {
-      domain == OrderedRows &&
-      subject == TaskOutput &&
-      supplied_contract == contract &&
-      supplied_cid == cid &&
-      physical_equal(source, material)
-    },
+    obligations~,
+    identity_issuer=issuer,
   ).unwrap()
   let output = complete_managed_output(port, ()).unwrap()
   assert_eq(
     managed_completed_identity_status(output, OrderedRows, TaskOutput),
     Some(UnestablishedSourceRetained),
   )
-  assert_true(
-    establish_managed_completed_identity(
-      output,
-      OrderedRows,
-      TaskOutput,
-      "invalid",
-      cid,
-    )
-    is Err(InvalidIdentity),
-  )
+  assert_false(managed_completed_deadline_satisfied(output, BeforeDiscard))
   assert_true(managed_completed_output_available(output))
-  establish_managed_completed_identity(
-    output,
-    OrderedRows,
-    TaskOutput,
-    contract,
-    cid,
-  ).unwrap()
+  establish_managed_completed_identity(output, OrderedRows, TaskOutput).unwrap()
+  assert_true(managed_completed_deadline_satisfied(output, BeforeDiscard))
   assert_eq(
     managed_completed_identity_status(output, OrderedRows, TaskOutput),
     Some(EstablishedSourceRetained(contract, cid)),
   )
-  assert_true(
-    establish_managed_completed_identity(
-      output,
-      OrderedRows,
-      TaskOutput,
-      contract,
-      "sha256:" + "3".repeat(64),
-    )
-    is Err(ConflictingIdentity),
-  )
+  establish_managed_completed_identity(output, OrderedRows, TaskOutput).unwrap()
   live.val = false
   assert_eq(
     managed_completed_identity_status(output, OrderedRows, TaskOutput),
@@ -213,13 +211,7 @@ test "managed completion distinguishes delayed identity from source lifetime" {
   ).unwrap()
   let unavailable = complete_managed_output(unavailable_port, ()).unwrap()
   assert_true(
-    establish_managed_completed_identity(
-      unavailable,
-      OrderedRows,
-      TaskOutput,
-      contract,
-      cid,
-    )
+    establish_managed_completed_identity(unavailable, OrderedRows, TaskOutput)
     is Err(IssuerUnavailable),
   )
   assert_true(managed_completed_output_available(unavailable))
@@ -229,13 +221,7 @@ test "managed completion distinguishes delayed identity from source lifetime" {
     Some(UnestablishedSourceUnavailable),
   )
   assert_true(
-    establish_managed_completed_identity(
-      unavailable,
-      OrderedRows,
-      TaskOutput,
-      contract,
-      cid,
-    )
+    establish_managed_completed_identity(unavailable, OrderedRows, TaskOutput)
     is Err(SourceUnavailable),
   )
 }

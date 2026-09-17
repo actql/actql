@@ -7,9 +7,11 @@ import {createLocalRetainedStore} from './files.mjs';
 import {managedPhysicalRepresentation} from
   './managed-physical-representation.mjs';
 import {
+  registerManagedMemoryInput,
   managedInputPhysicalManifestCid,
   registerManagedInput,
   withManagedInputFiles,
+  withManagedInputRows,
 } from './managed-representations.mjs';
 
 const codec = `sha256:${'1'.repeat(64)}`;
@@ -158,4 +160,54 @@ test('unknown native cleanup status cannot release an input pin', async t => {
   assert.equal(store.status().activeReaders, 0);
   body.close();
   await body.cleanupHandle.retry();
+});
+
+test('managed memory close revokes new use and waits for the final scoped read', async () => {
+  const material = {}, input = {};
+  let sourceAvailable = true, releaseCount = 0, continueRead;
+  const paused = new Promise(resolve => { continueRead = resolve; });
+  let reading;
+  const started = new Promise(resolve => { reading = resolve; });
+  const memory = registerManagedMemoryInput(
+    material,
+    value => value === input,
+    () => sourceAvailable,
+    Object.freeze({
+      async read(_file, emit) {
+        reading();
+        await paused;
+        await emit('{"id":1}');
+      },
+    }),
+    () => {
+      sourceAvailable = false;
+      releaseCount++;
+    },
+  );
+  const rows = [];
+  const active = withManagedInputRows(
+    [{material, input}],
+    value => value === input,
+    (_index, row) => rows.push(row),
+    () => 'completed',
+  );
+  await started;
+  const closing = memory.close();
+  assert.deepEqual(memory.status(), {open: false, readers: 1, released: false});
+  await assert.rejects(withManagedInputRows(
+    [{material, input}],
+    () => true,
+    () => {},
+    () => {},
+  ), {code: 'ManagedInputUnavailable'});
+  assert.equal(sourceAvailable, true,
+    'the exact generation remains live for the admitted reader');
+  continueRead();
+  assert.equal(await active, 'completed');
+  await closing;
+  assert.deepEqual(rows, ['{"id":1}']);
+  assert.deepEqual(memory.status(), {open: false, readers: 0, released: true});
+  assert.equal(releaseCount, 1);
+  await memory.close();
+  assert.equal(releaseCount, 1);
 });

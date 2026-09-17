@@ -66,6 +66,13 @@ pub fn[C, E] compute_host_dispatch(
 }
 
 ///|
+/// Common bounded metadata budget used while deriving per-task managed
+/// obligations. Connector bridges must not replace it with a private limit.
+pub fn[C, E] compute_host_max_entries(host : ComputeHost[C, E]) -> Int {
+  host.dispatch.max_entries
+}
+
+///|
 pub fn[C, E] compute_host_has_estimates(host : ComputeHost[C, E]) -> Bool {
   host.estimates is Some(_)
 }

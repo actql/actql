@@ -8,7 +8,8 @@ import {registerManagedInput, withManagedInputFiles} from
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
-import {encodeManagedColumnFrame, managedColumnCodecContractCid} from './managed-column-codec.mjs';
+import {encodeManagedColumnFrame, managedColumnCodecContractCid,
+  managedColumnRowProvider} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
@@ -265,7 +266,8 @@ export async function runManagedColumnStrategyHostCompute(
     );
     registerManagedInput(material,
       input => moon.managedInputMatchesMaterial(input, material),
-      store, body, codecContractCid, representation.manifest);
+      store, body, codecContractCid, representation.manifest,
+      managedColumnRowProvider(representation.schemaContract));
     let closed = false;
     return Object.freeze({
       completed,

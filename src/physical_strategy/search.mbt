@@ -557,6 +557,12 @@ fn[T] strategy_managed_candidate_matches(
   task : Int,
   candidate : @connector.ManagedFixedComputeCandidate[T],
 ) -> Bool {
+  if run.managed_selections.get(task).bind(value => value) is Some(selected) {
+    return physical_equal(
+      selected,
+      @connector.managed_fixed_compute_candidate_registration(candidate),
+    )
+  }
   if run.search is None {
     return true
   }

@@ -9,6 +9,7 @@ test "generated configuration rejects invalid registration sets before connector
   let native_registration = @connector.capability_registration_at(registry, 1).unwrap()
   let local_config : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
+    managed_capacity: limits.capacity,
     execution: limits.local_execution,
     measurement: limits.guards,
     max_work: limits.candidate_work,

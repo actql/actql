@@ -99,6 +99,42 @@ fn append_admitted_buffer_cells(
 }
 
 ///|
+/// Preserve already-admitted immutable values only when their complete source
+/// schema is the exact destination schema. This is a finite representation
+/// preservation rule, not a general way to attach contracts to raw values.
+fn append_admitted_buffer_values(
+  input : AdmittedRowBuffer,
+  source : @schema.Schema,
+  values : Array[@admitted.Value],
+) -> Result[Unit, CaptureIssue] {
+  if !physical_equal(input.schema, source) || !input.open || input.reading {
+    return Err(InvalidCheckedRow)
+  }
+  let width = @schema.field_count(input.schema)
+  if values.length() != width {
+    return Err(InvalidCheckedRow)
+  }
+  let budget = input.budget
+  if input.rows.length() >= input.max_rows ||
+    !charge_node(budget, 1) ||
+    width > budget.limits.max_nodes - budget.nodes {
+    return Err(CaptureLimit)
+  }
+  let row = []
+  for column in 0..<width {
+    let field = @schema.field_at(input.schema, column).unwrap()
+    let value = values[column]
+    if !charge_text(budget, @schema.reference_name(field.name)) ||
+      !measure(value, 2, budget) {
+      return Err(CaptureLimit)
+    }
+    row.push(value)
+  }
+  input.rows.push(row)
+  Ok(())
+}
+
+///|
 fn append_admitted_row(
   input : AdmittedRowBuffer,
   supplied_width : Int,

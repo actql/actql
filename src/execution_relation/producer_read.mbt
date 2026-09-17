@@ -188,6 +188,7 @@ pub fn producer_read_cell(
   row : Int,
   column : Int,
 ) -> Value? {
+  guard producer_read_available(value) else { return None }
   guard value.columns.get(column) is Some(source) else { return None }
   completed_cell(value.bound.output, row, source)
 }

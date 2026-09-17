@@ -31,6 +31,7 @@ struct CapturedDAG {
   mut managed_consumer_identity : Bool
   mut managed_host_identity : Bool
   mut managed_identity_policy_sealed : Bool
+  managed_selections : Array[@connector.CapabilityRegistration?]
 }
 
 ///|
@@ -170,7 +171,38 @@ pub fn open_captured_dag(
     managed_consumer_identity: false,
     managed_host_identity: false,
     managed_identity_policy_sealed: false,
+    managed_selections: Array::make(count, None),
   })
+}
+
+///|
+/// Commit the common Host's managed-candidate decision for the next task.
+/// Candidate support/preparation stays side-effect free; only this boundary
+/// fixes which registered realization may enter the existing task lifecycle.
+pub fn select_captured_managed_registration(
+  run : CapturedDAG,
+  task : Int,
+  registration : @connector.CapabilityRegistration,
+) -> Result[Unit, RunIssue] {
+  if run.stopped ||
+    next_captured_task(run) != Some(task) ||
+    run.running is Some(_) ||
+    !@connector.capability_registration_available(registration) {
+    return Err(NotReady)
+  }
+  match run.managed_selections.get(task) {
+    None => Err(ForeignCandidate)
+    Some(Some(selected)) =>
+      if physical_equal(selected, registration) {
+        Ok(())
+      } else {
+        Err(ForeignCandidate)
+      }
+    Some(None) => {
+      run.managed_selections[task] = Some(registration)
+      Ok(())
+    }
+  }
 }
 
 ///|
@@ -189,6 +221,12 @@ pub fn configure_captured_managed_identity_policy(
     }
   }
   if run.managed_identity_policy_sealed || run.running is Some(_) || started {
+    return false
+  }
+  // Acquisition publication needs its own observation/receipt identity
+  // capability. This managed Compute increment must reject that requirement
+  // before comparing or starting any Compute candidate.
+  if publication && run.graph.results.any(result => result.task == 0) {
     return false
   }
   run.managed_publication_identity = publication
@@ -218,32 +256,47 @@ pub fn captured_next_managed_obligations(
       break
     }
   }
-  let publication_required = run.managed_publication_identity && !has_consumer
+  let result_occurrences = run.graph.results.filter_map(result => {
+    if result.task == task {
+      Some(result.occurrence)
+    } else {
+      None
+    }
+  })
+  // A requested publication is resolved only through checked root Results,
+  // even when the same producer also has graph consumers. Merely having no
+  // consumer is never publication evidence.
+  let publication_required = run.managed_publication_identity &&
+    !result_occurrences.is_empty()
   let consumer_required = run.managed_consumer_identity && has_consumer
-  let identity_required = publication_required ||
-    consumer_required ||
-    run.managed_host_identity
-  let subject = if publication_required {
-    @execution.NamedResult
-  } else {
-    @execution.TaskOutput
-  }
-  let need = if identity_required {
-    @execution.EstablishedBy(
-      if publication_required {
-        @execution.BeforePublication
-      } else if consumer_required {
-        @execution.BeforeCidOperation
+  let identities : Array[@execution.ManagedIdentityRequirement] = []
+  if has_consumer || result_occurrences.is_empty() || run.managed_host_identity {
+    identities.push({
+      domain: @execution.OrderedRows,
+      subject: @execution.TaskOutput,
+      occurrence: None,
+      need: if consumer_required {
+        @execution.EstablishedBy(@execution.BeforeCidOperation)
+      } else if run.managed_host_identity {
+        @execution.EstablishedBy(@execution.BeforeDiscard)
       } else {
-        @execution.BeforeDiscard
+        @execution.UnestablishedRetained
       },
-    )
-  } else {
-    @execution.UnestablishedRetained
+    })
+  }
+  if publication_required {
+    for occurrence in result_occurrences {
+      identities.push({
+        domain: @execution.LogicalRelation,
+        subject: @execution.NamedResult,
+        occurrence: Some(occurrence),
+        need: @execution.EstablishedBy(@execution.BeforePublication),
+      })
+    }
   }
   @execution.prepare_managed_obligations(
     owner,
-    [{ domain: @execution.OrderedRows, subject, need, }],
+    identities,
     if publication_required || run.managed_host_identity {
       @execution.LogicalContentAddressed
     } else {

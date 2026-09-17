@@ -245,9 +245,6 @@ pub fn prepare_duckdb_managed_dispatch(
 ) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
     installed.sequences.get(task - 1) is Some(sequence) &&
-    @strategy.captured_dag_strategy(installed.run) is Some(revision) &&
-    @strategy.strategy_registration(revision, task) is Some(selected) &&
-    physical_equal(selected, installed.registration) &&
     @connector.capability_registration_available(installed.registration) else {
     return Err(ForeignSelection)
   }

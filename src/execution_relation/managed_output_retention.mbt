@@ -19,6 +19,9 @@ struct ManagedOutputRetentionPort[P, T] {
 struct ManagedRetainedOutput[T] {
   receipt : ManagedOutputValueReceipt
   payload : T
+  // Accounted physical holding upper bound owned by this generation. This is
+  // charged retained capacity, not an observed file length, serialized value
+  // size or process RSS measurement.
   storage_bytes : Int64
   available : () -> Bool
 }

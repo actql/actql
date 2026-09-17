@@ -22,6 +22,8 @@ pub(all) enum PlanIssue {
   RootMeasurement(Int, Int, @encode.EncodeFailure)
   Completion(@execution.TrustedOutputIssue)
   Candidate(@connector.FixedComputeIssue)
+  ManagedCandidate(@connector.FixedComputeIssue)
+  ManagedBridge(@execution.ManagedProducerBridgeIssue)
 }
 
 ///|

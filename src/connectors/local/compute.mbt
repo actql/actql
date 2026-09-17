@@ -29,6 +29,116 @@ pub fn local_fixed_compute_candidate(
 }
 
 ///|
+/// Initial managed Local candidate. It reuses the installed checked sequence
+/// and accepts only the CID-free managed profile; identity establishment is a
+/// separate registered reference capability in this milestone.
+pub fn[T] local_managed_fixed_compute_candidate(
+  registration : @connector.CapabilityRegistration,
+  request : @connector.ManagedFixedComputeRequest[T],
+  sequence : @execution.GeneratedSequence,
+  estimates : Array[@cost.SerialEstimateLine],
+  quantities : @connector.QueryQuantities,
+  max_entries : Int,
+) -> Result[
+  @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
+  @connector.FixedComputeIssue,
+] {
+  if @execution.managed_obligations_require_logical_identity(
+      @connector.managed_fixed_compute_request_obligations(request),
+    ) {
+    return Err(LogicalIdentityUnsupported)
+  }
+  if @connector.managed_fixed_compute_request_capacity(request).common_fragment
+    is Some(common) &&
+    !@execution.generated_satisfies_requirements(sequence, common) {
+    return Err(ForeignPreparation)
+  }
+  if !physical_equal(
+      @execution.generated_sequence_owner(sequence),
+      @connector.managed_fixed_compute_request_owner(request),
+    ) {
+    return Err(ForeignPreparation)
+  }
+  @connector.bind_managed_compute_candidate(
+    registration, request, sequence, 5, estimates, quantities, max_entries,
+  )
+}
+
+///|
+/// Execute the same checked Local evaluator after registered representation
+/// providers have produced scoped ordinary reads for every managed input.
+pub fn[T] execute_local_managed_fixed_compute(
+  choice : @connector.ManagedFixedComputeChoice[T],
+  prepared : @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
+  inputs : Array[@execution.ProducerRead],
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  join_output_ceiling? : (Int, Int64)? = None,
+) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
+  guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
+    is Some(sequence) else {
+    return Err(NotSelected)
+  }
+  let request = @connector.managed_fixed_compute_candidate_request(
+    @connector.prepared_managed_compute_candidate(prepared),
+  )
+  let managed = @connector.managed_fixed_compute_request_inputs(request)
+  if managed.length() != inputs.length() {
+    return Err(UnsupportedInputShape)
+  }
+  for index, input in inputs {
+    if !physical_equal(
+        @execution.producer_read_receiver(input),
+        @execution.managed_producer_read_receiver(managed[index]),
+      ) ||
+      @execution.producer_read_input_index(input) != index ||
+      !@execution.producer_read_available(input) {
+      return Err(ForeignPreparation)
+    }
+  }
+  let constrained = match join_output_ceiling {
+    None => sequence
+    Some((step, ceiling)) =>
+      match
+        @execution.constrain_generated_join_output(sequence, step, ceiling) {
+        Ok(value) => value
+        Err(issue) => return Err(Execution(issue))
+      }
+  }
+  guard @lower.preparation_output_target(
+      @lower.bound_preparation(
+        @connector.managed_fixed_compute_request_owner(request),
+      ),
+    )
+    is Some(target) else {
+    return Err(UnsupportedInputShape)
+  }
+  match
+    @execution.execute_fixed_producers_guarded(
+      constrained,
+      inputs,
+      target,
+      limits,
+      max_rows=@connector.managed_fixed_compute_request_capacity(request).max_rows,
+      max_value_bytes=@connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
+      measurement,
+    ) {
+    Err(issue) =>
+      Err(
+        match issue {
+          Execution(failure) => Execution(failure)
+          _ => Guard(issue)
+        },
+      )
+    Ok(completed) =>
+      match @execution.completed_output(completed, target) {
+        Some(output) => Ok(output)
+        None => Err(UnsupportedInputShape)
+      }
+  }
+}
+
+///|
 /// Prepare this connector's execution and capacity without running admission or
 /// calculation. The common task driver owns reservation and success publication.
 pub fn prepare_local_compute_execution(

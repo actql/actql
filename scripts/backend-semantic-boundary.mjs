@@ -12,14 +12,17 @@ const forbiddenReaders = new Map([
 export function semanticBoundaryViolations(source, aliases, ownedProducerBinding = false) {
   let code = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g, ' ');
   if (ownedProducerBinding) {
-    // The sole frontend escape retained in the engine checks the exact producer
-    // owner and target. Do not exempt this file's operation/schema exploration.
+    // The sole frontend escape retained in the engine checks exact producer or
+    // checked Result-port ownership. Do not exempt this file's operation/schema
+    // exploration.
     for (const call of [
       '@lower.pipeline(@lower.bound_preparation(receiver))',
       '@lower.pipeline(@lower.bound_preparation(expected_producer))',
       '@pipeline.input_producer(pipeline, input_index)',
       '@pipeline.producer_pipeline(producer)',
       '@pipeline.producer_target(producer)',
+      '@pipeline.producer_pipeline(@results.port_input(port))',
+      '@lower.pipeline(@lower.bound_preparation(owner))',
     ]) code = code.replace(call, 'opaque_owner');
   }
   return [...code.matchAll(/@([A-Za-z_][\w]*)\.([A-Za-z_][\w]*)\s*\(/g)]

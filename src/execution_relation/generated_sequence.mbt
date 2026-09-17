@@ -129,6 +129,27 @@ pub fn generated_retained_count(generated : GeneratedSequence) -> Int {
 }
 
 ///|
+/// Finite Local-managed support predicate. It recognizes only a non-empty
+/// sequence of checked projection kernels; adding another operation never
+/// silently broadens this initial product connection.
+pub fn generated_sequence_is_projection_only(
+  generated : GeneratedSequence,
+) -> Bool {
+  let count = @lower.sequence_count(generated.sequence)
+  if count == 0 {
+    return false
+  }
+  for index in 0..<count {
+    guard @lower.sequence_step(generated.sequence, index)
+      is Some(@lower.RowStep(kernel)) &&
+      @lower.kernel_is_projection(kernel) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Bounded, non-copying inspection; never exposes the retained array.
 pub fn generated_retained_at(
   generated : GeneratedSequence,

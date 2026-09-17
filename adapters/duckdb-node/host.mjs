@@ -22,7 +22,8 @@ import {registerManagedInput} from '../store-local/managed-representations.mjs';
 import {managedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
 import {encodeManagedColumnFrame,
-  managedColumnCodecContractCid} from './managed-column-codec.mjs';
+  managedColumnCodecContractCid,
+  managedColumnRowProvider} from './managed-column-codec.mjs';
 export {runManagedColumnStrategyHostCompute} from './managed-strategy-compute.mjs';
 export {encodeManagedColumnFrame,
   managedColumnCodecContractCid} from './managed-column-codec.mjs';
@@ -732,19 +733,21 @@ async function runHostCompute(
       if (material == null) {
         throw new DuckDBTransportError('MissingManagedOutputMaterial');
       }
+      const physicalRepresentation = managedPhysicalRepresentation(
+        body,
+        managedRows,
+        managedColumnCodecContractCid,
+        managedFieldsFrame,
+        managedStorageOrder,
+      );
       registerManagedInput(
         material,
         input => moon.managedInputMatchesMaterial(input, material),
         store,
         body,
         managedColumnCodecContractCid,
-        managedPhysicalRepresentation(
-          body,
-          managedRows,
-          managedColumnCodecContractCid,
-          managedFieldsFrame,
-          managedStorageOrder,
-        ).manifest,
+        physicalRepresentation.manifest,
+        managedColumnRowProvider(physicalRepresentation.schemaContract),
       );
       const outputMeasurement = checked(
         moon.managedOutputMeasurements(managedOutput),

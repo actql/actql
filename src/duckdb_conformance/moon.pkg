@@ -13,6 +13,7 @@ import {
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/local" @local_connector,
+  "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_resources" @resources,
   "actql/actql/canonical_json" @identity,

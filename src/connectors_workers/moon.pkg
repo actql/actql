@@ -4,5 +4,6 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host,
-  "actql/actql/connectors/local/driver" @binding2,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/connectors/local/driver" @binding3,
 }

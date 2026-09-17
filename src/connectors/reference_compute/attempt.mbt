@@ -170,3 +170,60 @@ pub fn execute_numeric_attempt(
     }
   }
 }
+
+///|
+/// Execute the independent numeric specialization for one selected managed
+/// candidate. The exact bridged ProducerRead remains ordinary checked input;
+/// this function neither accepts a caller-supplied output nor establishes a
+/// logical identity.
+pub fn[T] execute_managed_numeric_output(
+  choice : @connector.ManagedFixedComputeChoice[T],
+  prepared : @connector.PreparedManagedCompute[T, ManagedNumericCompute[T]],
+  input : @execution.ProducerRead,
+  generated : @execution.CompletionPreparation,
+  limits : NumericExecutionLimits,
+  live : () -> Bool,
+) -> Result[@execution.CompletedOutput, PlanIssue] {
+  guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
+    is Some(compute) &&
+    physical_equal(
+      @execution.completion_preparation_owner(generated),
+      compute.plan.owner,
+    ) &&
+    live() else {
+    return Err(ManagedCandidate(@connector.NotSelected))
+  }
+  let capacity = @connector.managed_fixed_compute_request_capacity(
+    compute.request,
+  )
+  let measured = match
+    measure_numeric_output(
+      compute.plan,
+      input,
+      limits.max_work,
+      capacity.max_rows,
+      capacity.max_value_bytes,
+      limits.values,
+      limits.physical,
+      root_limits=limits.roots,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let completed = match
+    complete_numeric_output(
+      generated,
+      measured,
+      limits.max_entries,
+      limits.max_name_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    @execution.restrict_completed_output(
+      numeric_completed_output(completed),
+      live,
+    ),
+  )
+}

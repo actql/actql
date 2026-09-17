@@ -9,7 +9,6 @@ test('managed identity policy is opaque, immutable and defaults to local use', (
   assert.deepEqual(preparedManagedIdentityPolicy(undefined), {
     publication: false,
     consumer: false,
-    hostPolicy: false,
   });
   const policy = prepareManagedIdentityPolicy({
     publication: true,
@@ -19,11 +18,14 @@ test('managed identity policy is opaque, immutable and defaults to local use', (
   assert.deepEqual(preparedManagedIdentityPolicy(policy), {
     publication: true,
     consumer: true,
-    hostPolicy: false,
   });
   assert.throws(() => preparedManagedIdentityPolicy({...policy}), TypeError);
   assert.throws(
     () => prepareManagedIdentityPolicy({publication: 1}),
+    TypeError,
+  );
+  assert.throws(
+    () => prepareManagedIdentityPolicy({hostPolicy: true}),
     TypeError,
   );
 });

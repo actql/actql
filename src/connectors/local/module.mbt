@@ -5,6 +5,7 @@ struct LocalComputeModule {
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
   sequences : Array[@execution.GeneratedSequence]
+  managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   max_work : Int
@@ -30,6 +31,7 @@ pub fn prepare_local_compute_module(
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_work : Int,
   max_sequences : Int,
+  managed_capacity? : @connector.FixedComputeCapacity,
 ) -> Result[LocalComputeModule, @connector.FixedComputeIssue] {
   if max_work < 1 || max_sequences < 0 || sequences.length() > max_sequences {
     return Err(InvalidLimits)
@@ -44,10 +46,86 @@ pub fn prepare_local_compute_module(
     registry,
     registration,
     sequences: sequences.copy(),
+    managed_capacity: managed_capacity.unwrap_or({
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: execution.rows.max_rows,
+      max_value_bytes: measurement.max_bytes,
+      common_fragment: None,
+    }),
     execution,
     measurement,
     max_work,
   })
+}
+
+///|
+/// Pure product preparation for the finite managed Local connection. No
+/// representation is opened and no task reservation is started here.
+pub fn[T] prepare_local_module_managed_compute(
+  installed : LocalComputeModule,
+  slot : Int,
+  request : @connector.ManagedFixedComputeRequest[T],
+) -> Result[
+  (
+    @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
+    @connector.ManagedFixedComputeChoice[T],
+  ),
+  LocalModuleIssue,
+] {
+  guard installed.sequences.get(slot) is Some(sequence) else {
+    return Err(Candidate(ComputeUnsupported))
+  }
+  let candidate = match
+    local_managed_fixed_compute_candidate(
+      installed.registration,
+      request,
+      sequence,
+      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      installed.max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(issue))
+  }
+  let choice = match
+    @connector.choose_managed_fixed_compute_candidate(
+      installed.registry,
+      request,
+      [@connector.prepared_managed_compute_candidate(candidate)],
+      None,
+      installed.max_work,
+    ) {
+    Ok(Proposed(value)) => value
+    Ok(_) => return Err(NotSelected)
+    Err(issue) => return Err(Candidate(issue))
+  }
+  Ok((candidate, choice))
+}
+
+///|
+pub fn local_module_managed_capacity(
+  installed : LocalComputeModule,
+) -> @connector.FixedComputeCapacity {
+  installed.managed_capacity
+}
+
+///|
+pub fn local_module_execution_limits(
+  installed : LocalComputeModule,
+) -> @execution.SequenceExecutionLimits {
+  installed.execution
+}
+
+///|
+pub fn local_module_measurement_limits(
+  installed : LocalComputeModule,
+) -> @execution.FixedInputGuardMeasureLimits {
+  installed.measurement
+}
+
+///|
+pub fn local_module_max_work(installed : LocalComputeModule) -> Int {
+  installed.max_work
 }
 
 ///|

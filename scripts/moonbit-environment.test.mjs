@@ -10,7 +10,7 @@ import { installationFiles, verifyInstallation } from './moonbit-installation.mj
 
 test('CI installs and exposes the pinned formatter before documentation checks', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  const steps = workflow.jobs.check.steps;
+  const steps = workflow.jobs.documents.steps;
   const installation = steps.findIndex(step => /node scripts\/setup-moonbit\.mjs/.test(step.run ?? ''));
   const documentation = steps.findIndex(step => /npm run check:docs/.test(step.run ?? ''));
   assert.ok(installation >= 0 && documentation >= 0, 'CI must install MoonBit and run documentation checks');

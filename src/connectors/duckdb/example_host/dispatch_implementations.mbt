@@ -15,6 +15,10 @@ fn local_dispatch_issue(
     Dispatch(issue) => dispatch_driver_issue(issue)
     Execution(issue) => Run(issue)
     Search(issue) => Search(issue)
+    ManagedValues(_) => InvalidConfiguration
+    ManagedCopy(_) => InvalidConfiguration
+    ManagedRetention(_) => InvalidConfiguration
+    ManagedCompletion(_) => InvalidConfiguration
   }
 }
 

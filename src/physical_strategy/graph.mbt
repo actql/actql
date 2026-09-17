@@ -21,6 +21,15 @@ struct CheckedDAG {
   data : Array[DataEdge]
   control : Array[ControlEdge]
   operations : Array[Array[TaskOperationRequirement]]
+  results : Array[CheckedResultOccurrence]
+}
+
+///|
+/// Exact checked root export. An authored alias and its ResultPort form one
+/// publication occurrence; graph terminality is not publication evidence.
+priv struct CheckedResultOccurrence {
+  task : Int
+  occurrence : @execution.ManagedResultOccurrence
 }
 
 ///|
@@ -260,7 +269,28 @@ pub fn prepare_checked_dag(
     }
     operations[site.stage].push({ site, disposition, })
   }
-  Ok({ program, owners: owners.copy(), data, control, operations, })
+  let wiring = @context.program_incoming_wiring(incoming)
+  let results : Array[CheckedResultOccurrence] = []
+  for index in 0..<@results.export_count(wiring) {
+    let result_export = @results.export_at(wiring, index).unwrap()
+    let task = @stages.stage_index(
+      @results.stage_port_source(@results.export_stage(result_export)),
+    )
+    guard owners.get(task) is Some(owner) else {
+      return Err(ForeignPort(task, index))
+    }
+    let occurrence = match
+      @execution.bind_managed_result_occurrence(
+        owner,
+        @results.export_name(result_export),
+        @results.export_port(result_export),
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(ForeignPort(task, index))
+    }
+    results.push({ task, occurrence, })
+  }
+  Ok({ program, owners: owners.copy(), data, control, operations, results, })
 }
 
 ///|

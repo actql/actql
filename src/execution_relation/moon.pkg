@@ -8,6 +8,7 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_results" @results,
   "actql/actql/decode_core" @decode,
   "actql/actql/source_value" @source,
   "actql/actql/relation_evidence" @evidence,

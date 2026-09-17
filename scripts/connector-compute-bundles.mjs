@@ -28,13 +28,19 @@ export function generateComputeAssembly(entries) {
   for (const {name, manifest: m} of entries) {
     const managed = Object.hasOwn(m, 'managed_dispatch') ||
       Object.hasOwn(m, 'managed_dispatch_result');
+    const managedStart = Object.hasOwn(m, 'managed_start') ||
+      Object.hasOwn(m, 'managed_start_result');
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
         (managed && (!identifier(m.managed_dispatch) ||
           !keys(m.managed_dispatch_result, ['package', 'type']) ||
           !packageName(m.managed_dispatch_result.package) ||
           !typeName(m.managed_dispatch_result.type))) ||
+        (managedStart && (!managed || !identifier(m.managed_start) ||
+          !keys(m.managed_start_result, ['package', 'type']) ||
+          !packageName(m.managed_start_result.package) ||
+          !typeName(m.managed_start_result.type))) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
         !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
@@ -63,6 +69,7 @@ export function generateComputeAssembly(entries) {
       alias(result.package);
     }
     if (managed) alias(m.managed_dispatch_result.package);
+    if (managedStart) alias(m.managed_start_result.package);
     for (const error of [m.dispatch_error, m.estimate_error]) {
       if (!keys(error, ['package', 'type']) || !packageName(error.package) || !typeName(error.type)) {
         throw new Error('Invalid Compute error projection');

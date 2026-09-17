@@ -164,6 +164,88 @@ test('opaque registrations choose installed execution without a backend classifi
   assert.equal(f.closed(), 1);
 });
 
+test('managed equal-cost choice is stable when installation order is reversed', async () => {
+  for (const reverse of [false, true]) {
+    const setup = {}, registrations = {a: {}, z: {}};
+    let completed = false, selected, ran;
+    const core = {
+      count: () => 2,
+      nextTask: () => completed ? -1 : 1,
+      managedProducers: () => completed ? [] : [0],
+      selectManaged: (_, task, registration) => {
+        assert.equal(task, 1);
+        selected = registration;
+        return true;
+      },
+      managedMatches: () => true,
+      completed: () => completed,
+      finished: () => completed,
+      stop: () => {},
+      closeOutputs: () => {},
+      output: () => undefined,
+      usage: () => ({}),
+      explain: () => ({}),
+    };
+    const entries = Object.entries(registrations).map(([key, registration]) => ({
+      registration,
+      managedSelectionKey: key,
+      run() { assert.fail('legacy run'); },
+      prepareNext() {
+        return completed ? undefined : {task: 1, durationMilliseconds: 5n};
+      },
+      runPrepared() {
+        ran = key;
+        completed = true;
+        return {completed: {}, material: {}};
+      },
+    }));
+    if (reverse) entries.reverse();
+    const result = await runInstalledStrategy(setup, core, entries);
+    assert.equal(result.status, 'host-tasks-completed');
+    assert.equal(ran, 'a');
+    assert.equal(selected, registrations.a);
+  }
+});
+
+test('managed choice compares known cost before its stable registration key', async () => {
+  const setup = {}, registrations = {cheap: {}, expensive: {}, unknown: {}};
+  let completed = false, ran;
+  const core = {
+    count: () => 2,
+    nextTask: () => completed ? -1 : 1,
+    managedProducers: () => completed ? [] : [0],
+    selectManaged: () => true,
+    managedMatches: () => true,
+    completed: () => completed,
+    finished: () => completed,
+    stop: () => {},
+    closeOutputs: () => {},
+    output: () => undefined,
+    usage: () => ({}),
+    explain: () => ({}),
+  };
+  const costs = {cheap: 1n, expensive: 10n, unknown: null};
+  const entries = ['unknown', 'expensive', 'cheap'].map(key => ({
+    registration: registrations[key],
+    managedSelectionKey: key,
+    run() { assert.fail('legacy run'); },
+    prepareNext() {
+      return completed ? undefined : {
+        task: 1,
+        durationMilliseconds: costs[key],
+      };
+    },
+    runPrepared() {
+      ran = key;
+      completed = true;
+      return {completed: {}, material: {}};
+    },
+  }));
+  const result = await runInstalledStrategy(setup, core, entries);
+  assert.equal(result.status, 'host-tasks-completed');
+  assert.equal(ran, 'cheap');
+});
+
 test('equal names in foreign registration and callback success cannot publish completion', async () => {
   const registration = {name: 'same'};
   const foreign = fixture([{name: 'same'}]);

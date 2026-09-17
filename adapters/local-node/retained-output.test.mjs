@@ -50,6 +50,7 @@ function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
     close: () => {events.push('task-close');},
   };
   const moon = {strategyModule_local_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyModule_local_Dispatch: () => {events.push('reserved'); return ok(operations);}};
   const entry = localStrategyContribution(moon, {}, checked, configuration);
   return {entry, events, configuration, allocated: () => allocated, released: () => releaseCheck?.()};

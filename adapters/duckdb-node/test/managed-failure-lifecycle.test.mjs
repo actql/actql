@@ -67,6 +67,7 @@ export const withComputeDatabase=()=>{throw new Error('native must not start');}
     await writeFile(join(duckdb, 'managed-column-codec.mjs'), `
 export const managedColumnCodecContractCid='column';
 export const encodeManagedColumnFrame=()=>{throw new Error('encoder must not run');};
+export const managedColumnRowProvider=()=>{throw new Error('provider must not run');};
 `);
     await writeFile(join(duckdb, 'managed-parquet-codec.mjs'),
       "export const managedParquetCodecContractCid='parquet';\n");

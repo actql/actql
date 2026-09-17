@@ -3,6 +3,7 @@
 /// sequences and owns the interpretation of execution and measurement limits.
 pub(all) struct LocalComputeConfiguration {
   sequences : Array[@execution.GeneratedSequence]
+  managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   max_work : Int
@@ -23,5 +24,6 @@ pub fn configure_local_compute(
     configuration.execution,
     configuration.measurement,
     configuration.max_work,
+    managed_capacity=configuration.managed_capacity,
   ).map_err(_ => Configuration(InvalidLimits))
 }

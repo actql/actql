@@ -197,6 +197,14 @@ pub fn row_wire_cid(value : RowWireIdentity) -> String {
 }
 
 ///|
+/// Machine-contract pin that defines the ordered typed-wire row-array CID used
+/// by acquisition output and reused here. This is not a physical codec or a
+/// Result relation-envelope identity.
+pub fn ordered_rows_canonical_contract_cid() -> String {
+  "sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1"
+}
+
+///|
 pub fn row_wire_usage(value : RowWireIdentity) -> (Int, Int, Int) {
   (value.bytes, value.nodes, value.rows)
 }

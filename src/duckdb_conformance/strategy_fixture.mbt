@@ -570,6 +570,69 @@ pub fn strategy_fixture_managed_request_input_count(
 }
 
 ///|
+/// Independent expectation view for the Host-owned obligation derivation.
+/// This diagnostic is not an identity capability and cannot establish a CID.
+#export_name("strategyFixtureManagedObligationLabels")
+pub fn strategy_fixture_managed_obligation_labels(
+  f : StrategyFixture,
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Array[String] {
+  guard f.run is Some(run) &&
+    @strategy.configure_captured_managed_identity_policy(
+      run, publication, consumer, host_policy,
+    ) else {
+    return []
+  }
+  let obligations = match @strategy.captured_next_managed_obligations(run, 64) {
+    Ok(value) => value
+    Err(_) => return []
+  }
+  @execution.managed_obligations_identities(obligations).map(identity => {
+    let domain = match identity.domain {
+      LogicalRow => "logical-row"
+      OrderedRows => "ordered-rows"
+      LogicalRelation => "logical-relation"
+    }
+    let subject = match identity.subject {
+      ReceivedValidationRows => "received-validation-rows"
+      ReceivedNativeRows => "received-native-rows"
+      AcquisitionOutput => "acquisition-output"
+      TaskOutput => "task-output"
+      NamedResult => "named-result"
+    }
+    let deadline = match identity.need {
+      UnestablishedRetained => "retained"
+      EstablishedBy(BeforeCidOperation) => "before-cid-operation"
+      EstablishedBy(BeforePublication) => "before-publication"
+      EstablishedBy(BeforeDiscard) => "before-discard"
+    }
+    let occurrence = identity.occurrence
+      .map(@execution.managed_result_occurrence_name)
+      .unwrap_or("-")
+    domain + ":" + subject + ":" + deadline + ":" + occurrence
+  })
+}
+
+///|
+/// Independent pre-start policy-admission diagnostic. False means the checked
+/// Program requests a publication family outside this managed Compute profile;
+/// it is not a connector support decision.
+#export_name("strategyFixtureManagedPolicyAccepted")
+pub fn strategy_fixture_managed_policy_accepted(
+  f : StrategyFixture,
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Bool {
+  guard f.run is Some(run) else { return false }
+  @strategy.configure_captured_managed_identity_policy(
+    run, publication, consumer, host_policy,
+  )
+}
+
+///|
 #export_name("strategyFixtureManagedRequestAccepts")
 pub fn strategy_fixture_managed_request_accepts(
   input : @execution.ManagedProducerRead[Int],
@@ -612,9 +675,10 @@ pub fn strategy_fixture_managed_identity_candidate_accepts(
     owner,
     [
       {
-        domain: LogicalRelation,
-        subject: NamedResult,
-        need: EstablishedBy(BeforePublication),
+        domain: OrderedRows,
+        subject: TaskOutput,
+        occurrence: None,
+        need: EstablishedBy(BeforeCidOperation),
       },
     ],
     LogicalContentAddressed,

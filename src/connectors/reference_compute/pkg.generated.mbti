@@ -16,6 +16,8 @@ pub fn close_numeric_output(CompletedNumericOutput) -> Unit
 
 pub fn complete_numeric_output(@execution_relation.CompletionPreparation, MeasuredNumericOutput, Int, Int) -> Result[CompletedNumericOutput, PlanIssue]
 
+pub fn[T] execute_managed_numeric_output(@connector_sdk.ManagedFixedComputeChoice[T], @connector_sdk.PreparedManagedCompute[T, ManagedNumericCompute[T]], @execution_relation.ProducerRead, @execution_relation.CompletionPreparation, NumericExecutionLimits, () -> Bool) -> Result[@execution_relation.CompletedOutput, PlanIssue]
+
 pub fn execute_numeric_attempt(NumericAttempt) -> Result[Unit, PlanIssue]
 
 pub fn materialize_numeric_output(NumericPlan, @execution_relation.ProducerRead, Int, Int, @execution_relation.ValueLimits) -> Result[@execution_relation.AdmittedOutputRows, PlanIssue]
@@ -36,6 +38,8 @@ pub fn numeric_execution_capacity(NumericExecutionLimits) -> Result[@connector_s
 
 pub fn numeric_plan_owner(NumericPlan) -> @lowering_relation.BoundPrepared
 
+pub fn[T] offer_managed_numeric_compute(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], Int, Int, @lowering_relation.ExpressionLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities) -> Result[@connector_sdk.PreparedManagedCompute[T, ManagedNumericCompute[T]], PlanIssue]
+
 pub fn offer_numeric_compute(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, Int, Int, @lowering_relation.ExpressionLimits, Int, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities) -> Result[@connector_sdk.PreparedCompute[NumericCompute], PlanIssue]
 
 pub fn[E, P] prepare_numeric_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[NumericCompute], @execution_relation.CompletionPreparation, NumericExecutionLimits, (PlanIssue) -> E) -> Result[@connector_sdk.PreparedExecution[NumericAttempt, E, P], PlanIssue]
@@ -50,6 +54,8 @@ pub fn select_numeric_rows(NumericPlan, @execution_relation.ProducerRead, Int) -
 
 // Types and methods
 type CompletedNumericOutput
+
+type ManagedNumericCompute[T]
 
 type MeasuredNumericOutput
 
@@ -83,6 +89,8 @@ pub(all) enum PlanIssue {
   RootMeasurement(Int, Int, @encode_core.EncodeFailure)
   Completion(@execution_relation.TrustedOutputIssue)
   Candidate(@connector_sdk.FixedComputeIssue)
+  ManagedCandidate(@connector_sdk.FixedComputeIssue)
+  ManagedBridge(@execution_relation.ManagedProducerBridgeIssue)
 }
 
 // Type aliases

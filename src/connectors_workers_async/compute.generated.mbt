@@ -7,9 +7,9 @@ pub fn[E] assemble_compute_contributions(
   registry : @connector.CapabilityRegistry,
   max_entries : Int,
   with_reference_compute? : (
-    @binding2.NumericComputeContribution,
-    (@binding3.RunIssue) -> E,
-    (@binding3.RunIssue) -> E,
+    @binding3.NumericComputeContribution,
+    (@binding4.RunIssue) -> E,
+    (@binding4.RunIssue) -> E,
   )? = None,
 ) -> Result[
   @connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]],
@@ -31,8 +31,8 @@ pub fn[E] assemble_compute_contributions(
   if with_reference_compute is Some((installed, dispatch_issue, estimate_issue)) {
     entries.push(
       (
-        @binding2.numeric_contribution_registration(installed),
-        @binding2.numeric_compute_contribution(
+        @binding3.numeric_contribution_registration(installed),
+        @binding3.numeric_compute_contribution(
           installed, dispatch_issue, estimate_issue,
         ),
       ),
@@ -50,9 +50,9 @@ pub fn[E] assemble_compute_contributions(
 struct ConfiguredComputeModules[E] {
   driver : @host.DispatchDriver
   installed_reference_compute : (
-    @binding2.NumericComputeContribution,
-    (@binding3.RunIssue) -> E,
-    (@binding3.RunIssue) -> E,
+    @binding3.NumericComputeContribution,
+    (@binding4.RunIssue) -> E,
+    (@binding4.RunIssue) -> E,
   )?
   contributions : @connector.CapabilityImplementations[
     @host.ComputeContribution[Unit, E],
@@ -69,9 +69,9 @@ pub fn[E] configure_compute_modules(
   installation_issue : (@connector.CapabilityInstallationIssue) -> E,
   with_reference_compute? : (
     @connector.CapabilityRegistration,
-    @binding2.NumericComputeConfiguration,
-    (@binding3.RunIssue) -> E,
-    (@binding3.RunIssue) -> E,
+    @binding3.NumericComputeConfiguration,
+    (@binding4.RunIssue) -> E,
+    (@binding4.RunIssue) -> E,
   )? = None,
 ) -> Result[ConfiguredComputeModules[E], E] {
   let registrations : Array[(@connector.CapabilityRegistration, Unit)] = []
@@ -89,7 +89,7 @@ pub fn[E] configure_compute_modules(
     None => None
     Some((registration, configuration, dispatch_issue, estimate_issue)) =>
       match
-        @binding2.configure_numeric_compute(
+        @binding3.configure_numeric_compute(
           driver, registry, registration, configuration,
         ) {
         Ok(installed) => Some((installed, dispatch_issue, estimate_issue))
@@ -118,7 +118,7 @@ pub fn[E] configured_compute_contributions(
 ///|
 pub fn[E] configured_reference_compute_module(
   value : ConfiguredComputeModules[E],
-) -> @binding2.NumericComputeContribution? {
+) -> @binding3.NumericComputeContribution? {
   value.installed_reference_compute.map(value => value.0)
 }
 
@@ -150,9 +150,29 @@ pub fn[C, E] dispatch_reference_compute(
   match value.installed_reference_compute {
     None => Err(MissingImplementation)
     Some((installed, project, _)) =>
-      @binding2.execute_numeric_contribution(installed, host, task).map_err(issue => {
+      @binding3.execute_numeric_contribution(installed, host, task).map_err(issue => {
         Implementation(project(issue))
       })
+  }
+}
+
+///|
+/// Prepare one managed task through the configured implementation.
+pub fn[E] dispatch_managed_reference_compute(
+  value : ConfiguredComputeModules[E],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  obligations : @execution.ManagedObligations,
+  output_file_bytes : Int64,
+) -> Result[
+  @binding3.NumericManagedDispatchConfiguration[Int],
+  ConfiguredDispatchIssue[E],
+] {
+  match value.installed_reference_compute {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding3.prepare_numeric_managed_dispatch(
+        installed, completed, obligations, output_file_bytes,
+      ).map_err(issue => Implementation(project(issue)))
   }
 }
 
@@ -217,9 +237,9 @@ pub fn[E] execute_configured_in_process(
   if value.modules.installed_reference_compute is Some((installed, project, _)) &&
     physical_equal(
       selected,
-      @binding2.numeric_contribution_registration(installed),
+      @binding3.numeric_contribution_registration(installed),
     ) {
-    return @binding2.execute_numeric_contribution(
+    return @binding3.execute_numeric_contribution(
       installed,
       @host.compute_host_dispatch(value.runtime),
       task,

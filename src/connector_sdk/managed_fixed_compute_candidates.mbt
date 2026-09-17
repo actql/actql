@@ -107,9 +107,21 @@ pub fn[T] choose_managed_fixed_compute_candidate(
     }
     durations.push(candidate.duration)
   }
+  let effective_priority = match host_priority {
+    Some(order) => Some(order)
+    None => {
+      let positions = Array::makei(candidates.length(), index => index)
+      positions.sort_by((left, right) => {
+        capability_registration_selection_key(candidates[left].registration).compare(
+          capability_registration_selection_key(candidates[right].registration),
+        )
+      })
+      Some(positions)
+    }
+  }
   @cost.choose_serial(
     durations,
-    host_priority,
+    effective_priority,
     max_entries - candidates.length(),
   )
   .map_err(issue => FixedComputeIssue::Cost(issue))

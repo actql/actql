@@ -32,6 +32,8 @@ pub fn capability_registration_available(CapabilityRegistration) -> Bool
 
 pub fn capability_registration_matches(CapabilityRegistration, CapabilityRegistry) -> Bool
 
+pub fn capability_registration_selection_key(CapabilityRegistration) -> String
+
 pub fn choose_fixed_compute_candidate(CapabilityRegistry, FixedComputeRequest, Array[FixedComputeCandidate], Array[Int]?, Int) -> Result[FixedComputeSelection, FixedComputeIssue]
 
 pub fn[T] choose_managed_fixed_compute_candidate(CapabilityRegistry, ManagedFixedComputeRequest[T], Array[ManagedFixedComputeCandidate[T]], Array[Int]?, Int) -> Result[ManagedFixedComputeSelection[T], FixedComputeIssue]

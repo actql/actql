@@ -25,6 +25,147 @@ pub fn strategy_host_next(
 }
 
 ///|
+/// Producer indexes needed by the next managed task in exact input-port order.
+/// This exposes topology only; opaque completions are checked by preparation.
+#export_name("strategyHostManagedProducers")
+pub fn strategy_host_managed_producers(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_next_managed_producers(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+}
+
+///|
+/// Compatibility accessor for installed unary implementations.
+#export_name("strategyHostManagedProducer")
+pub fn strategy_host_managed_producer(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.captured_next_managed_producer(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+#export_name("strategyHostReleasableManagedProducers")
+pub fn strategy_host_releasable_managed_producers(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_releasable_managed_producers(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+}
+
+///|
+#export_name("strategyHostNextTask")
+pub fn strategy_host_next_task(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.next_captured_task(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+/// Install the trusted Host policy before connector preparation. These flags
+/// strengthen checked consumer and publication requirements; they are not
+/// Program-controlled optimization hints.
+#export_name("strategyHostConfigureManagedIdentity")
+pub fn strategy_host_configure_managed_identity(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Bool {
+  @strategy.configure_captured_managed_identity_policy(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    publication,
+    consumer,
+    host_policy,
+  )
+}
+
+///|
+/// Common scheduler derivation. Connector implementations receive this exact
+/// opaque obligation set and cannot substitute their own default profile.
+#export_name("strategyHostManagedObligations")
+pub fn strategy_host_managed_obligations(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @execution.ManagedObligations raise NodeHostFailure {
+  match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(host),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostManagedRequiresLogicalIdentity")
+pub fn strategy_host_managed_requires_logical_identity(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool raise NodeHostFailure {
+  @execution.managed_obligations_require_logical_identity(
+    strategy_host_managed_obligations(host),
+  )
+}
+
+///|
+#export_name("strategyHostRegistrationSelectionKey")
+pub fn strategy_host_registration_selection_key(
+  registration : @connector.CapabilityRegistration,
+) -> String {
+  @connector.capability_registration_selection_key(registration)
+}
+
+///|
+/// Commit the common Host's registration-order-independent managed choice.
+/// This is not execution start, reservation, or material access.
+#export_name("strategyHostSelectManagedRegistration")
+pub fn strategy_host_select_managed_registration(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  registration : @connector.CapabilityRegistration,
+) -> Bool {
+  @strategy.select_captured_managed_registration(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    task,
+    registration,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyHostManagedOutputMatches")
+pub fn strategy_host_managed_output_matches(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
+#export_name("strategyHostManagedInputMatchesMaterial")
+pub fn strategy_host_managed_input_matches_material(
+  input : @execution.ManagedProducerRead[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Bool {
+  @execution.managed_producer_read_matches_material(input, material)
+}
+
+///|
 #export_name("strategyHostModules")
 pub fn strategy_host_modules(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -246,6 +387,47 @@ pub fn local_dispatch(
   }
 }
 
+///|
+#export_name("strategyModule_local_ManagedDispatch")
+pub fn local_managed_dispatch(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  output_file_bytes : Int64,
+) -> @local_driver.LocalManagedDispatchConfiguration[Int] raise NodeHostFailure {
+  let obligations = match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(setup),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @builtin.dispatch_managed_local(
+      @builtin.configured_host_modules(setup),
+      completed,
+      obligations,
+      output_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(MissingImplementation) => raise InvalidCommand
+    Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyModule_local_ManagedStart")
+pub fn local_managed_start(
+  setup : @local_driver.LocalManagedDispatchConfiguration[Int],
+) -> @local_driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @local_driver.start_local_managed_dispatch_node(setup) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
 // Generated by scripts/connector-node-bundles.mjs; edit the common template or manifests.
 
 ///|
@@ -270,6 +452,147 @@ pub fn async_strategy_host_next(
     Ok(value) => value
     Err(issue) => raise Dispatch(issue)
   }
+}
+
+///|
+/// Producer indexes needed by the next managed task in exact input-port order.
+/// This exposes topology only; opaque completions are checked by preparation.
+#export_name("asyncStrategyHostManagedProducers")
+pub fn async_strategy_host_managed_producers(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_next_managed_producers(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+}
+
+///|
+/// Compatibility accessor for installed unary implementations.
+#export_name("asyncStrategyHostManagedProducer")
+pub fn async_strategy_host_managed_producer(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.captured_next_managed_producer(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+#export_name("asyncStrategyHostReleasableManagedProducers")
+pub fn async_strategy_host_releasable_managed_producers(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_releasable_managed_producers(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostNextTask")
+pub fn async_strategy_host_next_task(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.next_captured_task(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
+/// Install the trusted Host policy before connector preparation. These flags
+/// strengthen checked consumer and publication requirements; they are not
+/// Program-controlled optimization hints.
+#export_name("asyncStrategyHostConfigureManagedIdentity")
+pub fn async_strategy_host_configure_managed_identity(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  publication : Bool,
+  consumer : Bool,
+  host_policy : Bool,
+) -> Bool {
+  @strategy.configure_captured_managed_identity_policy(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+    publication,
+    consumer,
+    host_policy,
+  )
+}
+
+///|
+/// Common scheduler derivation. Connector implementations receive this exact
+/// opaque obligation set and cannot substitute their own default profile.
+#export_name("asyncStrategyHostManagedObligations")
+pub fn async_strategy_host_managed_obligations(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @execution.ManagedObligations raise AsyncHostFailure {
+  match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+      @host_driver.compute_host_max_entries(
+        @probe.configured_host_runtime(host),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyHostManagedRequiresLogicalIdentity")
+pub fn async_strategy_host_managed_requires_logical_identity(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool raise AsyncHostFailure {
+  @execution.managed_obligations_require_logical_identity(
+    async_strategy_host_managed_obligations(host),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostRegistrationSelectionKey")
+pub fn async_strategy_host_registration_selection_key(
+  registration : @connector.CapabilityRegistration,
+) -> String {
+  @connector.capability_registration_selection_key(registration)
+}
+
+///|
+/// Commit the common Host's registration-order-independent managed choice.
+/// This is not execution start, reservation, or material access.
+#export_name("asyncStrategyHostSelectManagedRegistration")
+pub fn async_strategy_host_select_managed_registration(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  registration : @connector.CapabilityRegistration,
+) -> Bool {
+  @strategy.select_captured_managed_registration(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+    task,
+    registration,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyHostManagedOutputMatches")
+pub fn async_strategy_host_managed_output_matches(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  let run = @host_driver.dispatch_driver_run(
+    @probe.configured_host_driver(host),
+  )
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    return false
+  }
+  @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
+#export_name("asyncStrategyHostManagedInputMatchesMaterial")
+pub fn async_strategy_host_managed_input_matches_material(
+  input : @execution.ManagedProducerRead[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Bool {
+  @execution.managed_producer_read_matches_material(input, material)
 }
 
 ///|
@@ -493,5 +816,46 @@ pub fn reference_compute_dispatch(
     Ok(value) => value
     Err(MissingImplementation) => raise InvalidCommand
     Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyModule_reference_compute_ManagedDispatch")
+pub fn reference_compute_managed_dispatch(
+  setup : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  output_file_bytes : Int64,
+) -> @numeric_driver.NumericManagedDispatchConfiguration[Int] raise AsyncHostFailure {
+  let obligations = match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@probe.configured_host_driver(setup)),
+      @host_driver.compute_host_max_entries(
+        @probe.configured_host_runtime(setup),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @probe.dispatch_managed_reference_compute(
+      @probe.configured_host_modules(setup),
+      completed,
+      obligations,
+      output_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(MissingImplementation) => raise InvalidCommand
+    Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyModule_reference_compute_ManagedStart")
+pub fn reference_compute_managed_start(
+  setup : @numeric_driver.NumericManagedDispatchConfiguration[Int],
+) -> @numeric_driver.NumericManagedDispatchOperations[Int] raise AsyncHostFailure {
+  match @numeric_driver.start_numeric_managed_dispatch_node(setup) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
   }
 }

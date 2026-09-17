@@ -96,11 +96,48 @@ pub fn strategy_host_managed_obligations(
   match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
-      1,
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(host),
+      ),
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
+}
+
+///|
+#export_name("strategyHostManagedRequiresLogicalIdentity")
+pub fn strategy_host_managed_requires_logical_identity(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool raise NodeHostFailure {
+  @execution.managed_obligations_require_logical_identity(
+    strategy_host_managed_obligations(host),
+  )
+}
+
+///|
+#export_name("strategyHostRegistrationSelectionKey")
+pub fn strategy_host_registration_selection_key(
+  registration : @connector.CapabilityRegistration,
+) -> String {
+  @connector.capability_registration_selection_key(registration)
+}
+
+///|
+/// Commit the common Host's registration-order-independent managed choice.
+/// This is not execution start, reservation, or material access.
+#export_name("strategyHostSelectManagedRegistration")
+pub fn strategy_host_select_managed_registration(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+  registration : @connector.CapabilityRegistration,
+) -> Bool {
+  @strategy.select_captured_managed_registration(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    task,
+    registration,
+  )
+  is Ok(_)
 }
 
 ///|
@@ -117,6 +154,15 @@ pub fn strategy_host_managed_output_matches(
     return false
   }
   @strategy.captured_managed_task_output_matches(run, task, target, output)
+}
+
+///|
+#export_name("strategyHostManagedInputMatchesMaterial")
+pub fn strategy_host_managed_input_matches_material(
+  input : @execution.ManagedProducerRead[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Bool {
+  @execution.managed_producer_read_matches_material(input, material)
 }
 
 ///|
@@ -351,7 +397,9 @@ pub fn duckdb_managed_dispatch(
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
-      1,
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(setup),
+      ),
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -400,6 +448,47 @@ pub fn local_dispatch(
 }
 
 ///|
+#export_name("strategyModule_local_ManagedDispatch")
+pub fn local_managed_dispatch(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  output_file_bytes : Int64,
+) -> @binding8.LocalManagedDispatchConfiguration[Int] raise NodeHostFailure {
+  let obligations = match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(setup),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @builtin.dispatch_managed_local(
+      @builtin.configured_host_modules(setup),
+      completed,
+      obligations,
+      output_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(MissingImplementation) => raise InvalidCommand
+    Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyModule_local_ManagedStart")
+pub fn local_managed_start(
+  setup : @binding8.LocalManagedDispatchConfiguration[Int],
+) -> @binding8.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding8.start_local_managed_dispatch_node(setup) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyModule_reference_compute_Registration")
 pub fn reference_compute_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -428,5 +517,46 @@ pub fn reference_compute_dispatch(
     Ok(value) => value
     Err(MissingImplementation) => raise InvalidCommand
     Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyModule_reference_compute_ManagedDispatch")
+pub fn reference_compute_managed_dispatch(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
+  output_file_bytes : Int64,
+) -> @binding9.NumericManagedDispatchConfiguration[Int] raise NodeHostFailure {
+  let obligations = match
+    @strategy.captured_next_managed_obligations(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+      @host_driver.compute_host_max_entries(
+        @builtin.configured_host_runtime(setup),
+      ),
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match
+    @builtin.dispatch_managed_reference_compute(
+      @builtin.configured_host_modules(setup),
+      completed,
+      obligations,
+      output_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(MissingImplementation) => raise InvalidCommand
+    Err(Implementation(issue)) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyModule_reference_compute_ManagedStart")
+pub fn reference_compute_managed_start(
+  setup : @binding9.NumericManagedDispatchConfiguration[Int],
+) -> @binding9.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding9.start_numeric_managed_dispatch_node(setup) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
   }
 }
