@@ -180,9 +180,38 @@ fn local_json_pick_program() -> String {
 }
 
 ///|
+fn local_ordered_set_program(kind : String) -> String {
+  let operation = match kind {
+    "sort" => "{\"sort\":[{\"id\":\"asc\"}],\"as\":\"out\"}"
+    "take" => "{\"take\":{\"count\":2,\"offset\":1},\"as\":\"out\"}"
+    "distinct" => "{\"distinct\":true,\"as\":\"out\"}"
+    "dedupe_rows" =>
+      "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    _ => abort("unknown Local ordered/set fixture")
+  }
+  let prefix =
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":2,"amount":20},{"id":1,"amount":10},{"id":2,"amount":20},{"id":2,"amount":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[
+  let consumer =
+    #|,"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}}
+  prefix +
+  operation +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"amount\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+  consumer +
+  ",{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+  consumer +
+  "],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
 fn local_values_unary_program(kind : String) -> String {
   if kind == "json_pick" {
     return local_json_pick_program()
+  }
+  if kind == "sort" ||
+    kind == "take" ||
+    kind == "distinct" ||
+    kind == "dedupe_rows" {
+    return local_ordered_set_program(kind)
   }
   let operation = match kind {
     "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"

@@ -18,6 +18,17 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}},\"picked\":3}", "{\"id\":2,\"payload\":null,\"picked\":null}",
       ]
+    "sort" =>
+      [
+        "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}", "{\"id\":2,\"amount\":20}",
+        "{\"id\":2,\"amount\":30}",
+      ]
+    "take" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
+    "distinct" =>
+      [
+        "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
+      ]
+    "dedupe_rows" => ["{\"id\":2,\"amount\":30}", "{\"id\":1,\"amount\":10}"]
     _ => abort("unknown Local unary expectation")
   }
 }
@@ -27,6 +38,14 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
   if kind == "json_pick" {
     [
       "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}}", "{\"id\":2,\"payload\":null}",
+    ]
+  } else if kind == "sort" ||
+    kind == "take" ||
+    kind == "distinct" ||
+    kind == "dedupe_rows" {
+    [
+      "{\"amount\":20,\"id\":2}", "{\"amount\":10,\"id\":1}", "{\"amount\":20,\"id\":2}",
+      "{\"amount\":30,\"id\":2}",
     ]
   } else {
     ["{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}"]
@@ -161,7 +180,8 @@ test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
-      "drop", "json_pick", "assert_where", "assert_unique",
+      "drop", "json_pick", "assert_where", "assert_unique", "sort", "take", "distinct",
+      "dedupe_rows",
     ] {
     run_local_managed_unary_case(kind)
   }

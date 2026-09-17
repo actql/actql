@@ -88,8 +88,9 @@ pub fn local_managed_sequence_supported(
           | Select(_)
           | Limit(_, _, _)
           | StableSort(_)
+          | DistinctRows
+          | DedupeRows
           | CountGroups(_) => true
-          DistinctRows | DedupeRows => false
         }
       @lower.AppendStep(_) => true
       @lower.JoinStep(_) => false

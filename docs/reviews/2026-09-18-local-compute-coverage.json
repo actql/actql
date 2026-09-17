@@ -84,9 +84,9 @@
       "canonical_operations": ["REL.orderByStable"],
       "machine_registry": "registered",
       "variant_scope": ["ascending and descending", "NULLS FIRST and LAST", "compound keys", "stable ties", "parameter expressions"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/sort_encode_test.mbt"],"two_consumer_e2e":[],"conformance":["src/execution_relation/sort_sequence_wbtest.mbt"],"performance":[]},
-      "gaps": ["Stable managed execution and O(N log N)-class performance evidence are not yet complete."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/sort_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/sort_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Ascending stable sort reaches two managed consumers on three targets; descending, NULL placement, compound and parameter terms, and O(N log N)-class performance evidence remain."]
     },
     {
       "operation": "take",
@@ -95,9 +95,9 @@
       "canonical_operations": ["REL.limit"],
       "machine_registry": "registered",
       "variant_scope": ["literal and parameter count", "offset", "inherited order", "zero and boundary counts"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/take_encode_test.mbt"],"two_consumer_e2e":[],"conformance":["src/execution_relation/take_inherited_wbtest.mbt"],"performance":[]},
-      "gaps": ["Managed two-consumer coverage and required whole-input validation cases are absent."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/take_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/take_inherited_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Literal count and offset reach two managed consumers on three targets; parameter, zero/boundary, inherited-order, whole-input validation, and performance evidence remain."]
     },
     {
       "operation": "top_k",
@@ -249,9 +249,9 @@
       "canonical_operations": ["REL.distinct"],
       "machine_registry": "registered",
       "variant_scope": ["whole row", "selected compound key", "NULL equality", "representative order", "keyed projection"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"missing","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/distinct_encode_test.mbt"],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Managed eligibility, two-consumer execution, conformance matrix, and indexed performance evidence are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/distinct_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/distinct_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Whole-row first-occurrence distinct reaches two managed consumers on three targets; keyed compound projection, NULL and broad type conformance, and indexed performance evidence remain."]
     },
     {
       "operation": "dedupe_rows",
@@ -260,9 +260,9 @@
       "canonical_operations": ["REL.dedupeRows"],
       "machine_registry": "registered",
       "variant_scope": ["compound key", "ordering and tie policy", "NULL equality", "representative selection", "required tie failures"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"missing","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/dedupe_encode_test.mbt"],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Managed execution, representative-row conformance, and indexed performance evidence are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/dedupe_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/dedupe_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Single numeric key representative selection reaches two managed consumers on three targets; compound and nullable keys, tie failure through Host, broad type conformance, and indexed performance evidence remain."]
     },
     {
       "operation": "assert_rows",
