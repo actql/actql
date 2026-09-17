@@ -173,7 +173,17 @@ fn query_checked_program_fixture(
 }
 
 ///|
+fn local_json_pick_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"inner":{"type":"object","nullable":false,"fields":{"leaf":{"type":"number","nullable":false}}}}}},"rows":[{"id":1,"payload":{"inner":{"leaf":3}}},{"id":2,"payload":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"json_pick":{"column":"payload","path":["inner","leaf"],"output":"picked"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","payload","picked"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","payload","picked"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 fn local_values_unary_program(kind : String) -> String {
+  if kind == "json_pick" {
+    return local_json_pick_program()
+  }
   let operation = match kind {
     "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"
     "filter_structured" =>

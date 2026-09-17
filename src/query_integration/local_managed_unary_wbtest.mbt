@@ -14,7 +14,22 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       ]
     "rename" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
     "drop" => ["{\"id\":1}", "{\"id\":2}"]
+    "json_pick" =>
+      [
+        "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}},\"picked\":3}", "{\"id\":2,\"payload\":null,\"picked\":null}",
+      ]
     _ => abort("unknown Local unary expectation")
+  }
+}
+
+///|
+fn local_managed_unary_input_expected(kind : String) -> Array[String] {
+  if kind == "json_pick" {
+    [
+      "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}}", "{\"id\":2,\"payload\":null}",
+    ]
+  } else {
+    ["{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}"]
   }
 }
 
@@ -72,9 +87,7 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
     values_live,
   )
   let value_rows = local_managed_test_rows(values_ops)
-  assert_eq(value_rows, [
-    "{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}",
-  ])
+  assert_eq(value_rows, local_managed_unary_input_expected(kind))
 
   let unary_live = Ref(true)
   let (unary_ops, unary) = run_local_managed_test_task(
@@ -148,7 +161,7 @@ test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
-      "drop", "assert_where", "assert_unique",
+      "drop", "json_pick", "assert_where", "assert_unique",
     ] {
     run_local_managed_unary_case(kind)
   }

@@ -194,9 +194,9 @@
       "canonical_operations": ["REL.json.pick"],
       "machine_registry": "registered",
       "variant_scope": ["path selection", "missing and NULL values", "target typing", "invalid JSON shape", "parameter path components"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and typed JSON extraction execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/kernel_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/rows_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Nested typed-object extraction and nullable parents reach two managed consumers on three targets; missing-path and malformed retained-value failures, broader type conformance, budget boundaries, and performance evidence remain."]
     },
     {
       "operation": "unnest",
