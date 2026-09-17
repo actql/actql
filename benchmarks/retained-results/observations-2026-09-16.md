@@ -1134,3 +1134,32 @@ shared DB-plus-scratch capacity, acquisition evidence metadata parity, complete
 transfer/work equivalence, negative fixtures and final equivalent-obligation
 admission remain open. Observed timing is retained only as diagnostic output and
 must not be used as a registered speed ratio.
+
+### Fixed-revision independent resource admission follow-up
+
+The clean `6449c8507526caa6aa5a941f4c855bd570360ebc` revision repeated the
+same small matched case with the retained ActQL leg first and the independent
+leg second. Exact logical-accounting parity remained true. This follow-up
+closes the independent comparator's previously missing combined execution
+capacity admission; it is not an acceptance timing sample.
+
+Before opening DuckDB, the independent leg admitted one 2 GiB engine
+reservation plus 38,798,848 bytes of simultaneous bounded transport, semantic,
+container and SQL scratch. The resulting execution reservation was
+2,186,282,496 bytes under the registered 4 GiB ceiling. The execution ledger
+held that reservation during the leg and returned to zero after confirmed
+DuckDB close.
+
+Independent retention admitted an 84-byte output file and a 17,472-byte
+metadata allowance. The four serialized completion records used 1,932 bytes,
+so the settled holding was the exact 2,016 bytes rather than the allowance.
+The retention ledger reported a 12,287-byte peak while outputs were created
+and returned to zero after confirmed Store close.
+
+The pair remains `diagnostic-completed` and deliberately not acceptance
+eligible. Acquisition evidence metadata parity, complete expression-demand and
+guard failure parity, transfer/work accounting equivalence, complete negative
+fixtures and final equivalent-obligation admission remain open. The observed
+565.673 ms retained and 27.539 ms independent execution intervals are recorded
+only to identify this run; no ratio or performance conclusion is drawn from a
+single order-specific pair.
