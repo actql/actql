@@ -76,6 +76,7 @@ fn captured_graph_fixture(
   numeric_dag? : Bool = false,
   sort_take? : Bool = false,
   values? : Bool = false,
+  local_values_group_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
@@ -91,6 +92,7 @@ fn captured_graph_fixture(
     numeric_dag~,
     sort_take~,
     dag_values=values,
+    local_values_group_chain~,
     join_steps~,
     compute_filter~,
   )

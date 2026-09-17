@@ -238,9 +238,9 @@
       "canonical_operations": ["REL.groupBy"],
       "machine_registry": "registered",
       "variant_scope": ["empty and compound keys", "all aggregate bindings", "NULL keys and values", "empty input", "canonical output order", "aggregate overflow"],
-      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"missing","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/group_count_test.mbt"],"two_consumer_e2e":[],"conformance":["src/execution_relation/group_rows.mbt"],"performance":[]},
-      "gaps": ["Only count-group lowering exists; full aggregate variants, managed execution, and order evidence are missing."]
+      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/group_count_test.mbt","src/query_integration/local_managed_group_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_group_wbtest.mbt"],"conformance":["src/execution_relation/group_rows_wbtest.mbt","src/query_integration/local_managed_group_wbtest.mbt"],"performance":[]},
+      "gaps": ["Managed count-group covers NULL-first keys and two consumers; non-count aggregates, compound managed keys, and performance evidence remain."]
     },
     {
       "operation": "distinct",

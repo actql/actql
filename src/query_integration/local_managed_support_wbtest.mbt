@@ -13,7 +13,7 @@ test "initial Local managed support is a finite unary surface" {
     ),
     (
       "[{\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
-      false,
+      true,
     ),
   ]
   for (wire, expected) in shapes {
