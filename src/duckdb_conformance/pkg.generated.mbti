@@ -2,6 +2,7 @@
 package "actql/actql/duckdb_conformance"
 
 import {
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
@@ -295,6 +296,16 @@ pub fn strategy_fixture_local(StrategyFixture, Int) -> Bool
 pub fn strategy_fixture_managed_input(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> @execution_relation.ManagedProducerRead[Int]
 
 pub fn strategy_fixture_managed_output_matches(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> Bool
+
+pub fn strategy_fixture_managed_request(StrategyFixture, Int, @execution_relation.ManagedCompletedOutput[Int]) -> @connector_sdk.ManagedFixedComputeRequest[Int]
+
+pub fn strategy_fixture_managed_request_accepts(@execution_relation.ManagedProducerRead[Int], Int) -> Bool
+
+pub fn strategy_fixture_managed_request_input_count(@connector_sdk.ManagedFixedComputeRequest[Int]) -> Int
+
+pub fn strategy_fixture_managed_request_query(@connector_sdk.ManagedFixedComputeRequest[Int]) -> @adapter.ManagedFixedQuery[Int]
+
+pub fn strategy_fixture_managed_request_query_sql(@adapter.ManagedFixedQuery[Int]) -> Array[String]
 
 pub fn strategy_fixture_module_subset(StrategyFixture, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 

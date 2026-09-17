@@ -66,9 +66,21 @@ pub fn[A, C] installed_bundle_registry(InstalledBundles[A, C]) -> CapabilityRegi
 
 pub fn[A, C] installed_compute_implementations(InstalledBundles[A, C]) -> CapabilityImplementations[C]
 
+pub fn[T] managed_fixed_compute_request_capacity(ManagedFixedComputeRequest[T]) -> FixedComputeCapacity
+
+pub fn[T] managed_fixed_compute_request_input(ManagedFixedComputeRequest[T], Int) -> @execution_relation.ManagedProducerRead[T]?
+
+pub fn[T] managed_fixed_compute_request_input_count(ManagedFixedComputeRequest[T]) -> Int
+
+pub fn[T] managed_fixed_compute_request_inputs(ManagedFixedComputeRequest[T]) -> Array[@execution_relation.ManagedProducerRead[T]]
+
+pub fn[T] managed_fixed_compute_request_owner(ManagedFixedComputeRequest[T]) -> @lowering_relation.BoundPrepared
+
 pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Result[CapabilityRegistry, CapabilityRegistrationIssue]
 
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
+
+pub fn[T] prepare_managed_fixed_compute_request(Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
 
 pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> Result[ResourceBinding, CapabilityInstallationIssue]
 
@@ -201,6 +213,8 @@ pub enum FixedComputeSelection {
 }
 
 type InstalledBundles[A, C]
+
+type ManagedFixedComputeRequest[T]
 
 type PreparedCompute[T]
 

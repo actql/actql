@@ -10,6 +10,23 @@ struct ManagedFixedQuery[T] {
 }
 
 ///|
+/// Compile from the common managed request rather than manufacturing a legacy
+/// request. This adapter currently supports one input; multi-input realization
+/// remains an explicit connector capability rather than silently dropping
+/// ports.
+pub fn[T] prepare_managed_fixed_request_query(
+  request : @connector.ManagedFixedComputeRequest[T],
+  table : String,
+  limits : NativeQueryLimits,
+) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
+  guard @connector.managed_fixed_compute_request_input_count(request) == 1 &&
+    @connector.managed_fixed_compute_request_input(request, 0) is Some(input) else {
+    return Err(UnsupportedShape)
+  }
+  prepare_managed_fixed_query(input, table, limits)
+}
+
+///|
 pub fn[T] prepare_managed_fixed_query(
   input : @execution.ManagedProducerRead[T],
   table : String,

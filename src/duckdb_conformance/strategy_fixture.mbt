@@ -529,6 +529,80 @@ pub fn strategy_fixture_managed_input(
 }
 
 ///|
+#export_name("strategyFixtureManagedRequest")
+pub fn strategy_fixture_managed_request(
+  f : StrategyFixture,
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @connector.ManagedFixedComputeRequest[Int] {
+  let input = @strategy.captured_managed_task_input(
+    f.run.unwrap(),
+    task,
+    output,
+    100,
+    10000,
+  ).unwrap()
+  @connector.prepare_managed_fixed_compute_request([input], {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 1000,
+    common_fragment: None,
+  }).unwrap()
+}
+
+///|
+#export_name("strategyFixtureManagedRequestInputCount")
+pub fn strategy_fixture_managed_request_input_count(
+  request : @connector.ManagedFixedComputeRequest[Int],
+) -> Int {
+  @connector.managed_fixed_compute_request_input_count(request)
+}
+
+///|
+#export_name("strategyFixtureManagedRequestAccepts")
+pub fn strategy_fixture_managed_request_accepts(
+  input : @execution.ManagedProducerRead[Int],
+  max_rows : Int,
+) -> Bool {
+  @connector.prepare_managed_fixed_compute_request([input], {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows,
+    max_value_bytes: 1000,
+    common_fragment: None,
+  })
+  is Ok(_)
+}
+
+///|
+#export_name("strategyFixtureManagedRequestQuery")
+pub fn strategy_fixture_managed_request_query(
+  request : @connector.ManagedFixedComputeRequest[Int],
+) -> @duckdb.ManagedFixedQuery[Int] {
+  @duckdb.prepare_managed_fixed_request_query(request, "managed_input", {
+    max_entries: 100,
+    max_sql_bytes: 10000,
+    expressions: {
+      max_nodes: 1000,
+      max_work: 10000,
+      max_depth: 100,
+      max_literal_nodes: 1000,
+      max_literal_text_bytes: 10000,
+    },
+  }).unwrap()
+}
+
+///|
+#export_name("strategyFixtureManagedRequestQuerySql")
+pub fn strategy_fixture_managed_request_query_sql(
+  query : @duckdb.ManagedFixedQuery[Int],
+) -> Array[String] {
+  [
+    @duckdb.managed_fixed_query_create_sql(query),
+    @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query)),
+  ]
+}
+
+///|
 #export_name("strategyFixtureConsume")
 pub fn strategy_fixture_consume(
   f : StrategyFixture,

@@ -1006,6 +1006,17 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedMaterial = bridge.managedOutputMaterial(managedLedgerOutput);
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
       'the next task binds the exact retained occurrence through its checked graph edge');
+    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 1), false,
+      'managed requests retain the consumer logical row ceiling');
+    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), true);
+    const managedRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 2, managedCompleted);
+    assert.equal(fixture.strategyFixtureManagedRequestInputCount(managedRequest), 1);
+    const managedQuery = fixture.strategyFixtureManagedRequestQuery(managedRequest);
+    const [managedCreateSql, managedQuerySql] =
+      fixture.strategyFixtureManagedRequestQuerySql(managedQuery);
+    assert.match(managedCreateSql, /CREATE TEMP TABLE "managed_input"/);
+    assert.match(managedQuerySql, /FROM "main"\."managed_input"/);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
@@ -1016,6 +1027,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'revoked material cannot be rebound through the stored occurrence');
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), false,
       'a prepared use-site is not permission to read revoked material');
+    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), false,
+      'revoked material cannot satisfy another managed request');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
       'revocation releases the index but graph ownership keeps the body holding');
     bridge.computeHostClose(managedLedgerRun);

@@ -58,6 +58,15 @@ task reads Acquisition directly; task order is not treated as a data edge.
 This distinction prevents a convenient preceding completion from being
 substituted for the checked producer.
 
+The bound inputs enter connector selection through
+`ManagedFixedComputeRequest<T>`. This request retains the existing fixed-compute
+capacity contract, exact receiver and ordered input ports while remaining
+separate from the legacy CID-bearing `FixedComputeRequest`. It rejects a logical
+row ceiling below the retained input count and rejects unavailable material.
+The DuckDB adapter can compile its existing checked FilterSelect query directly
+from this request; it does not manufacture a legacy request or decode the input
+while compiling.
+
 ## Real strategy regression
 
 The standard Node/DuckDB Host regression runs the selected task through actual
@@ -69,7 +78,7 @@ DuckDB execution and checks the following sequence:
 | index and 321-byte body retained | stream base + 99,679 | 1,089 | task 1 running |
 | native settlement | unchanged | 1,089 | no success yet |
 | managed graph publication | 0 | 1,089 | task 1 done, task 2 ready |
-| exact task-2 input preparation | 0 | 1,089 | checked task-1 occurrence bound |
+| exact task-2 request/query preparation | 0 | 1,089 | checked task-1 occurrence bound |
 | managed output revoke | 0 | 321 | index released, graph body retained |
 | task close / cleanup confirmation | 0 | 0 | body reclaimed |
 
@@ -80,11 +89,12 @@ mode and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The graph and typed relation layers can now prepare the next managed input, but
-the standard strategy dispatcher still constructs requests through legacy
-`ProducerRead`. Production dispatch must select this exact managed boundary,
-acquire its Store pin/authority/capacity, execute it and publish the second task
-through the same graph path. Mixed acquisition/managed input families,
+The graph, common connector request and DuckDB compiler can now prepare the next
+managed query, but the standard strategy dispatcher still constructs and
+selects candidates through legacy `ProducerRead`. Production dispatch must
+select this exact managed request, acquire its Store pin/authority/capacity,
+execute it and publish the second task through the same graph path. Mixed
+acquisition/managed input families,
 resident-table publication, Local execution, named Result bridging and the full
 27-case/1 GiB measurements remain open.
 
