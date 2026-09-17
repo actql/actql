@@ -133,12 +133,14 @@ The product entry reports finite work counters rather than inferring savings
 from elapsed time. For each installed downstream task the regression observes
 one physical-integrity pass, one native file-import command, zero parameter
 INSERT rows, zero logical-content CID computations, zero Core output-value
-admission cells, four transferred measurement cells, two selected logical
+admission cells, two transferred measurement cells, two selected logical
 occurrences, one output frame and the exact input/output physical byte counts.
-These counters do not claim that DuckDB performs only one internal filesystem
-read or that no typed-value work occurs. DuckDB still evaluates the predicate,
-the Host still validates occurrence framing and storage order, and the common
-boundary still checks demand, ownership, holding and native settlement.
+The first downstream task projects and renames `id` to `kept`; the second
+consumes `kept` and renames it back to `id`. These counters do not claim that
+DuckDB performs only one internal filesystem read or that no typed-value work
+occurs. DuckDB still evaluates the predicate, the Host still validates
+occurrence framing and storage order, and the common boundary still checks
+demand, ownership, holding and native settlement.
 
 ## Real strategy regression
 
@@ -151,10 +153,10 @@ DuckDB execution and checks the following sequence:
 | index and actual 43-byte body retained | stream base + 99,957 | 939 | task 1 running |
 | native settlement | unchanged | 939 | no success yet |
 | task-1 managed publication | 0 | 939 | task 1 done, task 2 ready |
-| task-2 selected-evidence publication | 0 | 1,743 | tasks 1 and 2 done, task 3 ready |
-| task-3 selected-evidence publication | 0 | 2,547 | all three tasks done |
-| task-1 output revoke | 0 | 1,651 | task-1 index released; all bodies remain graph-owned |
-| task-3 close and physical cleanup | 0 | 847 | task-1 and task-2 bodies remain graph-owned |
+| task-2 selected-evidence publication | 0 | 1,602 | tasks 1 and 2 done, task 3 ready |
+| task-3 selected-evidence publication | 0 | 2,265 | all three tasks done |
+| task-1 output revoke | 0 | 1,369 | task-1 index released; all bodies remain graph-owned |
+| task-3 close and physical cleanup | 0 | 706 | task-1 and task-2 bodies remain graph-owned |
 | task-2 close and physical cleanup | 0 | 43 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
@@ -168,9 +170,9 @@ mode per task, and ownership transfer through cancellation.
 The product path is intentionally limited to the installed Number/Text column
 representation and the checked FilterSelect query family. It now implements a
 finite Q6 evidence-transfer path for unchanged values selected by that checked
-query, including logical-schema column reordering, explicit row-occurrence
-mapping and repeated downstream reuse. It does not yet implement general
-projection/rename, derive, sort/take, join/group-result reuse, general
+query, including projection/rename, logical-schema column reordering, explicit
+row-occurrence mapping and repeated downstream reuse. It does not yet implement
+derive, sort/take, join/group-result reuse, general
 schemas/codecs, mixed acquisition/managed input families, resident-table
 publication, Local execution or named Result bridging. The finite
 representation identifier must either become an adopted machine contract or be

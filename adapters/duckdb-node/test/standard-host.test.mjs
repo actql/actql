@@ -922,6 +922,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     managedProgram.stages[index].steps[1].select = ['id', 'amount'];
     managedProgram.stages[index].results.r.fields = ['id', 'amount'];
   }
+  for (const index of [2, 3]) {
+    managedProgram.stages[index].steps[1].select = ['id'];
+    managedProgram.stages[index].results.r.fields = ['id'];
+  }
+  managedProgram.stages[2].steps[1].select = [{kept: 'id'}];
+  managedProgram.stages[2].results.r.fields = ['kept'];
+  managedProgram.stages[3].steps[0].filter = 'kept < 9';
+  managedProgram.stages[3].steps[1].select = [{id: 'kept'}];
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
   managedProgram.stages[3].inputs.x.result.stage = 'compute_b';
   const managedLedgerFixture = fixture.strategyFixtureCreate(
@@ -941,6 +949,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
     const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
     const indexBytes = 512n + 6n * 64n;
+    const projectedIndexBytes = 512n + 2n * 64n;
     let attempt;
     let port;
     let consume;
@@ -1082,10 +1091,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
-      reusedMeasurementCells: 4, selectionOccurrenceRows: 2,
+      reusedMeasurementCells: 2, selectionOccurrenceRows: 2,
       outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
     });
     const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
+    assert.equal(managedDownstreamBytes, 23n,
+      'the projected one-column frame has the fixed installed representation');
     assert(managedDownstreamBytes > 0n && managedDownstreamBytes < managedBodyBytes,
       'the checked filter retains only its selected physical rows');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
@@ -1109,7 +1120,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       inputPhysicalBytes: Number(managedDownstreamBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
-      reusedMeasurementCells: 4, selectionOccurrenceRows: 2,
+      reusedMeasurementCells: 2, selectionOccurrenceRows: 2,
       outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
     });
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
@@ -1121,7 +1132,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
       'successful downstream completion returns its unused metadata reservation');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes + 768n * 2n,
+      indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
+      projectedIndexBytes * 2n,
       'both downstream results own independent retained bodies');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
@@ -1138,12 +1150,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'the terminal result survives revocation of its transitive ancestor');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      managedBodyBytes + managedDownstreamBytes + managedTerminalBytes + 768n * 2n,
+      managedBodyBytes + managedDownstreamBytes + managedTerminalBytes +
+      projectedIndexBytes * 2n,
     'revocation releases only the initial measurement index');
     await managedTerminal.close();
     managedTerminal = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      managedBodyBytes + managedDownstreamBytes + 768n,
+      managedBodyBytes + managedDownstreamBytes + projectedIndexBytes,
     'closing task 3 releases only its own body');
     await managedDownstream.close();
     managedDownstream = undefined;

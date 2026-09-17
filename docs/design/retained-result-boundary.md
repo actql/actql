@@ -95,12 +95,13 @@ storage holding.
 
 The installed transfer rule is deliberately finite. It applies only when the
 compiled query exposes the private occurrence result and the output fields map
-exactly to the checked logical schema. Unsupported shapes use ordinary typed
-output admission. Predicate evaluation, native execution, physical integrity,
-current use authority, task settlement and graph publication remain required.
-The transferred measurements avoid another Core per-cell admission pass for
-the unchanged selected values, but do not claim general projection, derive,
-sort/take, join/group or codec evidence transfer.
+exactly to the checked logical schema through registered projection/rename
+origins. Unsupported shapes use ordinary typed output admission. Predicate
+evaluation, native execution, physical integrity, current use authority, task
+settlement and graph publication remain required. The transferred measurements
+avoid another Core per-cell admission pass for the unchanged selected values,
+but do not claim derive, sort/take, join/group or general codec evidence
+transfer.
 A resident consumer verifies the selected DB copy rather than reading every
 independent representation. File corruption is rejected when the file is
 verified; a known revoked input material cannot be bypassed by a previously
