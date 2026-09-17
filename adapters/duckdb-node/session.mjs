@@ -1,6 +1,6 @@
 // Host-private native transport. SQL must come from the trusted MoonBit adapter;
 // this is not a Program SQL API, semantic verifier or completion issuer.
-import { realpath, stat } from 'node:fs/promises';
+import { realpath, stat, lstat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
 import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical-values.mjs';
@@ -110,7 +110,8 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     accounting?.chargeTransfer(n);
     usage.transportBytes += n;
   };
-  const runCommand = async (sql, parameters, consume, reuseInsert = false) => {
+  const runCommand = async (sql, parameters, consume, reuseInsert = false,
+    statementMode = 'ordinary') => {
     assertLive();
     if (busy) throw new DuckDBTransportError('ConcurrentCommand');
     if (typeof sql !== 'string' || Buffer.byteLength(sql, 'utf8') > limits.maxSqlBytes) {
@@ -170,7 +171,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       if (reuseInsert && (readonly || prepared.statementType !== StatementType.INSERT)) {
         throw new DuckDBTransportError('StatementKind');
       }
-      const allowed = readonly ? [StatementType.SELECT]
+      const allowed = statementMode === 'copy-parquet'
+        ? [StatementType.COPY]
+        : readonly ? [StatementType.SELECT]
         : [StatementType.SELECT, StatementType.CREATE, StatementType.INSERT,
           ...(shared ? [StatementType.DROP] : [])];
       if (!allowed.includes(prepared.statementType)) throw new DuckDBTransportError('StatementKind');
@@ -351,6 +354,24 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     result = await body(Object.freeze({
       command,
       insert: (sql, parameters, consume) => command(sql, parameters, consume, true),
+      // Installed Host operation only. The output path must be one of the exact
+      // paths admitted when this private session was created; callers cannot
+      // choose a format, option, glob or arbitrary destination.
+      async copyParquet(selectSql, parameters, outputPath) {
+        if (typeof selectSql !== 'string' || !inputFiles.includes(outputPath)) {
+          throw new DuckDBTransportError('UnauthorizedOutputPath');
+        }
+        const quoted = `'${outputPath.replaceAll("'", "''")}'`;
+        await command(`COPY (${selectSql}) TO ${quoted} (FORMAT PARQUET)`,
+          parameters, () => {}, false, 'copy-parquet');
+        assertLive();
+        const state = await lstat(outputPath);
+        if (!state.isFile() || !Number.isSafeInteger(state.dev) ||
+            !Number.isSafeInteger(state.ino) || !Number.isSafeInteger(state.size) ||
+            state.size < 0) throw new DuckDBTransportError('InvalidNativeOutput');
+        return Object.freeze({device: state.dev, inode: state.ino,
+          bytes: state.size});
+      },
       usage: () => Object.freeze({ ...usage }),
     }));
     assertLive();

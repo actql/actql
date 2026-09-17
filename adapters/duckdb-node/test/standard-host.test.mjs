@@ -21,7 +21,8 @@ import {installCompletionObserver} from '../../host-common/completion-observer.m
 import {retainedStorageBody} from '../../store-local/representations.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {createLocalRetainedStore} from '../../store-local/files.mjs';
-import {registerManagedInput} from '../../store-local/managed-representations.mjs';
+import {registerManagedInput,
+  managedInputCodecContractCid} from '../../store-local/managed-representations.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -1337,13 +1338,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 3, selectionOccurrenceRows: 3,
-      outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
+      outputFrames: 0, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
+      directOutputCopies: 1, outputJsMaterializedCells: 0,
+      outputFrameReencodes: 0,
     });
     const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
-    assert.equal(managedDownstreamBytes, 27n,
-      'the projected one-column frame has the fixed installed representation');
-    assert(managedDownstreamBytes > 0n && managedDownstreamBytes < managedBodyBytes,
-      'the checked filter retains only its selected physical rows');
+    assert(managedDownstreamBytes > 0n,
+      'the direct Parquet generation has an independently retained body');
+    assert.equal(managedDownstream.representation, 'managed-parquet-direct');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
     const terminalInput = fixture.strategyFixtureManagedInput(
       managedLedgerFixture, 3, managedDownstream.completed);
@@ -1373,7 +1375,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 3, terminalRequest, managedProfile, 100000n);
     managedTerminal = await runManagedColumnStrategyHostCompute(
       terminalConfiguration, managedDownstream.material,
-      managedColumnCodecContractCid, suppliedLimits,
+      managedInputCodecContractCid(managedDownstream.material), suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,
@@ -1383,11 +1385,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
+      outputFrames: 0, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
+      directOutputCopies: 1, outputJsMaterializedCells: 0,
+      outputFrameReencodes: 0,
     });
     const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
-    assert.equal(managedTerminalBytes, 19n,
-      'the checked take writes only its one selected physical row');
+    assert(managedTerminalBytes > 0n,
+      'the checked take writes one direct retained Parquet generation');
+    assert.equal(managedTerminal.representation, 'managed-parquet-direct');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 4);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
@@ -1424,6 +1429,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       logicalContentCidComputations: 0, outputValueAdmissionCells: 1,
       reusedMeasurementCells: 0, selectionOccurrenceRows: 0,
       outputFrames: 1, outputPhysicalBytes: managedGroup.diagnostics.outputPhysicalBytes,
+      directOutputCopies: 0, outputJsMaterializedCells: 1,
+      outputFrameReencodes: 1,
     });
     const managedGroupBytes = BigInt(managedGroup.diagnostics.outputPhysicalBytes);
     assert.equal(managedGroupBytes, 19n,
@@ -1477,15 +1484,17 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 5, groupFirstRequest, managedProfile, 100000n);
     managedGroupFirst = await runManagedColumnStrategyHostCompute(
       groupFirstConfiguration, managedGroup.material,
-      managedColumnCodecContractCid, suppliedLimits,
+      managedInputCodecContractCid(managedGroup.material), suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.deepEqual(managedGroupFirst.diagnostics, {
       inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 1,
+      outputFrames: 0,
       outputPhysicalBytes: managedGroupFirst.diagnostics.outputPhysicalBytes,
+      directOutputCopies: 1, outputJsMaterializedCells: 0,
+      outputFrameReencodes: 0,
     });
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 5, managedGroupFirst.completed), true);
@@ -1504,23 +1513,25 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 6, groupSecondRequest, managedProfile, 100000n);
     managedGroupSecond = await runManagedColumnStrategyHostCompute(
       groupSecondConfiguration, managedGroup.material,
-      managedColumnCodecContractCid, suppliedLimits,
+      managedInputCodecContractCid(managedGroup.material), suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.deepEqual(managedGroupSecond.diagnostics, {
       inputPhysicalBytes: Number(managedGroupBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
       logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
       reusedMeasurementCells: 1, selectionOccurrenceRows: 1,
-      outputFrames: 1,
+      outputFrames: 0,
       outputPhysicalBytes: managedGroupSecond.diagnostics.outputPhysicalBytes,
+      directOutputCopies: 1, outputJsMaterializedCells: 0,
+      outputFrameReencodes: 0,
     });
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 6, managedGroupSecond.completed), true);
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
     const managedGroupSecondBytes = BigInt(
       managedGroupSecond.diagnostics.outputPhysicalBytes);
-    assert.equal(managedGroupFirstBytes, managedGroupBytes);
-    assert.equal(managedGroupSecondBytes, managedGroupBytes);
+    assert(managedGroupFirstBytes > 0n);
+    assert(managedGroupSecondBytes > 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
       managedBodyBytes + managedGroupBytes + managedGroupFirstBytes +
       managedGroupSecondBytes + 3n * terminalIndexBytes,

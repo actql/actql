@@ -438,6 +438,62 @@ pub fn[T] managed_fixed_query_column_file_sql(
 }
 
 ///|
+/// Import the installed direct DuckDB Parquet representation. The file keeps
+/// logical columns in positional `cN` fields, an exact dense output ordinal and
+/// the source occurrence used by the checked evidence-transfer path. This is
+/// only a physical import compiler; Store integrity, current use authority and
+/// managed completion remain independently mandatory.
+pub fn[T] managed_fixed_query_parquet_file_sql(
+  value : ManagedFixedQuery[T],
+  max_sql_bytes : Int,
+) -> String? {
+  let schema = @execution.managed_producer_read_schema(value.input)
+  guard max_sql_bytes > 0 &&
+    @schema.field_count(schema) > 0 &&
+    managed_fixed_query_input_table(value) is Some(table) else {
+    return None
+  }
+  for index in 0..<@schema.field_count(schema) {
+    guard @schema.field_at(schema, index) is Some(field) else { return None }
+    match field.contract.shape {
+      @contract.Number | @contract.Text(_) => ()
+      _ => return None
+    }
+  }
+  let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(output, "INSERT INTO ")
+    sql_identifier(output, table)
+    sql_text(output, " SELECT ")
+    for index in 0..<@schema.field_count(schema) {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      physical_input_identifier(
+        output,
+        "__actql_import",
+        "c" + index.to_string(),
+      )
+    }
+    sql_text(output, ", CASE WHEN ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " = row_number() OVER (ORDER BY ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, ") - 1 AND ")
+    physical_input_identifier(output, "__actql_import", "__actql_occurrence")
+    sql_text(output, " >= 0 THEN ")
+    physical_input_identifier(output, "__actql_import", "o")
+    sql_text(output, " ELSE NULL END FROM read_parquet(?) AS ")
+    sql_identifier(output, "__actql_import")
+    sql_text(output, " ORDER BY ")
+    physical_input_identifier(output, "__actql_import", "o")
+    Some(output.builder.to_string())
+  } catch {
+    _ => None
+  }
+}
+
+///|
 fn[T] managed_fixed_query_input_table(value : ManagedFixedQuery[T]) -> String? {
   match value.body {
     Fixed(query) => fixed_query_input_table(query, 0)

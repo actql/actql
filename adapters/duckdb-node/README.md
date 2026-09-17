@@ -713,6 +713,23 @@ backend after task start. Returned task close handles remain graph-owned until
 independent results until that close, prevents unstarted descendants, and keeps
 cleanup and ledger reservations visible until physical release is confirmed.
 
+For a checked value-preserving view, the downstream DuckDB task writes Parquet
+directly into a Store-owned absent-path slot. The control Host receives only the
+source occurrence and dense output ordinal needed by the registered evidence
+rule; result value cells are not materialized in JavaScript and no managed
+column frame is re-encoded. The Store adopts the native-created file only after
+checking its exact device, inode, size, capacity and stable physical digest.
+The Parquet codec CID identifies this private physical representation and never
+substitutes for a logical content CID.
+
+The next managed task imports either the original managed-column codec or this
+Parquet codec using its corresponding checked SQL compiler. Queries that create
+new values, including group results, still use bounded typed admission and the
+managed-column fallback once. Their completed measurement index can then be
+reused by later checked consumers. Cancellation keeps the output reservation
+until DuckDB has stopped and Store cleanup confirms the exact generation; an
+abort request alone is not writer settlement.
+
 For automatic bounded re-estimation, call MoonBit
 `configure_dispatch_estimates(setup, profiles, searchLimits)` before any search.
 Supply one `DispatchEstimateProfile` per Compute in checked task order. Its

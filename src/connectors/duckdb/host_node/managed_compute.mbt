@@ -225,6 +225,21 @@ pub fn managed_strategy_input_file_sql(
 }
 
 ///|
+#export_name("managedStrategyInputParquetSql")
+pub fn managed_strategy_input_parquet_sql(
+  run : ManagedComputeNodeRun,
+  max_sql_bytes : Int,
+) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_parquet_file_sql(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+    max_sql_bytes,
+  )
+}
+
+///|
 #export_name("managedStrategyParameterCount")
 pub fn managed_strategy_parameter_count(run : ManagedComputeNodeRun) -> Int {
   if run.closed {

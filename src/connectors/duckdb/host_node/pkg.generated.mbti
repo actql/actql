@@ -222,6 +222,8 @@ pub fn managed_strategy_input(ManagedComputeNodeRun) -> @execution_relation.Mana
 
 pub fn managed_strategy_input_file_sql(ManagedComputeNodeRun, Int) -> String?
 
+pub fn managed_strategy_input_parquet_sql(ManagedComputeNodeRun, Int) -> String?
+
 pub fn managed_strategy_occurrence_sql(ManagedComputeNodeRun) -> String?
 
 pub fn managed_strategy_output_begin(ManagedComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure

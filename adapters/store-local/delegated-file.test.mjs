@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rmdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -9,12 +9,12 @@ import { openDelegatedFile } from './delegated-file.mjs';
 import { consumeDelegatedFile } from './delegated-reader.mjs';
 import { startManagedExecution } from '../host-node/process-channel.mjs';
 
-async function fixture(t) {
+async function fixture(t, start = true) {
   const parentDirectory = await mkdtemp(join(tmpdir(), 'actql-delegated-test-'));
   const store = await createLocalRetainedStore({ parentDirectory, capacityBytes: 100, maxFrameBytes: 4 });
   t.after(async () => { store.close(); await store.cleanup(); await rmdir(parentDirectory); });
   const write = store.reserve(20);
-  await write.start();
+  if (start) await write.start();
   return { store, write };
 }
 
@@ -40,6 +40,59 @@ test('binary output stays in the execution process and seals the same physical h
   assert.equal(store.status().reservedBytes, 6);
   assert.equal(store.status().admittedWriteBytes, 6);
   assert.equal(store.status().delegatedWriteBytes, 0);
+});
+
+test('native-created file is adopted without relaying its bytes through the Host', async t => {
+  const {store, write} = await fixture(t, false);
+  const lease = write.delegateCreate('native-copy');
+  const expected = Buffer.from('native output');
+  await writeFile(lease.path, expected, {flag: 'wx', mode: 0o600});
+  const generated = await stat(lease.path);
+  const body = await write.finishCreated({version: lease.version,
+    session: lease.session, token: lease.token, device: generated.dev,
+    inode: generated.ino, bytes: generated.size});
+  assert.equal(body.bytes, expected.length);
+  assert.equal(body.cid,
+    `sha256:${createHash('sha256').update(expected).digest('hex')}`);
+  assert.equal(store.status().reservedBytes, expected.length);
+  assert.equal(store.status().admittedWriteBytes, expected.length);
+  assert.equal(store.status().delegatedWriteBytes, 0);
+  const chunks = [];
+  await body.consume(bytes => chunks.push(Buffer.from(bytes)));
+  assert.deepEqual(Buffer.concat(chunks), expected);
+});
+
+test('native-created file over reservation is rejected and remains cleanup-owned', async t => {
+  const {store, write} = await fixture(t, false);
+  const lease = write.delegateCreate('native-overflow');
+  await writeFile(lease.path, Buffer.alloc(21), {flag: 'wx', mode: 0o600});
+  const generated = await stat(lease.path);
+  await assert.rejects(write.finishCreated({version: lease.version,
+    session: lease.session, token: lease.token, device: generated.dev,
+    inode: generated.ino, bytes: generated.size}), {code: 'StoreIdentityMismatch'});
+  assert.equal(store.status().reservedBytes, 20);
+  assert.equal(store.status().delegatedWriteBytes, 0);
+  assert.equal(store.status().uncertainWriteBytes, 20);
+  assert.equal(store.status().cleanupPending, true);
+  await write.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
+});
+
+test('native-created generation replacement is rejected before Store adoption', async t => {
+  const {store, write} = await fixture(t, false);
+  const lease = write.delegateCreate('native-replaced');
+  await writeFile(lease.path, 'first', {flag: 'wx', mode: 0o600});
+  const reported = await stat(lease.path);
+  await unlink(lease.path);
+  await writeFile(lease.path, 'other', {flag: 'wx', mode: 0o600});
+  await assert.rejects(write.finishCreated({version: lease.version,
+    session: lease.session, token: lease.token, device: reported.dev,
+    inode: reported.ino, bytes: reported.size}), {code: 'StoreIdentityMismatch'});
+  assert.equal(store.status().reservedBytes, 20);
+  assert.equal(store.status().uncertainWriteBytes, 20);
+  assert.equal(store.status().cleanupPending, true);
+  await write.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
 });
 
 test('delegated binary frames copy before await and reject capacity before writing', async t => {

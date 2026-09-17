@@ -15,6 +15,12 @@ export function registerManagedInput(material, readable, store, body, codecContr
   representations.set(material, Object.freeze({readable, store, body, codecContractCid}));
 }
 
+// Installed dispatcher lookup for the exact opaque material. This does not
+// expose a path, grant a read, or let a callback relabel a representation.
+export function managedInputCodecContractCid(material) {
+  return representations.get(material)?.codecContractCid;
+}
+
 // authorize and beforeRead belong to installed Host use/resource admission,
 // never Program options. Availability is not permission or a budget waiver.
 // use must await all local/native accesses before settling, even on failure.

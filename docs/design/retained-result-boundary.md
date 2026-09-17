@@ -27,9 +27,19 @@ before allocation and writing. Local and delegated writers use the same physical
 hash and exact-file sealing boundary. `seal(identity)` additionally checks an
 expected physical identity; `sealPhysical()` obtains that identity from the
 writer's own accumulated bytes. Neither operation establishes a logical content
-mapping or execution completion. Delegated writes send only the bounded terminal
-physical report to the control Host, not their payload. Failed or interrupted
-writes retain their existing cleanup and conservative accounting obligations.
+mapping or execution completion.
+
+A trusted native writer can use either of two Store-owned creation modes. The
+pre-opened mode grants an exact existing inode. The create mode grants one
+private absent path and requires the writer to return the created device, inode
+and byte count. The Store then opens that path without following symlinks,
+checks a regular file and the exact reported generation, enforces the reserved
+capacity, hashes the stored bytes and rechecks the generation before adoption.
+Only the adopted descriptor can be sealed. A path, a terminal report or a
+native success callback alone cannot create a holding. Delegated writes send
+only this bounded physical report to the control Host, not their payload.
+Failed or interrupted writes retain their cleanup and conservative accounting
+obligations until native stop and exact-generation removal are confirmed.
 
 Full-output representation transfer uses an exact `ProducerStorage`, not a
 fabricated consumer `ProducerRead`. `RetainedStorageScan` decodes bounded rows
@@ -96,6 +106,24 @@ test Host and product Host do not synthesize it from arrival order. Every frame
 must have equal value-list and ordinal-list lengths, and the complete imported
 stream must carry exactly `0..N-1`. A missing, duplicate or reversed ordinal
 therefore fails the native import before it can support a completion.
+
+For a checked view that preserves admitted values, DuckDB may write the selected
+result directly to a Store-owned create slot as Parquet. The file contains the
+checked storage-order columns, the exact producer occurrence and a dense output
+ordinal. The control Host reads back only those two ordinal columns to establish
+the finite selection evidence; it does not receive result value cells or encode
+a second managed column frame. The Store adopts the exact created generation as
+described above. The Parquet codec identifier is a physical representation
+contract only. It is not a logical row, ordered-row or relation CID.
+
+A later managed consumer imports that exact Parquet representation through a
+separate checked compiler. It requires the occurrence column, validates its
+nonnegative range and the dense output ordinal, projects only the pinned `cN`
+storage columns and restores their logical order. Unsupported or value-creating
+queries continue through ordinary typed admission and one bounded managed-frame
+encoding. Direct output therefore removes a redundant materialization only
+where the registered evidence rule applies; it does not turn a new value into a
+verified value or weaken the fallback.
 
 The common boundary rechecks the selected count, scope, demand, producer and
 material binding, then issues a new result index and holding for the new
@@ -183,13 +211,16 @@ and does not itself establish control-side custody or cross-process admission.
 
 The generated standard Compute bundle also declares its managed-dispatch
 entrypoint. For the first task, explicit Host `managedOutput` policy selects the
-managed completion path before execution. For each later unary task, the common
-dispatcher identifies the exact next task and producer, supplies the producer's
-common managed completion, and asks the installed module to construct and
-compare its own managed request and candidate. Tests do not supply that request,
-candidate or selected configuration. A missing producer, foreign completion,
-ambiguous installed proposal or mismatched completed output stops dispatch; it
-does not fall back after starting a consumer or authorize a later task.
+managed completion path before execution. For each later supported unary task,
+the common dispatcher identifies the exact next task and producer, supplies the
+producer's common managed completion, and asks the installed module to construct
+and compare its own managed request and candidate. The module resolves the
+producer's physical codec from the opaque material registry; the dispatcher
+does not assume that every managed value is a column frame. Tests do not supply
+that request, candidate or selected configuration. A missing producer, foreign
+completion, ambiguous installed proposal or mismatched completed output stops
+dispatch; it does not fall back after starting a consumer or authorize a later
+task.
 
 The serial dispatcher owns every successful task's close handle through graph
 use. It retains upstream material while descendants are executing, closes task

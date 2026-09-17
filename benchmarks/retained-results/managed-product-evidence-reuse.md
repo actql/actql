@@ -130,7 +130,39 @@ requires its own receipt. This distinction is lifecycle correctness, not a
 performance shortcut.
 
 This closes standard-dispatch wiring and the required finite graph lifecycle
-cases. It does not close direct DuckDB-to-Store output: the current managed
-consumer still receives DuckDB chunks as JavaScript columns and encodes managed
-frames in the control process. Direct output, its 27-case counters and the final
-paired measurements remain subsequent work.
+cases.
+
+## Subsequent direct-output increment
+
+The value-preserving downstream path now writes DuckDB output directly into a
+Store-owned Parquet generation. The Host reads back only the source occurrence
+and dense output ordinal needed for the registered selection rule. It does not
+materialize output value cells in JavaScript and does not encode a second
+managed-column frame.
+
+The product regression fixes the following counters for each direct downstream
+task:
+
+| Counter | Required value |
+| --- | ---: |
+| Direct native output copies | 1 |
+| Output value cells materialized in JavaScript | 0 |
+| Output managed-frame re-encodes | 0 |
+| Logical content CID computations | 0 |
+| Physical Store integrity passes | 1 |
+
+A global group remains the deliberate contrast. Its new aggregate value is
+typed-admitted and encoded once, so its direct-copy count is zero and its value
+admission/frame counters are one. Two later consumers reuse that established
+measurement and use direct Parquet output without repeating admission.
+
+The Store regression separately covers successful native-created-file adoption,
+capacity overflow and a generation replacement between native report and Store
+adoption. Cancellation retains the output reservation until native cleanup is
+terminal; only then can the Store confirm writer stop and reclaim a failed
+generation.
+
+The direct-output counters establish removal of the control-side value relay for
+the covered path. The registered new-profile matrix, controller-memory samples
+and final paired timing report remain separate measurements; these functional
+counters alone are not a speed ratio.

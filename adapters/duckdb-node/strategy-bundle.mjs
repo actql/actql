@@ -2,10 +2,11 @@
 // driver never interprets this resource policy, tables, imports or SQL.
 import { runStrategyHostCompute, runRetainedStrategyHostCompute,
   runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
-  managedColumnCodecContractCid, openResidentStrategyEnvironment,
+  openResidentStrategyEnvironment,
   importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
+import {managedInputCodecContractCid} from '../store-local/managed-representations.mjs';
 
 export function duckdbStrategyContribution(moon, setup, checked, configuration) {
   const options = preparedStrategyConfiguration(configuration);
@@ -43,6 +44,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       return Object.freeze({
         task,
         input,
+        inputCodecContractCid: managedInputCodecContractCid(input.material),
         configuration: checked(
           moon.strategyModule_duckdb_ManagedDispatch(
             setup, input.completed, BigInt(options.managedOutput.wire.max_bytes),
@@ -54,7 +56,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       const result = await runManagedColumnStrategyHostCompute(
         prepared.configuration,
         prepared.input.material,
-        managedColumnCodecContractCid,
+        prepared.inputCodecContractCid,
         limits,
         options.managedOutput,
         signal,
@@ -65,7 +67,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
           realization: 'duckdb-managed',
           transport: result.usage,
           phases: result.diagnostics,
-          outputRepresentation: 'managed-column-file',
+          outputRepresentation: result.representation,
         }),
       });
     },

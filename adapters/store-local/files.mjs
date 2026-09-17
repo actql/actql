@@ -1,6 +1,7 @@
 // Trusted local Store implementation. This module handles physical bytes only;
 // it cannot issue ActQL completion, schema admission or logical identity proof.
 import { mkdtemp, open, lstat, unlink, rmdir } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -332,6 +333,103 @@ export async function createLocalRetainedStore(options) {
       entry.delegation = undefined;
       return seal({ bytes: report.bytes, cid: report.cid }, true);
     };
+    // Some installed native writers, including DuckDB COPY, create their
+    // destination atomically rather than writing a pre-opened descriptor. Give
+    // such a writer one absent path inside this Store's private directory, then
+    // adopt only the exact regular file generation observed after the writer
+    // has stopped. This is a physical holding capability, never logical output
+    // or completion evidence.
+    const delegateCreate = session => {
+      active();
+      if (typeof session !== 'string' || !session.length || session.length > 256) {
+        fail('InvalidStoreSession');
+      }
+      if (entry.fd || entry.created || entry.busy || entry.sealed || entry.bytes ||
+          entry.delegation) fail('InvalidStoreWriteState');
+      if (!Number.isSafeInteger(admittedWriteBytes + uncertainWriteBytes +
+          delegatedWriteBytes + entry.reservation)) fail('StoreCapacity');
+      const descriptor = Object.freeze({
+        version: 'actql-local-file-create/0.1', session, token: randomUUID(),
+        path: entry.path, maxBytes: entry.reservation, maxFrameBytes,
+      });
+      entry.delegation = descriptor;
+      delegatedWriteBytes += descriptor.maxBytes;
+      entry.busy = true;
+      return descriptor;
+    };
+    const finishCreated = async report => {
+      const lease = entry.delegation;
+      if (!lease || lease.version !== 'actql-local-file-create/0.1' ||
+          !entry.busy || entry.fd || entry.created || entry.sealed || !report ||
+          report.version !== lease.version || report.session !== lease.session ||
+          report.token !== lease.token || !quantity(report.device) ||
+          !quantity(report.inode) || !quantity(report.bytes)) {
+        fail('ForeignStoreReport');
+      }
+      let fd;
+      try {
+        fd = await open(entry.path, constants.O_RDONLY | constants.O_NOFOLLOW);
+        const before = await fd.stat();
+        const pathBefore = await lstat(entry.path);
+        if (!before.isFile() || !pathBefore.isFile() ||
+            before.dev !== pathBefore.dev || before.ino !== pathBefore.ino ||
+            before.dev !== report.device || before.ino !== report.inode ||
+            before.size !== report.bytes || before.size !== pathBefore.size ||
+            !quantity(before.size) ||
+            before.size > lease.maxBytes) fail('StoreIdentityMismatch');
+        const buffer = Buffer.alloc(Math.min(maxFrameBytes,
+          Math.max(1, before.size)));
+        let position = 0;
+        while (position < before.size) {
+          const {bytesRead} = await fd.read(buffer, 0,
+            Math.min(buffer.length, before.size - position), position);
+          if (!bytesRead) fail('IncompleteStoreWrite');
+          entry.hash.update(buffer.subarray(0, bytesRead));
+          position += bytesRead;
+        }
+        const after = await fd.stat();
+        const pathAfter = await lstat(entry.path);
+        if (!after.isFile() || !pathAfter.isFile() ||
+            after.dev !== before.dev || after.ino !== before.ino ||
+            pathAfter.dev !== before.dev || pathAfter.ino !== before.ino ||
+            after.size !== before.size || pathAfter.size !== before.size ||
+            after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs ||
+            pathAfter.mtimeMs !== before.mtimeMs ||
+            pathAfter.ctimeMs !== before.ctimeMs) fail('RetainedBodyChanged');
+        if (!Number.isSafeInteger(admittedWriteBytes + before.size)) {
+          fail('StoreCapacity');
+        }
+        entry.fd = fd;
+        fd = undefined;
+        entry.identity = after;
+        entry.created = true;
+        entry.bytes = before.size;
+        admittedWriteBytes += before.size;
+        delegatedWriteBytes -= lease.maxBytes;
+        entry.delegation = undefined;
+        entry.busy = false;
+        return seal(undefined, false, true);
+      } catch (error) {
+        try { await fd?.close(); } catch {}
+        delegatedWriteBytes -= lease.maxBytes;
+        uncertainWriteBytes += lease.maxBytes;
+        entry.delegation = undefined;
+        entry.busy = false;
+        // If the exact path now names a regular file, bind cleanup to that
+        // observed generation. A replacement after this observation is still
+        // rejected by releaseEntry rather than unlinked by pathname alone.
+        try {
+          const current = await lstat(entry.path);
+          if (current.isFile()) {
+            entry.identity = current;
+            entry.created = true;
+          }
+        } catch (statusError) {
+          if (statusError.code !== 'ENOENT') error.cleanupErrors = [statusError];
+        }
+        throw attachCleanup(error);
+      }
+    };
     const confirmDelegatedStopped = () => {
       // Host-only actual process exit/confirmed writer stop, never cancellation.
       if (!entry.delegation) return false;
@@ -349,7 +447,8 @@ export async function createLocalRetainedStore(options) {
       // Physical-byte proof only. Logical content/conversion and completion
       // still require their own exact, installed verifier.
       sealPhysical: () => seal(undefined, false, true),
-      delegate, finishDelegated, confirmDelegatedStopped,
+      delegate, finishDelegated, delegateCreate, finishCreated,
+      confirmDelegatedStopped,
       cancel: revoke, cleanupHandle });
   };
 
