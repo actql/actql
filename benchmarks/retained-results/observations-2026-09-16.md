@@ -1105,3 +1105,32 @@ times were 18.896 seconds for million-row join/count, 23.487 seconds for
 million-row downstream reuse, 88.610 seconds for numeric-64/100000 reuse and
 36.751 seconds for text-1024/100000 reuse. This sequential run is functional
 compatibility evidence, not the registered alternating paired assessment.
+
+### First fixed-revision matched logical-accounting pair
+
+The clean `8af2af7474e3872e6538ef4a12227e1e5da1e960` revision completed one
+alternating pair for
+`native-acquisition-full-validation-low-selectivity/narrow/100`. The independent
+leg ran first and the retained ActQL leg ran second, each in a fresh process
+against the same hashed immutable source. Source setup was outside both legs.
+
+The two implementations reported exactly equal complete logical guard usage:
+328 work, 2222 bytes and 316 nodes. They also reported equal comparison usage:
+122 work, 207 bytes and 110 nodes. The independent implementation measured
+324/2218/314 of the guard itself and charged the remaining 4/4/2 from an exact
+retained measurement for the final consumer. The product implementation
+measured the full 328/2222/316. This is the intended distinction: the logical
+obligation is equal while one eligible physical measurement pass is reused.
+
+Other physical accounting remains intentionally different. The independent
+leg admitted 112 semantic rows and 212 cells; the product leg admitted 114 rows
+and 214 cells. Identity passes, identity preimage bytes and retained Store bytes
+were equal. The pair runner therefore admits exact logical-accounting parity
+without pretending that physical work must be identical.
+
+This is a single small diagnostic pair, not a timing acceptance sample. Both
+legs still report `acceptanceEligible: false`. Expression-demand failure parity,
+shared DB-plus-scratch capacity, acquisition evidence metadata parity, complete
+transfer/work equivalence, negative fixtures and final equivalent-obligation
+admission remain open. Observed timing is retained only as diagnostic output and
+must not be used as a registered speed ratio.
