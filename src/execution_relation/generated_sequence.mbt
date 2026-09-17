@@ -135,6 +135,19 @@ pub fn generated_retained_count(generated : GeneratedSequence) -> Int {
 pub fn generated_sequence_is_projection_only(
   generated : GeneratedSequence,
 ) -> Bool {
+  generated_sequence_all_row_kernels(generated, fn(body) {
+    body is @lower.Select(_)
+  })
+}
+
+///|
+/// Allocation-free typed capability inspection. It never exposes the owned
+/// sequence, and rejects values, joins, or an empty sequence before invoking
+/// the caller's finite body predicate.
+pub fn generated_sequence_all_row_kernels(
+  generated : GeneratedSequence,
+  accepts : (@lower.KernelBody) -> Bool,
+) -> Bool {
   let count = @lower.sequence_count(generated.sequence)
   if count == 0 {
     return false
@@ -142,7 +155,7 @@ pub fn generated_sequence_is_projection_only(
   for index in 0..<count {
     guard @lower.sequence_step(generated.sequence, index)
       is Some(@lower.RowStep(kernel)) &&
-      @lower.kernel_is_projection(kernel) else {
+      accepts(@lower.kernel_body(kernel)) else {
       return false
     }
   }

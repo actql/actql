@@ -97,3 +97,41 @@ test "generated composition rejects incomplete and foreign fragments before exec
   let output = test_row_output(completed_output(completed, Step(1)).unwrap())
   assert_eq(output.rows.length(), 2)
 }
+
+///|
+test "generated row capability inspection rejects other prepared step kinds" {
+  let row = input_owner()
+  let row_sequence = prepared_sequence(row)
+  let row_generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    row_sequence,
+    [],
+    ["select_0"],
+    100000,
+    10000,
+  ).unwrap()
+  assert_true(
+    generated_sequence_all_row_kernels(row_generated, fn(body) {
+      body is @lower.Select(_)
+    }),
+  )
+  assert_false(generated_sequence_all_row_kernels(row_generated, _ => false))
+
+  let values_owner = row_owner("")
+  let values_sequence = prepared_sequence(values_owner)
+  let values_node = @lower.node_at(
+    @lower.bound_preparation(values_owner),
+    0,
+  ).unwrap()
+  let values_generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    values_sequence,
+    [],
+    [@lower.node_id(values_node)],
+    100000,
+    10000,
+  ).unwrap()
+  assert_false(
+    generated_sequence_all_row_kernels(values_generated, _ => true),
+  )
+}
