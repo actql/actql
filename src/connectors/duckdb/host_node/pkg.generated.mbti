@@ -216,13 +216,23 @@ pub fn managed_strategy_close(ManagedComputeNodeRun) -> Unit
 
 pub fn managed_strategy_complete(ManagedComputeNodeRun, ManagedNodeOutput) -> @execution_relation.ManagedCompletedOutput[Int] raise NodeHostFailure
 
+pub fn managed_strategy_create_sql(ManagedComputeNodeRun, Int) -> String raise NodeHostFailure
+
 pub fn managed_strategy_host_open(@driver.ManagedStrategyComputeHostConfiguration[Int], Int64, Int64, () -> Bool, () -> Bool) -> ManagedComputeNodeRun raise NodeHostFailure
 
 pub fn managed_strategy_input(ManagedComputeNodeRun) -> @execution_relation.ManagedProducerRead[Int] raise NodeHostFailure
 
+pub fn managed_strategy_input_at(ManagedComputeNodeRun, Int) -> @execution_relation.ManagedProducerRead[Int] raise NodeHostFailure
+
+pub fn managed_strategy_input_count(ManagedComputeNodeRun) -> Int
+
 pub fn managed_strategy_input_file_sql(ManagedComputeNodeRun, Int) -> String?
 
+pub fn managed_strategy_input_file_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
+
 pub fn managed_strategy_input_parquet_sql(ManagedComputeNodeRun, Int) -> String?
+
+pub fn managed_strategy_input_parquet_sql_at(ManagedComputeNodeRun, Int, Int) -> String?
 
 pub fn managed_strategy_occurrence_sql(ManagedComputeNodeRun) -> String?
 

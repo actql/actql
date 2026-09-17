@@ -7,9 +7,9 @@ pub(all) enum DuckDBComputeCandidateIssue {
 }
 
 ///|
-/// Managed-profile unary native candidate. It retains the common fixed
-/// capacity and cost comparison but never constructs a legacy ProducerRead or
-/// logical content receipt.
+/// Managed-profile native candidate. It retains the common fixed capacity and
+/// cost comparison but never constructs a legacy ProducerRead or logical
+/// content receipt.
 pub fn[T] duckdb_managed_fixed_compute_candidate(
   registration : @connector.CapabilityRegistration,
   request : @connector.ManagedFixedComputeRequest[T],
@@ -26,7 +26,10 @@ pub fn[T] duckdb_managed_fixed_compute_candidate(
     is Some(_) {
     return Err(Request(CommonFragmentUnsupported))
   }
-  if @connector.managed_fixed_compute_request_input_count(request) != 1 {
+  let input_count = @connector.managed_fixed_compute_request_input_count(
+    request,
+  )
+  if input_count < 1 || input_count > 2 {
     return Err(Request(UnsupportedInputShape))
   }
   let compiled = match

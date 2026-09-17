@@ -12,13 +12,14 @@ pub fn[T] managed_fixed_selection_sql(
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if !managed_fixed_query_matches(query, query.input) {
+  if query.inputs.length() != 1 ||
+    !managed_fixed_query_matches(query, query.inputs[0]) {
     return Err(InputUnavailable)
   }
   guard query.body is Fixed(FilterSelect(native)) else {
     return Err(UnsupportedShape)
   }
-  let input = @execution.managed_producer_read_schema(query.input)
+  let input = @execution.managed_producer_read_schema(query.inputs[0])
   let output = @lower.preparation_schema_at(
     @lower.bound_preparation(native.owner),
     Step(1),
@@ -65,7 +66,7 @@ pub fn[T] managed_fixed_selection_sql(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !managed_fixed_query_matches(query, query.input) {
+  if !managed_fixed_query_matches(query, query.inputs[0]) {
     return Err(InputUnavailable)
   }
   Ok(compiled.sql)
@@ -92,7 +93,7 @@ pub fn[T] prepare_managed_filter_selection(
     Ok(plan) => plan
     Err(issue) => return Err(issue)
   }
-  let available = @execution.managed_producer_read_row_count(query.input)
+  let available = @execution.managed_producer_read_row_count(query.inputs[0])
   let mut previous = -1
   for row in rows {
     if row <= previous || row >= available {

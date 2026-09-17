@@ -5,10 +5,18 @@
 struct ManagedQueryDemand[T] {
   query : ManagedFixedQuery[T]
   state : ComparisonDemand?
-  direct_view : Bool
+  direct : ManagedDirectDemand
   budget : NativeValueBudget
   physical : @execution.FixedInputGuardMeasureLimits
   mut consumed : Bool
+}
+
+///|
+priv enum ManagedDirectDemand {
+  ManagedComparison
+  ManagedView(Int)
+  ManagedCount(Int)
+  ManagedJoin(Int, Int)
 }
 
 ///|
@@ -24,10 +32,11 @@ pub fn[T] prepare_managed_query_demand(
     physical.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  if !managed_fixed_query_matches(query, query.input) {
+  let inputs = query.inputs
+  if !managed_fixed_query_matches_inputs(query, inputs) {
     return Err(InvalidState)
   }
-  let rows = @execution.managed_producer_read_row_count(query.input)
+  let rows = @execution.managed_producer_read_row_count(inputs[0])
   let budget : NativeValueBudget = {
     guards: { max_value_bytes, max_output_rows: rows, },
     work: physical.max_work,
@@ -35,14 +44,29 @@ pub fn[T] prepare_managed_query_demand(
     nodes: physical.max_nodes,
     depth: physical.max_depth,
   }
-  let (state, direct_view) = match query.body {
-    Take(_) => (None, true)
-    Fixed(CountGroup(_)) => (None, false)
-    Fixed(InnerJoin(_)) => return Err(InvalidLayout)
+  let (state, direct) = match query.body {
+    Take(_) => (None, ManagedView(rows))
+    Fixed(CountGroup(_)) => (None, ManagedCount(rows))
+    Fixed(InnerJoin(join)) => {
+      let left = native_inner_join_input(join, true)
+      let right = native_inner_join_input(join, false)
+      guard inputs.get(left) is Some(left_input) &&
+        inputs.get(right) is Some(right_input) else {
+        return Err(InvalidLayout)
+      }
+      (
+        None,
+        ManagedJoin(
+          @execution.managed_producer_read_row_count(left_input),
+          @execution.managed_producer_read_row_count(right_input),
+        ),
+      )
+    }
     Fixed(FilterSelect(native)) => {
+      guard inputs.length() == 1 else { return Err(InvalidLayout) }
       let column = match
         fixed_comparison_column(
-          @execution.managed_producer_read_schema(query.input),
+          @execution.managed_producer_read_schema(inputs[0]),
           native,
           budget,
         ) {
@@ -50,7 +74,7 @@ pub fn[T] prepare_managed_query_demand(
         Err(issue) => return Err(issue)
       }
       guard @execution.managed_producer_read_column_measurement(
-          query.input,
+          inputs[0],
           column,
         )
         is Some(facts) else {
@@ -91,14 +115,14 @@ pub fn[T] prepare_managed_query_demand(
             facts.null_rows
           },
         }),
-        false,
+        ManagedComparison,
       )
     }
   }
-  if !managed_fixed_query_matches(query, query.input) {
+  if !managed_fixed_query_matches_inputs(query, inputs) {
     return Err(InvalidState)
   }
-  Ok({ query, state, direct_view, budget, physical, consumed: false, })
+  Ok({ query, state, direct, budget, physical, consumed: false, })
 }
 
 ///|
@@ -112,7 +136,7 @@ pub fn[T] finish_managed_query_demand(
 ) -> Result[FixedComputeDemandUsage, NativeDemandIssue] {
   if demand.consumed ||
     !physical_equal(demand.query, query) ||
-    !managed_fixed_query_matches(query, query.input) ||
+    !managed_fixed_query_matches_inputs(query, query.inputs) ||
     !@execution.managed_output_value_receipt_matches(
       receipt,
       managed_fixed_query_owner(query),
@@ -124,19 +148,13 @@ pub fn[T] finish_managed_query_demand(
   let output_rows = @execution.managed_output_value_row_count(receipt)
   match demand.state {
     None =>
-      Ok(
-        if demand.direct_view {
-          DirectView(
-            input_rows=@execution.managed_producer_read_row_count(query.input),
-            output_rows~,
-          )
-        } else {
-          DirectCount(
-            input_rows=@execution.managed_producer_read_row_count(query.input),
-            output_rows~,
-          )
-        },
-      )
+      match demand.direct {
+        ManagedView(input_rows) => Ok(DirectView(input_rows~, output_rows~))
+        ManagedCount(input_rows) => Ok(DirectCount(input_rows~, output_rows~))
+        ManagedJoin(left_rows, right_rows) =>
+          Ok(DirectJoin(left_rows~, right_rows~, output_rows~))
+        ManagedComparison => Err(InvalidState)
+      }
     Some(state) =>
       finish_comparison_demand(
         state,

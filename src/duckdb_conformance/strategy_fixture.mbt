@@ -728,6 +728,7 @@ pub fn strategy_fixture_managed_configuration(
     },
     output_file_bytes,
     max_index_cells,
+    [],
   ).unwrap()
 }
 

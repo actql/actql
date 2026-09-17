@@ -100,7 +100,7 @@ pub fn ${name}_dispatch(setup : ${host}, task : @host_driver.PreparedTaskDispatc
 #export_name("strategyModule_${name}_ManagedDispatch")
 pub fn ${name}_managed_dispatch(
   setup : ${host},
-  completed : @execution.ManagedCompletedOutput[Int],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
 ) -> ${managedResult} raise NodeHostFailure {
   match @builtin.dispatch_managed_${name}(

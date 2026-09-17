@@ -13,7 +13,7 @@ import {
 // Values
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 
-pub fn duckdb_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @execution_relation.ManagedCompletedOutput[Int], Int64) -> @actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int] raise NodeHostFailure
+pub fn duckdb_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int] raise NodeHostFailure
 
 pub fn duckdb_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
@@ -37,6 +37,8 @@ pub fn strategy_host_managed_output_matches(@connectors_builtin.ConfiguredComput
 
 pub fn strategy_host_managed_producer(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
+pub fn strategy_host_managed_producers(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
 pub fn strategy_host_modules(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
 
 pub fn strategy_host_next(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_host.PreparedTaskDispatch? raise NodeHostFailure
@@ -46,6 +48,8 @@ pub fn strategy_host_next_task(@connectors_builtin.ConfiguredComputeHost[@physic
 pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
 pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
+
+pub fn strategy_host_releasable_managed_producers(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
 

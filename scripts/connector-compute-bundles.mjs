@@ -128,7 +128,7 @@ function configurationAssembly(entries, alias, typed, resultType) {
   const managedDispatches = entries.filter(({manifest:m}) => m.managed_dispatch)
     .map(({name, manifest:m}) =>
     `\n///|\n/// Prepare one managed task through the configured implementation.\n` +
-    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : @execution.ManagedCompletedOutput[Int], output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int], ConfiguredDispatchIssue[E]] {\n` +
+    `pub fn[E] dispatch_managed_${name}(value : ConfiguredComputeModules[E], completed : Array[@execution.ManagedCompletedOutput[Int]], output_file_bytes : Int64) -> Result[${typed(m.managed_dispatch_result)}[Int], ConfiguredDispatchIssue[E]] {\n` +
     `  match value.installed_${name} {\n` +
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.managed_dispatch}(installed, completed, output_file_bytes).map_err(issue => Implementation(project(issue)))\n` +

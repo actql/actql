@@ -35,28 +35,40 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
   }
   return Object.freeze({
     registration: moon.strategyModule_duckdb_Registration(setup),
-    prepareNext(outputs) {
+    async prepareNext(outputs) {
       if (!options.managedOutput) return undefined;
+      for (const producer of moon.strategyHostReleasableManagedProducers(setup)) {
+        const output = outputs.get(producer);
+        if (output?.close) await output.close();
+        outputs.delete(producer);
+      }
       const task = moon.strategyHostNextTask(setup);
-      const producer = moon.strategyHostManagedProducer(setup);
-      const input = outputs.get(producer);
-      if (task < 1 || producer < 1 || input == null) return undefined;
+      const producers = moon.strategyHostManagedProducers(setup);
+      if (task < 1 || !Array.isArray(producers) || producers.length === 0) {
+        return undefined;
+      }
+      const inputs = producers.map(producer => outputs.get(producer));
+      if (producers.some(producer => producer < 1) ||
+          inputs.some(input => input == null)) return undefined;
+      const managedConfiguration = checked(
+        moon.strategyModule_duckdb_ManagedDispatch(
+          setup, inputs.map(input => input.completed),
+          BigInt(options.managedOutput.wire.max_bytes),
+        ),
+      );
       return Object.freeze({
         task,
-        input,
-        inputCodecContractCid: managedInputCodecContractCid(input.material),
-        configuration: checked(
-          moon.strategyModule_duckdb_ManagedDispatch(
-            setup, input.completed, BigInt(options.managedOutput.wire.max_bytes),
-          ),
-        ),
+        inputs: Object.freeze(inputs),
+        inputCodecContractCids: Object.freeze(inputs.map(input =>
+          managedInputCodecContractCid(input.material))),
+        configuration: managedConfiguration,
       });
     },
     async runPrepared(prepared, signal) {
       const result = await runManagedColumnStrategyHostCompute(
         prepared.configuration,
-        prepared.input.material,
-        prepared.inputCodecContractCid,
+        prepared.inputs.map(input => input.material),
+        prepared.inputCodecContractCids,
         limits,
         options.managedOutput,
         signal,

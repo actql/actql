@@ -56,6 +56,37 @@ fn profile_resident_import_scratch(value : DataProfile) -> Int64 {
 }
 
 ///|
+/// Managed evidence is retained for the checked output schema, not the widest
+/// input schema in the application profile. The row ceiling remains the
+/// conservative graph-wide intermediate ceiling.
+fn profile_managed_retention_capacity(
+  value : DataProfile,
+  output_columns : Int,
+  streamed : Bool,
+) -> Int64? {
+  if output_columns <= 0 ||
+    output_columns > value.columns ||
+    value.task_rows > 2147483647 / output_columns {
+    return None
+  }
+  let limits = dispatch_limits(data=Some(value)).native
+  guard (if streamed {
+      @duckdb_compute.duckdb_stream_retention_capacity(limits)
+    } else {
+      @duckdb_compute.duckdb_task_retention_capacity(limits)
+    })
+    is Some(base) &&
+    @execution.managed_row_measurement_capacity_bytes(
+      value.task_rows * output_columns,
+    )
+    is Some(index) &&
+    base <= 9223372036854775807L - index else {
+    return None
+  }
+  Some(base + index)
+}
+
+///|
 // Completion metadata contains output field names and at most two owned input
 // bindings, never one entry per row/value. Data scratch retains its own budget.
 fn profile_completion_entries(value : DataProfile) -> Int {

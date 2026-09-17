@@ -57,6 +57,46 @@ fn search_offers(
 }
 
 ///|
+test "retention search releases checked intermediates after their last consumer" {
+  let (run, _) = captured_graph_fixture(join=true)
+  let registry = search_registry()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 4,
+    max_strategies: 1,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = Array::makei(4, index => {
+    // Every Stage has a checked publication port. Those ports connect the DAG;
+    // they are not four independent caller-retention obligations.
+    assert_true(
+      @program_check.unit_publication_count(
+        @strategy.graph_program(@strategy.captured_dag_graph(run)),
+        index + 1,
+      ).unwrap_or(0) >
+      0,
+    )
+    @strategy.prepare_task_offer(
+      run,
+      index + 1,
+      registration,
+      1,
+      [{ work_slots: [0], milliseconds: Some(1L), }],
+      { transfer_bytes: 0L, retained_bytes: 10L, execution_bytes: 1L, },
+      100,
+    ).unwrap()
+  })
+  guard @strategy.revise_strategy(run, offers, registry, None).unwrap()
+    is Selected(revision) else {
+    abort("selected")
+  }
+  // The join needs both parents while producing its result (30), then releases
+  // them before the final count. Summing every task would incorrectly be 40.
+  assert_eq(@strategy.strategy_assessment(revision).retained_bytes, 30L)
+}
+
+///|
 test "whole strategy includes transfer costs and revises only after new completion" {
   let (run, _issuer) = captured_graph_fixture()
   let registry = search_registry()

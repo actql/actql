@@ -713,64 +713,67 @@ fn create_application_dispatch(
     ).unwrap()
   }
   let profiles : Array[@dbhost.DispatchEstimateProfile] = Array::makei(count, index => {
-    local_rates: [
-      {
-        work_slots: [0, 1, 2, 3, 4],
-        fixed_ms: Some(1L),
-        per_row_ms: Some(2L),
-        per_wire_byte_ms: Some(0L),
-        per_pair_ms: Some(0L),
-      },
-    ],
-    native_rates: [
-      {
-        work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
-        fixed_ms: Some(native_task_ms.get(index).unwrap_or(native_fixed_ms)),
-        per_row_ms: Some(0L),
-        per_wire_byte_ms: Some(0L),
-        per_pair_ms: Some(0L),
-      },
-    ],
-    native_capacity: {
-      transfer_bytes: data
-      .map(profile_compute_transfer_capacity)
-      .unwrap_or(100000L),
-      retained_bytes: data
-      .map(value => {
-        let limits = dispatch_limits(data=Some(value)).native
-        let full = @duckdb_compute.duckdb_task_retention_capacity(limits).unwrap()
-        let base = if retained is Some((bytes, _)) && bytes > 0L {
-          let streamed = @duckdb_compute.duckdb_stream_retention_capacity(
-            limits,
-          ).unwrap()
-          // The connector adds its DB-copy minimum only to resident offers.
-          // Fresh execution retains no DB copy after the task completes.
-          streamed
-        } else {
-          full
-        }
-        if managed_output {
-          guard value.task_rows <= 2147483647 / value.columns &&
-            @execution.managed_row_measurement_capacity_bytes(
-              value.task_rows * value.columns,
-            )
-            is Some(index) &&
-            base <= 9223372036854775807L - index else {
-            fail("invalid managed measurement capacity")
+    let output_columns = @strategy.graph_task_owner(app.graph, index + 1)
+      .map(@lower.bound_preparation)
+      .map(@lower.pipeline)
+      .bind(@pipeline.output_schema)
+      .map(@schema.field_count)
+      .unwrap_or(0)
+    {
+      local_rates: [
+        {
+          work_slots: [0, 1, 2, 3, 4],
+          fixed_ms: Some(1L),
+          per_row_ms: Some(2L),
+          per_wire_byte_ms: Some(0L),
+          per_pair_ms: Some(0L),
+        },
+      ],
+      native_rates: [
+        {
+          work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
+          fixed_ms: Some(native_task_ms.get(index).unwrap_or(native_fixed_ms)),
+          per_row_ms: Some(0L),
+          per_wire_byte_ms: Some(0L),
+          per_pair_ms: Some(0L),
+        },
+      ],
+      native_capacity: {
+        transfer_bytes: data
+        .map(profile_compute_transfer_capacity)
+        .unwrap_or(100000L),
+        retained_bytes: data
+        .map(value => {
+          if managed_output {
+            guard profile_managed_retention_capacity(
+                value,
+                output_columns,
+                retained is Some((bytes, _)) && bytes > 0L,
+              )
+              is Some(capacity) else {
+              fail("invalid managed measurement capacity")
+            }
+            capacity
+          } else {
+            let limits = dispatch_limits(data=Some(value)).native
+            if retained is Some((bytes, _)) && bytes > 0L {
+              // The connector adds its DB-copy minimum only to resident offers.
+              // Fresh execution retains no DB copy after the task completes.
+              @duckdb_compute.duckdb_stream_retention_capacity(limits).unwrap()
+            } else {
+              @duckdb_compute.duckdb_task_retention_capacity(limits).unwrap()
+            }
           }
-          base + index
+        })
+        .unwrap_or(4000000L),
+        execution_bytes: if data is Some(_) {
+          4294967296L
         } else {
-          base
-        }
-      })
-      .unwrap_or(4000000L),
-      execution_bytes: if data is Some(_) {
-        4294967296L
-      } else {
-        268435456L
+          268435456L
+        },
       },
-    },
-    output_rows_per_mille: Some(1000),
+      output_rows_per_mille: Some(1000),
+    }
   })
   @dbhost.configure_dispatch_estimates(dispatch, profiles, {
     max_offers: if resident {

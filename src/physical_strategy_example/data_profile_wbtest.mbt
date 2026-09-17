@@ -36,6 +36,11 @@ test "explicit data profile preserves distinct source and intermediate row bound
   assert_eq(profile_compute_transfer_capacity(data), 36800192L)
   assert_eq(profile_resident_import_scratch(data), 41005120L)
   assert_true(
+    profile_managed_retention_capacity(data, 1, true).unwrap() <
+    profile_managed_retention_capacity(data, 64, true).unwrap(),
+  )
+  assert_true(profile_managed_retention_capacity(data, 65, true) is None)
+  assert_true(
     profile_resident_import_scratch({ ..data, batch_bytes: 200000, }) >
     profile_resident_import_scratch(data),
   )

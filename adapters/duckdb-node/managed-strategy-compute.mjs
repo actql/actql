@@ -34,6 +34,26 @@ function directParquetSelect(querySql, fields, storageOrder) {
     identifier(source);
 }
 
+async function withManagedInputFiles(
+  materials, inputs, codecs, authorize, use, signal, charge,
+) {
+  const files = [];
+  async function acquire(index) {
+    if (index === inputs.length) return use(files);
+    return withManagedInputFile(
+      materials[index], inputs[index], codecs[index], authorize,
+      async file => {
+        files.push(file);
+        try { return await acquire(index + 1); }
+        finally { files.pop(); }
+      },
+      signal,
+      bytes => charge(index, bytes),
+    );
+  }
+  return acquire(0);
+}
+
 // outputStorage is Host policy, not Program input. Its directory and framing
 // are admitted before native work; capacity comes from the selected MoonBit
 // setup and cannot be enlarged here.
@@ -42,10 +62,17 @@ export async function runManagedColumnStrategyHostCompute(
 ) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
+  const inputMaterials = Array.isArray(inputMaterial)
+    ? inputMaterial : [inputMaterial];
+  const inputCodecContractCids = Array.isArray(inputCodecContractCid)
+    ? inputCodecContractCid : [inputCodecContractCid];
   if (!outputStorage || typeof outputStorage.parentDirectory !== 'string' ||
       !Number.isSafeInteger(outputStorage.maxFrameBytes) || outputStorage.maxFrameBytes < 1 ||
-      ![managedColumnCodecContractCid, managedParquetCodecContractCid]
-        .includes(inputCodecContractCid)) {
+      inputMaterials.length === 0 ||
+      inputMaterials.length !== inputCodecContractCids.length ||
+      inputCodecContractCids.some(cid =>
+        ![managedColumnCodecContractCid, managedParquetCodecContractCid]
+          .includes(cid))) {
     throw new DuckDBTransportError('InvalidManagedStorageConfiguration');
   }
   const moon = await loadRuntime();
@@ -71,12 +98,19 @@ export async function runManagedColumnStrategyHostCompute(
     store = await createLocalRetainedStore({parentDirectory: outputStorage.parentDirectory,
       capacityBytes: fileCapacity, maxFrameBytes: outputStorage.maxFrameBytes, maxEntries: 1});
     writer = store.reserve(fileCapacity);
-    const input = checked(moon.managedStrategyInput(run));
-    const createSql = checked(moon.managedStrategySql(run, true));
-    const importSql = inputCodecContractCid === managedColumnCodecContractCid
-      ? moon.managedStrategyInputFileSql(run, limits.maxSqlBytes)
-      : moon.managedStrategyInputParquetSql(run, limits.maxSqlBytes);
-    if (typeof importSql !== 'string') {
+    const inputCount = moon.managedStrategyInputCount(run);
+    if (!Number.isSafeInteger(inputCount) || inputCount !== inputMaterials.length) {
+      throw new DuckDBTransportError('InvalidManagedInputCount');
+    }
+    const inputs = Array.from({length: inputCount}, (_, index) =>
+      checked(moon.managedStrategyInputAt(run, index)));
+    const createSqls = inputs.map((_, index) =>
+      checked(moon.managedStrategyCreateSql(run, index)));
+    const importSqls = inputs.map((_, index) =>
+      inputCodecContractCids[index] === managedColumnCodecContractCid
+        ? moon.managedStrategyInputFileSqlAt(run, index, limits.maxSqlBytes)
+        : moon.managedStrategyInputParquetSqlAt(run, index, limits.maxSqlBytes));
+    if (importSqls.some(sql => typeof sql !== 'string')) {
       throw new DuckDBTransportError('UnsupportedManagedInputRepresentation');
     }
     const occurrenceSql = moon.managedStrategyOccurrenceSql(run);
@@ -93,16 +127,24 @@ export async function runManagedColumnStrategyHostCompute(
     const accounting = Object.freeze({
       started() { sessionStarted = true; },
       chargeTransfer(bytes) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
-      settled(confirmed) { checked(moon.managedStrategySettle(run, confirmed)); },
+      settled(confirmed) {
+        checked(moon.managedStrategySettle(run, confirmed));
+      },
     });
     const occurrences = [];
     let storageOrder;
-    const result = await withManagedInputFile(inputMaterial, input, inputCodecContractCid,
-      () => authorized && !signal?.aborted, async file => withComputeDatabase(limits, async session => {
+    const result = await withManagedInputFiles(
+      inputMaterials,
+      inputs,
+      inputCodecContractCids,
+      () => authorized && !signal?.aborted,
+      async files => withComputeDatabase(limits, async session => {
         const discard = () => {};
-        await session.command(createSql, [], discard);
-        await session.command(importSql,
-          [{type: {id: 'VARCHAR'}, value: file.path}], discard);
+        for (let index = 0; index < files.length; index++) {
+          await session.command(createSqls[index], [], discard);
+          await session.command(importSqls[index],
+            [{type: {id: 'VARCHAR'}, value: files[index].path}], discard);
+        }
         if (preservesCheckedValues) {
           const fields = await session.command(
             `SELECT * FROM (${querySql}) AS ${identifier('__actql_metadata')} LIMIT 0`,
@@ -170,14 +212,18 @@ export async function runManagedColumnStrategyHostCompute(
           checked(moon.managedStrategyOutputFinish(run, output));
         }
         return fields;
-      }, signal, accounting, directLease
-        ? [file.path, directLease.path]
-        : [file.path]), signal, bytes => {
+      }, signal, accounting, [
+        ...files.map(file => file.path),
+        ...(directLease ? [directLease.path] : []),
+      ]),
+      signal,
+      (_index, bytes) => {
         // One complete Store integrity pass and one native read of the exact
         // pinned file. Logical consumer charges are handled by managed demand.
         checked(moon.managedStrategyCharge(run, BigInt(bytes) * 2n));
-        inputPhysicalBytes = bytes;
-      });
+        inputPhysicalBytes += bytes;
+      },
+    );
     signal?.throwIfAborted();
     if (preservesCheckedValues) {
       const selection = checked(moon.managedStrategySelection(run, occurrences));
@@ -207,8 +253,8 @@ export async function runManagedColumnStrategyHostCompute(
       usage: result.usage,
       diagnostics: Object.freeze({
         inputPhysicalBytes,
-        inputIntegrityPasses: 1,
-        nativeFileImportCommands: 1,
+        inputIntegrityPasses: inputCount,
+        nativeFileImportCommands: inputCount,
         parameterInsertRows: 0,
         logicalContentCidComputations: 0,
         outputValueAdmissionCells,

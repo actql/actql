@@ -25,8 +25,19 @@ pub fn strategy_host_next(
 }
 
 ///|
-/// Producer index needed by the next unary managed task. This exposes graph
-/// topology only; the exact opaque completion is still checked by preparation.
+/// Producer indexes needed by the next managed task in exact input-port order.
+/// This exposes topology only; opaque completions are checked by preparation.
+#export_name("strategyHostManagedProducers")
+pub fn strategy_host_managed_producers(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_next_managed_producers(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+}
+
+///|
+/// Compatibility accessor for installed unary implementations.
 #export_name("strategyHostManagedProducer")
 pub fn strategy_host_managed_producer(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -34,6 +45,16 @@ pub fn strategy_host_managed_producer(
   @strategy.captured_next_managed_producer(
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
   ).unwrap_or(-1)
+}
+
+///|
+#export_name("strategyHostReleasableManagedProducers")
+pub fn strategy_host_releasable_managed_producers(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  @strategy.captured_releasable_managed_producers(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
 }
 
 ///|
@@ -288,7 +309,7 @@ pub fn duckdb_dispatch(
 #export_name("strategyModule_duckdb_ManagedDispatch")
 pub fn duckdb_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
-  completed : @execution.ManagedCompletedOutput[Int],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
 ) -> @binding7.ManagedStrategyComputeHostConfiguration[Int] raise NodeHostFailure {
   match

@@ -379,18 +379,68 @@ pub fn[T] captured_managed_task_input(
 }
 
 ///|
-/// Exact producer of the next unary task, for standard managed dispatch.
-/// Multi-input tasks remain outside the initial managed realization.
-pub fn captured_next_managed_producer(run : CapturedDAG) -> Int? {
-  guard next_captured_task(run) is Some(task) && run.inputs[task].length() == 1 else {
-    return None
+/// Exact producers of the next managed task in receiving input-port order.
+/// Missing, external, or incomplete topology returns an empty set; concrete
+/// managed completions are still checked independently during preparation.
+pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
+  guard next_captured_task(run) is Some(task) && !run.inputs[task].is_empty() else {
+    return []
   }
+  let producers = Array::make(run.inputs[task].length(), -1)
   for edge in run.graph.data {
-    if edge.consumer == task && edge.input == 0 && edge.producer > 0 {
-      return Some(edge.producer)
+    if edge.consumer == task &&
+      edge.input >= 0 &&
+      edge.input < producers.length() &&
+      edge.producer > 0 {
+      producers[edge.input] = edge.producer
     }
   }
-  None
+  if producers.any(producer => producer <= 0) {
+    []
+  } else {
+    producers
+  }
+}
+
+///|
+/// Compatibility accessor for callers that intentionally support unary tasks.
+pub fn captured_next_managed_producer(run : CapturedDAG) -> Int? {
+  let producers = captured_next_managed_producers(run)
+  if producers.length() == 1 {
+    Some(producers[0])
+  } else {
+    None
+  }
+}
+
+///|
+/// Completed internal producers whose last checked consumer has finished.
+/// Sink results remain live for the caller. A Stage publication is the checked
+/// port used by graph edges, not a separate external-retention obligation.
+/// This is exact graph liveness, not GC or permission to discard a sink.
+pub fn captured_releasable_managed_producers(run : CapturedDAG) -> Array[Int] {
+  let released = []
+  for producer in 1..<run.done.length() {
+    if !run.done[producer] ||
+      !run.lifetimes[producer].live ||
+      run.managed_completed.get(producer).bind(value => value) is None {
+      continue
+    }
+    let mut has_consumer = false
+    let mut needed = false
+    for edge in run.graph.data {
+      if edge.producer == producer {
+        has_consumer = true
+        if !run.done[edge.consumer] {
+          needed = true
+        }
+      }
+    }
+    if has_consumer && !needed {
+      released.push(producer)
+    }
+  }
+  released
 }
 
 ///|

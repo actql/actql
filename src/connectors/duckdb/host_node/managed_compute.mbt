@@ -87,6 +87,31 @@ pub fn managed_strategy_input(
 }
 
 ///|
+#export_name("managedStrategyInputCount")
+pub fn managed_strategy_input_count(run : ManagedComputeNodeRun) -> Int {
+  if run.closed {
+    0
+  } else {
+    @duckdb_driver.captured_managed_duckdb_input_count(run.task)
+  }
+}
+
+///|
+#export_name("managedStrategyInputAt")
+pub fn managed_strategy_input_at(
+  run : ManagedComputeNodeRun,
+  index : Int,
+) -> @execution.ManagedProducerRead[Int] raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match @duckdb_driver.captured_managed_duckdb_input_at(run.task, index) {
+    Some(input) => input
+    None => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("managedStrategySql")
 pub fn managed_strategy_sql(
   run : ManagedComputeNodeRun,
@@ -100,6 +125,25 @@ pub fn managed_strategy_sql(
     @duckdb.managed_fixed_query_create_sql(query)
   } else {
     @duckdb.managed_fixed_query_sql(query)
+  }
+}
+
+///|
+#export_name("managedStrategyCreateSql")
+pub fn managed_strategy_create_sql(
+  run : ManagedComputeNodeRun,
+  index : Int,
+) -> String raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb.managed_fixed_query_create_sql_at(
+      @duckdb_driver.captured_managed_duckdb_query(run.task),
+      index,
+    ) {
+    Some(sql) => sql
+    None => raise InvalidCommand
   }
 }
 
@@ -227,6 +271,23 @@ pub fn managed_strategy_input_file_sql(
 }
 
 ///|
+#export_name("managedStrategyInputFileSqlAt")
+pub fn managed_strategy_input_file_sql_at(
+  run : ManagedComputeNodeRun,
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_column_file_sql_at(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+    input_index,
+    max_sql_bytes,
+  )
+}
+
+///|
 #export_name("managedStrategyInputParquetSql")
 pub fn managed_strategy_input_parquet_sql(
   run : ManagedComputeNodeRun,
@@ -237,6 +298,23 @@ pub fn managed_strategy_input_parquet_sql(
   }
   @duckdb.managed_fixed_query_parquet_file_sql(
     @duckdb_driver.captured_managed_duckdb_query(run.task),
+    max_sql_bytes,
+  )
+}
+
+///|
+#export_name("managedStrategyInputParquetSqlAt")
+pub fn managed_strategy_input_parquet_sql_at(
+  run : ManagedComputeNodeRun,
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_parquet_file_sql_at(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+    input_index,
     max_sql_bytes,
   )
 }
@@ -430,7 +508,7 @@ pub fn managed_strategy_complete(
       @duckdb_driver.captured_managed_duckdb_execution(run.task),
       completed,
       allocation?=output.material_allocation,
-      managed_inputs=[@duckdb_driver.captured_managed_duckdb_input(run.task)],
+      managed_inputs=@duckdb_driver.captured_managed_duckdb_inputs(run.task),
     ) {
     Err(issue) => {
       managed_output_cancel(output)

@@ -239,7 +239,7 @@ pub fn[C, E] take_duckdb_dispatch(
 /// candidate, compares it and fixes the common completion configuration.
 pub fn prepare_duckdb_managed_dispatch(
   installed : DuckDBDispatchModule,
-  output : @execution.ManagedCompletedOutput[Int],
+  outputs : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
 ) -> Result[ManagedStrategyComputeHostConfiguration[Int], DuckDBDispatchIssue] {
   guard @strategy.next_captured_task(installed.run) is Some(task) &&
@@ -250,22 +250,26 @@ pub fn prepare_duckdb_managed_dispatch(
     @connector.capability_registration_available(installed.registration) else {
     return Err(ForeignSelection)
   }
-  let input = match
-    @strategy.captured_managed_task_input(
-      installed.run,
-      task,
-      output,
-      // Binding a checked schema is connector metadata work. Native-query
-      // entries and SQL bytes bound compilation, not producer-name matching.
-      installed.limits.execution.metadata_work,
-      installed.limits.execution.completion_name_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Run(issue))
+  let inputs = []
+  for index, output in outputs {
+    match
+      @strategy.captured_managed_task_input(
+        installed.run,
+        task,
+        output,
+        // Binding a checked schema is connector metadata work. Native-query
+        // entries and SQL bytes bound compilation, not producer-name matching.
+        installed.limits.execution.metadata_work,
+        installed.limits.execution.completion_name_bytes,
+        input_index=index,
+      ) {
+      Ok(value) => inputs.push(value)
+      Err(issue) => return Err(Run(issue))
+    }
   }
   let request = match
     @connector.prepare_managed_fixed_compute_request(
-      [input],
+      inputs,
       installed.limits.capacity,
     ) {
     Ok(value) => value
@@ -309,6 +313,18 @@ pub fn prepare_duckdb_managed_dispatch(
     return Err(InvalidConfiguration)
   }
   let max_index_cells = rows * width
+  let join_output_ceilings = []
+  guard @strategy.captured_task_join_output_count(installed.run, task)
+    is Some(join_count) else {
+    return Err(InvalidConfiguration)
+  }
+  for index in 0..<join_count {
+    guard @strategy.captured_task_join_output_at(installed.run, task, index)
+      is Some(ceiling) else {
+      return Err(InvalidConfiguration)
+    }
+    join_output_ceilings.push(ceiling)
+  }
   configure_managed_strategy_compute_host(
     installed.run,
     task,
@@ -320,5 +336,6 @@ pub fn prepare_duckdb_managed_dispatch(
     installed.limits.transport,
     output_file_bytes,
     max_index_cells,
+    join_output_ceilings,
   ).map_err(issue => Run(issue))
 }

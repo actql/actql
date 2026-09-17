@@ -220,8 +220,8 @@ fn search_charge(work : SearchWork, amount : Int) -> Result[Unit, SearchIssue] {
 ///|
 /// Enumerate finite complete assignments for the unstarted suffix. All
 /// transfers are charged per task, including repeated imports of the same CID.
-/// Retention sums declared capacities conservatively; no last-use discount is
-/// taken until allocation sharing/release is actually implemented and proven.
+/// Retention uses the checked graph's serial last-consumer lifetime; physical
+/// cleanup must still be confirmed by the installed Host before reuse.
 pub fn revise_strategy(
   run : CapturedDAG,
   offers : Array[TaskOffer],
@@ -356,7 +356,6 @@ pub fn revise_strategy(
     let mut duration = 0L
     let mut unknown = false
     let mut transfer = 0L
-    let mut retained = 0L
     let mut execution = 0L
     for i, task in tasks {
       let offer = groups[task][indices[i]]
@@ -371,12 +370,10 @@ pub fn revise_strategy(
         }
       }
       let cap = offer.capacity
-      if cap.transfer_bytes > 9223372036854775807L - transfer ||
-        cap.retained_bytes > 9223372036854775807L - retained {
+      if cap.transfer_bytes > 9223372036854775807L - transfer {
         return Err(Overflow)
       }
       transfer += cap.transfer_bytes
-      retained += cap.retained_bytes
       let task_execution = match offer.resident {
         None => cap.execution_bytes
         Some(profile) => cap.execution_bytes - profile.database_bytes
@@ -384,6 +381,10 @@ pub fn revise_strategy(
       if task_execution > execution {
         execution = task_execution
       }
+    }
+    let retained = match strategy_retention_peak(run, tasks, choices, work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     let shared = match compose_resident_choices(run, choices, work) {
       Ok(value) => value
@@ -567,6 +568,61 @@ fn[T] strategy_managed_candidate_matches(
     offer.registration,
     @connector.managed_fixed_compute_candidate_registration(candidate),
   )
+}
+
+///|
+/// Peak additional result holding for the remaining serial graph. Internal
+/// results stop contributing after their last checked consumer. Sink results
+/// remain live for the caller. A Stage publication is the checked port used by
+/// graph edges, so it is not by itself an external-retention obligation. This
+/// models retention only, never Store cleanup confirmation or current use
+/// authority.
+fn strategy_retention_peak(
+  run : CapturedDAG,
+  tasks : Array[Int],
+  choices : Array[TaskOffer?],
+  work : SearchWork,
+) -> Result[Int64, SearchIssue] {
+  let live = Array::make(run.graph.owners.length(), 0L)
+  let mut held = 0L
+  let mut peak = 0L
+  for task in tasks {
+    guard choices.get(task).bind(value => value) is Some(offer) else {
+      return Err(MissingTask(task))
+    }
+    if offer.capacity.retained_bytes > 9223372036854775807L - held {
+      return Err(Overflow)
+    }
+    held += offer.capacity.retained_bytes
+    live[task] = offer.capacity.retained_bytes
+    if held > peak {
+      peak = held
+    }
+    for producer in tasks {
+      if producer > task || live[producer] == 0L {
+        continue
+      }
+      let mut has_consumer = false
+      let mut needed = false
+      for edge in run.graph.data {
+        match search_charge(work, 1) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        if edge.producer == producer {
+          has_consumer = true
+          if edge.consumer > task {
+            needed = true
+          }
+        }
+      }
+      if has_consumer && !needed {
+        held -= live[producer]
+        live[producer] = 0L
+      }
+    }
+  }
+  Ok(peak)
 }
 
 ///|

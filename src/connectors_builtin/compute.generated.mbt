@@ -309,7 +309,7 @@ pub fn[C, E] dispatch_reference_compute(
 /// Prepare one managed task through the configured implementation.
 pub fn[E] dispatch_managed_duckdb(
   value : ConfiguredComputeModules[E],
-  completed : @execution.ManagedCompletedOutput[Int],
+  completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
 ) -> Result[
   @binding3.ManagedStrategyComputeHostConfiguration[Int],

@@ -1,5 +1,5 @@
 ///|
-/// A single-input native realization bound to an exact managed receiving use.
+/// A native realization bound to exact managed receiving uses.
 /// No legacy CID-bearing input is manufactured. This is preparation only:
 /// dispatch still needs input obligations, a physical representation matching
 /// the checked view, a live pin, current authority and resource admission.
@@ -10,10 +10,10 @@ priv enum ManagedFixedQueryBody[T] {
 
 ///|
 struct ManagedFixedQuery[T] {
-  input : @execution.ManagedProducerRead[T]
+  inputs : Array[@execution.ManagedProducerRead[T]]
   body : ManagedFixedQueryBody[T]
-  table : String
-  create_sql : String
+  tables : Array[String]
+  create_sql : Array[String]
   compilation : NativeQueryLimits
 }
 
@@ -92,19 +92,25 @@ fn compile_managed_fixed_create_schema(
 
 ///|
 /// Compile from the common managed request rather than manufacturing a legacy
-/// request. This adapter currently supports one input; multi-input realization
-/// remains an explicit connector capability rather than silently dropping
-/// ports.
+/// request. The finite initial profile supports unary fixed queries and the
+/// registered two-input inner join; no port may be silently dropped.
 pub fn[T] prepare_managed_fixed_request_query(
   request : @connector.ManagedFixedComputeRequest[T],
   table : String,
   limits : NativeQueryLimits,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
-  guard @connector.managed_fixed_compute_request_input_count(request) == 1 &&
-    @connector.managed_fixed_compute_request_input(request, 0) is Some(input) else {
+  let inputs = @connector.managed_fixed_compute_request_inputs(request)
+  if inputs.length() == 1 {
+    return prepare_managed_fixed_query(inputs[0], table, limits)
+  }
+  if inputs.length() != 2 {
     return Err(UnsupportedShape)
   }
-  prepare_managed_fixed_query(input, table, limits)
+  prepare_managed_fixed_query_inputs(
+    inputs,
+    Array::makei(inputs.length(), index => table + "_" + index.to_string()),
+    limits,
+  )
 }
 
 ///|
@@ -113,48 +119,94 @@ pub fn[T] prepare_managed_fixed_query(
   table : String,
   limits : NativeQueryLimits,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
-  if !@execution.managed_producer_read_available(input) {
-    return Err(InputUnavailable)
+  prepare_managed_fixed_query_inputs([input], [table], limits)
+}
+
+///|
+fn[T] prepare_managed_fixed_query_inputs(
+  inputs : Array[@execution.ManagedProducerRead[T]],
+  tables : Array[String],
+  limits : NativeQueryLimits,
+) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
+  if inputs.is_empty() || inputs.length() != tables.length() {
+    return Err(UnsupportedShape)
   }
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  let owner = @execution.managed_producer_read_receiver(input)
-  if @execution.managed_producer_read_input_index(input) != 0 ||
-    @lower.preparation_input_count(@lower.bound_preparation(owner)) != 1 {
+  let owner = @execution.managed_producer_read_receiver(inputs[0])
+  if @lower.preparation_input_count(@lower.bound_preparation(owner)) !=
+    inputs.length() {
     return Err(UnsupportedShape)
   }
-  let create_sql = match
-    compile_managed_fixed_create_schema(
-      @execution.managed_producer_read_schema(input),
-      table,
-      limits.max_entries,
-      limits.max_sql_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  for index, input in inputs {
+    if !@execution.managed_producer_read_available(input) {
+      return Err(InputUnavailable)
+    }
+    if !physical_equal(@execution.managed_producer_read_receiver(input), owner) ||
+      @execution.managed_producer_read_input_index(input) != index {
+      return Err(UnsupportedShape)
+    }
   }
-  let body = match
-    prepare_managed_take_query(
-      input,
-      "main",
-      table,
-      managed_input_ordinal_column(),
-      "__actql_occurrence",
-      limits,
-    ) {
-    Ok(query) => Take(query)
-    Err(UnsupportedShape) =>
-      match compile_fixed_query(owner, "main", table, limits) {
-        Ok(query) => Fixed(query)
-        Err(issue) => return Err(issue)
-      }
-    Err(issue) => return Err(issue)
+  let create_sql = []
+  let mut columns = limits.max_entries
+  let mut bytes = limits.max_sql_bytes
+  for index, input in inputs {
+    let schema = @execution.managed_producer_read_schema(input)
+    let count = @schema.field_count(schema)
+    let create = match
+      compile_managed_fixed_create_schema(schema, tables[index], columns, bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    columns -= count
+    match @scalar.admit_utf8_length(create, bytes) {
+      Ok(size) => bytes -= size
+      Err(_) => return Err(Limit)
+    }
+    create_sql.push(create)
   }
-  if !@execution.managed_producer_read_available(input) {
+  let body = if inputs.length() == 1 {
+    match
+      prepare_managed_take_query(
+        inputs[0],
+        "main",
+        tables[0],
+        managed_input_ordinal_column(),
+        "__actql_occurrence",
+        limits,
+      ) {
+      Ok(query) => Take(query)
+      Err(UnsupportedShape) =>
+        match compile_fixed_query(owner, "main", tables[0], limits) {
+          Ok(query) => Fixed(query)
+          Err(issue) => return Err(issue)
+        }
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    let join = match compile_fixed_inner_join(owner, "main", tables, limits) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let profile = native_inner_join_profile(join)
+    if @lower.inner_join_fails_null(profile) ||
+      @lower.inner_join_assertion(profile) is Some(_) {
+      // These laws need ordered key evidence, not only retained column totals.
+      return Err(UnsupportedShape)
+    }
+    Fixed(InnerJoin(join))
+  }
+  if inputs.any(input => !@execution.managed_producer_read_available(input)) {
     return Err(InputUnavailable)
   }
-  Ok({ input, body, table, create_sql, compilation: limits, })
+  Ok({
+    inputs: inputs.copy(),
+    body,
+    tables: tables.copy(),
+    create_sql,
+    compilation: limits,
+  })
 }
 
 ///|
@@ -164,8 +216,29 @@ pub fn[T] managed_fixed_query_matches(
   value : ManagedFixedQuery[T],
   input : @execution.ManagedProducerRead[T],
 ) -> Bool {
-  @execution.managed_producer_read_same_binding(value.input, input) &&
-  @execution.managed_producer_read_available(value.input)
+  value.inputs.length() == 1 &&
+  @execution.managed_producer_read_same_binding(value.inputs[0], input) &&
+  @execution.managed_producer_read_available(value.inputs[0])
+}
+
+///|
+pub fn[T] managed_fixed_query_matches_inputs(
+  value : ManagedFixedQuery[T],
+  inputs : Array[@execution.ManagedProducerRead[T]],
+) -> Bool {
+  if value.inputs.length() != inputs.length() {
+    return false
+  }
+  for index, input in inputs {
+    if !@execution.managed_producer_read_same_binding(
+        value.inputs[index],
+        input,
+      ) ||
+      !@execution.managed_producer_read_available(value.inputs[index]) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -174,7 +247,7 @@ pub fn[T] managed_fixed_query_owner(
 ) -> @lower.BoundPrepared {
   match value.body {
     Fixed(query) => fixed_query_owner(query)
-    Take(_) => @execution.managed_producer_read_receiver(value.input)
+    Take(_) => @execution.managed_producer_read_receiver(value.inputs[0])
   }
 }
 
@@ -186,7 +259,7 @@ pub fn[T] managed_fixed_query_target(
     Fixed(query) => fixed_query_target(query)
     Take(_) => {
       let prepared = @lower.bound_preparation(
-        @execution.managed_producer_read_receiver(value.input),
+        @execution.managed_producer_read_receiver(value.inputs[0]),
       )
       Step(@lower.node_count(prepared) - 1)
     }
@@ -248,12 +321,32 @@ pub fn[T] managed_fixed_query_fragment_start(
 pub fn[T] managed_fixed_query_input(
   value : ManagedFixedQuery[T],
 ) -> @execution.ManagedProducerRead[T] {
-  value.input
+  value.inputs[0]
+}
+
+///|
+pub fn[T] managed_fixed_query_inputs(
+  value : ManagedFixedQuery[T],
+) -> Array[@execution.ManagedProducerRead[T]] {
+  value.inputs.copy()
+}
+
+///|
+pub fn[T] managed_fixed_query_input_count(value : ManagedFixedQuery[T]) -> Int {
+  value.inputs.length()
+}
+
+///|
+pub fn[T] managed_fixed_query_input_at(
+  value : ManagedFixedQuery[T],
+  index : Int,
+) -> @execution.ManagedProducerRead[T]? {
+  value.inputs.get(index)
 }
 
 ///|
 /// Finite row ceiling for retained measurement metadata. Every installed
-/// single-input query emits no more rows than its input, except a global count,
+/// unary query emits no more rows than its input, except a global count,
 /// which emits exactly one row even for empty input. This is a capacity bound,
 /// not evidence that execution produced that many rows. `input_max_rows` is the
 /// admitted input bound, so zero does not cap a global count's output to zero.
@@ -269,10 +362,18 @@ pub fn[T] managed_fixed_query_output_row_ceiling(
         fixed_count_group_profile(query),
       ) ==
       0 => 1
+    Fixed(InnerJoin(query)) => {
+      let mut ceiling = input_max_rows
+      if native_inner_join_output_limit(query) is Some(bound) &&
+        bound < ceiling.to_int64() {
+        ceiling = bound.to_int()
+      }
+      ceiling
+    }
     _ =>
       Int::min(
         input_max_rows,
-        @execution.managed_producer_read_row_count(value.input),
+        @execution.managed_producer_read_row_count(value.inputs[0]),
       )
   }
 }
@@ -294,7 +395,15 @@ pub fn[T] managed_fixed_query_output_column_count(
 pub fn[T] managed_fixed_query_create_sql(
   value : ManagedFixedQuery[T],
 ) -> String {
-  value.create_sql
+  value.create_sql[0]
+}
+
+///|
+pub fn[T] managed_fixed_query_create_sql_at(
+  value : ManagedFixedQuery[T],
+  index : Int,
+) -> String? {
+  value.create_sql.get(index)
 }
 
 ///|
@@ -361,10 +470,20 @@ pub fn[T] managed_fixed_query_column_file_sql(
   value : ManagedFixedQuery[T],
   max_sql_bytes : Int,
 ) -> String? {
-  let schema = @execution.managed_producer_read_schema(value.input)
+  managed_fixed_query_column_file_sql_at(value, 0, max_sql_bytes)
+}
+
+///|
+pub fn[T] managed_fixed_query_column_file_sql_at(
+  value : ManagedFixedQuery[T],
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  guard value.inputs.get(input_index) is Some(input) else { return None }
+  let schema = @execution.managed_producer_read_schema(input)
   guard max_sql_bytes > 0 &&
     @schema.field_count(schema) > 0 &&
-    managed_fixed_query_input_table(value) is Some(table) else {
+    managed_fixed_query_input_table(value, input_index) is Some(table) else {
     return None
   }
   let physical = []
@@ -447,10 +566,20 @@ pub fn[T] managed_fixed_query_parquet_file_sql(
   value : ManagedFixedQuery[T],
   max_sql_bytes : Int,
 ) -> String? {
-  let schema = @execution.managed_producer_read_schema(value.input)
+  managed_fixed_query_parquet_file_sql_at(value, 0, max_sql_bytes)
+}
+
+///|
+pub fn[T] managed_fixed_query_parquet_file_sql_at(
+  value : ManagedFixedQuery[T],
+  input_index : Int,
+  max_sql_bytes : Int,
+) -> String? {
+  guard value.inputs.get(input_index) is Some(input) else { return None }
+  let schema = @execution.managed_producer_read_schema(input)
   guard max_sql_bytes > 0 &&
     @schema.field_count(schema) > 0 &&
-    managed_fixed_query_input_table(value) is Some(table) else {
+    managed_fixed_query_input_table(value, input_index) is Some(table) else {
     return None
   }
   for index in 0..<@schema.field_count(schema) {
@@ -494,10 +623,13 @@ pub fn[T] managed_fixed_query_parquet_file_sql(
 }
 
 ///|
-fn[T] managed_fixed_query_input_table(value : ManagedFixedQuery[T]) -> String? {
+fn[T] managed_fixed_query_input_table(
+  value : ManagedFixedQuery[T],
+  input_index : Int,
+) -> String? {
   match value.body {
-    Fixed(query) => fixed_query_input_table(query, 0)
-    Take(_) => Some(value.table)
+    Fixed(query) => fixed_query_input_table(query, input_index)
+    Take(_) => if input_index == 0 { Some(value.tables[0]) } else { None }
   }
 }
 
@@ -512,7 +644,8 @@ pub fn[T] prepare_managed_fixed_view_plan(
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if !managed_fixed_query_matches(query, query.input) {
+  if query.inputs.length() != 1 ||
+    !managed_fixed_query_matches(query, query.inputs[0]) {
     return Err(InputUnavailable)
   }
   match query.body {
@@ -536,7 +669,7 @@ pub fn[T] prepare_managed_fixed_view_plan(
   }
   match
     @execution.prepare_managed_view_plan(
-      query.input,
+      query.inputs[0],
       kernels,
       limits.max_entries,
       limits.max_sql_bytes,

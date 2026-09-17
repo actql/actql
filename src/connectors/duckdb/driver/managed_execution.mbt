@@ -7,7 +7,7 @@ struct CapturedManagedDuckDBTask[T] {
   query : @duckdb.ManagedFixedQuery[T]
   completion : @compute.ManagedInputDuckDBCompletion[T]
   execution : @strategy.TaskExecution
-  input : @execution.ManagedProducerRead[T]
+  inputs : Array[@execution.ManagedProducerRead[T]]
   live : Ref[Bool]
   settled : Ref[Bool]
   disposed : Ref[Bool]
@@ -44,7 +44,7 @@ pub fn[T] start_captured_managed_duckdb_task(
       capacity,
       join_output_ceilings,
       fn(query) {
-        let input = @duckdb.managed_fixed_query_input(query)
+        let inputs = @duckdb.managed_fixed_query_inputs(query)
         let prepared_completion = match
           @compute.prepare_managed_input_duckdb_completion(
             query,
@@ -96,7 +96,7 @@ pub fn[T] start_captured_managed_duckdb_task(
               disposed.val ||
               !settled.val ||
               !authorize() ||
-              !@duckdb.managed_fixed_query_matches(query, input) ||
+              !@duckdb.managed_fixed_query_matches_inputs(query, inputs) ||
               !live.val {
               Err(@strategy.RunIssue::NotReady)
             } else {
@@ -104,7 +104,7 @@ pub fn[T] start_captured_managed_duckdb_task(
             }
           },
         }
-        Ok(((query, input), operations))
+        Ok(((query, inputs), operations))
       },
     ) {
     Ok(value) => value
@@ -112,7 +112,7 @@ pub fn[T] start_captured_managed_duckdb_task(
   }
   match @strategy.start_captured_managed_execution(run, task, bound) {
     Err(issue) => Err(issue)
-    Ok(((query, input), execution)) => {
+    Ok(((query, inputs), execution)) => {
       guard completion.val is Some(completion) else {
         return Err(Implementation(DuckDBFailure::Compute(InvalidState)))
       }
@@ -121,7 +121,7 @@ pub fn[T] start_captured_managed_duckdb_task(
         query,
         completion,
         execution,
-        input,
+        inputs,
         live,
         settled,
         disposed,
@@ -163,7 +163,29 @@ pub fn[T] captured_managed_duckdb_execution(
 pub fn[T] captured_managed_duckdb_input(
   task : CapturedManagedDuckDBTask[T],
 ) -> @execution.ManagedProducerRead[T] {
-  task.input
+  task.inputs[0]
+}
+
+///|
+pub fn[T] captured_managed_duckdb_inputs(
+  task : CapturedManagedDuckDBTask[T],
+) -> Array[@execution.ManagedProducerRead[T]] {
+  task.inputs.copy()
+}
+
+///|
+pub fn[T] captured_managed_duckdb_input_count(
+  task : CapturedManagedDuckDBTask[T],
+) -> Int {
+  task.inputs.length()
+}
+
+///|
+pub fn[T] captured_managed_duckdb_input_at(
+  task : CapturedManagedDuckDBTask[T],
+  index : Int,
+) -> @execution.ManagedProducerRead[T]? {
+  task.inputs.get(index)
 }
 
 ///|
@@ -176,7 +198,7 @@ pub fn[T] captured_managed_duckdb_native_verified(
   task.settled.val &&
   !task.disposed.val &&
   (task.authorize)() &&
-  @duckdb.managed_fixed_query_matches(task.query, task.input) &&
+  @duckdb.managed_fixed_query_matches_inputs(task.query, task.inputs) &&
   task.live.val
 }
 

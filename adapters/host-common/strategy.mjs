@@ -108,6 +108,7 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         }
         managedOutputs.set(index, Object.freeze({
           completed: result.completed, material: result.material,
+          close: result.close,
         }));
       }
       completed.push(Object.freeze({ ...result?.diagnostic, task: index }));

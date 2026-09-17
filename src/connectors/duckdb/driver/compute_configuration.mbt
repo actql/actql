@@ -221,6 +221,7 @@ struct ManagedStrategyComputeHostConfiguration[T] {
   transport : @duckdb.TransportColumnLimits
   output_file_bytes : Int64
   max_index_cells : Int
+  join_output_ceilings : Array[(Int, Int64)]
 }
 
 ///|
@@ -235,6 +236,7 @@ pub fn[T] configure_managed_strategy_compute_host(
   transport : @duckdb.TransportColumnLimits,
   output_file_bytes : Int64,
   max_index_cells : Int,
+  join_output_ceilings : Array[(Int, Int64)],
 ) -> Result[ManagedStrategyComputeHostConfiguration[T], @strategy.RunIssue] {
   if output_file_bytes < 0L ||
     max_index_cells < 0 ||
@@ -252,6 +254,7 @@ pub fn[T] configure_managed_strategy_compute_host(
     transport,
     output_file_bytes,
     max_index_cells,
+    join_output_ceilings: join_output_ceilings.copy(),
   })
 }
 
@@ -334,7 +337,7 @@ pub fn[T] start_configured_managed_strategy_compute_host(
       scratch_bytes: scratch,
       execution_bytes: native_execution_bytes + scratch,
     },
-    [],
+    setup.join_output_ceilings,
     authorize,
     transport_matches,
     retention_released,

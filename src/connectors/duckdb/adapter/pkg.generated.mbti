@@ -197,13 +197,25 @@ pub fn managed_fixed_compute_demand_usage(ManagedFixedComputeDemand) -> FixedCom
 
 pub fn[T] managed_fixed_query_column_file_sql(ManagedFixedQuery[T], Int) -> String?
 
+pub fn[T] managed_fixed_query_column_file_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
+
 pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
+
+pub fn[T] managed_fixed_query_create_sql_at(ManagedFixedQuery[T], Int) -> String?
 
 pub fn[T] managed_fixed_query_fragment_start(ManagedFixedQuery[T]) -> Int
 
 pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation.ManagedProducerRead[T]
 
+pub fn[T] managed_fixed_query_input_at(ManagedFixedQuery[T], Int) -> @execution_relation.ManagedProducerRead[T]?
+
+pub fn[T] managed_fixed_query_input_count(ManagedFixedQuery[T]) -> Int
+
+pub fn[T] managed_fixed_query_inputs(ManagedFixedQuery[T]) -> Array[@execution_relation.ManagedProducerRead[T]]
+
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
+
+pub fn[T] managed_fixed_query_matches_inputs(ManagedFixedQuery[T], Array[@execution_relation.ManagedProducerRead[T]]) -> Bool
 
 pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
 
@@ -218,6 +230,8 @@ pub fn[T] managed_fixed_query_parameter(ManagedFixedQuery[T], Int) -> PhysicalPa
 pub fn[T] managed_fixed_query_parameter_count(ManagedFixedQuery[T]) -> Int
 
 pub fn[T] managed_fixed_query_parquet_file_sql(ManagedFixedQuery[T], Int) -> String?
+
+pub fn[T] managed_fixed_query_parquet_file_sql_at(ManagedFixedQuery[T], Int, Int) -> String?
 
 pub fn[T] managed_fixed_query_requires_fragment(ManagedFixedQuery[T]) -> Bool
 
@@ -248,6 +262,8 @@ pub fn native_demand_matches(NativeDemandMeasurement, NativeReceiving) -> Bool
 pub fn native_demand_usage(NativeDemandMeasurement) -> NativeDemandUsage
 
 pub fn native_inner_join_input(NativeInnerJoin, Bool) -> Int
+
+pub fn native_inner_join_output_limit(NativeInnerJoin) -> Int64?
 
 pub fn native_inner_join_owner(NativeInnerJoin) -> @lowering_relation.BoundPrepared
 

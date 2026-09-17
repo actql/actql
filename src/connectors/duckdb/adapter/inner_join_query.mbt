@@ -247,3 +247,8 @@ pub fn native_inner_join_input(query : NativeInnerJoin, left : Bool) -> Int {
     query.right_input
   }
 }
+
+///|
+pub fn native_inner_join_output_limit(query : NativeInnerJoin) -> Int64? {
+  query.output_limit
+}

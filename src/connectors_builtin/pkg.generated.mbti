@@ -33,7 +33,7 @@ pub fn[C, E] dispatch_duckdb(ConfiguredComputeModules[E], @physical_host.Dispatc
 
 pub fn[C, E] dispatch_local(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[@actql/actql/connectors/local/driver.LocalDispatchOperations, ConfiguredDispatchIssue[E]]
 
-pub fn[E] dispatch_managed_duckdb(ConfiguredComputeModules[E], @execution_relation.ManagedCompletedOutput[Int], Int64) -> Result[@actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int], ConfiguredDispatchIssue[E]]
+pub fn[E] dispatch_managed_duckdb(ConfiguredComputeModules[E], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> Result[@actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int], ConfiguredDispatchIssue[E]]
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 

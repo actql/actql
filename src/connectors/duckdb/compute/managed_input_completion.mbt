@@ -27,20 +27,20 @@ pub fn[T] prepare_managed_input_duckdb_completion(
   authorize : () -> Bool,
   transport_matches : (@execution.ManagedOutputValueReceipt) -> Bool,
 ) -> Result[ManagedInputDuckDBCompletion[T], DuckDBComputeIssue] {
-  let input = @duckdb.managed_fixed_query_input(query)
+  let inputs = @duckdb.managed_fixed_query_inputs(query)
   if !physical_equal(
       @execution.completion_preparation_owner(generated),
       @duckdb.managed_fixed_query_owner(query),
     ) ||
-    !@duckdb.managed_fixed_query_matches(query, input) {
+    !@duckdb.managed_fixed_query_matches_inputs(query, inputs) {
     return Err(ForeignPreparation)
   }
-  if !authorize() || !@duckdb.managed_fixed_query_matches(query, input) {
+  if !authorize() || !@duckdb.managed_fixed_query_matches_inputs(query, inputs) {
     return Err(InvalidState)
   }
   let measurement = match
     @execution.prepare_reused_managed_producer_measurement(
-      [input],
+      inputs,
       @duckdb.managed_fixed_query_target(query),
       max_rows~,
       max_value_bytes~,
@@ -93,7 +93,7 @@ pub fn[T] prepare_managed_input_duckdb_completion(
           state.val != 1 ||
           !transport_matches(receipt) ||
           state.val != 1 ||
-          !@duckdb.managed_fixed_query_matches(query, input) {
+          !@duckdb.managed_fixed_query_matches_inputs(query, inputs) {
           return None
         }
         match @duckdb.finish_managed_query_demand(demand, query, receipt) {
@@ -105,7 +105,7 @@ pub fn[T] prepare_managed_input_duckdb_completion(
         }
         Some(material)
       },
-      managed_inputs=[input],
+      managed_inputs=inputs,
     ) {
     Ok(port) => port
     Err(issue) => {
@@ -120,7 +120,9 @@ pub fn[T] prepare_managed_input_duckdb_completion(
     authorize,
     demand_issue,
     demand_usage,
-    input_available: fn() { @duckdb.managed_fixed_query_matches(query, input) },
+    input_available: fn() {
+      @duckdb.managed_fixed_query_matches_inputs(query, inputs)
+    },
   })
 }
 
