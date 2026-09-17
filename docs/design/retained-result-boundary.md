@@ -211,23 +211,26 @@ and does not itself establish control-side custody or cross-process admission.
 
 The generated standard Compute bundle also declares its managed-dispatch
 entrypoint. For the first task, explicit Host `managedOutput` policy selects the
-managed completion path before execution. For each later supported unary task,
-the common dispatcher identifies the exact next task and producer, supplies the
-producer's common managed completion, and asks the installed module to construct
-and compare its own managed request and candidate. The module resolves the
-producer's physical codec from the opaque material registry; the dispatcher
-does not assume that every managed value is a column frame. Tests do not supply
-that request, candidate or selected configuration. A missing producer, foreign
-completion, ambiguous installed proposal or mismatched completed output stops
-dispatch; it does not fall back after starting a consumer or authorize a later
-task.
+managed completion path before execution. For each later supported task, the
+common dispatcher identifies every exact producer in receiving-port order,
+supplies their common managed completions, and asks the installed module to
+construct and compare its own managed request and candidate. The finite initial
+module accepts unary operations and a checked two-input inner join; it does not
+drop an unsupported input. The module resolves each producer's physical codec
+from the opaque material registry, so the dispatcher does not assume that every
+managed value is a column frame. Tests do not supply that request, candidate or
+selected configuration. A missing producer, foreign completion, ambiguous
+installed proposal or mismatched completed output stops dispatch; it does not
+fall back after starting a consumer or authorize a later task.
 
 The serial dispatcher owns every successful task's close handle through graph
-use. It retains upstream material while descendants are executing, closes task
-results and then the common output ports at graph close, and keeps asynchronous
-cleanup visible through its cleanup state. A failure before a native session
-starts settles the confirmed zero physical execution before disposing the task.
-A started native session still requires its own settlement receipt. Thus a
+use. It retains an internal producer through its last checked graph consumer,
+then closes that material before preparing later unrelated work. Sink outputs
+remain held for the caller and graph close. The strategy reservation models the
+same serial last-consumer peak, but runtime release still requires the actual
+close path and confirmed Store cleanup. A failure before a native session starts
+settles the confirmed zero physical execution before disposing the task. A
+started native session still requires its own settlement receipt. Thus a
 downstream Store setup failure cannot strand the task reservation, while an
 unconfirmed started operation is not reported as released merely because the
 dispatcher stopped.

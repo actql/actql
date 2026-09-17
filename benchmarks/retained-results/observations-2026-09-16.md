@@ -1073,3 +1073,27 @@ performance pass:** process/timing parity, combined DB/file capacity admission,
 expression-demand failure parity, evidence metadata and accounting remain open.
 The executable explicitly reports `acceptanceEligible: false` and its missing
 obligations; its time must not be used as the registered 1.25 denominator yet.
+
+### Managed-profile fixed-revision 27-case matrix
+
+The clean `d14d58250dab73302aa4fadcea364a56a8265000` revision completed all
+27 registered cases through `actql-managed-retained-execution/0.1`. Every case
+reported zero logical-content CID computations and zero held/reserved bytes
+after close. Exact one- and two-input producer ports were supplied by the
+standard dispatcher; the checked join output was admitted once and reused by
+the downstream count. Intermediate managed materials closed after their last
+checked consumer, while sink results remained held for caller close.
+
+All 18 acquisition/reuse cases used direct DuckDB-to-Store output and reported
+zero JavaScript output-cell materialization and zero managed-frame re-encoding.
+The nine join cases still create new values through the bounded fallback. Across
+those cases, 2,662,218 cells were materialized and 20,812 frames encoded. Direct
+join/group output therefore remains an explicit later optimization.
+
+Representative elapsed times were 21.238 seconds for million-row narrow
+join/count, 30.147 seconds for million-row downstream reuse, 86.590 seconds for
+numeric-64/100000 reuse and 28.005 seconds for text-1024/100000 reuse. This was
+one sequential diagnostic sample per case, not an alternating paired comparison.
+The complete case table, controller-memory observations, ledger peaks and
+interpretation are in
+`managed-profile-fixed-d14d5825.md`.

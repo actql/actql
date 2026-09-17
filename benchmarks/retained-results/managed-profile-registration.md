@@ -3,9 +3,11 @@
 The Q1–Q11 design is now registered on `refactor/retained-execution` as
 `actql-managed-retained-execution/0.1`, owned by
 [execution](../../docs/spec/execution.md#managed-retained-execution).
-This is contract work, **not a new-profile runtime or performance result**.
-Main's `3820ea11` checkout and the existing acquisition contract bodies are
-unchanged by these branch-local edits.
+This began as contract work. The branch now also contains a finite product
+runtime and a separate fixed-revision diagnostic; neither is a claim of complete
+profile conformance or formal paired performance acceptance. Main's original
+`3820ea11` checkout and the existing acquisition contract bodies remain
+unchanged by this profile.
 
 ## Registered boundary
 
@@ -42,11 +44,19 @@ These tests do not run a new-profile execution or prove an issuer truthful.
 
 The later
 [managed product evidence-reuse checkpoint](managed-product-evidence-reuse.md)
-does run one finite product path through the registered profile. A two-column
-checked filter/select chain publishes two successive managed results while
-transferring exact selected measurements and performing zero repeated Core
-value admissions. That closes one concrete part of item 2 below; it does not
-make the complete conformance list true.
+runs a finite product path through the registered profile. The standard Host
+now also resolves exact one- and two-input managed ports, runs a checked inner
+join, retains its newly validated output and reuses that output in a downstream
+global count. Internal materials close after their last checked graph consumer;
+sink outputs remain held for the caller. These paths close concrete parts of
+items 1 and 2 below; they do not make the complete conformance list true.
+
+The [fixed-revision matrix](managed-profile-fixed-d14d5825.md) records 27/27
+successful registered cases at `d14d5825`. All report zero logical-content CID
+computations and confirmed cleanup. Eighteen direct-output cases also report
+zero JavaScript cell materialization and frame re-encoding. The nine join cases
+still use the explicit new-value fallback, so direct join/group output remains
+open.
 
 Verification passed: four independent contract tests, `npm run check:docs`,
 three-target MoonBit checks, and `canonical_json` tests on JS/Wasm/native
@@ -62,17 +72,19 @@ measurement reuse is useful but does not implement this change.
 
 The following completion evidence is still missing:
 
-1. Product selection/admission of the new profile, subject-limited issuance,
-   closed identity states and legacy dependency-closure conversion.
-2. Broader supported projection/rename/derive/sort/take chains with multiple
-   consumers, and repeated use of newly validated join/group output, without
-   unnecessary full conversion or repeated validation. A finite two-column
-   filter/select chain is now connected and measured in the product Host.
+1. Remaining selection/admission breadth: subject-limited issuance, closed
+   identity states and legacy dependency-closure conversion. The standard
+   product Host already selects the finite managed Compute path explicitly.
+2. Remaining transformation coverage and direct output for newly created
+   join/group values. Projection/rename/exact-copy derive/sort/take chains and
+   repeated use of a newly validated join output are connected; the join output
+   still takes the bounded JavaScript materialization/frame fallback once.
 3. Managed delegated pin/use/stop/reclaim and independent relocation with
    negative race, stale attempt, corruption and budget fixtures.
 4. The limited formal model, declared trust boundary and checked bridges for
    any claimed application of existing mechanized theorems.
 5. Completed independent same-obligation comparator and the unchanged formal
-   1 GiB / 27-case acceptance runs, plus separately registered new-profile runs.
+   paired acceptance runs. A separate clean-revision 1 GiB new-profile 27-case
+   diagnostic is complete; it is not a substitute for that comparator.
 
 The full goal remains open until these paths and measurements are verified.
