@@ -40,6 +40,14 @@ the manifest identity; repeated occurrences remain valid. A deliberately
 shape-valid/count-invalid example documents the limit of schema acceptance.
 These tests do not run a new-profile execution or prove an issuer truthful.
 
+The later
+[managed product evidence-reuse checkpoint](managed-product-evidence-reuse.md)
+does run one finite product path through the registered profile. A two-column
+checked filter/select chain publishes two successive managed results while
+transferring exact selected measurements and performing zero repeated Core
+value admissions. That closes one concrete part of item 2 below; it does not
+make the complete conformance list true.
+
 Verification passed: four independent contract tests, `npm run check:docs`,
 three-target MoonBit checks, and `canonical_json` tests on JS/Wasm/native
 (384 each), plus metadata, document-link, format and diff checks. The fifteen
@@ -56,9 +64,10 @@ The following completion evidence is still missing:
 
 1. Product selection/admission of the new profile, subject-limited issuance,
    closed identity states and legacy dependency-closure conversion.
-2. Real supported projection/filter/derive/sort/take chains with multiple
+2. Broader supported projection/rename/derive/sort/take chains with multiple
    consumers, and repeated use of newly validated join/group output, without
-   unnecessary full conversion or repeated validation.
+   unnecessary full conversion or repeated validation. A finite two-column
+   filter/select chain is now connected and measured in the product Host.
 3. Managed delegated pin/use/stop/reclaim and independent relocation with
    negative race, stale attempt, corruption and budget fixtures.
 4. The limited formal model, declared trust boundary and checked bridges for

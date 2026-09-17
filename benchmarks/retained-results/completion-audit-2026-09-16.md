@@ -6,6 +6,17 @@ and makes logical CID conditional in a separate new profile. See the
 handoff and unfinished integration. Evidence reuse alone does not complete that
 change. Existing 27-case/1 GiB acceptance requirements remain unchanged.
 
+Managed-profile follow-up on 2026-09-17: checkpoint `409ccb14` connects a
+finite checked filter/select evidence-transfer rule to the real standard
+DuckDB strategy Host. Two successive two-column consumers each reuse four
+per-cell measurements, perform zero Core output-value admissions, zero
+parameter INSERT rows and zero logical-content CID computations, while keeping
+separate physical-integrity, demand, holding, publication and cleanup checks.
+See the
+[managed product checkpoint](managed-product-evidence-reuse.md). This closes a
+real repeated-work path but not the broader Q6 operation matrix or either final
+performance suite.
+
 Resident identity reuse follow-up: the managed resident consumer now reuses its
 exact admitted content receipt while a claimed table-generation lease remains
 valid. Standard managed tests check `reusedInputIdentities == directInputScans`

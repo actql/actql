@@ -1,0 +1,100 @@
+# Managed product evidence-reuse checkpoint
+
+Date: 2026-09-17. Implementation checkpoint:
+`409ccb14f0c1814cd64b256afbd257a240e5ea55`.
+
+This checkpoint connects the registered managed-retained profile's finite
+checked-row-selection rule to the standard DuckDB strategy Host. It is product
+execution evidence for one supported rule, not completion of every Q6 rule or
+the final performance acceptance suite.
+
+## Executed path
+
+The real standard Host regression executes this serial graph:
+
+```text
+three-row, two-column managed result
+  -> checked filter/select retaining two rows
+  -> checked filter/select retaining the same two rows
+```
+
+Both downstream tasks read the exact graph-bound Store material, import it with
+the connector-generated DuckDB file SQL, execute the selected query, seal an
+independent output body and publish through the common managed DAG. The second
+task consumes the first task's output rather than returning to legacy rows.
+
+The installed physical frame carries explicit logical row ordinals and stores
+columns in checked logical-schema order. The fixture deliberately receives the
+DuckDB columns in the opposite order and observes the mapping `[1, 0]`. It also
+rejects a frame without its required starting ordinal. This prevents DuckDB
+field order, internal `rowid`, or a user column from silently becoming the
+logical occurrence mapping.
+
+## Deterministic work measurements
+
+The following counters are asserted independently for each downstream task:
+
+| Counter | Measured value |
+| --- | ---: |
+| Complete Store integrity passes | 1 |
+| Native file-import commands | 1 |
+| Parameter INSERT rows | 0 |
+| Logical content CID computations | 0 |
+| Core output-value admission cells | 0 |
+| Reused measurement cells | 4 |
+| Selected logical occurrences | 2 |
+| Output physical frames | 1 |
+
+The result therefore establishes that eight downstream cell uses across two
+tasks do not repeat Core value admission. It does not claim zero predicate
+evaluation, zero physical reads, or zero metadata work. Each task still checks
+physical integrity, occurrence framing, logical schema order, selected count,
+demand, current authority, native settlement, independent holding and common
+graph publication.
+
+The exact retained-accounting sequence is:
+
+| Boundary | Held bytes |
+| --- | ---: |
+| Initial 896-byte index plus 43-byte body | 939 |
+| First selected 768-byte index plus 36-byte body | 1,743 |
+| Second selected 768-byte index plus 36-byte body | 2,547 |
+| Revoke initial output and release its index | 1,651 |
+| Close second selected output | 847 |
+| Close first selected output | 43 |
+| Close initial execution and confirm cleanup | 0 |
+
+This demonstrates independent body/index ownership and reclamation. It is not
+a memory-resident-table estimate or a substitute for the separate 1 GiB
+experiment.
+
+## Verification
+
+At this checkpoint:
+
+- `execution_relation`: 455/455 passed on JS, Wasm and native;
+- DuckDB adapter: 23/23 passed on JS, Wasm and native;
+- DuckDB Compute and driver checked without warnings on all three targets;
+- the Node Host and managed column codec tests passed against actual DuckDB;
+- the complete documentation, contract, link and independent-fixture gate
+  passed; and
+- generated public interfaces were regenerated and matched on all targets.
+
+The standard Host test took about 12 seconds on this development machine, but
+that duration includes builds and unrelated standard-Host coverage. It is
+reported only as test-run context and is not a performance comparison.
+
+## Remaining measurement and implementation
+
+This checkpoint covers a checked filter/select with unchanged Number columns,
+multiple columns and repeated downstream use. The ordinary typed-admission
+fallback remains for unsupported shapes. General projection/rename, derive,
+sort/take, join/group-result reuse, other codecs and schemas, Local execution,
+named Result/legacy bridging and accepted process delegation still need their
+product-path evidence.
+
+The unchanged old-contract 27-case/1 GiB run and its independent
+same-obligation comparator remain separate required measurements. The new
+profile also needs registered large-case runs that compare total decode,
+admission, canonicalization, hash, copy, read/write, holding and cleanup work;
+the zero-admission counters above are not by themselves a throughput claim.
