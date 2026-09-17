@@ -1,8 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  mkdtemp,
+  rmdir,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createLocalRetainedStore } from './files.mjs';
 import { openDelegatedFile } from './delegated-file.mjs';
@@ -104,6 +111,33 @@ test('stopped native creation verifies absence before releasing capacity', async
   assert.equal(store.status().reservedBytes, 0);
   assert.equal(store.status().uncertainWriteBytes, 20);
 });
+
+test('stopped native creation keeps ownership across cleanup I/O failures',
+  async t => {
+    for (const failure of ['lstat', 'open', 'unlink']) {
+      const {store, write} = await fixture(t, false);
+      const lease = write.delegateCreate(`native-retry-${failure}`);
+      await writeFile(lease.path, failure, {flag: 'wx', mode: 0o600});
+      write.cancel();
+      assert.equal(write.confirmDelegatedStopped(), true);
+      const directory = dirname(lease.path);
+      try {
+        if (failure === 'lstat') await chmod(directory, 0o000);
+        if (failure === 'open') await chmod(lease.path, 0o000);
+        if (failure === 'unlink') await chmod(directory, 0o500);
+        await assert.rejects(write.cleanupHandle.retry(), error =>
+          error?.code === 'EACCES' || error?.code === 'EPERM');
+        assert.equal(store.status().reservedBytes, 20);
+        assert.equal(store.status().cleanupPending, true);
+      } finally {
+        await chmod(directory, 0o700);
+        await chmod(lease.path, 0o600).catch(() => {});
+      }
+      assert.equal(await write.cleanupHandle.retry(), true);
+      assert.equal(store.status().reservedBytes, 0);
+      await assert.rejects(stat(lease.path), {code: 'ENOENT'});
+    }
+  });
 
 test('native-created generation replacement is rejected before Store adoption', async t => {
   const {store, write} = await fixture(t, false);

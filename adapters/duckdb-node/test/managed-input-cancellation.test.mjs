@@ -7,6 +7,7 @@ import {createLocalRetainedStore} from '../../store-local/files.mjs';
 import {
   registerManagedInput,
   withManagedInputFile,
+  withManagedInputFiles,
 } from '../../store-local/managed-representations.mjs';
 import {managedPhysicalRepresentation} from
   '../../store-local/managed-physical-representation.mjs';
@@ -106,6 +107,99 @@ test('DuckDB cancellation deadline retains input pin until actual session stop',
     await rmdir(directory);
   }
 });
+
+test('DuckDB cancellation retains two distinct input pins until session stop',
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-managed-cancel-'));
+    const store = await createLocalRetainedStore({
+      parentDirectory: directory,
+      capacityBytes: 2048,
+      maxFrameBytes: 1024,
+    });
+    const bodies = [];
+    let resume;
+    const gate = new Promise(resolve => { resume = resolve; });
+    let entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    let failure;
+    try {
+      const occurrences = [];
+      for (const id of [1, 2]) {
+        const writer = store.reserve(1024);
+        await writer.start();
+        await writer.append(`[{"id":${id}}]`);
+        const body = await writer.sealPhysical();
+        bodies.push(body);
+        const material = {}, input = {};
+        registerManagedInput(
+          material,
+          value => value === input,
+          store,
+          body,
+          codec,
+          managedPhysicalRepresentation(
+            body,
+            1,
+            codec,
+            JSON.stringify([['id', 'DOUBLE', null, null]]),
+            [0],
+          ).manifest,
+        );
+        occurrences.push({material, input, codecContractCid: codec});
+      }
+      const controller = new AbortController();
+      const pending = withManagedInputFiles(
+        occurrences,
+        () => true,
+        files => withComputeDatabase(
+          limits,
+          async session => {
+            await session.command(
+              'SELECT a.id, b.id FROM read_json_auto(?) a ' +
+                'CROSS JOIN read_json_auto(?) b',
+              files.map(file => ({
+                type: {id: 'VARCHAR'},
+                value: file.path,
+              })),
+              () => {},
+            );
+            entered();
+            await gate;
+          },
+          controller.signal,
+          undefined,
+          files.map(file => file.path),
+        ),
+        controller.signal,
+      );
+      await started;
+      controller.abort(new Error('two-input deadline cancellation'));
+      try { await pending; }
+      catch (error) { failure = error; }
+      assert.equal(failure.code, 'Cancelled');
+      assert.equal(store.status().activeReaders, 2);
+      for (const body of bodies) {
+        body.close();
+        assert.equal(await body.cleanupHandle.retry(), false);
+      }
+      assert.equal(
+        store.status().reservedBytes,
+        bodies.reduce((total, body) => total + body.bytes, 0),
+      );
+      resume();
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(store.status().activeReaders, 0);
+      for (const body of bodies) await body.cleanupHandle.retry();
+      assert.equal(store.status().reservedBytes, 0);
+    } finally {
+      resume?.();
+      await failure?.cleanupHandle?.retry();
+      for (const body of bodies) body.close();
+      store.close();
+      await store.cleanup();
+      await rmdir(directory);
+    }
+  });
 
 test('Store reclaims unreported file after real DuckDB COPY stops', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-copy-cancel-'));

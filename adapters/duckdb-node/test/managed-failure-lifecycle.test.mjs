@@ -7,13 +7,17 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 
-async function runFailure(reason) {
+async function runFailure(reason, {failCleanupOnce = false} = {}) {
   const base = await mkdtemp(join(tmpdir(), 'actql-managed-failure-'));
   const duckdb = join(base, 'adapters', 'duckdb-node');
   const store = join(base, 'adapters', 'store-local');
   const runtime = join(base,
     '_build/js/release/build/connectors/duckdb/host_node');
-  const state = {calls: {open: 0, settle: 0, close: 0, refresh: 0, cleanup: 0}};
+  const state = {
+    calls: {open: 0, settle: 0, close: 0, refresh: 0, cleanup: 0},
+    failCleanupOnce,
+    cleanupFailed: false,
+  };
   globalThis.__actqlManagedFailureTest = state;
   try {
     await mkdir(duckdb, {recursive: true});
@@ -38,6 +42,10 @@ export async function createLocalRetainedStore(options) {
   state.controller.abort(state.reason);
   return {...state.store, cleanup: async () => {
     state.calls.cleanup++;
+    if (state.failCleanupOnce && !state.cleanupFailed) {
+      state.cleanupFailed = true;
+      throw new Error('injected cleanup failure');
+    }
     return state.store.cleanup();
   }};
 }
@@ -93,7 +101,18 @@ export const managedStrategyRefreshRetention=()=>{state().calls.refresh++;};
         state.controller.signal,
       );
     } catch (error) { failure = error; }
-    return {failure, calls: {...state.calls}, status: state.store.status()};
+    const initialStatus = state.store.status();
+    let retryStatus;
+    if (failCleanupOnce) {
+      retryStatus = await failure.cleanupHandle.retry();
+    }
+    return {
+      failure,
+      calls: {...state.calls},
+      initialStatus,
+      retryStatus,
+      status: state.store.status(),
+    };
   } finally {
     state.store?.close();
     await state.store?.cleanup();
@@ -129,3 +148,30 @@ test('managed Host does not mutate a frozen abort Error', async () => {
   assert.equal(calls.cleanup, 1);
   assert.equal(status.reservedBytes, 0);
 });
+
+test('frozen abort and cleanup failure preserve both causes and still retry',
+  async () => {
+    const reason = Object.freeze(Object.assign(new Error('frozen abort'), {
+      code: 'Cancelled',
+    }));
+    const {
+      failure,
+      calls,
+      initialStatus,
+      retryStatus,
+      status,
+    } = await runFailure(reason, {failCleanupOnce: true});
+    assert.equal(failure.code, 'Cancelled');
+    assert.equal(failure.primaryFailure, reason);
+    assert.equal(failure.cause, reason);
+    assert.equal(failure.cleanupErrors.length, 1);
+    assert.match(failure.cleanupErrors[0].message, /injected cleanup failure/);
+    assert.equal(initialStatus.cleanupPending, true);
+    assert.equal(initialStatus.reservedBytes, 1024);
+    assert.equal(retryStatus.pending, false);
+    assert.equal(status.cleanupPending, false);
+    assert.equal(status.reservedBytes, 0);
+    assert.deepEqual(calls, {
+      open: 1, settle: 1, close: 1, refresh: 2, cleanup: 2,
+    });
+  });
