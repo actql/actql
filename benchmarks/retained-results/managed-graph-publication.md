@@ -100,7 +100,7 @@ bounded newline-delimited physical frames. This is a finite implementation
 identifier, not a registered logical CID and not a portable ResultArtifact
 contract. The Host:
 
-1. resolves the exact `ManagedProducerRead` for task 2;
+1. resolves the exact `ManagedProducerRead` for the selected downstream task;
 2. acquires a Store read pin and checks path, generation, physical digest,
    current authority and material binding;
 3. grants that exact file to the DuckDB session and imports it with checked,
@@ -109,16 +109,18 @@ contract. The Host:
    output verifier while writing the same ordered numeric values to a new Store
    body;
 5. settles actual physical use, retains the sealed output allocation and
-   publishes task 2 through `complete_managed_task_execution`; and
+   publishes it through `complete_managed_task_execution`; and
 6. registers the new material for a later exact managed reader without giving
    the caller a pathname or completion authority.
 
 Logical content identity is not inferred from the Store digest. Store integrity,
 producer/attempt binding, typed value admission and graph completion remain
-distinct checks. Closing the input after task 2 completes does not revoke task
-2's independently held output. Physical cleanup is asynchronous: logical use is
-revoked first, and the common allocation is returned only after Store cleanup
-confirms release and the Host refreshes the graph retention ledger.
+distinct checks. The standard regression repeats this path for tasks 2 and 3,
+so task 3 reads task 2's exact independently held body instead of falling back
+to legacy rows. Closing an ancestor after its consumers complete does not
+revoke their outputs. Physical cleanup is asynchronous: logical use is revoked
+first, and the common allocation is returned only after Store cleanup confirms
+release and the Host refreshes the graph retention ledger.
 
 ## Real strategy regression
 
@@ -132,14 +134,16 @@ DuckDB execution and checks the following sequence:
 | native settlement | unchanged | 795 | no success yet |
 | task-1 managed publication | 0 | 795 | task 1 done, task 2 ready |
 | task-2 pinned read, native execution and publication | 0 | 822 | tasks 1 and 2 done, task 3 ready |
-| task-1 output revoke | 0 | 54 | both independent bodies remain graph-owned |
+| task-3 pinned read, native execution and publication | 0 | 849 | all three tasks done |
+| task-1 output revoke | 0 | 81 | all three independent bodies remain graph-owned |
+| task-3 close and physical cleanup | 0 | 54 | task-1 and task-2 bodies remain graph-owned |
 | task-2 close and physical cleanup | 0 | 27 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
 The same regression rejects a 100,001-byte body despite the adjacent stream
 base reservation, and rejects a legacy completion call after managed
-publication. This demonstrates distinct ceilings, one task attempt, one success
-mode and ownership transfer through cancellation.
+publication. This demonstrates distinct ceilings, one attempt and one success
+mode per task, and ownership transfer through cancellation.
 
 ## Remaining production work
 

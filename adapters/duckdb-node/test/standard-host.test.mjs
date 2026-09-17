@@ -916,6 +916,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // returned when the task closes before creating an index allocation.
   const managedProgram = JSON.parse(program);
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
+  managedProgram.stages[3].inputs.x.result.stage = 'compute_b';
   const managedLedgerFixture = fixture.strategyFixtureCreate(
     ...args, JSON.stringify(managedProgram));
   const managedLedgerCapture = await runNativeHostQuery(grant,
@@ -927,6 +928,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   let managedLedgerWriter;
   let managedLedgerBody;
   let managedDownstream;
+  let managedTerminal;
   try {
     assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
@@ -1061,13 +1063,30 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 2, managedDownstream.completed), true,
     'the product Host publishes task 2 through the common managed DAG');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
+    const terminalInput = fixture.strategyFixtureManagedInput(
+      managedLedgerFixture, 3, managedDownstream.completed);
+    assert.equal(bridge.managedInputMatchesMaterial(
+      terminalInput, managedDownstream.material), true,
+    'task 3 binds the exact independent body published by task 2');
+    const terminalRequest = fixture.strategyFixtureManagedRequest(
+      managedLedgerFixture, 3, managedDownstream.completed);
+    const terminalConfiguration = fixture.strategyFixtureManagedConfiguration(
+      managedLedgerFixture, 3, terminalRequest, managedProfile, 100000n);
+    managedTerminal = await runManagedNumericStrategyHostCompute(
+      terminalConfiguration, managedDownstream.material,
+      managedNumericColumnCodecContractCid, suppliedLimits,
+      {parentDirectory: fileParent, maxFrameBytes: 4096});
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 3, managedTerminal.completed), true,
+    'a second downstream consumer reuses the managed path without legacy rows');
+    assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
       'successful downstream completion returns its unused metadata reservation');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      indexBytes + managedBodyBytes * 2n,
-      'the downstream result owns an independent retained body');
+      indexBytes + managedBodyBytes * 3n,
+      'both downstream results own independent retained bodies');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), false,
@@ -1079,6 +1098,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 2, managedDownstream.completed), true,
     'the independent downstream result survives revocation of its consumed input');
+    assert.equal(fixture.strategyFixtureManagedOutputMatches(
+      managedLedgerFixture, 3, managedTerminal.completed), true,
+    'the terminal result survives revocation of its transitive ancestor');
+    await managedTerminal.close();
+    managedTerminal = undefined;
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      managedBodyBytes * 2n,
+    'closing task 3 releases only its own body');
     await managedDownstream.close();
     managedDownstream = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
@@ -1089,6 +1116,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);
   } finally {
+    await managedTerminal?.close();
     await managedDownstream?.close();
     if (managedLedgerOutput) bridge.managedOutputCancel(managedLedgerOutput);
     if (managedLedgerRun) bridge.computeHostClose(managedLedgerRun);
