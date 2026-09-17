@@ -117,6 +117,36 @@ Still required before equivalence approval:
   cleanup-failure fixtures (beyond injected settlement actions).
 - All 27 cases, followed by the registered alternating-pair experiment.
 
+### Matched pair boundary
+
+`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` now assembles one
+alternating retained/equivalent pair without promoting the prototype to an
+accepted comparator. Both legs use the same immutable fixture database, clean
+revision and registered case, but execute in separate fresh child processes.
+The runner hashes the database before the first leg and after each leg, checks
+the checkout revision and cleanliness after each leg, and records the pinned
+experiment, source definition, Program and Node runtime in pair provenance.
+
+The parent process measures both child cycles with the same clock. Each child
+continues to report its own setup-through-holding execution interval and
+confirmed cleanup interval. The pair records a non-overlapping cold interval as
+the parent child-cycle minus that child's separately measured cleanup interval;
+it never sums overlapping timers. Pair order alternates by the explicit pair
+index.
+
+This closes the assembly ambiguity around source mutation, process placement,
+clock ownership and alternating order. It does **not** close comparator
+equivalence or the registered warm boundary. The equivalent child still reports
+`diagnostic-completed`, and the pair remains `acceptanceEligible: false` until
+both legs have independently admitted equivalent obligations. A successful
+timing-only diagnostic therefore cannot become an acceptance result.
+
+The executable single-pair wrapper is
+`adapters/duckdb-node/bench/matched-equivalent-pair-case.mjs`. Source creation
+and release-build preparation stay outside its measured pair, as registered.
+Its arguments are checkout, database, holding directory, workload, layout,
+row count and zero-based pair index.
+
 ### Full prototype matrix (not equivalence acceptance)
 
 Clean `f0a5dd95e0a985633ec6d61d421253751f0a4c55` completed all 27 registered

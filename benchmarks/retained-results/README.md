@@ -315,6 +315,16 @@ helper tests is not a performance result. Test it without DuckDB using:
 node --test benchmarks/retained-results/*.test.mjs
 ```
 
+`adapters/duckdb-node/bench/matched-equivalent-pair.mjs` provides the next
+lower-level runner boundary: one alternating retained/equivalent pair against
+one hashed immutable database and one clean revision, with a fresh child for
+each leg. It records matched parent-cycle, child execution and cleanup timing
+without declaring the independent comparator equivalent. The executable
+`matched-equivalent-pair-case.mjs` wrapper takes the explicit fixture and pair
+index after source setup. Its output remains diagnostic while the equivalent
+leg reports missing obligations; it cannot be passed directly to the timing
+assessment as an accepted sample.
+
 ### Selective baseline receiver profile
 
 `baseline-acquisition-capacity.mjs` now provides pure transformations for the
