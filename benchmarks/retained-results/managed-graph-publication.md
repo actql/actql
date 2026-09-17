@@ -122,6 +122,14 @@ revoke their outputs. Physical cleanup is asynchronous: logical use is revoked
 first, and the common allocation is returned only after Store cleanup confirms
 release and the Host refreshes the graph retention ledger.
 
+The product entry reports finite work counters rather than inferring savings
+from elapsed time. For each installed downstream task the regression observes
+one physical-integrity pass, one native file-import command, zero parameter
+INSERT rows, zero logical-content CID computations, one output frame and the
+exact input/output physical byte counts. These counters do not claim that
+DuckDB performs only one internal filesystem read or that no typed-value work
+occurs; actual chunks still pass through the managed output verifier.
+
 ## Real strategy regression
 
 The standard Node/DuckDB Host regression runs the selected task through actual

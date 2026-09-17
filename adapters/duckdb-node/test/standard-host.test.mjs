@@ -1062,6 +1062,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 2, managedDownstream.completed), true,
     'the product Host publishes task 2 through the common managed DAG');
+    assert.deepEqual(managedDownstream.diagnostics, {
+      inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      logicalContentCidComputations: 0, outputFrames: 1,
+      outputPhysicalBytes: Number(managedBodyBytes),
+    });
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
     const terminalInput = fixture.strategyFixtureManagedInput(
       managedLedgerFixture, 3, managedDownstream.completed);
@@ -1079,6 +1085,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'a second downstream consumer reuses the managed path without legacy rows');
+    assert.deepEqual(managedTerminal.diagnostics, managedDownstream.diagnostics,
+      'repeated managed consumers retain the same finite physical-work boundary');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');

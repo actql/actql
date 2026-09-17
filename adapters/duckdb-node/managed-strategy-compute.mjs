@@ -49,6 +49,7 @@ export async function runManagedNumericStrategyHostCompute(
   const moon = await loadRuntime();
   const capacity = computePhysicalCapacity(limits);
   let store, writer, body, output, completed, run;
+  let inputPhysicalBytes = 0, outputFrames = 0;
   let disposed = false;
   let authorized = true;
   const storageReleased = () => disposed && (!store ||
@@ -97,6 +98,7 @@ export async function runManagedNumericStrategyHostCompute(
           }
           const native = chunk.columns[0].map(physicalDouble);
           await writer.appendBytes(Buffer.from(JSON.stringify({native_columns: [native]}) + '\n'));
+          outputFrames++;
         });
         if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
         checked(moon.managedStrategyOutputFinish(run, output));
@@ -105,6 +107,7 @@ export async function runManagedNumericStrategyHostCompute(
         // One complete Store integrity pass and one native read of the exact
         // pinned file. Logical consumer charges are handled by managed demand.
         checked(moon.managedStrategyCharge(run, BigInt(bytes) * 2n));
+        inputPhysicalBytes = bytes;
       });
     signal?.throwIfAborted();
     body = await writer.sealPhysical();
@@ -120,6 +123,15 @@ export async function runManagedNumericStrategyHostCompute(
       completed,
       material,
       usage: result.usage,
+      diagnostics: Object.freeze({
+        inputPhysicalBytes,
+        inputIntegrityPasses: 1,
+        nativeFileImportCommands: 1,
+        parameterInsertRows: 0,
+        logicalContentCidComputations: 0,
+        outputFrames,
+        outputPhysicalBytes: body.bytes,
+      }),
       storageUsage: () => store.status(),
       close: async () => {
         if (closed) return;
