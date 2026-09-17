@@ -1192,3 +1192,30 @@ shape, not complete failure or accounting equivalence. The pair remains
 `diagnostic-completed` and not acceptance eligible. Complete expression-demand
 and guard failure parity, transfer/work accounting equivalence, complete
 negative fixtures and final equivalent-obligation admission remain open.
+
+### Fixed-revision transfer and work accounting follow-up
+
+The clean `b2263cb5d4d0db104a5bd3821836969a7dd42122` revision repeated the
+same small matched case with the retained ActQL leg first. Logical accounting
+and acquisition evidence metadata remained exactly equivalent. The pair now
+also reports `transferWorkAccountingEquivalent: true`.
+
+Both legs charged exactly 450 logical work, 2,429 logical bytes and 426 logical
+nodes across guard and comparison obligations. They also exposed the same five
+task and holding attempt boundaries. Both independent ledgers and the retained
+Host ledger reported zero uncertain, reserved and held bytes after confirmed
+close.
+
+Physical implementation work remains visible rather than being made equal by
+adding artificial comparator activity. The retained leg reported 2,399 units
+of planner work and 6,045 control-channel transfer bytes; the independent leg
+reported neither because it performs direct same-process DuckDB execution.
+Native-to-semantic transfer was separately observed as 4,092 bytes for the
+retained leg and 4,051 bytes for the independent leg. These physical amounts
+are not the logical obligation comparison.
+
+This closes transfer and logical-work accounting equivalence for the registered
+comparator shape. The pair remains `diagnostic-completed` and not acceptance
+eligible. Complete expression-demand and guard failure parity, complete
+negative conformance fixtures and final equivalent-obligation admission remain
+open.
