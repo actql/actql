@@ -1097,3 +1097,11 @@ one sequential diagnostic sample per case, not an alternating paired comparison.
 The complete case table, controller-memory observations, ledger peaks and
 interpretation are in
 `managed-profile-fixed-d14d5825.md`.
+
+The unchanged runtime tree then passed the existing CID-required registered
+matrix as a separate compatibility run: all 27 case IDs, independent final CIDs,
+managed-process exit and cleanup completed in 234.676 seconds. Representative
+times were 18.896 seconds for million-row join/count, 23.487 seconds for
+million-row downstream reuse, 88.610 seconds for numeric-64/100000 reuse and
+36.751 seconds for text-1024/100000 reuse. This sequential run is functional
+compatibility evidence, not the registered alternating paired assessment.

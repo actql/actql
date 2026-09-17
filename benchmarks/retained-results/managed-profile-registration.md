@@ -84,7 +84,8 @@ The following completion evidence is still missing:
 4. The limited formal model, declared trust boundary and checked bridges for
    any claimed application of existing mechanized theorems.
 5. Completed independent same-obligation comparator and the unchanged formal
-   paired acceptance runs. A separate clean-revision 1 GiB new-profile 27-case
-   diagnostic is complete; it is not a substitute for that comparator.
+   paired acceptance runs. Separate full 27-case functional runs now pass for
+   both the CID-required path and the clean-revision 1 GiB new profile; neither
+   functional run substitutes for the comparator.
 
 The full goal remains open until these paths and measurements are verified.

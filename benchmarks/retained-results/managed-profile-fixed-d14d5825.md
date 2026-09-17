@@ -89,3 +89,28 @@ samples, so no speed ratio or regression decision is claimed.
 This measurement establishes fixed-revision functional coverage and shows
 where redundant conversion, re-encoding and logical hashing are absent. It does
 not replace the registered same-obligation paired performance assessment.
+
+## Existing-contract compatibility run
+
+After recording the new-profile matrix, the unchanged runtime tree was also run
+through the existing CID-required registered matrix:
+
+```sh
+ACTQL_RETAINED_CASES=registered \
+  node --test adapters/duckdb-node/test/benchmark-execution.test.mjs
+```
+
+The single full-matrix test completed all 27 case IDs and passed in
+234,676.053 ms (TAP duration 234,807.078 ms). It verified each independent final
+logical CID, managed-process exit and cleanup. Existing Compute inputs used the
+verified retained-file path with zero parameter INSERT rows; an already
+established input identity was reused without changing the CID-required output
+contract.
+
+Representative existing-contract elapsed times were 18.896 seconds for the
+million-row join/count, 23.487 seconds for million-row downstream reuse, 88.610
+seconds for numeric-64/100000 reuse and 36.751 seconds for text-1024/100000
+reuse. This compatibility run followed the new-profile run rather than using an
+alternating paired schedule, so these values also do not establish a speed
+ratio. They prove that the new profile and the existing contract remain separate
+working paths over the full registered scope.
