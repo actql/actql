@@ -145,15 +145,19 @@ sample. This does not yet certify real native-close or filesystem-failure
 recovery. The independent column-order test caught a schema/transport index
 confusion during development, before acceptance use.
 
-A cross-leg failure-parity regression now corrupts a value that the acquisition
-predicate would otherwise exclude. Both the product and independent legs reject
-it during complete source admission, before filtering, and confirm retained-file
-cleanup. A second regression keeps source cardinality legal but makes every join
-key equal. The independent preflight and product common row guard both reject
-the expanded intermediate before the final global count, and neither leaves a
-holding behind. These close two registered-workload precedence holes; they do
-not replace the remaining expression combinations or real cleanup-failure
-fixtures.
+The cross-leg failure-parity regression now fixes five registered-workload
+boundaries. It covers an invalid value that filtering would exclude, a record
+value guard deferred until complete source admission, a later invalid value
+that must precede that deferred guard, excess complete-source cardinality before
+filtering, and join expansion before the final global count. Both legs reject
+at the applicable earlier boundary and leave only the immutable source file.
+
+Independent Store creation is also inside the common settlement boundary. A
+failed Store open cannot bypass release of the already admitted execution and
+retention domains. Unit fixtures continue to require all settlement actions to
+run and preserve primary plus cleanup failures. These cases still do not replace
+the remaining expression-demand combinations or actual native-close and
+filesystem cleanup-failure fixtures.
 
 Still required before equivalence approval:
 

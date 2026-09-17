@@ -336,12 +336,14 @@ scratch under the unchanged 4 GiB execution limit and settles actual retained
 completion-metadata bytes under the unchanged 1 GiB limit. Transfer/work parity
 and final pair admission are still required.
 
-`equivalent-failure-parity.test.mjs` exercises two cross-leg negative cases:
-an invalid source value excluded by the later predicate, and legal source
-cardinality whose duplicate join keys exceed the intermediate-row guard. Both
-legs must reject at the required earlier boundary and reclaim their holdings.
-The remaining failure-precedence and cleanup-failure matrix stays explicit in
-the comparator-boundary inventory.
+`equivalent-failure-parity.test.mjs` exercises five cross-leg negative cases:
+an invalid source value excluded by the later predicate, a deferred record
+guard, a later invalid value that takes precedence over that guard, excess
+source cardinality before filtering, and legal source cardinality whose
+duplicate join keys exceed the intermediate-row guard. Both legs must reject at
+the required earlier boundary and reclaim their holdings. The remaining
+expression-demand and actual cleanup-failure matrix stays explicit in the
+comparator-boundary inventory.
 
 ### Selective baseline receiver profile
 
