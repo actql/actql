@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp, readdir, readFile, rm} from 'node:fs/promises';
+import {mkdtemp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -136,3 +136,40 @@ test('independent assembly validates hashes and holds every named boundary witho
       'cancelled partial and completed holdings must be reclaimed on run teardown');
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
+
+test('Store construction failure enters the common settlement boundary',
+  async () => {
+    const root = new URL('../../../', import.meta.url);
+    await promisify(execFile)('moon', [
+      'build',
+      'src/benchmark_obligations',
+      '--target',
+      'js',
+      '--release',
+    ], {cwd: root});
+    const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-open-'));
+    try {
+      const fixture = retainedCase(workloads[0], 'narrow', 100);
+      const database = join(directory, 'source.duckdb');
+      await promisify(execFile)(process.execPath, [
+        fileURLToPath(new URL(
+          '../bench/create-retained-source.mjs',
+          import.meta.url,
+        )),
+        database,
+        fixture.workload,
+        fixture.layout,
+        String(fixture.rows),
+      ]);
+      const invalidParent = join(directory, 'not-a-directory');
+      await writeFile(invalidParent, 'occupied');
+      await assert.rejects(
+        runEquivalentObligations(fixture, database, invalidParent),
+        error => error.code === 'ENOTDIR',
+      );
+      assert.deepEqual((await readdir(directory)).sort(),
+        ['not-a-directory', 'source.duckdb']);
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });

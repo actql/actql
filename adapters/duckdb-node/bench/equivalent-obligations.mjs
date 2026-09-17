@@ -54,9 +54,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   assertBoundedVectorRuntime();
   const signal = suppliedSignal ? AbortSignal.any([suppliedSignal, AbortSignal.timeout(l.timeoutMs)])
     : AbortSignal.timeout(l.timeoutMs);
-  const store = await createLocalRetainedStore({parentDirectory: directory, capacityBytes: 1073741824,
-    maxFrameBytes: l.batchBytes, maxEntries: 16});
-  let instance, connection, transaction = false, primary, report;
+  let store, instance, connection, transaction = false, primary, report;
   let acquisitionEvidenceMetadata;
   const stages = [], completed = new Map();
   const run = Object.freeze({});
@@ -231,6 +229,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   }
   try {
     check();
+    store = await createLocalRetainedStore({parentDirectory: directory,
+      capacityBytes: 1073741824, maxFrameBytes: l.batchBytes,
+      maxEntries: 16});
     instance = await DuckDBInstance.create(database, {access_mode: 'READ_ONLY', threads: '1',
       memory_limit: `${executionCapacity.databaseBytes}B`, max_temp_directory_size: '0B',
       preserve_insertion_order: 'true', enable_external_access: 'false',
@@ -324,10 +325,12 @@ export async function runEquivalentObligations(fixture, database, directory, sup
         checked(moon.obligationExecutionReleased(execution));
         if (report) report.releasedExecutionLedger = executionLedgerReport();
       }],
-      ['store-revoke', () => store.close()],
+      ['store-revoke', () => store?.close()],
       ['store-cleanup', async () => {
-        await store.cleanup();
-        assert.equal(store.status().cleanupPending, false);
+        if (store) {
+          await store.cleanup();
+          assert.equal(store.status().cleanupPending, false);
+        }
         completed.clear();
         sourceValidation = undefined;
         checked(moon.obligationRetentionReleased(retention));

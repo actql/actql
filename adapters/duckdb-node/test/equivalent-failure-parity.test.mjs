@@ -70,6 +70,23 @@ async function assertOnlySourceRemains(directory) {
   assert.deepEqual(await readdir(directory), ['source.duckdb']);
 }
 
+async function assertBothReject(fixture, database, directory, {
+  equivalent = error => error.code === 'MoonBitHostFailure',
+  product = error => error.code === 'ExecutionFailed' &&
+    error.cause?.code === 'MoonBitHostFailure',
+} = {}) {
+  await assert.rejects(
+    runEquivalentObligations(fixture, database, directory),
+    equivalent,
+  );
+  await assertOnlySourceRemains(directory);
+  await assert.rejects(
+    runRetainedComparator(fixture, contracts, database, directory),
+    product,
+  );
+  await assertOnlySourceRemains(directory);
+}
+
 test('both legs validate excluded source values before filtering', async () => {
   const fixture = retainedCase(workloads[0], 'narrow', 100);
   const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
@@ -77,21 +94,59 @@ test('both legs validate excluded source values before filtering', async () => {
     const database = await source(directory, fixture);
     await update(database,
       "UPDATE records SET payload = 'Infinity'::DOUBLE WHERE id = 0");
-    await assert.rejects(
-      runEquivalentObligations(fixture, database, directory),
-      error => error.code === 'MoonBitHostFailure',
-    );
-    await assertOnlySourceRemains(directory);
-    await assert.rejects(
-      runRetainedComparator(fixture, contracts, database, directory),
-      error => error.code === 'ExecutionFailed' &&
-        error.cause?.code === 'MoonBitHostFailure',
-    );
-    await assertOnlySourceRemains(directory);
+    await assertBothReject(fixture, database, directory);
   } finally {
     await rm(directory, {recursive: true, force: true});
   }
 });
+
+test('both legs defer a record guard until the complete source scan',
+  async () => {
+    const fixture = retainedCase(workloads[0], 'text-1024', 100);
+    const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
+    try {
+      const database = await source(directory, fixture);
+      // Each physical string is within the 2 KiB cell bound. Its containing
+      // record exceeds the logical top-level value ceiling, so acquisition
+      // must finish admitting the selected scan before reporting the guard.
+      await update(database,
+        "UPDATE records SET payload = repeat('x', 2048) WHERE id = 0");
+      await assertBothReject(fixture, database, directory);
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
+
+test('both legs let a later invalid value precede a deferred record guard',
+  async () => {
+    const fixture = retainedCase(workloads[0], 'text-1024', 100);
+    const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
+    try {
+      const database = await source(directory, fixture);
+      await update(database,
+        "UPDATE records SET payload = repeat('x', 2048) WHERE id = 0");
+      await update(database,
+        "UPDATE records SET id = 'Infinity'::DOUBLE WHERE id = 99");
+      await assertBothReject(fixture, database, directory);
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
+
+test('both legs enforce the complete source row guard before filtering',
+  async () => {
+    const fixture = retainedCase(workloads[0], 'narrow', 100);
+    const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
+    try {
+      const database = await source(directory, fixture);
+      // The extra row would pass the predicate. The source occurrence ceiling,
+      // not the smaller eventual capture, is the applicable admission scope.
+      await update(database, 'INSERT INTO records VALUES (100, 100)');
+      await assertBothReject(fixture, database, directory);
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
 
 test('both legs reject join expansion before the final count', async () => {
   const fixture = retainedCase(workloads[1], 'narrow', 100);
@@ -99,19 +154,12 @@ test('both legs reject join expansion before the final count', async () => {
   try {
     const database = await source(directory, fixture);
     await update(database, 'UPDATE records SET id = 0');
-    await assert.rejects(
-      runEquivalentObligations(fixture, database, directory),
-      /join output guard/,
-    );
-    await assertOnlySourceRemains(directory);
-    await assert.rejects(
-      runRetainedComparator(fixture, contracts, database, directory),
-      error => error.code === 'ERR_ASSERTION' &&
+    await assertBothReject(fixture, database, directory, {
+      equivalent: error => error.message.includes('join output guard'),
+      product: error => error.code === 'ERR_ASSERTION' &&
         error.message.includes('"failure":"Rows"'),
-    );
-    await assertOnlySourceRemains(directory);
+    });
   } finally {
     await rm(directory, {recursive: true, force: true});
   }
 });
-
