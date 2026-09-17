@@ -333,6 +333,8 @@ pub fn[T] managed_view_plan_matches(ManagedViewPlan[T], ManagedProducerRead[T], 
 
 pub fn[T] managed_view_plan_rows(ManagedViewPlan[T]) -> ManagedViewRows
 
+pub fn[T] managed_view_selection_cells(ManagedViewSelection[T]) -> Int
+
 pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], Int) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue]
 
 pub fn[T] managed_view_selection_row(ManagedViewSelection[T], Int) -> Int?

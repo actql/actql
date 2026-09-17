@@ -914,6 +914,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // reservation. It is not admitted as a second attempt and unused capacity is
   // returned when the task closes before creating an index allocation.
   const managedProgram = JSON.parse(program);
+  managedProgram.stages[1].steps[0].filter = 'id > 0';
+  managedProgram.stages[2].steps[0].filter = 'id > 2';
   managedProgram.stages[0].steps[1].select = ['id', 'amount'];
   managedProgram.stages[0].results.r.fields = ['id', 'amount'];
   for (const index of [1, 2, 3]) {
@@ -938,10 +940,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureOpen(managedLedgerFixture, managedLedgerCapture.source()), true);
     const setup = fixture.strategyFixtureCompute(managedLedgerFixture, 1);
     const baseRetention = accepted(bridge.computeStrategyRetentionCapacity(setup, true));
-    const indexBytes = 512n + 4n * 64n;
+    const indexBytes = 512n + 6n * 64n;
     let attempt;
     let port;
     let consume;
+    let managedRows = 0;
+    let managedStorageOrder;
     const managedProfile = accepted(fixture.managedFileProfile(await readFile(join(root,
       'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
     managedLedgerStore = await createLocalRetainedStore({
@@ -953,7 +957,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     let managedCompletion;
     managedLedgerRun = accepted(bridge.computeManagedRetainedStrategyHostOpen(
       setup, current => current === attempt && matchesFixedCompute(managedLedgerResult, port, consume),
-      100000n, 134217728n, 100000n, () => true, 4));
+      100000n, 134217728n, 100000n, () => true, 6));
     attempt = bridge.computeHostAttempt(managedLedgerRun);
     managedCompletion = accepted(
       bridge.computeHostManagedPrepare(managedLedgerRun, managedProfile, () => true));
@@ -981,11 +985,15 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
             type.scale == null ? null : String(type.scale)]));
         managedLedgerOutput = accepted(
           bridge.computeHostManagedOutputBegin(managedLedgerRun, fields));
+        managedStorageOrder = accepted(
+          bridge.managedOutputStorageOrder(managedLedgerOutput));
+        assert.deepEqual(managedStorageOrder, [1, 0],
+          'positional storage follows the logical schema, not DuckDB field order');
         assert.throws(() => accepted(
-          bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 3)));
+          bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 5)));
         assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n,
           'a mismatched index ceiling must not allocate from the task reservation');
-        accepted(bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 4));
+        accepted(bridge.computeHostManagedOutputEnableIndex(managedLedgerOutput, 6));
         assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes);
         assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
           baseRetention + 100000n);
@@ -994,13 +1002,16 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         JSON.stringify(chunk.columns)));
       assert.deepEqual(chunk.fields.map(field => field.type.id),
         ['DOUBLE', 'DOUBLE']);
+      const storedFields = managedStorageOrder.map(index => chunk.fields[index]);
+      const storedColumns = managedStorageOrder.map(index => chunk.columns[index]);
       await managedLedgerWriter.appendBytes(encodeManagedColumnFrame(
-        chunk.fields, chunk.columns, chunk.rowCount));
+        storedFields, storedColumns, chunk.rowCount, managedRows));
+      managedRows += chunk.rowCount;
     };
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
       {maxRows: 100, maxCells: 1000}, consume);
     accepted(bridge.managedOutputFinish(managedLedgerOutput));
-    assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 4);
+    assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 6);
     assert.throws(() => accepted(
       bridge.managedOutputRetain(managedLedgerOutput, 100001n, () => true)));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes,
@@ -1037,7 +1048,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       'the next task binds the exact retained occurrence through its checked graph edge');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 1), false,
       'managed requests retain the consumer logical row ceiling');
-    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), true);
+    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 2), false);
+    assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 3), true);
     const managedRequest = fixture.strategyFixtureManagedRequest(
       managedLedgerFixture, 2, managedCompleted);
     assert.equal(fixture.strategyFixtureManagedRequestInputCount(managedRequest), 1);
@@ -1069,9 +1081,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.deepEqual(managedDownstream.diagnostics, {
       inputPhysicalBytes: Number(managedBodyBytes), inputIntegrityPasses: 1,
       nativeFileImportCommands: 1, parameterInsertRows: 0,
-      logicalContentCidComputations: 0, outputFrames: 1,
-      outputPhysicalBytes: Number(managedBodyBytes),
+      logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
+      reusedMeasurementCells: 4, selectionOccurrenceRows: 2,
+      outputFrames: 1, outputPhysicalBytes: managedDownstream.diagnostics.outputPhysicalBytes,
     });
+    const managedDownstreamBytes = BigInt(managedDownstream.diagnostics.outputPhysicalBytes);
+    assert(managedDownstreamBytes > 0n && managedDownstreamBytes < managedBodyBytes,
+      'the checked filter retains only its selected physical rows');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 3);
     const terminalInput = fixture.strategyFixtureManagedInput(
       managedLedgerFixture, 3, managedDownstream.completed);
@@ -1089,15 +1105,23 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'a second downstream consumer reuses the managed path without legacy rows');
-    assert.deepEqual(managedTerminal.diagnostics, managedDownstream.diagnostics,
-      'repeated managed consumers retain the same finite physical-work boundary');
+    assert.deepEqual(managedTerminal.diagnostics, {
+      inputPhysicalBytes: Number(managedDownstreamBytes), inputIntegrityPasses: 1,
+      nativeFileImportCommands: 1, parameterInsertRows: 0,
+      logicalContentCidComputations: 0, outputValueAdmissionCells: 0,
+      reusedMeasurementCells: 4, selectionOccurrenceRows: 2,
+      outputFrames: 1, outputPhysicalBytes: managedTerminal.diagnostics.outputPhysicalBytes,
+    });
+    const managedTerminalBytes = BigInt(managedTerminal.diagnostics.outputPhysicalBytes);
+    assert.equal(managedTerminalBytes, managedDownstreamBytes,
+      'the second checked filter preserves the same two physical rows');
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), -1);
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
       'successful downstream completion returns its unused metadata reservation');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      indexBytes + managedBodyBytes * 3n,
+      indexBytes + managedBodyBytes + managedDownstreamBytes + managedTerminalBytes + 768n * 2n,
       'both downstream results own independent retained bodies');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
@@ -1113,10 +1137,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,
     'the terminal result survives revocation of its transitive ancestor');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
+      managedBodyBytes + managedDownstreamBytes + managedTerminalBytes + 768n * 2n,
+    'revocation releases only the initial measurement index');
     await managedTerminal.close();
     managedTerminal = undefined;
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4),
-      managedBodyBytes * 2n,
+      managedBodyBytes + managedDownstreamBytes + 768n,
     'closing task 3 releases only its own body');
     await managedDownstream.close();
     managedDownstream = undefined;

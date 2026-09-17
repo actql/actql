@@ -79,6 +79,28 @@ limits, it uses the ordinary verification path, preserving failure precedence.
 The driver attestation relies on the managed connection preventing mutation of
 committed table generations; a table name or equal CID cannot create it. No
 cross-Run, restart or external-file reuse is implied.
+
+The managed retained product path has a separate finite evidence-transfer
+realization for a checked filter/select over unchanged values. Its private
+column-frame representation stores columns in the checked logical schema order
+and carries an explicit logical occurrence ordinal for every row. DuckDB field
+order and DuckDB's internal `rowid` are not accepted as either mapping. After
+native settlement, the Host uses the checked selected-occurrence sequence to
+copy the corresponding per-cell measurements from the exact producer index.
+The common boundary rechecks the selected count, scope, demand, producer and
+material binding, then issues a new result index and holding for the new
+physical body. This transfers a previously satisfied value obligation; it does
+not reuse the producer's Result identity, completion occurrence, authority or
+storage holding.
+
+The installed transfer rule is deliberately finite. It applies only when the
+compiled query exposes the private occurrence result and the output fields map
+exactly to the checked logical schema. Unsupported shapes use ordinary typed
+output admission. Predicate evaluation, native execution, physical integrity,
+current use authority, task settlement and graph publication remain required.
+The transferred measurements avoid another Core per-cell admission pass for
+the unchanged selected values, but do not claim general projection, derive,
+sort/take, join/group or codec evidence transfer.
 A resident consumer verifies the selected DB copy rather than reading every
 independent representation. File corruption is rejected when the file is
 verified; a known revoked input material cannot be bypassed by a previously

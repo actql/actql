@@ -170,6 +170,15 @@ pub fn[T] managed_view_selection_row(
 }
 
 ///|
+/// Exact copied measurement cells owned by this one-use selection. This is a
+/// physical metadata quantity, not a logical row or value-byte measurement.
+pub fn[T] managed_view_selection_cells(
+  selection : ManagedViewSelection[T],
+) -> Int {
+  selection.index.count
+}
+
+///|
 /// Host-installed verification must bind the exact selection to executed
 /// expressions/order/failures and to the sealed output generation. No caller
 /// supplied fact records can replace the copied source measurements here.

@@ -185,6 +185,14 @@ pub fn physical_result_schema(result : PhysicalResult) -> @schema.Schema {
 }
 
 ///|
+/// Physical source column for each logical schema column. This is bounded
+/// metadata established from exact field names and contracts, not value
+/// admission or execution evidence.
+pub fn physical_result_source_columns(result : PhysicalResult) -> Array[Int] {
+  result.mappings.map(mapping => mapping.0)
+}
+
+///|
 pub fn physical_result_usage(result : PhysicalResult) -> (Int, Int, Int, Int) {
   (result.rows, result.cells, result.nodes, result.text_bytes)
 }

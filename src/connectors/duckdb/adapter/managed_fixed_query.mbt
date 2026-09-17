@@ -7,6 +7,74 @@ struct ManagedFixedQuery[T] {
   input : @execution.ManagedProducerRead[T]
   query : FixedQuery
   create_sql : String
+  compilation : NativeQueryLimits
+}
+
+///|
+fn managed_input_ordinal_column() -> String {
+  "__actql_input_ordinal"
+}
+
+///|
+fn compile_managed_fixed_create_schema(
+  schema : @schema.Schema,
+  table : String,
+  max_columns : Int,
+  max_sql_bytes : Int,
+) -> Result[String, NativeQueryIssue] {
+  let count = @schema.field_count(schema)
+  if count == 0 || count >= max_columns {
+    return Err(if count == 0 { UnsupportedShape } else { Limit })
+  }
+  if !physical_column_names_unique(schema) {
+    return Err(UnsupportedField)
+  }
+  let ordinal = managed_input_ordinal_column()
+  for index in 0..<count {
+    let name = @schema.reference_name(
+      @schema.field_at(schema, index).unwrap().name,
+    )
+    if physical_column_name_key(name) == physical_column_name_key(ordinal) {
+      return Err(UnsupportedField)
+    }
+  }
+  let create = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(create, "CREATE TEMP TABLE ")
+    sql_identifier(create, table)
+    sql_text(create, " (")
+    for index in 0..<count {
+      let field = @schema.field_at(schema, index).unwrap()
+      if index > 0 {
+        sql_text(create, ", ")
+      }
+      sql_identifier(create, @schema.reference_name(field.name))
+      sql_text(create, " ")
+      let (id, decimal) = match parameter_type(field.contract) {
+        Ok(value) => value
+        Err(issue) => return Err(Parameter(issue))
+      }
+      if decimal is Some((precision, scale)) {
+        sql_text(create, "DECIMAL(")
+        sql_text(create, precision.to_string())
+        sql_text(create, ",")
+        sql_text(create, scale.to_string())
+        sql_text(create, ")")
+      } else {
+        sql_text(create, if id == "TIMESTAMP_TZ" { "TIMESTAMPTZ" } else { id })
+      }
+      if !field.contract.nullable {
+        sql_text(create, " NOT NULL")
+      }
+    }
+    sql_text(create, ", ")
+    sql_identifier(create, ordinal)
+    sql_text(create, " BIGINT NOT NULL)")
+    Ok(create.builder.to_string())
+  } catch {
+    TextLimit => Err(Limit)
+    BadIdentifier => Err(InvalidIdentifier)
+  }
 }
 
 ///|
@@ -43,8 +111,8 @@ pub fn[T] prepare_managed_fixed_query(
     @lower.preparation_input_count(@lower.bound_preparation(owner)) != 1 {
     return Err(UnsupportedShape)
   }
-  let (create_sql, _, _) = match
-    compile_fixed_import_schema(
+  let create_sql = match
+    compile_managed_fixed_create_schema(
       @execution.managed_producer_read_schema(input),
       table,
       limits.max_entries,
@@ -60,7 +128,7 @@ pub fn[T] prepare_managed_fixed_query(
   if !@execution.managed_producer_read_available(input) {
     return Err(InputUnavailable)
   }
-  Ok({ input, query, create_sql, })
+  Ok({ input, query, create_sql, compilation: limits, })
 }
 
 ///|
@@ -91,6 +159,44 @@ pub fn[T] managed_fixed_query_create_sql(
   value : ManagedFixedQuery[T],
 ) -> String {
   value.create_sql
+}
+
+///|
+/// Checked filter/select SQL with the exact input occurrence attached. The
+/// fixed alias is Host-private and cannot be selected by Program input. An
+/// unsupported checked shape keeps the ordinary validation path available.
+pub fn[T] managed_fixed_query_occurrence_sql(
+  value : ManagedFixedQuery[T],
+) -> String? {
+  match
+    managed_fixed_selection_sql(
+      value,
+      managed_input_ordinal_column(),
+      "__actql_occurrence",
+      value.compilation,
+    ) {
+    Ok(sql) => Some(sql)
+    Err(_) => None
+  }
+}
+
+///|
+/// Bind actual ordered native occurrences to the already checked query. This
+/// copies finite measurement evidence; it is not proof that native execution
+/// produced these occurrences.
+pub fn[T] prepare_managed_fixed_query_selection(
+  value : ManagedFixedQuery[T],
+  rows : Array[Int],
+  max_cells : Int,
+  max_work : Int,
+) -> Result[@execution.ManagedViewSelection[T], NativeQueryIssue] {
+  prepare_managed_filter_selection(
+    value,
+    rows,
+    value.compilation,
+    max_cells,
+    max_work,
+  )
 }
 
 ///|
@@ -128,6 +234,7 @@ pub fn[T] managed_fixed_query_column_file_sql(
       }
       sql_text(output, "unnest(c" + index.to_string() + ")")
     }
+    sql_text(output, ", unnest(o)")
     sql_text(
       output, " FROM read_json(?, format='newline_delimited', auto_detect=false, columns={",
     )
@@ -137,6 +244,10 @@ pub fn[T] managed_fixed_query_column_file_sql(
       }
       sql_text(output, "c" + index.to_string() + ":'" + kind + "[]'")
     }
+    if physical.length() > 0 {
+      sql_text(output, ",")
+    }
+    sql_text(output, "o:'BIGINT[]'")
     sql_text(output, "}, ignore_errors=false)")
     Some(output.builder.to_string())
   } catch {

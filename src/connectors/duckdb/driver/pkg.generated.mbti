@@ -35,6 +35,8 @@ pub fn[T] captured_managed_duckdb_execution(CapturedManagedDuckDBTask[T]) -> @ph
 
 pub fn[T] captured_managed_duckdb_input(CapturedManagedDuckDBTask[T]) -> @execution_relation.ManagedProducerRead[T]
 
+pub fn[T] captured_managed_duckdb_native_verified(CapturedManagedDuckDBTask[T]) -> Bool
+
 pub fn[T] captured_managed_duckdb_query(CapturedManagedDuckDBTask[T]) -> @adapter.ManagedFixedQuery[T]
 
 pub fn[T] captured_managed_duckdb_run(CapturedManagedDuckDBTask[T]) -> @physical_strategy.CapturedDAG
@@ -58,6 +60,8 @@ pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, Comp
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
 pub fn[T] configured_managed_strategy_limits(ManagedStrategyComputeHostConfiguration[T]) -> @compute.DuckDBComputeLimits
+
+pub fn[T] configured_managed_strategy_max_index_cells(ManagedStrategyComputeHostConfiguration[T]) -> Int
 
 pub fn[T] configured_managed_strategy_output_file_bytes(ManagedStrategyComputeHostConfiguration[T]) -> Int64
 

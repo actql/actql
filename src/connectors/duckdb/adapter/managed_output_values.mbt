@@ -32,6 +32,32 @@ pub fn prepare_managed_physical_output(
 }
 
 ///|
+/// Establish the physical-to-logical storage order without reading values or
+/// claiming the one-use output stream. A positional writer must use this order.
+pub fn prepare_managed_output_storage_order(
+  values : @execution.ManagedOutputValues,
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  max_metadata_work : Int,
+) -> Result[Array[Int], ManagedPhysicalOutputIssue] {
+  prepare_physical_result(
+    @execution.managed_output_values_schema(values),
+    fields,
+    limits,
+    max_metadata_work,
+  )
+  .map(physical_result_source_columns)
+  .map_err(issue => Physical(issue))
+}
+
+///|
+pub fn managed_physical_output_storage_order(
+  output : ManagedPhysicalOutput,
+) -> Array[Int] {
+  physical_result_source_columns(output.physical)
+}
+
+///|
 pub fn cancel_managed_physical_output(output : ManagedPhysicalOutput) -> Bool {
   if !output.open {
     return false

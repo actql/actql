@@ -20,12 +20,15 @@ const fields = Object.freeze([
 test('managed column frames preserve bounded heterogeneous column occurrences', async () => {
   assert.match(managedColumnCodecContractCid, /^sha256:[0-9a-f]{64}$/);
   const frame = encodeManagedColumnFrame(fields,
-    [[double(1), null, double(2)], ['x', null, '雪']], 3);
-  assert.equal(frame.toString('utf8'), '{"c0":[1,null,2],"c1":["x",null,"雪"]}\n');
+    [[double(1), null, double(2)], ['x', null, '雪']], 3, 4);
+  assert.equal(frame.toString('utf8'),
+    '{"c0":[1,null,2],"c1":["x",null,"雪"],"o":[4,5,6]}\n');
   assert.throws(() => encodeManagedColumnFrame(fields,
-    [[double(1)], ['x', 'y']], 1), {code: 'UnsupportedManagedColumnFrame'});
+    [[double(1)], ['x', 'y']], 1, 0), {code: 'UnsupportedManagedColumnFrame'});
+  assert.throws(() => encodeManagedColumnFrame(fields,
+    [[double(1)], ['x']], 1), {code: 'UnsupportedManagedColumnFrame'});
   assert.throws(() => encodeManagedColumnFrame(
-    [{name: 'flag', type: {id: 'BOOLEAN'}}], [[true]], 1),
+    [{name: 'flag', type: {id: 'BOOLEAN'}}], [[true]], 1, 0),
   {code: 'UnsupportedManagedColumnFrame'});
 
   const directory = await mkdtemp(join(tmpdir(), 'actql-managed-column-'));
@@ -36,12 +39,13 @@ test('managed column frames preserve bounded heterogeneous column occurrences', 
     instance = await DuckDBInstance.create(':memory:');
     connection = await instance.connect();
     prepared = await connection.prepare(
-      "SELECT unnest(c0), unnest(c1) FROM read_json(?, format='newline_delimited', " +
-      "auto_detect=false, columns={c0:'DOUBLE[]',c1:'VARCHAR[]'}, ignore_errors=false)",
+      "SELECT unnest(c0), unnest(c1), unnest(o) " +
+      "FROM read_json(?, format='newline_delimited', auto_detect=false, " +
+      "columns={c0:'DOUBLE[]',c1:'VARCHAR[]',o:'BIGINT[]'}, ignore_errors=false)",
     );
     prepared.bindVarchar(1, path);
     const result = await prepared.runAndReadAll();
-    assert.deepEqual(result.getRows(), [[1, 'x'], [null, null], [2, '雪']]);
+    assert.deepEqual(result.getRows(), [[1, 'x', 4n], [null, null, 5n], [2, '雪', 6n]]);
   } finally {
     prepared?.destroySync();
     connection?.closeSync();

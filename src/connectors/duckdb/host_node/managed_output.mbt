@@ -525,6 +525,27 @@ pub fn managed_output_accept(
 }
 
 ///|
+/// Exact logical storage order for positional managed representations.
+#export_name("managedOutputStorageOrder")
+pub fn managed_output_storage_order(
+  value : ManagedNodeOutput,
+) -> Array[Int] raise NodeHostFailure {
+  if !value.open {
+    raise InvalidCommand
+  }
+  match value.receiver {
+    Values(receiver) => @duckdb.managed_physical_output_storage_order(receiver)
+    Compute(run, receiver) => {
+      if run.closed {
+        raise InvalidCommand
+      }
+      @duckdb_compute.managed_duckdb_compute_output_storage_order(receiver)
+    }
+    View(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("managedOutputFinish")
 pub fn managed_output_finish(
   value : ManagedNodeOutput,

@@ -8,6 +8,10 @@ struct CapturedManagedDuckDBTask[T] {
   completion : @compute.ManagedInputDuckDBCompletion[T]
   execution : @strategy.TaskExecution
   input : @execution.ManagedProducerRead[T]
+  live : Ref[Bool]
+  settled : Ref[Bool]
+  disposed : Ref[Bool]
+  authorize : () -> Bool
 }
 
 ///|
@@ -112,7 +116,17 @@ pub fn[T] start_captured_managed_duckdb_task(
       guard completion.val is Some(completion) else {
         return Err(Implementation(DuckDBFailure::Compute(InvalidState)))
       }
-      Ok({ run, query, completion, execution, input, })
+      Ok({
+        run,
+        query,
+        completion,
+        execution,
+        input,
+        live,
+        settled,
+        disposed,
+        authorize,
+      })
     }
   }
 }
@@ -150,6 +164,20 @@ pub fn[T] captured_managed_duckdb_input(
   task : CapturedManagedDuckDBTask[T],
 ) -> @execution.ManagedProducerRead[T] {
   task.input
+}
+
+///|
+/// Host-installed native settlement predicate for managed view issuance. It
+/// does not grant Store access or replace common completion admission.
+pub fn[T] captured_managed_duckdb_native_verified(
+  task : CapturedManagedDuckDBTask[T],
+) -> Bool {
+  task.live.val &&
+  task.settled.val &&
+  !task.disposed.val &&
+  (task.authorize)() &&
+  @duckdb.managed_fixed_query_matches(task.query, task.input) &&
+  task.live.val
 }
 
 ///|

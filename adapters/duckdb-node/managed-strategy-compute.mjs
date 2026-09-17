@@ -35,6 +35,8 @@ export async function runManagedColumnStrategyHostCompute(
   const capacity = computePhysicalCapacity(limits);
   let store, writer, body, output, completed, run;
   let inputPhysicalBytes = 0, outputFrames = 0;
+  let outputValueAdmissionCells = 0, reusedMeasurementCells = 0;
+  let outputRows = 0;
   let disposed = false;
   let authorized = true;
   const storageReleased = () => disposed && (!store ||
@@ -58,7 +60,10 @@ export async function runManagedColumnStrategyHostCompute(
     if (typeof importSql !== 'string') {
       throw new DuckDBTransportError('UnsupportedManagedInputRepresentation');
     }
-    const querySql = checked(moon.managedStrategySql(run, false));
+    const occurrenceSql = moon.managedStrategyOccurrenceSql(run);
+    const preservesCheckedValues = typeof occurrenceSql === 'string';
+    const querySql = preservesCheckedValues
+      ? occurrenceSql : checked(moon.managedStrategySql(run, false));
     const parameters = Array.from({length: moon.managedStrategyParameterCount(run)}, (_, index) =>
       JSON.parse(checked(moon.managedStrategyParameter(run, index))));
     const accounting = Object.freeze({
@@ -66,6 +71,8 @@ export async function runManagedColumnStrategyHostCompute(
       chargeTransfer(bytes) { checked(moon.managedStrategyCharge(run, BigInt(bytes))); },
       settled(confirmed) { checked(moon.managedStrategySettle(run, confirmed)); },
     });
+    const occurrences = [];
+    let storageOrder;
     const result = await withManagedInputFile(inputMaterial, input, inputCodecContractCid,
       () => authorized && !signal?.aborted, async file => withComputeDatabase(limits, async session => {
         const discard = () => {};
@@ -74,16 +81,49 @@ export async function runManagedColumnStrategyHostCompute(
           [{type: {id: 'VARCHAR'}, value: file.path}], discard);
         const fields = await session.command(querySql, parameters, async chunk => {
           signal?.throwIfAborted();
-          if (!output) output = checked(moon.managedStrategyOutputBegin(run,
-            fieldsFrame(chunk.fields)));
-          checked(moon.managedOutputAccept(output, chunk.rowCount,
-            JSON.stringify(chunk.columns)));
+          let outputFields = chunk.fields;
+          let outputColumns = chunk.columns;
+          if (preservesCheckedValues) {
+            if (chunk.fields[0]?.name !== '__actql_occurrence' ||
+                chunk.fields[0]?.type.id !== 'BIGINT' ||
+                !Array.isArray(chunk.columns[0]) ||
+                chunk.columns[0].length !== chunk.rowCount) {
+              throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
+            }
+            for (const value of chunk.columns[0]) {
+              if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value)) {
+                throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
+              }
+              const occurrence = Number(value);
+              if (!Number.isSafeInteger(occurrence) ||
+                  (occurrences.length && occurrence <= occurrences.at(-1))) {
+                throw new DuckDBTransportError('InvalidManagedOccurrenceOutput');
+              }
+              occurrences.push(occurrence);
+            }
+            outputFields = chunk.fields.slice(1);
+            outputColumns = chunk.columns.slice(1);
+            reusedMeasurementCells += chunk.rowCount * outputFields.length;
+          } else {
+            if (!output) output = checked(moon.managedStrategyOutputBegin(run,
+              fieldsFrame(outputFields)));
+            checked(moon.managedOutputAccept(output, chunk.rowCount,
+              JSON.stringify(outputColumns)));
+            outputValueAdmissionCells += chunk.rowCount * outputFields.length;
+          }
+          if (!storageOrder) storageOrder = checked(moon.managedStrategyStorageOrder(
+            run, fieldsFrame(outputFields)));
+          const storedFields = storageOrder.map(index => outputFields[index]);
+          const storedColumns = storageOrder.map(index => outputColumns[index]);
           await writer.appendBytes(encodeManagedColumnFrame(
-            chunk.fields, chunk.columns, chunk.rowCount));
+            storedFields, storedColumns, chunk.rowCount, outputRows));
+          outputRows += chunk.rowCount;
           outputFrames++;
         });
-        if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
-        checked(moon.managedStrategyOutputFinish(run, output));
+        if (!preservesCheckedValues) {
+          if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
+          checked(moon.managedStrategyOutputFinish(run, output));
+        }
         return fields;
       }, signal, accounting, [file.path]), signal, bytes => {
         // One complete Store integrity pass and one native read of the exact
@@ -92,6 +132,11 @@ export async function runManagedColumnStrategyHostCompute(
         inputPhysicalBytes = bytes;
       });
     signal?.throwIfAborted();
+    if (preservesCheckedValues) {
+      const selection = checked(moon.managedStrategySelection(run, occurrences));
+      output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
+      checked(moon.managedStrategyOutputFinish(run, output));
+    }
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
     completed = checked(moon.managedStrategyComplete(run, output));
@@ -111,6 +156,9 @@ export async function runManagedColumnStrategyHostCompute(
         nativeFileImportCommands: 1,
         parameterInsertRows: 0,
         logicalContentCidComputations: 0,
+        outputValueAdmissionCells,
+        reusedMeasurementCells,
+        selectionOccurrenceRows: occurrences.length,
         outputFrames,
         outputPhysicalBytes: body.bytes,
       }),

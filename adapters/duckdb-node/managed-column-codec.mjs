@@ -4,8 +4,8 @@
 import {createHash} from 'node:crypto';
 import {DuckDBTransportError} from './session.mjs';
 
-const codecContract = 'actql-duckdb-managed-column-frames/0.1\n' +
-  'newline-delimited-object:c0..cN=typed-column-lists\n' +
+const codecContract = 'actql-duckdb-managed-column-frames/0.2\n' +
+  'newline-delimited-object:c0..cN=typed-column-lists;o=logical-row-ordinals\n' +
   'supported=DOUBLE,VARCHAR;ordered;duplicates-preserved;store-integrity-required';
 
 export const managedColumnCodecContractCid =
@@ -26,9 +26,11 @@ function physicalValue(value, type) {
   throw new DuckDBTransportError('UnsupportedManagedColumnValue');
 }
 
-export function encodeManagedColumnFrame(fields, columns, rowCount) {
+export function encodeManagedColumnFrame(fields, columns, rowCount, firstRow) {
   if (!Array.isArray(fields) || !fields.length || !Array.isArray(columns) ||
-      fields.length !== columns.length || !Number.isSafeInteger(rowCount) || rowCount < 0) {
+      fields.length !== columns.length || !Number.isSafeInteger(rowCount) || rowCount < 0 ||
+      !Number.isSafeInteger(firstRow) || firstRow < 0 ||
+      firstRow > Number.MAX_SAFE_INTEGER - rowCount) {
     throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
   }
   const frame = Object.create(null);
@@ -39,5 +41,6 @@ export function encodeManagedColumnFrame(fields, columns, rowCount) {
     }
     frame[`c${column}`] = columns[column].map(value => physicalValue(value, fields[column].type));
   }
+  frame.o = Array.from({length: rowCount}, (_, index) => firstRow + index);
   return Buffer.from(`${JSON.stringify(frame)}\n`);
 }

@@ -201,9 +201,13 @@ pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation
 
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
 
+pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
+
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
 
 pub fn[T] managed_fixed_selection_sql(ManagedFixedQuery[T], String, String, NativeQueryLimits) -> Result[String, NativeQueryIssue]
+
+pub fn managed_physical_output_storage_order(ManagedPhysicalOutput) -> Array[Int]
 
 pub fn[T] managed_take_query_matches(ManagedTakeQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
 
@@ -281,6 +285,8 @@ pub fn physical_batch_rows(PhysicalBatch) -> Int
 
 pub fn physical_result_schema(PhysicalResult) -> @relation_schema.Schema
 
+pub fn physical_result_source_columns(PhysicalResult) -> Array[Int]
+
 pub fn physical_result_usage(PhysicalResult) -> (Int, Int, Int, Int)
 
 pub fn prepare_broad_receiving(BroadTable, Array[(String, PhysicalType)], PhysicalResultLimits, Int, @execution_relation.ValueLimits) -> Result[BroadReceiving, BroadReceivingIssue]
@@ -313,9 +319,13 @@ pub fn[T] prepare_managed_filter_selection(ManagedFixedQuery[T], Array[Int], Nat
 
 pub fn[T] prepare_managed_fixed_query(@execution_relation.ManagedProducerRead[T], String, NativeQueryLimits) -> Result[ManagedFixedQuery[T], NativeQueryIssue]
 
+pub fn[T] prepare_managed_fixed_query_selection(ManagedFixedQuery[T], Array[Int], Int, Int) -> Result[@execution_relation.ManagedViewSelection[T], NativeQueryIssue]
+
 pub fn[T] prepare_managed_fixed_request_query(@connector_sdk.ManagedFixedComputeRequest[T], String, NativeQueryLimits) -> Result[ManagedFixedQuery[T], NativeQueryIssue]
 
 pub fn[T] prepare_managed_fixed_view_plan(ManagedFixedQuery[T], NativeQueryLimits) -> Result[@execution_relation.ManagedViewPlan[T], NativeQueryIssue]
+
+pub fn prepare_managed_output_storage_order(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[Array[Int], ManagedPhysicalOutputIssue]
 
 pub fn prepare_managed_physical_output(@execution_relation.ManagedOutputValues, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[ManagedPhysicalOutput, ManagedPhysicalOutputIssue]
 

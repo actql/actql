@@ -200,6 +200,8 @@ pub fn managed_output_retain(ManagedNodeOutput, Int64, () -> Bool) -> Unit raise
 
 pub fn managed_output_reused_measurements(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
 
+pub fn managed_output_storage_order(ManagedNodeOutput) -> Array[Int] raise NodeHostFailure
+
 pub fn managed_output_verify_compute(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
 pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewSelection[Int], @adapter.TransportColumnLimits, () -> Bool) -> ManagedNodeOutput raise NodeHostFailure
@@ -215,6 +217,8 @@ pub fn managed_strategy_host_open(@driver.ManagedStrategyComputeHostConfiguratio
 pub fn managed_strategy_input(ManagedComputeNodeRun) -> @execution_relation.ManagedProducerRead[Int] raise NodeHostFailure
 
 pub fn managed_strategy_input_file_sql(ManagedComputeNodeRun, Int) -> String?
+
+pub fn managed_strategy_occurrence_sql(ManagedComputeNodeRun) -> String?
 
 pub fn managed_strategy_output_begin(ManagedComputeNodeRun, String) -> ManagedNodeOutput raise NodeHostFailure
 
@@ -232,9 +236,15 @@ pub fn managed_strategy_retention_capacity(@driver.ManagedStrategyComputeHostCon
 
 pub fn managed_strategy_scratch_capacity(@driver.ManagedStrategyComputeHostConfiguration[Int]) -> Int64 raise NodeHostFailure
 
+pub fn managed_strategy_selected_output_begin(ManagedComputeNodeRun, @execution_relation.ManagedViewSelection[Int]) -> ManagedNodeOutput raise NodeHostFailure
+
+pub fn managed_strategy_selection(ManagedComputeNodeRun, Array[Int]) -> @execution_relation.ManagedViewSelection[Int] raise NodeHostFailure
+
 pub fn managed_strategy_settle(ManagedComputeNodeRun, Bool) -> Unit raise NodeHostFailure
 
 pub fn managed_strategy_sql(ManagedComputeNodeRun, Bool) -> String raise NodeHostFailure
+
+pub fn managed_strategy_storage_order(ManagedComputeNodeRun, String) -> Array[Int] raise NodeHostFailure
 
 pub fn managed_view_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewPlan[Int], @adapter.TransportColumnLimits, () -> Bool, () -> @execution_relation.ManagedViewOutputFacts) -> ManagedNodeOutput raise NodeHostFailure
 

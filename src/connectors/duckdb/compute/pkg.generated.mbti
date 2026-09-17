@@ -89,6 +89,8 @@ pub fn finish_duckdb_compute_stream_result(DuckDBComputeAttempt) -> Result[(@exe
 
 pub fn finish_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Result[@execution_relation.ManagedOutputValueReceipt, DuckDBComputeIssue]
 
+pub fn managed_duckdb_compute_output_storage_order(ManagedDuckDBComputeOutput) -> Array[Int]
+
 pub fn managed_duckdb_compute_output_values(ManagedDuckDBComputeOutput) -> @execution_relation.ManagedOutputValues
 
 pub fn[T] managed_input_duckdb_demand_usage(ManagedInputDuckDBCompletion[T]) -> @adapter.FixedComputeDemandUsage?

@@ -670,6 +670,21 @@ pub fn strategy_fixture_managed_configuration(
   ) catch {
     _ => abort("managed completion fixture")
   }
+  let output_schema = @lower.preparation_schema_at(
+    @lower.bound_preparation(
+      @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
+    ),
+    @duckdb.fixed_query_target(@duckdb.managed_fixed_query_query(query)),
+  ).unwrap()
+  let row_ceiling = @connector.managed_fixed_compute_request_capacity(request).max_rows
+  let width = @schema.field_count(output_schema)
+  let max_index_cells = if width == 0 || row_ceiling <= 0 {
+    0
+  } else if row_ceiling > 1000000 / width {
+    abort("managed index ceiling")
+  } else {
+    row_ceiling * width
+  }
   @duckdb_driver.configure_managed_strategy_compute_host(
     f.run.unwrap(),
     task,
@@ -704,7 +719,7 @@ pub fn strategy_fixture_managed_configuration(
       max_text_bytes: 100000,
     },
     output_file_bytes,
-    0,
+    max_index_cells,
   ).unwrap()
 }
 

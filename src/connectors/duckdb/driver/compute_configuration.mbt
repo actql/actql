@@ -271,6 +271,13 @@ pub fn[T] configured_managed_strategy_output_file_bytes(
 }
 
 ///|
+pub fn[T] configured_managed_strategy_max_index_cells(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> Int {
+  setup.max_index_cells
+}
+
+///|
 pub fn[T] start_configured_managed_strategy_compute_host(
   setup : ManagedStrategyComputeHostConfiguration[T],
   transfer_bytes : Int64,

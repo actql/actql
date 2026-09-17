@@ -96,21 +96,28 @@ owns the selected request, compiled query, typed completion port and task
 lifecycle.
 
 The initial installed representation is an ordered set of Number/Text columns
-encoded as bounded newline-delimited physical column frames. This is a finite implementation
-identifier, not a registered logical CID and not a portable ResultArtifact
-contract. The Host:
+encoded as bounded newline-delimited physical column frames. Revision `0.2`
+stores columns in the checked logical schema order and stores an explicit
+logical row ordinal for every value occurrence. Neither DuckDB field order nor
+its internal `rowid` defines the ActQL occurrence. This is a finite
+implementation identifier, not a registered logical CID and not a portable
+ResultArtifact contract. The Host:
 
 1. resolves the exact `ManagedProducerRead` for the selected downstream task;
 2. acquires a Store read pin and checks path, generation, physical digest,
    current authority and material binding;
 3. grants that exact file to the DuckDB session and imports it with checked,
    adapter-generated `read_json` SQL and no parameter-row INSERT path;
-4. runs the selected query and sends its actual chunks through the common typed
-   output verifier while writing the same ordered typed values to a new Store
-   body;
-5. settles actual physical use, retains the sealed output allocation and
+4. runs the selected query and, for an installed checked filter/select, reads
+   the selected logical occurrence ordinals from a private hidden column;
+5. transfers the corresponding per-cell measurements from the exact producer
+   index, checks the selected row count and demand, and writes the unchanged
+   values in logical schema order to a new Store body;
+6. for an unsupported output shape, uses the ordinary typed output verifier
+   instead of treating evidence transfer as successful;
+7. settles actual physical use, retains the sealed output allocation and
    publishes it through `complete_managed_task_execution`; and
-6. registers the new material for a later exact managed reader without giving
+8. registers the new material for a later exact managed reader without giving
    the caller a pathname or completion authority.
 
 Logical content identity is not inferred from the Store digest. Store integrity,
@@ -125,10 +132,13 @@ release and the Host refreshes the graph retention ledger.
 The product entry reports finite work counters rather than inferring savings
 from elapsed time. For each installed downstream task the regression observes
 one physical-integrity pass, one native file-import command, zero parameter
-INSERT rows, zero logical-content CID computations, one output frame and the
-exact input/output physical byte counts. These counters do not claim that
-DuckDB performs only one internal filesystem read or that no typed-value work
-occurs; actual chunks still pass through the managed output verifier.
+INSERT rows, zero logical-content CID computations, zero Core output-value
+admission cells, four transferred measurement cells, two selected logical
+occurrences, one output frame and the exact input/output physical byte counts.
+These counters do not claim that DuckDB performs only one internal filesystem
+read or that no typed-value work occurs. DuckDB still evaluates the predicate,
+the Host still validates occurrence framing and storage order, and the common
+boundary still checks demand, ownership, holding and native settlement.
 
 ## Real strategy regression
 
@@ -137,15 +147,15 @@ DuckDB execution and checks the following sequence:
 
 | boundary | reserved retention | held bytes | graph state |
 | --- | ---: | ---: | --- |
-| admitted open | stream base + 100,000 body + 768 index | 0 | task 1 running |
-| index and actual 13-byte body retained | stream base + 99,987 | 781 | task 1 running |
-| native settlement | unchanged | 781 | no success yet |
-| task-1 managed publication | 0 | 781 | task 1 done, task 2 ready |
-| task-2 pinned read, native execution and publication | 0 | 794 | tasks 1 and 2 done, task 3 ready |
-| task-3 pinned read, native execution and publication | 0 | 807 | all three tasks done |
-| task-1 output revoke | 0 | 39 | all three independent bodies remain graph-owned |
-| task-3 close and physical cleanup | 0 | 26 | task-1 and task-2 bodies remain graph-owned |
-| task-2 close and physical cleanup | 0 | 13 | task-1 body remains graph-owned |
+| admitted open | stream base + 100,000 body + 896 index | 0 | task 1 running |
+| index and actual 43-byte body retained | stream base + 99,957 | 939 | task 1 running |
+| native settlement | unchanged | 939 | no success yet |
+| task-1 managed publication | 0 | 939 | task 1 done, task 2 ready |
+| task-2 selected-evidence publication | 0 | 1,743 | tasks 1 and 2 done, task 3 ready |
+| task-3 selected-evidence publication | 0 | 2,547 | all three tasks done |
+| task-1 output revoke | 0 | 1,651 | task-1 index released; all bodies remain graph-owned |
+| task-3 close and physical cleanup | 0 | 847 | task-1 and task-2 bodies remain graph-owned |
+| task-2 close and physical cleanup | 0 | 43 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
 The same regression rejects a 100,001-byte body despite the adjacent stream
@@ -156,13 +166,16 @@ mode per task, and ownership transfer through cancellation.
 ## Remaining production work
 
 The product path is intentionally limited to the installed Number/Text column
-representation and the checked FilterSelect query family. It does not yet
-implement the Q6 evidence-transfer rules for projection/filter/take/sort/derive,
-general schemas/codecs, mixed acquisition/managed input families,
-resident-table publication, Local execution or named Result bridging. The
-finite representation identifier must either become an adopted machine
-contract or be replaced by the shared registered representation boundary before
-portable use is claimed.
+representation and the checked FilterSelect query family. It now implements a
+finite Q6 evidence-transfer path for unchanged values selected by that checked
+query, including logical-schema column reordering, explicit row-occurrence
+mapping and repeated downstream reuse. It does not yet implement general
+projection/rename, derive, sort/take, join/group-result reuse, general
+schemas/codecs, mixed acquisition/managed input families, resident-table
+publication, Local execution or named Result bridging. The finite
+representation identifier must either become an adopted machine contract or be
+replaced by the shared registered representation boundary before portable use
+is claimed.
 
 The original 27-case/1 GiB acceptance measurements also remain open and must be
 reported separately from the new-profile measurement. This increment proves an

@@ -77,6 +77,13 @@ pub fn managed_duckdb_compute_output_values(
 }
 
 ///|
+pub fn managed_duckdb_compute_output_storage_order(
+  output : ManagedDuckDBComputeOutput,
+) -> Array[Int] {
+  @duckdb.managed_physical_output_storage_order(output.receiver)
+}
+
+///|
 pub fn cancel_managed_duckdb_compute_output(
   output : ManagedDuckDBComputeOutput,
 ) -> Unit {

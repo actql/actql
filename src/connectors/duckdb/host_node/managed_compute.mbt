@@ -7,6 +7,7 @@ struct ManagedComputeNodeRun {
   transport : @duckdb.TransportColumnLimits
   limits : @duckdb_compute.DuckDBComputeLimits
   output_file_bytes : Int64
+  max_index_cells : Int
   receipt : Ref[@execution.ManagedOutputValueReceipt?]
   mut closed : Bool
 }
@@ -66,6 +67,9 @@ pub fn managed_strategy_host_open(
     output_file_bytes: @duckdb_driver.configured_managed_strategy_output_file_bytes(
       setup,
     ),
+    max_index_cells: @duckdb_driver.configured_managed_strategy_max_index_cells(
+      setup,
+    ),
     receipt,
     closed: false,
   }
@@ -97,6 +101,112 @@ pub fn managed_strategy_sql(
   } else {
     @duckdb.fixed_query_sql(@duckdb.managed_fixed_query_query(query))
   }
+}
+
+///|
+/// Checked query with a private input-occurrence column. Unsupported shapes
+/// return None and continue through the ordinary output validation path.
+#export_name("managedStrategyOccurrenceSql")
+pub fn managed_strategy_occurrence_sql(run : ManagedComputeNodeRun) -> String? {
+  if run.closed {
+    return None
+  }
+  @duckdb.managed_fixed_query_occurrence_sql(
+    @duckdb_driver.captured_managed_duckdb_query(run.task),
+  )
+}
+
+///|
+#export_name("managedStrategySelection")
+pub fn managed_strategy_selection(
+  run : ManagedComputeNodeRun,
+  rows : Array[Int],
+) -> @execution.ManagedViewSelection[Int] raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb.prepare_managed_fixed_query_selection(
+      @duckdb_driver.captured_managed_duckdb_query(run.task),
+      rows,
+      run.max_index_cells,
+      run.limits.metadata_work,
+    ) {
+    Ok(selection) => selection
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// Exact positional storage order for the selected task's output schema. This
+/// performs bounded metadata matching only and does not claim the output.
+#export_name("managedStrategyStorageOrder")
+pub fn managed_strategy_storage_order(
+  run : ManagedComputeNodeRun,
+  fields : String,
+) -> Array[Int] raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb.prepare_managed_output_storage_order(
+      @duckdb_compute.managed_input_duckdb_output_values(
+        @duckdb_driver.captured_managed_duckdb_completion(run.task),
+      ),
+      transport_fields(run.transport, fields),
+      run.limits.physical,
+      run.limits.metadata_work,
+    ) {
+    Ok(order) => order
+    Err(issue) => raise ManagedValues(issue)
+  }
+}
+
+///|
+/// Install the selected-view receipt only after native settlement. The copied
+/// measurement index receives an exact holding from this task's existing
+/// reservation; file retention remains a separate allocation.
+#export_name("managedStrategySelectedOutputBegin")
+pub fn managed_strategy_selected_output_begin(
+  run : ManagedComputeNodeRun,
+  selection : @execution.ManagedViewSelection[Int],
+) -> ManagedNodeOutput raise NodeHostFailure {
+  if run.closed ||
+    !@duckdb_driver.captured_managed_duckdb_native_verified(run.task) {
+    raise InvalidCommand
+  }
+  let cells = @execution.managed_view_selection_cells(selection)
+  guard cells <= run.max_index_cells &&
+    @execution.managed_row_measurement_capacity_bytes(cells) is Some(bytes) else {
+    raise InvalidCommand
+  }
+  let output = managed_selected_output_open(
+    @duckdb_compute.managed_input_duckdb_output_values(
+      @duckdb_driver.captured_managed_duckdb_completion(run.task),
+    ),
+    selection,
+    run.transport,
+    fn() { @duckdb_driver.captured_managed_duckdb_native_verified(run.task) },
+  )
+  errdefer managed_output_cancel(output)
+  let allocation = match
+    @strategy.retain_task_execution_allocation(
+      @duckdb_driver.captured_managed_duckdb_run(run.task),
+      @duckdb_driver.captured_managed_duckdb_execution(run.task),
+      bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Physical(issue)
+  }
+  output.index_allocation = Some(allocation)
+  output.strategy_allocation = Some(
+    (
+      @duckdb_driver.captured_managed_duckdb_run(run.task),
+      @duckdb_driver.captured_managed_duckdb_execution(run.task),
+      run.output_file_bytes,
+    ),
+  )
+  output
 }
 
 ///|
