@@ -38,6 +38,8 @@ pub fn local_import_retention_capacity(LocalImportLimits) -> Int64?
 
 pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
+pub fn local_managed_sequence_supported(@execution_relation.GeneratedSequence) -> Bool
+
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?

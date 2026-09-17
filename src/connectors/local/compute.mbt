@@ -30,8 +30,9 @@ pub fn local_fixed_compute_candidate(
 
 ///|
 /// Initial managed Local candidate. It reuses the installed checked sequence
-/// and accepts only the CID-free managed profile; identity establishment is a
-/// separate registered reference capability in this milestone.
+/// and accepts the finite select/filter/derive/sort/take surface under the
+/// CID-free managed profile. Identity establishment is a separate registered
+/// reference capability in this milestone.
 pub fn[T] local_managed_fixed_compute_candidate(
   registration : @connector.CapabilityRegistration,
   request : @connector.ManagedFixedComputeRequest[T],
@@ -43,7 +44,7 @@ pub fn[T] local_managed_fixed_compute_candidate(
   @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
   @connector.FixedComputeIssue,
 ] {
-  if !@execution.generated_sequence_is_projection_only(sequence) {
+  if !local_managed_sequence_supported(sequence) {
     return Err(UnsupportedInputShape)
   }
   if @execution.managed_obligations_require_logical_identity(
@@ -65,6 +66,25 @@ pub fn[T] local_managed_fixed_compute_candidate(
   @connector.bind_managed_compute_candidate(
     registration, request, sequence, 5, estimates, quantities, max_entries,
   )
+}
+
+///|
+/// Finite Local capability over common checked row kernels. Adding a new
+/// lowering or evaluator body cannot broaden Local selection implicitly.
+pub fn local_managed_sequence_supported(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  @execution.generated_sequence_all_row_kernels(sequence, fn(body) {
+    match body {
+      SnapshotMap(_)
+      | OrderedBindings(_)
+      | Filter(_)
+      | Select(_)
+      | Limit(_, _, _)
+      | StableSort(_) => true
+      DistinctRows | DedupeRows | CountGroups(_) => false
+    }
+  })
 }
 
 ///|
