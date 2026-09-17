@@ -35,6 +35,7 @@ pub enum Payload {
   Dedupe(@relation.CheckedOperation)
   Sort(@relation.CheckedOperation)
   CountGroup(@relation.CheckedOperation)
+  AssertRows(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
   AppendRows(@append.CheckedAppend)
 }
@@ -138,6 +139,12 @@ pub fn operation(value : PreparedNode) -> String {
     Dedupe(_) => "REL.dedupeRows"
     Sort(_) => "REL.orderByStable"
     CountGroup(_) => "REL.groupBy"
+    AssertRows(op) =>
+      match @relation.row_operation(op) {
+        Some(@relation.AssertWhere) => "REL.assert_all"
+        Some(@relation.AssertUnique(_)) => "REL.assert_unique"
+        _ => "REL.assert_all"
+      }
     InnerJoin(_) => "REL.join"
     AppendRows(_) => "REL.unionAll"
   }
@@ -157,9 +164,9 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         DedupeRows => Some(Dedupe(v))
         Sort => Some(Sort(v))
         Group => Some(CountGroup(v))
+        AssertRows => Some(AssertRows(v))
         JsonPick
         | Unnest
-        | AssertRows
         | Unpivot
         | Pivot
         | Analytic
@@ -274,6 +281,7 @@ pub fn prepare(
       Dedupe(_) => ("dedupe", 1)
       Sort(_) => ("sort", 1)
       CountGroup(_) => ("group", 1)
+      AssertRows(_) => ("assert", 1)
       InnerJoin(_) => ("join", 2)
       AppendRows(_) => ("append", 2)
     }
@@ -336,6 +344,7 @@ pub fn prepare(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_) => None
+      AssertRows(_) => None
       AppendRows(_) => None
     }
     let order_id = if payload is Limit(_) &&

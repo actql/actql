@@ -86,8 +86,9 @@ pub fn emit_fragment_request(
           has_null = true
         }
       }
-    Filter(_) => ()
+    Filter(_) | AssertAll(_) => ()
     Select(_)
+    | AssertUnique(_)
     | Limit(_, _, _)
     | DistinctRows
     | DedupeRows
@@ -108,6 +109,8 @@ pub fn emit_fragment_request(
           }
         }
       Filter(_)
+      | AssertAll(_)
+      | AssertUnique(_)
       | Select(_)
       | Limit(_, _, _)
       | DistinctRows

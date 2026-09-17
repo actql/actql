@@ -60,6 +60,8 @@ pub fn emit_kernel_node(
     match kernel.body {
       SnapshotMap(_) => "REL.derive"
       Filter(_) => "REL.where"
+      AssertAll(_) => "REL.assert_all"
+      AssertUnique(_) => "REL.assert_unique"
       Select(_) => "REL.select"
       Limit(_, _, _) => "REL.limit"
       DistinctRows => "REL.distinct"
@@ -132,6 +134,18 @@ pub fn emit_kernel_node(
     Filter(expr) => {
       @encode.key(out, "expr")
       emit_expression(expr, out)
+    }
+    AssertAll(expr) => {
+      @encode.key(out, "expr")
+      emit_expression(expr, out)
+    }
+    AssertUnique(keys) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for field in keys {
+        @encode.string_value(out, @schema.reference_name(field))
+      }
+      @encode.end_array(out)
     }
     Limit(count, offset, _) => {
       @encode.key(out, "count")

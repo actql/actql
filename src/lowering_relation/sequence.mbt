@@ -119,7 +119,8 @@ pub fn prepare_sequence(
       | Distinct(_)
       | Dedupe(_)
       | Sort(_)
-      | CountGroup(_) => {
+      | CountGroup(_)
+      | AssertRows(_) => {
         let (kernel, remaining, used_names, used_bindings) = match
           prepare_kernel_measured(
             owner,

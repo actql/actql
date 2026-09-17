@@ -76,11 +76,27 @@ fn attach_fragment_budgets(
         match body {
           @lower.SnapshotMap(_)
           | @lower.Filter(_)
+          | @lower.AssertAll(_)
           | @lower.OrderedBindings(_) =>
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
           @lower.Select(_) => ()
+          @lower.AssertUnique(keys) => {
+            let schema = @lower.kernel_input_schema(kernel)
+            for name in keys {
+              if !spend_control(control, 1) ||
+                !spend_control_text(control, @schema.reference_name(name)) {
+                return Err(InputLimit)
+              }
+              guard @schema.lookup(schema, name) is Some(contract) else {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
+              if !supported_comparison(contract, contract) {
+                return Err(UnsupportedRowComparison(i, name))
+              }
+            }
+          }
           @lower.CountGroups(group) => {
             let schema = @lower.count_group_input_schema(group)
             for j in 0..<@lower.count_group_key_count(group) {

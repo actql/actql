@@ -119,12 +119,13 @@ pub fn prepare_kernel_roots(
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
+        | AssertUnique(_)
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
         | StableSort(_)
         | CountGroups(_) => return Err(NotExpressionKernel)
-        Filter(_) | SnapshotMap(_) | OrderedBindings(_) => ()
+        Filter(_) | AssertAll(_) | SnapshotMap(_) | OrderedBindings(_) => ()
       }
   }
   prepare_root_range(sequence, step_index, step_index + 1, limits)
@@ -155,12 +156,13 @@ fn prepare_root_range(
       RowStep(kernel) =>
         match kernel.body {
           Select(_)
+          | AssertUnique(_)
           | Limit(_, _, _)
           | DistinctRows
           | DedupeRows
           | StableSort(_)
           | CountGroups(_) => continue
-          Filter(expr) => {
+          Filter(expr) | AssertAll(expr) => {
             if sorted.length() == limits.max_roots || bytes < 5 || work < 6 {
               return Err(RootLimit)
             }

@@ -70,6 +70,72 @@ fn row_output() -> ValueBudget {
 }
 
 ///|
+test "row assertions preserve exact rows and fail atomically" {
+  let owner = row_owner(
+    ",{\"assert_rows\":{\"where\":\"a >= 0\"}},{\"assert_rows\":{\"unique_by\":[\"a\"]}}",
+  )
+  let input = row_capture(owner)
+  let asserted = evaluate_rows(
+    row_kernel(owner, 1),
+    input,
+    2,
+    { remaining: 10000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(asserted.names, ["a", "b"])
+  assert_true(asserted.rows[0][0] is Number(1.0))
+  assert_true(asserted.rows[1][0] is Number(0.0))
+  let unique = evaluate_rows(
+    row_kernel(owner, 2),
+    asserted,
+    2,
+    { remaining: 10000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(unique.rows.length(), 2)
+
+  let predicate_failure = row_owner(",{\"assert_rows\":{\"where\":\"a > 0\"}}")
+  assert_true(
+    evaluate_rows(
+      row_kernel(predicate_failure, 1),
+      row_capture(predicate_failure),
+      2,
+      { remaining: 10000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(AssertionPredicate(1)),
+  )
+
+  let duplicate = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"a\":1},{\"a\":1}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"a\"]}}]",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(duplicate, 1),
+      row_capture(duplicate),
+      2,
+      { remaining: 10000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(AssertionDuplicate(0, 1)),
+  )
+
+  let nullable = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"a\":null}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"a\"]}}]",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(nullable, 1),
+      row_capture(nullable),
+      1,
+      { remaining: 10000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(AssertionNullKey(0, 0)),
+  )
+}
+
+///|
 test "capture conversion admits both layouts before copying and spends shared work" {
   let owner = row_owner("")
   let input = capture_values(owner, 0, max_rows=2, {

@@ -82,6 +82,8 @@ pub fn local_managed_sequence_supported(
           SnapshotMap(_)
           | OrderedBindings(_)
           | Filter(_)
+          | AssertAll(_)
+          | AssertUnique(_)
           | Select(_)
           | Limit(_, _, _)
           | StableSort(_)

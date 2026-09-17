@@ -14,6 +14,8 @@ pub enum KernelBody {
   SnapshotMap(Array[(String, Expression)])
   OrderedBindings(Array[(String, Expression)])
   Filter(Expression)
+  AssertAll(Expression)
+  AssertUnique(Array[@schema.FieldName])
   Select(Array[@relation.ProjectionField])
   Limit(Int64, Int64, @pipeline.LogicalOrder)
   DistinctRows
@@ -72,6 +74,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     SnapshotMap(_)
     | OrderedBindings(_)
     | Filter(_)
+    | AssertAll(_)
+    | AssertUnique(_)
     | Select(_)
     | DistinctRows
     | DedupeRows
@@ -90,6 +94,8 @@ pub fn ordered_binding_at(
     OrderedBindings(bindings) => bindings.get(index)
     SnapshotMap(_)
     | Filter(_)
+    | AssertAll(_)
+    | AssertUnique(_)
     | Select(_)
     | Limit(_, _, _)
     | DistinctRows
@@ -105,6 +111,8 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     SnapshotMap(bindings) => SnapshotMap(bindings.copy())
     OrderedBindings(bindings) => OrderedBindings(bindings.copy())
     Filter(expr) => Filter(expr)
+    AssertAll(expr) => AssertAll(expr)
+    AssertUnique(keys) => AssertUnique(keys.copy())
     Select(fields) => Select(fields.copy())
     Limit(count, offset, order) => Limit(count, offset, order)
     DistinctRows => DistinctRows
@@ -120,7 +128,9 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
   match kernel.body {
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Select(fields) => fields.length()
+    AssertUnique(keys) => keys.length()
     Filter(_)
+    | AssertAll(_)
     | Limit(_, _, _)
     | DistinctRows
     | DedupeRows
@@ -174,7 +184,8 @@ fn prepare_kernel_measured(
     | Distinct(op)
     | Dedupe(op)
     | Sort(op)
-    | CountGroup(op) => op
+    | CountGroup(op)
+    | AssertRows(op) => op
     Values(_) | InnerJoin(_) | AppendRows(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
@@ -266,6 +277,52 @@ fn prepare_kernel_measured(
         DistinctRows
       }
     }
+    RowOperation if @relation.operation(checked) == @relation.AssertRows =>
+      match @relation.row_operation(checked) {
+        Some(@relation.AssertWhere) => {
+          if max_bindings < 1 {
+            return Err(KernelBudgetExceeded)
+          }
+          let (expr, usage) = match
+            lower_expression_measured(owner, step_index, 0, remaining) {
+            Ok(pair) => pair
+            Err(e) => return Err(ExpressionFailure(e))
+          }
+          remaining = {
+            ..remaining,
+            max_nodes: remaining.max_nodes - usage.nodes,
+            max_work: remaining.max_work - usage.work,
+            max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+            max_literal_text_bytes: remaining.max_literal_text_bytes -
+            usage.literal_bytes,
+          }
+          AssertAll(expr)
+        }
+        Some(@relation.AssertUnique(keys)) => {
+          if keys.length() > max_bindings || keys.length() > remaining.max_work {
+            return Err(KernelBudgetExceeded)
+          }
+          let fields : Array[@schema.FieldName] = []
+          for key in keys {
+            let name = @schema.reference_name(key.field)
+            if name.length() > names_remaining {
+              return Err(KernelBudgetExceeded)
+            }
+            let size = @utf8.encode(name).length()
+            if size > names_remaining {
+              return Err(KernelBudgetExceeded)
+            }
+            names_remaining -= size
+            fields.push(key.field)
+          }
+          remaining = {
+            ..remaining,
+            max_work: remaining.max_work - fields.length(),
+          }
+          AssertUnique(fields)
+        }
+        _ => return Err(InvalidKernelWiring)
+      }
     RowOperation if @relation.operation(checked) == @relation.Sort => {
       let authored = @relation.sort_term_count(checked)
       let resolution = if authored == 0 {
@@ -438,7 +495,8 @@ fn prepare_kernel_measured(
   let binding_count = match body {
     CountGroups(group) => group.keys.length() + group.counts.length()
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
-    Filter(_) => 1
+    Filter(_) | AssertAll(_) => 1
+    AssertUnique(keys) => keys.length()
     Select(fields) => fields.length()
     Limit(_, _, _) =>
       take_completion(owner.prepared.owner, step_index)

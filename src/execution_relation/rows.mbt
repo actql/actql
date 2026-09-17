@@ -21,6 +21,9 @@ pub(all) enum RowIssue {
   Comparison(ScalarIssue)
   DedupeTopTie(Int, Int)
   DedupeIdentityCollision
+  AssertionPredicate(Int)
+  AssertionNullKey(Int, Int)
+  AssertionDuplicate(Int, Int)
   JoinNullKey(Bool, Int, Int)
   JoinDuplicateKey(Bool, Int, Int)
 }
@@ -124,6 +127,8 @@ priv enum RowBodyView {
   SnapshotMap(Array[(String, @lower.Expression)])
   OrderedBindings(Array[(String, @lower.Expression)])
   Filter(@lower.Expression)
+  AssertAll(@lower.Expression)
+  AssertUnique(Array[@schema.FieldName])
   Select(Array[@relation.ProjectionField])
 }
 
@@ -390,6 +395,8 @@ fn[T : RelationRows] evaluate_row_body_impl(
       match @lower.kernel_body(kernel) {
         @lower.SnapshotMap(bindings) => SnapshotMap(bindings)
         @lower.Filter(expr) => Filter(expr)
+        @lower.AssertAll(expr) => AssertAll(expr)
+        @lower.AssertUnique(keys) => AssertUnique(keys)
         @lower.Select(fields) => Select(fields)
         @lower.Limit(_, _, _) => return Err(InvalidRows)
         @lower.DistinctRows => return Err(InvalidRows)
@@ -438,7 +445,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         output_names.push(@schema.reference_name(field.output))
         projection.push(index)
       }
-    Filter(_) =>
+    Filter(_) | AssertAll(_) | AssertUnique(_) =>
       for name in input_names {
         if !spend_control(control, 1) {
           return Err(RowLimit)
@@ -473,6 +480,12 @@ fn[T : RelationRows] evaluate_row_body_impl(
         }
         output_names.push(name)
       }
+    }
+  }
+  if kind is AssertUnique(keys) {
+    match validate_unique_rows(input, keys, ordinals, control, workspace) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
   }
   // Complete input admission precedes all binding evaluation and shadowing.
@@ -579,6 +592,38 @@ fn[T : RelationRows] evaluate_row_body_impl(
           Number(_) | Text(_) | Captured(_) => return Err(InvalidRows)
         }
       }
+      AssertAll(expr) => {
+        let value = match
+          evaluate_expression_with_workspace(
+            expr,
+            snapshot,
+            [],
+            control,
+            workspace,
+            logical_work=scope.map(s => s.budget),
+          ) {
+          Ok(v) => v
+          Err(e) => return Err(Evaluation(row_index, 0, e))
+        }
+        match value {
+          Boolean(true) => ()
+          Boolean(false) | Null | Number(_) | Text(_) | Captured(_) =>
+            return Err(AssertionPredicate(row_index))
+        }
+        for i = 0; i < RowValues::value_count(source); i = i + 1 {
+          if !spend_control(control, 1) || !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
+          row.push(RowValues::value_at(source, i))
+        }
+      }
+      AssertUnique(_) =>
+        for i = 0; i < RowValues::value_count(source); i = i + 1 {
+          if !spend_control(control, 1) || !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
+          row.push(RowValues::value_at(source, i))
+        }
       SnapshotMap(bindings) => {
         for i = 0; i < RowValues::value_count(source); i = i + 1 {
           if !spend_control(control, 1) {

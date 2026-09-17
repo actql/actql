@@ -187,3 +187,43 @@ test "predicate kernel carries its typed expression without testing it at loweri
     is @lowering_relation.Binary(@lowering_relation.Greater, _, _),
   )
 }
+
+///|
+test "assertion kernels preserve checked predicate and authored unique tuple" {
+  let owner = expression_pipeline(
+    ",{\"assert_rows\":{\"where\":\"id > 0\"}},{\"assert_rows\":{\"unique_by\":[\"id\"]}}",
+  )
+  let predicate = @lowering_relation.prepare_kernel(
+    owner,
+    1,
+    max_bindings=1,
+    max_name_bytes=0,
+    expression_limits(),
+  ).unwrap()
+  guard @lowering_relation.kernel_body(predicate)
+    is @lowering_relation.AssertAll(expr) else {
+    fail("assert all")
+  }
+  assert_true(
+    @lowering_relation.expression_body(expr)
+    is @lowering_relation.Binary(@lowering_relation.Greater, _, _),
+  )
+  let unique = @lowering_relation.prepare_kernel(
+    owner,
+    2,
+    max_bindings=1,
+    max_name_bytes=2,
+    expression_limits(),
+  ).unwrap()
+  guard @lowering_relation.kernel_body(unique)
+    is @lowering_relation.AssertUnique(keys) else {
+    fail("assert unique")
+  }
+  assert_eq(keys, [@schema.Unqualified("id")])
+  keys.clear()
+  guard @lowering_relation.kernel_body(unique)
+    is @lowering_relation.AssertUnique(again) else {
+    fail("assert unique")
+  }
+  assert_eq(again.length(), 1)
+}

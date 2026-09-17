@@ -91,7 +91,9 @@ fn emit_fragment_pipeline(
       match kernel.body {
         SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
+        AssertAll(_) => "REL.assert_all"
         Select(_)
+        | AssertUnique(_)
         | Limit(_, _, _)
         | DistinctRows
         | DedupeRows
@@ -128,7 +130,12 @@ fn emit_fragment_pipeline(
         @encode.key(out, "expr")
         emit_expression_source(expression, out)
       }
+      AssertAll(expression) => {
+        @encode.key(out, "expr")
+        emit_expression_source(expression, out)
+      }
       Select(_)
+      | AssertUnique(_)
       | Limit(_, _, _)
       | DistinctRows
       | DedupeRows

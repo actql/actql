@@ -77,6 +77,8 @@ fn prepare_ordered_budgets(
             }
           @lower.SnapshotMap(_)
           | @lower.Filter(_)
+          | @lower.AssertAll(_)
+          | @lower.AssertUnique(_)
           | @lower.Select(_)
           | @lower.Limit(_, _, _)
           | @lower.DistinctRows

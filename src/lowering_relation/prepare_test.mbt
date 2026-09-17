@@ -148,17 +148,16 @@ test "preparation budgets enforce exact boundaries" {
 }
 
 ///|
-/// Implementation coverage test, not a language rejection requirement.
-test "unimplemented later operation never returns a partial preparation" {
+test "assertion preparation remains atomic with a preceding projection" {
   let p = checked(
     ",{\"select\":[\"id\"]},{\"assert_rows\":{\"where\":\"id > 0\"}}",
   )
-  guard @lowering_relation.prepare(p, limits()) is Err(issue) else {
-    fail("assert_rows has no lowering handler yet")
-  }
-  assert_eq(issue.kind, @lowering_relation.OperationNotImplemented)
+  let prepared = @lowering_relation.prepare(p, limits()).unwrap()
+  assert_eq(@lowering_relation.node_count(prepared), 3)
   assert_eq(
-    @decode.cursor_span(issue.source),
-    @decode.cursor_span(@pipeline.step_at(p, 2).unwrap().source),
+    @lowering_relation.operation(
+      @lowering_relation.node_at(prepared, 2).unwrap(),
+    ),
+    "REL.assert_all",
   )
 }
