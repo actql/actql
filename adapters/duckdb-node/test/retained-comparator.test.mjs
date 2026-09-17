@@ -80,6 +80,39 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
         hash(evidence.records[1]));
       assert.equal(evidence.observation.coverage.select_evidence_cid,
         hash(evidence.records[2]));
+      const inputRows = report.tasks.flatMap(task => task.phases.inputs)
+        .reduce((sum, input) => sum + input.validationRows, 0);
+      const inputCells = report.tasks.flatMap(task => task.phases.inputs)
+        .reduce((sum, input) => sum + input.validationCells, 0);
+      const outputRows = report.completionDescriptors.reduce(
+        (sum, value) => sum + value.rows, 0);
+      const outputCells = report.completionDescriptors.reduce(
+        (sum, value) => sum + value.rows * value.columns, 0);
+      const receiptRows = evidence.receipts.reduce(
+        (sum, value) => sum + value.received_rows, 0);
+      const receiptCells = evidence.receipts.reduce(
+        (sum, value) => sum + value.received_rows * value.received_fields.length,
+        0,
+      );
+      assert.equal(report.accounting.nativeSemanticRows,
+        receiptRows + inputRows + outputRows);
+      assert.equal(report.accounting.nativeSemanticCells,
+        receiptCells + inputCells + outputCells);
+      assert.equal(report.accounting.jsMaterializedCells,
+        report.accounting.nativeSemanticCells);
+      assert.equal(report.accounting.identityPasses,
+        report.tasks.length + 2);
+      assert.equal(report.accounting.identityPreimageBytes,
+        evidence.receipts.reduce((sum, value) => sum + value.received_bytes, 0) +
+        report.completionDescriptors.reduce((sum, value) => sum + value.bytes, 0));
+      assert.equal(report.accounting.retainedStoreBytes,
+        evidence.receipts[1].received_bytes +
+        report.completionDescriptors.reduce((sum, value) => sum + value.bytes, 0));
+      assert.equal(report.accounting.logicalCidPasses, 0);
+      assert.equal(report.accounting.physicalIntegrityPasses,
+        report.tasks.flatMap(task => task.phases.inputs).length);
+      assert.equal(report.accounting.nativeFileReads,
+        report.tasks.flatMap(task => task.phases.inputs).length);
       assert(report.tasks.every(task => task.phases.inputs.every(input =>
         input.representation === 'verified-file-native-read' && input.parameterInsertRows === 0)));
       for (const input of report.tasks.flatMap(task => task.phases.inputs)) {

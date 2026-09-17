@@ -66,6 +66,32 @@ function normalize(label, value, cycleMs) {
   });
 }
 
+const accountingDomains = Object.freeze([
+  'nativeSemanticRows',
+  'nativeSemanticCells',
+  'nativeSemanticBytes',
+  'jsMaterializedCells',
+  'identityPasses',
+  'identityPreimageBytes',
+  'retainedStoreBytes',
+]);
+
+function compareAccounting(retained, equivalent) {
+  const product = retained.report?.accounting;
+  const direct = equivalent.report?.accounting;
+  assert(product && direct, 'CompletedPairWithoutAccounting');
+  return Object.freeze(Object.fromEntries(accountingDomains.map(key => {
+    assert(Number.isSafeInteger(product[key]) && product[key] >= 0 &&
+      Number.isSafeInteger(direct[key]) && direct[key] >= 0,
+    `InvalidAccountingDomain:${key}`);
+    return [key, Object.freeze({
+      retained: product[key],
+      equivalent: direct[key],
+      difference: product[key] - direct[key],
+    })];
+  })));
+}
+
 async function defaultRunChild(label, arguments_, timeoutMs, script) {
   const started = performance.now();
   try {
@@ -183,6 +209,9 @@ export async function runMatchedEquivalentPair({
       cleanupBoundary: 'leg-owned confirmed release interval',
     }),
     status: completed ? 'diagnostic-completed' : 'failed',
+    accountingComparison: completed
+      ? compareAccounting(retained, equivalent)
+      : undefined,
     acceptanceEligible: completed && equivalent.acceptanceEligible === true &&
       retained.acceptanceEligible === true,
     closed,

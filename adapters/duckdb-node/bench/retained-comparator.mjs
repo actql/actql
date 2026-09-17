@@ -66,8 +66,56 @@ export async function runRetainedComparator(fixture, contracts, database, direct
     assert.equal(descriptor.rows, expected.rows);
     assert.equal(result.report.completed.length, config.finalTask);
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
+    const descriptors = result.report.completed.map(({task}) => {
+      const value = result.completion(task)?.descriptor;
+      assert(value, 'MissingComparatorCompletionDescriptor');
+      return value;
+    });
     const warmMs = result.report.completed.reduce((sum, task) =>
       sum + warmTaskMilliseconds(task), 0);
+    const semanticKeys = ['nativeSemanticRows', 'nativeSemanticCells',
+      'nativeSemanticBytes', 'jsMaterializedCells'];
+    const acquisition = result.report.acquisition_diagnostics;
+    assert(acquisition && semanticKeys.every(key =>
+      Number.isSafeInteger(acquisition[key]) && acquisition[key] >= 0));
+    const compute = result.report.completed.map(task => task.phases);
+    assert(compute.every(value => value && semanticKeys.every(key =>
+      Number.isSafeInteger(value[key]) && value[key] >= 0)));
+    const sum = key => acquisition[key] + compute.reduce((total, value) =>
+      total + value[key], 0);
+    const receiptBytes = result.report.acquisition_evidence.receipts.reduce(
+      (total, receipt) => total + receipt.received_bytes,
+      0,
+    );
+    const outputBytes = descriptors.reduce((total, value) =>
+      total + value.bytes, 0);
+    const inputs = result.report.completed.flatMap(task =>
+      task.phases.inputs ?? []);
+    const accounting = Object.freeze({
+      nativeSemanticRows: sum('nativeSemanticRows'),
+      nativeSemanticCells: sum('nativeSemanticCells'),
+      nativeSemanticBytes: sum('nativeSemanticBytes'),
+      jsMaterializedCells: sum('jsMaterializedCells'),
+      identityPasses: 2 + descriptors.length,
+      identityPreimageBytes: receiptBytes + outputBytes,
+      retainedStoreBytes:
+        result.report.acquisition_evidence.receipts[1].received_bytes +
+        outputBytes,
+      logicalCidPasses: inputs.reduce((total, value) =>
+        total + (value.logicalCidPasses ?? 0), 0),
+      physicalIntegrityPasses: inputs.reduce((total, value) =>
+        total + (value.physicalIntegrityPasses ?? 0), 0),
+      nativeFileReads: inputs.reduce((total, value) =>
+        total + (value.nativeFileReads ?? 0), 0),
+      domains: Object.freeze({
+        nativeSemanticBytes:
+          'JSON transport actually supplied to bounded semantic admission',
+        retainedStoreBytes:
+          'canonical row-array bytes written to retained holdings',
+        identity:
+          'canonical row-array preimages actually hashed',
+      }),
+    });
     report = {comparator: 'retained-actql', scope: 'managed-host-cycle-diagnostic',
       caseId: fixture.id, executionMs: elapsed, expectedRowsCid: expected.rowsCid,
       warmMs,
@@ -76,6 +124,8 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
       sourceDefinitionHash: hash(fixture.createSourceSql),
       acquisitionEvidence: result.report.acquisition_evidence,
+      accounting,
+      completionDescriptors: descriptors,
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,
       explanation: result.report.explanation,

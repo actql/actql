@@ -18,6 +18,15 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
   try {
     for (const index of [0, 1]) {
       const calls = [];
+      const accounting = {
+        nativeSemanticRows: 10,
+        nativeSemanticCells: 20,
+        nativeSemanticBytes: 30,
+        jsMaterializedCells: 20,
+        identityPasses: 4,
+        identityPreimageBytes: 40,
+        retainedStoreBytes: 20,
+      };
       const runChild = async (label, arguments_, timeoutMs, script) => {
         calls.push({label, arguments_, timeoutMs, script});
         if (label === 'retained-actql') {
@@ -34,6 +43,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
               executionMs: 10,
               warmMs: 7,
               cleanupMs: 1,
+              accounting,
             },
           });
         }
@@ -50,6 +60,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
             executionMs: 8,
             warmMs: 5,
             cleanupMs: 1,
+            accounting: {...accounting, nativeSemanticRows: 8},
             missing: [
               'matched process/cold timing boundaries',
               'guard parity',
@@ -89,6 +100,10 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       ]);
       assert(report.missing.includes('equivalent-obligation admission'));
       assert.equal(report.provenance.processBoundary, 'fresh child per leg');
+      assert.deepEqual(report.accountingComparison.nativeSemanticRows,
+        {retained: 10, equivalent: 8, difference: 2});
+      assert.deepEqual(report.accountingComparison.identityPasses,
+        {retained: 4, equivalent: 4, difference: 0});
     }
   } finally {
     await rm(directory, {recursive: true, force: true});

@@ -412,6 +412,12 @@ async function runHostCompute(
   let began = false;
   let retainedInputBytes = 0;
   let directInputBytes = 0;
+  const semantic = {
+    nativeSemanticRows: 0,
+    nativeSemanticCells: 0,
+    nativeSemanticBytes: 0,
+    jsMaterializedCells: 0,
+  };
   const retainedCleanup = Object.freeze({
     status: () => ({ pending: (store?.status().cleanupPending ?? false) || (disposed && cleanupRun !== undefined) }),
     retry: async () => {
@@ -489,8 +495,13 @@ async function runHostCompute(
         const fields = await session.command(sql._1, [], chunk => {
           signal?.throwIfAborted();
           begin(chunk.fields);
+          const text = JSON.stringify(chunk.columns);
+          semantic.nativeSemanticRows += chunk.rowCount;
+          semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
+          semantic.nativeSemanticBytes += Buffer.byteLength(text);
+          semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
           checked(moon.computeHostInputPhysicalAccept(run, port, physical,
-            rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+            rows(chunk.rowCount), text));
           validationRows += chunk.rowCount;
           validationCells += chunk.rowCount * chunk.fields.length;
         });
@@ -522,8 +533,13 @@ async function runHostCompute(
       const fields = await session.command(sql, [], chunk => {
         signal?.throwIfAborted();
         begin(chunk.fields);
+        const text = JSON.stringify(chunk.columns);
+        semantic.nativeSemanticRows += chunk.rowCount;
+        semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
+        semantic.nativeSemanticBytes += Buffer.byteLength(text);
+        semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
         checked(moon.computeHostInputPhysicalAccept(run, port, physical,
-          rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+          rows(chunk.rowCount), text));
       });
       begin(fields);
       signal?.throwIfAborted();
@@ -577,9 +593,14 @@ async function runHostCompute(
   });
   consume = async chunk => {
     begin(chunk.fields);
+    const text = JSON.stringify(chunk.columns);
+    semantic.nativeSemanticRows += chunk.rowCount;
+    semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
+    semantic.nativeSemanticBytes += Buffer.byteLength(text);
+    semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
     if (managed) {
       checked(moon.managedOutputAccept(
-        managedOutput, rows(chunk.rowCount), JSON.stringify(chunk.columns),
+        managedOutput, rows(chunk.rowCount), text,
       ));
       const storedFields = managedStorageOrder.map(index => chunk.fields[index]);
       const storedColumns = managedStorageOrder.map(index => chunk.columns[index]);
@@ -591,10 +612,10 @@ async function runHostCompute(
       return;
     }
     if (!retained) {
-      checked(moon.computeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+      checked(moon.computeHostAccept(run, rows(chunk.rowCount), text));
       return;
     }
-    checked(moon.computeHostStreamAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+    checked(moon.computeHostStreamAccept(run, rows(chunk.rowCount), text));
     let parts = [], bufferedBytes = 0;
     const flush = async () => {
       if (!parts.length) return;
@@ -697,7 +718,10 @@ async function runHostCompute(
       }),
       importedRows: result.value.importedRows,
       importedCells: result.value.importedCells,
-      diagnostics: result.value.diagnostics,
+      diagnostics: Object.freeze({
+        ...result.value.diagnostics,
+        ...semantic,
+      }),
       storageUsage: () => store?.status(),
       cleanupHandle: retained ? retainedCleanup : undefined,
       completed: managed ? output : undefined,
@@ -840,6 +864,12 @@ export async function runRetainedStrategyNativeHostQuery(grant, setup, ledger, l
 async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained, outputKey) {
   const moon = await loadRuntime();
   limits = Object.freeze({ ...limits });
+  const semantic = {
+    nativeSemanticRows: 0,
+    nativeSemanticCells: 0,
+    nativeSemanticBytes: 0,
+    jsMaterializedCells: 0,
+  };
   const capacity = ledger === undefined ? undefined : Object.freeze({
     ...computePhysicalCapacity(limits),
     retentionBytes: checked((retained ? moon.nativeRetainedHostCapacity : moon.nativeHostCapacity)(setup, true)) + BigInt(retained?.wire.max_bytes ?? 0),
@@ -910,7 +940,12 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       },
       async acceptChunk(role, chunk, current) {
         owns(current);
-        checked(moon.nativeHostAccept(run, rows(chunk.rowCount), JSON.stringify(chunk.columns)));
+        const text = JSON.stringify(chunk.columns);
+        semantic.nativeSemanticRows += chunk.rowCount;
+        semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
+        semantic.nativeSemanticBytes += Buffer.byteLength(text);
+        semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
+        checked(moon.nativeHostAccept(run, rows(chunk.rowCount), text));
         if (retained && role === 'native_result') {
           let parts = [], bytes = 0;
           const flush = async () => {
@@ -1023,7 +1058,10 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
   return Object.freeze({
     observation: captured.observation,
     usage: captured.usage,
-    diagnostics: captured.diagnostics,
+    diagnostics: Object.freeze({
+      ...captured.diagnostics,
+      ...semantic,
+    }),
     physicalCapacity: capacity === undefined ? undefined : Object.freeze({
       ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
     }),

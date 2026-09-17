@@ -97,9 +97,13 @@ passes and retained bytes from every small workload/layout fixture.
 These counters make repeated materialization and logical charge visible and
 prevent physical control-channel traffic from being mislabeled as logical work.
 They do not yet close transfer/work accounting equivalence: the product leg
-must expose the same semantic domains and pair admission must compare required
-logical charges while allowing implementation-specific control traffic to
-differ.
+now exposes the same physical semantic-transfer, materialized-cell, identity
+preimage and retained-byte domains. Its counters cover the two acquisition
+receipts, every direct-input validation scan, and every retained Compute output;
+they are derived from the exact bounded payloads supplied to MoonBit and the
+control-side completion descriptors. Pair admission must still compare required
+logical guard and comparison charges while allowing implementation-specific
+physical work and control traffic to differ.
 
 The product retained leg now also exports the canonical evidence material owned
 by its actual acquisition capture: the validation-scan and native-result
@@ -172,6 +176,14 @@ validation/reuse, query, output admission and independent holding. The pair
 records a non-overlapping cold interval as the parent child-cycle minus that
 child's separately measured cleanup interval; it never sums overlapping timers.
 Pair order alternates by the explicit pair index.
+
+Each completed diagnostic pair also records a side-by-side comparison of the
+seven common physical accounting domains: semantic rows, cells and transport
+bytes entering bounded admission, JavaScript-materialized cells, identity
+passes and preimage bytes, and retained Store bytes. These are observations,
+not equality requirements: eliminating repeated product work is expected to
+make some physical counts differ. Logical guard and comparison charges remain
+separate and are still required for equivalence admission.
 
 This closes the assembly ambiguity around source mutation, process placement,
 clock ownership, warm scope and alternating order. It does **not** close
