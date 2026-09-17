@@ -646,6 +646,7 @@ pub fn strategy_fixture_managed_execution_start(
   f : StrategyFixture,
   task : Int,
   request : @connector.ManagedFixedComputeRequest[Int],
+  profile : @execution.ManagedExecutionProfile,
 ) -> @strategy.TaskExecution {
   let prepared = strategy_fixture_managed_candidate(f, request)
   guard @connector.choose_managed_fixed_compute_candidate(
@@ -658,46 +659,61 @@ pub fn strategy_fixture_managed_execution_start(
     is Proposed(choice) else {
     abort("managed choice")
   }
-  let inputs = @connector.managed_fixed_compute_request_inputs(request)
-  let selected = @connector.bind_prepared_managed_execution(
+  let query = @connector.managed_fixed_compute_choice_payload(choice, prepared).unwrap()
+  let generated = fixture_generated(
+    @duckdb.fixed_query_owner(@duckdb.managed_fixed_query_query(query)),
+    f.registry_json,
+    f.values_json,
+    f.fragment_json,
+    true,
+  ) catch {
+    _ => abort("managed completion fixture")
+  }
+  let configured = @duckdb_driver.configure_managed_strategy_compute_host(
+    f.run.unwrap(),
+    task,
     choice,
     prepared,
+    @execution.generated_completion_preparation(generated),
+    profile,
     {
-      transfer_bytes: 0L,
-      retained_bytes: 0L,
-      scratch_bytes: 0L,
-      execution_bytes: 0L,
+      values: issued_native_measure_limits(),
+      demand: issued_native_measure_limits(),
+      physical: {
+        max_rows: 100,
+        max_cells: 1000,
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+      },
+      retention: {
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_depth: 100,
+        max_work: 100000,
+      },
+      metadata_work: 10000,
+      completion_entries: 100,
+      completion_name_bytes: 10000,
     },
-    [],
-    query => {
-      let cancelled = Ref(false)
-      let disposed = Ref(false)
-      Ok(
-        (
-          query,
-          {
-            cancel: fn() { cancelled.val = true },
-            dispose: fn() { disposed.val = true },
-            settled: fn() { () },
-            retention_released: fn() { disposed.val },
-            released: fn() { () },
-            ready: fn() {
-              if cancelled.val || disposed.val {
-                return Err(@strategy.RunIssue::Stopped)
-              }
-              for input in inputs {
-                if !@execution.managed_producer_read_available(input) {
-                  return Err(@strategy.RunIssue::MissingOutput)
-                }
-              }
-              Ok(())
-            },
-          },
-        ),
-      )
+    {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_columns: 10,
+      max_rows: 100,
+      max_text_bytes: 100000,
     },
+    0L,
+    0,
   ).unwrap()
-  @strategy.start_captured_managed_execution(f.run.unwrap(), task, selected).unwrap().1
+  @duckdb_driver.start_configured_managed_strategy_compute_host(
+    configured,
+    0L,
+    1L,
+    fn() { true },
+    fn(_) { true },
+    fn() { true },
+  ).unwrap()
+  |> @duckdb_driver.captured_managed_duckdb_execution
 }
 
 ///|

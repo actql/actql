@@ -72,8 +72,10 @@ real regression selects that candidate through the registered DuckDB
 capability before inspecting its SQL.
 
 `PreparedManagedExecution` then carries the selected private payload and common
-physical envelope into `start_captured_managed_execution`. Its lifecycle has
-cancel, settle, dispose, release and ready checks, but deliberately has no
+physical envelope into `start_captured_managed_execution`. DuckDB driver code,
+rather than a fixture-authored lifecycle closure, owns the exact selected query,
+typed managed completion port, cancellation and settlement state. Its lifecycle
+has cancel, settle, dispose, release and ready checks, but deliberately has no
 legacy `CompletedOutput` finisher or publication callback. The captured DAG
 uses the same reservation and cleanup state machine for both execution
 families, while their success boundaries remain disjoint. A conformance start

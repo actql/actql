@@ -1026,7 +1026,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.match(managedCreateSql, /CREATE TEMP TABLE "managed_input"/);
     assert.match(managedQuerySql, /FROM "main"\."managed_input"/);
     const managedExecution = fixture.strategyFixtureManagedExecutionStart(
-      managedLedgerFixture, 2, managedRequest);
+      managedLedgerFixture, 2, managedRequest, managedProfile);
     assert.equal(fixture.strategyFixtureManagedExecutionSettle(
       managedLedgerFixture, managedExecution), true);
     assert.equal(fixture.strategyFixtureManagedExecutionLegacyComplete(
@@ -1034,8 +1034,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     'a managed execution cannot be completed through the legacy finisher');
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
-    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
-      'managed graph publication settles unused retention reservation');
+    assert.ok(fixture.strategyFixtureUsage(managedLedgerFixture, 5) > 0n,
+      'the selected downstream completion metadata remains reserved until its task closes');
     bridge.managedOutputCancel(managedLedgerOutput);
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), false,
@@ -1048,6 +1048,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, managedExecution);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
       'revocation releases the index but graph ownership keeps the body holding');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
+      'closing the settled downstream task releases its unused managed completion capacity');
     bridge.computeHostClose(managedLedgerRun);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n);
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), 0n);

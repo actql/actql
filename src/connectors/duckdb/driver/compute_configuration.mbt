@@ -178,3 +178,117 @@ pub fn configured_strategy_scratch_capacity(
     )
   }
 }
+
+///|
+/// Trusted application preparation for one selected managed task. The exact
+/// request, query payload and completion owner are already fixed; configuration
+/// performs no Store access or native I/O.
+struct ManagedStrategyComputeHostConfiguration[T] {
+  graph : @strategy.CapturedDAG
+  task : Int
+  choice : @connector.ManagedFixedComputeChoice[T]
+  prepared : @connector.PreparedManagedCompute[T, @duckdb.ManagedFixedQuery[T]]
+  generated : @execution.CompletionPreparation
+  profile : @execution.ManagedExecutionProfile
+  limits : @compute.DuckDBComputeLimits
+  transport : @duckdb.TransportColumnLimits
+  output_file_bytes : Int64
+  max_index_cells : Int
+}
+
+///|
+pub fn[T] configure_managed_strategy_compute_host(
+  graph : @strategy.CapturedDAG,
+  task : Int,
+  choice : @connector.ManagedFixedComputeChoice[T],
+  prepared : @connector.PreparedManagedCompute[T, @duckdb.ManagedFixedQuery[T]],
+  generated : @execution.CompletionPreparation,
+  profile : @execution.ManagedExecutionProfile,
+  limits : @compute.DuckDBComputeLimits,
+  transport : @duckdb.TransportColumnLimits,
+  output_file_bytes : Int64,
+  max_index_cells : Int,
+) -> Result[ManagedStrategyComputeHostConfiguration[T], @strategy.RunIssue] {
+  if output_file_bytes < 0L ||
+    max_index_cells < 0 ||
+    @execution.managed_row_measurement_capacity_bytes(max_index_cells) is None {
+    return Err(Physical(InvalidLimits))
+  }
+  Ok({
+    graph,
+    task,
+    choice,
+    prepared,
+    generated,
+    profile,
+    limits,
+    transport,
+    output_file_bytes,
+    max_index_cells,
+  })
+}
+
+///|
+pub fn[T] configured_managed_strategy_retention_capacity(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> Int64? {
+  guard @compute.duckdb_stream_retention_capacity(setup.limits) is Some(base) &&
+    @execution.managed_row_measurement_capacity_bytes(setup.max_index_cells)
+    is Some(index) &&
+    base <= 9223372036854775807L - setup.output_file_bytes &&
+    base + setup.output_file_bytes <= 9223372036854775807L - index else {
+    return None
+  }
+  Some(base + setup.output_file_bytes + index)
+}
+
+///|
+pub fn[T] configured_managed_strategy_scratch_capacity(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> Int64? {
+  @compute.duckdb_stream_scratch_capacity(setup.limits, setup.transport)
+}
+
+///|
+pub fn[T] configured_managed_strategy_transport(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> @duckdb.TransportColumnLimits {
+  setup.transport
+}
+
+///|
+pub fn[T] start_configured_managed_strategy_compute_host(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+  transfer_bytes : Int64,
+  native_execution_bytes : Int64,
+  authorize : () -> Bool,
+  transport_matches : (@execution.ManagedOutputValueReceipt) -> Bool,
+  retention_released : () -> Bool,
+) -> Result[CapturedManagedDuckDBTask[T], @strategy.RunIssue] {
+  guard configured_managed_strategy_retention_capacity(setup) is Some(retention) &&
+    configured_managed_strategy_scratch_capacity(setup) is Some(scratch) &&
+    transfer_bytes >= 0L &&
+    native_execution_bytes >= 0L &&
+    native_execution_bytes <= 9223372036854775807L - scratch else {
+    return Err(Physical(InvalidLimits))
+  }
+  start_captured_managed_duckdb_task(
+    setup.graph,
+    setup.task,
+    setup.choice,
+    setup.prepared,
+    setup.generated,
+    setup.profile,
+    setup.limits,
+    {
+      transfer_bytes,
+      retained_bytes: retention,
+      scratch_bytes: scratch,
+      execution_bytes: native_execution_bytes + scratch,
+    },
+    [],
+    authorize,
+    transport_matches,
+    retention_released,
+  )
+}
