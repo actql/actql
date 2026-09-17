@@ -90,9 +90,14 @@ pub fn open_captured_dag(
       @lower.bound_preparation(graph.owners[index]),
     )
     let input_count = @pipeline.input_count(pipeline)
-    if input_count < 1 ||
-      input_count > 2 ||
-      seen[index] != (if input_count == 1 { 1 } else { 3 }) {
+    let expected_inputs = if input_count == 0 {
+      0
+    } else if input_count == 1 {
+      1
+    } else {
+      3
+    }
+    if input_count > 2 || seen[index] != expected_inputs {
       return Err(UnsupportedGraph)
     }
     if @pipeline.step_count(pipeline) == 0 {

@@ -8,6 +8,7 @@ fn query_checked_program_fixture(
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
   sort_take? : Bool = false,
+  dag_values? : Bool = false,
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
@@ -27,6 +28,14 @@ fn query_checked_program_fixture(
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
       new="{\"sort\":[{\"id\":\"desc\"}]},{\"take\":2,\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_values {
+    text.replace(
+      old="{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"out\"}]",
+      new="{\"id\":\"compute_b\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":7}]},\"as\":\"out\"}]",
     )
   } else {
     text

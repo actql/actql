@@ -75,6 +75,7 @@ fn captured_graph_fixture(
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
   sort_take? : Bool = false,
+  values? : Bool = false,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
@@ -89,6 +90,7 @@ fn captured_graph_fixture(
     self_join~,
     numeric_dag~,
     sort_take~,
+    dag_values=values,
     join_steps~,
     compute_filter~,
   )
@@ -130,6 +132,25 @@ fn captured_graph_fixture(
     execution_bytes: 134217728L,
   }).unwrap()
   (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
+}
+
+///|
+test "captured DAG admits a checked zero-input Compute without a dummy edge" {
+  let (run, issuer) = captured_graph_fixture(values=true)
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 4)
+  assert_eq(@strategy.graph_data_count(graph), 2)
+  let owner = @strategy.graph_task_owner(graph, 2).unwrap()
+  assert_eq(
+    @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))),
+    0,
+  )
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

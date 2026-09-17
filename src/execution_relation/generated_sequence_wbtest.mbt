@@ -119,10 +119,7 @@ test "generated row capability inspection rejects other prepared step kinds" {
 
   let values_owner = row_owner("")
   let values_sequence = prepared_sequence(values_owner)
-  let values_node = @lower.node_at(
-    @lower.bound_preparation(values_owner),
-    0,
-  ).unwrap()
+  let values_node = @lower.node_at(@lower.bound_preparation(values_owner), 0).unwrap()
   let values_generated = prepare_generated_sequence(
     registered_relation_contracts(),
     values_sequence,
@@ -131,7 +128,5 @@ test "generated row capability inspection rejects other prepared step kinds" {
     100000,
     10000,
   ).unwrap()
-  assert_false(
-    generated_sequence_all_row_kernels(values_generated, _ => true),
-  )
+  assert_false(generated_sequence_all_row_kernels(values_generated, _ => true))
 }

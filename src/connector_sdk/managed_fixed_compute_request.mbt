@@ -18,6 +18,42 @@ pub fn[T] prepare_managed_fixed_compute_request(
   capacity : FixedComputeCapacity,
   obligations : @execution.ManagedObligations,
 ) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue] {
+  match validate_managed_fixed_capacity(capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard inputs.get(0) is Some(first) else { return Err(UnsupportedInputShape) }
+  prepare_managed_fixed_compute_request_for_owner_validated(
+    @execution.managed_producer_read_receiver(first),
+    inputs,
+    capacity,
+    obligations,
+  )
+}
+
+///|
+/// Owner-explicit form for checked zero-input tasks. It preserves the same
+/// exact owner, obligation, capacity, and ordered-port checks as the input-
+/// derived entry without manufacturing a producer handle.
+pub fn[T] prepare_managed_fixed_compute_request_for_owner(
+  owner : @lower.BoundPrepared,
+  inputs : Array[@execution.ManagedProducerRead[T]],
+  capacity : FixedComputeCapacity,
+  obligations : @execution.ManagedObligations,
+) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue] {
+  match validate_managed_fixed_capacity(capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  prepare_managed_fixed_compute_request_for_owner_validated(
+    owner, inputs, capacity, obligations,
+  )
+}
+
+///|
+fn validate_managed_fixed_capacity(
+  capacity : FixedComputeCapacity,
+) -> Result[Unit, FixedComputeIssue] {
   if capacity.contract_cid !=
     "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f" {
     return Err(CapacityContract)
@@ -25,8 +61,16 @@ pub fn[T] prepare_managed_fixed_compute_request(
   if capacity.max_rows < 0 || capacity.max_value_bytes < 0 {
     return Err(InvalidLimits)
   }
-  guard inputs.get(0) is Some(first) else { return Err(UnsupportedInputShape) }
-  let owner = @execution.managed_producer_read_receiver(first)
+  Ok(())
+}
+
+///|
+fn[T] prepare_managed_fixed_compute_request_for_owner_validated(
+  owner : @lower.BoundPrepared,
+  inputs : Array[@execution.ManagedProducerRead[T]],
+  capacity : FixedComputeCapacity,
+  obligations : @execution.ManagedObligations,
+) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue] {
   if !physical_equal(@execution.managed_obligations_owner(obligations), owner) {
     return Err(ForeignPreparation)
   }

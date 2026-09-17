@@ -104,6 +104,8 @@ pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], Fi
 
 pub fn[T] prepare_managed_fixed_compute_request(Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
 
+pub fn[T] prepare_managed_fixed_compute_request_for_owner(@lowering_relation.BoundPrepared, Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
+
 pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> Result[ResourceBinding, CapabilityInstallationIssue]
 
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
