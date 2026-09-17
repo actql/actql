@@ -273,6 +273,21 @@ pub fn[T] configured_managed_strategy_retention_capacity(
 }
 
 ///|
+/// Exact duration selected by the installed DuckDB cost policy. None remains
+/// unknown and is not an automatic multi-Site comparison estimate.
+pub fn[T] configured_managed_strategy_duration(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> Int64? {
+  match
+    @connector.managed_fixed_compute_candidate_duration(
+      @connector.prepared_managed_compute_candidate(setup.prepared),
+    ) {
+    @cost.Complete(value) => Some(value)
+    @cost.Unknown => None
+  }
+}
+
+///|
 pub fn[T] configured_managed_strategy_scratch_capacity(
   setup : ManagedStrategyComputeHostConfiguration[T],
 ) -> Int64? {
@@ -321,6 +336,19 @@ pub fn[T] configured_managed_strategy_max_index_cells(
   setup : ManagedStrategyComputeHostConfiguration[T],
 ) -> Int {
   setup.max_index_cells
+}
+
+///|
+/// Connector-owned portion of the Site bound. The Node execution wrapper adds
+/// its native database capacity before common Site admission.
+pub fn[T] configured_managed_strategy_site_capacity(
+  setup : ManagedStrategyComputeHostConfiguration[T],
+) -> (Int64, Int64)? {
+  guard configured_managed_strategy_retention_capacity(setup) is Some(retention) &&
+    configured_managed_strategy_scratch_capacity(setup) is Some(execution) else {
+    return None
+  }
+  Some((retention, execution))
 }
 
 ///|

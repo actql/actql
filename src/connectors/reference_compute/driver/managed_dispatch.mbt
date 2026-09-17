@@ -120,6 +120,7 @@ fn managed_numeric_capacity(
 ///|
 fn[T] prepare_numeric_managed_dispatch_installed(
   installed : NumericDispatchModule,
+  milliseconds : Int64?,
   outputs : Array[@execution.ManagedCompletedOutput[T]],
   obligations : @execution.ManagedObligations,
   _output_file_bytes : Int64,
@@ -178,8 +179,8 @@ fn[T] prepare_numeric_managed_dispatch_installed(
       installed.limits.max_entries,
       installed.limits.max_name_bytes,
       installed.expressions,
-      0,
-      [],
+      1,
+      [{ work_slots: [0], milliseconds, }],
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
     ) {
     Ok(value) => value
@@ -226,6 +227,7 @@ pub fn[T] prepare_numeric_managed_dispatch(
   match
     prepare_numeric_managed_dispatch_installed(
       configured.installed,
+      configured.milliseconds,
       outputs,
       obligations,
       output_file_bytes,
@@ -235,6 +237,28 @@ pub fn[T] prepare_numeric_managed_dispatch(
     Err(Fatal(issue)) => Err(issue)
     Err(Plan(issue)) => Err(numeric_dispatch_issue(issue))
   }
+}
+
+///|
+/// Exact duration selected by the Host-installed reference cost policy. None
+/// remains unknown and is excluded from automatic multi-Site comparison.
+pub fn[T] numeric_managed_dispatch_duration(
+  setup : NumericManagedDispatchConfiguration[T],
+) -> Int64? {
+  match
+    @connector.managed_fixed_compute_candidate_duration(
+      @connector.prepared_managed_compute_candidate(setup.prepared),
+    ) {
+    @cost.Complete(value) => Some(value)
+    @cost.Unknown => None
+  }
+}
+
+///|
+pub fn[T] numeric_managed_dispatch_site_capacity(
+  setup : NumericManagedDispatchConfiguration[T],
+) -> (Int64, Int64)? {
+  Some((setup.capacity.retained_bytes, setup.capacity.execution_bytes))
 }
 
 ///|

@@ -62,6 +62,8 @@ pub fn prepare_local_module_compute(LocalComputeModule, Int, @connector_sdk.Fixe
 
 pub fn[T] prepare_local_module_managed_compute(LocalComputeModule, Int, @connector_sdk.ManagedFixedComputeRequest[T]) -> Result[(@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.ManagedFixedComputeChoice[T]), LocalModuleIssue]
 
+pub fn[T] prepare_local_module_managed_compute_with_estimates(LocalComputeModule, Int, @connector_sdk.ManagedFixedComputeRequest[T], Array[@physical_cost.SerialEstimateLine]) -> Result[(@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.ManagedFixedComputeChoice[T]), LocalModuleIssue]
+
 pub fn[E, P] prepare_local_module_materializing_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, LocalImportLimits, (LocalMaterializingIssue) -> E, (Int, Int64)?, output_limits? : LocalExportLimits?) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E, P], LocalModuleIssue]
 
 // Errors

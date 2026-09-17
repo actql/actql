@@ -9,6 +9,13 @@ import {preparedStrategyConfiguration} from './configuration.mjs';
 import {managedInputCodecContractCid} from '../store-local/managed-representations.mjs';
 import {managedColumnCodecContractCid} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
+import {computePhysicalCapacity} from './physical-capacity.mjs';
+
+const managedSiteCapacity = value => Array.isArray(value)
+  ? value
+  : value !== null && typeof value === 'object'
+    ? [value._0, value._1]
+    : undefined;
 
 export function duckdbStrategyContribution(moon, setup, checked, configuration) {
   const options = preparedStrategyConfiguration(configuration);
@@ -51,7 +58,9 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       }
       const inputs = producers.map(producer => outputs.get(producer));
       const inputCodecContractCids = inputs.map(input =>
-        managedInputCodecContractCid(input?.material));
+        managedInputCodecContractCid(
+          input == null ? undefined : input.siteMaterial ?? input.material,
+        ));
       if (producers.some(producer => producer < 1) ||
           inputs.some(input => input == null) ||
           inputCodecContractCids.some(cid =>
@@ -66,10 +75,25 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
         ),
       );
       if (managedConfiguration == null) return undefined;
+      const connectorSiteCapacity = managedSiteCapacity(
+        moon.strategyModule_duckdb_ManagedCapacity(managedConfiguration));
+      const nativeSiteCapacity = computePhysicalCapacity(limits);
+      if (!Array.isArray(connectorSiteCapacity) ||
+          connectorSiteCapacity.length !== 2 ||
+          connectorSiteCapacity.some(value =>
+            typeof value !== 'bigint' || value < 0n)) {
+        throw new Error('InvalidDuckDBManagedSiteCapacity');
+      }
       return Object.freeze({
         task,
-        durationMilliseconds: 1n,
+        durationMilliseconds:
+          moon.strategyModule_duckdb_ManagedDuration(managedConfiguration),
         inputs: Object.freeze(inputs),
+        siteCapacity: Object.freeze({
+          retainedBytes: connectorSiteCapacity[0],
+          executionBytes:
+            connectorSiteCapacity[1] + nativeSiteCapacity.executionBytes,
+        }),
         outputs,
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
@@ -78,18 +102,14 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       });
     },
     async runPrepared(prepared, signal) {
-      for (const producer of prepared.releasableProducers) {
-        const output = prepared.outputs.get(producer);
-        if (output?.close) await output.close();
-        prepared.outputs.delete(producer);
-      }
       const result = await runManagedColumnStrategyHostCompute(
         prepared.configuration,
-        prepared.inputs.map(input => input.material),
+        prepared.inputs.map(input => input.siteMaterial ?? input.material),
         prepared.inputCodecContractCids,
         limits,
         options.managedOutput,
         signal,
+        prepared.siteCompletionReady,
       );
       return Object.freeze({
         ...result,

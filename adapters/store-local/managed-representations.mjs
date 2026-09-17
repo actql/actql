@@ -7,7 +7,8 @@ import {snapshotPhysicalManifest} from './managed-manifest.mjs';
 import {installManagedRepresentation, managedRepresentation} from
   './managed-memory-representations.mjs';
 export {managedInputCodecContractCid, managedInputPhysicalManifestCid,
-  managedInputSupportsRows, registerManagedMemoryInput,
+  managedInputSupportsRows, managedInputTransferEstimate,
+  registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 const issue = code => Object.assign(new Error(code), {code});
@@ -89,14 +90,19 @@ function retainBorrowsUntilStopped(reason, borrows) {
 
 export function registerManagedInput(
   material, readable, store, body, codecContractCid, physicalManifest,
-  rowProvider,
+  rowProvider, transferEstimate,
 ) {
+  const estimateValid = transferEstimate === undefined ||
+    (transferEstimate !== null && typeof transferEstimate === 'object' &&
+      [transferEstimate.transferBytes, transferEstimate.retainedBytes,
+        transferEstimate.executionBytes].every(value =>
+        typeof value === 'bigint' && value >= 0n));
   if (!material || typeof material !== 'object' ||
       managedRepresentation(material) !== undefined ||
       typeof readable !== 'function' || !localStoreOwnsBody(store, body) ||
       !cid(codecContractCid) || (rowProvider !== undefined &&
         (rowProvider === null || typeof rowProvider !== 'object' ||
-          typeof rowProvider.read !== 'function'))) {
+          typeof rowProvider.read !== 'function')) || !estimateValid) {
     throw issue('InvalidManagedInputRegistration');
   }
   let admitted;
@@ -124,6 +130,11 @@ export function registerManagedInput(
     physicalManifest: admitted,
     rowProvider,
     rowUse: withManagedFileInputRows,
+    transferAvailable: () => localRetainedStoreAvailable(store) &&
+      body.available(),
+    transferEstimate: transferEstimate === undefined
+      ? undefined
+      : Object.freeze({...transferEstimate}),
   });
   return admitted;
 }

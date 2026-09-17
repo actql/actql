@@ -8,6 +8,12 @@ import {managedInputSupportsRows, registerManagedMemoryInput,
 import {settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
+const managedSiteCapacity = value => Array.isArray(value)
+  ? value
+  : value !== null && typeof value === 'object'
+    ? [value._0, value._1]
+    : undefined;
+
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
@@ -24,7 +30,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       }
       const inputs = producers.map(producer => outputs.get(producer));
       if (inputs.some(input => input == null ||
-          !managedInputSupportsRows(input.material))) return undefined;
+          !managedInputSupportsRows(input.siteMaterial ?? input.material))) {
+        return undefined;
+      }
       const managedConfiguration = checked(
         moon.strategyModule_local_ManagedDispatch(
           setup,
@@ -33,9 +41,21 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         ),
       );
       if (managedConfiguration == null) return undefined;
+      const siteCapacity = managedSiteCapacity(
+        moon.strategyModule_local_ManagedCapacity(managedConfiguration));
+      if (!Array.isArray(siteCapacity) || siteCapacity.length !== 2 ||
+          siteCapacity.some(value => typeof value !== 'bigint' || value < 0n)) {
+        throw new Error('InvalidLocalManagedSiteCapacity');
+      }
       return Object.freeze({
         task,
-        durationMilliseconds: 1n,
+        durationMilliseconds:
+          moon.strategyModule_local_ManagedDuration(managedConfiguration),
+        acceptsSiteTransfer: true,
+        siteCapacity: Object.freeze({
+          retainedBytes: siteCapacity[0],
+          executionBytes: siteCapacity[1],
+        }),
         inputs: Object.freeze(inputs),
         outputs,
         releasableProducers: Object.freeze(
@@ -44,11 +64,6 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       });
     },
     async runPrepared(prepared, signal) {
-      for (const producer of prepared.releasableProducers) {
-        const output = prepared.outputs.get(producer);
-        if (output?.close) await output.close();
-        prepared.outputs.delete(producer);
-      }
       signal?.throwIfAborted();
       const operations = checked(
         moon.strategyModule_local_ManagedStart(prepared.configuration),
@@ -61,10 +76,19 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             transfers.length !== prepared.inputs.length) {
           throw new Error('InvalidLocalManagedInputCount');
         }
+        const resolved = typeof prepared.resolveSiteInputs === 'function'
+          ? await prepared.resolveSiteInputs(
+            transfers.map(transfer => transfer.input), signal,
+          )
+          : Object.freeze({
+            materials: Object.freeze(prepared.inputs.map(input =>
+              input.siteMaterial ?? input.material)),
+            records: Object.freeze([]),
+          });
         let completed;
         await withManagedInputRows(
           prepared.inputs.map((input, index) => ({
-            material: input.material,
+            material: resolved.materials[index],
             input: transfers[index].input,
             codecContractCid: undefined,
           })),
@@ -82,6 +106,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           undefined,
           async () => {
             signal?.throwIfAborted();
+            if (prepared.siteCompletionReady?.() === false) {
+              throw new Error('ExecutionSiteCompletionNotReady');
+            }
             checked(operations.settle());
             settled = true;
             completed = checked(operations.complete(
@@ -95,6 +122,17 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         if (completed == null || material == null) {
           throw new Error('MissingLocalManagedOutput');
         }
+        const outputRows = operations.output_rows();
+        const storageBytes = BigInt(operations.storage_bytes);
+        // Safe Transfer advertisement for the row-wire fallback. It covers a
+        // conservative UTF-8 expansion, destination UTF-16 strings, row/index
+        // administration and one bounded 1 MiB construction batch.
+        const transferBytes = storageBytes * 4n + BigInt(outputRows) * 64n;
+        const transferEstimate = Object.freeze({
+          transferBytes,
+          retainedBytes: transferBytes * 2n + BigInt(outputRows) * 96n + 128n,
+          executionBytes: 1024n * 1024n,
+        });
         const memory = registerManagedMemoryInput(
           material,
           input => moon.strategyHostManagedInputMatchesMaterial(input, material),
@@ -112,6 +150,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             available = false;
             operations.close();
           },
+          transferEstimate,
         );
         return Object.freeze({
           completed,
@@ -120,6 +159,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           diagnostic: Object.freeze({
             realization: 'local-managed',
             outputRepresentation: 'managed-local-memory',
+            outputRows,
+            siteTransfers: resolved.records.length,
+            siteTransferRecords: resolved.records,
           }),
         });
       } catch (error) {

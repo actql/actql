@@ -247,6 +247,42 @@ peak overlap of destination construction, destination retention, and workspace.
 Account transfer bytes as a cumulative quantity. Do not erase either side's
 retention responsibility when the physical storage is not shared.
 
+Each Site enforces retained-byte and execution-byte ceilings from the first
+implementation. These are sub-scopes of the authoritative Run accounting, not
+independent ledgers. Admission succeeds only when both the Run reservation and
+the selected Site sub-scope fit. A failed admission leaves neither side
+partially reserved. Existing source retention is not reserved again;
+destination allocation and construction workspace are charged to the Site
+where they exist. A copy at another Site is another allocation. Site
+revocation alone never returns bytes whose stop or reclamation remains
+unconfirmed.
+
+A Transfer is classified by semantics, not merely by crossing a Site boundary.
+Moving a completed logical value into a different material while preserving
+typed values, order, and duplicate occurrences is a Transfer, including an
+explicit independent copy within one Site. Filtering, derivation, and
+aggregation are Compute. Sharing one immutable allocation and adding another
+holding does not force a copy Transfer. A same-Site copy still accounts for
+the input, destination, and workspace overlap; the required E3 end-to-end path
+remains the two-Site path described above.
+
+The in-process bounded row-wire Transfer does not compute a content digest by
+default. Its initial trust boundary is the Host-adopted codec implementation
+operating from a verified immutable source view into an independently owned
+destination generation. Independent conformance fixtures detect value
+substitution, reordering, and duplicate-occurrence loss. The typed success
+record names this trust boundary and explicitly records that no physical
+content digest or logical identity was established.
+
+Other boundaries decide their integrity mechanism explicitly. Mutable input
+requires a snapshot or immutability boundary that makes the verified subject
+the used subject. Untrusted input requires the expected digest and its subject
+to be bound to authenticated evidence. Durable storage requires integrity and
+retention checks appropriate to its write/read contract. A physical digest is
+neither sufficient by itself for these properties nor interchangeable with a
+logical CID. Do not add a managed in-process full-data rehash where the adopted
+immutable-generation contract does not require one.
+
 Transfer success is not consumer success. Streaming unfinished rows across a
 completion boundary and fusing tasks are outside this milestone.
 

@@ -50,6 +50,11 @@ test('product checker through Local selection execution consumer and recovery ag
       assert.equal(worker.status, 'completed');
       assert.deepEqual(worker.outputs, outputs.map((rows,i) => ({task:i+1,rows:rows.length,cid:cid(rows)})));
       assert.deepEqual(worker.outputs,node.outputs);
+      assert.deepEqual(worker.executionSites, node.executionSites);
+      assert(worker.executionSites.every(site =>
+        site.key === 'in-process-default' && site.generation === 0 &&
+        site.runtimeRevision === 'actql-in-process-site/0.1'),
+      'standard Workers execution must pass through the shared Site surface');
       assert.equal(worker.released,true);
       assert.deepEqual(worker.finalUsage.slice(4),['0','0','0','0']);
     }

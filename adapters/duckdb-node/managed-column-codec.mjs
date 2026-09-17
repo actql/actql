@@ -13,6 +13,37 @@ const codecContract = 'actql-duckdb-managed-column-frames/0.2\n' +
 export const managedColumnCodecContractCid =
   `sha256:${createHash('sha256').update(codecContract).digest('hex')}`;
 
+// Safe upper bounds for the initial bounded row-wire Site Transfer. The
+// physical frame already contains every encoded value. A row object adds its
+// field names and separators, while a decoded DOUBLE can need at most eight
+// more UTF-8 bytes than its 16-digit physical hex string. Source file reads
+// and emitted row wire are cumulative transfer; destination UTF-16 strings,
+// chunk administration and the construction batch are retention/execution.
+export function managedColumnTransferEstimate(
+  bodyBytes, rowCount, fields, maxBatchBytes = 1024 * 1024,
+) {
+  if (!Number.isSafeInteger(bodyBytes) || bodyBytes < 0 ||
+      !Number.isSafeInteger(rowCount) || rowCount < 0 ||
+      !Array.isArray(fields) || fields.length === 0 ||
+      !Number.isSafeInteger(maxBatchBytes) || maxBatchBytes < 1 ||
+      fields.some(field => typeof field?.name !== 'string' ||
+        !['DOUBLE', 'VARCHAR'].includes(field?.type?.id))) {
+    throw new DuckDBTransportError('InvalidManagedTransferEstimate');
+  }
+  const rowObjectBytes = fields.reduce((sum, field) =>
+    sum + Buffer.byteLength(JSON.stringify(field.name)) + 1 +
+      (field.type.id === 'DOUBLE' ? 8 : 0),
+  2 + Math.max(0, fields.length - 1));
+  const sourceBytes = BigInt(bodyBytes);
+  const rowWireBytes = sourceBytes + BigInt(rowCount) * BigInt(rowObjectBytes);
+  const transferBytes = sourceBytes + rowWireBytes;
+  return Object.freeze({
+    transferBytes,
+    retainedBytes: rowWireBytes * 2n + BigInt(rowCount) * 96n + 128n,
+    executionBytes: BigInt(maxBatchBytes),
+  });
+}
+
 function physicalDouble(value) {
   if (value === null) return null;
   if (typeof value !== 'string' || !/^[0-9a-f]{16}$/.test(value)) {

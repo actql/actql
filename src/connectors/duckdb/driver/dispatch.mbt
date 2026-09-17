@@ -279,13 +279,17 @@ pub fn prepare_duckdb_managed_dispatch(
     ) => return Ok(None)
     Err(issue) => return Err(Candidate(issue))
   }
+  let estimates = match duckdb_managed_estimate_lines(installed, task, inputs) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidConfiguration)
+  }
   let prepared = match
     @compute.duckdb_managed_fixed_compute_candidate(
       installed.registration,
       request,
       "managed_input",
       installed.limits.query,
-      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
+      estimates,
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       installed.limits.candidate_work,
     ) {

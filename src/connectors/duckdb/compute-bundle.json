@@ -8,6 +8,8 @@
   "managed_dispatch": "prepare_duckdb_managed_dispatch",
   "managed_dispatch_optional": true,
   "managed_dispatch_result": {"package":"actql/actql/connectors/duckdb/driver","type":"ManagedStrategyComputeHostConfiguration"},
+  "managed_duration": "configured_managed_strategy_duration",
+  "managed_capacity": "configured_managed_strategy_site_capacity",
   "configuration": "DuckDBComputeConfiguration",
   "configure": "configure_duckdb_compute",
   "registration": "duckdb_dispatch_registration",

@@ -42,7 +42,17 @@ fn fixture_generated(
     @lower.kernel_count_group(kernel) is Some(_)
   let direct_join = @lower.sequence_step(sequence, 0)
     is Some(@lower.JoinStep(_))
-  let contexts = if filter && !direct_count && !direct_join {
+  let projection_only = Ref(@lower.sequence_count(sequence) > 0)
+  for index in 0..<@lower.sequence_count(sequence) {
+    if !(@lower.sequence_step(sequence, index) is Some(@lower.RowStep(kernel)) &&
+      @lower.kernel_is_projection(kernel)) {
+      projection_only.val = false
+    }
+  }
+  let contexts = if filter &&
+    !direct_count &&
+    !direct_join &&
+    !projection_only.val {
     let pipeline = @lower.prepare_fragment_pipeline(sequence, fragment_start, {
       max_roots: 100,
       max_pointer_bytes: 10000,

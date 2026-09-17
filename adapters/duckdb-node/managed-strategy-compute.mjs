@@ -9,6 +9,7 @@ import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
+  managedColumnTransferEstimate,
   managedColumnRowProvider} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
@@ -61,6 +62,7 @@ function fieldsFrame(fields) {
 // setup and cannot be enlarged here.
 export async function runManagedColumnStrategyHostCompute(
   setup, inputMaterial, inputCodecContractCid, limits, outputStorage, signal,
+  siteCompletionReady = () => true,
 ) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
@@ -72,6 +74,7 @@ export async function runManagedColumnStrategyHostCompute(
       !Number.isSafeInteger(outputStorage.maxFrameBytes) || outputStorage.maxFrameBytes < 1 ||
       inputMaterials.length === 0 ||
       inputMaterials.length !== inputCodecContractCids.length ||
+      typeof siteCompletionReady !== 'function' ||
       inputCodecContractCids.some(cid =>
         ![managedColumnCodecContractCid, managedParquetCodecContractCid]
           .includes(cid))) {
@@ -94,7 +97,8 @@ export async function runManagedColumnStrategyHostCompute(
     checked(moon.managedStrategyRetentionCapacity(setup));
     checked(moon.managedStrategyScratchCapacity(setup));
     run = checked(moon.managedStrategyHostOpen(setup, capacity.transferBytes,
-      capacity.executionBytes, () => authorized && !signal?.aborted, storageReleased));
+      capacity.executionBytes, () => authorized && !signal?.aborted &&
+        siteCompletionReady(), storageReleased));
     const fileCapacity = Number(moon.managedStrategyOutputFileCapacity(run));
     if (!Number.isSafeInteger(fileCapacity) || fileCapacity < 1) {
       throw new DuckDBTransportError('InvalidManagedStorageCapacity');
@@ -267,7 +271,8 @@ export async function runManagedColumnStrategyHostCompute(
     registerManagedInput(material,
       input => moon.managedInputMatchesMaterial(input, material),
       store, body, codecContractCid, representation.manifest,
-      managedColumnRowProvider(representation.schemaContract));
+      managedColumnRowProvider(representation.schemaContract),
+      managedColumnTransferEstimate(body.bytes, outputRows, result.value));
     let closed = false;
     return Object.freeze({
       completed,

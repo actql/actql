@@ -36,7 +36,14 @@ async function runCapturedStrategyTarget(
   const core = runtimeCore(moon);
   const installed = await installStrategyContributions(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
-  return runInstalledStrategy(setup, core, installed, signal, observeCompletion);
+  return runInstalledStrategy(
+    setup,
+    core,
+    installed,
+    signal,
+    observeCompletion,
+    configurations.executionSitePolicy,
+  );
 }
 
 // The standard entry executes the checked Program's named Result request.

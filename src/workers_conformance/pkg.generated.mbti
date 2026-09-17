@@ -66,7 +66,25 @@ pub fn async_strategy_host_stop(@connectors_workers_async.ConfiguredComputeHost[
 
 pub fn async_strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
 
+pub fn async_strategy_host_task_capacity(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Int64] raise AsyncHostFailure
+
 pub fn async_strategy_host_task_completed(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn async_strategy_host_transfer_abort(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise AsyncHostFailure
+
+pub fn async_strategy_host_transfer_begin(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int64, Int64, Int64) -> @physical_strategy.ManagedTransfer raise AsyncHostFailure
+
+pub fn async_strategy_host_transfer_charge(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise AsyncHostFailure
+
+pub fn async_strategy_host_transfer_complete(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise AsyncHostFailure
+
+pub fn async_strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
+
+pub fn async_strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]
+
+pub fn async_strategy_host_transfer_release(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransferReceipt) -> Bool raise AsyncHostFailure
+
+pub fn async_strategy_host_transfer_settle(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise AsyncHostFailure
 
 pub fn async_strategy_host_usage(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
 
@@ -88,7 +106,11 @@ pub fn foreign_dispatch() -> Array[Bool] raise
 
 pub fn local_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
 
+pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
+
 pub fn local_managed_dispatch(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure
+
+pub fn local_managed_duration(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Int64?
 
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
@@ -104,7 +126,11 @@ pub fn prepare_scenario(Array[String], Bool, Int, String) -> Scenario raise
 
 pub fn reference_compute_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise AsyncHostFailure
 
+pub fn reference_compute_managed_capacity(@actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
+
 pub fn reference_compute_managed_dispatch(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]? raise AsyncHostFailure
+
+pub fn reference_compute_managed_duration(@actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]) -> Int64?
 
 pub fn reference_compute_managed_start(@actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/reference_compute/driver.NumericManagedDispatchOperations[Int] raise AsyncHostFailure
 
@@ -166,7 +192,25 @@ pub fn strategy_host_stop(@connectors_workers.ConfiguredComputeHost[@physical_st
 
 pub fn strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
 
+pub fn strategy_host_task_capacity(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Int64] raise NodeHostFailure
+
 pub fn strategy_host_task_completed(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn strategy_host_transfer_abort(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_host_transfer_begin(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int64, Int64, Int64) -> @physical_strategy.ManagedTransfer raise NodeHostFailure
+
+pub fn strategy_host_transfer_charge(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
+
+pub fn strategy_host_transfer_complete(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
+
+pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
+
+pub fn strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]
+
+pub fn strategy_host_transfer_release(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransferReceipt) -> Bool raise NodeHostFailure
+
+pub fn strategy_host_transfer_settle(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_usage(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
 

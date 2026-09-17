@@ -295,3 +295,34 @@ pub fn estimate_duckdb_installed_offers(
   }
   estimate_duckdb_configuration(installed, configuration, task, quantities)
 }
+
+///|
+/// Reuse the installed native rate schedule for one managed candidate. Exact
+/// retained row counts are available without opening a representation. Wire
+/// bytes remain unknown unless another contract establishes them, so any rate
+/// depending on that quantity remains Unknown rather than becoming zero.
+fn[T] duckdb_managed_estimate_lines(
+  installed : DuckDBDispatchModule,
+  task : Int,
+  inputs : Array[@execution.ManagedProducerRead[T]],
+) -> Result[Array[@cost.SerialEstimateLine], DuckDBEstimateIssue] {
+  guard task > 0 else { return Err(InvalidConfiguration) }
+  guard installed.estimate_configuration is Some(configuration) else {
+    return Ok([
+      {
+        work_slots: Array::makei(duckdb_dispatch_work_slots(), index => index),
+        milliseconds: None,
+      },
+    ])
+  }
+  guard configuration.schedules.get(task - 1) is Some(schedule) else {
+    return Err(InvalidConfiguration)
+  }
+  let quantities = @host.managed_task_estimate_quantities(inputs)
+  @cost.evaluate_rate_schedule(
+    schedule,
+    quantities.rows,
+    quantities.wire_bytes,
+    quantities.pairs,
+  ).map_err(issue => DuckDBEstimateIssue::Rate(issue))
+}

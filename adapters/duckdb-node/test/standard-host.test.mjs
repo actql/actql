@@ -38,6 +38,11 @@ import {managedPhysicalRepresentation} from
 import {computePhysicalCapacity} from '../physical-capacity.mjs';
 import {ownedHostFailure} from '../failure-envelope.mjs';
 import {managedParquetCodecContractCid} from '../managed-parquet-codec.mjs';
+import {beginExecutionSiteTeardown, createInProcessExecutionSite,
+  executionSiteStatus, prepareExecutionSitePolicy, revokeExecutionSite} from
+  '../../host-common/execution-sites.mjs';
+import {createManagedMemoryTransferProvider} from
+  '../../store-local/managed-memory-transfer.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -1192,6 +1197,678 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(managedStandardExecution.usage().reservedExecutionBytes, 0n);
     }
     managedStandardCapture.close();
+  }
+  // The shared Host selects an implementation/Site pair, then rechecks and
+  // reserves an explicit Transfer. DuckDB's first retained generation remains
+  // at Site A; Local receives an independently owned bounded-memory generation
+  // at Site B and consumes that independent generation.
+  const siteA = createInProcessExecutionSite({
+    key: 'node-site-a',
+    generation: 1,
+    runtimeRevision: 'node-test-runtime/1',
+    startupMilliseconds: 10n,
+  });
+  const siteB = createInProcessExecutionSite({
+    key: 'node-site-b',
+    generation: 1,
+    runtimeRevision: 'node-test-runtime/1',
+  });
+  const twoSiteProgram = structuredClone(managedStandardProgram);
+  twoSiteProgram.stages[3].steps = [{select: ['id'], as: 'out'}];
+  twoSiteProgram.stages.push({
+    id: 'compute_d',
+    inputs: {x: {result: {stage: 'compute_b', result: 'r'}}},
+    steps: [{select: ['id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  });
+  twoSiteProgram.results.d = {
+    from: {stage: 'compute_d', result: 'r'},
+  };
+  const twoSiteFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(twoSiteProgram));
+  const twoSiteCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(twoSiteFixture),
+    suppliedLimits,
+  );
+  let twoSiteExecution;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      twoSiteFixture, twoSiteCapture.source()), true);
+    const twoSiteSetup = fixture.strategyFixtureManagedDispatch(
+      twoSiteFixture,
+    );
+    const key = registration =>
+      hostRuntime.strategyHostRegistrationSelectionKey(registration);
+    const twoSitePolicy = prepareExecutionSitePolicy({
+      sites: [siteA, siteB],
+      placements: new Map([
+        [key(hostRuntime.strategyModule_duckdb_Registration(twoSiteSetup)),
+          [siteA]],
+        [key(hostRuntime.strategyModule_local_Registration(twoSiteSetup)),
+          [siteB]],
+        [key(hostRuntime.strategyModule_reference_compute_Registration(
+          twoSiteSetup,
+        )), [siteA]],
+      ]),
+      transferProvider: createManagedMemoryTransferProvider({
+        maxBatchRows: 2,
+        maxBatchBytes: 1024 * 1024,
+      }),
+    });
+    twoSiteExecution = await runCapturedInternalStrategy(
+      twoSiteSetup,
+      {
+        executionSitePolicy: twoSitePolicy,
+        duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000},
+          managedOutput: {
+            parentDirectory: fileParent,
+            maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000},
+          },
+        }),
+      },
+    );
+    assert.equal(twoSiteExecution.status, 'host-tasks-completed',
+      JSON.stringify({
+        stack: twoSiteExecution.failure?.stack,
+        completed: twoSiteExecution.completed,
+        candidates: twoSiteExecution.candidateComparisons,
+        excluded: twoSiteExecution.candidateExclusions,
+        usage: twoSiteExecution.usage(),
+      }, (_, value) => typeof value === 'bigint' ? value.toString() : value));
+    assert.deepEqual(
+      twoSiteExecution.completed.map(item => item.realization),
+      ['duckdb-managed', 'duckdb-managed', 'local-managed', 'local-managed'],
+      JSON.stringify({
+        candidates: twoSiteExecution.candidateComparisons,
+        excluded: twoSiteExecution.candidateExclusions,
+      }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
+    );
+    assert.deepEqual(
+      twoSiteExecution.completed.map(item => item.executionSite.key),
+      ['node-site-a', 'node-site-a', 'node-site-b', 'node-site-b'],
+    );
+    assert.equal(twoSiteExecution.completed[2].siteTransfers, 1);
+    const [transfer] = twoSiteExecution.completed[2].siteTransferRecords;
+    assert.equal(twoSiteExecution.completed[3].siteTransfers, 1);
+    const [sharedTransfer] =
+      twoSiteExecution.completed[3].siteTransferRecords;
+    assert.equal(transfer.version, 'actql-managed-site-transfer/0.1');
+    assert.equal(transfer.sourceTask, 2);
+    assert.equal(transfer.sourceSite.key, 'node-site-a');
+    assert.equal(transfer.destinationSite.key, 'node-site-b');
+    assert.notEqual(
+      transfer.sourceMaterialGeneration,
+      transfer.destinationMaterialGeneration,
+    );
+    assert.deepEqual(transfer.sourceLogicalView,
+      transfer.destinationLogicalView);
+    assert.equal(transfer.codec, 'actql-managed-row-wire-batches/0.1');
+    assert.equal(transfer.preservationRule,
+      'actql-ordered-row-wire-value-preservation/0.1');
+    assert.equal(transfer.trustBoundary,
+      'host-adopted-in-process-immutable-generation/0.1');
+    assert.equal(transfer.integrityModel,
+      'typed-value-order-and-occurrence-preservation');
+    assert.equal(transfer.physicalContentDigest, 'not-established');
+    assert.equal(transfer.logicalIdentity, 'unestablished');
+    assert.equal(transfer.destinationRetention, 'retained');
+    assert.deepEqual(transfer.integrity, [
+      'source-use-authorized',
+      'source-generation-pinned',
+      'trusted-typed-values-copied-in-order',
+      'destination-generation-retained',
+    ]);
+    assert.equal(sharedTransfer.transferAttempt, transfer.transferAttempt);
+    assert.equal(sharedTransfer.destinationMaterialGeneration,
+      transfer.destinationMaterialGeneration,
+      'two consumer admissions share one completed destination generation');
+    assert(transfer.transferredBytes > 0n);
+    assert(transfer.retainedBytes > 0n);
+    assert.equal(transfer.batches, 1);
+    assert.equal(transfer.maxBatchRows, 2);
+    assert.equal(transfer.maxBatchBytes, 1024 * 1024);
+    assert.equal(twoSiteExecution.completed[2].outputRows, 2);
+    assert.equal(twoSiteExecution.completed[3].outputRows, 2);
+    const siteATeardown = beginExecutionSiteTeardown(siteA);
+    const siteBTeardown = beginExecutionSiteTeardown(siteB);
+    assert.equal(siteATeardown.teardownComplete, false,
+      'named Site A results remain retained until the Run result closes');
+    assert.equal(siteBTeardown.teardownComplete, false,
+      'the terminal retained output must keep Site B alive');
+  } finally {
+    await twoSiteExecution?.close();
+    if (twoSiteExecution) {
+      assert.equal(await twoSiteExecution.cleanup(), true);
+      assert.equal(twoSiteExecution.usage().heldBytes, 0n);
+      assert.equal(twoSiteExecution.usage().reservedTransferBytes, 0n);
+      assert.equal(twoSiteExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(twoSiteExecution.usage().reservedExecutionBytes, 0n);
+      beginExecutionSiteTeardown(siteA);
+      beginExecutionSiteTeardown(siteB);
+      const describeSite = site => JSON.stringify(
+        executionSiteStatus(site),
+        (_key, value) => typeof value === 'bigint' ? value.toString() : value,
+      );
+      assert.equal(executionSiteStatus(siteA).teardownComplete, true,
+        describeSite(siteA));
+      assert.equal(executionSiteStatus(siteB).teardownComplete, true,
+        describeSite(siteB));
+    }
+    twoSiteCapture.close();
+  }
+  // Capacity is re-admitted after selection by the authoritative Run ledger.
+  // A selected cross-Site candidate that cannot reserve its destination must
+  // fail before representation access and must not rerun at another Site.
+  const capacitySourceSite = createInProcessExecutionSite({
+    key: 'capacity-site-a',
+    generation: 1,
+    runtimeRevision: 'node-test-runtime/1',
+    startupMilliseconds: 10n,
+  });
+  const capacityDestinationSite = createInProcessExecutionSite({
+    key: 'capacity-site-b',
+    generation: 1,
+    runtimeRevision: 'node-test-runtime/1',
+  });
+  const capacityProgram = structuredClone(managedStandardProgram);
+  capacityProgram.stages[3].steps = [{select: ['id'], as: 'out'}];
+  const capacityFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(capacityProgram));
+  const capacityCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(capacityFixture),
+    suppliedLimits,
+  );
+  let capacityExecution;
+  let capacityCopyCalls = 0;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      capacityFixture, capacityCapture.source()), true);
+    const capacitySetup = fixture.strategyFixtureManagedDispatch(
+      capacityFixture,
+    );
+    const key = registration =>
+      hostRuntime.strategyHostRegistrationSelectionKey(registration);
+    const memoryTransfer = createManagedMemoryTransferProvider({
+      maxBatchRows: 2,
+      maxBatchBytes: 1024 * 1024,
+    });
+    const capacityPolicy = prepareExecutionSitePolicy({
+      sites: [capacitySourceSite, capacityDestinationSite],
+      placements: new Map([
+        [key(hostRuntime.strategyModule_duckdb_Registration(capacitySetup)),
+          [capacitySourceSite]],
+        [key(hostRuntime.strategyModule_local_Registration(capacitySetup)),
+          [capacityDestinationSite]],
+        [key(hostRuntime.strategyModule_reference_compute_Registration(
+          capacitySetup,
+        )), [capacitySourceSite]],
+      ]),
+      transferProvider: Object.freeze({
+        contract: memoryTransfer.contract,
+        estimate(material) {
+          const admitted = memoryTransfer.estimate(material);
+          return admitted && Object.freeze({
+            ...admitted,
+            retainedBytes: 9223372036854775807n,
+          });
+        },
+        copy(options) {
+          capacityCopyCalls++;
+          return memoryTransfer.copy(options);
+        },
+      }),
+    });
+    capacityExecution = await runCapturedInternalStrategy(
+      capacitySetup,
+      {
+        executionSitePolicy: capacityPolicy,
+        duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000},
+          managedOutput: {
+            parentDirectory: fileParent,
+            maxFrameBytes: 4096,
+            wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+              max_columns: 10, max_order_work: 10000},
+          },
+        }),
+      },
+    );
+    assert.equal(capacityExecution.status, 'host-tasks-failed');
+    assert.deepEqual(
+      capacityExecution.completed.map(item => item.realization),
+      ['duckdb-managed', 'duckdb-managed'],
+      'the selected failed task must not rerun on Site A',
+    );
+    assert.equal(capacityCopyCalls, 0,
+      'capacity refusal must precede representation access');
+  } finally {
+    await capacityExecution?.close();
+    if (capacityExecution) {
+      assert.equal(await capacityExecution.cleanup(), true);
+      assert.equal(capacityExecution.usage().heldBytes, 0n);
+      assert.equal(capacityExecution.usage().reservedTransferBytes, 0n);
+      assert.equal(capacityExecution.usage().reservedRetentionBytes, 0n);
+      assert.equal(capacityExecution.usage().reservedExecutionBytes, 0n);
+    }
+    beginExecutionSiteTeardown(capacitySourceSite);
+    beginExecutionSiteTeardown(capacityDestinationSite);
+    assert.equal(executionSiteStatus(
+      capacitySourceSite).teardownComplete, true);
+    assert.equal(executionSiteStatus(
+      capacityDestinationSite).teardownComplete, true);
+    capacityCapture.close();
+  }
+  // Cancellation and an explicitly unconfirmed source stop both traverse the
+  // same standard dispatcher, real Run ledger and retained DuckDB producer.
+  // Neither case may rerun the selected consumer at another Site, and cleanup
+  // must close the exact source pin before Site teardown completes.
+  for (const transferFailureCase of ['cancellation', 'delayed-stop']) {
+    const failureSourceSite = createInProcessExecutionSite({
+      key: `${transferFailureCase}-site-a`,
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+      startupMilliseconds: 10n,
+    });
+    const failureDestinationSite = createInProcessExecutionSite({
+      key: `${transferFailureCase}-site-b`,
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+    });
+    const failureProgram = structuredClone(managedStandardProgram);
+    failureProgram.stages[3].steps = [{select: ['id'], as: 'out'}];
+    const failureFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(failureProgram));
+    const failureCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(failureFixture),
+      suppliedLimits,
+    );
+    const abort = new AbortController();
+    let failureExecution;
+    let copyCalls = 0, charges = 0, sourceStopPending = true;
+    const delayedStop = Object.freeze({
+      status: () => Object.freeze({pending: sourceStopPending}),
+      async retry() {
+        sourceStopPending = false;
+        return this.status();
+      },
+    });
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        failureFixture, failureCapture.source()), true);
+      const failureSetup = fixture.strategyFixtureManagedDispatch(
+        failureFixture,
+      );
+      const key = registration =>
+        hostRuntime.strategyHostRegistrationSelectionKey(registration);
+      const memoryTransfer = createManagedMemoryTransferProvider({
+        maxBatchRows: 2,
+        maxBatchBytes: 1024 * 1024,
+      });
+      const failurePolicy = prepareExecutionSitePolicy({
+        sites: [failureSourceSite, failureDestinationSite],
+        placements: new Map([
+          [key(hostRuntime.strategyModule_duckdb_Registration(failureSetup)),
+            [failureSourceSite]],
+          [key(hostRuntime.strategyModule_local_Registration(failureSetup)),
+            [failureDestinationSite]],
+          [key(hostRuntime.strategyModule_reference_compute_Registration(
+            failureSetup,
+          )), [failureSourceSite]],
+        ]),
+        transferProvider: Object.freeze({
+          contract: memoryTransfer.contract,
+          estimate: material => memoryTransfer.estimate(material),
+          copy(options) {
+            copyCalls++;
+            return memoryTransfer.copy({
+              ...options,
+              charge(bytes) {
+                options.charge(bytes);
+                charges++;
+                if (charges !== 1) return;
+                if (transferFailureCase === 'cancellation') {
+                  abort.abort(new Error('cancel transfer'));
+                } else {
+                  throw Object.assign(new Error('source stop delayed'), {
+                    code: 'ManagedTransferSourceStopDelayed',
+                    cleanupPending: true,
+                    cleanupHandle: delayedStop,
+                  });
+                }
+              },
+            });
+          },
+        }),
+      });
+      failureExecution = await runCapturedInternalStrategy(
+        failureSetup,
+        {
+          executionSitePolicy: failurePolicy,
+          duckdb: prepareDuckDBStrategyConfiguration({
+            transportLimits: suppliedLimits,
+            importLimits: {maxRows: 100, maxCells: 1000},
+            managedOutput: {
+              parentDirectory: fileParent,
+              maxFrameBytes: 4096,
+              wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+                max_columns: 10, max_order_work: 10000},
+            },
+          }),
+        },
+        abort.signal,
+      );
+      assert.equal(failureExecution.status, 'host-tasks-failed');
+      assert.deepEqual(
+        failureExecution.completed.map(item => item.realization),
+        ['duckdb-managed', 'duckdb-managed'],
+        'a selected Transfer failure must not rerun its consumer',
+      );
+      assert.equal(copyCalls, 1);
+      assert.equal(charges, 1);
+      if (transferFailureCase === 'delayed-stop') {
+        assert.equal(failureExecution.cleanupPending(), true);
+        assert.equal(executionSiteStatus(
+          failureSourceSite).activeTransfers, 1);
+      } else {
+        assert.equal(executionSiteStatus(
+          failureSourceSite).activeTransfers, 0);
+      }
+    } finally {
+      const closing = failureExecution?.close();
+      if (failureExecution) {
+        assert.equal(await failureExecution.cleanup(), true);
+        await closing;
+        assert.equal(failureExecution.usage().reservedTransferBytes, 0n);
+        assert.equal(failureExecution.usage().reservedRetentionBytes, 0n);
+        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n);
+        assert(failureExecution.usage().transferredBytes > 0n,
+          'spent Transfer bytes remain cumulative after failure');
+      }
+      beginExecutionSiteTeardown(failureSourceSite);
+      beginExecutionSiteTeardown(failureDestinationSite);
+      assert.equal(executionSiteStatus(
+        failureSourceSite).teardownComplete, true);
+      assert.equal(executionSiteStatus(
+        failureDestinationSite).teardownComplete, true);
+      failureCapture.close();
+    }
+  }
+  // Binding, source integrity and destination-generation failures must pass
+  // through the standard dispatcher and real retained producer. None may
+  // manufacture a consumer completion or retry the selected task elsewhere.
+  for (const transferBoundaryCase of [
+    'stale-binding',
+    'source-corruption',
+    'destination-generation',
+    'source-handle-relabel',
+  ]) {
+    const sourceSite = createInProcessExecutionSite({
+      key: `${transferBoundaryCase}-site-a`,
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+      startupMilliseconds: 10n,
+    });
+    const destinationSite = createInProcessExecutionSite({
+      key: `${transferBoundaryCase}-site-b`,
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+    });
+    const failureProgram = structuredClone(managedStandardProgram);
+    failureProgram.stages[3].steps = [{select: ['id'], as: 'out'}];
+    const failureFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(failureProgram));
+    const failureCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(failureFixture),
+      suppliedLimits,
+    );
+    let execution;
+    let copyCalls = 0, estimateCalls = 0, corruptedSource;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        failureFixture, failureCapture.source()), true);
+      const setup = fixture.strategyFixtureManagedDispatch(failureFixture);
+      const key = registration =>
+        hostRuntime.strategyHostRegistrationSelectionKey(registration);
+      const memoryTransfer = createManagedMemoryTransferProvider({
+        maxBatchRows: 2,
+        maxBatchBytes: 1024 * 1024,
+      });
+      const provider = Object.freeze({
+        contract: memoryTransfer.contract,
+        estimate(material) {
+          const estimate = memoryTransfer.estimate(material);
+          if (estimate !== undefined) {
+            estimateCalls++;
+            if (transferBoundaryCase === 'stale-binding' &&
+                estimateCalls === 2) {
+              revokeExecutionSite(destinationSite);
+            }
+          }
+          return estimate;
+        },
+        async copy(options) {
+          copyCalls++;
+          if (transferBoundaryCase === 'destination-generation') {
+            throw Object.assign(new Error('destination generation failed'), {
+              code: 'DestinationGenerationFailed',
+            });
+          }
+          if (transferBoundaryCase === 'source-handle-relabel') {
+            return Object.freeze({
+              material: options.sourceMaterial,
+              generation: Object.freeze({}),
+              rows: 0,
+              batches: 0,
+              maxBatchRows: 2,
+              maxBatchBytes: 1024 * 1024,
+              bytes: 0n,
+              retainedBytes: 0n,
+              close() {},
+              status: () => Object.freeze({released: false}),
+            });
+          }
+          if (transferBoundaryCase === 'source-corruption') {
+            corruptedSource = managedRepresentation(options.sourceMaterial);
+            const borrow = corruptedSource.body.delegateRead(
+              'standard-transfer-corruption',
+            );
+            const bytes = await readFile(borrow.descriptor.path);
+            borrow.confirmStopped();
+            assert.equal(bytes.at(-1), 10,
+              'the managed column fixture must end in a JSON newline');
+            bytes[bytes.length - 1] = 32;
+            await writeFile(borrow.descriptor.path, bytes);
+          }
+          return memoryTransfer.copy(options);
+        },
+      });
+      const policy = prepareExecutionSitePolicy({
+        sites: [sourceSite, destinationSite],
+        placements: new Map([
+          [key(hostRuntime.strategyModule_duckdb_Registration(setup)),
+            [sourceSite]],
+          [key(hostRuntime.strategyModule_local_Registration(setup)),
+            [destinationSite]],
+          [key(hostRuntime.strategyModule_reference_compute_Registration(
+            setup,
+          )), [sourceSite]],
+        ]),
+        transferProvider: provider,
+      });
+      execution = await runCapturedInternalStrategy(
+        setup,
+        {
+          executionSitePolicy: policy,
+          duckdb: prepareDuckDBStrategyConfiguration({
+            transportLimits: suppliedLimits,
+            importLimits: {maxRows: 100, maxCells: 1000},
+            managedOutput: {
+              parentDirectory: fileParent,
+              maxFrameBytes: 4096,
+              wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+                max_columns: 10, max_order_work: 10000},
+            },
+          }),
+        },
+      );
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.deepEqual(
+        execution.completed.map(item => item.realization),
+        ['duckdb-managed', 'duckdb-managed'],
+        'a failed selected Site binding or Transfer must not rerun its consumer',
+      );
+      assert.equal(copyCalls, transferBoundaryCase === 'stale-binding' ? 0 : 1);
+      if (transferBoundaryCase === 'stale-binding') {
+        assert.equal(execution.failure?.code, 'StaleExecutionSiteBinding');
+      } else if (transferBoundaryCase === 'source-corruption') {
+        assert.equal(execution.failure?.code, 'RetainedBodyChanged');
+        assert.equal(corruptedSource.body.available(), false,
+          'corruption invalidates the source generation');
+      } else if (transferBoundaryCase === 'destination-generation') {
+        assert.equal(execution.failure?.code, 'DestinationGenerationFailed');
+      } else {
+        assert.equal(execution.failure?.code, 'InvalidTransferDestination');
+      }
+    } finally {
+      const closing = execution?.close();
+      if (execution) {
+        assert.equal(await execution.cleanup(), true);
+        await closing;
+        assert.equal(execution.usage().reservedTransferBytes, 0n);
+        assert.equal(execution.usage().reservedRetentionBytes, 0n);
+        assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      }
+      beginExecutionSiteTeardown(sourceSite);
+      beginExecutionSiteTeardown(destinationSite);
+      assert.equal(executionSiteStatus(sourceSite).teardownComplete, true);
+      assert.equal(executionSiteStatus(destinationSite).teardownComplete, true);
+      failureCapture.close();
+    }
+  }
+  // Destination reclamation can fail after every task has completed. The
+  // standard result keeps that Site responsibility live and retries only the
+  // explicit cleanup handle; it never retains or reopens the source pin.
+  {
+    const sourceSite = createInProcessExecutionSite({
+      key: 'cleanup-retry-site-a',
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+      startupMilliseconds: 10n,
+    });
+    const destinationSite = createInProcessExecutionSite({
+      key: 'cleanup-retry-site-b',
+      generation: 1,
+      runtimeRevision: 'node-test-runtime/1',
+    });
+    const cleanupProgram = structuredClone(managedStandardProgram);
+    cleanupProgram.stages[3].steps = [{select: ['id'], as: 'out'}];
+    const cleanupFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(cleanupProgram));
+    const cleanupCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(cleanupFixture),
+      suppliedLimits,
+    );
+    let execution;
+    let pending = true, retries = 0;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        cleanupFixture, cleanupCapture.source()), true);
+      const setup = fixture.strategyFixtureManagedDispatch(cleanupFixture);
+      const key = registration =>
+        hostRuntime.strategyHostRegistrationSelectionKey(registration);
+      const memoryTransfer = createManagedMemoryTransferProvider({
+        maxBatchRows: 2,
+        maxBatchBytes: 1024 * 1024,
+      });
+      const policy = prepareExecutionSitePolicy({
+        sites: [sourceSite, destinationSite],
+        placements: new Map([
+          [key(hostRuntime.strategyModule_duckdb_Registration(setup)),
+            [sourceSite]],
+          [key(hostRuntime.strategyModule_local_Registration(setup)),
+            [destinationSite]],
+          [key(hostRuntime.strategyModule_reference_compute_Registration(
+            setup,
+          )), [sourceSite]],
+        ]),
+        transferProvider: Object.freeze({
+          contract: memoryTransfer.contract,
+          estimate: material => memoryTransfer.estimate(material),
+          async copy(options) {
+            const destination = await memoryTransfer.copy(options);
+            const cleanupHandle = Object.freeze({
+              status: () => Object.freeze({pending}),
+              async retry() {
+                retries++;
+                await destination.close();
+                pending = false;
+                return this.status();
+              },
+            });
+            return Object.freeze({
+              ...destination,
+              close() {
+                throw Object.assign(new Error('destination cleanup pending'), {
+                  cleanupPending: true,
+                  cleanupHandle,
+                });
+              },
+            });
+          },
+        }),
+      });
+      execution = await runCapturedInternalStrategy(
+        setup,
+        {
+          executionSitePolicy: policy,
+          duckdb: prepareDuckDBStrategyConfiguration({
+            transportLimits: suppliedLimits,
+            importLimits: {maxRows: 100, maxCells: 1000},
+            managedOutput: {
+              parentDirectory: fileParent,
+              maxFrameBytes: 4096,
+              wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
+                max_columns: 10, max_order_work: 10000},
+            },
+          }),
+        },
+      );
+      assert.equal(execution.status, 'host-tasks-completed');
+      beginExecutionSiteTeardown(sourceSite);
+      beginExecutionSiteTeardown(destinationSite);
+      await assert.rejects(execution.close(), {
+        message: 'ManagedSiteTransferCleanupFailed',
+      });
+      assert.equal(execution.cleanupPending(), true);
+      assert.equal(executionSiteStatus(sourceSite).activeTransfers, 0,
+        'destination cleanup does not retain a stopped source access');
+      assert.equal(executionSiteStatus(destinationSite).teardownComplete, false);
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(retries, 1);
+      assert.equal(execution.cleanupPending(), false);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedTransferBytes, 0n);
+      assert.equal(execution.usage().reservedRetentionBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      assert.equal(executionSiteStatus(sourceSite).teardownComplete, true);
+      assert.equal(executionSiteStatus(destinationSite).teardownComplete, true);
+    } finally {
+      try { await execution?.close(); } catch {}
+      if (execution?.cleanupPending()) await execution.cleanup();
+      beginExecutionSiteTeardown(sourceSite);
+      beginExecutionSiteTeardown(destinationSite);
+      cleanupCapture.close();
+    }
   }
   // The public entry executes the checked Program Result contract. Omission
   // and caller false cannot erase that floor; true is only a strengthening.

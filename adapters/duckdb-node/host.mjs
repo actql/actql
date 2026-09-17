@@ -23,6 +23,7 @@ import {managedPhysicalRepresentation} from
   '../store-local/managed-physical-representation.mjs';
 import {encodeManagedColumnFrame,
   managedColumnCodecContractCid,
+  managedColumnTransferEstimate,
   managedColumnRowProvider} from './managed-column-codec.mjs';
 export {runManagedColumnStrategyHostCompute} from './managed-strategy-compute.mjs';
 export {encodeManagedColumnFrame,
@@ -748,6 +749,11 @@ async function runHostCompute(
         managedColumnCodecContractCid,
         physicalRepresentation.manifest,
         managedColumnRowProvider(physicalRepresentation.schemaContract),
+        managedColumnTransferEstimate(
+          body.bytes,
+          managedRows,
+          result.value.fields,
+        ),
       );
       const outputMeasurement = checked(
         moon.managedOutputMeasurements(managedOutput),

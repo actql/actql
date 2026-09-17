@@ -184,6 +184,22 @@ pub fn strategy_host_task(task : @host_driver.PreparedTaskDispatch) -> Int {
 }
 
 ///|
+#export_name("strategyHostTaskCapacity")
+pub fn strategy_host_task_capacity(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+) -> Array[Int64] raise NodeHostFailure {
+  guard @strategy.strategy_task_envelope(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      task,
+    )
+    is Some(capacity) else {
+    raise InvalidCommand
+  }
+  [capacity.retained_bytes, capacity.execution_bytes]
+}
+
+///|
 #export_name("strategyHostRegistration")
 pub fn strategy_host_registration(
   task : @host_driver.PreparedTaskDispatch,
@@ -360,6 +376,148 @@ pub fn strategy_host_usage(
 }
 
 ///|
+/// Reserve one explicit representation transfer in the existing Run ledger.
+/// Site discovery and binding are Host concerns; this handle owns only the
+/// physical attempt, cumulative transfer, destination holding and cleanup.
+#export_name("strategyHostTransferBegin")
+pub fn strategy_host_transfer_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  source_task : Int,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @strategy.ManagedTransfer raise NodeHostFailure {
+  match
+    @strategy.begin_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      source_task,
+      transfer_bytes,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyHostTransferCharge")
+pub fn strategy_host_transfer_charge(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  transfer : @strategy.ManagedTransfer,
+  bytes : Int64,
+) -> Unit raise NodeHostFailure {
+  match
+    @strategy.charge_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      transfer,
+      bytes,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Execution(@strategy.Physical(issue))
+  }
+}
+
+///|
+#export_name("strategyHostTransferSettle")
+pub fn strategy_host_transfer_settle(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  transfer : @strategy.ManagedTransfer,
+  confirmed : Bool,
+) -> Unit raise NodeHostFailure {
+  match
+    @strategy.settle_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      transfer,
+      confirmed,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Execution(@strategy.Physical(issue))
+  }
+}
+
+///|
+#export_name("strategyHostTransferComplete")
+pub fn strategy_host_transfer_complete(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  transfer : @strategy.ManagedTransfer,
+  retained_bytes : Int64,
+) -> @strategy.ManagedTransferReceipt raise NodeHostFailure {
+  match
+    @strategy.complete_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      transfer,
+      retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyHostTransferAbort")
+pub fn strategy_host_transfer_abort(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  transfer : @strategy.ManagedTransfer,
+  confirmed : Bool,
+) -> Unit raise NodeHostFailure {
+  match
+    @strategy.abort_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      transfer,
+      confirmed,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Execution(@strategy.Physical(issue))
+  }
+}
+
+///|
+#export_name("strategyHostTransferRelease")
+pub fn strategy_host_transfer_release(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  receipt : @strategy.ManagedTransferReceipt,
+) -> Bool raise NodeHostFailure {
+  match
+    @strategy.release_captured_managed_transfer(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+      receipt,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Execution(@strategy.Physical(issue))
+  }
+}
+
+///|
+#export_name("strategyHostTransferPending")
+pub fn strategy_host_transfer_pending(
+  transfer : @strategy.ManagedTransfer,
+) -> Bool {
+  @strategy.captured_managed_transfer_pending(transfer)
+}
+
+///|
+#export_name("strategyHostTransferReceipt")
+pub fn strategy_host_transfer_receipt(
+  receipt : @strategy.ManagedTransferReceipt,
+) -> Array[Int64] {
+  let (transferred, retained) = @strategy.captured_managed_transfer_receipt_bytes(
+    receipt,
+  )
+  [
+    @strategy.captured_managed_transfer_receipt_source(receipt).to_int64(),
+    @strategy.captured_managed_transfer_receipt_attempt(receipt).to_int64(),
+    transferred,
+    retained,
+    if @strategy.captured_managed_transfer_receipt_available(receipt) {
+      1L
+    } else {
+      0L
+    },
+  ]
+}
+
+///|
 #export_name("strategyModule_reference_compute_Registration")
 pub fn reference_compute_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -419,6 +577,22 @@ pub fn reference_compute_managed_dispatch(
     Err(MissingImplementation) => raise InvalidCommand
     Err(Implementation(issue)) => raise Execution(issue)
   }
+}
+
+///|
+#export_name("strategyModule_reference_compute_ManagedDuration")
+pub fn reference_compute_managed_duration(
+  setup : @binding7.NumericManagedDispatchConfiguration[Int],
+) -> Int64? {
+  @binding7.numeric_managed_dispatch_duration(setup)
+}
+
+///|
+#export_name("strategyModule_reference_compute_ManagedCapacity")
+pub fn reference_compute_managed_capacity(
+  setup : @binding7.NumericManagedDispatchConfiguration[Int],
+) -> (Int64, Int64)? {
+  @binding7.numeric_managed_dispatch_site_capacity(setup)
 }
 
 ///|

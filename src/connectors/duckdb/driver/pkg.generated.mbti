@@ -65,6 +65,8 @@ pub fn configure_strategy_compute_host(@physical_strategy.CapturedDAG, Int, Comp
 
 pub fn configured_compute_transport(ComputeHostConfiguration) -> @adapter.TransportColumnLimits
 
+pub fn[T] configured_managed_strategy_duration(ManagedStrategyComputeHostConfiguration[T]) -> Int64?
+
 pub fn[T] configured_managed_strategy_limits(ManagedStrategyComputeHostConfiguration[T]) -> @compute.DuckDBComputeLimits
 
 pub fn[T] configured_managed_strategy_max_index_cells(ManagedStrategyComputeHostConfiguration[T]) -> Int
@@ -74,6 +76,8 @@ pub fn[T] configured_managed_strategy_output_file_bytes(ManagedStrategyComputeHo
 pub fn[T] configured_managed_strategy_retention_capacity(ManagedStrategyComputeHostConfiguration[T]) -> Int64?
 
 pub fn[T] configured_managed_strategy_scratch_capacity(ManagedStrategyComputeHostConfiguration[T]) -> Int64?
+
+pub fn[T] configured_managed_strategy_site_capacity(ManagedStrategyComputeHostConfiguration[T]) -> (Int64, Int64)?
 
 pub fn[T] configured_managed_strategy_transport(ManagedStrategyComputeHostConfiguration[T]) -> @adapter.TransportColumnLimits
 

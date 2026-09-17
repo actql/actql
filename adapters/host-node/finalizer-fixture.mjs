@@ -8,6 +8,7 @@ export async function finalizerCase(kind, scoped = false) {
   let finished = 0, closed = 0, complete = false, consumed = 0;
   const core = {
     count: () => 2, next: () => ({}), task: () => 1,
+    taskCapacity: () => [0n, 0n],
     registration: () => registration, completed: () => complete,
     finished: () => complete, stop() {}, usage: () => ({}),
     closeOutputs() { closed++; }, output: () => complete ? 1 : undefined,
@@ -51,6 +52,7 @@ export async function asynchronousCloseCase(kind) {
     Object.assign(new Error('asynchronous close'), {cleanupHandle: recovery});
   const core = {
     count: () => 2, next: () => ({}), task: () => 1,
+    taskCapacity: () => [0n, 0n],
     registration: () => registration, completed: () => complete,
     finished: () => complete, stop() {}, usage: () => ({}),
     closeOutputs() { closed++; }, output: () => complete ? 1 : undefined,

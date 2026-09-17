@@ -6,6 +6,12 @@ import {managedInputCodecContractCid, managedInputSupportsRows,
 import {settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
+const managedSiteCapacity = value => Array.isArray(value)
+  ? value
+  : value !== null && typeof value === 'object'
+    ? [value._0, value._1]
+    : undefined;
+
 export function numericStrategyContribution(moon, setup, checked) {
   const registration = moon.strategyModule_reference_compute_Registration(setup);
   let nextMaterial = 1;
@@ -20,14 +26,18 @@ export function numericStrategyContribution(moon, setup, checked) {
       }
       const inputs = producers.map(producer => outputs.get(producer));
       if (inputs.some(input => input == null ||
-          !managedInputSupportsRows(input.material))) return undefined;
+          !managedInputSupportsRows(input.siteMaterial ?? input.material))) {
+        return undefined;
+      }
       // Normal file-backed work remains with the lower-cost native candidate.
       // Once a representation-neutral candidate has produced an in-memory
       // material, this implementation can continue the checked graph without
       // pretending that material is a DuckDB file representation.
       if (!checked(moon.strategyHostManagedRequiresLogicalIdentity(setup)) &&
-          inputs.some(input =>
-            managedInputCodecContractCid(input.material) !== undefined)) {
+        inputs.some(input =>
+            managedInputCodecContractCid(
+              input.siteMaterial ?? input.material,
+            ) !== undefined)) {
         return undefined;
       }
       const configuration = checked(
@@ -38,9 +48,21 @@ export function numericStrategyContribution(moon, setup, checked) {
         ),
       );
       if (configuration == null) return undefined;
+      const siteCapacity = managedSiteCapacity(
+        moon.strategyModule_reference_compute_ManagedCapacity(configuration));
+      if (!Array.isArray(siteCapacity) || siteCapacity.length !== 2 ||
+          siteCapacity.some(value => typeof value !== 'bigint' || value < 0n)) {
+        throw new Error('InvalidReferenceManagedSiteCapacity');
+      }
       return Object.freeze({
         task,
-        durationMilliseconds: 1n,
+        durationMilliseconds:
+          moon.strategyModule_reference_compute_ManagedDuration(configuration),
+        acceptsSiteTransfer: true,
+        siteCapacity: Object.freeze({
+          retainedBytes: siteCapacity[0],
+          executionBytes: siteCapacity[1],
+        }),
         inputs: Object.freeze(inputs),
         outputs,
         releasableProducers: Object.freeze(
@@ -49,11 +71,6 @@ export function numericStrategyContribution(moon, setup, checked) {
       });
     },
     async runPrepared(prepared, signal) {
-      for (const producer of prepared.releasableProducers) {
-        const output = prepared.outputs.get(producer);
-        if (output?.close) await output.close();
-        prepared.outputs.delete(producer);
-      }
       signal?.throwIfAborted();
       const operations = checked(
         moon.strategyModule_reference_compute_ManagedStart(
@@ -68,10 +85,19 @@ export function numericStrategyContribution(moon, setup, checked) {
             transfers.length !== prepared.inputs.length) {
           throw new Error('InvalidReferenceManagedInputCount');
         }
+        const resolved = typeof prepared.resolveSiteInputs === 'function'
+          ? await prepared.resolveSiteInputs(
+            transfers.map(transfer => transfer.input), signal,
+          )
+          : Object.freeze({
+            materials: Object.freeze(prepared.inputs.map(input =>
+              input.siteMaterial ?? input.material)),
+            records: Object.freeze([]),
+          });
         let completed;
         await withManagedInputRows(
           prepared.inputs.map((input, index) => ({
-            material: input.material,
+            material: resolved.materials[index],
             input: transfers[index].input,
             codecContractCid: undefined,
           })),
@@ -88,6 +114,9 @@ export function numericStrategyContribution(moon, setup, checked) {
           undefined,
           async () => {
             signal?.throwIfAborted();
+            if (prepared.siteCompletionReady?.() === false) {
+              throw new Error('ExecutionSiteCompletionNotReady');
+            }
             checked(operations.settle());
             settled = true;
             completed = checked(operations.complete(
@@ -101,6 +130,14 @@ export function numericStrategyContribution(moon, setup, checked) {
         if (completed == null || material == null) {
           throw new Error('MissingReferenceManagedOutput');
         }
+        const outputRows = operations.output_rows();
+        const storageBytes = BigInt(operations.storage_bytes);
+        const transferBytes = storageBytes * 4n + BigInt(outputRows) * 64n;
+        const transferEstimate = Object.freeze({
+          transferBytes,
+          retainedBytes: transferBytes * 2n + BigInt(outputRows) * 96n + 128n,
+          executionBytes: 1024n * 1024n,
+        });
         const memory = registerManagedMemoryInput(
           material,
           input => moon.strategyHostManagedInputMatchesMaterial(input, material),
@@ -118,6 +155,7 @@ export function numericStrategyContribution(moon, setup, checked) {
             available = false;
             operations.close();
           },
+          transferEstimate,
         );
         return Object.freeze({
           completed,
@@ -126,6 +164,8 @@ export function numericStrategyContribution(moon, setup, checked) {
           diagnostic: Object.freeze({
             realization: 'reference-numeric-managed',
             outputRepresentation: 'managed-reference-memory',
+            siteTransfers: resolved.records.length,
+            siteTransferRecords: resolved.records,
           }),
         });
       } catch (error) {

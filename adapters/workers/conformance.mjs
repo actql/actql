@@ -56,7 +56,12 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
         if (!output) throw new Error('Missing checked output');
         return {task, rows:fixture.workersOutputRows(output), cid:fixture.workersOutputIdentity(output)};
       });
-      return {outputs, usage:report.usage(), explanation:report.explain()};
+      return {
+        outputs,
+        usage: report.usage(),
+        explanation: report.explain(),
+        executionSites: report.completed.map(item => item.executionSite),
+      };
     }, abort.signal);
     let released = false;
     try { saved.output(1); } catch (error) { released = error.code === 'ReleasedStrategy'; }

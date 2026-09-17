@@ -165,6 +165,22 @@ export function managedInputPhysicalManifestCid(material) {
   return representations.get(material)?.physicalManifest?.cid;
 }
 
+// Pure capacity advertisement for an explicit representation Transfer. These
+// are safe upper bounds fixed by the representation owner, not observed usage
+// and not permission to acquire the generation.
+export function managedInputTransferEstimate(material) {
+  const representation = representations.get(material);
+  if (!representation) return undefined;
+  try {
+    if (typeof representation.transferAvailable === 'function' &&
+        representation.transferAvailable() !== true) {
+      return undefined;
+    }
+  } catch { return undefined; }
+  const estimate = representation.transferEstimate;
+  return estimate === undefined ? undefined : Object.freeze({...estimate});
+}
+
 // Pure support lookup used during candidate preparation. It grants no Store
 // access, pins no generation and starts no provider work.
 export function managedInputSupportsRows(material) {
@@ -175,14 +191,20 @@ export function managedInputSupportsRows(material) {
 // with the installed implementation; this registry only acquires a scoped
 // use count and never turns the opaque material into a portable handle.
 export function registerManagedMemoryInput(
-  material, readable, available, rowProvider, release,
+  material, readable, available, rowProvider, release, transferEstimate,
 ) {
+  const estimateValid = transferEstimate === undefined ||
+    (transferEstimate !== null && typeof transferEstimate === 'object' &&
+      [transferEstimate.transferBytes, transferEstimate.retainedBytes,
+        transferEstimate.executionBytes].every(value =>
+        typeof value === 'bigint' && value >= 0n));
   if (!material || typeof material !== 'object' ||
       representations.has(material) || typeof readable !== 'function' ||
       typeof available !== 'function' || rowProvider === null ||
       typeof rowProvider !== 'object' ||
       typeof rowProvider.read !== 'function' ||
-      typeof release !== 'function' || available() !== true) {
+      typeof release !== 'function' || available() !== true ||
+      !estimateValid) {
     throw issue('InvalidManagedInputRegistration');
   }
   let open = true, readers = 0, released = false;
@@ -248,6 +270,10 @@ export function registerManagedMemoryInput(
     sourceAvailable: () => available() === true,
     rowProvider,
     memory: true,
+    transferAvailable: () => open && available() === true,
+    transferEstimate: transferEstimate === undefined
+      ? undefined
+      : Object.freeze({...transferEstimate}),
     acquire() {
       if (!open || available() !== true) {
         throw issue('ManagedInputUnavailable');

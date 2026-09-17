@@ -89,11 +89,16 @@ pub fn[T] prepare_local_managed_dispatch(
     ) => return Ok(None)
     Err(issue) => return Err(Configuration(issue))
   }
+  let estimates = match local_managed_estimate_lines(installed, task, inputs) {
+    Ok(value) => value
+    Err(_) => return Err(Configuration(InvalidLimits))
+  }
   let (prepared, choice) = match
-    @local.prepare_local_module_managed_compute(
+    @local.prepare_local_module_managed_compute_with_estimates(
       installed.implementation,
       task - 1,
       request,
+      estimates,
     ) {
     Ok(value) => value
     Err(
@@ -152,6 +157,31 @@ pub fn[T] prepare_local_managed_dispatch(
       },
     }),
   )
+}
+
+///|
+/// Exact duration selected by the installed Local cost policy. None means the
+/// candidate remains unknown and must not enter automatic multi-Site ranking.
+pub fn[T] local_managed_dispatch_duration(
+  setup : LocalManagedDispatchConfiguration[T],
+) -> Int64? {
+  match
+    @connector.managed_fixed_compute_candidate_duration(
+      @connector.prepared_managed_compute_candidate(setup.prepared),
+    ) {
+    @cost.Complete(value) => Some(value)
+    @cost.Unknown => None
+  }
+}
+
+///|
+/// Safe Site sub-scope bounds for the selected managed execution. The Run
+/// ledger remains the aggregate authority; these bounds prevent one Site from
+/// consuming capacity assigned to another Site.
+pub fn[T] local_managed_dispatch_site_capacity(
+  setup : LocalManagedDispatchConfiguration[T],
+) -> (Int64, Int64)? {
+  Some((setup.capacity.retained_bytes, setup.capacity.execution_bytes))
 }
 
 ///|

@@ -8,6 +8,8 @@
   "managed_dispatch": "prepare_numeric_managed_dispatch",
   "managed_dispatch_optional": true,
   "managed_dispatch_result": {"package":"actql/actql/connectors/reference_compute/driver","type":"NumericManagedDispatchConfiguration"},
+  "managed_duration": "numeric_managed_dispatch_duration",
+  "managed_capacity": "numeric_managed_dispatch_site_capacity",
   "managed_start": "start_numeric_managed_dispatch_node",
   "managed_start_result": {"package":"actql/actql/connectors/reference_compute/driver","type":"NumericManagedDispatchOperations"},
   "configuration": "NumericComputeConfiguration",

@@ -118,3 +118,33 @@ pub fn estimate_local_installed_offers(
   }
   estimate_local_configuration(installed, configuration, task, quantities)
 }
+
+///|
+/// Reuse the Host-installed Local rate schedule for managed candidate
+/// comparison. Missing policy or quantities stay unknown. This function is
+/// pure: completed producer metadata is inspected without acquiring a
+/// representation use right or reserving execution resources.
+fn[T] local_managed_estimate_lines(
+  installed : LocalDispatchModule,
+  task : Int,
+  inputs : Array[@execution.ManagedProducerRead[T]],
+) -> Result[Array[@cost.SerialEstimateLine], LocalEstimateIssue] {
+  guard task > 0 else { return Err(InvalidConfiguration) }
+  guard installed.estimate_configuration is Some(configuration) else {
+    return Ok([
+      {
+        work_slots: Array::makei(local_dispatch_work_slots(), index => index),
+        milliseconds: None,
+      },
+    ])
+  }
+  guard configuration.schedules.get(task - 1) is Some(schedule) else {
+    return Err(InvalidConfiguration)
+  }
+  @cost.evaluate_rate_schedule(
+    schedule,
+    @host.managed_task_estimate_quantities(inputs).rows,
+    None,
+    @host.managed_task_estimate_quantities(inputs).pairs,
+  ).map_err(issue => LocalEstimateIssue::Rate(issue))
+}

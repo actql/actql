@@ -29,6 +29,10 @@ pub fn[E] numeric_compute_contribution(NumericComputeContribution, (@physical_st
 
 pub fn numeric_contribution_registration(NumericComputeContribution) -> @connector_sdk.CapabilityRegistration
 
+pub fn[T] numeric_managed_dispatch_duration(NumericManagedDispatchConfiguration[T]) -> Int64?
+
+pub fn[T] numeric_managed_dispatch_site_capacity(NumericManagedDispatchConfiguration[T]) -> (Int64, Int64)?
+
 pub fn prepare_numeric_contribution(NumericDispatchModule, Int64?, Int) -> Result[NumericComputeContribution, @physical_strategy.RunIssue]
 
 pub fn prepare_numeric_dispatch(NumericDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, @physical_strategy.RunIssue]

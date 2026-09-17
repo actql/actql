@@ -9,6 +9,8 @@
   "managed_dispatch": "prepare_local_managed_dispatch",
   "managed_dispatch_optional": true,
   "managed_dispatch_result": {"package":"actql/actql/connectors/local/driver","type":"LocalManagedDispatchConfiguration"},
+  "managed_duration": "local_managed_dispatch_duration",
+  "managed_capacity": "local_managed_dispatch_site_capacity",
   "managed_start": "start_local_managed_dispatch_node",
   "managed_start_result": {"package":"actql/actql/connectors/local/driver","type":"LocalManagedDispatchOperations"},
   "configuration": "LocalComputeConfiguration",

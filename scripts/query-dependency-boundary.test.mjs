@@ -126,12 +126,18 @@ test('linear cost schedules are neutral and implementations own their work inven
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {
   const driver = readFileSync('adapters/host-common/strategy.mjs', 'utf8');
   const entry = readFileSync('adapters/host-node/entry.mjs', 'utf8');
-  // This common module has no imports at all, including transitive concrete IO.
-  assert.doesNotMatch(driver, /^import\s/m);
+  // The common serial driver may use only the common Site and Transfer
+  // lifecycle modules. Connector or concrete I/O ownership must not leak in.
+  const driverImports = [...driver.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
+    .map(match => match[1]).sort();
+  assert.deepEqual(driverImports, [
+    './execution-sites.mjs',
+    './managed-site-transfer.mjs',
+  ]);
   assert.doesNotMatch(driver, /strategyHostNative|strategyHostTakeNative|DuckDB|duckdb|resident/);
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);
   assert.match(driver, /core\.completed\(setup, index\)/);
-  assert.match(entry, /runInstalledStrategy\(setup, core, installed, signal, observeCompletion\)/);
+  assert.match(entry, /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*\)/);
   assert.match(entry, /const observeCompletion = completionObserver\(observer\)/);
   assert(entry.indexOf('completionObserver(observer)') < entry.indexOf('await'));
   assert.doesNotMatch(entry, /strategyHostNative|runResidentStrategyHostCompute|runStrategyHostCompute/);

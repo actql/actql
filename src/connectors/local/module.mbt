@@ -72,6 +72,30 @@ pub fn[T] prepare_local_module_managed_compute(
   ),
   LocalModuleIssue,
 ] {
+  prepare_local_module_managed_compute_with_estimates(
+    installed,
+    slot,
+    request,
+    [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+  )
+}
+
+///|
+/// Compatible extension used by Site-aware automatic comparison. The caller
+/// supplies connector-owned duration estimates without changing the existing
+/// finite Local preparation entrypoint.
+pub fn[T] prepare_local_module_managed_compute_with_estimates(
+  installed : LocalComputeModule,
+  slot : Int,
+  request : @connector.ManagedFixedComputeRequest[T],
+  estimates : Array[@cost.SerialEstimateLine],
+) -> Result[
+  (
+    @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
+    @connector.ManagedFixedComputeChoice[T],
+  ),
+  LocalModuleIssue,
+] {
   guard installed.sequences.get(slot) is Some(sequence) else {
     return Err(Candidate(ComputeUnsupported))
   }
@@ -80,7 +104,7 @@ pub fn[T] prepare_local_module_managed_compute(
       installed.registration,
       request,
       sequence,
-      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+      estimates,
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       installed.max_work,
     ) {

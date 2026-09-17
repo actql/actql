@@ -16,9 +16,29 @@ import {encodeManagedColumnFrame, managedColumnCodecContractCid,
   managedColumnRowProvider} from '../duckdb-node/managed-column-codec.mjs';
 import {checked} from './runtime-result.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
+import {createInProcessExecutionSite, prepareExecutionSitePolicy} from
+  './execution-sites.mjs';
 
 const ok = _0 => ({$tag: 1, _0});
 const failed = _0 => ({$tag: 0, _0});
+const siteCase = key => {
+  const site = createInProcessExecutionSite({
+    key,
+    generation: 1,
+    runtimeRevision: 'managed-failure-test/1',
+  });
+  return {
+    site,
+    policy: prepareExecutionSitePolicy({sites: [site]}),
+    input: value => Object.freeze({
+      ...value,
+      task: 0,
+      site,
+      siteMaterial: value.material,
+      materialGeneration: value.material,
+    }),
+  };
+};
 
 function managedCase(factory, prefix, provider, overrides = {}) {
   const material = {}, input = {}, events = [];
@@ -61,6 +81,23 @@ for (const [name, factory, prefix] of [
   ['Local', localStrategyContribution, 'local'],
   ['reference', numericStrategyContribution, 'reference_compute'],
 ]) {
+  test(`${name} managed completion observes the common Site readiness gate`, async () => {
+    let completionCalls = 0;
+    const f = managedCase(factory, prefix, {async read() {}}, {
+      complete() {
+        completionCalls++;
+        return ok({});
+      },
+    });
+    f.prepared.siteCompletionReady = () => false;
+    await assert.rejects(
+      f.entry.runPrepared(f.prepared),
+      {message: 'ExecutionSiteCompletionNotReady'},
+    );
+    assert.equal(completionCalls, 0);
+    assert.deepEqual(f.events, ['close', 'settle']);
+  });
+
   test(`${name} managed reader and evaluation failures close and settle`, async () => {
     for (const phase of ['read', 'execute']) {
       const primary = new Error(`${phase} failed`);
@@ -178,6 +215,7 @@ for (const [name, factory, prefix] of [
         },
       });
       const registration = f.entry.registration;
+      const placed = siteCase(`${prefix}-${phase}`);
       const entry = Object.freeze({
         ...f.entry,
         managedSelectionKey: `${prefix}-failure`,
@@ -185,6 +223,7 @@ for (const [name, factory, prefix] of [
           ...f.prepared,
           task: 1,
           durationMilliseconds: 1n,
+          inputs: f.prepared.inputs.map(placed.input),
         }),
       });
       const core = {
@@ -204,7 +243,7 @@ for (const [name, factory, prefix] of [
       };
       const controller = new AbortController();
       const running = runInstalledStrategy(
-        {}, core, [entry], controller.signal,
+        {}, core, [entry], controller.signal, undefined, placed.policy,
       );
       if (phase === 'cancellation') {
         await readEntered;
@@ -302,6 +341,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
   };
   const registration = {};
   const setup = {};
+  const placed = siteCase('local-file-cancellation');
   const product = localStrategyContribution({
     strategyModule_local_Registration: () => registration,
     strategyHostRegistrationSelectionKey: () => 'local-file',
@@ -316,7 +356,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
       durationMilliseconds: 1n,
       releasableProducers: [],
       outputs: new Map(),
-      inputs: [{material, completed}],
+      inputs: [placed.input({material, completed})],
       configuration: {},
     }),
   });
@@ -336,7 +376,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
     explain: () => ({}),
   };
   const result = await runInstalledStrategy(
-    setup, core, [entry], controller.signal,
+    setup, core, [entry], controller.signal, undefined, placed.policy,
   );
   assert.equal(result.status, 'host-tasks-failed');
   assert.equal(result.failure, controller.signal.reason);
@@ -434,6 +474,7 @@ for (const [name, factory, prefix] of [
       cleanup_refresh: () => true,
     };
     const registration = {};
+    const placed = siteCase(`${prefix}-integrity`);
     const moon = {
       [`strategyModule_${prefix}_Registration`]: () => registration,
       strategyHostRegistrationSelectionKey: () => `${prefix}-integrity`,
@@ -449,7 +490,7 @@ for (const [name, factory, prefix] of [
         durationMilliseconds: 1n,
         releasableProducers: [],
         outputs: new Map(),
-        inputs: [{material, completed}],
+        inputs: [placed.input({material, completed})],
         configuration: {},
       }),
     });
@@ -468,7 +509,9 @@ for (const [name, factory, prefix] of [
       usage: () => ({reservedExecutionBytes, reservedRetentionBytes}),
       explain: () => ({}),
     };
-    const result = await runInstalledStrategy({}, core, [entry]);
+    const result = await runInstalledStrategy(
+      {}, core, [entry], undefined, undefined, placed.policy,
+    );
     assert.equal(result.status, 'host-tasks-failed');
     assert.equal(commonCompleted, false);
     assert.deepEqual(events, ['finish', 'execute', 'close', 'settle']);

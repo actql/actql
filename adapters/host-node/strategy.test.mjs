@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {finalizerCase, asynchronousCloseCase} from './finalizer-fixture.mjs';
 import {installCompletionObserver, completionObserver} from '../host-common/completion-observer.mjs';
+import {beginExecutionSiteTeardown, createInProcessExecutionSite,
+  executionSiteStatus, prepareExecutionSitePolicy} from
+  '../host-common/execution-sites.mjs';
+import {managedMemoryTransferContract} from
+  '../store-local/managed-memory-transfer.mjs';
 
 test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {
   for (const kind of ['undefined', 'null', 'recoverable']) {
@@ -37,6 +42,7 @@ function fixture(registrations) {
     count: () => tasks.length + 1,
     next: () => tasks[next++],
     task: task => task.index,
+    taskCapacity: () => [0n, 0n],
     registration: task => task.registration,
     completed: (_, index) => complete.has(index),
     finished: () => complete.size === tasks.length,
@@ -170,6 +176,7 @@ test('managed equal-cost choice is stable when installation order is reversed', 
     let completed = false, selected, ran;
     const core = {
       count: () => 2,
+      taskCapacity: () => [0n, 0n],
       nextTask: () => completed ? -1 : 1,
       managedProducers: () => completed ? [] : [0],
       selectManaged: (_, task, registration) => {
@@ -212,6 +219,7 @@ test('managed choice compares known cost before its stable registration key', as
   let completed = false, ran;
   const core = {
     count: () => 2,
+    taskCapacity: () => [0n, 0n],
     nextTask: () => completed ? -1 : 1,
     managedProducers: () => completed ? [] : [0],
     selectManaged: () => true,
@@ -244,6 +252,132 @@ test('managed choice compares known cost before its stable registration key', as
   const result = await runInstalledStrategy(setup, core, entries);
   assert.equal(result.status, 'host-tasks-completed');
   assert.equal(ran, 'cheap');
+  assert(result.candidateExclusions.some(value =>
+    value.registrationKey === 'unknown' &&
+    value.reason === 'MissingDurationEstimate'));
+  result.close();
+});
+
+test('Site startup and Transfer costs participate in standard managed choice', async () => {
+  for (const transferMilliseconds of [1n, 20n]) {
+    const setup = {};
+    const registrations = {producer: {}, same: {}, moved: {}};
+    const sourceSite = createInProcessExecutionSite({
+      key: `source-${transferMilliseconds}`,
+      generation: 1,
+      runtimeRevision: 'site-cost-test/1',
+      startupMilliseconds: 0n,
+      transferMilliseconds: 0n,
+    });
+    const destinationSite = createInProcessExecutionSite({
+      key: `destination-${transferMilliseconds}`,
+      generation: 1,
+      runtimeRevision: 'site-cost-test/1',
+      startupMilliseconds: 0n,
+      transferMilliseconds,
+    });
+    const complete = new Set();
+    const selected = [];
+    let producerOutput;
+    const currentTask = () => complete.has(1) ? complete.has(2) ? -1 : 2 : 1;
+    const core = {
+      count: () => 3,
+      taskCapacity: () => [0n, 0n],
+      next: () => assert.fail('legacy execution is not part of this protocol test'),
+      nextTask: currentTask,
+      managedProducers: () => currentTask() === 2 ? [1] : [],
+      selectManaged: (_setup, task, registration) => {
+        selected.push([task, registration]);
+        return true;
+      },
+      managedMatches: () => true,
+      completed: (_setup, task) => complete.has(task),
+      finished: () => complete.has(1) && complete.has(2),
+      stop: () => {},
+      closeOutputs: () => {},
+      output: () => undefined,
+      usage: () => ({}),
+      explain: () => ({}),
+    };
+    const producer = {
+      registration: registrations.producer,
+      managedSelectionKey: 'producer',
+      run() { assert.fail('legacy execution is not part of this protocol test'); },
+      prepareNext() {
+        return currentTask() === 1
+          ? {task: 1, inputs: [], durationMilliseconds: 1n}
+          : undefined;
+      },
+      runPrepared(prepared) {
+        assert.equal(prepared.executionSite, sourceSite);
+        complete.add(1);
+        producerOutput = {completed: {}, material: {}};
+        return producerOutput;
+      },
+    };
+    const consumer = (key, registration, expectedSite, duration) => ({
+      registration,
+      managedSelectionKey: key,
+      run() { assert.fail('legacy execution is not part of this protocol test'); },
+      prepareNext(outputs) {
+        if (currentTask() !== 2) return undefined;
+        const input = outputs.get(1);
+        assert(input);
+        return {
+          task: 2,
+          inputs: [input],
+          acceptsSiteTransfer: true,
+          durationMilliseconds: duration,
+        };
+      },
+      runPrepared(prepared) {
+        assert.equal(prepared.executionSite, expectedSite);
+        throw Object.assign(new Error('stop after observing selected Site'), {
+          code: 'ObservedSelectedExecutionSite',
+        });
+      },
+    });
+    const entries = [
+      producer,
+      consumer('same', registrations.same, sourceSite, 10n),
+      consumer('moved', registrations.moved, destinationSite, 1n),
+    ];
+    const estimate = Object.freeze({
+      transferBytes: 1n,
+      retainedBytes: 1n,
+      executionBytes: 1n,
+    });
+    const policy = prepareExecutionSitePolicy({
+      sites: [sourceSite, destinationSite],
+      placements: new Map([
+        ['producer', [sourceSite]],
+        ['same', [sourceSite]],
+        ['moved', [destinationSite]],
+      ]),
+      transferProvider: Object.freeze({
+        contract: managedMemoryTransferContract,
+        estimate: () => estimate,
+        copy() { assert.fail('candidate comparison must not perform Transfer I/O'); },
+      }),
+    });
+    const result = await runInstalledStrategy(
+      setup, core, entries, undefined, undefined, policy,
+    );
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.failure?.code, 'ObservedSelectedExecutionSite');
+    assert.equal(selected.length, 2);
+    assert.equal(selected[0][1], registrations.producer);
+    assert.equal(selected[1][1], transferMilliseconds === 1n
+      ? registrations.moved : registrations.same);
+    assert.deepEqual(result.completed.map(value => value.executionSite.key),
+      [executionSiteStatus(sourceSite).key]);
+    result.close();
+    beginExecutionSiteTeardown(sourceSite);
+    beginExecutionSiteTeardown(destinationSite);
+    assert.equal(executionSiteStatus(sourceSite).teardownComplete, true);
+    assert.equal(executionSiteStatus(destinationSite).teardownComplete, true);
+    assert(producerOutput);
+  }
 });
 
 test('equal names in foreign registration and callback success cannot publish completion', async () => {
@@ -332,6 +466,141 @@ test('result close attempts every release even if one implementation fails', asy
   assert.equal(await result.cleanup(), false);
   result.close();
   assert.deepEqual(released, [1, 2]);
+});
+
+test('Site teardown waits for retained result reclamation and its retry', async () => {
+  const registration = {};
+  const contribution = {
+    registration,
+    managedSelectionKey: 'retained-result',
+  };
+  const selectedSite = createInProcessExecutionSite({
+    key: 'retained-site',
+    generation: 3,
+    runtimeRevision: 'test-runtime/1',
+  });
+  const sitePolicy = prepareExecutionSitePolicy({sites: [selectedSite]});
+  let pending = true;
+  const cleanupHandle = Object.freeze({
+    status: () => Object.freeze({pending}),
+    async retry() { pending = false; return this.status(); },
+  });
+  const f = fixture([registration]);
+  contribution.run = task => {
+    f.complete.add(task.index);
+    return Object.freeze({
+      close() {
+        throw Object.assign(new Error('retained cleanup pending'), {
+          cleanupPending: true,
+          cleanupHandle,
+        });
+      },
+    });
+  };
+  const result = await runInstalledStrategy(
+    f.setup, f.core, [contribution], undefined, undefined, sitePolicy,
+  );
+  assert.equal(result.status, 'host-tasks-completed');
+  assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete, false);
+  assert.throws(() => result.close(), /retained cleanup pending/);
+  assert.equal(executionSiteStatus(selectedSite).holdings, 1);
+  assert.equal(executionSiteStatus(selectedSite).teardownComplete, false);
+  assert.equal(await result.cleanup(), true);
+  assert.equal(executionSiteStatus(selectedSite).holdings, 0);
+  assert.equal(executionSiteStatus(selectedSite).teardownComplete, true);
+});
+
+test('legacy dispatch enforces Site bytes and retains Core-owned output', async () => {
+  const registration = {};
+  const rejectedSite = createInProcessExecutionSite({
+    key: 'legacy-rejected-site',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    maxRetainedBytes: 5n,
+  });
+  const rejectedPolicy = prepareExecutionSitePolicy({sites: [rejectedSite]});
+  const rejected = fixture([registration]);
+  rejected.core.taskCapacity = () => [6n, 0n];
+  let dispatched = false;
+  const denied = await runInstalledStrategy(
+    rejected.setup,
+    rejected.core,
+    [{
+      registration,
+      run() {
+        dispatched = true;
+        rejected.complete.add(1);
+      },
+    }],
+    undefined,
+    undefined,
+    rejectedPolicy,
+  );
+  assert.equal(denied.failure?.code, 'ExecutionSiteCapacityEstimateExceeded');
+  assert.equal(dispatched, false);
+  assert.equal(executionSiteStatus(rejectedSite).reservedRetentionBytes, 0n);
+
+  const retainedSite = createInProcessExecutionSite({
+    key: 'legacy-retained-site',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    maxRetainedBytes: 4n,
+  });
+  const retainedPolicy = prepareExecutionSitePolicy({sites: [retainedSite]});
+  const retained = fixture([registration]);
+  const output = {};
+  retained.core.taskCapacity = () => [4n, 0n];
+  retained.core.output = () => output;
+  const completed = await runInstalledStrategy(
+    retained.setup,
+    retained.core,
+    [{registration, run() { retained.complete.add(1); }}],
+    undefined,
+    undefined,
+    retainedPolicy,
+  );
+  assert.equal(completed.status, 'host-tasks-completed');
+  assert.equal(executionSiteStatus(retainedSite).heldBytes, 4n);
+  assert.equal(beginExecutionSiteTeardown(retainedSite).teardownComplete, false);
+  completed.close();
+  assert.equal(executionSiteStatus(retainedSite).heldBytes, 0n);
+  assert.equal(executionSiteStatus(retainedSite).teardownComplete, true);
+});
+
+test('cleanup advances a stopped reader before awaiting its retained output close', async () => {
+  const registration = {};
+  const f = fixture([registration, registration]);
+  let releaseClose;
+  const closeWait = new Promise(resolve => { releaseClose = resolve; });
+  let pending = true, retries = 0;
+  const cleanupHandle = Object.freeze({
+    status: () => Object.freeze({pending}),
+    async retry() {
+      retries++;
+      pending = false;
+      releaseClose();
+      return this.status();
+    },
+  });
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run(task) {
+      if (task.index === 1) {
+        f.complete.add(task.index);
+        return {close: () => closeWait};
+      }
+      throw Object.assign(new Error('reader stop pending'), {
+        cleanupPending: true,
+        cleanupHandle,
+      });
+    },
+  }]);
+  assert.equal(result.status, 'host-tasks-failed');
+  const closing = result.close();
+  assert(closing instanceof Promise);
+  assert.equal(await result.cleanup(), true);
+  await closing;
+  assert.equal(retries, 1);
 });
 
 test('reasonless and non-Error failures preserve the first payload across every execution phase', async () => {

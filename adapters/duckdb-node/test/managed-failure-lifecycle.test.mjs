@@ -66,6 +66,11 @@ export const withComputeDatabase=()=>{throw new Error('native must not start');}
       'export const checked=value=>value;\n');
     await writeFile(join(duckdb, 'managed-column-codec.mjs'), `
 export const managedColumnCodecContractCid='column';
+export const managedColumnTransferEstimate=()=>({
+  transferBytes:1n,
+  retainedBytes:1n,
+  executionBytes:1n,
+});
 export const encodeManagedColumnFrame=()=>{throw new Error('encoder must not run');};
 export const managedColumnRowProvider=()=>{throw new Error('provider must not run');};
 `);

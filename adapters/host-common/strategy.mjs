@@ -1,13 +1,178 @@
 // Trusted JavaScript coordination only. Checked readiness, selected ownership,
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
+import {bindExecutionSiteCandidate, executionSiteCandidate,
+  executionSiteDescription, executionSiteOperationAvailable,
+  executionSitePlacements, installExecutionSites,
+  prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
+  retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
+  startExecutionSiteOperation} from './execution-sites.mjs';
+import {createManagedSiteTransferCoordinator} from
+  './managed-site-transfer.mjs';
+
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
 }
 
 const active = new WeakSet();
+const failureMember = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
 
-export async function runInstalledStrategy(setup, core, contributions, signal, observeCompletion) {
+function ownedStrategyFailure(reason, fallbackCode) {
+  const code = typeof failureMember(reason, 'code') === 'string'
+    ? failureMember(reason, 'code') : fallbackCode;
+  const failure = new StrategyHostError(code);
+  failure.cause = reason;
+  failure.primaryFailure = reason;
+  const errors = failureMember(reason, 'cleanupErrors');
+  failure.cleanupErrors = Object.freeze(
+    Array.isArray(errors) ? [...errors] : [],
+  );
+  return failure;
+}
+
+// A Site holding describes the lifetime of the concrete retained result, not
+// merely the JavaScript wrapper returned by a contribution. This adapter
+// deliberately preserves the contribution's synchronous/asynchronous close
+// behavior and original thrown value. Its separate cleanup observer releases
+// the Site holding only after an explicit underlying recovery handle confirms
+// physical reclamation.
+function retainSiteResult(operation, result, retainedBytes) {
+  const holding = retainExecutionSiteOperationHolding(
+    operation, result?.material ?? result, retainedBytes,
+  );
+  let released = false;
+  let closeStarted = false;
+  let closeResult;
+  let closeFailure;
+  let cleanupTracked = false;
+  const release = () => {
+    if (released) return;
+    releaseExecutionSiteHolding(holding);
+    released = true;
+  };
+  return Object.freeze({
+    status: () => Object.freeze({released}),
+    close() {
+      if (released || closeStarted) return closeResult;
+      closeStarted = true;
+      try {
+        closeResult = typeof result?.close === 'function'
+          ? result.close() : undefined;
+      }
+      catch (reason) { closeFailure = reason; throw reason; }
+      if (closeResult != null && typeof closeResult.then === 'function') {
+        closeResult = Promise.resolve(closeResult).then(
+          value => { release(); return value; },
+          reason => { closeFailure = reason; throw reason; },
+        );
+      } else {
+        release();
+      }
+      return closeResult;
+    },
+    afterFailure(reason, remember) {
+      if (cleanupTracked || released || reason !== closeFailure) return;
+      const upstream = failureMember(reason, 'cleanupHandle');
+      if (failureMember(reason, 'cleanupPending') !== true ||
+          !upstream || typeof failureMember(upstream, 'status') !== 'function') {
+        return;
+      }
+      cleanupTracked = true;
+      const state = () => {
+        try {
+          const value = upstream.status();
+          if (value?.pending === false) release();
+          return Object.freeze({
+            pending: !released,
+            errors: Object.freeze(Array.isArray(value?.errors)
+              ? [...value.errors] : []),
+          });
+        } catch (error) {
+          return Object.freeze({pending: true, errors: Object.freeze([error])});
+        }
+      };
+      const cleanupHandle = Object.freeze({
+        status: state,
+        async retry() { return state(); },
+      });
+      remember(Object.assign(new Error('ExecutionSiteCleanupPending'), {
+        cleanupPending: true,
+        cleanupHandle,
+      }), cleanupHandle);
+    },
+  });
+}
+
+// Core-owned synchronous outputs have no connector close callback. Keep their
+// Site holdings through the exact common output lifetime and release them only
+// after the Core close succeeds or its explicit cleanup handle confirms it.
+function coreOutputSiteOwner(core, setup) {
+  const retained = new Set();
+  let closeFailure;
+  let cleanupTracked = false;
+  const release = () => {
+    for (const holding of retained) releaseExecutionSiteHolding(holding);
+    retained.clear();
+  };
+  return Object.freeze({
+    retain(operation, value, retainedBytes) {
+      retained.add(retainExecutionSiteOperationHolding(
+        operation, value, retainedBytes,
+      ));
+    },
+    close() {
+      try { core.closeOutputs(setup); }
+      catch (reason) { closeFailure = reason; throw reason; }
+      release();
+    },
+    afterFailure(reason, remember) {
+      if (cleanupTracked || retained.size === 0 || reason !== closeFailure) return;
+      const upstream = failureMember(reason, 'cleanupHandle');
+      if (failureMember(reason, 'cleanupPending') !== true ||
+          !upstream || typeof failureMember(upstream, 'status') !== 'function') {
+        return;
+      }
+      cleanupTracked = true;
+      const state = () => {
+        try {
+          const value = upstream.status();
+          if (value?.pending === false) release();
+          return Object.freeze({
+            pending: retained.size !== 0,
+            errors: Object.freeze(Array.isArray(value?.errors)
+              ? [...value.errors] : []),
+          });
+        } catch (error) {
+          return Object.freeze({pending: true, errors: Object.freeze([error])});
+        }
+      };
+      const cleanupHandle = Object.freeze({
+        status: state,
+        async retry() {
+          if (state().pending && typeof failureMember(upstream, 'retry') ===
+              'function') {
+            await upstream.retry();
+          }
+          return state();
+        },
+      });
+      remember(Object.assign(new Error('ExecutionSiteCleanupPending'), {
+        cleanupPending: true,
+        cleanupHandle,
+      }), cleanupHandle);
+    },
+  });
+}
+
+export async function runInstalledStrategy(
+  setup, core, contributions, signal, observeCompletion, sitePolicy,
+) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
   }
@@ -31,8 +196,52 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
       finish: entry.finish,
     }));
   }
+  const siteInstallation = installExecutionSites(
+    sitePolicy ?? prepareSingleExecutionSitePolicy(),
+    [...installed.values()],
+  );
+  const transfers = createManagedSiteTransferCoordinator(
+    setup, core, siteInstallation,
+  );
+  const coreSiteOutputs = coreOutputSiteOwner(core, setup);
+  const settleSiteAfterFailure = (operation, error) => {
+    if (failureMember(error, 'cleanupPending') !== true ||
+        typeof failureMember(
+          failureMember(error, 'cleanupHandle'), 'status',
+        ) !== 'function') {
+      settleExecutionSiteOperation(operation);
+      return error;
+    }
+    const upstream = failureMember(error, 'cleanupHandle');
+    const failure = ownedStrategyFailure(error, 'StrategyExecutionFailed');
+    const combined = Object.freeze({
+      status() {
+        let state;
+        try { state = upstream.status(); }
+        catch (failure) {
+          return Object.freeze({pending: true, errors: Object.freeze([failure])});
+        }
+        if (state?.pending === false) settleExecutionSiteOperation(operation);
+        return Object.freeze({
+          pending: state?.pending !== false,
+          errors: Object.freeze(Array.isArray(state?.errors)
+            ? [...state.errors] : []),
+        });
+      },
+      async retry() {
+        if (upstream.status()?.pending !== false &&
+            typeof upstream.retry === 'function') await upstream.retry();
+        return combined.status();
+      },
+    });
+    failure.cleanupHandle = combined;
+    failure.cleanupPending = combined.status().pending;
+    return failure;
+  };
   active.add(setup);
   const completed = [];
+  const candidateExclusions = [];
+  const candidateComparisons = [];
   const outputs = [];
   const managedOutputs = new Map();
   const pendingCleanup = new Set();
@@ -79,36 +288,67 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         signal?.throwIfAborted();
       }
       signal?.throwIfAborted();
+      const managedInputs = core.managedProducers?.(setup) ?? [];
       const prepared = [];
+      const excludedManagedCandidates = [];
       for (const entry of installed.values()) {
         const task = await entry.prepareNext?.(managedOutputs);
-        if (task != null) prepared.push({entry, task});
+        if (task == null) continue;
+        for (const site of executionSitePlacements(siteInstallation, entry)) {
+          const siteCandidate = executionSiteCandidate({
+            installation: siteInstallation,
+            contribution: entry,
+            site,
+            task: task.task,
+            registration: entry.registration,
+            inputs: Array.isArray(task.inputs) ? task.inputs : [],
+            durationMilliseconds: task.durationMilliseconds,
+            acceptsSiteTransfer: task.acceptsSiteTransfer === true,
+            capacity: task.siteCapacity,
+          });
+          if (siteCandidate && siteCandidate.excluded === undefined) {
+            prepared.push({entry, task, siteCandidate});
+            candidateComparisons.push(Object.freeze({
+              task: task.task,
+              registrationKey: entry.managedSelectionKey,
+              site: executionSiteDescription(site),
+              durationMilliseconds: siteCandidate.durationMilliseconds,
+            }));
+          } else {
+            const reason = siteCandidate?.excluded ?? 'ExecutionSiteUnavailable';
+            excludedManagedCandidates.push(reason);
+            candidateExclusions.push(Object.freeze({
+              task: task.task,
+              registrationKey: entry.managedSelectionKey,
+              site: executionSiteDescription(site),
+              reason,
+            }));
+          }
+        }
       }
       const managedTask = prepared.length ? core.nextTask(setup) : -1;
       for (const candidate of prepared) {
-        const duration = candidate.task.durationMilliseconds;
-        const key = candidate.entry.managedSelectionKey;
+        const duration = candidate.siteCandidate.durationMilliseconds;
+        const key = candidate.siteCandidate.selectionKey;
         if (candidate.task.task !== managedTask ||
-            (duration !== null && (typeof duration !== 'bigint' || duration < 0n)) ||
+            typeof duration !== 'bigint' || duration < 0n ||
             typeof key !== 'string' || key.length === 0) {
           throw new StrategyHostError('InvalidManagedCandidate');
         }
       }
-      if (new Set(prepared.map(value => value.entry.managedSelectionKey)).size !==
+      if (new Set(prepared.map(value => value.siteCandidate.selectionKey)).size !==
           prepared.length) {
         throw new StrategyHostError('DuplicateManagedSelectionKey');
       }
       prepared.sort((left, right) => {
-        const a = left.task.durationMilliseconds;
-        const b = right.task.durationMilliseconds;
-        if (a !== null && b !== null && a !== b) return a < b ? -1 : 1;
-        if (a === null && b !== null) return 1;
-        if (a !== null && b === null) return -1;
-        return left.entry.managedSelectionKey < right.entry.managedSelectionKey
-          ? -1 : left.entry.managedSelectionKey > right.entry.managedSelectionKey ? 1 : 0;
+        const a = left.siteCandidate.durationMilliseconds;
+        const b = right.siteCandidate.durationMilliseconds;
+        if (a !== b) return a < b ? -1 : 1;
+        const leftKey = left.siteCandidate.selectionKey;
+        const rightKey = right.siteCandidate.selectionKey;
+        return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
       });
       const managed = prepared[0];
-      const managedInputs = core.managedProducers?.(setup) ?? [];
       if (!managed && Array.isArray(managedInputs) && managedInputs.length !== 0) {
         const retainedInputs = managedInputs.filter(producer =>
           managedOutputs.has(producer));
@@ -116,7 +356,17 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         // dispatcher. Once any exact managed producer is selected, silently
         // dropping it or mixing it with a legacy reconstruction is forbidden.
         if (retainedInputs.length !== 0) {
-          throw new StrategyHostError('NoCompatibleManagedStrategy');
+          const code = excludedManagedCandidates.some(value =>
+            ['MissingDurationEstimate', 'MissingTransferEstimate']
+              .includes(value))
+            ? 'ManagedCandidateEstimateUnavailable'
+            : excludedManagedCandidates.some(value =>
+              ['MissingTransferProvider',
+                'UnsupportedTransferRepresentation',
+                'SourceSiteRevoked'].includes(value))
+              ? 'ManagedSiteTransferUnavailable'
+              : 'NoCompatibleManagedStrategy';
+          throw new StrategyHostError(code);
         }
       }
       const task = managed ? managed.task : core.next(setup);
@@ -130,24 +380,104 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
       if (managed && !core.selectManaged(setup, index, managed.entry.registration)) {
         throw new StrategyHostError('ManagedSelectionRejected');
       }
-      const result = await (managed
-        ? entry.runPrepared(task, signal)
-        : entry.run(task, signal));
-      if (result?.close) outputs.push(result);
+      const siteCandidate = managed?.siteCandidate ?? executionSiteCandidate({
+        installation: siteInstallation,
+        contribution: entry,
+        site: executionSitePlacements(siteInstallation, entry)[0],
+        task: index,
+        registration: entry.registration,
+        inputs: [],
+        durationMilliseconds: 0n,
+        acceptsSiteTransfer: false,
+        capacity: (() => {
+          const value = core.taskCapacity(setup, index);
+          if (!Array.isArray(value) || value.length !== 2 ||
+              value.some(item => typeof item !== 'bigint' || item < 0n)) {
+            throw new StrategyHostError('InvalidExecutionSiteCapacity');
+          }
+          return Object.freeze({
+            retainedBytes: value[0],
+            executionBytes: value[1],
+          });
+        })(),
+      });
+      if (!siteCandidate || siteCandidate.excluded !== undefined) {
+        throw new StrategyHostError(
+          siteCandidate?.excluded ?? 'ExecutionSiteUnavailable',
+        );
+      }
+      const siteBinding = bindExecutionSiteCandidate(siteCandidate);
+      const siteOperation = startExecutionSiteOperation(siteBinding);
+      let siteInputsResolved = siteCandidate.transfers.length === 0;
+      let siteResolution;
+      const resolveSiteInputs = (inputs, transferSignal = signal) => {
+        if (!siteResolution) {
+          siteResolution = transfers.resolve(
+            siteCandidate, inputs, transferSignal,
+          ).then(value => {
+            siteInputsResolved = true;
+            return value;
+          });
+        }
+        return siteResolution;
+      };
+      const siteCompletionReady = () => siteInputsResolved &&
+        executionSiteOperationAvailable(siteOperation);
+      const siteTask = managed ? Object.freeze({
+        ...task,
+        executionSite: siteCandidate.site,
+        resolveSiteInputs,
+        siteCompletionReady,
+      }) : task;
+      let result, siteResult;
+      try {
+        result = await (managed
+          ? entry.runPrepared(siteTask, signal)
+          : entry.run(task, signal));
+        if (managed && !siteCompletionReady()) {
+          throw new StrategyHostError('ExecutionSiteCompletionNotReady');
+        }
+        if (!core.completed(setup, index)) {
+          throw new StrategyHostError('TaskNotCompleted');
+        }
+        if (managed || result?.close) {
+          siteResult = retainSiteResult(
+            siteOperation, result, siteCandidate.capacity.retainedBytes,
+          );
+        } else {
+          const output = core.output(setup, index);
+          if (output == null) throw new StrategyHostError('MissingCompletedOutput');
+          coreSiteOutputs.retain(
+            siteOperation, output, siteCandidate.capacity.retainedBytes,
+          );
+        }
+        settleExecutionSiteOperation(siteOperation);
+        if (siteResult) outputs.push(siteResult);
+      } catch (error) {
+        throw settleSiteAfterFailure(siteOperation, error);
+      }
       // A callback's resolved Promise is not a completion proof. The core must
       // already have installed this exact task's retained, verified output.
-      if (!core.completed(setup, index)) throw new StrategyHostError('TaskNotCompleted');
       if (result?.completed != null || result?.material != null) {
         if (result.completed == null || result.material == null ||
             !core.managedMatches(setup, index, result.completed)) {
           throw new StrategyHostError('InvalidManagedCompletion');
         }
         managedOutputs.set(index, Object.freeze({
-          completed: result.completed, material: result.material,
-          close: result.close,
+          task: index,
+          completed: result.completed,
+          material: result.material,
+          site: siteCandidate.site,
+          siteMaterial: result.siteMaterial ?? result.material,
+          materialGeneration: result.materialGeneration ?? result.material,
+          close: siteResult?.close,
         }));
       }
-      completed.push(Object.freeze({ ...result?.diagnostic, task: index }));
+      completed.push(Object.freeze({
+        ...result?.diagnostic,
+        task: index,
+        executionSite: executionSiteDescription(siteCandidate.site),
+      }));
       if (observeCompletion) {
         const output = result?.completed ?? core.output(setup, index);
         if (output == null) throw new StrategyHostError('MissingCompletedOutput');
@@ -158,6 +488,17 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         try { await observeCompletion(Object.freeze({task: index, output})); }
         catch (error) { rememberCleanup(error, observeCompletion); throw error; }
         signal?.throwIfAborted();
+      }
+      if (managed) {
+        for (const producer of task.releasableProducers ?? []) {
+          const output = task.outputs?.get(producer);
+          if (output?.siteMaterial) {
+            await transfers.releaseSource(output);
+          }
+          if (output?.close) await output.close();
+          task.outputs?.delete(producer);
+          managedOutputs.delete(producer);
+        }
       }
     }
     if (!core.finished(setup)) throw new StrategyHostError('StrategyNotComplete');
@@ -177,24 +518,35 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
     status: failed ? 'host-tasks-failed' : 'host-tasks-completed',
     failure,
     completed: Object.freeze(completed),
+    candidateExclusions: Object.freeze(candidateExclusions),
+    candidateComparisons: Object.freeze(candidateComparisons),
     usage: () => core.usage(setup),
     cleanupPending,
     cleanup() {
       if (cleanupInFlight) return cleanupInFlight;
       cleanupInFlight = (async () => {
-        // Closing a file-backed output may still be awaiting readers or native
-        // cleanup. Observe every initiated close before inspecting its recovery
-        // handles; an unresolved Promise is not release confirmation.
-        await Promise.all([...pendingCloses]);
         // Attempt every independent recovery even when an earlier one fails.
         // Only an explicit recovery handle authorizes retry; never run Compute.
         const errors = [];
-        for (const handle of pendingCleanup) {
-          try {
-            if (handle.status().pending) await handle.retry();
-            if (!handle.status().pending) pendingCleanup.delete(handle);
-          } catch (error) { errors.push(error); }
-        }
+        const attempted = new Set();
+        const retryKnown = async () => {
+          for (const handle of [...pendingCleanup]) {
+            if (attempted.has(handle)) continue;
+            attempted.add(handle);
+            try {
+              if (handle.status().pending) await handle.retry();
+              if (!handle.status().pending) pendingCleanup.delete(handle);
+            } catch (error) { errors.push(error); }
+          }
+        };
+        // A retained output close may wait for a failed Transfer's source pin,
+        // while that pin belongs to an already known recovery handle. Progress
+        // known operation cleanup first, then observe every initiated close.
+        // Close failures can contribute new explicit handles, so run one more
+        // pass after those Promises have settled.
+        await retryKnown();
+        await Promise.all([...pendingCloses]);
+        await retryKnown();
         if (errors.length) throw new AggregateError(errors, 'Strategy cleanup failed');
         return !cleanupPending();
       })().finally(() => { cleanupInFlight = undefined; });
@@ -224,7 +576,17 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         if (!closeFailed) closeFailure = error;
         closeFailed = true;
         rememberCleanup(error, owner);
+        owner?.afterFailure?.(error, rememberCleanup);
       };
+      try {
+        const result = transfers.close();
+        if (result != null && typeof result.then === 'function') {
+          const pending = Promise.resolve(result).then(
+            () => {}, error => releaseFailed(error, transfers),
+          ).finally(() => pendingCloses.delete(pending));
+          pendingCloses.add(pending);
+        }
+      } catch (error) { releaseFailed(error, transfers); }
       for (const output of outputs) {
         try {
           const result = output.close();
@@ -237,7 +599,8 @@ export async function runInstalledStrategy(setup, core, contributions, signal, o
         } catch (error) { releaseFailed(error, output); }
       }
       outputs.length = 0;
-      try { core.closeOutputs(setup); } catch (error) { releaseFailed(error, core); }
+      try { coreSiteOutputs.close(); }
+      catch (error) { releaseFailed(error, coreSiteOutputs); }
       if (pendingCloses.size) {
         closeResult = Promise.all([...pendingCloses]).then(() => {
           if (closeFailed) throw closeFailure;

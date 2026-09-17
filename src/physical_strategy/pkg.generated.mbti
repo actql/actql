@@ -16,7 +16,11 @@ import {
 }
 
 // Values
+pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
+
+pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
 pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnvironment, RunIssue]
 
@@ -41,6 +45,16 @@ pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_managed_transfer_pending(ManagedTransfer) -> Bool
+
+pub fn captured_managed_transfer_receipt_attempt(ManagedTransferReceipt) -> Int
+
+pub fn captured_managed_transfer_receipt_available(ManagedTransferReceipt) -> Bool
+
+pub fn captured_managed_transfer_receipt_bytes(ManagedTransferReceipt) -> (Int64, Int64)
+
+pub fn captured_managed_transfer_receipt_source(ManagedTransferReceipt) -> Int
 
 pub fn captured_next_managed_obligations(CapturedDAG, Int) -> Result[@execution_relation.ManagedObligations, @execution_relation.ManagedObligationIssue]
 
@@ -68,6 +82,8 @@ pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execu
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
+pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -81,6 +97,8 @@ pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
+
+pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[ManagedTransferReceipt, RunIssue]
 
 pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
 
@@ -146,6 +164,8 @@ pub fn refresh_captured_retention(CapturedDAG) -> Unit
 
 pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
 
+pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
+
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
@@ -187,6 +207,8 @@ pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.Le
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
 pub fn select_captured_managed_registration(CapturedDAG, Int, @connector_sdk.CapabilityRegistration) -> Result[Unit, RunIssue]
+
+pub fn settle_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn settle_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -291,6 +313,10 @@ pub(all) enum GraphIssue {
   NonDAG(Int)
   ForeignRequirement(Int)
 } derive(Eq, @debug.Debug)
+
+type ManagedTransfer
+
+type ManagedTransferReceipt
 
 pub(all) struct PhysicalEnvelope {
   transfer_bytes : Int64

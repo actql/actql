@@ -122,6 +122,28 @@ pub fn ${name}_managed_dispatch(
   }
 }
 `;
+    if (c.managed_duration) {
+      bridge += `
+///|
+#export_name("strategyModule_${name}_ManagedDuration")
+pub fn ${name}_managed_duration(
+  setup : ${type(c.managed_dispatch_result)}[Int],
+) -> Int64? {
+  ${pkg}.${c.managed_duration}(setup)
+}
+`;
+    }
+    if (c.managed_capacity) {
+      bridge += `
+///|
+#export_name("strategyModule_${name}_ManagedCapacity")
+pub fn ${name}_managed_capacity(
+  setup : ${type(c.managed_dispatch_result)}[Int],
+) -> (Int64, Int64)? {
+  ${pkg}.${c.managed_capacity}(setup)
+}
+`;
+    }
     if (c.managed_start) {
       const managedStart = `${type(c.managed_start_result)}[Int]`;
       bridge += `

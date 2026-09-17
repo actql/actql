@@ -143,6 +143,19 @@ pub fn estimate_local_dispatch_offer(
     offers.push({ work_slots: [slots], milliseconds, })
     slots += 1
   }
+  let execution = if installed.import_policy is Some(_) ||
+    installed.output_policy is Some(_) {
+    if retained > 9223372036854775807L - capacity.execution_bytes {
+      return Err(Configuration(InvalidLimits))
+    }
+    // Managed import may keep the admitted input representation and the
+    // independent output allocation live together until completion commits.
+    // Advertise that peak before selection; execution must never discover a
+    // larger requirement than the selected envelope.
+    capacity.execution_bytes + retained
+  } else {
+    capacity.execution_bytes
+  }
   @strategy.prepare_task_offer(
     installed.run,
     task,
@@ -152,7 +165,7 @@ pub fn estimate_local_dispatch_offer(
     {
       transfer_bytes: transfer,
       retained_bytes: retained,
-      execution_bytes: capacity.execution_bytes,
+      execution_bytes: execution,
     },
     max_work,
   )

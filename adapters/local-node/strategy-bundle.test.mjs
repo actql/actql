@@ -103,12 +103,15 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       strategyHostManagedProducers: () => [1],
       strategyHostManagedRequiresLogicalIdentity: () => ok(false),
       strategyHostReleasableManagedProducers: () => [],
+      strategyModule_local_ManagedDuration: () => 1n,
+      strategyModule_local_ManagedCapacity: () => [0n, 0n],
       strategyModule_local_ManagedDispatch: () => ok(
         localSupported ? {configuration: true} : undefined),
     }, setup, checked);
     let complete = false, selected, ran;
     const core = {
       count: () => 3,
+      taskCapacity: () => [0n, 0n],
       next: () => ({task: 1}),
       task: task => task.task,
       registration: () => registrations.source,
@@ -119,7 +122,8 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       completed: (_, task) => task === 1 || complete,
       finished: () => complete,
       stop: () => {}, closeOutputs: () => {},
-      output: () => undefined, usage: () => ({}), explain: () => ({}),
+      output: (_, task) => task === 1 ? inputCompleted : undefined,
+      usage: () => ({}), explain: () => ({}),
     };
     const source = {
       registration: registrations.source,
