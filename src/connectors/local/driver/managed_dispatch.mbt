@@ -75,8 +75,16 @@ pub fn[T] prepare_local_managed_dispatch(
       Err(issue) => return Err(Execution(issue))
     }
   }
+  guard @strategy.graph_task_owner(
+      @strategy.captured_dag_graph(installed.run),
+      task,
+    )
+    is Some(owner) else {
+    return Err(Execution(ForeignCandidate))
+  }
   let request = match
-    @connector.prepare_managed_fixed_compute_request(
+    @connector.prepare_managed_fixed_compute_request_for_owner(
+      owner,
       inputs,
       @local.local_module_managed_capacity(installed.implementation),
       obligations,

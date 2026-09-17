@@ -74,15 +74,20 @@ pub fn[T] local_managed_fixed_compute_candidate(
 pub fn local_managed_sequence_supported(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
-  @execution.generated_sequence_all_row_kernels(sequence, fn(body) {
-    match body {
-      SnapshotMap(_)
-      | OrderedBindings(_)
-      | Filter(_)
-      | Select(_)
-      | Limit(_, _, _)
-      | StableSort(_) => true
-      DistinctRows | DedupeRows | CountGroups(_) => false
+  @execution.generated_sequence_all_steps(sequence, fn(step) {
+    match step {
+      @lower.ValuesStep(_) => true
+      @lower.RowStep(kernel) =>
+        match @lower.kernel_body(kernel) {
+          SnapshotMap(_)
+          | OrderedBindings(_)
+          | Filter(_)
+          | Select(_)
+          | Limit(_, _, _)
+          | StableSort(_) => true
+          DistinctRows | DedupeRows | CountGroups(_) => false
+        }
+      @lower.JoinStep(_) => false
     }
   })
 }

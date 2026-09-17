@@ -45,6 +45,14 @@ test "initial Local managed support is a finite unary surface" {
       ),
     )
   }
+  let values = local_managed_support_owner(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":7}]},\"as\":\"seed\"}]",
+  )
+  assert_true(
+    @local_connector.local_managed_sequence_supported(
+      task_test_generated(values),
+    ),
+  )
 }
 
 ///|
