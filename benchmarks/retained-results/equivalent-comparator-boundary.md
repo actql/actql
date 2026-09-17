@@ -185,6 +185,16 @@ not equality requirements: eliminating repeated product work is expected to
 make some physical counts differ. Logical guard and comparison charges remain
 separate and are still required for equivalence admission.
 
+A clean single-pair smoke at `c9527652` used the 100-row low-selectivity,
+narrow fixture. Both legs performed five identity passes over 2,365 preimage
+bytes and retained 84 canonical bytes. The product leg admitted 114 semantic
+rows and 214 cells versus 108 and 208 in the independent leg, with 4,092 versus
+3,969 JSON transport bytes. The exact difference—six rows, six cells and 123
+bytes—is the three downstream product consumers rechecking their two-row input;
+it is no longer hidden inside control-channel traffic. Warm intervals were
+9.30 ms and 2.65 ms, respectively, but remain diagnostic until the outstanding
+logical and resource obligations close.
+
 This closes the assembly ambiguity around source mutation, process placement,
 clock ownership, warm scope and alternating order. It does **not** close
 comparator equivalence. The equivalent child still reports
