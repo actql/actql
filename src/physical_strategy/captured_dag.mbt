@@ -316,6 +316,69 @@ pub fn captured_task_input(
 }
 
 ///|
+/// Prepare one typed managed input at the exact ready graph edge. The caller
+/// must supply the concrete Host-owned output that matches the graph's opaque
+/// completed occurrence. This creates a use-site binding only; dispatch still
+/// requires Store pin, current authority and resource admission.
+pub fn[T] captured_managed_task_input(
+  run : CapturedDAG,
+  task : Int,
+  output : @execution.ManagedCompletedOutput[T],
+  max_entries : Int,
+  max_name_bytes : Int,
+  input_index? : Int = 0,
+) -> Result[@execution.ManagedProducerRead[T], RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) ||
+    input_index < 0 ||
+    input_index >= run.inputs[task].length() {
+    return Err(NotReady)
+  }
+  let mut selected : DataEdge? = None
+  for edge in run.graph.data {
+    if edge.consumer == task && edge.input == input_index {
+      selected = Some(edge)
+      break
+    }
+  }
+  guard selected is Some(edge) &&
+    edge.producer > 0 &&
+    captured_managed_task_output_matches(
+      run,
+      edge.producer,
+      edge.target,
+      output,
+    ) else {
+    let issue = RunIssue::MissingOutput
+    fail_captured_task(run, task, issue)
+    return Err(issue)
+  }
+  match
+    @execution.prepare_managed_producer_read(
+      run.graph.owners[task],
+      input_index,
+      run.graph.owners[edge.producer],
+      output,
+      max_entries,
+      max_name_bytes,
+    ) {
+    Ok(read) => Ok(read)
+    Err(Binding(issue)) => {
+      let failure = RunIssue::Binding(issue)
+      fail_captured_task(run, task, failure)
+      Err(failure)
+    }
+    Err(View(issue)) => {
+      let failure = RunIssue::Read(issue)
+      fail_captured_task(run, task, failure)
+      Err(failure)
+    }
+  }
+}
+
+///|
 /// No callback can inject arbitrary CompletedOutput as a task success.
 /// The selected synchronous realization supplies execution, never a backend tag.
 pub fn execute_captured_synchronous_task(

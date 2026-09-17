@@ -38,6 +38,26 @@ and stops the graph; it never returns a detached managed success. On success it
 removes the body allocation from the output's independently releasable tokens,
 preventing a later output cancellation from double-releasing graph capacity.
 
+## Exact downstream input preparation
+
+`captured_managed_task_input` now prepares a typed `ManagedProducerRead` only
+for the exact data edge of the currently ready consumer. The caller must
+supply the Host-owned completed output whose opaque occurrence is stored for
+that edge's producer and target. Equal rows, schema, profile, physical digest
+or another completion from the same producer cannot satisfy the lookup.
+
+This preparation establishes the receiver, input ordinal, producer occurrence
+and checked projection. It deliberately does not grant a Store pin, current
+read authority or resource capacity. Those remain dispatch-time obligations.
+The resulting use-site follows the output's live condition, so revocation makes
+both another graph lookup and an already prepared read unavailable.
+
+The real Node/DuckDB regression uses a dedicated serial dependency for this
+case. The general fixture also contains parallel branches whose next scheduled
+task reads Acquisition directly; task order is not treated as a data edge.
+This distinction prevents a convenient preceding completion from being
+substituted for the checked producer.
+
 ## Real strategy regression
 
 The standard Node/DuckDB Host regression runs the selected task through actual
@@ -49,6 +69,7 @@ DuckDB execution and checks the following sequence:
 | index and 321-byte body retained | stream base + 99,679 | 1,089 | task 1 running |
 | native settlement | unchanged | 1,089 | no success yet |
 | managed graph publication | 0 | 1,089 | task 1 done, task 2 ready |
+| exact task-2 input preparation | 0 | 1,089 | checked task-1 occurrence bound |
 | managed output revoke | 0 | 321 | index released, graph body retained |
 | task close / cleanup confirmation | 0 | 0 | body reclaimed |
 
@@ -59,13 +80,13 @@ mode and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The next task is schedulable, but the standard strategy configuration still
-prepares downstream requests through legacy `ProducerRead`. Production managed
-consumer preparation must use the exact stored completion reference and
-`ManagedProducerRead`, then execute and publish that task through the same
-boundary. Mixed acquisition/managed input families, resident-table publication,
-Local execution, named Result bridging and the full 27-case/1 GiB measurements
-remain open.
+The graph and typed relation layers can now prepare the next managed input, but
+the standard strategy dispatcher still constructs requests through legacy
+`ProducerRead`. Production dispatch must select this exact managed boundary,
+acquire its Store pin/authority/capacity, execute it and publish the second task
+through the same graph path. Mixed acquisition/managed input families,
+resident-table publication, Local execution, named Result bridging and the full
+27-case/1 GiB measurements remain open.
 
 This increment therefore proves common graph publication and retention
 ownership for one acquisition-fed selected task. It does not claim completion

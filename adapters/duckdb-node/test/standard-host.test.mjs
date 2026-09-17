@@ -911,7 +911,10 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   // Managed retained metadata consumes the selected task's existing physical
   // reservation. It is not admitted as a second attempt and unused capacity is
   // returned when the task closes before creating an index allocation.
-  const managedLedgerFixture = fixture.strategyFixtureCreate(...args, program);
+  const managedProgram = JSON.parse(program);
+  managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
+  const managedLedgerFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(managedProgram));
   const managedLedgerCapture = await runNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(managedLedgerFixture), suppliedLimits);
   let managedLedgerRun;
@@ -998,6 +1001,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 1, managedCompleted), true);
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 2,
       'managed success advances the common DAG without manufacturing a legacy output');
+    const managedInput = fixture.strategyFixtureManagedInput(
+      managedLedgerFixture, 2, managedCompleted);
+    const managedMaterial = bridge.managedOutputMaterial(managedLedgerOutput);
+    assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
+      'the next task binds the exact retained occurrence through its checked graph edge');
     assert.throws(() => accepted(bridge.computeHostComplete(managedLedgerRun)),
       'legacy completion cannot consume an already published managed task');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5), 0n,
@@ -1006,6 +1014,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), false,
       'revoked material cannot be rebound through the stored occurrence');
+    assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), false,
+      'a prepared use-site is not permission to read revoked material');
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), managedBodyBytes,
       'revocation releases the index but graph ownership keeps the body holding');
     bridge.computeHostClose(managedLedgerRun);

@@ -513,6 +513,22 @@ pub fn strategy_fixture_managed_output_matches(
 }
 
 ///|
+#export_name("strategyFixtureManagedInput")
+pub fn strategy_fixture_managed_input(
+  f : StrategyFixture,
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> @execution.ManagedProducerRead[Int] {
+  @strategy.captured_managed_task_input(
+    f.run.unwrap(),
+    task,
+    output,
+    100,
+    10000,
+  ).unwrap()
+}
+
+///|
 #export_name("strategyFixtureConsume")
 pub fn strategy_fixture_consume(
   f : StrategyFixture,
