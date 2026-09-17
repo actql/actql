@@ -11,6 +11,7 @@ struct ManagedTakeQuery[T] {
   offset : Int64
   width : Int
   stages : Array[(Int64, Int64)]
+  fragment_start : Int
 }
 
 ///|
@@ -44,6 +45,7 @@ pub fn[T] prepare_managed_take_query(
   let mut count = 9007199254740991L
   let mut offset = 0L
   let mut has_take = false
+  let mut fragment_start = -1
   let stages = []
   for step in 0..<steps {
     let kernel = match
@@ -76,7 +78,10 @@ pub fn[T] prepare_managed_take_query(
         count = Int64::min(next_count, count - skipped)
       }
       @lower.Select(_) => ()
-      @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) =>
+      @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) => {
+        if fragment_start < 0 {
+          fragment_start = step
+        }
         // Check every binding, not only surviving output columns: a later
         // projection must not erase a demanded failing computation. Only
         // exact checked field/slot copies have no new expression to execute.
@@ -92,6 +97,7 @@ pub fn[T] prepare_managed_take_query(
             _ => return Err(UnsupportedShape)
           }
         }
+      }
       _ => return Err(UnsupportedShape)
     }
     stages.push((count, offset))
@@ -194,6 +200,7 @@ pub fn[T] prepare_managed_take_query(
     offset,
     width: @schema.field_count(final_schema),
     stages,
+    fragment_start,
   })
 }
 
@@ -211,6 +218,13 @@ pub fn[T] managed_take_query_stage_range(
 ///|
 pub fn[T] managed_take_query_sql(query : ManagedTakeQuery[T]) -> String {
   query.sql
+}
+
+///|
+/// Exact-copy derive changes no value bytes, but its checked fragment remains
+/// an adopted completion obligation and cannot be omitted from preparation.
+fn[T] managed_take_query_fragment_start(query : ManagedTakeQuery[T]) -> Int {
+  query.fragment_start
 }
 
 ///|

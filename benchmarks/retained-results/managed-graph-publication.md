@@ -137,14 +137,15 @@ one native file-import command, zero parameter INSERT rows, zero
 logical-content CID computations and zero Core output-value admission cells.
 The first task transfers two measurement cells for two selected occurrences
 while projecting and renaming `id` to `kept`. The second executes checked
-`take(count=1, offset=1)`, transfers one measurement cell for exactly source
-occurrence 1 and renames `kept` back to `id`. Both write one output frame and
-report exact input/output physical byte counts. The Host rejects a different
-or additional occurrence even when it is a valid input row. These counters do
-not claim that DuckDB performs only one internal filesystem read or that no
-typed-value work occurs. DuckDB still evaluates required operations, the Host
-still validates occurrence framing and storage order, and the common boundary
-still checks demand, ownership, holding and native settlement.
+`take(count=1, offset=1)`, copies `kept` to `id`, transfers one measurement cell
+for exactly source occurrence 1 and selects the copied field. Both write one
+output frame and report exact input/output physical byte counts. The Host
+rejects a different or additional occurrence even when it is a valid input row.
+These counters do not claim that DuckDB performs only one internal filesystem
+read or that no typed-value work occurs. DuckDB still evaluates required
+operations, the Host still validates occurrence framing and storage order, and
+the common boundary still checks demand, ownership, holding and native
+settlement.
 
 ## Real strategy regression
 
@@ -174,12 +175,12 @@ mode per task, and ownership transfer through cancellation.
 The product path is intentionally limited to the installed Number/Text column
 representation and finite checked FilterSelect and take/projection/copy query
 families. It now implements a Q6 evidence-transfer path for unchanged values,
-including projection/rename, logical-schema column reordering, explicit
-row-occurrence mapping, checked slice composition and repeated downstream
-reuse. It does not yet implement computed derive values, sort/permutation,
-join/group-result reuse, general schemas/codecs, mixed acquisition/managed input
-families, resident-table publication, Local execution or named Result bridging.
-The finite
+including projection/rename, exact-copy derive, logical-schema column
+reordering, explicit row-occurrence mapping, checked slice composition and
+repeated downstream reuse. It does not yet implement computed derive values,
+sort/permutation, join/group-result reuse, general schemas/codecs, mixed
+acquisition/managed input families, resident-table publication, Local
+execution or named Result bridging. The finite
 representation identifier must either become an adopted machine contract or be
 replaced by the shared registered representation boundary before portable use
 is claimed.

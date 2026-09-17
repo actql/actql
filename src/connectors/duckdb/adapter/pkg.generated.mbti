@@ -197,6 +197,8 @@ pub fn[T] managed_fixed_query_column_file_sql(ManagedFixedQuery[T], Int) -> Stri
 
 pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
 
+pub fn[T] managed_fixed_query_fragment_start(ManagedFixedQuery[T]) -> Int
+
 pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation.ManagedProducerRead[T]
 
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool

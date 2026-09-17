@@ -222,7 +222,20 @@ pub fn[T] managed_fixed_query_parameter(
 pub fn[T] managed_fixed_query_requires_fragment(
   value : ManagedFixedQuery[T],
 ) -> Bool {
-  value.body is Fixed(FilterSelect(_))
+  managed_fixed_query_fragment_start(value) >= 0
+}
+
+///|
+/// First checked step covered by the runtime fragment, or -1 when this fixed
+/// realization has no expression fragment obligation.
+pub fn[T] managed_fixed_query_fragment_start(
+  value : ManagedFixedQuery[T],
+) -> Int {
+  match value.body {
+    Fixed(FilterSelect(_)) => 0
+    Take(query) => managed_take_query_fragment_start(query)
+    Fixed(_) => -1
+  }
 }
 
 ///|

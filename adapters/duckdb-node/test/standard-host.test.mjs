@@ -930,7 +930,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   managedProgram.stages[2].results.r.fields = ['kept'];
   managedProgram.stages[3].steps = [
     {take: {count: 1, offset: 1}},
-    {select: [{id: 'kept'}], as: 'out'},
+    {derive: {id: 'kept'}},
+    {select: ['id'], as: 'out'},
   ];
   managedProgram.stages[2].inputs.x.result.stage = 'compute_a';
   managedProgram.stages[3].inputs.x.result.stage = 'compute_b';

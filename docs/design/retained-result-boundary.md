@@ -97,6 +97,12 @@ physical body. This transfers a previously satisfied value obligation; it does
 not reuse the producer's Result identity, completion occurrence, authority or
 storage holding.
 
+An exact-copy derive may add or replace an output field without re-admitting
+the unchanged value. The checked view plan resolves that field back to its
+source column and the output receives a new copied measurement entry. This does
+not cover computed expressions: a new value still requires actual evaluation,
+value admission and a new measurement before it can be reused.
+
 The installed transfer rule is deliberately finite. It applies only when the
 compiled query exposes the private occurrence result and the output fields map
 exactly to the checked logical schema through registered projection/rename or
