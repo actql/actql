@@ -11,9 +11,25 @@ struct ManagedCompletionPort[P, T] {
   managed_inputs : Array[ManagedProducerRead[T]]
   bindings : Array[ProducerBindingIdentity]
   verify : (P) -> ManagedRetainedOutput[T]?
+  obligations : ManagedObligations
+  identity_issuer : ((
+    ManagedIdentityDomain,
+    ManagedIdentitySubject,
+    String,
+    String,
+    ManagedRetainedOutput[T],
+  ) -> Bool)?
   mut open : Bool
   mut verifying : Bool
   mut revoked : Bool
+}
+
+///|
+priv struct ManagedCompletedIdentity {
+  domain : ManagedIdentityDomain
+  subject : ManagedIdentitySubject
+  canonical_contract_cid : Ref[String?]
+  cid : Ref[String?]
 }
 
 ///|
@@ -29,6 +45,14 @@ struct ManagedCompletedOutput[T] {
   bindings : Array[ProducerBindingIdentity]
   managed_bindings : Array[Ref[Unit]]
   material : ManagedRetainedOutput[T]
+  identities : Array[ManagedCompletedIdentity]
+  identity_issuer : ((
+    ManagedIdentityDomain,
+    ManagedIdentitySubject,
+    String,
+    String,
+    ManagedRetainedOutput[T],
+  ) -> Bool)?
 }
 
 ///|
@@ -51,6 +75,14 @@ pub fn[P, T] prepare_managed_completion_port(
   verify : (P) -> ManagedRetainedOutput[T]?,
   inputs? : Array[ProducerRead],
   managed_inputs? : Array[ManagedProducerRead[T]],
+  obligations? : ManagedObligations,
+  identity_issuer? : (
+    ManagedIdentityDomain,
+    ManagedIdentitySubject,
+    String,
+    String,
+    ManagedRetainedOutput[T],
+  ) -> Bool,
 ) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue] {
   // A fixed-input set has one explicit provenance family, never a partial mix
   // that silently drops the remaining ports. Acquisition may omit both.
@@ -82,6 +114,13 @@ pub fn[P, T] prepare_managed_completion_port(
       }
     }
   }
+  let owner = completion_preparation_owner(preparation)
+  let selected_obligations = obligations.unwrap_or_else(() => {
+    process_managed_obligations(owner)
+  })
+  if !physical_equal(managed_obligations_owner(selected_obligations), owner) {
+    return Err(ForeignOutput)
+  }
   Ok({
     profile,
     preparation,
@@ -90,6 +129,8 @@ pub fn[P, T] prepare_managed_completion_port(
     inputs: inputs.map(values => values.copy()).unwrap_or([]),
     managed_inputs: managed_inputs.map(values => values.copy()).unwrap_or([]),
     verify,
+    obligations: selected_obligations,
+    identity_issuer,
     open: true,
     verifying: false,
     revoked: false,
@@ -135,7 +176,108 @@ pub fn[P, T] complete_managed_output(
     bindings: port.bindings,
     managed_bindings: port.managed_inputs.map(input => input.identity),
     material,
+    identities: managed_obligations_identities(port.obligations).map(
+      requirement => {
+        domain: requirement.domain,
+        subject: requirement.subject,
+        canonical_contract_cid: Ref(None),
+        cid: Ref(None),
+      },
+    ),
+    identity_issuer: port.identity_issuer,
   })
+}
+
+///|
+fn valid_managed_cid(value : String) -> Bool {
+  if value.length() != 71 || !value.has_prefix("sha256:") {
+    return false
+  }
+  for index = 7; index < 71; index = index + 1 {
+    let unit = value[index].to_int()
+    if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn[T] managed_completed_identity_record(
+  output : ManagedCompletedOutput[T],
+  domain : ManagedIdentityDomain,
+  subject : ManagedIdentitySubject,
+) -> ManagedCompletedIdentity? {
+  for identity in output.identities {
+    if identity.domain == domain && identity.subject == subject {
+      return Some(identity)
+    }
+  }
+  None
+}
+
+///|
+pub fn[T] managed_completed_identity_status(
+  output : ManagedCompletedOutput[T],
+  domain : ManagedIdentityDomain,
+  subject : ManagedIdentitySubject,
+) -> ManagedIdentityStatus? {
+  guard managed_completed_identity_record(output, domain, subject)
+    is Some(identity) else {
+    return None
+  }
+  let retained = managed_completed_output_available(output)
+  match (identity.canonical_contract_cid.val, identity.cid.val, retained) {
+    (Some(contract), Some(cid), true) =>
+      Some(EstablishedSourceRetained(contract, cid))
+    (Some(contract), Some(cid), false) =>
+      Some(EstablishedSourceUnavailable(contract, cid))
+    (None, None, true) => Some(UnestablishedSourceRetained)
+    (None, None, false) => Some(UnestablishedSourceUnavailable)
+    _ => None
+  }
+}
+
+///|
+/// Establish one delayed logical identity through the verifier installed on
+/// this exact completion. Failure never revokes the already valid completion.
+pub fn[T] establish_managed_completed_identity(
+  output : ManagedCompletedOutput[T],
+  domain : ManagedIdentityDomain,
+  subject : ManagedIdentitySubject,
+  canonical_contract_cid : String,
+  cid : String,
+) -> Result[Unit, ManagedIdentityEstablishmentIssue] {
+  guard managed_completed_identity_record(output, domain, subject)
+    is Some(identity) else {
+    return Err(UnknownIdentity)
+  }
+  match (identity.canonical_contract_cid.val, identity.cid.val) {
+    (Some(existing_contract), Some(existing_cid)) =>
+      if existing_contract == canonical_contract_cid && existing_cid == cid {
+        return Ok(())
+      } else {
+        return Err(ConflictingIdentity)
+      }
+    (None, None) => ()
+    _ => return Err(ConflictingIdentity)
+  }
+  if !valid_managed_cid(canonical_contract_cid) || !valid_managed_cid(cid) {
+    return Err(InvalidIdentity)
+  }
+  if !managed_completed_output_available(output) {
+    return Err(SourceUnavailable)
+  }
+  guard output.identity_issuer is Some(issuer) else {
+    return Err(IssuerUnavailable)
+  }
+  if !issuer(domain, subject, canonical_contract_cid, cid, output.material) ||
+    !managed_completed_output_available(output) {
+    return Err(UnverifiedIdentity)
+  }
+  identity.canonical_contract_cid.val = Some(canonical_contract_cid)
+  identity.cid.val = Some(cid)
+  Ok(())
 }
 
 ///|

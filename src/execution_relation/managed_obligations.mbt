@@ -42,6 +42,16 @@ pub(all) enum ManagedIdentityNeed {
 } derive(Eq, Debug)
 
 ///|
+/// Runtime status of one logical identity domain. Source availability is
+/// independent of whether the identity has already been established.
+pub(all) enum ManagedIdentityStatus {
+  UnestablishedSourceRetained
+  UnestablishedSourceUnavailable
+  EstablishedSourceRetained(String, String)
+  EstablishedSourceUnavailable(String, String)
+} derive(Eq, Debug)
+
+///|
 pub(all) struct ManagedIdentityRequirement {
   domain : ManagedIdentityDomain
   subject : ManagedIdentitySubject
@@ -61,6 +71,16 @@ pub(all) enum ManagedObligationIssue {
   InvalidLimits
   DuplicateIdentity(ManagedIdentityDomain, ManagedIdentitySubject)
   MissingRequiredIdentity
+} derive(Eq, Debug)
+
+///|
+pub(all) enum ManagedIdentityEstablishmentIssue {
+  UnknownIdentity
+  InvalidIdentity
+  SourceUnavailable
+  IssuerUnavailable
+  UnverifiedIdentity
+  ConflictingIdentity
 } derive(Eq, Debug)
 
 ///|

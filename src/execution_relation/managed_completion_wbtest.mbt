@@ -125,6 +125,122 @@ test "managed completion requires execution verification and exact output rather
 }
 
 ///|
+test "managed completion distinguishes delayed identity from source lifetime" {
+  let owner = capture_fixture()
+  let preparation = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let live = Ref(true)
+  let material = managed_test_material(owner, Step(1), live)
+  let contract = "sha256:" + "1".repeat(64)
+  let cid = "sha256:" + "2".repeat(64)
+  let port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+    obligations=process_managed_obligations(owner),
+    identity_issuer=(domain, subject, supplied_contract, supplied_cid, source) => {
+      domain == OrderedRows &&
+      subject == TaskOutput &&
+      supplied_contract == contract &&
+      supplied_cid == cid &&
+      physical_equal(source, material)
+    },
+  ).unwrap()
+  let output = complete_managed_output(port, ()).unwrap()
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(UnestablishedSourceRetained),
+  )
+  assert_true(
+    establish_managed_completed_identity(
+      output,
+      OrderedRows,
+      TaskOutput,
+      "invalid",
+      cid,
+    ) is Err(InvalidIdentity),
+  )
+  assert_true(managed_completed_output_available(output))
+  establish_managed_completed_identity(
+    output,
+    OrderedRows,
+    TaskOutput,
+    contract,
+    cid,
+  ).unwrap()
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(EstablishedSourceRetained(contract, cid)),
+  )
+  assert_true(
+    establish_managed_completed_identity(
+      output,
+      OrderedRows,
+      TaskOutput,
+      contract,
+      "sha256:" + "3".repeat(64),
+    ) is Err(ConflictingIdentity),
+  )
+  live.val = false
+  assert_eq(
+    managed_completed_identity_status(output, OrderedRows, TaskOutput),
+    Some(EstablishedSourceUnavailable(contract, cid)),
+  )
+
+  let unavailable_live = Ref(true)
+  let unavailable_material = managed_test_material(
+    owner,
+    Step(1),
+    unavailable_live,
+  )
+  let unavailable_port = prepare_managed_completion_port(
+    managed_test_profile(),
+    preparation,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(unavailable_material),
+  ).unwrap()
+  let unavailable = complete_managed_output(unavailable_port, ()).unwrap()
+  assert_true(
+    establish_managed_completed_identity(
+      unavailable,
+      OrderedRows,
+      TaskOutput,
+      contract,
+      cid,
+    ) is Err(IssuerUnavailable),
+  )
+  assert_true(managed_completed_output_available(unavailable))
+  unavailable_live.val = false
+  assert_eq(
+    managed_completed_identity_status(
+      unavailable,
+      OrderedRows,
+      TaskOutput,
+    ),
+    Some(UnestablishedSourceUnavailable),
+  )
+  assert_true(
+    establish_managed_completed_identity(
+      unavailable,
+      OrderedRows,
+      TaskOutput,
+      contract,
+      cid,
+    ) is Err(SourceUnavailable),
+  )
+}
+
+///|
 test "managed completion cannot revive cancellation from a verifier callback" {
   let owner = capture_fixture()
   let preparation = prepare_completion(

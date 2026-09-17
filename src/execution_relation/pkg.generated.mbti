@@ -163,6 +163,8 @@ pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @en
 
 pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]
 
+pub fn[T] establish_managed_completed_identity(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject, String, String) -> Result[Unit, ManagedIdentityEstablishmentIssue]
+
 pub fn execute_fixed_input_guarded(GeneratedSequence, CapturedRows, @pipeline_typing.Target, SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, record_values? : Bool, FixedInputGuardMeasureLimits) -> Result[(CompletedSequence, (Int, Int, Int)), FixedInputGuardIssue]
 
 pub fn execute_fixed_producer_guarded(GeneratedSequence, ProducerRead, @pipeline_typing.Target, SequenceExecutionLimits, max_rows~ : Int, max_value_bytes~ : Int, FixedInputGuardMeasureLimits) -> Result[CompletedSequence, FixedInputGuardIssue]
@@ -239,6 +241,8 @@ pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWire
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn[T] managed_completed_identity_status(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> ManagedIdentityStatus?
+
 pub fn[T] managed_completed_output_available(ManagedCompletedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_output_matches_inputs(ManagedCompletedOutput[T], Array[ProducerRead]) -> Bool
@@ -268,6 +272,14 @@ pub fn[T] managed_computed_view_schema(ManagedComputedView[T]) -> @relation_sche
 pub fn[T] managed_computed_view_source_column(ManagedComputedView[T], Int) -> Int?
 
 pub fn managed_execution_profile_cid(ManagedExecutionProfile) -> String
+
+pub fn managed_obligations_identities(ManagedObligations) -> Array[ManagedIdentityRequirement]
+
+pub fn managed_obligations_owner(ManagedObligations) -> @lowering_relation.BoundPrepared
+
+pub fn managed_obligations_require_logical_identity(ManagedObligations) -> Bool
+
+pub fn managed_obligations_retain_source(ManagedObligations) -> Bool
 
 pub fn managed_output_measurement_index_cells(ManagedOutputValueReceipt) -> Int?
 
@@ -377,9 +389,11 @@ pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relatio
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
-pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]]) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
+pub fn[P, T] prepare_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> ManagedRetainedOutput[T]?, inputs? : Array[ProducerRead], managed_inputs? : Array[ManagedProducerRead[T]], obligations? : ManagedObligations, identity_issuer? : (ManagedIdentityDomain, ManagedIdentitySubject, String, String, ManagedRetainedOutput[T]) -> Bool) -> Result[ManagedCompletionPort[P, T], TrustedOutputIssue]
 
 pub fn[T] prepare_managed_computed_view(ManagedViewPlan[T], Array[Int], Int, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedComputedView[T], ManagedComputedViewIssue]
+
+pub fn prepare_managed_obligations(@lowering_relation.BoundPrepared, Array[ManagedIdentityRequirement], ManagedPublicationRequirement, ManagedConsumerRequirement, Int) -> Result[ManagedObligations, ManagedObligationIssue]
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
@@ -428,6 +442,8 @@ pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_
 pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
+
+pub fn process_managed_obligations(@lowering_relation.BoundPrepared) -> ManagedObligations
 
 pub fn producer_read_available(ProducerRead) -> Bool
 
@@ -777,7 +793,67 @@ pub(all) enum ManagedComputedViewIssue {
   Closed
 }
 
+pub(all) enum ManagedConsumerRequirement {
+  MaterialBinding
+  LogicalContentIdentity
+} derive(Eq, @debug.Debug)
+
 type ManagedExecutionProfile
+
+pub(all) enum ManagedIdentityDeadline {
+  BeforeCidOperation
+  BeforePublication
+  BeforeDiscard
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedIdentityDomain {
+  LogicalRow
+  OrderedRows
+  LogicalRelation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedIdentityEstablishmentIssue {
+  UnknownIdentity
+  InvalidIdentity
+  SourceUnavailable
+  IssuerUnavailable
+  UnverifiedIdentity
+  ConflictingIdentity
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedIdentityNeed {
+  UnestablishedRetained
+  EstablishedBy(ManagedIdentityDeadline)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ManagedIdentityRequirement {
+  domain : ManagedIdentityDomain
+  subject : ManagedIdentitySubject
+  need : ManagedIdentityNeed
+}
+
+pub(all) enum ManagedIdentityStatus {
+  UnestablishedSourceRetained
+  UnestablishedSourceUnavailable
+  EstablishedSourceRetained(String, String)
+  EstablishedSourceUnavailable(String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedIdentitySubject {
+  ReceivedValidationRows
+  ReceivedNativeRows
+  AcquisitionOutput
+  TaskOutput
+  NamedResult
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedObligationIssue {
+  InvalidLimits
+  DuplicateIdentity(ManagedIdentityDomain, ManagedIdentitySubject)
+  MissingRequiredIdentity
+} derive(Eq, @debug.Debug)
+
+type ManagedObligations
 
 pub(all) enum ManagedOutputRetentionIssue {
   Closed
@@ -813,6 +889,11 @@ pub(all) enum ManagedProfileIssue {
   InvalidLimits
   BodyLimit
   UnsupportedProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ManagedPublicationRequirement {
+  ManagedUse
+  LogicalContentAddressed
 } derive(Eq, @debug.Debug)
 
 type ManagedRetainedOutput[T]

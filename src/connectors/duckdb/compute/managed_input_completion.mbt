@@ -106,6 +106,7 @@ pub fn[T] prepare_managed_input_duckdb_completion(
         Some(material)
       },
       managed_inputs=inputs,
+      obligations=@duckdb.managed_fixed_query_obligations(query),
     ) {
     Ok(port) => port
     Err(issue) => {

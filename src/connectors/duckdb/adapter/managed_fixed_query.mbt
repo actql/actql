@@ -11,6 +11,7 @@ priv enum ManagedFixedQueryBody[T] {
 ///|
 struct ManagedFixedQuery[T] {
   inputs : Array[@execution.ManagedProducerRead[T]]
+  obligations : @execution.ManagedObligations
   body : ManagedFixedQueryBody[T]
   tables : Array[String]
   create_sql : Array[String]
@@ -100,8 +101,14 @@ pub fn[T] prepare_managed_fixed_request_query(
   limits : NativeQueryLimits,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
   let inputs = @connector.managed_fixed_compute_request_inputs(request)
+  let obligations = @connector.managed_fixed_compute_request_obligations(request)
   if inputs.length() == 1 {
-    return prepare_managed_fixed_query(inputs[0], table, limits)
+    return prepare_managed_fixed_query_inputs(
+      inputs,
+      [table],
+      limits,
+      obligations,
+    )
   }
   if inputs.length() != 2 {
     return Err(UnsupportedShape)
@@ -110,6 +117,7 @@ pub fn[T] prepare_managed_fixed_request_query(
     inputs,
     Array::makei(inputs.length(), index => table + "_" + index.to_string()),
     limits,
+    obligations,
   )
 }
 
@@ -119,7 +127,14 @@ pub fn[T] prepare_managed_fixed_query(
   table : String,
   limits : NativeQueryLimits,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
-  prepare_managed_fixed_query_inputs([input], [table], limits)
+  prepare_managed_fixed_query_inputs(
+    [input],
+    [table],
+    limits,
+    @execution.process_managed_obligations(
+      @execution.managed_producer_read_receiver(input),
+    ),
+  )
 }
 
 ///|
@@ -127,6 +142,7 @@ fn[T] prepare_managed_fixed_query_inputs(
   inputs : Array[@execution.ManagedProducerRead[T]],
   tables : Array[String],
   limits : NativeQueryLimits,
+  obligations : @execution.ManagedObligations,
 ) -> Result[ManagedFixedQuery[T], NativeQueryIssue] {
   if inputs.is_empty() || inputs.length() != tables.length() {
     return Err(UnsupportedShape)
@@ -135,6 +151,9 @@ fn[T] prepare_managed_fixed_query_inputs(
     return Err(InvalidLimits)
   }
   let owner = @execution.managed_producer_read_receiver(inputs[0])
+  if !physical_equal(@execution.managed_obligations_owner(obligations), owner) {
+    return Err(UnsupportedShape)
+  }
   if @lower.preparation_input_count(@lower.bound_preparation(owner)) !=
     inputs.length() {
     return Err(UnsupportedShape)
@@ -202,6 +221,7 @@ fn[T] prepare_managed_fixed_query_inputs(
   }
   Ok({
     inputs: inputs.copy(),
+    obligations,
     body,
     tables: tables.copy(),
     create_sql,
@@ -329,6 +349,13 @@ pub fn[T] managed_fixed_query_inputs(
   value : ManagedFixedQuery[T],
 ) -> Array[@execution.ManagedProducerRead[T]] {
   value.inputs.copy()
+}
+
+///|
+pub fn[T] managed_fixed_query_obligations(
+  value : ManagedFixedQuery[T],
+) -> @execution.ManagedObligations {
+  value.obligations
 }
 
 ///|

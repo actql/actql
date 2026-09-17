@@ -217,6 +217,8 @@ pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.
 
 pub fn[T] managed_fixed_query_matches_inputs(ManagedFixedQuery[T], Array[@execution_relation.ManagedProducerRead[T]]) -> Bool
 
+pub fn[T] managed_fixed_query_obligations(ManagedFixedQuery[T]) -> @execution_relation.ManagedObligations
+
 pub fn[T] managed_fixed_query_occurrence_sql(ManagedFixedQuery[T]) -> String?
 
 pub fn[T] managed_fixed_query_output_column_count(ManagedFixedQuery[T]) -> Int

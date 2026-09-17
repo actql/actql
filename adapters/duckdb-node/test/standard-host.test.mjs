@@ -1030,7 +1030,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   } finally {
     await managedStandardExecution?.close();
     if (managedStandardExecution) {
-      assert.equal(await managedStandardExecution.cleanup(), true);
+      const cleaned = await managedStandardExecution.cleanup();
+      assert.equal(cleaned, true, JSON.stringify({
+        pending: managedStandardExecution.cleanupPending(),
+        usage: managedStandardExecution.usage(),
+      }, (_, value) => typeof value === 'bigint' ? value.toString() : value));
       assert.equal(managedStandardExecution.usage().heldBytes, 0n);
       assert.equal(managedStandardExecution.usage().reservedRetentionBytes, 0n);
       assert.equal(managedStandardExecution.usage().reservedExecutionBytes, 0n);
@@ -1382,6 +1386,11 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedCompleted = accepted(
       bridge.managedOutputCompleteStrategyCompute(managedLedgerOutput, managedCompletion));
     assert.equal(bridge.managedCompletedAvailable(managedCompleted), true);
+    assert.deepEqual(
+      accepted(bridge.managedCompletedTaskOutputIdentityStatus(managedCompleted)),
+      ['unestablished', 'retained'],
+      'normal managed completion keeps an explicit delayed identity state',
+    );
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 1, managedCompleted), true);
     assert.equal(fixture.strategyFixtureNext(managedLedgerFixture), 2,

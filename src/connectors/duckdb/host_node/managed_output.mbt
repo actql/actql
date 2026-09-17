@@ -137,6 +137,29 @@ pub fn managed_completed_profile_cid(
 }
 
 ///|
+/// Diagnostic state for the standard managed task-output identity. This is
+/// not an issuance entrypoint or a portable identity record.
+#export_name("managedCompletedTaskOutputIdentityStatus")
+pub fn managed_completed_task_output_identity_status(
+  value : @execution.ManagedCompletedOutput[Int],
+) -> Array[String] raise NodeHostFailure {
+  match
+    @execution.managed_completed_identity_status(
+      value,
+      OrderedRows,
+      TaskOutput,
+    ) {
+    Some(UnestablishedSourceRetained) => ["unestablished", "retained"]
+    Some(UnestablishedSourceUnavailable) => ["unestablished", "unavailable"]
+    Some(EstablishedSourceRetained(contract, cid)) =>
+      ["established", "retained", contract, cid]
+    Some(EstablishedSourceUnavailable(contract, cid)) =>
+      ["established", "unavailable", contract, cid]
+    None => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("managedInputOutputValues")
 pub fn managed_input_output_values(
   completion : @duckdb_compute.ManagedInputDuckDBCompletion[Int],

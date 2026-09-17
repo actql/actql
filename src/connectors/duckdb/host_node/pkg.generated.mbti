@@ -158,6 +158,8 @@ pub fn managed_completed_available(@execution_relation.ManagedCompletedOutput[In
 
 pub fn managed_completed_profile_cid(@execution_relation.ManagedCompletedOutput[Int]) -> String
 
+pub fn managed_completed_task_output_identity_status(@execution_relation.ManagedCompletedOutput[Int]) -> Array[String] raise NodeHostFailure
+
 pub fn managed_computed_accept(ManagedNodeComputed, Int, String) -> Unit raise NodeHostFailure
 
 pub fn managed_computed_cancel(ManagedNodeComputed) -> Bool
