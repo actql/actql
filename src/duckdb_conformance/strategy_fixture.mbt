@@ -547,12 +547,18 @@ pub fn strategy_fixture_managed_request(
     100,
     10000,
   ).unwrap()
-  @connector.prepare_managed_fixed_compute_request([input], {
-    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-    max_rows: 100,
-    max_value_bytes: 1000,
-    common_fragment: None,
-  }).unwrap()
+  @connector.prepare_managed_fixed_compute_request(
+    [input],
+    {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 100,
+      max_value_bytes: 1000,
+      common_fragment: None,
+    },
+    @execution.process_managed_obligations(
+      @execution.managed_producer_read_receiver(input),
+    ),
+  ).unwrap()
 }
 
 ///|
@@ -569,12 +575,81 @@ pub fn strategy_fixture_managed_request_accepts(
   input : @execution.ManagedProducerRead[Int],
   max_rows : Int,
 ) -> Bool {
-  @connector.prepare_managed_fixed_compute_request([input], {
-    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-    max_rows,
-    max_value_bytes: 1000,
-    common_fragment: None,
-  })
+  @connector.prepare_managed_fixed_compute_request(
+    [input],
+    {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows,
+      max_value_bytes: 1000,
+      common_fragment: None,
+    },
+    @execution.process_managed_obligations(
+      @execution.managed_producer_read_receiver(input),
+    ),
+  )
+  is Ok(_)
+}
+
+///|
+/// A CID-dependent consumer/publication requirement is fixed before native
+/// candidate comparison. The installed DuckDB managed candidate does not yet
+/// establish that identity and therefore must not enter comparison.
+#export_name("strategyFixtureManagedIdentityCandidateAccepts")
+pub fn strategy_fixture_managed_identity_candidate_accepts(
+  f : StrategyFixture,
+  task : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  let input = @strategy.captured_managed_task_input(
+    f.run.unwrap(),
+    task,
+    output,
+    100,
+    10000,
+  ).unwrap()
+  let owner = @execution.managed_producer_read_receiver(input)
+  let obligations = @execution.prepare_managed_obligations(
+    owner,
+    [
+      {
+        domain: LogicalRelation,
+        subject: NamedResult,
+        need: EstablishedBy(BeforePublication),
+      },
+    ],
+    LogicalContentAddressed,
+    LogicalContentIdentity,
+    1,
+  ).unwrap()
+  let request = @connector.prepare_managed_fixed_compute_request(
+    [input],
+    {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 100,
+      max_value_bytes: 1000,
+      common_fragment: None,
+    },
+    obligations,
+  ).unwrap()
+  @duckdb_compute.duckdb_managed_fixed_compute_candidate(
+    @connector.capability_registration_at(f.registry, 1).unwrap(),
+    request,
+    "managed_input",
+    {
+      max_entries: 100,
+      max_sql_bytes: 10000,
+      expressions: {
+        max_nodes: 1000,
+        max_work: 10000,
+        max_depth: 100,
+        max_literal_nodes: 1000,
+        max_literal_text_bytes: 10000,
+      },
+    },
+    [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(1L), }],
+    { transfer_bytes: None, retained_bytes: None, money_units: None, },
+    100,
+  )
   is Ok(_)
 }
 

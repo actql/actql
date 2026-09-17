@@ -31,6 +31,7 @@ pub(all) enum FixedComputeIssue {
   CapacityContract
   CommonInputRows
   CommonFragmentUnsupported
+  LogicalIdentityUnsupported
   PlanningLimit
   NegativeQuantity
   Cost(@cost.CostIssue)

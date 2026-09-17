@@ -1408,6 +1408,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedRequest = fixture.strategyFixtureManagedRequest(
       managedLedgerFixture, 2, managedCompleted);
     assert.equal(fixture.strategyFixtureManagedRequestInputCount(managedRequest), 1);
+    assert.equal(fixture.strategyFixtureManagedIdentityCandidateAccepts(
+      managedLedgerFixture, 2, managedCompleted), false,
+    'a CID-dependent publication cannot select the CID-free candidate');
     const otherManagedRequest = fixture.strategyFixtureManagedRequest(
       managedLedgerFixture, 2, managedCompleted);
     assert.equal(fixture.strategyFixtureManagedCandidateAccepts(

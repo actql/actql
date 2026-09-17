@@ -271,6 +271,9 @@ pub fn prepare_duckdb_managed_dispatch(
     @connector.prepare_managed_fixed_compute_request(
       inputs,
       installed.limits.capacity,
+      @execution.process_managed_obligations(
+        @execution.managed_producer_read_receiver(inputs[0]),
+      ),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))

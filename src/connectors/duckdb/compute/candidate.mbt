@@ -22,6 +22,11 @@ pub fn[T] duckdb_managed_fixed_compute_candidate(
   @connector.PreparedManagedCompute[T, @duckdb.ManagedFixedQuery[T]],
   DuckDBComputeCandidateIssue,
 ] {
+  if @execution.managed_obligations_require_logical_identity(
+      @connector.managed_fixed_compute_request_obligations(request),
+    ) {
+    return Err(Request(LogicalIdentityUnsupported))
+  }
   if @connector.managed_fixed_compute_request_capacity(request).common_fragment
     is Some(_) {
     return Err(Request(CommonFragmentUnsupported))
