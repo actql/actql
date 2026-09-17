@@ -261,6 +261,7 @@ export async function prepareExampleText({database, environmentCid, programText,
         : app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident));
       const describe = execution => Object.freeze({ status: execution.status, program_success: false,
       estimate_model: 'supplied example estimates, not measured speed',
+      acquisition_evidence: capture.evidence(),
       completed: execution.completed,
       internal_output_cids: execution.completed.map(({ task }) => ({ task, cid: app.applicationProfileOutputCid(prepared, graph, task) ?? null })),
       failure: execution.failure?.code ?? (execution.failure ? 'HostFailure' : null),

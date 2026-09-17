@@ -101,6 +101,17 @@ must expose the same semantic domains and pair admission must compare required
 logical charges while allowing implementation-specific control traffic to
 differ.
 
+The product retained leg now also exports the canonical evidence material owned
+by its actual acquisition capture: the validation-scan and native-result
+receipts, the source-validation, filter and select records, and the completed
+observation. The export is read-only diagnostic material; it does not serialize
+or transfer the live issuer authority. Product tests verify every receipt and
+record CID edge, the common requirement/issuer/attempt/read-view binding, and
+the observation output cardinality after a real managed-worker run. This makes
+the product half of acquisition-evidence comparison observable. The independent
+leg must still construct and validate its own equivalent metadata; copying these
+documents into that leg would not close parity.
+
 Source record guard failures are now deferred until complete source admission,
 as in `native_validation_stream.mbt`. Later batches still undergo bounded
 physical/value admission and identity encoding. A later invalid value can thus

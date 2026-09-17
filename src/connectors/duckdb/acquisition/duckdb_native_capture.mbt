@@ -99,3 +99,24 @@ pub fn duckdb_native_observation_usage(
 ) -> (Int, Int) {
   (value.bytes, value.nodes)
 }
+
+///|
+/// Canonical receipt material owned by this exact captured observation.
+/// Exposing the document does not transfer issuer authority or make it a
+/// durable replay proof.
+pub fn duckdb_native_observation_receipt_at(
+  value : DuckDBNativeObservation,
+  index : Int,
+) -> (@encode.EncodedDocument, String)? {
+  duckdb_native_receipt_at(value.records, index)
+}
+
+///|
+/// Canonical process-evidence material owned by this exact observation.
+/// The live issuer/attempt checks remain separate from the serialized bytes.
+pub fn duckdb_native_observation_record_at(
+  value : DuckDBNativeObservation,
+  index : Int,
+) -> (@encode.EncodedDocument, String)? {
+  duckdb_native_record_at(value.records, index)
+}

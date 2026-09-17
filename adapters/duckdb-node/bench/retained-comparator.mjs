@@ -75,6 +75,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       rows: expected.rows, programHash: hash(config.input.programText),
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
       sourceDefinitionHash: hash(fixture.createSourceSql),
+      acquisitionEvidence: result.report.acquisition_evidence,
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,
       explanation: result.report.explanation,

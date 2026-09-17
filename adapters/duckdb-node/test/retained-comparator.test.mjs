@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
+import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, workloads} from '../../../benchmarks/retained-results/fixtures.mjs';
 import {runRetainedComparator, closeRetainedSample} from '../bench/retained-comparator.mjs';
+
+const hash = value => `sha256:${createHash('sha256')
+  .update(JSON.stringify(value)).digest('hex')}`;
 
 test('sample cleanup permits missing completion but never unconfirmed release', async () => {
   let closed = 0;
@@ -59,6 +63,23 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert.equal(report.scope, 'managed-host-cycle-diagnostic');
       assert.deepEqual(report.selection, {resident: false, nativeMilliseconds: '1'});
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
+      const evidence = report.acquisitionEvidence;
+      assert.deepEqual(evidence.receipts.map(value => value.role),
+        ['validation_scan', 'native_result']);
+      assert.deepEqual(evidence.records.map(value => value.role),
+        ['source_validation', 'filter', 'select']);
+      assert.equal(evidence.observation.output.row_count,
+        fixture.cardinalities.capture);
+      assert.equal(evidence.observation.accesses.validation_scan_cid,
+        hash(evidence.receipts[0]));
+      assert.equal(evidence.observation.accesses.native_result_cid,
+        hash(evidence.receipts[1]));
+      assert.equal(evidence.observation.coverage.source_validation_evidence_cid,
+        hash(evidence.records[0]));
+      assert.equal(evidence.observation.coverage.filter_evidence_cid,
+        hash(evidence.records[1]));
+      assert.equal(evidence.observation.coverage.select_evidence_cid,
+        hash(evidence.records[2]));
       assert(report.tasks.every(task => task.phases.inputs.every(input =>
         input.representation === 'verified-file-native-read' && input.parameterInsertRows === 0)));
       for (const input of report.tasks.flatMap(task => task.phases.inputs)) {

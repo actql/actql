@@ -91,6 +91,10 @@ pub fn duckdb_native_observation_cid(DuckDBNativeObservation) -> String
 
 pub fn duckdb_native_observation_document(DuckDBNativeObservation) -> @encode_core.EncodedDocument
 
+pub fn duckdb_native_observation_receipt_at(DuckDBNativeObservation, Int) -> (@encode_core.EncodedDocument, String)?
+
+pub fn duckdb_native_observation_record_at(DuckDBNativeObservation, Int) -> (@encode_core.EncodedDocument, String)?
+
 pub fn duckdb_native_observation_usage(DuckDBNativeObservation) -> (Int, Int)
 
 pub fn duckdb_native_output_rows(DuckDBNativeOutput) -> Result[@execution_relation.AdmittedOutputRows, DuckDBEvidenceIssue]

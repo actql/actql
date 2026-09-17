@@ -347,6 +347,32 @@ pub fn native_host_document(
 }
 
 ///|
+#export_name("nativeHostReceiptDocument")
+pub fn native_host_receipt_document(
+  observation : @duckdb_query.DuckDBNativeObservation,
+  index : Int,
+) -> String raise NodeHostFailure {
+  guard @duckdb_query.duckdb_native_observation_receipt_at(observation, index)
+    is Some((document, _)) else {
+    raise InvalidCommand
+  }
+  @encode.document_text(document)
+}
+
+///|
+#export_name("nativeHostRecordDocument")
+pub fn native_host_record_document(
+  observation : @duckdb_query.DuckDBNativeObservation,
+  index : Int,
+) -> String raise NodeHostFailure {
+  guard @duckdb_query.duckdb_native_observation_record_at(observation, index)
+    is Some((document, _)) else {
+    raise InvalidCommand
+  }
+  @encode.document_text(document)
+}
+
+///|
 #export_name("nativeHostCapturedSource")
 pub fn native_host_captured_source(
   run : NativeNodeRun,

@@ -176,6 +176,35 @@ test('standard native and broad Node Hosts own verification through real capture
         const observation = JSON.parse(captured.document());
         assert.equal(observation.output.rows_cid, hash(expected));
         assert.equal(observation.output.row_count, expected.length);
+        if (native) {
+          const evidence = captured.evidence();
+          assert(Object.isFrozen(evidence));
+          assert.deepEqual(evidence.receipts.map(value => value.role),
+            ['validation_scan', 'native_result']);
+          assert.deepEqual(evidence.records.map(value => value.role),
+            ['source_validation', 'filter', 'select']);
+          assert.deepEqual(evidence.observation, observation);
+          assert.equal(evidence.observation.accesses.validation_scan_cid,
+            hash(evidence.receipts[0]));
+          assert.equal(evidence.observation.accesses.native_result_cid,
+            hash(evidence.receipts[1]));
+          assert.equal(evidence.observation.coverage.source_validation_evidence_cid,
+            hash(evidence.records[0]));
+          assert.equal(evidence.observation.coverage.filter_evidence_cid,
+            hash(evidence.records[1]));
+          assert.equal(evidence.observation.coverage.select_evidence_cid,
+            hash(evidence.records[2]));
+          for (const item of [...evidence.receipts, ...evidence.records]) {
+            assert.equal(item.issuer, evidence.observation.execution.issuer);
+            assert.equal(item.attempt, evidence.observation.execution.attempt);
+            assert.equal(item.read_view, evidence.observation.execution.read_view);
+            assert.equal(item.requirement_cid, evidence.observation.requirement_cid);
+          }
+          for (const record of evidence.records) {
+            assert.deepEqual(record.accesses, evidence.observation.accesses);
+            assert.deepEqual(record.output, evidence.observation.output);
+          }
+        }
         const materialize = () => native ? captured.output()
           : captured.bindInput(fixture.issuedBroadConsumer(prepared), 0);
         const consume = native ? fixture.issuedNativeConsumeOutput : fixture.issuedBroadConsumeInput;

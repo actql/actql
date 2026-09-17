@@ -1004,6 +1004,22 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     }
     return retainedOutput;
   };
+  const evidence = () => {
+    liveRun();
+    return Object.freeze({
+      receipts: Object.freeze([0, 1].map(index =>
+        JSON.parse(checked(moon.nativeHostReceiptDocument(
+          captured.observation,
+          index,
+        ))))),
+      records: Object.freeze([0, 1, 2].map(index =>
+        JSON.parse(checked(moon.nativeHostRecordDocument(
+          captured.observation,
+          index,
+        ))))),
+      observation: JSON.parse(moon.nativeHostDocument(captured.observation)),
+    });
+  };
   return Object.freeze({
     observation: captured.observation,
     usage: captured.usage,
@@ -1012,6 +1028,7 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       ...capacity, executionBytes: capacity.executionBytes + capacity.receiverScratchBytes,
     }),
     document: () => moon.nativeHostDocument(captured.observation),
+    evidence,
     storageUsage: () => store?.status(),
     cleanupHandle: retained ? retainedCleanup : undefined,
     ...(capacity === undefined ? {

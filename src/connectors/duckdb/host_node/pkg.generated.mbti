@@ -300,6 +300,10 @@ pub fn native_host_physical_refresh(NativeNodeRun) -> Unit
 
 pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFailure
 
+pub fn native_host_receipt_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
+
+pub fn native_host_record_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
+
 pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
 pub fn native_host_stream_drain(NativeNodeRun) -> String? raise NodeHostFailure
