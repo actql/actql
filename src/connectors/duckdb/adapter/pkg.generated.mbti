@@ -193,13 +193,13 @@ pub fn managed_fixed_compute_demand_matches(ManagedFixedComputeDemand, FixedComp
 
 pub fn managed_fixed_compute_demand_usage(ManagedFixedComputeDemand) -> FixedComputeDemandUsage
 
+pub fn[T] managed_fixed_query_column_file_sql(ManagedFixedQuery[T], Int) -> String?
+
 pub fn[T] managed_fixed_query_create_sql(ManagedFixedQuery[T]) -> String
 
 pub fn[T] managed_fixed_query_input(ManagedFixedQuery[T]) -> @execution_relation.ManagedProducerRead[T]
 
 pub fn[T] managed_fixed_query_matches(ManagedFixedQuery[T], @execution_relation.ManagedProducerRead[T]) -> Bool
-
-pub fn[T] managed_fixed_query_numeric_file_sql(ManagedFixedQuery[T], Int) -> String?
 
 pub fn[T] managed_fixed_query_query(ManagedFixedQuery[T]) -> FixedQuery
 

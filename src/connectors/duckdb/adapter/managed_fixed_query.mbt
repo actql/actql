@@ -94,29 +94,50 @@ pub fn[T] managed_fixed_query_create_sql(
 }
 
 ///|
-/// Finite installed physical codec for one numeric column. The file contains
-/// newline-delimited objects whose `native_columns` member is one DOUBLE list.
+/// Finite installed physical codec for Number and Text columns. Each bounded
+/// newline-delimited object contains `c0` through `cN` typed column lists.
 /// This compiles only the import; exact Store generation, integrity, use
 /// authority and the subsequent typed managed completion remain mandatory.
-pub fn[T] managed_fixed_query_numeric_file_sql(
+pub fn[T] managed_fixed_query_column_file_sql(
   value : ManagedFixedQuery[T],
   max_sql_bytes : Int,
 ) -> String? {
   let schema = @execution.managed_producer_read_schema(value.input)
   guard max_sql_bytes > 0 &&
-    @schema.field_count(schema) == 1 &&
-    @schema.field_at(schema, 0) is Some(field) &&
-    field.contract.shape is @contract.Number &&
+    @schema.field_count(schema) > 0 &&
     fixed_query_input_table(value.query, 0) is Some(table) else {
     return None
+  }
+  let physical = []
+  for index in 0..<@schema.field_count(schema) {
+    guard @schema.field_at(schema, index) is Some(field) else { return None }
+    match field.contract.shape {
+      @contract.Number => physical.push("DOUBLE")
+      @contract.Text(_) => physical.push("VARCHAR")
+      _ => return None
+    }
   }
   let output = { builder: StringBuilder(), remaining: max_sql_bytes, }
   try {
     sql_text(output, "INSERT INTO ")
     sql_identifier(output, table)
+    sql_text(output, " SELECT ")
+    for index, _ in physical {
+      if index > 0 {
+        sql_text(output, ", ")
+      }
+      sql_text(output, "unnest(c" + index.to_string() + ")")
+    }
     sql_text(
-      output, " SELECT unnest(native_columns[1]) FROM read_json(?, format='newline_delimited', auto_detect=false, columns={native_columns:'DOUBLE[][]'}, ignore_errors=false)",
+      output, " FROM read_json(?, format='newline_delimited', auto_detect=false, columns={",
     )
+    for index, kind in physical {
+      if index > 0 {
+        sql_text(output, ",")
+      }
+      sql_text(output, "c" + index.to_string() + ":'" + kind + "[]'")
+    }
+    sql_text(output, "}, ignore_errors=false)")
     Some(output.builder.to_string())
   } catch {
     _ => None

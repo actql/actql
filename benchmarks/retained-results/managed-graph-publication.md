@@ -88,15 +88,15 @@ not.
 
 ## Installed Store/native product path
 
-`runManagedNumericStrategyHostCompute` accepts only the opaque selected Host
+`runManagedColumnStrategyHostCompute` accepts only the opaque selected Host
 configuration, the exact graph-owned material, the installed representation
 contract identifier, Host limits and Host storage policy. It accepts no SQL,
 verifier, completion callback or caller-authored evidence. The MoonBit driver
 owns the selected request, compiled query, typed completion port and task
 lifecycle.
 
-The initial installed representation is one ordered numeric column encoded as
-bounded newline-delimited physical frames. This is a finite implementation
+The initial installed representation is an ordered set of Number/Text columns
+encoded as bounded newline-delimited physical column frames. This is a finite implementation
 identifier, not a registered logical CID and not a portable ResultArtifact
 contract. The Host:
 
@@ -106,7 +106,7 @@ contract. The Host:
 3. grants that exact file to the DuckDB session and imports it with checked,
    adapter-generated `read_json` SQL and no parameter-row INSERT path;
 4. runs the selected query and sends its actual chunks through the common typed
-   output verifier while writing the same ordered numeric values to a new Store
+   output verifier while writing the same ordered typed values to a new Store
    body;
 5. settles actual physical use, retains the sealed output allocation and
    publishes it through `complete_managed_task_execution`; and
@@ -138,14 +138,14 @@ DuckDB execution and checks the following sequence:
 | boundary | reserved retention | held bytes | graph state |
 | --- | ---: | ---: | --- |
 | admitted open | stream base + 100,000 body + 768 index | 0 | task 1 running |
-| index and actual 27-byte body retained | stream base + 99,973 | 795 | task 1 running |
-| native settlement | unchanged | 795 | no success yet |
-| task-1 managed publication | 0 | 795 | task 1 done, task 2 ready |
-| task-2 pinned read, native execution and publication | 0 | 822 | tasks 1 and 2 done, task 3 ready |
-| task-3 pinned read, native execution and publication | 0 | 849 | all three tasks done |
-| task-1 output revoke | 0 | 81 | all three independent bodies remain graph-owned |
-| task-3 close and physical cleanup | 0 | 54 | task-1 and task-2 bodies remain graph-owned |
-| task-2 close and physical cleanup | 0 | 27 | task-1 body remains graph-owned |
+| index and actual 13-byte body retained | stream base + 99,987 | 781 | task 1 running |
+| native settlement | unchanged | 781 | no success yet |
+| task-1 managed publication | 0 | 781 | task 1 done, task 2 ready |
+| task-2 pinned read, native execution and publication | 0 | 794 | tasks 1 and 2 done, task 3 ready |
+| task-3 pinned read, native execution and publication | 0 | 807 | all three tasks done |
+| task-1 output revoke | 0 | 39 | all three independent bodies remain graph-owned |
+| task-3 close and physical cleanup | 0 | 26 | task-1 and task-2 bodies remain graph-owned |
+| task-2 close and physical cleanup | 0 | 13 | task-1 body remains graph-owned |
 | task-1 close / cleanup confirmation | 0 | 0 | all bodies reclaimed |
 
 The same regression rejects a 100,001-byte body despite the adjacent stream
@@ -155,7 +155,7 @@ mode per task, and ownership transfer through cancellation.
 
 ## Remaining production work
 
-The product path is intentionally limited to the installed one-number-column
+The product path is intentionally limited to the installed Number/Text column
 representation and the checked FilterSelect query family. It does not yet
 implement the Q6 evidence-transfer rules for projection/filter/take/sort/derive,
 general schemas/codecs, mixed acquisition/managed input families,

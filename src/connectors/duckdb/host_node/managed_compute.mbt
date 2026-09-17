@@ -108,7 +108,7 @@ pub fn managed_strategy_input_file_sql(
   if run.closed {
     return None
   }
-  @duckdb.managed_fixed_query_numeric_file_sql(
+  @duckdb.managed_fixed_query_column_file_sql(
     @duckdb_driver.captured_managed_duckdb_query(run.task),
     max_sql_bytes,
   )

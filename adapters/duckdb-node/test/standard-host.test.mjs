@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
-import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute, runManagedNumericStrategyHostCompute, managedNumericColumnCodecContractCid,
+import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNativeHostQuery, runRetainedFixedHostCompute, runRetainedStrategyHostCompute, importRetainedComputeInput, runStrategyNativeHostQuery, runBroadHostQuery, runFixedHostCompute, runStrategyHostCompute, runManagedColumnStrategyHostCompute, managedColumnCodecContractCid, encodeManagedColumnFrame,
   openResidentStrategyEnvironment, importResidentStrategyInput, runResidentStrategyHostCompute } from '../host.mjs';
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
@@ -28,7 +28,6 @@ const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
-const physicalDouble = value => value === null ? null : Buffer.from(value, 'hex').readDoubleBE();
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -989,9 +988,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         JSON.stringify(chunk.columns)));
       assert.equal(chunk.fields.length, 1);
       assert.equal(chunk.fields[0].type.id, 'DOUBLE');
-      const native = chunk.columns[0].map(physicalDouble);
-      await managedLedgerWriter.appendBytes(Buffer.from(
-        `${JSON.stringify({native_columns: [native]})}\n`));
+      await managedLedgerWriter.appendBytes(encodeManagedColumnFrame(
+        chunk.fields, chunk.columns, chunk.rowCount));
     };
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
       {maxRows: 100, maxCells: 1000}, consume);
@@ -1028,7 +1026,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const managedMaterial = bridge.managedOutputMaterial(managedLedgerOutput);
     registerManagedInput(managedMaterial,
       input => bridge.managedInputMatchesMaterial(input, managedMaterial),
-      managedLedgerStore, managedLedgerBody, managedNumericColumnCodecContractCid);
+      managedLedgerStore, managedLedgerBody, managedColumnCodecContractCid);
     assert.equal(bridge.managedInputMatchesMaterial(managedInput, managedMaterial), true,
       'the next task binds the exact retained occurrence through its checked graph edge');
     assert.equal(fixture.strategyFixtureManagedRequestAccepts(managedInput, 1), false,
@@ -1052,12 +1050,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     assert.match(managedQuerySql, /FROM "main"\."managed_input"/);
     const managedConfiguration = fixture.strategyFixtureManagedConfiguration(
       managedLedgerFixture, 2, managedRequest, managedProfile, 100000n);
-    await assert.rejects(runManagedNumericStrategyHostCompute(
+    await assert.rejects(runManagedColumnStrategyHostCompute(
       managedConfiguration, managedMaterial, 'sha256:' + '0'.repeat(64),
       suppliedLimits, {parentDirectory: fileParent, maxFrameBytes: 4096}),
     {code: 'InvalidManagedStorageConfiguration'});
-    managedDownstream = await runManagedNumericStrategyHostCompute(
-      managedConfiguration, managedMaterial, managedNumericColumnCodecContractCid,
+    managedDownstream = await runManagedColumnStrategyHostCompute(
+      managedConfiguration, managedMaterial, managedColumnCodecContractCid,
       suppliedLimits, {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 2, managedDownstream.completed), true,
@@ -1078,9 +1076,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       managedLedgerFixture, 3, managedDownstream.completed);
     const terminalConfiguration = fixture.strategyFixtureManagedConfiguration(
       managedLedgerFixture, 3, terminalRequest, managedProfile, 100000n);
-    managedTerminal = await runManagedNumericStrategyHostCompute(
+    managedTerminal = await runManagedColumnStrategyHostCompute(
       terminalConfiguration, managedDownstream.material,
-      managedNumericColumnCodecContractCid, suppliedLimits,
+      managedColumnCodecContractCid, suppliedLimits,
       {parentDirectory: fileParent, maxFrameBytes: 4096});
     assert.equal(fixture.strategyFixtureManagedOutputMatches(
       managedLedgerFixture, 3, managedTerminal.completed), true,

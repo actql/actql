@@ -1,49 +1,34 @@
-// Installed finite managed-profile realization for one numeric column. The
+// Installed finite managed-profile realization for bounded Number/Text columns. The
 // opaque setup fixes the checked query and completion owner; callers provide no
 // SQL, verifier or content identity. Store pinning, native settlement and graph
 // publication all remain inside this Host entry.
-import {createHash} from 'node:crypto';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {registerManagedInput, withManagedInputFile} from '../store-local/managed-representations.mjs';
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
+import {encodeManagedColumnFrame, managedColumnCodecContractCid} from './managed-column-codec.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
 const loadRuntime = () => runtime ??= import(runtimeUrl.href);
-const codecContract = 'actql-duckdb-managed-numeric-column-file/0.1\n' +
-  'newline-delimited-object:native_columns=DOUBLE[][]\n' +
-  'one-column;ordered;duplicates-preserved;store-integrity-required';
-
-export const managedNumericColumnCodecContractCid =
-  `sha256:${createHash('sha256').update(codecContract).digest('hex')}`;
-
 function fieldsFrame(fields) {
   return JSON.stringify(fields.map(({name, type}) => [name, type.id,
     type.precision === undefined ? null : String(type.precision),
     type.scale === undefined ? null : String(type.scale)]));
 }
 
-function physicalDouble(value) {
-  if (value === null) return null;
-  if (typeof value !== 'string' || !/^[0-9a-f]{16}$/.test(value)) {
-    throw new DuckDBTransportError('UnsupportedManagedNumericValue');
-  }
-  return Buffer.from(value, 'hex').readDoubleBE();
-}
-
 // outputStorage is Host policy, not Program input. Its directory and framing
 // are admitted before native work; capacity comes from the selected MoonBit
 // setup and cannot be enlarged here.
-export async function runManagedNumericStrategyHostCompute(
+export async function runManagedColumnStrategyHostCompute(
   setup, inputMaterial, inputCodecContractCid, limits, outputStorage, signal,
 ) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
   if (!outputStorage || typeof outputStorage.parentDirectory !== 'string' ||
       !Number.isSafeInteger(outputStorage.maxFrameBytes) || outputStorage.maxFrameBytes < 1 ||
-      inputCodecContractCid !== managedNumericColumnCodecContractCid) {
+      inputCodecContractCid !== managedColumnCodecContractCid) {
     throw new DuckDBTransportError('InvalidManagedStorageConfiguration');
   }
   const moon = await loadRuntime();
@@ -93,11 +78,8 @@ export async function runManagedNumericStrategyHostCompute(
             fieldsFrame(chunk.fields)));
           checked(moon.managedOutputAccept(output, chunk.rowCount,
             JSON.stringify(chunk.columns)));
-          if (chunk.fields.length !== 1 || chunk.fields[0].type.id !== 'DOUBLE') {
-            throw new DuckDBTransportError('UnsupportedManagedNumericOutput');
-          }
-          const native = chunk.columns[0].map(physicalDouble);
-          await writer.appendBytes(Buffer.from(JSON.stringify({native_columns: [native]}) + '\n'));
+          await writer.appendBytes(encodeManagedColumnFrame(
+            chunk.fields, chunk.columns, chunk.rowCount));
           outputFrames++;
         });
         if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
@@ -117,7 +99,7 @@ export async function runManagedNumericStrategyHostCompute(
     if (material == null) throw new DuckDBTransportError('MissingManagedOutputMaterial');
     registerManagedInput(material,
       input => moon.managedInputMatchesMaterial(input, material),
-      store, body, managedNumericColumnCodecContractCid);
+      store, body, managedColumnCodecContractCid);
     let closed = false;
     return Object.freeze({
       completed,
