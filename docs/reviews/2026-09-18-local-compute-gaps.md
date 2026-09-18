@@ -50,9 +50,9 @@ standard-Host candidate and execution support, not a direct kernel call.
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
 | append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
 | values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |
-| except | C | C | P | P | Sort-merge scaling is fixed; empty-side, reference-value, and failure evidence remain |
-| intersect | C | C | P | P | Sort-merge scaling is fixed; empty-side, reference-value, and failure evidence remain |
-| cross_join | C | C | P | P | Product-proportional scaling is fixed; full types and failure/cancellation lifetime remain |
+| except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
+| intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
+| cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
 | analytic | C | - | - | - | Machine contract, lowering, and execution |
 
 ## Shared-boundary notifications

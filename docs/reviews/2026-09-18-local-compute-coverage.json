@@ -3156,7 +3156,9 @@
             "fixtures": [
               "row set variants preserve complete-value multiplicity and left order",
               "row set lowering emits registered operation and checked duplicate mode",
-              "row set output ceiling fails atomically"
+              "row set output ceiling fails atomically",
+              "row set variants preserve their empty-side laws",
+              "row set execution accepts every pair of retained input layouts"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3198,7 +3200,7 @@
         ]
       },
       "gaps": [
-        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Empty sides, full relation_value types including references, and detailed failure evidence remain."
+        "All/distinct scalar rows with NULL, left order, empty sides, every retained input-layout pairing, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Full relation_value types including references and detailed failure evidence remain."
       ]
     },
     {
@@ -3267,7 +3269,9 @@
             "fixtures": [
               "row set variants preserve complete-value multiplicity and left order",
               "row set lowering emits registered operation and checked duplicate mode",
-              "row set output ceiling fails atomically"
+              "row set output ceiling fails atomically",
+              "row set variants preserve their empty-side laws",
+              "row set execution accepts every pair of retained input layouts"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3309,7 +3313,7 @@
         ]
       },
       "gaps": [
-        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Empty sides, full relation_value types including references, and detailed failure evidence remain."
+        "All/distinct scalar rows with NULL, left order, empty sides, every retained input-layout pairing, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Full relation_value types including references and detailed failure evidence remain."
       ]
     },
     {
@@ -3380,7 +3384,8 @@
             "fixtures": [
               "cross join emits the left-major product and empty-side results",
               "cross join validates singleton and output ceilings atomically",
-              "cross join releases unpublished workspace after a bounded failure"
+              "cross join releases unpublished workspace after a bounded failure",
+              "cross join accepts every pair of retained input layouts"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3424,7 +3429,7 @@
         ]
       },
       "gaps": [
-        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, bounded unpublished-workspace cleanup, and fixed work and retention proportional to the emitted product. The full relation_value type matrix, mixed physical input representations, and cancellation lifecycle remain."
+        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, every retained input-layout pairing, bounded unpublished-workspace cleanup, and fixed work and retention proportional to the emitted product. The full relation_value type matrix and cancellation lifecycle remain."
       ]
     },
     {
