@@ -157,3 +157,42 @@ test "dedupe grouping remains bounded for equal and different keys at scale" {
     }
   }
 }
+
+///|
+test "dedupe large indexed budgets are exact and fail atomically" {
+  let count = 1000
+  let table = order_table(
+    Array::makei(count, i => Number((i % 100).to_double())),
+  )
+  let by = [{ column: 0, descending: false, nulls_first: false, }]
+  let order = [{ column: 1, descending: true, nulls_first: false, }]
+  let maximum = 10000000
+  let control = { remaining: maximum, max_frames: 0, }
+  let workspace = { limit: maximum, live: 7, peak: 7, }
+  let expected = dedupe_indices(table, by, order, control, workspace).unwrap()
+  assert_eq(expected.length(), 100)
+  let used = maximum - control.remaining
+  let peak = workspace.peak
+  for
+    (work, entries, good) in [
+      (used, peak, true),
+      (used - 1, peak, false),
+      (used, peak - 1, false),
+    ] {
+    let attempt = { limit: entries, live: 7, peak: 7, }
+    let result = dedupe_indices(
+      table,
+      by,
+      order,
+      { remaining: work, max_frames: 0, },
+      attempt,
+    )
+    if good {
+      assert_eq(result.unwrap(), expected)
+      assert_eq(attempt.live, 7 + expected.length())
+    } else {
+      assert_true(result is Err(Ordering(Limit)))
+      assert_eq(attempt.live, 7)
+    }
+  }
+}

@@ -45,7 +45,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | P | Count, deep structured distinct, direct, and ordered collection aggregates are managed with two consumers; percentile/statistical kernels cover deterministic folds and failures, while expression/filter, numeric observation, managed statistics, broader domains, and remaining keys remain |
 | distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
-| dedupe_rows | C | C | C | P | Standard-Host evidence, the broader key/orderable domain matrix, and shared owned-reference comparison; compound nullable keys, tie failure, two consumers, and indexed scaling are covered |
+| dedupe_rows | C | C | C | C | Complete: compound nullable and global keys, canonical representative order, required tie failure, all key/orderable and payload domains, owned-reference lifetime, exact large indexed budgets, standard Host, two consumers, and final reclamation |
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
 | append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
 | values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |

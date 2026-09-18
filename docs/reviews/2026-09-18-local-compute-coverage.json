@@ -3306,10 +3306,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3341,7 +3341,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3358,6 +3363,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "dedupe_rows",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -3370,14 +3388,40 @@
               "global dedupe handles empty input and rejects only first-place ties",
               "unselected dedupe top tie fails the sequence without publishing an earlier output",
               "dedupe prepares owned reference equality before reading rows",
-              "dedupe shares sequence work and enforces the exact execution boundary"
+              "dedupe shares sequence work and enforces the exact execution boundary",
+              "dedupe preserves every relation value payload domain",
+              "dedupe compares every key domain including owned references",
+              "dedupe orders every author orderable domain"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "compound key",
+                "ordering and tie policy",
+                "NULL equality",
+                "representative selection",
+                "required tie failures"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "dedupe_rows",
@@ -3387,7 +3431,8 @@
               "dedupe groups use canonical tuple identities not scalar key order",
               "dedupe global partition empty input and lower-ranked ties",
               "dedupe top tie fails before any survivor escapes and resets only local scratch",
-              "dedupe budget exactness includes canonical identity and final group sorting"
+              "dedupe budget exactness includes canonical identity and final group sorting",
+              "dedupe large indexed budgets are exact and fail atomically"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3428,9 +3473,7 @@
           }
         ]
       },
-      "gaps": [
-        "Compound nullable grouping, global and repeated keys, canonical group order, managed top-tie failure, two consumers, exact small-case budgets, and bounded indexed work are covered on three targets. Standard Host evidence, the broader key/orderable domain matrix, shared owned-reference comparison, and large-scale exact/one-short budgets remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "assert_rows",

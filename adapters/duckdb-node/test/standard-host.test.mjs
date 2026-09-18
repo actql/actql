@@ -1632,6 +1632,46 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       from: 'out', fields: id === 'a' ? ['id', 'amount'] : ['amount', 'id'],
     }},
   })));
+  const dedupeProgram = structuredClone(zeroInputProgram);
+  dedupeProgram.stages.splice(1, 3, {
+    id: 'dedupe_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        group: {type: 'string', nullable: true},
+        bucket: {type: 'number', nullable: false},
+      },
+      rows: [
+        {id: 1, amount: 10, group: null, bucket: 1},
+        {id: 2, amount: 30, group: null, bucket: 1},
+        {id: 3, amount: 20, group: 'a', bucket: 2},
+        {id: 4, amount: 40, group: 'a', bucket: 2},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount', 'group', 'bucket']}},
+  }, {
+    id: 'deduped',
+    inputs: {x: {result: {stage: 'dedupe_values', result: 'r'}}},
+    steps: [{dedupe_rows: {
+      by: ['group', 'bucket'],
+      order_by: [{amount: 'desc'}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount', 'group', 'bucket']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `dedupe_consumer_${id}`,
+    inputs: {x: {result: {stage: 'deduped', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? ['id', 'amount', 'group', 'bucket']
+      : ['bucket', 'group', 'amount', 'id'], as: 'out'}],
+    results: {r: {
+      from: 'out',
+      fields: id === 'a'
+        ? ['id', 'amount', 'group', 'bucket']
+        : ['bucket', 'group', 'amount', 'id'],
+    }},
+  })));
   const groupProgram = structuredClone(zeroInputProgram);
   groupProgram.stages.splice(1, 3, {
     id: 'group_values',
@@ -1783,6 +1823,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
+    ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
@@ -1830,6 +1871,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'dedupe rows') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 2, 2, 2],
+          'dedupe and both consumers publish complete retained outputs',
         );
       }
     } finally {
