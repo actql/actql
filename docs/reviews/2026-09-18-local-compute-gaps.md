@@ -13,7 +13,6 @@ the implementation.
 | Gap | Evidence | Required resolution |
 | --- | --- | --- |
 | `nest` has no canonical AoA mapping | It appears in the normative RelA inventory, but not the normative canonical mapping table | Define the common typed operation and register it before Local lowering |
-| `REL.analytic` is absent from both the pinned registry and target requirements | The normative mapping requires it | Complete the shared machine contract before lowering or execution |
 
 These are required-scope gaps, not reasons to remove operations from the Local
 milestone.
@@ -53,7 +52,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
-| analytic | C | - | - | - | Machine contract, lowering, and execution |
+| analytic | C | C | P | P | Ranking, navigation, direct and collection frame aggregates, exact runtime envelopes, indexed scaling, and two managed consumers are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
 
 ## Shared-boundary notifications
 

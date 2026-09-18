@@ -3840,22 +3840,104 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
-        "performance": "missing"
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "partial"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
-        "performance": []
+        "source_connection": [
+          {
+            "operation": "analytic",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/analytic_test.mbt",
+            "fixtures": [
+              "analytic keeps authored peers separate from position completion",
+              "analytic lowers navigation frame and aggregate expressions",
+              "analytic resolves bound offsets frame distances and fractions",
+              "analytic preparation enforces exact entry and name budgets"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "analytic",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
+            "fixtures": [
+              "Local managed analytic reaches two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "analytic",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
+            "fixtures": [
+              "Local managed analytic reaches two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "analytic",
+            "layer": "conformance",
+            "path": "src/execution_relation/analytic_rows_wbtest.mbt",
+            "fixtures": [
+              "analytic envelope enforces exact typed wire scopes",
+              "analytic ranking navigation and frame values retain source order",
+              "analytic expression failure follows partition source and call order",
+              "analytic direct aggregates use each row frame and retain source order",
+              "analytic count indices preserve partitions and clipped frames",
+              "analytic collection limits bind exact prepared calls"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": [
+          {
+            "operation": "analytic",
+            "layer": "performance",
+            "path": "src/execution_relation/analytic_scale_wbtest.mbt",
+            "fixtures": [
+              "analytic ranking navigation and count retain indexed scaling"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "REL.analytic is normative but absent from both the pinned registry and target requirements; shared contract work is required."
+        "Ranking, navigation, direct and collection frame aggregates now lower and run through managed Local execution with exact envelopes, two downstream consumers, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
       ]
     }
   ],
