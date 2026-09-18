@@ -183,11 +183,12 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
-    admitRunPublication(template, prepared, authorization) {
+    admitRunPublication(template, prepared, authorization, compiledPlan) {
       return inspectAdmission(checked(moon.strategyRunPublicationAdmit(
         evidenceToken(template),
         evidenceToken(prepared),
         evidenceToken(authorization),
+        token(compiledPlan),
       )));
     },
     issueRunDefinition(admission, definition, limits) {
@@ -228,10 +229,6 @@ function publicationControl(moon) {
         chain.artifacts.map(token),
         token(chain.manifest),
         evidenceToken(provenance.normalizationJournal),
-        provenance.compilerVersion,
-        provenance.aoaIrVersion,
-        provenance.programSemanticsCid,
-        provenance.aoaLogicalCid,
         provenance.bindings.map(binding => binding.name),
         provenance.bindings.map(binding => binding.sha256),
         provenance.sourceEvidence.map(evidenceToken),

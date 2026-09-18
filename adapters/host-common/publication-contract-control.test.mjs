@@ -136,12 +136,22 @@ test('portable admission issues Run Definition from exact authority', () => {
     }),
     limits,
   );
+  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
+    version: 'actql-compiled-plan/0.1',
+    compiler_version: 'compiler-0.1',
+    aoa_ir_version: 'aoa-ir-0.1',
+    executable_plan_cid: cid('0'),
+    program_definition_cid: cid('1'),
+    program_semantics_cid: cid('a'),
+    aoa_contract_cid: cid('b'),
+    aoa_logical_cid: cid('c'),
+  }), limits);
   const prepared = control.sealRunEvidence(
     'prepared_invocation',
     JSON.stringify({
       version: 'actql-prepared-invocation/0.1',
       invocation_template_cid: template.identity,
-      compiled_plan_cid: cid('7'),
+      compiled_plan_cid: compiledPlan.identity,
       execution_context_cid: cid('8'),
       host_policy_cid: cid('9'),
       policy_decision: 'allow',
@@ -164,6 +174,7 @@ test('portable admission issues Run Definition from exact authority', () => {
     template,
     prepared,
     authorization,
+    compiledPlan,
   );
   const definition = control.issueRunDefinition(admission, {
     scopeId: 'scope',
@@ -174,7 +185,7 @@ test('portable admission issues Run Definition from exact authority', () => {
   }, limits);
   assert.deepEqual(JSON.parse(definition.wire), {
     authorization_context_cid: cid('8'),
-    compiled_plan_cid: cid('7'),
+    compiled_plan_cid: compiledPlan.identity,
     created_at: '2026-09-18T00:00:00.000Z',
     input_artifact_set_cid: cid('a'),
     invocation_template_cid: template.identity,
@@ -296,12 +307,22 @@ test('portable control validates Receipt and Captured Run references',
     }),
     limits,
   );
+  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
+    version: 'actql-compiled-plan/0.1',
+    compiler_version: 'compiler-0.1',
+    aoa_ir_version: 'aoa-ir-0.1',
+    executable_plan_cid: cid('0'),
+    program_definition_cid: cid('6'),
+    program_semantics_cid: cid('e'),
+    aoa_contract_cid: cid('d'),
+    aoa_logical_cid: cid('f'),
+  }), limits);
   const prepared = control.sealRunEvidence(
     'prepared_invocation',
     JSON.stringify({
       version: 'actql-prepared-invocation/0.1',
       invocation_template_cid: template.identity,
-      compiled_plan_cid: cid('3'),
+      compiled_plan_cid: compiledPlan.identity,
       execution_context_cid: cid('4'),
       host_policy_cid: cid('5'),
       policy_decision: 'allow',
@@ -324,6 +345,7 @@ test('portable control validates Receipt and Captured Run references',
     template,
     prepared,
     authorization,
+    compiledPlan,
   );
   const run = control.issueRunDefinition(admission, {
     scopeId: 'scope',
@@ -426,10 +448,6 @@ test('portable control validates Receipt and Captured Run references',
     manifest,
   }, {
     normalizationJournal,
-    compilerVersion: 'compiler-0.1',
-    aoaIrVersion: 'aoa-ir-0.1',
-    programSemanticsCid: cid('e'),
-    aoaLogicalCid: cid('f'),
     bindings: [],
     sourceEvidence: [],
     modelEvidence: [],

@@ -8704,6 +8704,16 @@ The graph output index aggregates node history without new Invocations:
   a Result delivery receipt CID additionally binds one selected canonical byte
   representation ([Result delivery](protocols/artifacts.md#result-delivery)).
 
+The `actql-compiled-plan/0.1` compilation envelope is a closed canonical
+contract. It binds `compiler_version`, `aoa_ir_version`,
+`executable_plan_cid`, `program_definition_cid`, `program_semantics_cid`,
+`aoa_contract_cid`, and `aoa_logical_cid`; `compiled_plan_cid` hashes the
+complete body without only that self member. A Prepared Invocation refers to
+this envelope. Run admission checks the envelope against the exact Program
+Definition before execution, and later Receipt issuance derives its compiler,
+AoA, and semantic fields from the already admitted envelope. A publisher
+cannot supply replacement version or logical-identity strings.
+
 <a id="local-approval"></a>
 
 #### Local semantic identity and graph membership

@@ -15,7 +15,7 @@ priv struct CapturedRunTestChain {
 fn captured_run_test_chain(with_model? : Bool = false) -> CapturedRunTestChain {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
-  let admission = receipt_test_admission(template)
+  let admission = receipt_test_admission(template, program)
   let run = issue_run_definition(
     admission,
     "scope",
@@ -84,10 +84,6 @@ fn captured_run_test_chain(with_model? : Bool = false) -> CapturedRunTestChain {
     [artifact],
     manifest,
     receipt_test_journal(),
-    "compiler-0.1",
-    "aoa-ir-0.1",
-    ordering_test_cid("a"),
-    ordering_test_cid("b"),
     [],
     [],
     [],

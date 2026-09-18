@@ -12,6 +12,7 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 test('publication schemas are closed and self identities are explicit', () => {
   const schemas = publicationSchemas();
   const selfFields = {
+    compiled_plan: 'compiled_plan_cid',
     result_definition: 'result_definition_cid',
     run_invocation: 'invocation_cid',
     result_retention_policy: 'effective_retention_policy_cid',

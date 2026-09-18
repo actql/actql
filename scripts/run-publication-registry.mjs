@@ -49,6 +49,36 @@ function inventory() {
 
 export function publicationSchemas() {
   const schemas = {};
+  schemas.compiled_plan = schema(
+    'actql-compiled-plan',
+    'actql-compiled-plan/0.1',
+    [
+      'compiler_version',
+      'aoa_ir_version',
+      'executable_plan_cid',
+      'program_definition_cid',
+      'program_semantics_cid',
+      'aoa_contract_cid',
+      'aoa_logical_cid',
+      'compiled_plan_cid',
+    ],
+    {
+      compiler_version: {
+        type: 'string',
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$',
+      },
+      aoa_ir_version: {
+        type: 'string',
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$',
+      },
+      executable_plan_cid: clone(cid),
+      program_definition_cid: clone(cid),
+      program_semantics_cid: clone(cid),
+      aoa_contract_cid: clone(cid),
+      aoa_logical_cid: clone(cid),
+      compiled_plan_cid: clone(cid),
+    },
+  );
   schemas.result_definition = schema(
     'actql-result-definition',
     'actql-result-definition/0.1',
@@ -390,6 +420,13 @@ export function publicationSchemas() {
 }
 
 export const referenceRoles = {
+  compiled_plan: {
+    executable_plan_cid: 'external:executable-plan',
+    program_definition_cid: 'external:program-definition',
+    program_semantics_cid: 'external:program-semantics',
+    aoa_contract_cid: 'external:aoa-contract',
+    aoa_logical_cid: 'external:aoa-logical-plan',
+  },
   result_definition: {
     program_definition_cid: 'external:program-definition',
   },

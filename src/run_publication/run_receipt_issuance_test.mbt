@@ -26,14 +26,16 @@ fn receipt_test_template(program : String) -> RunEvidenceValue {
 ///|
 fn receipt_test_admission(
   template : RunEvidenceValue,
+  program : String,
 ) -> RunPublicationAdmission {
+  let plan = admission_test_plan(program)
   let prepared = seal_run_evidence_value(
     "prepared_invocation",
     "{\"version\":\"actql-prepared-invocation/0.1\"," +
     "\"invocation_template_cid\":\"" +
     run_evidence_value_identity(template) +
     "\",\"compiled_plan_cid\":\"" +
-    ordering_test_cid("1") +
+    publication_contract_identity(plan) +
     "\",\"execution_context_cid\":\"" +
     ordering_test_cid("2") +
     "\",\"host_policy_cid\":\"" +
@@ -58,7 +60,7 @@ fn receipt_test_admission(
     1024,
     12,
   ).unwrap()
-  admit_run_publication(template, prepared, authorization).unwrap()
+  admit_run_publication(template, prepared, authorization, plan).unwrap()
 }
 
 ///|
@@ -135,7 +137,7 @@ fn receipt_test_model_evidence(
 test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
-  let admission = receipt_test_admission(template)
+  let admission = receipt_test_admission(template, program)
   let run = issue_run_definition(
     admission,
     "scope",
@@ -176,10 +178,6 @@ test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
     [artifact],
     manifest,
     receipt_test_journal(),
-    "compiler-0.1",
-    "aoa-ir-0.1",
-    ordering_test_cid("a"),
-    ordering_test_cid("b"),
     ["program"],
     ["c".repeat(64)],
     [],
@@ -213,7 +211,7 @@ test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
 test "Run Receipt issuer rejects a foreign captured ObservationSet" {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
-  let admission = receipt_test_admission(template)
+  let admission = receipt_test_admission(template, program)
   let run = issue_run_definition(
     admission,
     "scope",
@@ -257,10 +255,6 @@ test "Run Receipt issuer rejects a foreign captured ObservationSet" {
       [artifact],
       manifest,
       receipt_test_journal(),
-      "compiler-0.1",
-      "aoa-ir-0.1",
-      ordering_test_cid("a"),
-      ordering_test_cid("b"),
       [],
       [],
       [],

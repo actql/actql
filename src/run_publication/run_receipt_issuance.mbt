@@ -142,10 +142,6 @@ pub fn issue_effect_free_run_receipt(
   artifacts : Array[PublicationContract],
   manifest : PublicationContract,
   normalization_journal : RunEvidenceValue,
-  compiler_version : String,
-  aoa_ir_version : String,
-  program_semantics_cid : String,
-  aoa_logical_cid : String,
   binding_names : Array[String],
   binding_digests : Array[String],
   source_evidence : Array[RunEvidenceValue],
@@ -165,6 +161,16 @@ pub fn issue_effect_free_run_receipt(
   }
   if normalization_journal.name != "normalization_journal" {
     return Err(ReceiptIssuanceWrongContract("normalization_journal"))
+  }
+  guard contract_string(admission.compiled_plan, "compiler_version")
+    is Some(compiler_version) &&
+    contract_string(admission.compiled_plan, "aoa_ir_version")
+    is Some(aoa_ir_version) &&
+    contract_string(admission.compiled_plan, "program_semantics_cid")
+    is Some(program_semantics_cid) &&
+    contract_string(admission.compiled_plan, "aoa_logical_cid")
+    is Some(aoa_logical_cid) else {
+    return Err(ReceiptIssuanceReferenceMismatch("compiled_plan"))
   }
   match
     validate_run_publication_chain(

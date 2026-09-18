@@ -16,7 +16,7 @@ pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition
 
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
-pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
@@ -34,7 +34,7 @@ pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, 
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
-pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
@@ -354,6 +354,7 @@ type RunPublicationAdmission
 
 pub(all) enum RunPublicationAdmissionIssue {
   RunAdmissionWrongEvidence
+  RunAdmissionWrongPlan
   RunAdmissionTemplateMismatch
   RunAdmissionPreparedMismatch
   RunAdmissionExecutionContextMismatch

@@ -574,8 +574,12 @@ pub fn strategy_run_publication_admit(
   template : @publication.RunEvidenceValue,
   prepared : @publication.RunEvidenceValue,
   authorization : @publication.RunEvidenceValue,
+  compiled_plan : @publication.PublicationContract,
 ) -> @publication.RunPublicationAdmission raise NodeHostFailure {
-  match @publication.admit_run_publication(template, prepared, authorization) {
+  match
+    @publication.admit_run_publication(
+      template, prepared, authorization, compiled_plan,
+    ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -615,10 +619,6 @@ pub fn strategy_issue_effect_free_run_receipt(
   artifacts : Array[@publication.PublicationContract],
   manifest : @publication.PublicationContract,
   normalization_journal : @publication.RunEvidenceValue,
-  compiler_version : String,
-  aoa_ir_version : String,
-  program_semantics_cid : String,
-  aoa_logical_cid : String,
   binding_names : Array[String],
   binding_digests : Array[String],
   source_evidence : Array[@publication.RunEvidenceValue],
@@ -631,9 +631,8 @@ pub fn strategy_issue_effect_free_run_receipt(
   match
     @publication.issue_effect_free_run_receipt(
       admission, run_definition, invocation, observation, definitions, artifacts,
-      manifest, normalization_journal, compiler_version, aoa_ir_version, program_semantics_cid,
-      aoa_logical_cid, binding_names, binding_digests, source_evidence, model_evidence,
-      barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
+      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand

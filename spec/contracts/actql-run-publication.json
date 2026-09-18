@@ -1,6 +1,61 @@
 {
   "version": "actql-run-publication-registry/0.1",
   "schemas": {
+    "compiled_plan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-compiled-plan-0.1.json",
+      "title": "actql-compiled-plan-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "compiler_version",
+        "aoa_ir_version",
+        "executable_plan_cid",
+        "program_definition_cid",
+        "program_semantics_cid",
+        "aoa_contract_cid",
+        "aoa_logical_cid",
+        "compiled_plan_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-compiled-plan/0.1"
+        },
+        "compiler_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$"
+        },
+        "aoa_ir_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$"
+        },
+        "executable_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "program_semantics_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "aoa_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "aoa_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "compiled_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
     "result_definition": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-result-definition-0.1.json",
@@ -887,6 +942,7 @@
     }
   },
   "schema_cids": {
+    "compiled_plan": "sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39",
     "result_definition": "sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973",
     "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
     "result_retention_policy": "sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb",
@@ -901,6 +957,13 @@
     "public_index_entry": "sha256:02b9bdcfad98727743c300aac47dad642d9e2a4220375b1054ff59cd9302de4a"
   },
   "reference_roles": {
+    "compiled_plan": {
+      "executable_plan_cid": "external:executable-plan",
+      "program_definition_cid": "external:program-definition",
+      "program_semantics_cid": "external:program-semantics",
+      "aoa_contract_cid": "external:aoa-contract",
+      "aoa_logical_cid": "external:aoa-logical-plan"
+    },
     "result_definition": {
       "program_definition_cid": "external:program-definition"
     },
@@ -987,6 +1050,36 @@
     }
   },
   "reference_graph": [
+    {
+      "source": "compiled_plan",
+      "slot": "executable_plan_cid",
+      "target": "external:executable-plan",
+      "role": "semantic"
+    },
+    {
+      "source": "compiled_plan",
+      "slot": "program_definition_cid",
+      "target": "external:program-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "compiled_plan",
+      "slot": "program_semantics_cid",
+      "target": "external:program-semantics",
+      "role": "semantic"
+    },
+    {
+      "source": "compiled_plan",
+      "slot": "aoa_contract_cid",
+      "target": "external:aoa-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "compiled_plan",
+      "slot": "aoa_logical_cid",
+      "target": "external:aoa-logical-plan",
+      "role": "semantic"
+    },
     {
       "source": "result_definition",
       "slot": "program_definition_cid",

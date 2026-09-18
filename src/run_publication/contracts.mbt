@@ -67,6 +67,7 @@ priv enum FieldRule {
   Cid
   Digest
   Timestamp
+  VersionToken
   NonemptyText
   SafeCount
   Choice(Array[String])
@@ -125,6 +126,21 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "compiled_plan" =>
+      Some({
+        name,
+        version: "actql-compiled-plan/0.1",
+        identity: "compiled_plan_cid",
+        fields: [
+          required("compiler_version", VersionToken),
+          required("aoa_ir_version", VersionToken),
+          required("executable_plan_cid", Cid),
+          required("program_definition_cid", Cid),
+          required("program_semantics_cid", Cid),
+          required("aoa_contract_cid", Cid),
+          required("aoa_logical_cid", Cid),
+        ],
+      })
     "run_definition" =>
       Some({
         name,
@@ -676,6 +692,8 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
     Cid => string_value(value).map(valid_contract_cid).unwrap_or(false)
     Digest => string_value(value).map(valid_digest).unwrap_or(false)
     Timestamp => string_value(value).map(valid_timestamp).unwrap_or(false)
+    VersionToken =>
+      string_value(value).map(valid_version_token).unwrap_or(false)
     NonemptyText =>
       string_value(value).map(text => !text.is_empty()).unwrap_or(false)
     SafeCount => valid_safe_count(value)

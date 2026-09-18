@@ -132,6 +132,7 @@ test('standard Node execution uses the connector-free serial driver and exact re
   const driverImports = [...driver.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
     .map(match => match[1]).sort();
   assert.deepEqual(driverImports, [
+    './durable-result-payload.mjs',
     './execution-sites.mjs',
     './managed-site-transfer.mjs',
   ]);

@@ -160,6 +160,39 @@ pub fn port_schema(port : ResultPort) -> @schema.Schema {
 }
 
 ///|
+/// Checked producer target for this exact Result port. Runtime consumers use
+/// this projection instead of reopening frontend pipeline semantics.
+pub fn port_target(port : ResultPort) -> @pipeline.Target {
+  @pipeline.producer_target(port_input(port))
+}
+
+///|
+/// Input field selected for one output field in the checked no-alias Result
+/// projection. The frontend owns this semantic projection.
+pub fn port_projection_input_at(
+  port : ResultPort,
+  index : Int,
+) -> @schema.FieldName? {
+  @relation.projection(
+    @pipeline.publication_projection(
+      @pipeline.input_publication(port.publication),
+    ),
+  )
+  .get(index)
+  .map(field => field.input)
+}
+
+///|
+pub fn port_order_term_count(port : ResultPort) -> Int {
+  publication_term_count(port_order(port))
+}
+
+///|
+pub fn port_order_term_at(port : ResultPort, index : Int) -> PublicationTerm? {
+  publication_term_at(port_order(port), index)
+}
+
+///|
 /// Conditional producer input with this Result's projection and publication
 /// order. Source-stage membership and runtime completion are separate checks.
 pub fn port_input(port : ResultPort) -> @pipeline.ProducedInput {

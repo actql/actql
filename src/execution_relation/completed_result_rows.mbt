@@ -133,13 +133,8 @@ fn completed_result_export_rows(
   let owner = managed_result_occurrence_owner(occurrence)
   let actual_owner = @lower.sequence_owner(source.completion.sequence)
   let port = managed_result_occurrence_port(occurrence)
-  let publication = @results.port_publication(port)
   if !physical_equal(owner, actual_owner) ||
-    !physical_equal(
-      @pipeline.publication_pipeline(publication),
-      @lower.pipeline(@lower.bound_preparation(owner)),
-    ) ||
-    @pipeline.publication_target(publication) != source.target {
+    @results.port_target(port) != source.target {
     return Err(ForeignOccurrence)
   }
   let schema = @results.port_schema(port)
@@ -148,9 +143,6 @@ fn completed_result_export_rows(
     return Err(Limit)
   }
   let work = Ref(limits.max_mapping_work)
-  let projection = @relation.projection(
-    @pipeline.publication_projection(publication),
-  )
   let columns : Array[Int] = []
   let names : Array[String] = []
   for index = 0; index < count; index = index + 1 {
@@ -158,17 +150,12 @@ fn completed_result_export_rows(
       return Err(Limit)
     }
     let output = @schema.field_at(schema, index).unwrap().name
-    let mut input = None
-    for selected in projection {
-      if !spend_result_mapping(work, 1) {
-        return Err(Limit)
-      }
-      if selected.output == output {
-        input = Some(selected.input)
-        break
-      }
+    guard @results.port_projection_input_at(port, index) is Some(input) else {
+      return Err(InvalidProjection)
     }
-    guard input is Some(input) else { return Err(InvalidProjection) }
+    if !spend_result_mapping(work, 1) {
+      return Err(Limit)
+    }
     let column = match result_source_column(table, input, work) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -177,13 +164,11 @@ fn completed_result_export_rows(
     columns.push(column)
   }
   let terms : Array[ColumnOrder] = []
-  for index = 0
-      index < @pipeline.publication_term_count(publication)
-      index = index + 1 {
+  for index = 0; index < @results.port_order_term_count(port); index = index + 1 {
     if !spend_result_mapping(work, 1) {
       return Err(Limit)
     }
-    let term = @pipeline.publication_term_at(publication, index).unwrap()
+    let term = @results.port_order_term_at(port, index).unwrap()
     let column = match result_source_column(table, term.field, work) {
       Ok(value) => value
       Err(issue) => return Err(issue)

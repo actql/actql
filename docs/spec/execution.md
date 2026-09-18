@@ -396,6 +396,13 @@ from the provenance of the admitted compiled plan and AoA IR and MUST match the
 referenced plan and IR evidence. A later publisher MUST NOT replace them with
 the version of the currently running binary.
 
+The admitted provenance is the exact `actql-compiled-plan/0.1` envelope named
+by the Prepared Invocation's `compiled_plan_cid`. Run admission also checks its
+`program_definition_cid` against the Bound Invocation Template. Receipt
+issuance reads `compiler_version`, `aoa_ir_version`, `program_semantics_cid`,
+and `aoa_logical_cid` from that retained admission; those fields are not
+publisher inputs.
+
 <!-- requirement-block: capture-and-replay.they-must-not-embed-result-row-payloads -->
 The Result Manifest and its Result Artifacts carry each Result's exact logical
 CID, schema, non-negative row count, completeness, effective policy, and

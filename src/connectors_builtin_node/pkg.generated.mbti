@@ -87,6 +87,8 @@ pub fn strategy_host_next_task(@connectors_builtin.ConfiguredComputeHost[@physic
 
 pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
+pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
+
 pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -189,7 +191,7 @@ pub fn strategy_host_usage(@connectors_builtin.ConfiguredComputeHost[@physical_s
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
@@ -231,7 +233,7 @@ pub fn strategy_run_evidence_name(@run_publication.RunEvidenceValue) -> String
 
 pub fn strategy_run_evidence_seal(String, String, Int, Int, Int) -> @run_publication.RunEvidenceValue raise NodeHostFailure
 
-pub fn strategy_run_publication_admit(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> @run_publication.RunPublicationAdmission raise NodeHostFailure
+pub fn strategy_run_publication_admit(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission raise NodeHostFailure
 
 pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
@@ -286,6 +288,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  CapturedRun(@run_publication.CapturedRunIssuanceIssue)
 }
 
 // Types and methods

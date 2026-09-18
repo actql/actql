@@ -178,6 +178,8 @@ pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> Log
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
 
+pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared

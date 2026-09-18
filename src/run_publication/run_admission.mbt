@@ -7,6 +7,7 @@ struct RunPublicationAdmission {
   template : RunEvidenceValue
   prepared : RunEvidenceValue
   authorization : RunEvidenceValue
+  compiled_plan : PublicationContract
   compiled_plan_cid : String
   authorization_context_cid : String
   expires_at : String
@@ -15,6 +16,7 @@ struct RunPublicationAdmission {
 ///|
 pub(all) enum RunPublicationAdmissionIssue {
   RunAdmissionWrongEvidence
+  RunAdmissionWrongPlan
   RunAdmissionTemplateMismatch
   RunAdmissionPreparedMismatch
   RunAdmissionExecutionContextMismatch
@@ -33,11 +35,15 @@ pub fn admit_run_publication(
   template : RunEvidenceValue,
   prepared : RunEvidenceValue,
   authorization : RunEvidenceValue,
+  compiled_plan : PublicationContract,
 ) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue] {
   if template.name != "bound_invocation_template" ||
     prepared.name != "prepared_invocation" ||
     authorization.name != "run_authorization" {
     return Err(RunAdmissionWrongEvidence)
+  }
+  if compiled_plan.name != "compiled_plan" {
+    return Err(RunAdmissionWrongPlan)
   }
   if contract_string_from_value(prepared.value, "invocation_template_cid") !=
     Some(template.identity) {
@@ -55,6 +61,17 @@ pub fn admit_run_publication(
     is Some(host_policy_cid) &&
     contract_string_from_value(prepared.value, "expires_at") is Some(expires_at) else {
     return Err(RunAdmissionWrongEvidence)
+  }
+  if compiled_plan.identity != compiled_plan_cid {
+    return Err(RunAdmissionPreparedMismatch)
+  }
+  guard contract_string_from_value(template.value, "program_definition_cid")
+    is Some(program_definition_cid) else {
+    return Err(RunAdmissionWrongEvidence)
+  }
+  if contract_string(compiled_plan, "program_definition_cid") !=
+    Some(program_definition_cid) {
+    return Err(RunAdmissionWrongPlan)
   }
   if contract_string_from_value(authorization.value, "execution_context_cid") !=
     Some(execution_context_cid) {
@@ -80,6 +97,7 @@ pub fn admit_run_publication(
     template,
     prepared,
     authorization,
+    compiled_plan,
     compiled_plan_cid,
     authorization_context_cid: execution_context_cid,
     expires_at,
