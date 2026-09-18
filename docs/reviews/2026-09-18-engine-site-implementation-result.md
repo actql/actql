@@ -3,6 +3,7 @@
 Date: 2026-09-18. Initial implementation commit: `120cd1dc`.
 Lifecycle follow-up commit: `fad218f3`.
 Cleanup and placement follow-up commit: `e6500144`.
+Transfer authorization follow-up commit: `e6499915`.
 Baseline: `5a305f3ce5cdac421985fb9a71878bc22af51237`.
 
 This report closes E0 through E3 of
@@ -112,6 +113,14 @@ Transfer success, retains cleanup ownership for the provisional destination,
 and does not invalidate an otherwise trusted source. A committed independent
 destination remains valid if its source Site is lost later.
 
+The provider authorization callback also combines the exact input binding
+with the current source and destination Site operation state. Forced loss of
+either admitted generation therefore rejects further source use before the
+final commit boundary, while graceful teardown continues to permit work that
+was already admitted. Authorization rejection is not stop confirmation: the
+source pin and reservations remain owned until actual access termination and
+cleanup are confirmed.
+
 Early managed-output release and full Host close now use the same owner-aware
 release path. A synchronous or asynchronous close failure installs the Site
 holding cleanup observer before propagating the failure. Successful explicit
@@ -141,7 +150,7 @@ their existing standard conformance path through the Site bridge.
 The implementation tree passed:
 
 - MoonBit tests: JS 4,522/4,522; Wasm 4,521/4,521; native 4,521/4,521.
-- Retained boundary: 171/171.
+- Retained boundary: 174/174.
 - DuckDB Node: 127/127.
 - Workers conformance: 7/7.
 - Process capacity and accounting: 15/15.
