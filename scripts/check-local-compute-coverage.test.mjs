@@ -55,6 +55,7 @@ test("a completed layer requires linked evidence", () => {
   const value = manifest();
   const filter = value.operations.find((entry) => entry.operation === "filter");
   filter.layers.performance = "complete";
+  filter.evidence.performance = [];
   const result = run(value);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /complete performance has no linked evidence/u);

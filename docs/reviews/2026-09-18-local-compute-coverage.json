@@ -49,11 +49,11 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
         "three_target_conformance": "partial",
-        "performance": "partial"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -62,7 +62,8 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
-              "Local managed unary source forms feed two downstream Computes"
+              "Local managed unary source forms feed two downstream Computes",
+              "Local managed filter failure publishes nothing and releases its use"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -86,6 +87,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "filter",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -96,6 +110,34 @@
             "fixtures": [
               "checked map and filter fragments drive the existing four-operation sequence",
               "fragment context preflight rejects missing and foreign evidence before RHS failure"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/execution_relation/layout_rows_wbtest.mbt",
+            "fixtures": [
+              "column map and filter preserve snapshot lazy branches and atomic late failure"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/execution_relation/fragment_supplied_input_wbtest.mbt",
+            "fixtures": [
+              "fragment admission does not replace actual supplied input key validation"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -119,10 +161,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "filter",
+            "layer": "performance",
+            "path": "src/execution_relation/filter_scale_wbtest.mbt",
+            "fixtures": [
+              "filter work stays linear across selectivity distributions"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Text and structured parameter predicates reach two managed consumers on three targets; NULL, demanded-failure, full type, and performance coverage remain."
+        "Text, structured parameter, NULL, demanded-failure, managed lifetime, and linear-work cases are covered; the complete formal predicate/operator and admitted type matrix remains, including the shared owned-reference runtime boundary."
       ]
     },
     {

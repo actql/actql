@@ -25,7 +25,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 
 | Operation | Checked | Lowering | Kernel | Host | Main gap |
 | --- | :---: | :---: | :---: | :---: | --- |
-| filter | C | C | C | P | Complete NULL, demanded-failure, type, and performance coverage |
+| filter | C | C | C | C | Complete the formal predicate/operator and admitted type matrix, including the shared owned-reference runtime boundary |
 | select | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all directly admitted domains, source variants, two consumers, and the performance floor are covered |
 | rename | C | C | C | P | Multiple rename, collision, type, and performance coverage |
 | drop | C | C | C | P | Multiple drop, empty-schema, type, and performance coverage |
