@@ -279,6 +279,27 @@ test "decimal coefficients retain precision scale and all significant digits" {
 }
 
 ///|
+test "checked decimal coefficient construction is exact and canonical" {
+  guard decimal_from_coefficient(
+      "99999999999999999999999999999999999999", 38, 7,
+    )
+    is Some(Decimal(value)) else {
+    fail("expected admitted decimal")
+  }
+  assert_eq(value.coefficient, "99999999999999999999999999999999999999")
+  assert_eq(value.precision, 38)
+  assert_eq(value.scale, 7)
+  assert_true(decimal_from_coefficient("0", 38, 2) is Some(Decimal(_)))
+  for coefficient in ["", "-", "-0", "00", "01", "+1", "1.0", "x"] {
+    assert_true(decimal_from_coefficient(coefficient, 38, 2) is None)
+  }
+  assert_true(decimal_from_coefficient("1", 0, 0) is None)
+  assert_true(decimal_from_coefficient("1", 39, 0) is None)
+  assert_true(decimal_from_coefficient("1", 2, 3) is None)
+  assert_true(decimal_from_coefficient("100", 2, 0) is None)
+}
+
+///|
 test "decimal wire rejects alternate spellings without repair or rounding" {
   let c = contract(
     "{\"type\":\"decimal\",\"nullable\":false,\"precision\":4,\"scale\":2}",
