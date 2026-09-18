@@ -449,6 +449,109 @@ test('failure stops later tasks and cleanup confirmation does not retry executio
   assert.throws(() => result.output(1), {code: 'ReleasedStrategy'});
 });
 
+test('unconfirmed execution cleanup cannot release Site capacity or teardown', async () => {
+  const cases = [
+    ['missing-handle', undefined, false],
+    ['missing-status', Object.freeze({retry() {}}), false],
+    ['invalid-status', Object.freeze({status: 'unknown'}), false],
+    ['invalid-result', Object.freeze({status: () => ({pending: 'unknown'})}), false],
+    ['throwing-status', Object.freeze({status() { throw new Error('status failed'); }}), true],
+  ];
+  for (const [name, cleanupHandle, cleanupRejects] of cases) {
+    const registration = {};
+    const selectedSite = createInProcessExecutionSite({
+      key: `unconfirmed-${name}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+      maxRetainedBytes: 1000n,
+      maxExecutionBytes: 1000n,
+    });
+    const f = fixture([registration]);
+    f.core.taskCapacity = () => [100n, 200n];
+    const failure = Object.assign(new Error(name), {
+      cleanupPending: true,
+    });
+    if (cleanupHandle !== undefined) failure.cleanupHandle = cleanupHandle;
+    const result = await runInstalledStrategy(
+      f.setup,
+      f.core,
+      [{registration, managedSelectionKey: name, run() { throw failure; }}],
+      undefined,
+      undefined,
+      prepareExecutionSitePolicy({sites: [selectedSite]}),
+    );
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.cleanupPending(), true);
+    assert.deepEqual(executionSiteStatus(selectedSite), {
+      ...executionSiteStatus(selectedSite),
+      activeOperations: 1,
+      reservedRetentionBytes: 100n,
+      reservedExecutionBytes: 200n,
+      teardownComplete: false,
+    });
+    assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete,
+      false);
+    if (cleanupRejects) {
+      await assert.rejects(result.cleanup(), /Strategy cleanup failed/);
+    } else {
+      assert.equal(await result.cleanup(), false);
+    }
+    assert.equal(executionSiteStatus(selectedSite).activeOperations, 1);
+    assert.equal(executionSiteStatus(selectedSite).teardownComplete, false);
+    result.close();
+  }
+});
+
+test('confirmed execution cleanup releases Site capacity exactly once', async () => {
+  const registration = {};
+  const selectedSite = createInProcessExecutionSite({
+    key: 'confirmed-execution-cleanup',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    maxRetainedBytes: 1000n,
+    maxExecutionBytes: 1000n,
+  });
+  const f = fixture([registration]);
+  f.core.taskCapacity = () => [100n, 200n];
+  let pending = true, retries = 0;
+  const cleanupHandle = Object.freeze({
+    status: () => Object.freeze({pending}),
+    async retry() {
+      retries++;
+      pending = false;
+      return this.status();
+    },
+  });
+  const result = await runInstalledStrategy(
+    f.setup,
+    f.core,
+    [{
+      registration,
+      managedSelectionKey: 'confirmed-cleanup',
+      run() {
+        throw Object.assign(new Error('cleanup pending'), {
+          cleanupPending: true,
+          cleanupHandle,
+        });
+      },
+    }],
+    undefined,
+    undefined,
+    prepareExecutionSitePolicy({sites: [selectedSite]}),
+  );
+  assert.equal(executionSiteStatus(selectedSite).activeOperations, 1);
+  assert.equal(await result.cleanup(), true);
+  assert.equal(retries, 1);
+  assert.equal(result.cleanupPending(), false);
+  assert.equal(executionSiteStatus(selectedSite).activeOperations, 0);
+  assert.equal(executionSiteStatus(selectedSite).reservedRetentionBytes, 0n);
+  assert.equal(executionSiteStatus(selectedSite).reservedExecutionBytes, 0n);
+  assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete, true);
+  assert.equal(await result.cleanup(), true);
+  assert.equal(retries, 1);
+  result.close();
+});
+
 test('result close attempts every release even if one implementation fails', async () => {
   const registration = {};
   const f = fixture([registration, registration]);
@@ -566,6 +669,131 @@ test('legacy dispatch enforces Site bytes and retains Core-owned output', async 
   completed.close();
   assert.equal(executionSiteStatus(retainedSite).heldBytes, 0n);
   assert.equal(executionSiteStatus(retainedSite).teardownComplete, true);
+});
+
+test('legacy dispatch compares every placement before reserving or starting', async () => {
+  const runCase = async ({name, sites, placements, capacity, expected,
+    expectedComparisons, expectedExclusions = 0}) => {
+    const registration = {};
+    const f = fixture([registration]);
+    f.core.taskCapacity = () => capacity;
+    const result = await runInstalledStrategy(
+      f.setup,
+      f.core,
+      [{
+        registration,
+        managedSelectionKey: `legacy-${name}`,
+        run(task) { f.complete.add(task.index); },
+      }],
+      undefined,
+      undefined,
+      prepareExecutionSitePolicy({
+        sites,
+        placements: new Map([[`legacy-${name}`, placements]]),
+      }),
+    );
+    assert.equal(result.status, 'host-tasks-completed');
+    assert.equal(result.completed[0].executionSite.key,
+      executionSiteStatus(expected).key);
+    assert.equal(result.candidateComparisons.length, expectedComparisons);
+    assert.equal(result.candidateExclusions.length, expectedExclusions);
+    for (const site of sites) {
+      assert.equal(executionSiteStatus(site).peakRetainedBytes,
+        site === expected ? capacity[0] : 0n);
+    }
+    result.close();
+    for (const site of sites) beginExecutionSiteTeardown(site);
+    assert(sites.every(site => executionSiteStatus(site).teardownComplete));
+  };
+
+  for (const reverse of [false, true]) {
+    const slow = createInProcessExecutionSite({
+      key: `legacy-slow-${reverse}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+      startupMilliseconds: 100n,
+    });
+    const fast = createInProcessExecutionSite({
+      key: `legacy-fast-${reverse}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+      startupMilliseconds: 1n,
+    });
+    await runCase({
+      name: `cost-${reverse}`,
+      sites: [slow, fast],
+      placements: reverse ? [fast, slow] : [slow, fast],
+      capacity: [10n, 0n],
+      expected: fast,
+      expectedComparisons: 2,
+    });
+  }
+
+  const insufficient = createInProcessExecutionSite({
+    key: 'legacy-insufficient',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    maxRetainedBytes: 50n,
+  });
+  const sufficient = createInProcessExecutionSite({
+    key: 'legacy-sufficient',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+    maxRetainedBytes: 1000n,
+  });
+  await runCase({
+    name: 'capacity',
+    sites: [insufficient, sufficient],
+    placements: [insufficient, sufficient],
+    capacity: [100n, 0n],
+    expected: sufficient,
+    expectedComparisons: 1,
+    expectedExclusions: 1,
+  });
+
+  const stopped = createInProcessExecutionSite({
+    key: 'legacy-stopped',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+  });
+  const available = createInProcessExecutionSite({
+    key: 'legacy-available',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+  });
+  beginExecutionSiteTeardown(stopped);
+  await runCase({
+    name: 'availability',
+    sites: [stopped, available],
+    placements: [stopped, available],
+    capacity: [10n, 0n],
+    expected: available,
+    expectedComparisons: 1,
+    expectedExclusions: 1,
+  });
+
+  for (const reverse of [false, true]) {
+    const a = createInProcessExecutionSite({
+      key: `legacy-a-${reverse}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+      startupMilliseconds: 1n,
+    });
+    const z = createInProcessExecutionSite({
+      key: `legacy-z-${reverse}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+      startupMilliseconds: 1n,
+    });
+    await runCase({
+      name: `tie-${reverse}`,
+      sites: [z, a],
+      placements: reverse ? [a, z] : [z, a],
+      capacity: [10n, 0n],
+      expected: a,
+      expectedComparisons: 2,
+    });
+  }
 });
 
 test('legacy completion permit rejects forced revocation but not graceful teardown', async () => {
