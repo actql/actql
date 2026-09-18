@@ -7,8 +7,6 @@ import {
 }
 
 // Values
-pub fn accept_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
-
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn begin_provisioning(DispatchRecord) -> Result[Unit, DispatchIssue]
@@ -16,6 +14,8 @@ pub fn begin_provisioning(DispatchRecord) -> Result[Unit, DispatchIssue]
 pub fn begin_remote_execution(DispatchRecord) -> Result[Unit, DispatchIssue]
 
 pub fn begin_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn commit_dispatch_acceptance(DispatchAdmission, Bool) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
 
 pub fn confirm_execution_cancelled(DispatchRecord) -> Result[Unit, DispatchIssue]
 
@@ -27,13 +27,21 @@ pub fn confirm_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
 
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
+pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
+
+pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, DispatchIssue]
+
 pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
 
 pub fn dispatch_request_identity(DispatchRequest) -> String
 
+pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
+
 pub fn force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[Unit, DispatchIssue]
 
 pub fn mark_execution_unknown(DispatchRecord) -> Unit
+
+pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
@@ -63,6 +71,8 @@ pub(all) enum DispatchAcceptance {
   ExistingDispatch
 } derive(Eq, @debug.Debug)
 
+type DispatchAdmission
+
 pub(all) enum DispatchIssue {
   InvalidJournal
   InvalidDispatch
@@ -74,6 +84,7 @@ pub(all) enum DispatchIssue {
   MaterialUnavailable
   UnauthorizedForceLoss
   DispatchIdentityMismatch
+  DurabilityUnconfirmed
 } derive(Eq, @debug.Debug)
 
 type DispatchRecord

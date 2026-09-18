@@ -70,6 +70,7 @@ pub(all) enum DispatchIssue {
   MaterialUnavailable
   UnauthorizedForceLoss
   DispatchIdentityMismatch
+  DurabilityUnconfirmed
 } derive(Eq, Debug)
 
 ///|
@@ -81,6 +82,16 @@ struct DispatchRecord {
   mut cleanup : RemoteCleanupState
   mut material_available : Bool
   mut quarantined_capacity : Bool
+}
+
+///|
+/// Prepared admission contains no authority to start physical work. A journal
+/// adapter must durably install or reconcile the exact request before commit.
+struct DispatchAdmission {
+  journal : SiteDispatchJournal
+  request : DispatchRequest
+  acceptance : DispatchAcceptance
+  mut consumed : Bool
 }
 
 ///|
@@ -225,6 +236,16 @@ fn request_identity(request : DispatchRequest) -> Result[String, DispatchIssue] 
 }
 
 ///|
+pub fn dispatch_request_json(
+  request : DispatchRequest,
+) -> Result[String, DispatchIssue] {
+  if !valid_request(request) {
+    return Err(InvalidDispatch)
+  }
+  emit_dispatch_request_body(request)
+}
+
+///|
 pub fn prepare_dispatch_request(
   coordinator_authority : String,
   run_definition_cid : String,
@@ -319,13 +340,12 @@ pub fn create_site_dispatch_journal(
 }
 
 ///|
-/// Exact retransmission reconciles the existing record. A different payload
-/// under the same dispatch identity and a second dispatch for one task attempt
-/// are both rejected before external work starts.
-pub fn accept_dispatch(
+/// Prepare an exact admission without mutating the in-memory journal. The
+/// returned request body is the durable CAS input for a journal adapter.
+pub fn prepare_dispatch_acceptance(
   journal : SiteDispatchJournal,
   request : DispatchRequest,
-) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue] {
+) -> Result[DispatchAdmission, DispatchIssue] {
   if !valid_request(request) {
     return Err(InvalidDispatch)
   }
@@ -343,11 +363,49 @@ pub fn accept_dispatch(
   match journal.dispatches.get(key) {
     Some(record) =>
       if record.request.dispatch_request_cid == request.dispatch_request_cid {
-        Ok((ExistingDispatch, record))
+        Ok({ journal, request, acceptance: ExistingDispatch, consumed: false, })
       } else {
         Err(DispatchCollision)
       }
     None => {
+      let occurrence = attempt_key(request)
+      if journal.attempts.contains(occurrence) {
+        return Err(AttemptAlreadyDispatched)
+      }
+      Ok({ journal, request, acceptance: NewDispatch, consumed: false, })
+    }
+  }
+}
+
+///|
+/// Commit admission only after the adapter confirms the accepted request is
+/// durable. The recheck prevents two prepared admissions from creating two
+/// physical executions for one task attempt.
+pub fn commit_dispatch_acceptance(
+  admission : DispatchAdmission,
+  durable : Bool,
+) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue] {
+  if admission.consumed {
+    return Err(InvalidTransition)
+  }
+  if !durable {
+    return Err(DurabilityUnconfirmed)
+  }
+  let journal = admission.journal
+  let request = admission.request
+  let key = dispatch_key(request)
+  match journal.dispatches.get(key) {
+    Some(record) => {
+      if record.request.dispatch_request_cid != request.dispatch_request_cid {
+        return Err(DispatchCollision)
+      }
+      admission.consumed = true
+      Ok((ExistingDispatch, record))
+    }
+    None => {
+      if admission.acceptance == ExistingDispatch {
+        return Err(InvalidTransition)
+      }
       let occurrence = attempt_key(request)
       if journal.attempts.contains(occurrence) {
         return Err(AttemptAlreadyDispatched)
@@ -362,9 +420,24 @@ pub fn accept_dispatch(
       }
       journal.dispatches[key] = record
       journal.attempts[occurrence] = key
+      admission.consumed = true
       Ok((NewDispatch, record))
     }
   }
+}
+
+///|
+pub fn dispatch_admission_kind(
+  admission : DispatchAdmission,
+) -> DispatchAcceptance {
+  admission.acceptance
+}
+
+///|
+pub fn dispatch_admission_request_json(
+  admission : DispatchAdmission,
+) -> Result[String, DispatchIssue] {
+  dispatch_request_json(admission.request)
 }
 
 ///|

@@ -49,6 +49,15 @@ fn replacement_site(generation : Int, bundle : String) -> @site.ExecutionSite {
 }
 
 ///|
+fn accept(
+  state : SiteDispatchJournal,
+  dispatch : DispatchRequest,
+) -> (DispatchAcceptance, DispatchRecord) {
+  let admission = prepare_dispatch_acceptance(state, dispatch).unwrap()
+  commit_dispatch_acceptance(admission, true).unwrap()
+}
+
+///|
 test "dispatch retransmission reconciles without admitting another attempt" {
   let state = journal()
   let bundle = cid(
@@ -59,9 +68,19 @@ test "dispatch retransmission reconciles without admitting another attempt" {
     dispatch_request_identity(first),
     "sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065",
   )
-  let (accepted, record) = accept_dispatch(state, first).unwrap()
+  let admission = prepare_dispatch_acceptance(state, first).unwrap()
+  assert_eq(dispatch_admission_kind(admission), NewDispatch)
+  assert_true(
+    commit_dispatch_acceptance(admission, false) is Err(DurabilityUnconfirmed),
+  )
+  let (accepted, record) = commit_dispatch_acceptance(admission, true).unwrap()
   assert_eq(accepted, NewDispatch)
-  let (reconciled, same) = accept_dispatch(state, first).unwrap()
+  let retry = prepare_dispatch_acceptance(state, first).unwrap()
+  assert_eq(
+    dispatch_admission_request_json(retry).unwrap(),
+    dispatch_request_json(first).unwrap(),
+  )
+  let (reconciled, same) = commit_dispatch_acceptance(retry, true).unwrap()
   assert_eq(reconciled, ExistingDispatch)
   assert_true(physical_equal(record, same))
   let collision = admit_dispatch_request(
@@ -100,10 +119,13 @@ test "dispatch retransmission reconciles without admitting another attempt" {
     cid("3333333333333333333333333333333333333333333333333333333333333333"),
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   ).unwrap()
-  assert_true(accept_dispatch(state, different) is Err(DispatchCollision))
+  assert_true(
+    prepare_dispatch_acceptance(state, different) is Err(DispatchCollision),
+  )
   let duplicate_attempt = request("dispatch-b", 1, 1, bundle)
   assert_true(
-    accept_dispatch(state, duplicate_attempt) is Err(AttemptAlreadyDispatched),
+    prepare_dispatch_acceptance(state, duplicate_attempt)
+    is Err(AttemptAlreadyDispatched),
   )
 }
 
@@ -113,7 +135,7 @@ test "execution evidence and cleanup advance independently" {
   let bundle = cid(
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
-  let (_, record) = accept_dispatch(state, request("dispatch-a", 1, 1, bundle)).unwrap()
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
   begin_provisioning(record).unwrap()
   begin_remote_execution(record).unwrap()
   confirm_native_settled(record).unwrap()
@@ -141,10 +163,7 @@ test "restart changes generation without reviving old authority" {
   let old_bundle = cid(
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
-  let (_, record) = accept_dispatch(
-    state,
-    request("dispatch-a", 1, 1, old_bundle),
-  ).unwrap()
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, old_bundle))
   begin_provisioning(record).unwrap()
   begin_remote_execution(record).unwrap()
   assert_eq(
@@ -162,7 +181,10 @@ test "restart changes generation without reviving old authority" {
   assert_eq(cleanup, CleanupUnknown)
   assert_false(available)
   assert_true(
-    accept_dispatch(state, request("dispatch-old", 2, 1, old_bundle))
+    prepare_dispatch_acceptance(
+      state,
+      request("dispatch-old", 2, 1, old_bundle),
+    )
     is Err(StaleSiteGeneration),
   )
 }
@@ -173,7 +195,7 @@ test "restart preserves settled history but requires current availability" {
   let bundle = cid(
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
-  let (_, record) = accept_dispatch(state, request("dispatch-a", 1, 1, bundle)).unwrap()
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
   begin_provisioning(record).unwrap()
   begin_remote_execution(record).unwrap()
   confirm_native_settled(record).unwrap()
@@ -240,7 +262,7 @@ test "force loss quarantines capacity until exact late cleanup" {
   let bundle = cid(
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
-  let (_, record) = accept_dispatch(state, request("dispatch-a", 1, 1, bundle)).unwrap()
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
   assert_eq(force_loss(state, record, false), Err(UnauthorizedForceLoss))
   force_loss(state, record, true).unwrap()
   let (execution, _, cleanup, available, quarantined) = dispatch_record_state(
