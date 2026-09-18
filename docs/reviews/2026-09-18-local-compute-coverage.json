@@ -2242,6 +2242,26 @@
           {
             "operation": "group",
             "layer": "conformance",
+            "path": "src/execution_relation/group_statistics_wbtest.mbt",
+            "fixtures": [
+              "direct percentiles use their closed discrete and interpolation laws",
+              "direct percentile endpoints and empty inputs retain typed laws",
+              "direct statistics use population and sample divisors",
+              "statistical folds use value identity order instead of input order",
+              "sample statistics reject insufficient cardinality with null",
+              "statistical nonfinite intermediates fail without output",
+              "statistical group shares bounded work across all folds"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_group_wbtest.mbt",
             "fixtures": [
               "Local managed group count orders nullable keys for two consumers",
@@ -2293,7 +2313,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, and direct-field array/string aggregates cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, exact collection limits, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, percentile/statistical aggregates, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, exact collection limits, deterministic statistical folds, nonfinite failures, two consumers for the earlier managed variants, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
       ]
     },
     {
