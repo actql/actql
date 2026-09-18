@@ -10,6 +10,7 @@ fn query_checked_program_fixture(
   sort_take? : Bool = false,
   dag_values? : Bool = false,
   local_values_two_consumer_chain? : Bool = false,
+  local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
   local_values_cross_chain? : Bool = false,
@@ -45,6 +46,49 @@ fn query_checked_program_fixture(
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"values_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":null,"label":"none"},{"id":1,"label":"one"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     )
+  } else {
+    text
+  }
+  let text = if local_values_managed_variant != "" {
+    let rows = if local_values_managed_variant == "empty" {
+      "[]"
+    } else {
+      "[{\"items\":{\"literal\":[{\"name\":\"a\",\"score\":1},{\"name\":\"b\",\"score\":2}]},\"meta\":{\"literal\":{\"active\":true}}}]"
+    }
+    let schema = if local_values_managed_variant == "empty" {
+      "{\"id\":{\"type\":\"number\",\"nullable\":false}}"
+    } else {
+      "{\"items\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"name\":{\"type\":\"string\",\"nullable\":false},\"score\":{\"type\":\"number\",\"nullable\":false}}}},\"meta\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"active\":{\"type\":\"boolean\",\"nullable\":false}}}}"
+    }
+    let fields = if local_values_managed_variant == "empty" {
+      "[\"id\"]"
+    } else {
+      "[\"items\",\"meta\"]"
+    }
+    let reversed = if local_values_managed_variant == "empty" {
+      fields
+    } else {
+      "[\"meta\",\"items\"]"
+    }
+    "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+    "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
+    "{\"id\":\"values_a\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
+    rows +
+    "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+    fields +
+    "}}}," +
+    "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+    fields +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+    fields +
+    "}}}," +
+    "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+    reversed +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+    reversed +
+    "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
   } else {
     text
   }

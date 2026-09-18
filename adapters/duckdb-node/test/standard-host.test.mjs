@@ -1524,6 +1524,54 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     steps: [{select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}},
   })));
+  const valuesVariantProgram = (schema, rows, fields, reversed) => {
+    const variant = structuredClone(zeroInputProgram);
+    variant.stages.splice(1, 3, {
+      id: 'values_a',
+      inputs: {},
+      steps: [{values: {schema, rows}, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+      steps: [{select: fields, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+      steps: [{select: reversed, as: 'out'}],
+      results: {r: {from: 'out', fields: reversed}},
+    });
+    return variant;
+  };
+  const emptyValuesProgram = valuesVariantProgram(
+    {id: {type: 'number', nullable: false}},
+    [],
+    ['id'],
+    ['id'],
+  );
+  const nestedValuesProgram = valuesVariantProgram({
+    items: {
+      type: 'array',
+      nullable: false,
+      items: {
+        type: 'object',
+        nullable: false,
+        fields: {
+          name: {type: 'string', nullable: false},
+          score: {type: 'number', nullable: false},
+        },
+      },
+    },
+    meta: {
+      type: 'object',
+      nullable: false,
+      fields: {active: {type: 'boolean', nullable: false}},
+    },
+  }, [{
+    items: {literal: [{name: 'a', score: 1}, {name: 'b', score: 2}]},
+    meta: {literal: {active: true}},
+  }], ['items', 'meta'], ['meta', 'items']);
   const groupProgram = structuredClone(zeroInputProgram);
   groupProgram.stages.splice(1, 3, {
     id: 'group_values',
@@ -1548,6 +1596,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   })));
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
+    ['empty values', emptyValuesProgram, [1, 2, 3]],
+    ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
   ]) {
