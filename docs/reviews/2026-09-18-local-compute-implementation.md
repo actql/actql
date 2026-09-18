@@ -317,3 +317,23 @@ families. A RelA implementation may use a shared primitive also used by another
 family, but that does not add the entire other family to this milestone.
 
 This plan authorizes neither push, merge, nor deployment.
+
+## 14. Review 20 integration order
+
+The Review 20 fixes are applied in this dependency order:
+
+1. `0f523e77` supplies the shared UTF-8 measurement correction from `main`.
+2. `9edb5a65` and `d8f1ef95` add the shared and Local cross-join path.
+3. `36abcfb8` changes the common managed reader to plan the complete input
+   set before starting execution.
+4. `bdc08d62` changes DuckDB tests to resolve pinned fixtures by name.
+5. `1c067fc8` regenerates and formats the portable Host projections.
+
+The complete-input reader change is the only shared execution boundary change
+in this sequence. Public-branch owners can take `36abcfb8` after the UTF-8
+measurement correction. The DuckDB fixture lookup and generated projections
+depend on the rebased fixture set but do not change the reader contract.
+
+No duplicate UTF-8 correction is present on this branch. The correction is
+inherited from `main`, and the Local tests verify it through the retained
+execution boundary.
