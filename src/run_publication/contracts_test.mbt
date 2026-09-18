@@ -239,6 +239,55 @@ test "Manifest sealing rejects a nested Artifact with a false self identity" {
 }
 
 ///|
+test "generated protocol descriptor admits one exact delivery receipt" {
+  let body = "{\"version\":\"actql-result-delivery-receipt/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    contract_cid("1") +
+    "\",\"invocation_cid\":\"" +
+    contract_cid("2") +
+    "\",\"result_manifest_cid\":\"" +
+    contract_cid("3") +
+    "\",\"result_name\":\"answer\",\"result_artifact_cid\":\"" +
+    contract_cid("5") +
+    "\",\"serialization_contract_cid\":\"" +
+    contract_cid("6") +
+    "\",\"delivered_byte_count\":4,\"delivered_sha256\":\"" +
+    "8".repeat(64) +
+    "\",\"authorization_context_cid\":\"" +
+    contract_cid("7") +
+    "\",\"egress_admission_cid\":\"" +
+    contract_cid("9") +
+    "\"}"
+  let receipt = seal_publication_contract(
+    "result_delivery_receipt", body, 16384, 128, 8,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(receipt),
+    "sha256:1b672f923a8f34e603d8246a3541922ccb1eedb4be8d1691f9a290d14fe1e2ea",
+  )
+  assert_true(
+    admit_publication_contract(
+      "result_delivery_receipt",
+      publication_contract_json(receipt),
+      16384,
+      128,
+      8,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    seal_publication_contract(
+      "result_delivery_receipt",
+      body[:body.length() - 1].to_owned() + ",\"extra\":true}",
+      16384,
+      128,
+      8,
+    )
+    is Err(InvalidField("protocol_schema")),
+  )
+}
+
+///|
 test "closed contract admission rejects ambiguous bodies and identities" {
   let prefix = "{\"version\":\"actql-run-invocation/0.1\"," +
     "\"invocation_template_cid\":\"" +

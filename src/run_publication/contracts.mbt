@@ -223,6 +223,27 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("results", ManifestResults),
         ],
       })
+    "run_receipt" =>
+      Some({
+        name,
+        version: "actql-run-receipt/0.1",
+        identity: "receipt_identity_cid",
+        fields: [],
+      })
+    "captured_run" =>
+      Some({
+        name,
+        version: "actql-captured-run/0.1",
+        identity: "captured_run_cid",
+        fields: [],
+      })
+    "result_delivery_receipt" =>
+      Some({
+        name,
+        version: "actql-result-delivery-receipt/0.1",
+        identity: "result_delivery_receipt_cid",
+        fields: [],
+      })
     "publication_request" =>
       Some({
         name,
@@ -720,6 +741,31 @@ fn validate_contract(
 }
 
 ///|
+fn validate_bounded_contract(
+  spec : ContractSpec,
+  value : @json.CanonicalValue,
+  complete : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  if generated_protocol_schema_root(spec.name, complete) is Some(_) {
+    if validate_generated_protocol_shape(
+        spec.name,
+        value,
+        complete,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      return Ok(())
+    }
+    return Err(InvalidField("protocol_schema"))
+  }
+  validate_contract(spec, value, complete)
+}
+
+///|
 fn parse_contract_wire(
   wire : String,
   max_wire_bytes : Int,
@@ -763,7 +809,15 @@ pub fn seal_publication_contract(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match validate_contract(spec, body, false) {
+  match
+    validate_bounded_contract(
+      spec,
+      body,
+      false,
+      max_wire_bytes,
+      max_nodes - 1,
+      max_depth,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -775,7 +829,10 @@ pub fn seal_publication_contract(
     Some(value) => value
     None => return Err(InvalidObject)
   }
-  match validate_contract(spec, complete, true) {
+  match
+    validate_bounded_contract(
+      spec, complete, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -811,7 +868,10 @@ pub fn admit_publication_contract(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match validate_contract(spec, complete, true) {
+  match
+    validate_bounded_contract(
+      spec, complete, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
