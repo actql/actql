@@ -243,3 +243,61 @@ test "analytic aggregates stay outside the partial execution capability" {
   let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
   assert_false(analytic_execution_supported(analytic))
 }
+
+///|
+test "analytic collection limits bind exact prepared calls" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+    "\"unbounded_preceding\",\"end\":\"current_row\"}," +
+    "\"functions\":{\"items\":{\"fn\":\"array_agg\"," +
+    "\"field\":\"amount\",\"max_items\":3},\"text\":{" +
+    "\"fn\":\"string_agg\",\"field\":\"group\"," +
+    "\"delimiter\":\",\",\"max_bytes\":5}}}",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["analytic_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let items = constrain_generated_aggregate_output(
+    generated,
+    0,
+    "items",
+    ArrayItems,
+    2L,
+  ).unwrap()
+  let complete = constrain_generated_aggregate_output(
+    items,
+    0,
+    "text",
+    StringBytes,
+    4L,
+  )
+  assert_true(complete is Ok(_))
+  assert_true(
+    constrain_generated_aggregate_output(generated, 0, "items", ArrayItems, 4L)
+    is Err(InputSet),
+  )
+  assert_true(
+    constrain_generated_aggregate_output(generated, 0, "items", StringBytes, 2L)
+    is Err(InputSet),
+  )
+  assert_true(
+    constrain_generated_aggregate_output(
+      generated,
+      0,
+      "missing",
+      ArrayItems,
+      1L,
+    )
+    is Err(InputSet),
+  )
+  assert_true(
+    constrain_generated_aggregate_output(items, 0, "items", ArrayItems, 1L)
+    is Err(InputSet),
+  )
+}

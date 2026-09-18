@@ -138,19 +138,39 @@ pub fn constrain_generated_aggregate_output(
     return Err(InvalidLimits)
   }
   guard @lower.sequence_step(generated.sequence, step)
-    is Some(@lower.RowStep(kernel)) &&
-    @lower.kernel_group(kernel) is Some(group) else {
+    is Some(@lower.RowStep(kernel)) else {
     return Err(InputSet)
   }
   let mut matched : @lower.PreparedAggregate? = None
-  for index in 0..<@lower.group_aggregate_count(group) {
-    let candidate = @lower.group_aggregate_at(group, index).unwrap()
-    if @lower.group_aggregate_name(candidate) == aggregate {
-      if matched is Some(_) {
-        return Err(InputSet)
+  match @lower.kernel_group(kernel) {
+    Some(group) =>
+      for index in 0..<@lower.group_aggregate_count(group) {
+        let candidate = @lower.group_aggregate_at(group, index).unwrap()
+        if @lower.group_aggregate_name(candidate) == aggregate {
+          if matched is Some(_) {
+            return Err(InputSet)
+          }
+          matched = Some(candidate)
+        }
       }
-      matched = Some(candidate)
-    }
+    None =>
+      match @lower.kernel_analytic(kernel) {
+        Some(analytic) =>
+          for index in 0..<@lower.analytic_call_count(analytic) {
+            let call = @lower.analytic_call_at(analytic, index).unwrap()
+            if @lower.analytic_call_name(call) == aggregate {
+              guard @lower.analytic_call_function(call)
+                is @lower.PreparedFrameAggregate(candidate) else {
+                return Err(InputSet)
+              }
+              if matched is Some(_) {
+                return Err(InputSet)
+              }
+              matched = Some(candidate)
+            }
+          }
+        None => return Err(InputSet)
+      }
   }
   guard matched is Some(candidate) && aggregate_output_matches(candidate, unit) else {
     return Err(InputSet)

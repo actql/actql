@@ -167,6 +167,37 @@ pub fn open_captured_dag(
         }
         aggregate_limits[index].push(ceiling)
       }
+      if requirement.disposition is ExecutionCheck(AnalyticExecution(check)) {
+        let ceiling = match check.rule {
+          EnforceArrayItems(_, limit) =>
+            @connector.aggregate_output_ceiling(
+              check.site.step,
+              @context.group_array_limit_name(limit),
+              @connector.array_items_output_unit(),
+              @context.group_array_limit_maximum(limit),
+            )
+          EnforceStringBytes(_, limit) =>
+            @connector.aggregate_output_ceiling(
+              check.site.step,
+              @context.group_string_limit_name(limit),
+              @connector.string_bytes_output_unit(),
+              @context.group_string_limit_maximum(limit),
+            )
+          _ => continue
+        }
+        guard ceiling is Ok(ceiling) else { return Err(UnsupportedGraph) }
+        for previous in aggregate_limits[index] {
+          if @connector.aggregate_output_ceiling_step(previous) ==
+            @connector.aggregate_output_ceiling_step(ceiling) &&
+            @connector.aggregate_output_ceiling_name(previous) ==
+            @connector.aggregate_output_ceiling_name(ceiling) &&
+            @connector.aggregate_output_ceiling_unit(previous) ==
+            @connector.aggregate_output_ceiling_unit(ceiling) {
+            return Err(UnsupportedGraph)
+          }
+        }
+        aggregate_limits[index].push(ceiling)
+      }
     }
   }
   // This bounded execution profile exposes one final output per Compute.
