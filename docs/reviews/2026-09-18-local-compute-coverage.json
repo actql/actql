@@ -827,7 +827,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -881,6 +881,39 @@
           {
             "operation": "take",
             "layer": "conformance",
+            "path": "src/execution_relation/take_sequence_wbtest.mbt",
+            "fixtures": [
+              "take uses proven input order and safe offset without skipping upstream",
+              "take rejects missing order during preparation even for empty runtime input",
+              "take physical budgets apply to full input and permit exact selected output",
+              "take retains independent selected branch outputs"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "take",
+            "layer": "conformance",
+            "path": "src/execution_relation/take_completion_wbtest.mbt",
+            "fixtures": [
+              "take emits its owned key completion before limit and applies offset after ordering",
+              "take completion validates every input key even beyond the requested prefix",
+              "take key completion reserves a real graph prefix and shares runtime budgets"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "take",
+            "layer": "conformance",
             "path": "src/execution_relation/take_inherited_wbtest.mbt",
             "fixtures": [
               "take never reapplies historical completion after shadow rename projection or another take",
@@ -908,10 +941,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "take",
+            "layer": "performance",
+            "path": "src/execution_relation/take_scale_wbtest.mbt",
+            "fixtures": [
+              "take validates the whole input with linear work and storage"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Literal count and offset reach two managed consumers on three targets; parameter, zero/boundary, inherited-order, whole-input validation, and performance evidence remain."
+        "Literal and parameter counts, offsets, inherited order, zero and unsafe parameter rejection, whole-input validation, exact small-case budgets, independent branches, two managed consumers, and linear scaling are covered on three targets. Standard Host evidence, the full admitted value-domain retention matrix, and large-scale exact/one-short budget evidence remain."
       ]
     },
     {
