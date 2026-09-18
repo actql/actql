@@ -544,3 +544,184 @@ pub fn strategy_host_transfer_receipt(
     },
   ]
 }
+
+///|
+#export_name("strategySiteCreate")
+pub fn strategy_site_create(
+  key : String,
+  generation : Int,
+  runtime_revision : String,
+  max_concurrent_operations : Int,
+  max_concurrent_transfers : Int,
+  max_retained_bytes : Int64,
+  max_execution_bytes : Int64,
+) -> @site.ExecutionSite? {
+  @site.create_site(
+    key,
+    generation,
+    runtime_revision,
+    max_concurrent_operations,
+    max_concurrent_transfers,
+    max_retained_bytes,
+    max_execution_bytes,
+  )
+}
+
+///|
+#export_name("strategySiteAvailable")
+pub fn strategy_site_available(site : @site.ExecutionSite) -> Bool {
+  @site.site_available(site)
+}
+
+///|
+#export_name("strategySiteRevoked")
+pub fn strategy_site_revoked(site : @site.ExecutionSite) -> Bool {
+  @site.site_revoked(site)
+}
+
+///|
+#export_name("strategySiteCapacitySupports")
+pub fn strategy_site_capacity_supports(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @site.site_capacity_supports(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("strategySiteBindingCurrent")
+pub fn strategy_site_binding_current(
+  site : @site.ExecutionSite,
+  generation : Int,
+  runtime_revision : String,
+) -> Bool {
+  @site.site_binding_current(site, generation, runtime_revision)
+}
+
+///|
+#export_name("strategySiteStartOperation")
+pub fn strategy_site_start_operation(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteOperation? {
+  @site.start_site_operation(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("strategySiteOperationAvailable")
+pub fn strategy_site_operation_available(
+  operation : @site.SiteOperation,
+) -> Bool {
+  @site.site_operation_available(operation)
+}
+
+///|
+#export_name("strategySiteSettleOperation")
+pub fn strategy_site_settle_operation(operation : @site.SiteOperation) -> Bool {
+  @site.settle_site_operation(operation)
+}
+
+///|
+#export_name("strategySiteRetainOperationHolding")
+pub fn strategy_site_retain_operation_holding(
+  operation : @site.SiteOperation,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_operation_holding(operation, bytes)
+}
+
+///|
+#export_name("strategySiteStartTransfer")
+pub fn strategy_site_start_transfer(
+  source : @site.ExecutionSite,
+  destination : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteTransfer? {
+  @site.start_site_transfer(
+    source,
+    destination,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
+#export_name("strategySiteTransferAvailable")
+pub fn strategy_site_transfer_available(transfer : @site.SiteTransfer) -> Bool {
+  @site.site_transfer_available(transfer)
+}
+
+///|
+#export_name("strategySiteSettleTransferSource")
+pub fn strategy_site_settle_transfer_source(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_source(transfer)
+}
+
+///|
+#export_name("strategySiteSettleTransferDestination")
+pub fn strategy_site_settle_transfer_destination(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_destination(transfer)
+}
+
+///|
+#export_name("strategySiteRetainTransferHolding")
+pub fn strategy_site_retain_transfer_holding(
+  transfer : @site.SiteTransfer,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_transfer_holding(transfer, bytes)
+}
+
+///|
+#export_name("strategySiteRetainHolding")
+pub fn strategy_site_retain_holding(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_holding(site, bytes)
+}
+
+///|
+#export_name("strategySiteReleaseHolding")
+pub fn strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
+  @site.release_site_holding(holding)
+}
+
+///|
+#export_name("strategySiteRetainCleanup")
+pub fn strategy_site_retain_cleanup(
+  site : @site.ExecutionSite,
+) -> @site.SiteCleanup {
+  @site.retain_site_cleanup(site)
+}
+
+///|
+#export_name("strategySiteReleaseCleanup")
+pub fn strategy_site_release_cleanup(cleanup : @site.SiteCleanup) -> Bool {
+  @site.release_site_cleanup(cleanup)
+}
+
+///|
+#export_name("strategySiteBeginTeardown")
+pub fn strategy_site_begin_teardown(site : @site.ExecutionSite) -> Unit {
+  @site.begin_site_teardown(site)
+}
+
+///|
+#export_name("strategySiteRevoke")
+pub fn strategy_site_revoke(site : @site.ExecutionSite) -> Unit {
+  @site.revoke_site(site)
+}
+
+///|
+#export_name("strategySiteStatus")
+pub fn strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
+  @site.site_status(site)
+}

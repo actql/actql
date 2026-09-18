@@ -11,6 +11,8 @@ import {
 } from './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
+import {createExecutionSiteControlFixture} from
+  './execution-site-control.fixture.mjs';
 import {createManagedMemoryTransferProvider, managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
 import {registerManagedMemoryInput} from
@@ -21,6 +23,7 @@ const estimate = Object.freeze({
   retainedBytes: 16384n,
   executionBytes: 64n,
 });
+const siteControl = createExecutionSiteControlFixture();
 
 const site = key => createInProcessExecutionSite({
   key,
@@ -86,7 +89,7 @@ function setup(provider, sourceSite = site('source'), destinationSite = site('de
       contract: managedMemoryTransferContract,
       ...provider,
     }),
-  }), [contribution]);
+  }), [contribution], siteControl);
   return {sourceSite, destinationSite, contribution, installation};
 }
 

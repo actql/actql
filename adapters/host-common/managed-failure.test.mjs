@@ -18,9 +18,12 @@ import {checked} from './runtime-result.mjs';
 import {runInstalledStrategy} from './strategy.mjs';
 import {createInProcessExecutionSite, prepareExecutionSitePolicy} from
   './execution-sites.mjs';
+import {createExecutionSiteControlFixture} from
+  './execution-site-control.fixture.mjs';
 
 const ok = _0 => ({$tag: 1, _0});
 const failed = _0 => ({$tag: 0, _0});
+const siteControl = createExecutionSiteControlFixture();
 const siteCase = key => {
   const site = createInProcessExecutionSite({
     key,
@@ -227,6 +230,7 @@ for (const [name, factory, prefix] of [
         }),
       });
       const core = {
+        siteControl,
         count: () => 2,
         nextTask: () => 1,
         managedProducers: () => [0],
@@ -361,6 +365,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
     }),
   });
   const core = {
+    siteControl,
     count: () => 2,
     nextTask: () => 1,
     managedProducers: () => [0],
@@ -495,6 +500,7 @@ for (const [name, factory, prefix] of [
       }),
     });
     const core = {
+      siteControl,
       count: () => 2,
       nextTask: () => 1,
       managedProducers: () => [0],

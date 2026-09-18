@@ -148,6 +148,25 @@ test('standard Node execution uses the connector-free serial driver and exact re
   assert.ok(!existsSync('adapters/host-node/strategy.generated.mjs'));
 });
 
+test('product Site lifecycle has one portable MoonBit authority', () => {
+  const productModules = [
+    'adapters/host-common/execution-sites.mjs',
+    'adapters/host-common/managed-site-transfer.mjs',
+    'adapters/host-common/runtime-core.mjs',
+    'adapters/host-common/strategy.mjs',
+  ];
+  for (const path of productModules) {
+    const source = readFileSync(path, 'utf8');
+    assert.doesNotMatch(source, /execution-site-control\.fixture/);
+  }
+  const sites = readFileSync(productModules[0], 'utf8');
+  assert.match(sites, /MissingExecutionSiteControl/);
+  assert.doesNotMatch(sites, /reservedRetentionBytes\s*[+-]=/);
+  assert.doesNotMatch(sites, /reservedExecutionBytes\s*[+-]=/);
+  assert.doesNotMatch(sites, /heldBytes\s*[+-]=/);
+  assert.deepEqual(imports('execution_site'), []);
+});
+
 test('DuckDB SQL and physical values belong to the connector package group', () => {
   assert.ok(!existsSync('src/duckdb_adapter/moon.pkg'));
   for (const file of ['count_group_query.mbt', 'inner_join_query.mbt',

@@ -82,6 +82,29 @@ transfer, delayed stop, capacity exhaustion, corruption, generation mismatch,
 destination-generation failure, cleanup failure and retry, and multiple
 consumers.
 
+### 1.2 Portable control and environment effects
+
+The `execution_site` MoonBit package is the sole product authority for mutable
+Site lifecycle, Site byte scopes, operation and Transfer admission, independent
+source and destination settlement, holding ownership, cleanup ownership,
+revocation, and teardown completion. The existing `physical_strategy`
+MoonBit package remains the sole Run-ledger authority for Transfer attempts,
+cumulative transfer bytes, retained allocations, and release.
+
+`execution-sites.mjs` binds opaque environment handles, Connector placements,
+cost advertisements, physical materials, and the MoonBit control objects. It
+does not maintain a parallel set of Site counters or decide that capacity,
+settlement, release, or teardown has completed. `managed-site-transfer.mjs`
+orchestrates provider Promises and observes physical stop and cleanup; every
+common state transition is submitted to the MoonBit authorities before common
+success or resource release.
+
+The JavaScript control model under the `.fixture.mjs` test module is an
+independent protocol fixture only. No product module imports it. It protects
+adapter boundary tests without making JavaScript a second production oracle.
+The previous mutable JavaScript Site state was removed when the standard Host
+caller switched to the generated MoonBit control bridge.
+
 ## 2. E0: fix the baseline and ownership boundary
 
 The fixed baseline is

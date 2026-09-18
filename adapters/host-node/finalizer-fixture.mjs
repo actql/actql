@@ -1,12 +1,16 @@
 // Portable protocol fixture. Real semantic completion is tested separately.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
+import {createExecutionSiteControlFixture} from
+  '../host-common/execution-site-control.fixture.mjs';
 import {withScopedStrategy} from '../workers/invocation.mjs';
 
+const siteControl = createExecutionSiteControlFixture();
 export async function finalizerCase(kind, scoped = false) {
   const first = kind === 'undefined' ? undefined : kind === 'null' ? null : new Error('first');
   const registration = {}, setup = {};
   let finished = 0, closed = 0, complete = false, consumed = 0;
   const core = {
+    siteControl,
     count: () => 2, next: () => ({}), task: () => 1,
     taskCapacity: () => [0n, 0n],
     registration: () => registration, completed: () => complete,
@@ -51,6 +55,7 @@ export async function asynchronousCloseCase(kind) {
   const first = kind === 'undefined' ? undefined : kind === 'null' ? null :
     Object.assign(new Error('asynchronous close'), {cleanupHandle: recovery});
   const core = {
+    siteControl,
     count: () => 2, next: () => ({}), task: () => 1,
     taskCapacity: () => [0n, 0n],
     registration: () => registration, completed: () => complete,

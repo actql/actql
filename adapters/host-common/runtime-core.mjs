@@ -14,6 +14,45 @@ const resultDefinitionKeys = [
   'result_name',
   'version',
 ];
+const siteControls = new WeakMap();
+
+function siteControl(moon) {
+  let control = siteControls.get(moon);
+  if (control !== undefined) return control;
+  control = Object.freeze({
+    create: configuration => moon.strategySiteCreate(
+      configuration.key,
+      configuration.generation,
+      configuration.runtimeRevision,
+      configuration.maxConcurrentOperations,
+      configuration.maxConcurrentTransfers,
+      configuration.maxRetainedBytes,
+      configuration.maxExecutionBytes,
+    ),
+    available: moon.strategySiteAvailable,
+    revoked: moon.strategySiteRevoked,
+    capacitySupports: moon.strategySiteCapacitySupports,
+    bindingCurrent: moon.strategySiteBindingCurrent,
+    startOperation: moon.strategySiteStartOperation,
+    operationAvailable: moon.strategySiteOperationAvailable,
+    settleOperation: moon.strategySiteSettleOperation,
+    retainOperationHolding: moon.strategySiteRetainOperationHolding,
+    startTransfer: moon.strategySiteStartTransfer,
+    transferAvailable: moon.strategySiteTransferAvailable,
+    settleTransferSource: moon.strategySiteSettleTransferSource,
+    settleTransferDestination: moon.strategySiteSettleTransferDestination,
+    retainTransferHolding: moon.strategySiteRetainTransferHolding,
+    retainHolding: moon.strategySiteRetainHolding,
+    releaseHolding: moon.strategySiteReleaseHolding,
+    retainCleanup: moon.strategySiteRetainCleanup,
+    releaseCleanup: moon.strategySiteReleaseCleanup,
+    beginTeardown: moon.strategySiteBeginTeardown,
+    revoke: moon.strategySiteRevoke,
+    status: moon.strategySiteStatus,
+  });
+  siteControls.set(moon, control);
+  return control;
+}
 
 function checkedResultDefinition(text, name) {
   let definition;
@@ -36,6 +75,7 @@ function checkedResultDefinition(text, name) {
 // execution requests cannot supply a verifier, SQL or replacement runtime.
 export function runtimeCore(moon) {
   return Object.freeze({
+    siteControl: siteControl(moon),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     resultInventory(value) {

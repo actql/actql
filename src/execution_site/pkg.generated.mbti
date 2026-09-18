@@ -1,0 +1,68 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/execution_site"
+
+// Values
+pub fn begin_site_teardown(ExecutionSite) -> Unit
+
+pub fn create_site(String, Int, String, Int, Int, Int64, Int64) -> ExecutionSite?
+
+pub fn release_site_cleanup(SiteCleanup) -> Bool
+
+pub fn release_site_holding(SiteHolding) -> Bool
+
+pub fn retain_site_cleanup(ExecutionSite) -> SiteCleanup
+
+pub fn retain_site_holding(ExecutionSite, Int64) -> SiteHolding?
+
+pub fn retain_site_operation_holding(SiteOperation, Int64) -> SiteHolding?
+
+pub fn retain_site_transfer_holding(SiteTransfer, Int64) -> SiteHolding?
+
+pub fn revoke_site(ExecutionSite) -> Unit
+
+pub fn settle_site_operation(SiteOperation) -> Bool
+
+pub fn settle_site_transfer_destination(SiteTransfer) -> Bool
+
+pub fn settle_site_transfer_source(SiteTransfer) -> Bool
+
+pub fn site_available(ExecutionSite) -> Bool
+
+pub fn site_binding_current(ExecutionSite, Int, String) -> Bool
+
+pub fn site_capacity_supports(ExecutionSite, Int64, Int64) -> Bool
+
+pub fn site_generation(ExecutionSite) -> Int
+
+pub fn site_key(ExecutionSite) -> String
+
+pub fn site_operation_available(SiteOperation) -> Bool
+
+pub fn site_revoked(ExecutionSite) -> Bool
+
+pub fn site_runtime_revision(ExecutionSite) -> String
+
+pub fn site_status(ExecutionSite) -> Array[Int64]
+
+pub fn site_transfer_available(SiteTransfer) -> Bool
+
+pub fn start_site_operation(ExecutionSite, Int64, Int64) -> SiteOperation?
+
+pub fn start_site_transfer(ExecutionSite, ExecutionSite, Int64, Int64) -> SiteTransfer?
+
+// Errors
+
+// Types and methods
+type ExecutionSite
+
+type SiteCleanup
+
+type SiteHolding
+
+type SiteOperation
+
+type SiteTransfer
+
+// Type aliases
+
+// Traits

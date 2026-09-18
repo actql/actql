@@ -201,6 +201,7 @@ export async function runInstalledStrategy(
   const siteInstallation = installExecutionSites(
     sitePolicy ?? prepareSingleExecutionSitePolicy(),
     [...installed.values()],
+    core.siteControl,
   );
   const transfers = createManagedSiteTransferCoordinator(
     setup, core, siteInstallation,

@@ -4,6 +4,8 @@ import {localStrategyContribution} from './strategy-bundle.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
+import {createExecutionSiteControlFixture} from
+  '../host-common/execution-site-control.fixture.mjs';
 import {numericStrategyContribution} from
   '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
@@ -12,6 +14,7 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
 
+const siteControl = createExecutionSiteControlFixture();
 const ok = value => ({$tag: 1, _0: value});
 const failed = value => ({$tag: 0, _0: value});
 function installed(consume, completionFailure) {
@@ -92,6 +95,7 @@ test('standard Local legacy completion observes forced Site loss', async () => {
       },
     }, setup, checked);
     const core = {
+      siteControl,
       count: () => 2,
       next: () => task,
       task: () => 1,
@@ -184,6 +188,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
     }, setup, checked);
     let complete = false, selected, ran;
     const core = {
+      siteControl,
       count: () => 3,
       taskCapacity: () => [0n, 0n],
       next: () => ({task: 1}),

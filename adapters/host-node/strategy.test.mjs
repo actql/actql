@@ -9,6 +9,10 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   '../host-common/execution-sites.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
+import {createExecutionSiteControlFixture} from
+  '../host-common/execution-site-control.fixture.mjs';
+
+const siteControl = createExecutionSiteControlFixture();
 
 test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {
   for (const kind of ['undefined', 'null', 'recoverable']) {
@@ -40,6 +44,7 @@ function fixture(registrations) {
   let stopped = 0;
   let closed = 0;
   const core = {
+    siteControl,
     count: () => tasks.length + 1,
     next: () => tasks[next++],
     task: task => task.index,
@@ -250,6 +255,7 @@ test('managed equal-cost choice is stable when installation order is reversed', 
     const setup = {}, registrations = {a: {}, z: {}};
     let completed = false, selected, ran;
     const core = {
+      siteControl,
       count: () => 2,
       taskCapacity: () => [0n, 0n],
       nextTask: () => completed ? -1 : 1,
@@ -293,6 +299,7 @@ test('managed choice compares known cost before its stable registration key', as
   const setup = {}, registrations = {cheap: {}, expensive: {}, unknown: {}};
   let completed = false, ran;
   const core = {
+    siteControl,
     count: () => 2,
     taskCapacity: () => [0n, 0n],
     nextTask: () => completed ? -1 : 1,
@@ -356,6 +363,7 @@ test('Site startup and Transfer costs participate in standard managed choice', a
     let producerOutput;
     const currentTask = () => complete.has(1) ? complete.has(2) ? -1 : 2 : 1;
     const core = {
+      siteControl,
       count: () => 3,
       taskCapacity: () => [0n, 0n],
       next: () => assert.fail('legacy execution is not part of this protocol test'),
@@ -965,6 +973,7 @@ test('early managed release recovery also releases its Site holding', async () =
       cleanupHandle,
     });
     const core = {
+      siteControl,
       count: () => 3,
       taskCapacity: () => [0n, 0n],
       nextTask: () => next,
@@ -1035,6 +1044,7 @@ test('early managed release without recovery remains explicitly unconfirmed', as
     let next = 1;
     const completedTasks = new Set();
     const core = {
+      siteControl,
       count: () => 3,
       taskCapacity: () => [0n, 0n],
       nextTask: () => next,

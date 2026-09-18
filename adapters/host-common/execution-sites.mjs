@@ -1,6 +1,6 @@
-// Common in-process Site placement and lifecycle. A Site is an execution and
-// retention location/generation, not a Connector registration. These opaque
-// handles carry no task completion or content-identity authority.
+// Environment-facing handles for portable MoonBit Site control. This module
+// binds Connector placements and opaque physical values; it does not decide
+// mutable Site lifecycle, capacity, or terminal state.
 const sites = new WeakMap();
 const policies = new WeakMap();
 const installations = new WeakMap();
@@ -28,6 +28,50 @@ const sameInputOccurrence = (left, right) =>
   left.site === right.site &&
   left.siteMaterial === right.siteMaterial &&
   left.materialGeneration === right.materialGeneration;
+const controlMethods = [
+  'create', 'available', 'revoked', 'capacitySupports', 'bindingCurrent',
+  'startOperation', 'operationAvailable', 'settleOperation',
+  'retainOperationHolding', 'startTransfer', 'transferAvailable',
+  'settleTransferSource', 'settleTransferDestination',
+  'retainTransferHolding', 'retainHolding', 'releaseHolding',
+  'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
+];
+
+function checkedControl(control) {
+  if (control === null || typeof control !== 'object' ||
+      controlMethods.some(name => typeof control[name] !== 'function')) {
+    fail('MissingExecutionSiteControl');
+  }
+  return control;
+}
+
+function bindSiteControl(state, control) {
+  if (state.control !== undefined) {
+    if (state.control !== control) fail('ForeignExecutionSiteControl');
+    return;
+  }
+  const handle = control.create(Object.freeze({
+    key: state.key,
+    generation: state.generation,
+    runtimeRevision: state.runtimeRevision,
+    maxConcurrentOperations: state.maxConcurrentOperations,
+    maxConcurrentTransfers: state.maxConcurrentTransfers,
+    maxRetainedBytes: state.maxRetainedBytes,
+    maxExecutionBytes: state.maxExecutionBytes,
+  }));
+  if (handle === undefined || handle === null) fail('InvalidExecutionSite');
+  state.control = control;
+  state.handle = handle;
+  if (state.pendingRevocation) control.revoke(handle);
+  else if (state.pendingTeardown) control.beginTeardown(handle);
+}
+
+function controlled(state) {
+  if (state.control === undefined || state.handle === undefined) {
+    fail('UnboundExecutionSite');
+  }
+  return state;
+}
 
 export function createInProcessExecutionSite({
   key,
@@ -42,46 +86,31 @@ export function createInProcessExecutionSite({
 } = {}) {
   if (!text(key) || !count(generation) || !text(runtimeRevision) ||
       !duration(startupMilliseconds) || !duration(transferMilliseconds) ||
-      !count(maxConcurrentOperations) || maxConcurrentOperations === 0) {
-    fail('InvalidExecutionSite');
-  }
-  if (!count(maxConcurrentTransfers) || maxConcurrentTransfers === 0 ||
+      !count(maxConcurrentOperations) || maxConcurrentOperations === 0 ||
+      !count(maxConcurrentTransfers) || maxConcurrentTransfers === 0 ||
       !bytes(maxRetainedBytes) || !bytes(maxExecutionBytes)) {
     fail('InvalidExecutionSite');
   }
   const site = Object.freeze({});
   sites.set(site, {
-    identity: {},
-    key,
-    generation,
-    runtimeRevision,
-    startupMilliseconds,
-    transferMilliseconds,
-    maxConcurrentOperations,
-    maxConcurrentTransfers,
-    maxRetainedBytes,
-    maxExecutionBytes,
-    reservedRetentionBytes: 0n,
-    heldBytes: 0n,
-    reservedExecutionBytes: 0n,
-    peakRetainedBytes: 0n,
-    accepting: true,
-    revoked: false,
-    active: new Set(),
-    activeTransfers: new Set(),
-    holdings: new Set(),
-    cleanup: new Set(),
+    identity: {}, key, generation, runtimeRevision, startupMilliseconds,
+    transferMilliseconds, maxConcurrentOperations, maxConcurrentTransfers,
+    maxRetainedBytes, maxExecutionBytes, control: undefined,
+    handle: undefined, pendingTeardown: false, pendingRevocation: false,
   });
   return site;
 }
 
 export function executionSiteDescription(site) {
   const state = siteState(site);
+  const accepting = state.control === undefined
+    ? !state.pendingTeardown && !state.pendingRevocation
+    : state.control.available(state.handle);
   return Object.freeze({
     key: state.key,
     generation: state.generation,
     runtimeRevision: state.runtimeRevision,
-    accepting: state.accepting && !state.revoked,
+    accepting,
   });
 }
 
@@ -159,18 +188,18 @@ export function prepareSingleExecutionSitePolicy() {
   return prepareExecutionSitePolicy({sites: [site]});
 }
 
-export function installExecutionSites(policy, contributions) {
+export function installExecutionSites(policy, contributions, suppliedControl) {
   const configured = policies.get(policy) ?? fail('ForeignExecutionSitePolicy');
+  const control = checkedControl(suppliedControl);
   if (!Array.isArray(contributions) || contributions.length === 0) {
     fail('InvalidExecutionSiteInstallation');
   }
+  for (const site of configured.sites) bindSiteControl(siteState(site), control);
   const placement = new Map();
   let total = 0;
   for (const contribution of contributions) {
     const key = contribution?.managedSelectionKey;
-    if (placement.has(contribution)) {
-      fail('InvalidExecutionSiteInstallation');
-    }
+    if (placement.has(contribution)) fail('InvalidExecutionSiteInstallation');
     const selected = text(key)
       ? configured.placements.get(key) ?? configured.defaultSites
       : configured.defaultSites;
@@ -179,7 +208,7 @@ export function installExecutionSites(policy, contributions) {
     placement.set(contribution, selected);
   }
   const installation = Object.freeze({});
-  installations.set(installation, {policy: configured, placement});
+  installations.set(installation, {policy: configured, placement, control});
   return installation;
 }
 
@@ -216,13 +245,16 @@ export function executionSiteCandidate({
       !bytes(capacity?.retainedBytes) || !bytes(capacity?.executionBytes)) {
     fail('InvalidExecutionSiteCandidate');
   }
-  const destination = siteState(site);
-  if (!destination.accepting || destination.revoked) return undefined;
+  const destination = controlled(siteState(site));
+  if (!destination.control.available(destination.handle)) return undefined;
   if (durationMilliseconds === null || destination.startupMilliseconds === null) {
     return Object.freeze({excluded: 'MissingDurationEstimate'});
   }
-  if (capacity.retainedBytes > destination.maxRetainedBytes ||
-      capacity.executionBytes > destination.maxExecutionBytes) {
+  if (!destination.control.capacitySupports(
+    destination.handle,
+    capacity.retainedBytes,
+    capacity.executionBytes,
+  )) {
     return Object.freeze({excluded: 'ExecutionSiteCapacityEstimateExceeded'});
   }
   let estimated = durationMilliseconds + destination.startupMilliseconds;
@@ -239,7 +271,10 @@ export function executionSiteCandidate({
         typeof input.materialGeneration !== 'object') {
       fail('InvalidExecutionSiteCandidate');
     }
-    const source = siteState(input.site);
+    const source = controlled(siteState(input.site));
+    if (source.control !== installed.control) {
+      fail('ForeignExecutionSiteControl');
+    }
     inputSites.push(Object.freeze({
       site: input.site,
       identity: source.identity,
@@ -257,25 +292,22 @@ export function executionSiteCandidate({
       return Object.freeze({excluded: 'UnsupportedTransferRepresentation'});
     }
     if (!provider) return Object.freeze({excluded: 'MissingTransferProvider'});
-    if (source.revoked) return Object.freeze({excluded: 'SourceSiteRevoked'});
+    if (source.control.revoked(source.handle)) {
+      return Object.freeze({excluded: 'SourceSiteRevoked'});
+    }
     const shared = transfers.find(value =>
       sameInputOccurrence(value.input, input));
     const estimate = shared?.estimate ?? provider.estimate(input.siteMaterial);
     if (!estimate) return Object.freeze({excluded: 'MissingTransferEstimate'});
     if (![estimate.transferBytes, estimate.retainedBytes,
-      estimate.executionBytes].every(value =>
-      typeof value === 'bigint' && value >= 0n)) {
+      estimate.executionBytes].every(value => bytes(value))) {
       fail('InvalidTransferEstimate');
     }
     if (destination.transferMilliseconds === null) {
       return Object.freeze({excluded: 'MissingDurationEstimate'});
     }
     if (!shared) estimated += destination.transferMilliseconds;
-    transfers.push(Object.freeze({
-      input,
-      estimate,
-      sharedWith: shared?.input,
-    }));
+    transfers.push(Object.freeze({input, estimate, sharedWith: shared?.input}));
   }
   return Object.freeze({
     excluded: undefined,
@@ -296,24 +328,29 @@ export function executionSiteCandidate({
   });
 }
 
-// Binding occurs only after common candidate comparison. It rechecks the exact
-// Site generation and placement but does not itself start an operation.
+// Binding occurs only after common candidate comparison. It rechecks exact
+// placement, estimate, and MoonBit-owned Site state without starting I/O.
 export function bindExecutionSiteCandidate(candidate) {
   if (!candidate || candidate.excluded !== undefined) {
     fail('ExecutionSiteCandidateExcluded', candidate?.excluded);
   }
   const installed = installations.get(candidate.installation) ??
     fail('ForeignExecutionSiteInstallation');
-  const state = siteState(candidate.site);
+  const state = controlled(siteState(candidate.site));
   const provider = installed.policy.transferProvider;
   const inputsCurrent = candidate.inputSites.length === candidate.inputs.length &&
     candidate.inputSites.every((fixed, index) => {
-      const source = siteState(candidate.inputs[index].site);
-      return fixed.site === candidate.inputs[index].site &&
+      const source = controlled(siteState(candidate.inputs[index].site));
+      return source.control === installed.control &&
+        fixed.site === candidate.inputs[index].site &&
         source.identity === fixed.identity &&
         source.generation === fixed.generation &&
         source.runtimeRevision === fixed.runtimeRevision &&
-        !source.revoked;
+        source.control.bindingCurrent(
+          source.handle,
+          fixed.generation,
+          fixed.runtimeRevision,
+        );
     });
   const transfersCurrent = candidate.transfers.every(planned => {
     if (!provider) return false;
@@ -325,285 +362,208 @@ export function bindExecutionSiteCandidate(candidate) {
   });
   if (!installed.placement.get(candidate.contribution)?.includes(candidate.site) ||
       candidate.contribution.registration !== candidate.registration ||
+      state.control !== installed.control ||
       state.identity !== candidate.siteIdentity ||
-      state.generation !== candidate.siteGeneration ||
-      state.runtimeRevision !== candidate.runtimeRevision ||
-      !state.accepting || state.revoked || !inputsCurrent ||
-      !transfersCurrent) {
+      !state.control.bindingCurrent(
+        state.handle,
+        candidate.siteGeneration,
+        candidate.runtimeRevision,
+      ) || !inputsCurrent || !transfersCurrent) {
     fail('StaleExecutionSiteBinding');
   }
   const binding = Object.freeze({});
-  bindings.set(binding, {candidate, site: state, consumed: false});
+  bindings.set(binding, {candidate, state, consumed: false});
   return binding;
 }
 
 export function startExecutionSiteOperation(binding) {
   const bound = bindings.get(binding) ?? fail('ForeignExecutionSiteBinding');
-  if (bound.consumed || !bound.site.accepting || bound.site.revoked ||
-      bound.site.identity !== bound.candidate.siteIdentity ||
-      bound.site.generation !== bound.candidate.siteGeneration ||
-      bound.site.active.size >= bound.site.maxConcurrentOperations ||
-      bound.candidate.capacity.retainedBytes >
-        bound.site.maxRetainedBytes - bound.site.heldBytes -
-          bound.site.reservedRetentionBytes ||
-      bound.candidate.capacity.executionBytes >
-        bound.site.maxExecutionBytes - bound.site.reservedExecutionBytes) {
+  if (bound.consumed) fail('ExecutionSiteAdmissionRejected');
+  const handle = bound.state.control.startOperation(
+    bound.state.handle,
+    bound.candidate.capacity.retainedBytes,
+    bound.candidate.capacity.executionBytes,
+  );
+  if (handle === undefined || handle === null) {
     fail('ExecutionSiteAdmissionRejected');
   }
   bound.consumed = true;
   const operation = Object.freeze({});
-  const retention = bound.candidate.capacity.retainedBytes;
-  const execution = bound.candidate.capacity.executionBytes;
-  bound.site.reservedRetentionBytes += retention;
-  bound.site.reservedExecutionBytes += execution;
-  const peak = bound.site.heldBytes + bound.site.reservedRetentionBytes;
-  if (peak > bound.site.peakRetainedBytes) {
-    bound.site.peakRetainedBytes = peak;
-  }
-  operations.set(operation, {
-    site: bound.site,
-    stopped: false,
-    retention,
-    execution,
-    holding: undefined,
-  });
-  bound.site.active.add(operation);
+  operations.set(operation, {control: bound.state.control, handle});
   return operation;
 }
 
 export function settleExecutionSiteOperation(operation) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
-  if (state.stopped) return false;
-  state.stopped = true;
-  state.site.reservedExecutionBytes -= state.execution;
-  state.execution = 0n;
-  state.site.reservedRetentionBytes -= state.retention;
-  state.retention = 0n;
-  state.site.active.delete(operation);
-  return true;
+  return state.control.settleOperation(state.handle);
 }
 
-// Convert an admitted task's retained-byte reservation into exactly one Site
-// holding. The same allocation is already charged by the authoritative Run
-// ledger; this scope only enforces the selected Site's stricter byte ceiling.
-export function retainExecutionSiteOperationHolding(operation, value, bytes) {
+export function retainExecutionSiteOperationHolding(operation, value, valueBytes) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
-  if (state.stopped || state.holding !== undefined || value == null ||
-      !bytesValue(bytes) || bytes > state.retention) {
+  if (value == null || !bytes(valueBytes)) fail('ExecutionSiteHoldingRejected');
+  const handle = state.control.retainOperationHolding(state.handle, valueBytes);
+  if (handle === undefined || handle === null) {
     fail('ExecutionSiteHoldingRejected');
   }
-  state.site.reservedRetentionBytes -= bytes;
-  state.retention -= bytes;
-  state.site.heldBytes += bytes;
   const holding = Object.freeze({});
-  holdings.set(holding, {site: state.site, value, bytes, live: true});
-  state.site.holdings.add(holding);
-  state.holding = holding;
+  holdings.set(holding, {control: state.control, handle, value});
   return holding;
 }
 
 export function executionSiteOperationAvailable(operation) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
-  return !state.stopped && !state.site.revoked;
+  return state.control.operationAvailable(state.handle);
 }
 
-// A Transfer is not a language task and does not consume a connector's task
-// operation slot. It nevertheless remains visible to both Sites until source
-// access and destination mutation have independently stopped.
 export function startExecutionSiteTransferOperation(
-  sourceSite, destinationSite, capacity = Object.freeze({
-    retainedBytes: 0n,
-    executionBytes: 0n,
-  }),
+  sourceSite,
+  destinationSite,
+  capacity = Object.freeze({retainedBytes: 0n, executionBytes: 0n}),
 ) {
-  const source = siteState(sourceSite);
-  const destination = siteState(destinationSite);
-  if (!bytes(capacity?.retainedBytes) || !bytes(capacity?.executionBytes)) {
-    fail('InvalidExecutionSiteTransferCapacity');
+  const source = controlled(siteState(sourceSite));
+  const destination = controlled(siteState(destinationSite));
+  if (source.control !== destination.control ||
+      !bytes(capacity?.retainedBytes) || !bytes(capacity?.executionBytes)) {
+    fail(source.control !== destination.control
+      ? 'ForeignExecutionSiteControl'
+      : 'InvalidExecutionSiteTransferCapacity');
   }
-  const sameSite = source === destination;
-  if (!source.accepting || source.revoked ||
-      !destination.accepting || destination.revoked ||
-      source.activeTransfers.size >= source.maxConcurrentTransfers ||
-      (!sameSite &&
-        destination.activeTransfers.size >= destination.maxConcurrentTransfers) ||
-      capacity.retainedBytes >
-        destination.maxRetainedBytes - destination.heldBytes -
-          destination.reservedRetentionBytes ||
-      capacity.executionBytes >
-        destination.maxExecutionBytes - destination.reservedExecutionBytes) {
+  const handle = source.control.startTransfer(
+    source.handle,
+    destination.handle,
+    capacity.retainedBytes,
+    capacity.executionBytes,
+  );
+  if (handle === undefined || handle === null) {
     fail('ExecutionSiteTransferAdmissionRejected');
   }
-  destination.reservedRetentionBytes += capacity.retainedBytes;
-  destination.reservedExecutionBytes += capacity.executionBytes;
-  const peak = destination.heldBytes + destination.reservedRetentionBytes;
-  if (peak > destination.peakRetainedBytes) {
-    destination.peakRetainedBytes = peak;
-  }
   const operation = Object.freeze({});
-  transferOperations.set(operation, {
-    source,
-    destination,
-    sourceIdentity: source.identity,
-    sourceGeneration: source.generation,
-    destinationIdentity: destination.identity,
-    destinationGeneration: destination.generation,
-    sourceStopped: false,
-    destinationStopped: false,
-    retention: capacity.retainedBytes,
-    execution: capacity.executionBytes,
-    holding: undefined,
-  });
-  source.activeTransfers.add(operation);
-  destination.activeTransfers.add(operation);
+  transferOperations.set(operation, {control: source.control, handle});
   return operation;
 }
 
-// Recheck the exact admitted Site generations at the Transfer commit
-// boundary. Graceful teardown only stops new admission; forced generation
-// revocation invalidates unfinished work.
 export function executionSiteTransferOperationAvailable(operation) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
-  return !state.sourceStopped && !state.destinationStopped &&
-    !state.source.revoked && !state.destination.revoked &&
-    state.source.identity === state.sourceIdentity &&
-    state.source.generation === state.sourceGeneration &&
-    state.destination.identity === state.destinationIdentity &&
-    state.destination.generation === state.destinationGeneration;
+  return state.control.transferAvailable(state.handle);
 }
 
 export function settleExecutionSiteTransferSource(operation) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
-  if (state.sourceStopped) return false;
-  state.sourceStopped = true;
-  if (state.source !== state.destination || state.destinationStopped) {
-    state.source.activeTransfers.delete(operation);
-  }
-  return true;
+  return state.control.settleTransferSource(state.handle);
 }
 
 export function settleExecutionSiteTransferDestination(operation) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
-  if (state.destinationStopped) return false;
-  state.destinationStopped = true;
-  state.destination.reservedExecutionBytes -= state.execution;
-  state.execution = 0n;
-  state.destination.reservedRetentionBytes -= state.retention;
-  state.retention = 0n;
-  if (state.source !== state.destination || state.sourceStopped) {
-    state.destination.activeTransfers.delete(operation);
-  }
-  return true;
+  return state.control.settleTransferDestination(state.handle);
 }
 
-export function retainExecutionSiteTransferHolding(operation, value, bytes) {
+export function retainExecutionSiteTransferHolding(
+  operation,
+  value,
+  valueBytes,
+) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
-  if (state.source.revoked || state.destination.revoked ||
-      state.destinationStopped || state.holding !== undefined || value == null ||
-      !bytesValue(bytes) || bytes > state.retention) {
+  if (value == null || !bytes(valueBytes)) fail('ExecutionSiteHoldingRejected');
+  const handle = state.control.retainTransferHolding(state.handle, valueBytes);
+  if (handle === undefined || handle === null) {
     fail('ExecutionSiteHoldingRejected');
   }
-  state.destination.reservedRetentionBytes -= bytes;
-  state.retention -= bytes;
-  state.destination.heldBytes += bytes;
   const holding = Object.freeze({});
-  holdings.set(holding, {
-    site: state.destination,
-    value,
-    bytes,
-    live: true,
-  });
-  state.destination.holdings.add(holding);
-  state.holding = holding;
+  holdings.set(holding, {control: state.control, handle, value});
   return holding;
 }
 
-const bytesValue = value => typeof value === 'bigint' && value >= 0n;
-
 export function retainExecutionSiteHolding(site, value, retainedBytes = 0n) {
-  const state = siteState(site);
-  if (state.revoked || value == null || !bytesValue(retainedBytes) ||
-      retainedBytes > state.maxRetainedBytes - state.heldBytes -
-        state.reservedRetentionBytes) {
+  const state = controlled(siteState(site));
+  if (value == null || !bytes(retainedBytes)) fail('ExecutionSiteHoldingRejected');
+  const handle = state.control.retainHolding(state.handle, retainedBytes);
+  if (handle === undefined || handle === null) {
     fail('ExecutionSiteHoldingRejected');
   }
   const holding = Object.freeze({});
-  holdings.set(holding, {site: state, value, bytes: retainedBytes, live: true});
-  state.holdings.add(holding);
-  state.heldBytes += retainedBytes;
-  if (state.heldBytes > state.peakRetainedBytes) {
-    state.peakRetainedBytes = state.heldBytes;
-  }
+  holdings.set(holding, {control: state.control, handle, value});
   return holding;
 }
 
 export function releaseExecutionSiteHolding(holding) {
   const held = holdings.get(holding) ?? fail('ForeignExecutionSiteHolding');
-  if (!held.live) return false;
-  held.live = false;
-  held.site.heldBytes -= held.bytes;
-  held.site.holdings.delete(holding);
-  return true;
+  return held.control.releaseHolding(held.handle);
 }
 
-// A stopped operation and a reclaimed physical generation are separate facts.
-// Site-owned cleanup tokens keep teardown pending during the interval where no
-// retained holding exists yet (or no holding will ever be published) but an
-// admitted operation can still have destination state to reclaim.
 export function retainExecutionSiteCleanup(site, value) {
-  const state = siteState(site);
+  const state = controlled(siteState(site));
   if (value == null) fail('ExecutionSiteCleanupRejected');
+  const handle = state.control.retainCleanup(state.handle);
+  if (handle === undefined || handle === null) {
+    fail('ExecutionSiteCleanupRejected');
+  }
   const cleanup = Object.freeze({});
-  cleanupResponsibilities.set(cleanup, {site: state, value, live: true});
-  state.cleanup.add(cleanup);
+  cleanupResponsibilities.set(cleanup, {control: state.control, handle, value});
   return cleanup;
 }
 
 export function releaseExecutionSiteCleanup(cleanup) {
   const owned = cleanupResponsibilities.get(cleanup) ??
     fail('ForeignExecutionSiteCleanup');
-  if (!owned.live) return false;
-  owned.live = false;
-  owned.site.cleanup.delete(cleanup);
-  return true;
+  return owned.control.releaseCleanup(owned.handle);
 }
 
 export function beginExecutionSiteTeardown(site) {
   const state = siteState(site);
-  state.accepting = false;
+  state.pendingTeardown = true;
+  if (state.control !== undefined) state.control.beginTeardown(state.handle);
   return executionSiteStatus(site);
 }
 
 export function revokeExecutionSite(site) {
   const state = siteState(site);
-  state.accepting = false;
-  state.revoked = true;
+  state.pendingTeardown = true;
+  state.pendingRevocation = true;
+  if (state.control !== undefined) state.control.revoke(state.handle);
   return executionSiteStatus(site);
 }
 
 export function executionSiteStatus(site) {
   const state = siteState(site);
+  if (state.control === undefined) {
+    return Object.freeze({
+      key: state.key,
+      generation: state.generation,
+      accepting: !state.pendingTeardown && !state.pendingRevocation,
+      revoked: state.pendingRevocation,
+      activeOperations: 0,
+      activeTransfers: 0,
+      holdings: 0,
+      cleanupResponsibilities: 0,
+      heldBytes: 0n,
+      reservedRetentionBytes: 0n,
+      reservedExecutionBytes: 0n,
+      peakRetainedBytes: 0n,
+      teardownComplete: state.pendingTeardown,
+    });
+  }
+  const values = state.control.status(state.handle);
+  if (!Array.isArray(values) || values.length !== 11 ||
+      values.some(value => typeof value !== 'bigint')) {
+    fail('InvalidExecutionSiteStatus');
+  }
   return Object.freeze({
     key: state.key,
     generation: state.generation,
-    accepting: state.accepting && !state.revoked,
-    revoked: state.revoked,
-    activeOperations: state.active.size,
-    activeTransfers: state.activeTransfers.size,
-    holdings: state.holdings.size,
-    cleanupResponsibilities: state.cleanup.size,
-    heldBytes: state.heldBytes,
-    reservedRetentionBytes: state.reservedRetentionBytes,
-    reservedExecutionBytes: state.reservedExecutionBytes,
-    peakRetainedBytes: state.peakRetainedBytes,
-    teardownComplete: !state.accepting && state.active.size === 0 &&
-      state.activeTransfers.size === 0 &&
-      state.holdings.size === 0 && state.cleanup.size === 0 &&
-      state.heldBytes === 0n && state.reservedRetentionBytes === 0n &&
-      state.reservedExecutionBytes === 0n,
+    accepting: values[0] === 1n,
+    revoked: values[1] === 1n,
+    activeOperations: Number(values[2]),
+    activeTransfers: Number(values[3]),
+    holdings: Number(values[4]),
+    cleanupResponsibilities: Number(values[5]),
+    heldBytes: values[6],
+    reservedRetentionBytes: values[7],
+    reservedExecutionBytes: values[8],
+    peakRetainedBytes: values[9],
+    teardownComplete: values[10] === 1n,
   });
 }

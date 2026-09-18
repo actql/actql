@@ -7,7 +7,7 @@ import {
   executionSiteCandidate,
   executionSitePlacements,
   executionSiteStatus,
-  installExecutionSites,
+  installExecutionSites as installProductExecutionSites,
   prepareExecutionSitePolicy,
   releaseExecutionSiteCleanup,
   releaseExecutionSiteHolding,
@@ -22,6 +22,8 @@ import {
   startExecutionSiteTransferOperation,
   startExecutionSiteOperation,
 } from './execution-sites.mjs';
+import {createExecutionSiteControlFixture} from
+  './execution-site-control.fixture.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
 
@@ -29,17 +31,39 @@ const transferProvider = provider => Object.freeze({
   contract: managedMemoryTransferContract,
   ...provider,
 });
+const siteControl = createExecutionSiteControlFixture();
 
-const site = (key, generation = 1, extra = {}) =>
-  createInProcessExecutionSite({
+const site = (key, generation = 1, extra = {}) => {
+  const value = createInProcessExecutionSite({
     key,
     generation,
     runtimeRevision: 'test-runtime/1',
     ...extra,
   });
+  installProductExecutionSites(
+    prepareExecutionSitePolicy({sites: [value]}),
+    [Object.freeze({registration: {}, managedSelectionKey: 'fixture'})],
+    siteControl,
+  );
+  return value;
+};
 const contribution = key => Object.freeze({
   registration: Object.freeze({}),
   managedSelectionKey: key,
+});
+const installExecutionSites = (policy, contributions) =>
+  installProductExecutionSites(policy, contributions, siteControl);
+
+test('product Site installation has no JavaScript semantic fallback', () => {
+  const value = createInProcessExecutionSite({
+    key: 'requires-portable-control',
+    generation: 1,
+    runtimeRevision: 'test-runtime/1',
+  });
+  assert.throws(() => installProductExecutionSites(
+    prepareExecutionSitePolicy({sites: [value]}),
+    [contribution('implementation')],
+  ), {code: 'MissingExecutionSiteControl'});
 });
 
 test('Site placement is independent from implementation registration', () => {
