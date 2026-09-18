@@ -1547,11 +1547,11 @@
       "layers": {
       "checker": "complete",
       "lowering": "complete",
-      "kernel": "partial",
-      "managed": "partial",
+      "kernel": "complete",
+      "managed": "complete",
       "source_connection": "complete",
-      "two_consumer_e2e": "partial",
-      "three_target_conformance": "partial",
+      "two_consumer_e2e": "complete",
+      "three_target_conformance": "complete",
       "performance": "complete"
     },
     "evidence": {
@@ -1571,7 +1571,18 @@
             "js",
             "wasm",
             "native"
-          ]
+          ],
+          "covers": {
+            "variants": [
+              "parameter values",
+              "order obligations"
+            ],
+            "obligations": [
+              "ownership",
+              "parameter_binding",
+              "schema"
+            ]
+          }
         }
       ],
       "two_consumer_e2e": [
@@ -1588,7 +1599,32 @@
             "js",
             "wasm",
             "native"
-          ]
+          ],
+          "covers": {
+            "variants": [
+              "lateness bound"
+            ],
+            "types": [
+              "relation_value"
+            ],
+            "obligations": [
+              "failure_atomicity",
+              "ownership"
+            ]
+          }
+        },
+        {
+          "operation": "watermark_rows",
+          "layer": "two_consumer_e2e",
+          "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+          "fixtures": [
+            "standard native and broad Node Hosts own verification through real capture and consumer"
+          ],
+          "suite": "node:standard-host",
+          "targets": [
+            "node"
+          ],
+          "standard_host": true
         }
       ],
       "conformance": [
@@ -1606,7 +1642,27 @@
             "js",
             "wasm",
             "native"
-          ]
+          ],
+          "covers": {
+            "variants": [
+              "time field",
+              "lateness bound",
+              "NULL and invalid time",
+              "order obligations"
+            ],
+            "types": [
+              "temporal"
+            ],
+            "obligations": [
+              "capacity",
+              "failure_atomicity",
+              "logical_order",
+              "measurement",
+              "null_semantics",
+              "schema",
+              "value_validation"
+            ]
+          }
         }
       ],
       "performance": [
@@ -1626,9 +1682,7 @@
         }
       ]
     },
-    "gaps": [
-      "Fixed and prefix thresholds, number and timestamp inputs, mark and drop policies, invalid physical time, exact work boundaries, two independently released managed consumers, final reclamation, and linear prefix scaling pass on three targets. Parameter-bound managed execution, complete ordering interactions, Standard Host evidence, and cancellation coverage remain."
-    ]
+    "gaps": []
     },
     {
       "operation": "pivot",

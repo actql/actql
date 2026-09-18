@@ -1620,6 +1620,54 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       from: 'out', fields: id === 'a' ? ['id', 'n'] : ['n', 'id'],
     }},
   })));
+  const watermarkProgram = (threshold, latePolicy) => {
+    const variant = structuredClone(zeroInputProgram);
+    const fields = [
+      'id',
+      'time',
+      'watermark_ms',
+      'watermark_late',
+      'watermark_decision',
+    ];
+    variant.stages.splice(1, 3, {
+      id: 'watermark_values',
+      inputs: {},
+      steps: [{values: {
+        schema: {
+          id: {type: 'number', nullable: false},
+          time: {type: 'number', nullable: false},
+        },
+        rows: [{id: 1, time: 100}, {id: 2, time: 80}, {id: 3, time: 95}],
+      }, as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'time']}},
+    }, {
+      id: 'watermarked',
+      inputs: {x: {result: {stage: 'watermark_values', result: 'r'}}},
+      steps: [{watermark_rows: {
+        time: 'time',
+        late_policy: latePolicy,
+        ...threshold,
+      }, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `watermark_consumer_${id}`,
+      inputs: {x: {result: {stage: 'watermarked', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {
+        from: 'out',
+        fields: id === 'a' ? fields : [...fields].reverse(),
+      }},
+    })));
+    return variant;
+  };
+  const fixedWatermarkProgram = watermarkProgram(
+    {watermark_ms: {$param: 'minimum'}},
+    'mark',
+  );
+  const prefixWatermarkProgram = watermarkProgram(
+    {max_skew: {$param: 'minimum'}},
+    'drop',
+  );
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -1627,6 +1675,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['select', selectProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
+    ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
+    ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
   ]) {
     const zeroInputFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(program));

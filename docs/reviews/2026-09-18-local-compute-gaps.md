@@ -36,7 +36,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | row_window | C | C | P | P | Fixed/sliding numeric and timestamp windows reach two managed consumers on three targets; Standard-Host evidence, parameter-bound managed execution, runtime budget boundaries, temporal edge cases, and fixed scaling evidence remain |
 | window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, and Decimal sum reach two managed consumers on three targets; expression/filter aggregates, remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
 | lag | C | C | P | P | Full value/key/orderable type matrix, Standard Host evidence, and cancellation |
-| watermark_rows | C | - | - | - | Finite watermark lowering and execution |
+| watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
 | unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |
 | json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
@@ -75,7 +75,7 @@ notification happens before editing it.
 
 ## Completion evidence
 
-`values` is the first operation with all newly agreed evidence. `select` and
+`values` and `watermark_rows` have all newly agreed evidence. `select` and
 `append` now have complete source, managed two-consumer, and performance
 evidence; their remaining gap is the shared owned-reference runtime boundary.
 The remaining 28 operations still need one or more of:
