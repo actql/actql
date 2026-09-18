@@ -10,6 +10,7 @@
   },
   "type_sets": {
     "relation_value": ["string", "number", "decimal", "boolean", "timestamp", "date", "json", "object", "array", "vector", "resource_ref", "artifact_ref"],
+    "values_constructible": ["string", "number", "decimal", "boolean", "timestamp", "date", "object", "array", "vector"],
     "key_comparable": ["string", "number", "decimal", "boolean", "timestamp", "date", "resource_ref", "artifact_ref"],
     "author_orderable": ["string", "number", "decimal", "boolean", "timestamp", "date"],
     "numeric": ["number", "decimal"],
@@ -49,7 +50,7 @@
     {"operation":"dedupe_rows","variants":["compound key","ordering and tie policy","NULL equality","representative selection","required tie failures"],"types":["relation_value","key_comparable","author_orderable"],"obligations":["capacity","failure_atomicity","logical_order","null_semantics","ownership","schema","stable_ties","value_validation"]},
     {"operation":"assert_rows","variants":["where","unique_by","compound nullable key","demanded predicate failures","logical failure location"],"types":["relation_value","key_comparable","predicate"],"obligations":["capacity","demand","failure_atomicity","logical_order","null_semantics","ownership","schema","value_validation"]},
     {"operation":"append","variants":["literal and referenced right input","schema alignment","left then right order","empty sides","shared and distinct producers"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","measurement","ownership","schema","two_input_binding","value_validation"]},
-    {"operation":"values","variants":["empty and nonempty rows","scalar and nested values","explicit schema","NULL values","metadata and capacity limits"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","measurement","null_semantics","ownership","schema","value_validation"]},
+    {"operation":"values","variants":["empty and nonempty rows","scalar and nested values","explicit schema","NULL values","metadata and capacity limits"],"types":["values_constructible"],"obligations":["capacity","failure_atomicity","logical_order","measurement","null_semantics","ownership","schema","value_validation"]},
     {"operation":"except","variants":["row equality","NULL equality","duplicate treatment","left order","empty sides"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","null_semantics","ownership","schema","two_input_binding","value_validation"]},
     {"operation":"intersect","variants":["row equality","NULL equality","duplicate treatment","left order","empty sides"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","null_semantics","ownership","schema","two_input_binding","value_validation"]},
     {"operation":"cross_join","variants":["unrestricted","right_rows one","empty sides","left-major output order","output capacity overflow"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","measurement","ownership","schema","two_input_binding","value_validation"]},

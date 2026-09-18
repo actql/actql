@@ -2245,10 +2245,10 @@
         "lowering": "complete",
         "kernel": "complete",
         "managed": "complete",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
-        "performance": "missing"
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2272,10 +2272,33 @@
           {
             "operation": "values",
             "layer": "source_connection",
+            "path": "src/lowering_relation/values_vectors.generated_test.mbt",
+            "fixtures": [
+              "values wire from fixed params: ordinary",
+              "values wire from fixed params: empty",
+              "values wire from fixed params: nullable",
+              "values wire from fixed params: bound-parameter",
+              "values wire from fixed params: nested-business",
+              "values wire from fixed params: decimal-precision-38",
+              "values wire from fixed params: array-object",
+              "values wire from fixed params: temporal-vector"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "values",
+            "layer": "source_connection",
             "path": "src/query_integration/local_managed_values_wbtest.mbt",
             "fixtures": [
               "Local managed execution admits checked zero-input values without a dummy producer",
-              "Local managed zero-input values feed two downstream Computes"
+              "Local managed zero-input values feed two downstream Computes",
+              "Local managed empty values retain schema for two consumers",
+              "Local managed nested values preserve typed rows for two consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2292,14 +2315,35 @@
             "path": "src/query_integration/local_managed_values_wbtest.mbt",
             "fixtures": [
               "Local managed execution admits checked zero-input values without a dummy producer",
-              "Local managed zero-input values feed two downstream Computes"
+              "Local managed zero-input values feed two downstream Computes",
+              "Local managed empty values retain schema for two consumers",
+              "Local managed nested values preserve typed rows for two consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "empty and nonempty rows",
+                "scalar and nested values",
+                "explicit schema",
+                "NULL values"
+              ],
+              "types": [
+                "values_constructible"
+              ],
+              "obligations": [
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "values",
@@ -2319,10 +2363,128 @@
           {
             "operation": "values",
             "layer": "conformance",
+            "path": "src/execution_relation/values_vectors.generated_wbtest.mbt",
+            "fixtures": [
+              "values four-operation execution: ordinary",
+              "values four-operation execution: empty",
+              "values four-operation execution: repeated",
+              "values four-operation execution: key-order-a",
+              "values four-operation execution: nullable",
+              "values four-operation execution: bound-parameter",
+              "values four-operation execution: nested-business",
+              "values four-operation execution: decimal",
+              "values four-operation execution: decimal-precision-38",
+              "values four-operation execution: array-object",
+              "values four-operation execution: temporal-vector"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "empty and nonempty rows",
+                "scalar and nested values",
+                "explicit schema",
+                "NULL values"
+              ],
+              "types": [
+                "values_constructible"
+              ],
+              "obligations": [
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "values",
+            "layer": "conformance",
+            "path": "src/value_admission/values_execution.generated_test.mbt",
+            "fixtures": [
+              "REL.values wire admission: missing-nullable",
+              "REL.values wire admission: null-not-nullable",
+              "REL.values wire admission: decimal-number",
+              "REL.values wire admission: decimal-spelling",
+              "REL.values wire admission: wrong-type",
+              "REL.values wire admission: unknown-row-field",
+              "REL.values wire admission: leftover-quotation"
+            ],
+            "suite": "moon:value_admission",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "values",
+            "layer": "conformance",
+            "path": "src/pipeline_check_context/values_publication_test.mbt",
+            "fixtures": [
+              "values metadata uses an independent complete artifact inventory and shared total caps",
+              "values resources close exact operation requirements as future execution checks",
+              "statically excessive values rows cannot be deferred as successful resource closure",
+              "recursive values execution checks expose selected fields and canonical scoped limits"
+            ],
+            "suite": "moon:pipeline_check_context",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "metadata and capacity limits"
+              ],
+              "obligations": [
+                "capacity",
+                "measurement"
+              ]
+            }
+          },
+          {
+            "operation": "values",
+            "layer": "conformance",
+            "path": "src/execution_relation/managed_output_values_wbtest.mbt",
+            "fixtures": [
+              "managed values cannot hide foreign cells behind a prior guard failure",
+              "managed values reject reentrant finish and cancellation leaves no receipt"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "obligations": [
+                "failure_atomicity",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "values",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_values_wbtest.mbt",
             "fixtures": [
               "Local managed execution admits checked zero-input values without a dummy producer",
-              "Local managed zero-input values feed two downstream Computes"
+              "Local managed zero-input values feed two downstream Computes",
+              "Local managed empty values retain schema for two consumers",
+              "Local managed nested values preserve typed rows for two consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2332,11 +2494,24 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "values",
+            "layer": "performance",
+            "path": "src/execution_relation/values_scale_wbtest.mbt",
+            "fixtures": [
+              "values execution work and retained slots scale with rows and bytes"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
-      "gaps": [
-        "Zero-input managed execution with NULL and scalar rows feeds two real downstream Computes; empty and nested variants, broad limits, and performance evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "except",

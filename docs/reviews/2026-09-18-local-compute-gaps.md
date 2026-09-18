@@ -49,7 +49,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | dedupe_rows | C | C | C | P | Compound/NULL/tie and indexed performance evidence |
 | assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
 | append | C | - | - | - | Common two-input lowering |
-| values | C | C | C | P | Genuine zero-input Host path and two managed consumers; empty/nested variants remain |
+| values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |
 | except | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
 | intersect | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
 | cross_join | C | C | P | P | Full types, failure/cancellation lifetime, and performance evidence |
@@ -74,9 +74,10 @@ The initial anticipated shared areas are:
 No shared change is authorized merely by appearing in this list. The required
 notification happens before editing it.
 
-## Completion evidence still absent at baseline
+## Completion evidence
 
-No operation yet has all of the newly agreed evidence:
+`values` is the first operation with all newly agreed evidence. The remaining
+28 operations still need one or more of:
 
 - every formal source variant connected to common lowering;
 - every allowed operation/type combination checked on JS, Wasm, and native;
