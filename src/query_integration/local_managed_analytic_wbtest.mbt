@@ -1,23 +1,96 @@
 ///|
 fn local_values_analytic_program(variant : String) -> String {
-  let (rows, functions, fields, reordered) = match variant {
+  let (schema, rows, functions, fields, reordered) = match variant {
     "baseline" =>
       (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
         "[{\"amount\":30,\"group\":\"a\",\"id\":3},{\"amount\":20,\"group\":null,\"id\":2},{\"amount\":10,\"group\":\"a\",\"id\":1},{\"amount\":null,\"group\":null,\"id\":4},{\"amount\":30,\"group\":\"a\",\"id\":5}]",
         "{\"n\":{\"fn\":\"count\",\"field\":\"amount\"},\"position\":{\"fn\":\"row_number\"},\"previous\":{\"fn\":\"lag\",\"expr\":\"amount\"}}",
-        "[\"amount\",\"group\",\"id\",\"n\",\"position\",\"previous\"]", "[\"previous\",\"position\",\"n\",\"id\",\"group\",\"amount\"]",
+        "[\"amount\",\"group\",\"id\",\"n\",\"position\",\"previous\"]",
+        "[\"previous\",\"position\",\"n\",\"id\",\"group\",\"amount\"]",
       )
     "filtered_expression" =>
       (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
         "[{\"amount\":30,\"group\":\"a\",\"id\":3},{\"amount\":20,\"group\":null,\"id\":2},{\"amount\":10,\"group\":\"a\",\"id\":1},{\"amount\":0,\"group\":null,\"id\":4},{\"amount\":30,\"group\":\"a\",\"id\":5}]",
         "{\"lowest\":{\"fn\":\"min\",\"expr\":\"amount + 1\",\"filter\":\"amount > 0\"}}",
-        "[\"amount\",\"group\",\"id\",\"lowest\"]", "[\"lowest\",\"id\",\"group\",\"amount\"]",
+        "[\"amount\",\"group\",\"id\",\"lowest\"]",
+        "[\"lowest\",\"id\",\"group\",\"amount\"]",
+      )
+    "navigation" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":20,\"group\":null,\"id\":2}," +
+        "{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":null,\"group\":null,\"id\":4}," +
+        "{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"dense\":{\"fn\":\"dense_rank\"}," +
+        "\"first\":{\"fn\":\"first_value\",\"expr\":\"amount\"}," +
+        "\"last\":{\"fn\":\"last_value\",\"expr\":\"amount\"}," +
+        "\"next\":{\"fn\":\"lead\",\"expr\":\"amount\"}," +
+        "\"position\":{\"fn\":\"row_number\"}," +
+        "\"previous\":{\"fn\":\"lag\",\"expr\":\"amount\"}," +
+        "\"ranked\":{\"fn\":\"rank\"}}",
+        "[\"amount\",\"dense\",\"first\",\"group\",\"id\"," +
+        "\"last\",\"next\",\"position\",\"previous\",\"ranked\"]",
+        "[\"ranked\",\"previous\",\"position\",\"next\",\"last\"," +
+        "\"id\",\"group\",\"first\",\"dense\",\"amount\"]",
+      )
+    "collections" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":20,\"group\":null,\"id\":2}," +
+        "{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":null,\"group\":null,\"id\":4}," +
+        "{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"items\":{\"fn\":\"array_agg\",\"field\":\"amount\"," +
+        "\"distinct\":true,\"max_items\":3}," +
+        "\"text\":{\"fn\":\"string_agg\",\"field\":\"group\"," +
+        "\"delimiter\":\"|\",\"max_bytes\":10}}",
+        "[\"amount\",\"group\",\"id\",\"items\",\"text\"]",
+        "[\"text\",\"items\",\"id\",\"group\",\"amount\"]",
+      )
+    "statistics" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":3,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":1,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":2,\"group\":\"a\",\"id\":2}]",
+        "{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"amount\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\"," +
+        "\"field\":\"amount\",\"fraction\":0.5}," +
+        "\"population\":{\"fn\":\"var_pop\",\"field\":\"amount\"}," +
+        "\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"amount\"},\"sample\":{\"fn\":\"var_samp\"," +
+        "\"field\":\"amount\"},\"sample_deviation\":{" +
+        "\"fn\":\"stddev_samp\",\"field\":\"amount\"}}",
+        "[\"amount\",\"continuous\",\"discrete\",\"group\",\"id\"," +
+        "\"population\",\"population_deviation\",\"sample\"," +
+        "\"sample_deviation\"]",
+        "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
+        "\"population\",\"id\",\"group\",\"discrete\"," +
+        "\"continuous\",\"amount\"]",
       )
     _ => abort("unknown Local analytic fixture")
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
-  "{\"id\":\"analytic_rows\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"group\":{\"type\":\"string\",\"nullable\":true},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+  "{\"id\":\"analytic_rows\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
   rows +
   "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":" +
   functions +
@@ -47,7 +120,7 @@ fn run_local_managed_analytic_case(
     local_values_analytic_variant=variant,
   )
   let registry = search_registry()
-  let limits = dispatch_test_limits()
+  let limits = { ..dispatch_test_limits(), candidate_work: 1000, }
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -67,7 +140,7 @@ fn run_local_managed_analytic_case(
         max_bytes: 10000,
         max_nodes: 1000,
         max_depth: 20,
-        max_columns: 6,
+        max_columns: 12,
       },
       row: {
         max_bytes: 10000,
@@ -179,6 +252,114 @@ test "Local managed analytic filters gate aggregate expression demand" {
       "{\"lowest\":11,\"id\":3,\"group\":\"a\",\"amount\":30}", "{\"lowest\":21,\"id\":2,\"group\":null,\"amount\":20}",
       "{\"lowest\":11,\"id\":1,\"group\":\"a\",\"amount\":10}", "{\"lowest\":21,\"id\":4,\"group\":null,\"amount\":0}",
       "{\"lowest\":11,\"id\":5,\"group\":\"a\",\"amount\":30}",
+    ],
+  )
+}
+
+///|
+test "Local managed analytic navigation feeds two downstream Computes" {
+  run_local_managed_analytic_case(
+    "navigation",
+    [
+      "{\"amount\":30,\"dense\":2,\"first\":10,\"group\":\"a\"," +
+      "\"id\":3,\"last\":30,\"next\":30,\"position\":2," +
+      "\"previous\":10,\"ranked\":2}",
+      "{\"amount\":20,\"dense\":1,\"first\":20,\"group\":null," +
+      "\"id\":2,\"last\":20,\"next\":null,\"position\":1," +
+      "\"previous\":null,\"ranked\":1}",
+      "{\"amount\":10,\"dense\":1,\"first\":10,\"group\":\"a\"," +
+      "\"id\":1,\"last\":10,\"next\":30,\"position\":1," +
+      "\"previous\":null,\"ranked\":1}",
+      "{\"amount\":null,\"dense\":2,\"first\":20,\"group\":null," +
+      "\"id\":4,\"last\":null,\"next\":null,\"position\":2," +
+      "\"previous\":20,\"ranked\":2}",
+      "{\"amount\":30,\"dense\":3,\"first\":10,\"group\":\"a\"," +
+      "\"id\":5,\"last\":30,\"next\":null,\"position\":3," +
+      "\"previous\":30,\"ranked\":3}",
+    ],
+    [
+      "{\"ranked\":2,\"previous\":10,\"position\":2,\"next\":30," +
+      "\"last\":30,\"id\":3,\"group\":\"a\",\"first\":10," +
+      "\"dense\":2,\"amount\":30}",
+      "{\"ranked\":1,\"previous\":null,\"position\":1," +
+      "\"next\":null,\"last\":20,\"id\":2,\"group\":null," +
+      "\"first\":20,\"dense\":1,\"amount\":20}",
+      "{\"ranked\":1,\"previous\":null,\"position\":1,\"next\":30," +
+      "\"last\":10,\"id\":1,\"group\":\"a\",\"first\":10," +
+      "\"dense\":1,\"amount\":10}",
+      "{\"ranked\":2,\"previous\":20,\"position\":2,\"next\":null," +
+      "\"last\":null,\"id\":4,\"group\":null,\"first\":20," +
+      "\"dense\":2,\"amount\":null}",
+      "{\"ranked\":3,\"previous\":30,\"position\":3,\"next\":null," +
+      "\"last\":30,\"id\":5,\"group\":\"a\",\"first\":10," +
+      "\"dense\":3,\"amount\":30}",
+    ],
+  )
+}
+
+///|
+test "Local managed analytic collections feed two downstream Computes" {
+  run_local_managed_analytic_case(
+    "collections",
+    [
+      "{\"amount\":30,\"group\":\"a\",\"id\":3," +
+      "\"items\":[10,30],\"text\":\"a|a\"}",
+      "{\"amount\":20,\"group\":null,\"id\":2," +
+      "\"items\":[20],\"text\":null}",
+      "{\"amount\":10,\"group\":\"a\",\"id\":1," +
+      "\"items\":[10],\"text\":\"a\"}",
+      "{\"amount\":null,\"group\":null,\"id\":4," +
+      "\"items\":[20],\"text\":null}",
+      "{\"amount\":30,\"group\":\"a\",\"id\":5," +
+      "\"items\":[10,30],\"text\":\"a|a|a\"}",
+    ],
+    [
+      "{\"text\":\"a|a\",\"items\":[10,30],\"id\":3," +
+      "\"group\":\"a\",\"amount\":30}",
+      "{\"text\":null,\"items\":[20],\"id\":2,\"group\":null," +
+      "\"amount\":20}",
+      "{\"text\":\"a\",\"items\":[10],\"id\":1," +
+      "\"group\":\"a\",\"amount\":10}",
+      "{\"text\":null,\"items\":[20],\"id\":4,\"group\":null," +
+      "\"amount\":null}",
+      "{\"text\":\"a|a|a\",\"items\":[10,30],\"id\":5," +
+      "\"group\":\"a\",\"amount\":30}",
+    ],
+  )
+}
+
+///|
+test "Local managed analytic statistics feed two downstream Computes" {
+  run_local_managed_analytic_case(
+    "statistics",
+    [
+      "{\"amount\":3,\"continuous\":2,\"discrete\":2," +
+      "\"group\":\"a\",\"id\":3,\"population\":" +
+      "0.6666666666666666,\"population_deviation\":" +
+      "0.816496580927726,\"sample\":1,\"sample_deviation\":1}",
+      "{\"amount\":1,\"continuous\":1,\"discrete\":1," +
+      "\"group\":\"a\",\"id\":1,\"population\":0," +
+      "\"population_deviation\":0,\"sample\":null," +
+      "\"sample_deviation\":null}",
+      "{\"amount\":2,\"continuous\":1.5,\"discrete\":1," +
+      "\"group\":\"a\",\"id\":2,\"population\":0.25," +
+      "\"population_deviation\":0.5,\"sample\":0.5," +
+      "\"sample_deviation\":0.7071067811865476}",
+    ],
+    [
+      "{\"sample_deviation\":1,\"sample\":1," +
+      "\"population_deviation\":0.816496580927726," +
+      "\"population\":0.6666666666666666,\"id\":3," +
+      "\"group\":\"a\",\"discrete\":2,\"continuous\":2," +
+      "\"amount\":3}",
+      "{\"sample_deviation\":null,\"sample\":null," +
+      "\"population_deviation\":0,\"population\":0,\"id\":1," +
+      "\"group\":\"a\",\"discrete\":1,\"continuous\":1," +
+      "\"amount\":1}",
+      "{\"sample_deviation\":0.7071067811865476,\"sample\":0.5," +
+      "\"population_deviation\":0.5,\"population\":0.25,\"id\":2," +
+      "\"group\":\"a\",\"discrete\":1,\"continuous\":1.5," +
+      "\"amount\":2}",
     ],
   )
 }

@@ -5719,7 +5719,10 @@
             "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
             "fixtures": [
               "Local managed analytic reaches two downstream Computes",
-              "Local managed analytic filters gate aggregate expression demand"
+              "Local managed analytic filters gate aggregate expression demand",
+              "Local managed analytic navigation feeds two downstream Computes",
+              "Local managed analytic collections feed two downstream Computes",
+              "Local managed analytic statistics feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5736,7 +5739,10 @@
             "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
             "fixtures": [
               "Local managed analytic reaches two downstream Computes",
-              "Local managed analytic filters gate aggregate expression demand"
+              "Local managed analytic filters gate aggregate expression demand",
+              "Local managed analytic navigation feeds two downstream Computes",
+              "Local managed analytic collections feed two downstream Computes",
+              "Local managed analytic statistics feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5767,14 +5773,58 @@
             "fixtures": [
               "analytic envelope enforces exact typed wire scopes",
               "analytic ranking navigation and frame values retain source order",
+              "analytic does not clamp an out of partition frame start",
+              "analytic navigation evaluates only referenced source rows",
               "analytic expression failure follows partition source and call order",
+              "analytic execution has an exact control work boundary",
+              "analytic aggregates requiring numeric observation stay unsupported",
               "analytic aggregate capability accepts lowered filter and expression demand",
               "analytic aggregate filters gate frame expression demand",
               "analytic direct aggregates use each row frame and retain source order",
+              "analytic direct aggregates preserve empty frame laws",
               "analytic count indices preserve partitions and clipped frames",
+              "analytic authored collection ceilings fail atomically",
+              "analytic aggregate execution has an exact control boundary",
               "analytic collection limits bind exact prepared calls"
             ],
             "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "analytic",
+            "layer": "conformance",
+            "path": "src/execution_relation/analytic_domains_wbtest.mbt",
+            "fixtures": [
+              "analytic partitions every key domain including owned references",
+              "analytic orders every authored scalar domain",
+              "analytic navigation and frame values preserve every value domain",
+              "analytic frame aggregates order every scalar domain",
+              "analytic first and last aggregates preserve every value domain",
+              "analytic array aggregate covers every constructible value domain"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "analytic",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
+            "fixtures": [
+              "Local managed analytic reaches two downstream Computes",
+              "Local managed analytic filters gate aggregate expression demand",
+              "Local managed analytic navigation feeds two downstream Computes",
+              "Local managed analytic collections feed two downstream Computes",
+              "Local managed analytic statistics feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
@@ -5800,7 +5850,7 @@
         ]
       },
       "gaps": [
-        "Ranking, navigation, direct and collection frame aggregates, including filtered expression arguments, now lower and run through managed Local execution with exact expression contexts, exact envelopes, two downstream consumers, standard-Host evidence, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
+        "Every formal partition-key, authored-order, navigation-value, frame-value, ordered aggregate, selected-value, and constructible collection domain is covered. Ranking, navigation, direct, collection, filtered-expression, and statistical frames reach managed Local execution with exact envelopes, failures, owned-reference lifetime, two downstream consumers, standard-Host evidence, and indexed scaling. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
       ]
     }
   ],

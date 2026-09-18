@@ -60,7 +60,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
-| analytic | C | C | P | P | Ranking, navigation, direct, collection, and filtered expression frame aggregates, exact runtime envelopes, indexed scaling, two managed consumers, and the standard Host are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
+| analytic | C | C | P | P | The full exact formal type and call matrix, failures, owned-reference lifetime, exact envelopes, indexed scaling, managed two-consumer execution, and the standard Host are covered; binary64 sum/avg still require shared attempt-bound numeric observations |
 
 ## Shared-boundary notifications
 
