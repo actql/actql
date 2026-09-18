@@ -68,6 +68,9 @@ pub(all) enum RunStateIssue {
   UnknownActionResult(String)
   ResultNotAvailable(String)
   ResultNotUnknown(String)
+  InvalidRunId
+  InvalidObservationTime(String)
+  Encoding
 } derive(Eq, Debug)
 
 ///|
@@ -236,4 +239,219 @@ pub fn validate_run_state(
       Err(ActionStatusMismatch)
     }
   }
+}
+
+///|
+fn availability_state_text(state : ResultAvailabilityState) -> String {
+  match state {
+    Available => "available"
+    Unavailable => "unavailable"
+    Unknown => "unknown"
+  }
+}
+
+///|
+fn availability_reason_text(reason : ResultAvailabilityReason) -> String {
+  match reason {
+    ConfirmedPresent => "confirmed_present"
+    RetentionExpired => "retention_expired"
+    Deleted => "deleted"
+    PolicyUnavailable => "policy_unavailable"
+    IntegrityFailed => "integrity_failed"
+    NotPublished => "not_published"
+    StoreQueryFailed => "store_query_failed"
+    ClockUncertain => "clock_uncertain"
+    VerificationPending => "verification_pending"
+  }
+}
+
+///|
+fn action_for_succeeded_run(
+  observations : Array[ResultAvailability],
+) -> RunNextAction {
+  let unknown : Array[String] = []
+  let available : Array[String] = []
+  for observation in observations {
+    match observation.state {
+      Unknown => unknown.push(observation.name)
+      Available => available.push(observation.name)
+      Unavailable => ()
+    }
+  }
+  if !unknown.is_empty() {
+    RefreshAvailability(unknown)
+  } else if !available.is_empty() {
+    ReadResult(available)
+  } else {
+    NoAction
+  }
+}
+
+///|
+/// Issue the canonical succeeded-Run state from exact Store observations.
+/// The environment adapter observes storage and policy facts; this portable
+/// owner fixes the aggregate and the only state-consistent next action.
+pub fn issue_succeeded_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  observations : Array[ResultAvailability],
+  observed_at : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  if run_id.is_empty() {
+    return Err(InvalidRunId)
+  }
+  if observations.length() != observed_at.length() ||
+    !valid_timestamp(updated_at) {
+    return Err(InvalidObservationTime("run"))
+  }
+  for index, timestamp in observed_at {
+    if !valid_timestamp(timestamp) {
+      return Err(InvalidObservationTime(observations[index].name))
+    }
+  }
+  let ordered = observations.copy()
+  ordered.sort_by((left, right) => {
+    @canonical.compare_utf16(left.name, right.name)
+  })
+  let times : Array[String] = []
+  for item in ordered {
+    let mut found = false
+    for index, original in observations {
+      if original.name == item.name {
+        times.push(observed_at[index])
+        found = true
+      }
+    }
+    if !found {
+      return Err(MissingAvailability(item.name))
+    }
+  }
+  let declared = declared_results.copy()
+  declared.sort_by(@canonical.compare_utf16)
+  let action = action_for_succeeded_run(ordered)
+  let all_available = ordered.all(item => item.state == Available)
+  match
+    validate_run_state(
+      Succeeded,
+      declared,
+      ordered,
+      all_available,
+      action,
+      false,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "next_action")
+    @encode.begin_object(writer)
+    @encode.key(writer, "kind")
+    match action {
+      ReadResult(results) => {
+        @encode.string_value(writer, "read_result")
+        @encode.key(writer, "results")
+        @encode.begin_array(writer)
+        for result in results {
+          @encode.string_value(writer, result)
+        }
+        @encode.end_array(writer)
+      }
+      RefreshAvailability(results) => {
+        @encode.string_value(writer, "refresh_availability")
+        @encode.key(writer, "results")
+        @encode.begin_array(writer)
+        for result in results {
+          @encode.string_value(writer, result)
+        }
+        @encode.end_array(writer)
+      }
+      NoAction => @encode.string_value(writer, "none")
+      _ => return Err(ActionStatusMismatch)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "result_availability")
+    @encode.begin_object(writer)
+    for index, observation in ordered {
+      @encode.key(writer, observation.name)
+      @encode.begin_object(writer)
+      @encode.key(writer, "observed_at")
+      @encode.string_value(writer, times[index])
+      @encode.key(writer, "reason")
+      @encode.string_value(writer, availability_reason_text(observation.reason))
+      @encode.key(writer, "state")
+      @encode.string_value(writer, availability_state_text(observation.state))
+      @encode.end_object(writer)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "result_available")
+    @encode.bool_value(writer, all_available)
+    @encode.key(writer, "run_id")
+    @encode.string_value(writer, run_id)
+    @encode.key(writer, "status")
+    @encode.string_value(writer, "succeeded")
+    @encode.key(writer, "updated_at")
+    @encode.string_value(writer, updated_at)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-run-state/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Portable string boundary used by environment adapters. State and reason
+/// tokens are decoded here so adapters cannot own a second relation table.
+pub fn issue_succeeded_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  observed_at : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  if names.length() != states.length() ||
+    names.length() != reasons.length() ||
+    names.length() != observed_at.length() {
+    return Err(MissingAvailability("observation"))
+  }
+  let observations : Array[ResultAvailability] = []
+  for index, name in names {
+    let state = match states[index] {
+      "available" => Available
+      "unavailable" => Unavailable
+      "unknown" => Unknown
+      _ => return Err(AvailabilityReasonMismatch(name))
+    }
+    let reason = match reasons[index] {
+      "confirmed_present" => ConfirmedPresent
+      "retention_expired" => RetentionExpired
+      "deleted" => Deleted
+      "policy_unavailable" => PolicyUnavailable
+      "integrity_failed" => IntegrityFailed
+      "not_published" => NotPublished
+      "store_query_failed" => StoreQueryFailed
+      "clock_uncertain" => ClockUncertain
+      "verification_pending" => VerificationPending
+      _ => return Err(AvailabilityReasonMismatch(name))
+    }
+    observations.push({ name, state, reason, })
+  }
+  issue_succeeded_run_state(
+    run_id, updated_at, declared_results, observations, observed_at, max_wire_bytes,
+    max_nodes, max_depth,
+  )
 }

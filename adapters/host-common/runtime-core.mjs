@@ -597,6 +597,35 @@ function publicationControl(moon) {
         token(manifest), resultName,
       ));
     },
+    manifestResultNames(manifest, limits) {
+      issuanceLimits(limits, 'Manifest Result inventory');
+      const wire = checked(moon.strategyManifestResultNames(
+        token(manifest),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      ));
+      let names;
+      try { names = JSON.parse(wire); }
+      catch (error) {
+        throw new TypeError('Invalid Manifest Result inventory', {cause: error});
+      }
+      if (!Array.isArray(names)) {
+        throw new TypeError('Invalid Manifest Result inventory');
+      }
+      return Object.freeze([...names]);
+    },
+    resultReadDefinitionCid(manifest, resultName) {
+      if (typeof resultName !== 'string') {
+        throw new TypeError('Invalid Result definition request');
+      }
+      return checked(moon.strategyResultReadDefinitionCid(
+        token(manifest), resultName,
+      ));
+    },
+    runDefinitionRunId(runDefinition) {
+      return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
+    },
     resultReadAvailability(manifest, resultName, retention, observedAt) {
       if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
         throw new TypeError('Invalid Result availability request');
@@ -616,6 +645,45 @@ function publicationControl(moon) {
         return false;
       }
       return moon.strategyTrustedClockNotBefore(previous, observedAt);
+    },
+    issueSucceededRunState(request, limits) {
+      issuanceLimits(limits, 'Succeeded Run state');
+      if (request === null || typeof request !== 'object' ||
+          typeof request.runId !== 'string' ||
+          typeof request.updatedAt !== 'string' ||
+          !Array.isArray(request.declaredResults) ||
+          !Array.isArray(request.observations)) {
+        throw new TypeError('Invalid succeeded Run state');
+      }
+      const names = [];
+      const states = [];
+      const reasons = [];
+      const observedAt = [];
+      for (const observation of request.observations) {
+        if (observation === null || typeof observation !== 'object' ||
+            typeof observation.name !== 'string' ||
+            typeof observation.state !== 'string' ||
+            typeof observation.reason !== 'string' ||
+            typeof observation.observedAt !== 'string') {
+          throw new TypeError('Invalid Result availability observation');
+        }
+        names.push(observation.name);
+        states.push(observation.state);
+        reasons.push(observation.reason);
+        observedAt.push(observation.observedAt);
+      }
+      return checked(moon.strategyIssueSucceededRunState(
+        request.runId,
+        request.updatedAt,
+        request.declaredResults,
+        names,
+        states,
+        reasons,
+        observedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      ));
     },
     resultReadGrantAllowsBytes(grant, byteCount) {
       if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;

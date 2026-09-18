@@ -218,3 +218,72 @@ test "checkpoint and reconciliation constraints remain disjoint" {
     is Err(ActionStatusMismatch),
   )
 }
+
+///|
+test "succeeded Run state wire derives aggregate and action in MoonBit" {
+  let observations = [
+    observation("uncertain", Unknown, StoreQueryFailed),
+    observation("ready", Available, ConfirmedPresent),
+    observation("gone", Unavailable, RetentionExpired),
+  ]
+  let wire = issue_succeeded_run_state(
+    "run-a",
+    "2026-09-18T04:00:00.000Z",
+    ["ready", "gone", "uncertain"],
+    observations,
+    [
+      "2026-09-18T03:00:02.000Z", "2026-09-18T03:00:00.000Z", "2026-09-18T03:00:01.000Z",
+    ],
+    16384,
+    256,
+    8,
+  )
+  assert_eq(
+    wire,
+    Ok(
+      "{\"next_action\":{\"kind\":\"refresh_availability\"," +
+      "\"results\":[\"uncertain\"]},\"result_availability\":{" +
+      "\"gone\":{\"observed_at\":\"2026-09-18T03:00:01.000Z\"," +
+      "\"reason\":\"retention_expired\",\"state\":\"unavailable\"}," +
+      "\"ready\":{\"observed_at\":\"2026-09-18T03:00:00.000Z\"," +
+      "\"reason\":\"confirmed_present\",\"state\":\"available\"}," +
+      "\"uncertain\":{\"observed_at\":\"2026-09-18T03:00:02.000Z\"," +
+      "\"reason\":\"store_query_failed\",\"state\":\"unknown\"}}," +
+      "\"result_available\":false,\"run_id\":\"run-a\"," +
+      "\"status\":\"succeeded\"," +
+      "\"updated_at\":\"2026-09-18T04:00:00.000Z\"," +
+      "\"version\":\"actql-run-state/0.1\"}",
+    ),
+  )
+}
+
+///|
+test "succeeded Run state offers only confirmed available Results" {
+  let wire = issue_succeeded_run_state(
+    "run-a",
+    "2026-09-18T04:00:00.000Z",
+    ["second", "first"],
+    [
+      observation("second", Unavailable, Deleted),
+      observation("first", Available, ConfirmedPresent),
+    ],
+    ["2026-09-18T03:00:01.000Z", "2026-09-18T03:00:00.000Z"],
+    16384,
+    256,
+    8,
+  )
+  assert_true(wire is Ok(value) && value.contains("\"results\":[\"first\"]"))
+  assert_true(
+    issue_succeeded_run_state(
+      "run-a",
+      "invalid",
+      ["first"],
+      [observation("first", Available, ConfirmedPresent)],
+      ["2026-09-18T03:00:00.000Z"],
+      16384,
+      256,
+      8,
+    )
+    is Err(InvalidObservationTime("run")),
+  )
+}

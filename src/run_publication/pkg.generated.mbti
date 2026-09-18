@@ -70,6 +70,14 @@ pub fn issue_run_definition(RunPublicationAdmission, String, String, String, Str
 
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
+pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvailability], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
+
+pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
+
+pub fn manifest_result_names(PublicationContract) -> Result[Array[String], DeliveryIssuanceIssue]
+
+pub fn manifest_result_names_json(PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
@@ -108,6 +116,8 @@ pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationC
 
 pub fn result_read_availability(PublicationContract, String, PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn result_read_definition_cid(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 
 pub fn result_read_grant_valid_at(PublicationContract, String) -> Bool
@@ -117,6 +127,8 @@ pub fn result_read_retention_policy_cid(PublicationContract, String) -> Result[S
 pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 
@@ -480,6 +492,9 @@ pub(all) enum RunStateIssue {
   UnknownActionResult(String)
   ResultNotAvailable(String)
   ResultNotUnknown(String)
+  InvalidRunId
+  InvalidObservationTime(String)
+  Encoding
 } derive(Eq, @debug.Debug)
 
 // Type aliases

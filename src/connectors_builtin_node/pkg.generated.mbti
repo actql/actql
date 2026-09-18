@@ -233,6 +233,10 @@ pub fn strategy_issue_run_definition(@run_publication.RunPublicationAdmission, S
 
 pub fn strategy_issue_run_invocation(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_issue_succeeded_run_state(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> String raise NodeHostFailure
+
+pub fn strategy_manifest_result_names(@run_publication.PublicationContract, Int, Int, Int) -> String raise NodeHostFailure
+
 pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
@@ -255,6 +259,8 @@ pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publicat
 
 pub fn strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
+pub fn strategy_result_read_definition_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
 pub fn strategy_result_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
 
 pub fn strategy_result_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
@@ -264,6 +270,8 @@ pub fn strategy_result_read_retention_policy_cid(@run_publication.PublicationCon
 pub fn strategy_result_retention_clock_contract_cid(@run_publication.PublicationContract) -> String raise NodeHostFailure
 
 pub fn strategy_result_serialization_contract_cid(String, Int, Int, Int) -> String raise NodeHostFailure
+
+pub fn strategy_run_definition_run_id(@run_publication.PublicationContract) -> String raise NodeHostFailure
 
 pub fn strategy_run_evidence_admit(String, String, Int, Int, Int) -> @run_publication.RunEvidenceValue raise NodeHostFailure
 

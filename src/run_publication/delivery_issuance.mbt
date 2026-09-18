@@ -104,6 +104,78 @@ fn manifest_result_artifact_cid(
 }
 
 ///|
+pub fn manifest_result_names(
+  manifest : PublicationContract,
+) -> Result[Array[String], DeliveryIssuanceIssue] {
+  if manifest.name != "result_manifest" {
+    return Err(DeliveryIssuanceWrongContract("result_manifest"))
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results) &&
+    object_fields(results) is Ok(fields) else {
+    return Err(DeliveryIssuanceReferenceMismatch("results"))
+  }
+  let names = fields.map(field => field.0)
+  names.sort_by(@canonical.compare_utf16)
+  Ok(names)
+}
+
+///|
+pub fn manifest_result_names_json(
+  manifest : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, DeliveryIssuanceIssue] {
+  let names = match manifest_result_names(manifest) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  try {
+    @encode.begin_array(writer)
+    for name in names {
+      @encode.string_value(writer, name)
+    }
+    @encode.end_array(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(DeliveryIssuanceEncoding)
+  }
+}
+
+///|
+pub fn result_read_definition_cid(
+  manifest : PublicationContract,
+  result_name : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if manifest.name != "result_manifest" {
+    return Err(DeliveryIssuanceWrongContract("result_manifest"))
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results) &&
+    @json.object_field(results, result_name) is Some(artifact) &&
+    optional_string(@json.object_field(artifact, "result_definition_cid"))
+    is Some(definition_cid) else {
+    return Err(DeliveryIssuanceUnknownResult(result_name))
+  }
+  Ok(definition_cid)
+}
+
+///|
+pub fn run_definition_run_id(
+  run_definition : PublicationContract,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if run_definition.name != "run_definition" {
+    return Err(DeliveryIssuanceWrongContract("run_definition"))
+  }
+  match contract_string(run_definition, "run_id") {
+    Some(value) => Ok(value)
+    None => Err(DeliveryIssuanceReferenceMismatch("run_id"))
+  }
+}
+
+///|
 pub fn result_read_retention_policy_cid(
   manifest : PublicationContract,
   result_name : String,

@@ -16,6 +16,11 @@ import {
   installResultAccessAuthority,
   installNodeResultAccessService,
 } from '../host-node/result-access.mjs';
+import {
+  inspectAuthorizedRunState,
+  installRunStateAuthority,
+  installRunStateService,
+} from './run-state-access.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -1092,6 +1097,86 @@ test('portable control validates Receipt and Captured Run references',
       maxFrameBytes: 4096,
     },
   });
+  let stateAccessAllowed = true;
+  let resultPolicyAvailable = true;
+  const stateAuthority = installRunStateAuthority({
+    authorizeRunState: () => stateAccessAllowed,
+    resultPolicyAvailable: () => resultPolicyAvailable,
+  });
+  const stateService = installRunStateService({
+    store: deliveryStore,
+    control,
+    authority: stateAuthority,
+    now: () => accessTime,
+    limits,
+  });
+  const stateRequest = {
+    indexKey: {
+      tenantId: 'tenant-a',
+      authorityScopeCid: cid('d'),
+      runDefinitionCid: run.identity,
+    },
+    principalId: 'principal-a',
+    purpose: 'inspect',
+  };
+  const availableState = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(availableState.status, 'succeeded');
+  assert.equal(availableState.result_available, true);
+  assert.deepEqual(availableState.next_action, {
+    kind: 'read_result', results: ['answer'],
+  });
+  assert.deepEqual(availableState.result_availability.answer, {
+    observed_at: accessTime,
+    reason: 'confirmed_present',
+    state: 'available',
+  });
+  const uncertainStateService = installRunStateService({
+    store: Object.freeze({
+      confirmCommittedIndex: key =>
+        deliveryStore.confirmCommittedIndex(key),
+      readPublicationContract: (identity, name) =>
+        deliveryStore.readPublicationContract(identity, name),
+      observeTrustedClock: (identity, at) =>
+        deliveryStore.observeTrustedClock(identity, at),
+      withCommittedResult: async () => {
+        throw new Error('temporary Store query failure');
+      },
+    }),
+    control,
+    authority: stateAuthority,
+    now: () => accessTime,
+    limits,
+  });
+  const uncertainState = await inspectAuthorizedRunState(
+    uncertainStateService, stateRequest,
+  );
+  assert.equal(uncertainState.result_available, false);
+  assert.deepEqual(uncertainState.next_action, {
+    kind: 'refresh_availability', results: ['answer'],
+  });
+  assert.equal(
+    uncertainState.result_availability.answer.reason,
+    'store_query_failed',
+  );
+  resultPolicyAvailable = false;
+  const policyState = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(policyState.result_available, false);
+  assert.deepEqual(policyState.next_action, {kind: 'none'});
+  assert.equal(
+    policyState.result_availability.answer.reason,
+    'policy_unavailable',
+  );
+  resultPolicyAvailable = true;
+  stateAccessAllowed = false;
+  await assert.rejects(
+    inspectAuthorizedRunState(stateService, stateRequest),
+    {code: 'RunStateAccessDenied'},
+  );
+  stateAccessAllowed = true;
   const authorizedChunks = [];
   const authorizedDelivery = await deliverAuthorizedResult(
     accessService,
@@ -1155,6 +1240,15 @@ test('portable control validates Receipt and Captured Run references',
     },
     {write: () => assert.fail('expired Result exposed bytes')},
   ), {code: 'ResultUnavailable'});
+  const expiredState = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(expiredState.result_available, false);
+  assert.deepEqual(expiredState.next_action, {kind: 'none'});
+  assert.equal(
+    expiredState.result_availability.answer.reason,
+    'retention_expired',
+  );
   accessTime = '2026-09-18T01:00:00.000Z';
   const deliveryBase = {
     store: deliveryStore,

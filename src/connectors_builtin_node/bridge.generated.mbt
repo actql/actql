@@ -1121,6 +1121,46 @@ pub fn strategy_result_read_retention_policy_cid(
 }
 
 ///|
+#export_name("strategyManifestResultNames")
+pub fn strategy_manifest_result_names(
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.manifest_result_names_json(
+      manifest, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadDefinitionCid")
+pub fn strategy_result_read_definition_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise NodeHostFailure {
+  match @publication.result_read_definition_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunDefinitionRunId")
+pub fn strategy_run_definition_run_id(
+  run_definition : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.run_definition_run_id(run_definition) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyResultReadAvailability")
 pub fn strategy_result_read_availability(
   manifest : @publication.PublicationContract,
@@ -1155,6 +1195,30 @@ pub fn strategy_trusted_clock_not_before(
   observed_at : String,
 ) -> Bool {
   @publication.trusted_clock_not_before(previous, observed_at)
+}
+
+///|
+#export_name("strategyIssueSucceededRunState")
+pub fn strategy_issue_succeeded_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  observed_at : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.issue_succeeded_run_state_wire(
+      run_id, updated_at, declared_results, names, states, reasons, observed_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
 }
 
 ///|
