@@ -1383,7 +1383,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1469,10 +1469,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "pivot",
+            "layer": "performance",
+            "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+            "fixtures": [
+              "reshape kernels stay within their declared scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, final Decimal overflow checks, and exact/one-short work. Count and Decimal sum results reach two managed consumers on three targets. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; full type/parameter conformance, native layout aggregation, all-variant managed coverage, and performance evidence remain."
+        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, final Decimal overflow checks, and exact/one-short work. Count, min with fill, empty axes, and Decimal sum reach two managed consumers on three targets. Indexed grouping and stable ordering have a fixed N-log-N work and linear workspace floor. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; full type/parameter conformance, native layout aggregation, and remaining managed variants remain."
       ]
     },
     {
@@ -1498,7 +1513,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1579,10 +1594,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "unpivot",
+            "layer": "performance",
+            "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+            "fixtures": [
+              "reshape kernels stay within their declared scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Repeated authored columns, ordered keep fields, NULL values, empty input, bounded expansion, exact/one-short work, and two managed consumers execute on three targets. Heterogeneous rejection evidence, broader value-type conformance, a native layout expansion writer, and performance evidence remain."
+        "Repeated authored columns, ordered keep fields, NULL values, and empty input reach two managed consumers on three targets. Bounded expansion, exact/one-short work, and a fixed linear work and workspace floor are covered. Heterogeneous rejection evidence, broader value-type conformance, and a native layout expansion writer remain."
       ]
     },
     {
@@ -1761,7 +1791,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1844,10 +1874,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "unnest",
+            "layer": "performance",
+            "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+            "fixtures": [
+              "reshape kernels stay within their declared scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Broader nested-value conformance, a native layout expansion writer, and performance evidence remain."
+        "Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Both endpoint variants reach two managed consumers on three targets, and fixed linear work and workspace floors track parent rows plus emitted values without bound-sized preallocation. Broader nested-value conformance and a native layout expansion writer remain."
       ]
     },
     {
