@@ -30,7 +30,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | rename | C | C | C | P | Standard-Host evidence, collision matrix, and shared owned-reference runtime boundary; swap/empty variants, direct value domains, NULL, branches, and linear work are covered |
 | drop | C | C | C | P | Standard-Host evidence, all-column rejection connection, and shared owned-reference runtime boundary; repeated/empty variants, direct value domains, NULL, branches, and linear work are covered |
 | derive | C | C | C | P | Standard-Host evidence, full result-type and overwrite matrix, and shared owned-reference runtime boundary; empty/ordered/parameter/failure variants and linear work are covered |
-| sort | C | C | C | P | Managed stability and performance floor |
+| sort | C | C | C | P | Standard-Host evidence, parameter-derived ordering requirements, exact budget boundaries at scale, and the shared owned-reference comparison boundary; stable direction, NULL placement, compound terms, scalar domains, two consumers, and indexed scaling floors are covered |
 | take | C | C | C | P | Managed validation and boundary cases |
 | top_k | C | - | - | - | Common lowering and execution |
 | top_k_by | C | - | - | - | Partitioned lowering and execution |

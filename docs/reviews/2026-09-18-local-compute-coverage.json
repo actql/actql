@@ -700,7 +700,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -784,10 +784,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "sort",
+            "layer": "performance",
+            "path": "src/execution_relation/sort_scale_wbtest.mbt",
+            "fixtures": [
+              "stable compound sort stays within indexed scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Ascending stable sort reaches two managed consumers on three targets; descending, NULL placement, compound and parameter terms, and O(N log N)-class performance evidence remain."
+        "Ascending and descending stable sort, explicit NULL placement, compound terms, scalar domains, two managed consumers, and indexed scaling floors are covered on three targets. Standard Host evidence, parameter-derived ordering requirements, exact budget boundaries at scale, and the shared owned-reference comparison boundary remain."
       ]
     },
     {
