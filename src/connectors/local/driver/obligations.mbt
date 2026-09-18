@@ -1,6 +1,5 @@
 ///|
 /// Eligibility for the existing Local engine, not a language or DAG limit.
-/// Its selected join ceiling currently supports one occurrence per invocation.
 pub fn local_dispatch_rejection(
   installed : LocalDispatchModule,
   task : Int,
@@ -8,9 +7,6 @@ pub fn local_dispatch_rejection(
   let graph = @strategy.captured_dag_graph(installed.run)
   guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
     return Some("invalid_task")
-  }
-  if @strategy.captured_task_join_output_count(installed.run, task).unwrap() > 1 {
-    return Some("multiple_join_ceilings_unsupported")
   }
   for index in 0..<count {
     let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
@@ -27,4 +23,23 @@ pub fn local_dispatch_rejection(
     }
   }
   None
+}
+
+///|
+fn local_task_join_output_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[(Int, Int64)]? {
+  guard @strategy.captured_task_join_output_count(run, task) is Some(count) else {
+    return None
+  }
+  let ceilings = []
+  for index in 0..<count {
+    guard @strategy.captured_task_join_output_at(run, task, index)
+      is Some(ceiling) else {
+      return None
+    }
+    ceilings.push(ceiling)
+  }
+  Some(ceilings)
 }

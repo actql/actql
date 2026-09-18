@@ -160,6 +160,7 @@ pub fn prepare_local_module_compute(
   slot : Int,
   request : @connector.FixedComputeRequest,
   join_output_ceiling : (Int, Int64)?,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[@connector.SynchronousCompute, LocalModuleIssue] {
   let (candidate, choice) = match
     local_module_candidate(installed, slot, request) {
@@ -173,6 +174,7 @@ pub fn prepare_local_module_compute(
       installed.execution,
       installed.measurement,
       join_output_ceiling~,
+      join_output_ceilings~,
     ) {
     Ok(compute) => Ok(compute)
     Err(InvalidLimits) => Err(Capacity)
@@ -236,6 +238,7 @@ pub fn[E, P] prepare_local_module_materializing_compute(
   issue : (LocalMaterializingIssue) -> E,
   join_output_ceiling : (Int, Int64)?,
   output_limits? : LocalExportLimits? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   @connector.PreparedExecution[LocalMaterializingAttempt, E, P],
   LocalModuleIssue,
@@ -254,6 +257,7 @@ pub fn[E, P] prepare_local_module_materializing_compute(
     issue,
     join_output_ceiling~,
     output_limits~,
+    join_output_ceilings~,
   ).map_err(error => Materializing(error))
 }
 

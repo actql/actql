@@ -192,6 +192,10 @@ pub fn prepare_local_dispatch(
   if local_dispatch_rejection(installed, task) is Some(_) {
     return Err(Configuration(ComputeUnsupported))
   }
+  guard local_task_join_output_ceilings(installed.run, task)
+    is Some(join_output_ceilings) else {
+    return Err(Configuration(InvalidLimits))
+  }
   if installed.import_policy is Some((limits, _)) &&
     (
       installed.output_policy is Some(_) ||
@@ -207,8 +211,9 @@ pub fn prepare_local_dispatch(
         request,
         limits,
         _ => @strategy.RunIssue::Compute(InvalidLimits),
-        @strategy.captured_task_join_output_at(installed.run, task, 0),
+        None,
         output_limits~,
+        join_output_ceilings~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Preparation(issue))
@@ -226,7 +231,8 @@ pub fn prepare_local_dispatch(
       installed.implementation,
       task - 1,
       request,
-      @strategy.captured_task_join_output_at(installed.run, task, 0),
+      None,
+      join_output_ceilings~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preparation(issue))

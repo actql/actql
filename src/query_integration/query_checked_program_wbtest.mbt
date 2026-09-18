@@ -32,6 +32,7 @@ fn query_checked_program_fixture(
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
+  local_values_join_imported_full? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
@@ -176,14 +177,25 @@ fn query_checked_program_fixture(
   } else {
     text
   }
-  let text = if local_values_join_chain && local_values_join_kind == "full" {
+  let text = if local_values_join_imported_full {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain &&
+    local_values_join_kind == "full" &&
+    !local_values_join_imported_full {
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"joined","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]},"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]},"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"right_rows"},{"from":"left_rows","join":{"with":"right_rows","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"joined_raw"},{"from":"joined_raw","distinct":true,"as":"unique"},{"from":"unique","sort":[{"id":"asc"},{"l":"asc"},{"r":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     )
   } else {
     text
   }
-  let text = if local_values_join_chain && local_values_join_kind == "full" {
+  let text = if local_values_join_chain &&
+    local_values_join_kind == "full" &&
+    !local_values_join_imported_full {
     text.replace(
       old="{\"select\":[\"r\",\"l\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"r\",\"l\",\"id\"]}}}",
       new="{\"select\":[\"id\",\"l\",\"r\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"l\",\"r\"]}}}",
@@ -417,10 +429,12 @@ fn query_checked_program_fixture(
       ),
     ]
   } else if local_values_join_chain {
-    let full = local_values_join_kind == "full"
+    let same_stage_full = local_values_join_kind == "full" &&
+      !local_values_join_imported_full
+    let imported_full = local_values_join_imported_full
     let left = query_capacity_proof(
       "actql.bound.values",
-      if full {
+      if same_stage_full || imported_full {
         3L
       } else {
         4L
@@ -430,19 +444,19 @@ fn query_checked_program_fixture(
     )
     let right = query_capacity_proof(
       "actql.bound.values",
-      if full {
+      if same_stage_full || imported_full {
         4L
       } else {
         5L
       },
       "{\"op\":\"source\"}",
-      step=if full { 2 } else { 0 },
+      step=if same_stage_full { 2 } else { 0 },
     )
     let left_cid = @wire.cid(@wire.program_proof_witness(left))
     let right_cid = @wire.cid(@wire.program_proof_witness(right))
     let joined = query_capacity_proof(
       "actql.bound.join-output",
-      if full {
+      if same_stage_full || imported_full {
         12L
       } else if local_values_join_kind == "semi" ||
         local_values_join_kind == "anti" {
@@ -452,13 +466,13 @@ fn query_checked_program_fixture(
       },
       "{\"op\":\"source\"}",
       inputs=[left_cid, right_cid],
-      step=if full { 4 } else { 0 },
+      step=if same_stage_full { 4 } else { 0 },
     )
     [
       join_graph_capacity_material(
         environment,
         "joined",
-        steps=if full { [4] } else { [0] },
+        steps=if same_stage_full { [4] } else { [0] },
         proofs=[left, right, joined],
         candidates=[joined],
       ),

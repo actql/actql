@@ -126,23 +126,12 @@ test "later and multiple join obligations keep their step and producer ownership
       { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
       10000,
     ).unwrap()
-    if steps.length() == 2 {
-      assert_eq(
-        @local_driver.local_dispatch_rejection(installed, 3),
-        Some("multiple_join_ceilings_unsupported"),
-      )
-      assert_true(
-        @local_driver.estimate_local_dispatch_offer(installed, 3, [], 1000)
-        is Err(Configuration(ComputeUnsupported)),
-      )
-    } else {
-      assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
-      for task in [1, 2, 3, 4] {
-        captured_graph_local(run, task).unwrap()
-      }
-      let output = @strategy.captured_task_output(run, 4, Step(0)).unwrap()
-      assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(1)))
+    assert_eq(@local_driver.local_dispatch_rejection(installed, 3), None)
+    for task in [1, 2, 3, 4] {
+      captured_graph_local(run, task).unwrap()
     }
+    let output = @strategy.captured_task_output(run, 4, Step(0)).unwrap()
+    assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(1)))
     assert_eq(@strategy.graph_task_operation_count(graph, 1000), None)
     @strategy.stop_captured_dag(run)
     for task in 0..<5 {

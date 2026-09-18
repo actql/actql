@@ -3,6 +3,7 @@ fn run_local_managed_join_case(
   kind : String,
   expected_joined : Array[String],
   expected_second : Array[String],
+  imported_full? : Bool = false,
 ) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
@@ -15,6 +16,7 @@ fn run_local_managed_join_case(
   let (run, issuer) = captured_graph_fixture(
     local_values_join_chain=true,
     local_values_join_kind=kind,
+    local_values_join_imported_full=imported_full,
     ledger_limits=Some(ledger_limits),
   )
   let registry = search_registry()
@@ -56,10 +58,19 @@ fn run_local_managed_join_case(
     left_live,
   )
   let left_rows = local_managed_test_rows(left_ops)
-  assert_eq(left_rows, [
-    "{\"id\":1,\"l\":\"l1\"}", "{\"id\":1,\"l\":\"l2\"}", "{\"id\":null,\"l\":\"ln\"}",
-    "{\"id\":2,\"l\":\"l3\"}",
-  ])
+  assert_eq(
+    left_rows,
+    if imported_full {
+      [
+        "{\"id\":1,\"l\":\"l1\"}", "{\"id\":1,\"l\":\"l2\"}", "{\"id\":2,\"l\":\"l3\"}",
+      ]
+    } else {
+      [
+        "{\"id\":1,\"l\":\"l1\"}", "{\"id\":1,\"l\":\"l2\"}", "{\"id\":null,\"l\":\"ln\"}",
+        "{\"id\":2,\"l\":\"l3\"}",
+      ]
+    },
+  )
 
   let right_live = Ref(true)
   let (right_ops, right) = run_local_managed_test_task(
@@ -72,10 +83,20 @@ fn run_local_managed_join_case(
     right_live,
   )
   let right_rows = local_managed_test_rows(right_ops)
-  assert_eq(right_rows, [
-    "{\"id\":1,\"r\":\"r1\"}", "{\"id\":1,\"r\":\"r2\"}", "{\"id\":null,\"r\":\"rn\"}",
-    "{\"id\":3,\"r\":\"r3\"}", "{\"id\":4,\"r\":\"r4\"}",
-  ])
+  assert_eq(
+    right_rows,
+    if imported_full {
+      [
+        "{\"id\":1,\"r\":\"r1\"}", "{\"id\":1,\"r\":\"r2\"}", "{\"id\":3,\"r\":\"r3\"}",
+        "{\"id\":4,\"r\":\"r4\"}",
+      ]
+    } else {
+      [
+        "{\"id\":1,\"r\":\"r1\"}", "{\"id\":1,\"r\":\"r2\"}", "{\"id\":null,\"r\":\"rn\"}",
+        "{\"id\":3,\"r\":\"r3\"}", "{\"id\":4,\"r\":\"r4\"}",
+      ]
+    },
+  )
 
   let join_live = Ref(true)
   let (join_ops, joined) = run_local_managed_test_task(
@@ -255,6 +276,26 @@ test "Local managed full join retains stable identities for two consumers" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed full join imports both producer identities" {
+  run_local_managed_join_case(
+    "full",
+    [
+      "{\"id\":1,\"l\":\"l1\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l1\",\"r\":\"r2\"}",
+      "{\"id\":1,\"l\":\"l2\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l2\",\"r\":\"r2\"}",
+      "{\"id\":2,\"l\":\"l3\",\"r\":null}", "{\"id\":null,\"l\":null,\"r\":\"r3\"}",
+      "{\"id\":null,\"l\":null,\"r\":\"r4\"}",
+    ],
+    [
+      "{\"r\":\"r1\",\"l\":\"l1\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l1\",\"id\":1}",
+      "{\"r\":\"r1\",\"l\":\"l2\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l2\",\"id\":1}",
+      "{\"r\":null,\"l\":\"l3\",\"id\":2}", "{\"r\":\"r3\",\"l\":null,\"id\":null}",
+      "{\"r\":\"r4\",\"l\":null,\"id\":null}",
+    ],
+    imported_full=true,
+  )
 }
 
 ///|

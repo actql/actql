@@ -302,3 +302,86 @@ test "join cardinality comparison excludes null tuples and uses exact decimal eq
   assert_eq(workspace.live, 2)
   assert_eq(control.remaining, 0)
 }
+
+///|
+test "join indices accept every KeyComparable value domain" {
+  let live = Ref(true)
+  let resource_contract = select_checked_contract(
+    "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
+  )
+  let resource = capture(
+    issued_resource_value(
+      resource_contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      live,
+    ).value,
+  )
+  let other_resource = capture(
+    issued_resource_value(
+      resource_contract, "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      live,
+    ).value,
+  )
+  let artifact_contract = select_checked_contract(
+    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+  )
+  let artifact = capture(issued_artifact_value(artifact_contract, live).value)
+  for
+    (left, right, expected) in [
+      ([Number(1), Number(2)], [Number(1)], 0),
+      ([Boolean(false), Boolean(true)], [Boolean(true)], 1),
+      ([Text("é"), Text("z")], [Text("é")], 0),
+      (
+        [
+          admitted_scalar(
+            "{\"type\":\"date\",\"nullable\":false}", "\"0000-02-29\"",
+          ),
+          admitted_scalar(
+            "{\"type\":\"date\",\"nullable\":false}", "\"2026-01-01\"",
+          ),
+        ],
+        [
+          admitted_scalar(
+            "{\"type\":\"date\",\"nullable\":false}", "\"0000-02-29\"",
+          ),
+        ],
+        0,
+      ),
+      (
+        [
+          admitted_scalar(
+            "{\"type\":\"timestamp\",\"nullable\":false}", "\"2026-01-01T23:59:59.999Z\"",
+          ),
+          admitted_scalar(
+            "{\"type\":\"timestamp\",\"nullable\":false}", "\"2026-01-02T00:00:00.000Z\"",
+          ),
+        ],
+        [
+          admitted_scalar(
+            "{\"type\":\"timestamp\",\"nullable\":false}", "\"2026-01-01T23:59:59.999Z\"",
+          ),
+        ],
+        0,
+      ),
+      (
+        [decimal_value("1.00", 2), decimal_value("2.0", 1)],
+        [decimal_value("1", 0)],
+        0,
+      ),
+      ([resource, other_resource], [resource], 0),
+      ([artifact], [artifact], 0),
+    ] {
+    assert_eq(
+      inner_join_indices(
+        order_table(left),
+        order_table(right),
+        [(0, 0)],
+        false,
+        2,
+        { remaining: 100000, max_frames: 0, },
+        { limit: 1000, live: 0, peak: 0, },
+      ).unwrap(),
+      [(expected, 0)],
+    )
+  }
+  live.val = false
+}

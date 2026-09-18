@@ -99,6 +99,7 @@ fn captured_graph_fixture(
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
+  local_values_join_imported_full? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
@@ -140,6 +141,7 @@ fn captured_graph_fixture(
     local_values_set_duplicates~,
     local_values_join_chain~,
     local_values_join_kind~,
+    local_values_join_imported_full~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
     join_steps~,
@@ -262,13 +264,20 @@ fn captured_graph_local(
     is Proposed(choice) else {
     abort("local candidate")
   }
+  let join_output_ceilings = []
+  let join_count = @strategy.captured_task_join_output_count(run, task).unwrap()
+  for index in 0..<join_count {
+    join_output_ceilings.push(
+      @strategy.captured_task_join_output_at(run, task, index).unwrap(),
+    )
+  }
   let compute = match
     @local_connector.prepare_local_compute_execution(
       choice,
       prepared,
       limits,
       { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
-      join_output_ceiling=@strategy.captured_task_join_output_at(run, task, 0),
+      join_output_ceilings~,
     ) {
     Ok(value) => value
     Err(InvalidLimits) => return Err(Physical(InvalidLimits))

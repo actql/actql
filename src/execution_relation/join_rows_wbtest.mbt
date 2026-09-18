@@ -63,6 +63,146 @@ fn join_numeric_rows_equal(
 }
 
 ///|
+fn join_value_owner(contract : @contract.Contract) -> @lower.BoundPrepared {
+  let schema = @schema.from_fields(
+    [
+      (
+        @schema.Unqualified("id"),
+        @contract.primitive(NumberType, nullable=false),
+      ),
+      (@schema.Unqualified("value"), contract),
+    ],
+    max_fields=2,
+    max_name_bytes=100,
+  ).unwrap()
+  let carrier = @carrier.relation(@carrier.typed_rows(schema))
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":\"id\",\"select\":{" +
+      "\"left_value\":\"left.value\",\"right_value\":\"right.value\"}}}]",
+    ),
+    [
+      ("l", @pipeline.CarrierInput(carrier)),
+      ("r", @pipeline.CarrierInput(carrier)),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+test "join projection preserves every relation value domain and NULL" {
+  let cases = [
+    ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
+    ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
+    (
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
+    ),
+    ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
+    (
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
+    ),
+    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
+    (
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
+      "{\"x\":\"v\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
+      "[1,null]", "ordinary",
+    ),
+    (
+      "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
+      "[1,2]", "ordinary",
+    ),
+    (
+      "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}",
+      "", "resource",
+    ),
+    (
+      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "", "artifact",
+    ),
+  ]
+  for (body, wire, kind) in cases {
+    let contract = select_checked_contract(body)
+    let owner = join_value_owner(contract)
+    guard @lower.sequence_step(prepared_sequence(owner), 0)
+      is Some(@lower.JoinStep(kernel)) else {
+      fail("join kernel")
+    }
+    let live = Ref(true)
+    let value = match kind {
+      "resource" =>
+        issued_resource_value(
+          contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          live,
+        ).value
+      "artifact" => issued_artifact_value(contract, live).value
+      _ =>
+        @admitted.admit(contract, input_cursor(wire), {
+          max_nodes: 100,
+          max_depth: 10,
+          max_text_bytes: 1000,
+        }).unwrap().value
+    }
+    let null = @admitted.admit(contract, input_cursor("null"), {
+        max_nodes: 1,
+        max_depth: 0,
+        max_text_bytes: 0,
+      }).unwrap().value
+    let result = evaluate_join_rows(
+      kernel,
+      RowTable({
+        owner,
+        id: @lower.join_kernel_input(kernel, true),
+        names: ["id", "value"],
+        rows: [[Number(1), capture(value)]],
+      }),
+      RowTable({
+        owner,
+        id: @lower.join_kernel_input(kernel, false),
+        names: ["id", "value"],
+        rows: [[Number(1), capture(null)]],
+      }),
+      1,
+      { remaining: 100000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+      { limit: 10000, live: 0, peak: 0, },
+    ).unwrap()
+    assert_eq(result.names, ["left_value", "right_value"])
+    assert_eq(result.rows.length(), 1)
+    assert_true(append_value_equal(result.rows[0][0], capture(value)))
+    assert_true(result.rows[0][1] is Null)
+    live.val = false
+  }
+}
+
+///|
 test "equality join kinds preserve unmatched and single-left row order" {
   let left = "[{\"id\":1,\"v\":10},{\"id\":2,\"v\":11},{\"id\":null,\"v\":12}]"
   let right = "[{\"id\":1,\"v\":20},{\"id\":1,\"v\":21},{\"id\":3,\"v\":22},{\"id\":null,\"v\":23}]"

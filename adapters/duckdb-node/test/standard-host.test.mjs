@@ -1984,6 +1984,54 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         : [...unnestFields].reverse(),
     }},
   })));
+  const joinProgram = structuredClone(zeroInputProgram);
+  const joinFields = ['id', 'l', 'r'];
+  joinProgram.stages.splice(1, 3, {
+    id: 'joined',
+    inputs: {},
+    steps: [
+      {values: {
+        schema: {
+          id: {type: 'number', nullable: false},
+          l: {type: 'string', nullable: false},
+        },
+        rows: [{id: 1, l: 'l1'}, {id: 1, l: 'l2'}, {id: 2, l: 'l3'}],
+      }, as: 'left_raw'},
+      {from: 'left_raw', distinct: ['id', 'l'], as: 'left_rows'},
+      {values: {
+        schema: {
+          id: {type: 'number', nullable: false},
+          r: {type: 'string', nullable: false},
+        },
+        rows: [
+          {id: 1, r: 'r1'},
+          {id: 1, r: 'r2'},
+          {id: 3, r: 'r3'},
+          {id: 4, r: 'r4'},
+        ],
+      }, as: 'right_raw'},
+      {from: 'right_raw', distinct: ['id', 'r'], as: 'right_rows'},
+      {from: 'left_rows', join: {
+        with: 'right_rows',
+        kind: 'full',
+        on: [{left: 'id', right: 'id'}],
+        select: {id: 'left.id', l: 'left.l', r: 'right.r'},
+      }, as: 'joined_raw'},
+      {from: 'joined_raw', distinct: true, as: 'unique'},
+      {from: 'unique', sort: [
+        {id: 'asc'}, {l: 'asc'}, {r: 'asc'},
+      ], as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: joinFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `join_consumer_${id}`,
+    inputs: {x: {result: {stage: 'joined', result: 'r'}}},
+    steps: [{select: id === 'a' ? joinFields : [...joinFields].reverse(),
+      as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a' ? joinFields : [...joinFields].reverse(),
+    }},
+  })));
   const crossJoinProgram = singleton => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'tag'];
@@ -2040,6 +2088,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['parameter lag', lagProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
+    ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
@@ -2108,6 +2157,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'full join') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [7, 7, 7],
           `${name} and both consumers publish complete retained outputs`,
         );
       }

@@ -74,7 +74,6 @@ pub fn[T] local_managed_fixed_compute_candidate(
 pub fn local_managed_sequence_supported(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
-  let mut joins = 0
   @execution.generated_sequence_all_steps(sequence, fn(step) {
     match step {
       @lower.ValuesStep(_) => true
@@ -117,10 +116,7 @@ pub fn local_managed_sequence_supported(
       @lower.AppendStep(_) => true
       @lower.SetStep(_) => true
       @lower.CrossJoinStep(_) => true
-      @lower.JoinStep(_) => {
-        joins += 1
-        joins <= 1
-      }
+      @lower.JoinStep(_) => true
     }
   })
 }
@@ -134,7 +130,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   inputs : Array[@execution.ProducerRead],
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
-  join_output_ceiling? : (Int, Int64)? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
 ) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
@@ -159,16 +155,14 @@ pub fn[T] execute_local_managed_fixed_compute(
       return Err(ForeignPreparation)
     }
   }
-  let constrained = match join_output_ceiling {
-    None => sequence
-    Some((step, ceiling)) =>
-      match
-        @execution.constrain_generated_join_output(sequence, step, ceiling) {
-        Ok(value) => value
-        Err(issue) => return Err(Execution(issue))
-      }
+  let mut constrained = sequence
+  for (step, ceiling) in join_output_ceilings {
+    constrained = match
+      @execution.constrain_generated_join_output(constrained, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
   }
-  let mut constrained = constrained
   for ceiling in aggregate_output_ceilings {
     let unit = match @connector.aggregate_output_ceiling_unit(ceiling) {
       @connector.ArrayItems => @execution.array_items_output_unit()
@@ -243,6 +237,7 @@ pub fn prepare_local_compute_execution(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[@connector.SynchronousCompute, @connector.FixedComputeIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
@@ -261,6 +256,10 @@ pub fn prepare_local_compute_execution(
     is Some(target) else {
     return Err(UnsupportedInputShape)
   }
+  let ceilings = join_output_ceilings.copy()
+  if join_output_ceiling is Some(ceiling) {
+    ceilings.push(ceiling)
+  }
   @connector.bind_synchronous_compute(
     choice,
     prepared,
@@ -268,10 +267,7 @@ pub fn prepare_local_compute_execution(
       retained_bytes: capacity.retained_bytes,
       execution_bytes: capacity.execution_bytes,
     },
-    match join_output_ceiling {
-      None => []
-      Some(ceiling) => [ceiling]
-    },
+    ceilings,
     fn(_sequence) {
       match
         execute_local_fixed_compute(
@@ -279,7 +275,7 @@ pub fn prepare_local_compute_execution(
           prepared,
           limits,
           measurement~,
-          join_output_ceiling~,
+          join_output_ceilings=ceilings,
         ) {
         Err(issue) => Err(Compute(issue))
         Ok(completed) =>
@@ -299,6 +295,7 @@ pub fn execute_local_fixed_compute(
   limits : @execution.SequenceExecutionLimits,
   measurement~ : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
   representations? : Array[@execution.CompletedOutput?],
 ) -> Result[@execution.CompletedSequence, @connector.FixedComputeIssue] {
   guard @connector.fixed_compute_choice_payload(choice, prepared)
@@ -308,14 +305,17 @@ pub fn execute_local_fixed_compute(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
-  let sequence = match join_output_ceiling {
-    None => sequence
-    Some((step, ceiling)) =>
-      match
-        @execution.constrain_generated_join_output(sequence, step, ceiling) {
-        Ok(sequence) => sequence
-        Err(issue) => return Err(Execution(issue))
-      }
+  let ceilings = join_output_ceilings.copy()
+  if join_output_ceiling is Some(ceiling) {
+    ceilings.push(ceiling)
+  }
+  let mut sequence = sequence
+  for (step, ceiling) in ceilings {
+    sequence = match
+      @execution.constrain_generated_join_output(sequence, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
   }
   guard @lower.preparation_output_target(
       @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),

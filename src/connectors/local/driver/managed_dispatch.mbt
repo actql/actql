@@ -146,20 +146,9 @@ pub fn[T] prepare_local_managed_dispatch(
     ) {
     return Err(Configuration(InvalidLimits))
   }
-  let join_output_ceilings = []
-  guard @strategy.captured_task_join_output_count(installed.run, task)
-    is Some(join_count) else {
+  guard local_task_join_output_ceilings(installed.run, task)
+    is Some(join_output_ceilings) else {
     return Err(Configuration(InvalidLimits))
-  }
-  if join_count > 1 {
-    return Ok(None)
-  }
-  for index in 0..<join_count {
-    guard @strategy.captured_task_join_output_at(installed.run, task, index)
-      is Some(ceiling) else {
-      return Err(Configuration(InvalidLimits))
-    }
-    join_output_ceilings.push(ceiling)
   }
   let aggregate_output_ceilings = []
   guard @strategy.captured_task_aggregate_output_count(installed.run, task)
@@ -389,7 +378,7 @@ pub fn[T] start_local_managed_dispatch(
           exact,
           setup.execution,
           setup.measurement,
-          join_output_ceiling=setup.join_output_ceilings.get(0),
+          join_output_ceilings=setup.join_output_ceilings,
           aggregate_output_ceilings=setup.aggregate_output_ceilings,
           analytic_envelopes=setup.analytic_envelopes,
         ) {

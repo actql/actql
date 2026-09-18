@@ -104,6 +104,7 @@ pub fn[E, P] prepare_local_materializing_execution(
   issue : (LocalMaterializingIssue) -> E,
   join_output_ceiling? : (Int, Int64)? = None,
   output_limits? : LocalExportLimits? = None,
+  join_output_ceilings? : Array[(Int, Int64)] = [],
 ) -> Result[
   @connector.PreparedExecution[LocalMaterializingAttempt, E, P],
   LocalMaterializingIssue,
@@ -146,6 +147,10 @@ pub fn[E, P] prepare_local_materializing_execution(
     is Some(target) else {
     return Err(Candidate(UnsupportedInputShape))
   }
+  let ceilings = join_output_ceilings.copy()
+  if join_output_ceiling is Some(ceiling) {
+    ceilings.push(ceiling)
+  }
   @connector.bind_prepared_execution(
     choice,
     prepared,
@@ -155,10 +160,7 @@ pub fn[E, P] prepare_local_materializing_execution(
       scratch_bytes: base.execution_bytes,
       execution_bytes: base.execution_bytes,
     },
-    match join_output_ceiling {
-      Some(limit) => [limit]
-      None => []
-    },
+    ceilings,
     fn(_) {
       let attempt : LocalMaterializingAttempt = {
         inputs,
@@ -171,7 +173,7 @@ pub fn[E, P] prepare_local_materializing_execution(
             prepared,
             execution,
             measurement~,
-            join_output_ceiling~,
+            join_output_ceilings=ceilings,
             representations=copies,
           ).bind(completed => {
             match @execution.completed_output(completed, target) {
