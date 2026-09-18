@@ -74,6 +74,18 @@ pub fn kernel_is_distinct(kernel : PreparedKernel) -> Bool {
 }
 
 ///|
+/// Bound lag navigation view. The complete order remains owned by preparation.
+pub fn kernel_lag(
+  kernel : PreparedKernel,
+) -> (@schema.FieldName, String, Int64)? {
+  guard kernel.body is Lag(offset, _) &&
+    @relation.lag_navigation(kernel.checked) is Some((field, output, _)) else {
+    return None
+  }
+  Some((field.field, output, offset))
+}
+
+///|
 /// Allocation-free count view for both global and partitioned top-k kernels.
 pub fn kernel_top_k_count(kernel : PreparedKernel) -> Int64? {
   match kernel.body {

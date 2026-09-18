@@ -13,6 +13,10 @@ pub fn kernel_sort_term_count(kernel : PreparedKernel) -> Int {
       .map(@pipeline.sort_completion_count)
       .unwrap_or(0)
   }
+  if kernel.body is Lag(_, completion) {
+    return @relation.lag_term_count(kernel.checked) +
+      @pipeline.sort_completion_count(completion)
+  }
   guard kernel.body is StableSort(resolution) else { return 0 }
   @relation.sort_term_count(kernel.checked) +
   resolution
@@ -54,6 +58,19 @@ pub fn kernel_sort_term_at(
       })
     })
   }
+  if kernel.body is Lag(_, completion) {
+    if index < 0 {
+      return None
+    }
+    let authored = @relation.lag_term_count(kernel.checked)
+    if index < authored {
+      let term = @relation.lag_term_at(kernel.checked, index).unwrap()
+      return Some((term.field, term.direction is Desc, term.nulls is First))
+    }
+    return @pipeline.sort_completion_field(completion, index - authored).map(field => {
+      (field, false, false)
+    })
+  }
   guard kernel.body is StableSort(resolution) else { return None }
   if index < 0 {
     return None
@@ -72,6 +89,28 @@ pub fn kernel_sort_term_at(
       ExistingTotal(_) => None
     }
   })
+}
+
+///|
+/// Authored partition occurrences are retained exactly, including repetition.
+pub fn kernel_lag_partition_count(kernel : PreparedKernel) -> Int {
+  if kernel.body is Lag(_, _) {
+    @relation.lag_partition_count(kernel.checked)
+  } else {
+    0
+  }
+}
+
+///|
+pub fn kernel_lag_partition_at(
+  kernel : PreparedKernel,
+  index : Int,
+) -> @schema.FieldName? {
+  if kernel.body is Lag(_, _) {
+    @relation.lag_partition_at(kernel.checked, index).map(key => key.field)
+  } else {
+    None
+  }
 }
 
 ///|

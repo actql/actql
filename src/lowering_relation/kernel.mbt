@@ -27,6 +27,7 @@ pub enum KernelBody {
   DistinctRows
   DedupeRows
   StableSort(@pipeline.SortOrder?)
+  Lag(Int64, @pipeline.SortCompletion)
   CountGroups(PreparedCountGroup)
   Groups(PreparedGroup)
 }
@@ -43,6 +44,8 @@ pub(all) enum KernelIssue {
   PendingTakeOrder
   PendingTopKOrder
   PendingSortOrder
+  PendingLagOrder
+  InvalidLagOffset
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
   GroupFailure(GroupIssue)
@@ -115,6 +118,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | DistinctRows
     | DedupeRows
     | StableSort(_)
+    | Lag(_, _)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -143,6 +147,7 @@ pub fn ordered_binding_at(
     | DistinctRows
     | DedupeRows
     | StableSort(_)
+    | Lag(_, _)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -169,6 +174,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     DistinctRows => DistinctRows
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
+    Lag(offset, order) => Lag(offset, order)
     CountGroups(group) => CountGroups(group)
     Groups(group) => Groups(group)
   }
@@ -193,6 +199,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | DistinctRows
     | DedupeRows
     | StableSort(_)
+    | Lag(_, _)
     | CountGroups(_)
     | Groups(_) => 0
   }
@@ -250,6 +257,7 @@ fn prepare_kernel_measured(
     | Sort(op)
     | CountGroup(op)
     | WindowGroup(op)
+    | Lag(op)
     | AssertRows(op) => op
     JsonPick(op) => op
     Values(_)
@@ -603,6 +611,78 @@ fn prepare_kernel_measured(
     }
     RowOperation if @relation.operation(checked) == @relation.Distinct =>
       DistinctRows
+    RowOperation if @relation.operation(checked) == @relation.Lag => {
+      guard @pipeline.lag_order_completion(owner.prepared.owner, step_index)
+        is Some(completion) else {
+        return Err(PendingLagOrder)
+      }
+      guard @relation.lag_navigation(checked)
+        is Some((field, output, offset_value)) else {
+        return Err(InvalidKernelWiring)
+      }
+      let partitions = @relation.lag_partition_count(checked)
+      let authored = @relation.lag_term_count(checked)
+      let appended = @pipeline.sort_completion_count(completion)
+      let entries = partitions + authored + appended + 2
+      if partitions > max_bindings ||
+        authored > max_bindings - partitions ||
+        appended > max_bindings - partitions - authored ||
+        2 > max_bindings - partitions - authored - appended ||
+        entries > remaining.max_work {
+        return Err(KernelBudgetExceeded)
+      }
+      for i = 0; i < entries - 1; i = i + 1 {
+        let name = if i < partitions {
+          @schema.reference_name(
+            @relation.lag_partition_at(checked, i).unwrap().field,
+          )
+        } else if i < partitions + authored {
+          @schema.reference_name(
+            @relation.lag_term_at(checked, i - partitions).unwrap().field,
+          )
+        } else if i < partitions + authored + appended {
+          @schema.reference_name(
+            @pipeline.sort_completion_field(
+              completion,
+              i - partitions - authored,
+            ).unwrap(),
+          )
+        } else {
+          @schema.reference_name(field.field)
+        }
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+      }
+      let output_bytes = @utf8.encode(output).length()
+      if output_bytes > names_remaining {
+        return Err(KernelBudgetExceeded)
+      }
+      names_remaining -= output_bytes
+      let offset = match offset_value {
+        Literal(value) => value
+        Parameter(name) => {
+          let bytes = @utf8.encode(name).length()
+          if bytes > names_remaining {
+            return Err(KernelBudgetExceeded)
+          }
+          names_remaining -= bytes
+          guard owner.by_name.get(name) is Some(bound) &&
+            bound.value is @value.Number(number) &&
+            @scalar.read_safe_integer(number) is Some(value) else {
+            return Err(InvalidLagOffset)
+          }
+          value
+        }
+      }
+      if offset < 1L || offset > 9007199254740991L {
+        return Err(InvalidLagOffset)
+      }
+      remaining = { ..remaining, max_work: remaining.max_work - entries, }
+      Lag(offset, completion)
+    }
     RowOperation => {
       guard @relation.row_operation(checked)
         is Some(@relation.Take(count~, offset~)) else {
@@ -804,6 +884,11 @@ fn prepare_kernel_measured(
         }
       })
       .unwrap_or(0)
+    Lag(_, completion) =>
+      @relation.lag_partition_count(checked) +
+      @relation.lag_term_count(checked) +
+      @pipeline.sort_completion_count(completion) +
+      2
     DedupeRows =>
       @relation.dedupe_key_count(checked) +
       @relation.dedupe_order_count(checked)

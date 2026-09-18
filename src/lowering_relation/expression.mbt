@@ -396,6 +396,7 @@ fn lower_expression_measured(
       | Distinct(_)
       | Dedupe(_)
       | Sort(_)
+      | Lag(_)
       | JsonPick(_)
       | InnerJoin(_)
       | CrossJoinRows(_)

@@ -78,6 +78,7 @@ pub fn emit_kernel_node(
       DistinctRows => "REL.distinct"
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
+      Lag(_, _) => "REL.window.lag"
       CountGroups(_) => "REL.groupBy"
       Groups(group) =>
         if group.window {
@@ -144,6 +145,40 @@ pub fn emit_kernel_node(
         }
         @encode.end_array(out)
       }
+    }
+    Lag(offset, _) => {
+      let (field, output, _) = kernel_lag(kernel).unwrap()
+      @encode.key(out, "as")
+      @encode.string_value(out, output)
+      @encode.key(out, "field")
+      @encode.string_value(out, @schema.reference_name(field))
+      @encode.key(out, "offset")
+      @encode.number_value(out, offset.to_double())
+      @encode.key(out, "order_by")
+      @encode.begin_array(out)
+      for i = 0; i < kernel_sort_term_count(kernel); i = i + 1 {
+        let (order_field, descending, nulls_first) = kernel_sort_term_at(
+          kernel, i,
+        ).unwrap()
+        @encode.begin_object(out)
+        @encode.key(out, "column")
+        @encode.string_value(out, @schema.reference_name(order_field))
+        @encode.key(out, "dir")
+        @encode.string_value(out, if descending { "desc" } else { "asc" })
+        @encode.key(out, "nulls")
+        @encode.string_value(out, if nulls_first { "first" } else { "last" })
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+      @encode.key(out, "partition_by")
+      @encode.begin_array(out)
+      for i = 0; i < kernel_lag_partition_count(kernel); i = i + 1 {
+        @encode.string_value(
+          out,
+          @schema.reference_name(kernel_lag_partition_at(kernel, i).unwrap()),
+        )
+      }
+      @encode.end_array(out)
     }
     Pivot(pivot) => {
       @encode.key(out, "aggregate")

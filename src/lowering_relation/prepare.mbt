@@ -42,6 +42,7 @@ pub enum Payload {
   Sort(@relation.CheckedOperation)
   CountGroup(@relation.CheckedOperation)
   WindowGroup(@relation.CheckedOperation)
+  Lag(@relation.CheckedOperation)
   AssertRows(@relation.CheckedOperation)
   JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
@@ -160,6 +161,7 @@ pub fn operation(value : PreparedNode) -> String {
     Sort(_) => "REL.orderByStable"
     CountGroup(_) => "REL.groupBy"
     WindowGroup(_) => "REL.window.project"
+    Lag(_) => "REL.window.lag"
     AssertRows(op) =>
       match @relation.row_operation(op) {
         Some(@relation.AssertWhere) => "REL.assert_all"
@@ -200,7 +202,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Group => Some(CountGroup(v))
         AssertRows => Some(AssertRows(v))
         JsonPick => Some(JsonPick(v))
-        Analytic | Lag | WatermarkRows => None
+        Lag => Some(Lag(v))
+        Analytic | WatermarkRows => None
       }
     Join(checked~, ..) => Some(InnerJoin(checked))
     CrossJoin(checked~, ..) => Some(CrossJoinRows(checked))
@@ -309,6 +312,7 @@ pub fn prepare(
       Sort(_) => ("sort", 1)
       CountGroup(_) => ("group", 1)
       WindowGroup(_) => ("window_group", 1)
+      Lag(_) => ("lag", 1)
       AssertRows(_) => ("assert", 1)
       JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
@@ -388,7 +392,8 @@ pub fn prepare(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_)
-      | WindowGroup(_) => None
+      | WindowGroup(_)
+      | Lag(_) => None
       AssertRows(_) => None
       JsonPick(_) => None
       AppendRows(_) => None

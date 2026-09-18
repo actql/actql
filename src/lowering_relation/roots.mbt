@@ -159,6 +159,7 @@ pub fn prepare_kernel_roots(
         | DistinctRows
         | DedupeRows
         | StableSort(_)
+        | Lag(_, _)
         | CountGroups(_) => return Err(NotExpressionKernel)
         Filter(_)
         | AssertAll(_)
@@ -211,6 +212,7 @@ fn prepare_root_range(
           | DistinctRows
           | DedupeRows
           | StableSort(_)
+          | Lag(_, _)
           | CountGroups(_) => continue
           Groups(group) => {
             for i in 0..<group.aggregates.length() {

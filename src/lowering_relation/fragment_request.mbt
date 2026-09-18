@@ -99,6 +99,7 @@ pub fn emit_fragment_request(
     | DistinctRows
     | DedupeRows
     | StableSort(_)
+    | Lag(_, _)
     | CountGroups(_) => raise @encode.InvalidStructure
   }
   if has_null {
@@ -128,6 +129,7 @@ pub fn emit_fragment_request(
       | DistinctRows
       | DedupeRows
       | StableSort(_)
+      | Lag(_, _)
       | CountGroups(_)
       | Groups(_) => raise @encode.InvalidStructure
     }
