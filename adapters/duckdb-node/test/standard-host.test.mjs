@@ -1706,6 +1706,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   };
   const fixedRowWindowProgram = rowWindowProgram('fixed');
   const slidingRowWindowProgram = rowWindowProgram('sliding');
+  const crossJoinProgram = singleton => {
+    const variant = structuredClone(zeroInputProgram);
+    const fields = ['id', 'tag'];
+    variant.stages.splice(1, 3, {
+      id: 'crossed',
+      inputs: {},
+      steps: [
+        {values: {
+          schema: {id: {type: 'number', nullable: false}},
+          rows: [{id: 1}, {id: 2}],
+        }, as: 'left_raw'},
+        {from: 'left_raw', distinct: ['id'], as: 'left_rows'},
+        {values: {
+          schema: {tag: {type: 'string', nullable: false}},
+          rows: singleton ? [{tag: 'a'}] : [{tag: 'a'}, {tag: 'b'}],
+        }, as: 'right_raw'},
+        {from: 'right_raw', distinct: ['tag'], as: 'right_rows'},
+        {from: 'left_rows', cross_join: {
+          with: 'right_rows',
+          ...(singleton ? {right_rows: 'one'} : {}),
+          select: {id: 'left.id', tag: 'right.tag'},
+        }, as: 'out'},
+      ],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `cross_join_consumer_${id}`,
+      inputs: {x: {result: {stage: 'crossed', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {
+        from: 'out',
+        fields: id === 'a' ? fields : [...fields].reverse(),
+      }},
+    })));
+    return variant;
+  };
+  const unrestrictedCrossJoinProgram = crossJoinProgram(false);
+  const singletonCrossJoinProgram = crossJoinProgram(true);
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -1717,9 +1754,16 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
+    ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
+    ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
-    const zeroInputFixture = fixture.strategyFixtureCreate(
-      ...args, JSON.stringify(program));
+    let zeroInputFixture;
+    try {
+      zeroInputFixture = fixture.strategyFixtureCreate(
+        ...args, JSON.stringify(program));
+    } catch (error) {
+      throw new Error(`${name}: fixture preparation failed`, {cause: error});
+    }
     const zeroInputCapture = await runNativeHostQuery(
       grant, fixture.strategyFixtureAcquisition(zeroInputFixture), suppliedLimits);
     let zeroInputExecution;

@@ -27,6 +27,7 @@ fn query_checked_program_fixture(
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
   local_values_cross_singleton? : Bool = false,
+  local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
@@ -135,7 +136,7 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_cross_chain {
     let cross =
-      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE____OUTPUT_GUARD__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     cross
     .replace(
       old="__RIGHT_EXTRA__",
@@ -147,6 +148,13 @@ fn query_checked_program_fixture(
         ",\"right_rows\":\"one\""
       } else {
         ""
+      },
+    )
+    .replace(
+      old="__OUTPUT_GUARD__",
+      new=match local_values_cross_output_guard {
+        Some(value) => ",\"max_output_rows\":" + value.to_string()
+        None => ""
       },
     )
   } else {

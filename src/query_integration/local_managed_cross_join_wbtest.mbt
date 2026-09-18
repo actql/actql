@@ -114,3 +114,17 @@ test "Local managed cross join reaches two consumers in left-major order" {
 test "Local managed singleton cross join validates before two consumers" {
   run_local_managed_cross_join(true)
 }
+
+///|
+test "captured cross join retains the authored output restriction" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_cross_chain=true,
+    local_values_cross_output_guard=Some(2),
+  )
+  assert_eq(@strategy.captured_task_join_output_limit(run, 1, 4), Some(2L))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+}
