@@ -2,6 +2,7 @@
 
 Date: 2026-09-18. Initial implementation commit: `120cd1dc`.
 Lifecycle follow-up commit: `fad218f3`.
+Cleanup and placement follow-up commit: `e6500144`.
 Baseline: `5a305f3ce5cdac421985fb9a71878bc22af51237`.
 
 This report closes E0 through E3 of
@@ -116,6 +117,20 @@ release path. A synchronous or asynchronous close failure installs the Site
 holding cleanup observer before propagating the failure. Successful explicit
 retry therefore releases the holding and its retained-byte charge exactly
 once; failures without a retry contract remain explicitly unconfirmed.
+
+An execution failure that explicitly reports pending cleanup no longer
+releases its Site operation merely because its cleanup handle is missing or
+malformed. The exact Site reservation and teardown responsibility remain
+pending until an authoritative status reports that execution stopped. A valid
+handle that later confirms stop releases both byte scopes exactly once; no
+retry behavior is invented for an unobservable operation.
+
+The checked legacy dispatcher still selects the implementation and task, but
+it no longer lets placement order choose the Site. The Host enumerates every
+Site for that selected implementation, excludes stopped or undersized Sites,
+and compares the remaining known placement costs with the stable Site key
+before reservation or dispatch. The unknown implementation duration is a
+shared term in this placement-only comparison, not a zero-duration claim.
 
 Local, reference, DuckDB, Node, and Workers paths use the common Site surface.
 The Local-only Node path does not require the DuckDB SDK, and Workers execute
