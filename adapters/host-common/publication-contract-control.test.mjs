@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {mkdtemp, open, rm} from 'node:fs/promises';
+import {mkdtemp, open, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import * as moon from
@@ -2162,6 +2162,29 @@ test('portable control validates Receipt and Captured Run references',
   assert.deepEqual(
     raceStates.map(value => value.state).sort(),
     ['cancelled', 'succeeded'],
+  );
+  assert.equal((await readdir(
+    join(raceDirectory, 'metadata-inventories'),
+  )).length, 1);
+  const raceIndexes = raceContracts.map(raceAttempt =>
+    control.issuePublicIndexEntry({
+      runDefinition: run,
+      invocation: invoked,
+      manifest,
+      receipt,
+      capturedRun: captured,
+      durableBindings: [binding],
+      request,
+      attempt: raceAttempt,
+    }, '2026-09-18T00:00:07.000Z', limits));
+  const losingIndex = raceIndexes.find(candidate =>
+    JSON.parse(candidate.wire).publication_attempt_cid !==
+      raced[0].attempt.identity);
+  await assert.rejects(
+    raceBase.readPublicationContract(
+      losingIndex.identity, 'public_index_entry',
+    ),
+    error => error?.code === 'PublicationContractMissing',
   );
 
   const unknownDirectory = await mkdtemp(join(

@@ -431,6 +431,7 @@ export async function openLocalPublicationStore(
   const activeResultReaders = new Map();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
+  const pendingUncommittedMetadataCleanups = new Map();
   const reclaimingMaterialCids = new Set();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
@@ -477,25 +478,36 @@ export async function openLocalPublicationStore(
     }
     if (!exactKeys(value, [
       'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
-      'public_index_entry_cid', 'semantic_cids',
+      'public_index_entry_cid', 'publication_attempt_cid', 'contract_objects',
     ]) ||
         value.version !== 'actql-local-publication-metadata-inventory/0.1' ||
         typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
         !cidPattern.test(value.authority_scope_cid) ||
         !cidPattern.test(value.run_definition_cid) ||
         !cidPattern.test(value.public_index_entry_cid) ||
-        !Array.isArray(value.semantic_cids) ||
-        value.semantic_cids.length === 0 ||
-        value.semantic_cids.some(cid => !cidPattern.test(cid)) ||
-        new Set(value.semantic_cids).size !== value.semantic_cids.length ||
-        [...value.semantic_cids].sort().join('\0') !==
-          value.semantic_cids.join('\0') ||
-        !value.semantic_cids.includes(value.public_index_entry_cid)) {
+        !cidPattern.test(value.publication_attempt_cid) ||
+        !Array.isArray(value.contract_objects) ||
+        value.contract_objects.length === 0 ||
+        value.contract_objects.some(object => !exactKeys(object, [
+          'semantic_cid', 'physical_cid', 'byte_count',
+        ]) || !cidPattern.test(object.semantic_cid) ||
+          !cidPattern.test(object.physical_cid) ||
+          !quantity(object.byte_count)) ||
+        new Set(value.contract_objects.map(object => object.semantic_cid))
+          .size !== value.contract_objects.length ||
+        [...value.contract_objects]
+          .sort((left, right) =>
+            left.semantic_cid.localeCompare(right.semantic_cid))
+          .map(object => object.semantic_cid).join('\0') !==
+          value.contract_objects.map(object => object.semantic_cid).join('\0') ||
+        !value.contract_objects.some(object =>
+          object.semantic_cid === value.public_index_entry_cid)) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
     return Object.freeze({
       ...value,
-      semantic_cids: Object.freeze([...value.semantic_cids]),
+      contract_objects: Object.freeze(value.contract_objects.map(object =>
+        Object.freeze({...object}))),
     });
   };
 
@@ -2255,7 +2267,8 @@ export async function openLocalPublicationStore(
           inventory.public_index_entry_cid !==
             existingCommit.public_index_entry_cid ||
           directlyRequired.some(cid =>
-            !inventory.semantic_cids.includes(cid))) {
+            !inventory.contract_objects.some(object =>
+              object.semantic_cid === cid))) {
         fail('InvalidPublicationMetadataInventoryStore');
       }
       await adoptPreparedObjects(boundPhysicalCids);
@@ -2266,13 +2279,17 @@ export async function openLocalPublicationStore(
       });
     }
     await putPublicationContract('public_index_entry', admitted.wire);
+    const inventoryContractObjects = await bindMetadataContractObjects(
+      inventorySemanticCids,
+    );
     await ensureMetadataInventory(Object.freeze({
       version: 'actql-local-publication-metadata-inventory/0.1',
       tenant_id: entry.tenant_id,
       authority_scope_cid: entry.authority_scope_cid,
       run_definition_cid: entry.run_definition_cid,
       public_index_entry_cid: admitted.identity,
-      semantic_cids: inventorySemanticCids,
+      publication_attempt_cid: entry.publication_attempt_cid,
+      contract_objects: inventoryContractObjects,
     }));
     const target = resolve(indexesDirectory, `${keyHash}.json`);
     const custody = beginPreparedCommit(
@@ -2307,17 +2324,6 @@ export async function openLocalPublicationStore(
       try { await adoptPreparedObjects(boundPhysicalCids); }
       catch (reconciliation) {
         throw commitCustodyFailure(error, custody, reconciliation);
-      }
-      if (existing.public_index_entry_cid !==
-          entry.public_index_entry_cid) {
-        try {
-          await unlink(metadataInventoryPath(entry.public_index_entry_cid));
-          await syncDirectory(metadataInventoriesDirectory);
-        } catch (cleanupError) {
-          if (cleanupError?.code !== 'ENOENT') {
-            throw commitCustodyFailure(error, custody, cleanupError);
-          }
-        }
       }
       return Object.freeze({
         entry: existing,
@@ -2822,7 +2828,7 @@ export async function openLocalPublicationStore(
 
   const metadataContractHasLiveReference = async (
     semanticCid,
-    excludedKeyHash,
+    excludedPublicIndexEntryCid,
   ) => {
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
@@ -2836,20 +2842,21 @@ export async function openLocalPublicationStore(
         authorityScopeCid: inventory.authority_scope_cid,
         runDefinitionCid: inventory.run_definition_cid,
       });
-      if (keyHash === excludedKeyHash ||
+      if (inventory.public_index_entry_cid === excludedPublicIndexEntryCid ||
           await readMetadataDeletion(keyHash) !== undefined) continue;
-      if (inventory.semantic_cids.includes(semanticCid)) return true;
+      if (inventory.contract_objects.some(object =>
+        object.semantic_cid === semanticCid)) return true;
     }
     return false;
   };
 
   const reclaimMetadataContract = async (
-    keyHash,
+    excludedPublicIndexEntryCid,
     object,
     unconfirmedObjects,
   ) => {
     if (await metadataContractHasLiveReference(
-      object.semantic_cid, keyHash,
+      object.semantic_cid, excludedPublicIndexEntryCid,
     )) return;
     const semanticPath = contractPath(object.semantic_cid);
     let semanticState;
@@ -2941,6 +2948,121 @@ export async function openLocalPublicationStore(
       reclaimableCustodies.set(token, custody);
       await reclaimCustody(custody);
       recovered.push(record.material_generation_cid);
+    }
+    return Object.freeze(recovered);
+  };
+
+  const createUncommittedMetadataCleanup = async inventory => {
+    const inventoryCid = inventory.public_index_entry_cid;
+    const existing = pendingUncommittedMetadataCleanups.get(inventoryCid);
+    if (existing !== undefined) return existing;
+    let pending = true;
+    const errors = [];
+    const unconfirmedObjects = new Map();
+    const status = () => Object.freeze({
+      pending,
+      errors: Object.freeze([...errors]),
+    });
+    const cleanup = Object.freeze({
+      status,
+      retry() {
+        if (!pending) return Promise.resolve(status());
+        const operation = metadataRetentionBusy.then(async () => {
+          if (!pending) return status();
+          const key = {
+            tenantId: inventory.tenant_id,
+            authorityScopeCid: inventory.authority_scope_cid,
+            runDefinitionCid: inventory.run_definition_cid,
+          };
+          const committed = await inspectCommittedIndexRaw(key);
+          if (committed?.public_index_entry_cid === inventoryCid) {
+            fail('PublicationMetadataAlreadyCommitted');
+          }
+          const attempt = await latestRecord(inventory.publication_attempt_cid);
+          if (!['failed', 'cancelled'].includes(attempt?.state)) {
+            fail('PublicationUncommittedMetadataLive');
+          }
+          for (const object of inventory.contract_objects) {
+            await reclaimMetadataContract(
+              inventoryCid, object, unconfirmedObjects,
+            );
+          }
+          if (unconfirmedObjects.size !== 0) {
+            await syncDirectory(objectsDirectory);
+            for (const bytes of unconfirmedObjects.values()) {
+              storedBytes -= bytes;
+              objectCount--;
+            }
+            unconfirmedObjects.clear();
+          }
+          try {
+            await unlink(metadataInventoryPath(inventoryCid));
+            await syncDirectory(metadataInventoriesDirectory);
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+          pending = false;
+          pendingUncommittedMetadataCleanups.delete(inventoryCid);
+          return status();
+        });
+        metadataRetentionBusy = operation.catch(() => {});
+        return operation.catch(error => {
+          errors.push(error);
+          throw error;
+        });
+      },
+    });
+    pendingUncommittedMetadataCleanups.set(inventoryCid, cleanup);
+    return cleanup;
+  };
+
+  const retireUncommittedPublication = async publicIndexEntryCid => {
+    active();
+    cidHex(publicIndexEntryCid);
+    const inventory = await readMetadataInventory(publicIndexEntryCid);
+    if (inventory === undefined) {
+      const cleanup = Object.freeze({
+        status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
+        retry: () => Promise.resolve(Object.freeze({
+          pending: false,
+          errors: Object.freeze([]),
+        })),
+      });
+      return Object.freeze({inventory, cleanup, deleted: true});
+    }
+    const cleanup = await createUncommittedMetadataCleanup(inventory);
+    try { await cleanup.retry(); }
+    catch {}
+    return Object.freeze({
+      inventory,
+      cleanup,
+      deleted: cleanup.status().pending === false,
+    });
+  };
+
+  const recoverUncommittedPublications = async () => {
+    active();
+    const recovered = [];
+    for (const name of await readdir(metadataInventoriesDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      const inventory = await readMetadataInventory(
+        `sha256:${name.slice(0, -5)}`,
+      );
+      const key = {
+        tenantId: inventory.tenant_id,
+        authorityScopeCid: inventory.authority_scope_cid,
+        runDefinitionCid: inventory.run_definition_cid,
+      };
+      if ((await inspectCommittedIndexRaw(key))?.public_index_entry_cid ===
+          inventory.public_index_entry_cid) continue;
+      const attempt = await latestRecord(inventory.publication_attempt_cid);
+      if (!['failed', 'cancelled'].includes(attempt?.state)) continue;
+      const cleanup = await createUncommittedMetadataCleanup(inventory);
+      try { await cleanup.retry(); }
+      catch {}
+      recovered.push(cleanup);
     }
     return Object.freeze(recovered);
   };
@@ -3226,7 +3348,7 @@ export async function openLocalPublicationStore(
           durablyConfirmedIndexes.delete(keyHash);
           for (const object of marker.contract_objects) {
             await reclaimMetadataContract(
-              keyHash, object, unconfirmedObjects,
+              marker.public_index_entry_cid, object, unconfirmedObjects,
             );
           }
           if (unconfirmedObjects.size !== 0) {
@@ -3304,7 +3426,9 @@ export async function openLocalPublicationStore(
         fail('InvalidPublicationMetadataInventoryStore');
       }
       const contractCids = await collectRunMetadataContracts(
-        entry.run_definition_cid, keyHash, inventory.semantic_cids,
+        entry.run_definition_cid,
+        keyHash,
+        inventory.contract_objects.map(object => object.semantic_cid),
       );
       marker = await ensureMetadataDeletion(keyHash, Object.freeze({
         version: 'actql-local-publication-metadata-deletion/0.1',
@@ -3369,6 +3493,11 @@ export async function openLocalPublicationStore(
 
   await validateCommittedMetadataInventories();
 
+  // A terminal attempt that never won the public index retains an exact
+  // inventory until every unshared metadata allocation is durably reclaimed.
+  // Live and outcome-unknown attempts remain available for legal retry.
+  await recoverUncommittedPublications();
+
   // Reconcile durable deletion markers before accepting new Store work. A
   // failed physical cleanup remains owned by the returned Store and can be
   // retried without making the deleted Result visible again.
@@ -3399,6 +3528,8 @@ export async function openLocalPublicationStore(
     retireCommittedResult,
     retireCommittedPublicationMetadata,
     recoverPreparedCustodies,
+    retireUncommittedPublication,
+    recoverUncommittedPublications,
     recoverRetiredResults,
     recoverRetiredMetadata,
     readJsonObject,

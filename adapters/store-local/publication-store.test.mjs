@@ -1893,11 +1893,114 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const reconciled = await unknown.cleanupHandle.retry();
     assert.equal(reconciled.pending, false);
     assert.equal(reconciled.outcome, 'uncommitted');
+    const candidateCleanup = await store.retireUncommittedPublication(
+      entry.public_index_entry_cid,
+    );
+    assert.equal(candidateCleanup.deleted, false);
+    assert.equal(candidateCleanup.cleanup.status().pending, true);
+    assert.equal(
+      candidateCleanup.cleanup.status().errors.at(-1)?.code,
+      'PublicationUncommittedMetadataLive',
+    );
+    assert.equal((await readdir(
+      join(directory, 'metadata-inventories'),
+    )).length, 1);
+    const cancelled = publicationRecord(
+      attempt, 2, 'cancelled', prepared.committing,
+    );
+    await store.appendRecord(wire(cancelled), {uncommittedConfirmed: true});
+    assert.equal((await candidateCleanup.cleanup.retry()).pending, false);
+    assert.deepEqual(await readdir(
+      join(directory, 'metadata-inventories'),
+    ), []);
+    await assert.rejects(
+      store.readPublicationContract(
+        entry.public_index_entry_cid, 'public_index_entry',
+      ),
+      code('PublicationContractMissing'),
+    );
     assert.equal(prepared.prepared.status().pending, true);
     assert.equal(await prepared.prepared.release(), true);
     assert.equal(prepared.prepared.status().pending, false);
     assert.equal(await store.close(), true);
   });
+
+test('restart reclaims terminal uncommitted publication metadata', async t => {
+  const directory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-uncommitted-metadata-',
+  ));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const configuration = {
+    directory,
+    storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  };
+  let indexSyncFailures = 2;
+  const durability = Object.freeze({
+    async syncDirectory(path) {
+      if (path === join(directory, 'indexes') && indexSyncFailures > 0) {
+        indexSyncFailures--;
+        const error = new Error('injected index directory sync failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  const store = await openLocalPublicationStore(
+    configuration, contractControl, durability,
+  );
+  const invocationValue = invocation();
+  const request = publicationRequest(
+    resultDefinition(), invocationValue.invocation_cid,
+  );
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(
+    store, request, attempt, invocationValue,
+  );
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  let unknown;
+  await assert.rejects(store.commitIndex(
+    wire(entry), prepared.required, prepared.evidence,
+  ), error => {
+    unknown = error;
+    return error?.cleanupHandle?.status().pending === true;
+  });
+  const [installed] = await readdir(join(directory, 'indexes'));
+  await unlink(join(directory, 'indexes', installed));
+  assert.equal((await unknown.cleanupHandle.retry()).outcome, 'uncommitted');
+  const cancelled = publicationRecord(
+    attempt, 2, 'cancelled', prepared.committing,
+  );
+  await store.appendRecord(wire(cancelled), {uncommittedConfirmed: true});
+  assert.equal(await prepared.prepared.release(), true);
+  assert.equal((await readdir(
+    join(directory, 'metadata-inventories'),
+  )).length, 1);
+  assert.equal(await store.close(), true);
+
+  const reopened = await openLocalPublicationStore(
+    configuration, contractControl,
+  );
+  t.after(async () => { await reopened.close(); });
+  assert.deepEqual(await readdir(
+    join(directory, 'metadata-inventories'),
+  ), []);
+  await assert.rejects(
+    reopened.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry',
+    ),
+    code('PublicationContractMissing'),
+  );
+});
 
 test('commit verifies durable binding against the stored physical generation',
   async t => {
