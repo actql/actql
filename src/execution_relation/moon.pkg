@@ -19,6 +19,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/value_contract" @contract,
   "actql/actql/order_key" @order,
+  "actql/actql/numeric_reduction" @numeric,
   "moonbitlang/core/json",
 }
 

@@ -131,7 +131,7 @@ pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIss
 
 pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 
-pub fn execute_task_numeric_reduction(CapturedDAG, TaskExecution, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
+pub fn execute_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
@@ -235,6 +235,8 @@ pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.Le
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
+pub fn seal_task_numeric_reductions(CapturedDAG, TaskExecution, Int) -> Bool
+
 pub fn select_captured_managed_registration(CapturedDAG, Int, @connector_sdk.CapabilityRegistration) -> Result[Unit, RunIssue]
 
 pub fn settle_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -278,6 +280,10 @@ pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsag
 pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
 pub fn task_execution_managed_attempt(CapturedDAG, TaskExecution) -> @execution_relation.ManagedExecutionAttempt?
+
+pub fn task_execution_numeric_capture_count(CapturedDAG, TaskExecution) -> Int?
+
+pub fn task_execution_numeric_capture_work(CapturedDAG, TaskExecution, Int) -> Int?
 
 pub fn task_execution_numeric_reduction_count(CapturedDAG, TaskExecution) -> Int?
 

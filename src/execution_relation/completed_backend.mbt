@@ -13,6 +13,7 @@ fn evaluate_completed_body(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[CompletedTable, RowIssue] {
   let projection = match body {
     Projection(_) => true
@@ -31,6 +32,7 @@ fn evaluate_completed_body(
       aggregate_outputs~,
       analytic_envelope~,
       identity_limits~,
+      numeric~,
     ).map(table => RowTable(table))
   }
   if input is AdmittedTable(table) {
@@ -60,6 +62,7 @@ fn evaluate_completed_body(
         aggregate_outputs~,
         analytic_envelope~,
         identity_limits~,
+        numeric~,
       ) {
       Ok(names) => names
       Err(issue) => return Err(issue)
@@ -114,6 +117,7 @@ fn evaluate_completed_body(
       aggregate_outputs~,
       analytic_envelope~,
       identity_limits~,
+      numeric~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -226,6 +230,7 @@ fn evaluate_completed_rows(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[CompletedTable, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -343,6 +348,7 @@ fn evaluate_completed_rows(
           aggregate_outputs~,
           analytic_envelope~,
           identity_limits~,
+          numeric~,
         )
       },
     },

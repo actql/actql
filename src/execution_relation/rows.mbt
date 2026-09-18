@@ -162,6 +162,7 @@ fn evaluate_rows_with_workspace(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[Table, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -229,6 +230,7 @@ fn evaluate_rows_with_workspace(
           aggregate_outputs~,
           analytic_envelope~,
           identity_limits~,
+          numeric~,
         )
       },
     },
@@ -351,6 +353,7 @@ fn[T : RelationRows] evaluate_row_body(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[Table, RowIssue] {
   let rows : Array[Array[Value]] = []
   let names = match
@@ -369,6 +372,7 @@ fn[T : RelationRows] evaluate_row_body(
       aggregate_outputs~,
       analytic_envelope~,
       identity_limits~,
+      numeric~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -395,6 +399,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
     if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
@@ -421,6 +426,7 @@ fn[T : RelationRows] evaluate_row_body_into(
     aggregate_outputs,
     analytic_envelope,
     identity_limits.unwrap_or(output.limits),
+    numeric,
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -447,6 +453,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   aggregate_outputs : Array[SelectedAggregateOutput],
   analytic_envelope : SelectedAnalyticEnvelope?,
   identity_limits : ValueLimits,
+  numeric : NumericAggregateExecution?,
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -479,8 +486,18 @@ fn[T : RelationRows] evaluate_row_body_impl(
   }
   if body is PreparedBody(kernel) && @lower.kernel_group(kernel) is Some(group) {
     return evaluate_group_into(
-      group, input, max_rows, control, output, workspace, scope, accept_row, aggregate_outputs,
+      group,
+      input,
+      max_rows,
+      control,
+      output,
+      workspace,
+      scope,
+      accept_row,
+      aggregate_outputs,
       identity_limits,
+      numeric,
+      step=@lower.kernel_step(kernel),
     )
   }
   if body is PreparedBody(kernel) &&

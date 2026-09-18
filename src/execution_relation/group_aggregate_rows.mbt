@@ -127,8 +127,9 @@ impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn read_cell(
 fn direct_aggregate_execution_supported(
   aggregate : @lower.PreparedAggregate,
   ordered : Bool,
+  numeric? : Bool = false,
 ) -> Bool {
-  if @lower.group_aggregate_requires_numeric_observation(aggregate) {
+  if @lower.group_aggregate_requires_numeric_observation(aggregate) && !numeric {
     return false
   }
   let argument = @lower.group_aggregate_argument(aggregate)
@@ -149,10 +150,14 @@ fn direct_aggregate_execution_supported(
     }
     (@relation.Sum, _) =>
       if !has_argument ||
-        !(@lower.group_aggregate_result(aggregate).shape
-        is @contract.Decimal(precision=38, ..)) {
+        (
+          !numeric &&
+          !(@lower.group_aggregate_result(aggregate).shape
+          is @contract.Decimal(precision=38, ..))
+        ) {
         return false
       }
+    (@relation.Avg, _) => if !has_argument || !numeric { return false }
     (@relation.First, _) | (@relation.Last, _) =>
       if !has_argument || !ordered {
         return false
@@ -182,7 +187,6 @@ fn direct_aggregate_execution_supported(
         !(@lower.group_aggregate_result(aggregate).shape is @contract.Number) {
         return false
       }
-    _ => return false
   }
   true
 }
@@ -192,6 +196,23 @@ fn direct_aggregate_execution_supported(
 /// result is a candidate-selection decision, never permission to reinterpret
 /// the checked aggregate through another physical law.
 pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
+  group_execution_supported_with_profile(group, false)
+}
+
+///|
+/// Numeric capability changes only the pinned reduction lane. Every other
+/// group requirement is checked by the same closed support predicate.
+pub fn group_execution_supported_with_numeric(
+  group : @lower.PreparedGroup,
+) -> Bool {
+  group_execution_supported_with_profile(group, true)
+}
+
+///|
+fn group_execution_supported_with_profile(
+  group : @lower.PreparedGroup,
+  numeric : Bool,
+) -> Bool {
   let input = @lower.group_input_schema(group)
   for i = 0; i < @lower.group_key_count(group); i = i + 1 {
     guard @schema.lookup(input, @lower.group_key_at(group, i).unwrap())
@@ -214,6 +235,7 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
     if !direct_aggregate_execution_supported(
         aggregate,
         @lower.group_aggregate_order_count(aggregate) > 0,
+        numeric~,
       ) {
       return false
     }
@@ -793,6 +815,9 @@ fn[T : IndexedRows] evaluate_dynamic_aggregate(
   selected : Array[SelectedAggregateOutput],
   identity_limits : ValueLimits,
   scope : ExpressionRoots?,
+  numeric? : NumericAggregateExecution? = None,
+  numeric_step? : Int = -1,
+  numeric_occurrence? : Int = -1,
 ) -> Result[Value, RowIssue] {
   let sources : Array[Int] = []
   let values : Array[Value] = []
@@ -894,6 +919,9 @@ fn[T : IndexedRows] evaluate_dynamic_aggregate(
     workspace,
     selected,
     identity_limits,
+    numeric~,
+    numeric_step~,
+    numeric_occurrence~,
   )
 }
 
@@ -909,6 +937,9 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
   workspace : RowWorkspace,
   selected : Array[SelectedAggregateOutput],
   identity_limits : ValueLimits,
+  numeric? : NumericAggregateExecution? = None,
+  numeric_step? : Int = -1,
+  numeric_occurrence? : Int = -1,
 ) -> Result[Value, RowIssue] {
   let function = @lower.group_aggregate_function(aggregate)
   if function is @relation.ArrayAgg || function is @relation.StringAgg {
@@ -997,6 +1028,7 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
           _ => return Err(InvalidRows)
         }
       @relation.Sum
+      | @relation.Avg
       | @relation.Min
       | @relation.Max
       | @relation.PercentileDisc
@@ -1022,6 +1054,45 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     }
   } else {
     values
+  }
+  if @lower.group_aggregate_requires_numeric_observation(aggregate) {
+    guard numeric is Some(execution) &&
+      numeric_step >= 0 &&
+      numeric_occurrence >= 0 else {
+      return Err(InvalidRows)
+    }
+    let contributors : Array[Double] = []
+    for value in values {
+      guard value is Number(number) else { return Err(InvalidRows) }
+      contributors.push(number)
+    }
+    let name = @lower.group_aggregate_name(aggregate)
+    let outcome = match
+      run_numeric_aggregate(
+        execution,
+        numeric_step,
+        name,
+        numeric_occurrence,
+        contributors,
+        contributors.length(),
+        control.remaining,
+      ) {
+      None => return Err(InvalidRows)
+      Some(Err(InvalidLimits | ContributorLimit | WorkLimit)) =>
+        return Err(RowLimit)
+      Some(Err(NonfiniteContributor(_) | NonfiniteIntermediate)) =>
+        return Err(Aggregation(ArithmeticFailure))
+      Some(Ok(value)) => value
+    }
+    if !spend_control(control, @numeric.outcome_work(outcome)) {
+      return Err(RowLimit)
+    }
+    return Ok(
+      match @numeric.outcome_value(outcome) {
+        None => Null
+        Some(value) => Number(value)
+      },
+    )
   }
   match function {
     @relation.Count => {
@@ -1107,8 +1178,10 @@ fn[T : RelationRows] evaluate_group_into(
   ],
   aggregate_outputs : Array[SelectedAggregateOutput],
   identity_limits : ValueLimits,
+  numeric : NumericAggregateExecution?,
+  step~ : Int,
 ) -> Result[Array[String], RowIssue] {
-  if !group_execution_supported(group) {
+  if !group_execution_supported_with_profile(group, numeric is Some(_)) {
     return Err(InvalidRows)
   }
   let names = input.field_names()
@@ -1228,7 +1301,7 @@ fn[T : RelationRows] evaluate_group_into(
     Ok(groups) => groups
     Err(issue) => return Err(issue)
   }
-  for range in groups {
+  for group_index, range in groups {
     if !spend_control(control, 1) ||
       !reserve_slots(workspace, aggregate_count) ||
       !reserve_slots(workspace, 1) ||
@@ -1256,6 +1329,9 @@ fn[T : RelationRows] evaluate_group_into(
           aggregate_outputs,
           identity_limits,
           scope,
+          numeric~,
+          numeric_step=step,
+          numeric_occurrence=group_index,
         )
       } else {
         evaluate_direct_aggregate(
@@ -1273,6 +1349,9 @@ fn[T : RelationRows] evaluate_group_into(
           workspace,
           aggregate_outputs,
           identity_limits,
+          numeric~,
+          numeric_step=step,
+          numeric_occurrence=group_index,
         )
       }
       let value = match evaluated {

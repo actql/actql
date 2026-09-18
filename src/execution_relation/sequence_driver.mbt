@@ -69,6 +69,7 @@ fn evaluate_sequence_components(
   join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
+  numeric? : NumericAggregateExecution? = None,
   ordered? : OrderedExecution = {
     contexts: [],
     max_bytes: 0,
@@ -98,6 +99,7 @@ fn evaluate_sequence_components(
       join_ceilings~,
       aggregate_outputs~,
       analytic_envelopes~,
+      numeric~,
     )
   }
   let invocation = match
@@ -120,6 +122,7 @@ fn evaluate_sequence_components(
     join_ceilings~,
     aggregate_outputs~,
     analytic_envelopes~,
+    numeric~,
   )
 }
 
@@ -412,6 +415,7 @@ fn run_sequence_invocation(
   join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   run_completed_sequence_backend(
     invocation,
@@ -440,6 +444,7 @@ fn run_sequence_invocation(
           @lower.kernel_step(kernel),
         ),
         identity_limits=Some(invocation.limits.input_values),
+        numeric~,
       )
     },
     store => RowStore(store),

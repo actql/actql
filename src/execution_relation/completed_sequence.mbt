@@ -71,6 +71,7 @@ fn evaluate_physical_sequence(
   join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
+  numeric? : NumericAggregateExecution? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let invocation = match
     prepare_physical_sequence(
@@ -107,6 +108,7 @@ fn evaluate_physical_sequence(
           @lower.kernel_step(kernel),
         ),
         identity_limits=Some(invocation.limits.input_values),
+        numeric~,
       )
     },
     store => PhysicalStore(store),

@@ -9,6 +9,7 @@ struct GeneratedSequence {
   join_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
+  numeric : NumericAggregateExecution?
 }
 
 ///|
@@ -90,6 +91,7 @@ pub fn prepare_generated_sequence(
         join_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
+        numeric: None,
       })
     Err(issue) => Err(issue)
   }
@@ -116,7 +118,18 @@ pub fn execute_generated_sequence(
     join_ceilings=generated.join_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
     analytic_envelopes=generated.analytic_envelopes,
+    numeric=generated.numeric,
   )
+}
+
+///|
+/// Attach one attempt-local numeric executor without changing checked meaning,
+/// input ownership, selected ceilings, or any other execution constraint.
+pub fn bind_generated_numeric_execution(
+  generated : GeneratedSequence,
+  numeric : NumericAggregateExecution,
+) -> GeneratedSequence {
+  { ..generated, numeric: Some(numeric), }
 }
 
 ///|

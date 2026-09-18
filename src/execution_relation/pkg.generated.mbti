@@ -6,6 +6,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/lowering_relation",
+  "actql/actql/numeric_reduction",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
@@ -85,6 +86,8 @@ pub fn binary(@lowering_relation.BinaryOperator, Value, Value) -> Result[Value, 
 pub fn bind_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput) -> Result[BoundProducerInput, ProducerBindingIssue]
 
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
+
+pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
 
@@ -290,6 +293,8 @@ pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@loweri
 
 pub fn group_execution_supported(@lowering_relation.PreparedGroup) -> Bool
 
+pub fn group_execution_supported_with_numeric(@lowering_relation.PreparedGroup) -> Bool
+
 pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
@@ -429,6 +434,8 @@ pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], In
 pub fn[T] managed_view_selection_row(ManagedViewSelection[T], Int) -> Int?
 
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
+
+pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
@@ -1125,6 +1132,8 @@ pub(all) enum ManagedViewRows {
 } derive(Eq, @debug.Debug)
 
 type ManagedViewSelection[T]
+
+type NumericAggregateExecution
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits

@@ -326,6 +326,80 @@ test "direct group capability separates numeric observations from expressions" {
 }
 
 ///|
+test "selected numeric reductions execute every group occurrence exactly once" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"k\":1,\"n\":10000000000000000},{\"k\":1,\"n\":1},{\"k\":1,\"n\":-10000000000000000},{\"k\":null,\"n\":null}]},\"as\":\"seed\"},{\"group\":{\"by\":[\"k\"],\"aggregates\":{\"mean\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}}}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["group_1"],
+    100000,
+    10000,
+  ).unwrap()
+  assert_true(
+    execute_generated_sequence(generated, [], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    })
+    is Err(_),
+  )
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let calls : Array[String] = []
+  let valid = Ref(true)
+  let numeric = numeric_aggregate_execution((
+    step,
+    name,
+    occurrence,
+    contributors,
+    expected_count,
+    max_work,
+  ) => {
+    if step != 1 ||
+      (name != "mean" && name != "total") ||
+      (occurrence != 0 && occurrence != 1) {
+      valid.val = false
+    }
+    calls.push(name + ":" + occurrence.to_string())
+    Some(
+      @numeric.execute(
+        reduction,
+        if name == "mean" {
+          @numeric.Average
+        } else {
+          @numeric.Sum
+        },
+        contributors,
+        expected_count,
+        max_work,
+      ),
+    )
+  })
+  let completed = execute_generated_sequence(
+    bind_generated_numeric_execution(generated, numeric),
+    [],
+    { rows: run_limits(), max_work: 100000, max_frames: 100, },
+  ).unwrap()
+  let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+  assert_eq(table.names, ["k", "mean", "total"])
+  assert_eq(table.rows.length(), 2)
+  assert_true(table.rows[0][0] is Null)
+  assert_true(table.rows[0][1] is Null)
+  assert_true(table.rows[0][2] is Null)
+  assert_true(table.rows[1][0] is Number(1.0))
+  assert_true(table.rows[1][1] is Number(0.0))
+  assert_true(table.rows[1][2] is Number(0.0))
+  assert_true(valid.val)
+  assert_eq(calls, ["mean:0", "total:0", "mean:1", "total:1"])
+}
+
+///|
 test "aggregate filters gate expression demand before ordered distinct folds" {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":0},{\"id\":1},{\"id\":2},{\"id\":2}]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"expr\":\"10 / id\",\"filter\":\"id > 0\",\"distinct\":true,\"order_by\":[{\"id\":\"desc\"}],\"max_items\":4}}}}]",

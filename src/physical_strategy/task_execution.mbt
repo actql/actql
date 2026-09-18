@@ -15,6 +15,8 @@ struct TaskExecution {
   mut resident : ResidentExecution?
   attempt : @execution.ManagedExecutionAttempt
   numeric : Array[TaskNumericReduction]
+  numeric_captures : Array[TaskNumericCapture]
+  mut numeric_sealed : Bool
 }
 
 ///|
@@ -23,6 +25,16 @@ struct TaskExecution {
 priv struct TaskNumericReduction {
   observation : TaskNumericObservation
   reduction : @numeric.Reduction
+}
+
+///|
+/// One exact dynamic occurrence captured before managed completion. The value
+/// is the outcome returned by the selected common reduction, not a connector
+/// supplied summary.
+priv struct TaskNumericCapture {
+  selected : Int
+  occurrence : Int
+  outcome : @numeric.Outcome
 }
 
 ///|
@@ -273,6 +285,8 @@ pub fn[I, T] start_captured_managed_execution(
         resident: None,
         attempt: @execution.issue_managed_execution_attempt(),
         numeric,
+        numeric_captures: [],
+        numeric_sealed: false,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -417,6 +431,8 @@ fn[T] start_task_execution(
         resident,
         attempt: @execution.issue_managed_execution_attempt(),
         numeric: [],
+        numeric_captures: [],
+        numeric_sealed: true,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -454,29 +470,112 @@ pub fn task_execution_numeric_reduction_count(
 }
 
 ///|
-/// Execute one selected reduction through the attempt-owned common boundary.
-/// Connectors cannot substitute another member or operation at execution time.
-pub fn execute_task_numeric_reduction(
+/// Execute and retain one dynamic occurrence through the attempt-owned common
+/// boundary. A connector cannot replace a member, duplicate an occurrence, or
+/// add observations after sealing the successful evaluation.
+pub fn execute_task_numeric_reduction_for_slot(
   run : CapturedDAG,
   execution : TaskExecution,
-  index : Int,
+  step : Int,
+  name : String,
+  occurrence : Int,
   contributors : Array[Double],
   expected_count : Int,
   max_work : Int,
 ) -> Result[@numeric.Outcome, @numeric.ReductionIssue]? {
-  if !task_execution_matches(run, execution) || execution.disposed {
+  if !task_execution_matches(run, execution) ||
+    execution.disposed ||
+    execution.numeric_sealed ||
+    occurrence < 0 {
     return None
   }
-  guard execution.numeric.get(index) is Some(selected) else { return None }
-  Some(
+  let mut selected_index = None
+  for index, selected in execution.numeric {
+    if selected.observation.step == step && selected.observation.name == name {
+      if selected_index is Some(_) {
+        return None
+      }
+      selected_index = Some(index)
+    }
+  }
+  guard selected_index is Some(index) else { return None }
+  if execution.numeric_captures.any(capture => {
+      capture.selected == index && capture.occurrence == occurrence
+    }) {
+    return None
+  }
+  let selected = execution.numeric[index]
+  match
     @numeric.execute(
       selected.reduction,
       selected.observation.operation,
       contributors,
       expected_count,
       max_work,
-    ),
-  )
+    ) {
+    Err(issue) => Some(Err(issue))
+    Ok(outcome) => {
+      execution.numeric_captures.push({ selected: index, occurrence, outcome, })
+      Some(Ok(outcome))
+    }
+  }
+}
+
+///|
+/// Seal the exact attempt after its evaluator has emitted every occurrence.
+/// Completion refuses an unsealed numeric execution.
+pub fn seal_task_numeric_reductions(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  occurrence_count : Int,
+) -> Bool {
+  if !task_execution_matches(run, execution) ||
+    execution.disposed ||
+    execution.numeric_sealed ||
+    occurrence_count < 0 {
+    return false
+  }
+  let counts = Array::make(execution.numeric.length(), 0)
+  for capture in execution.numeric_captures {
+    if capture.selected < 0 ||
+      capture.selected >= counts.length() ||
+      capture.occurrence < 0 ||
+      capture.occurrence >= occurrence_count {
+      return false
+    }
+    counts[capture.selected] = counts[capture.selected] + 1
+  }
+  if counts.any(count => count != occurrence_count) {
+    return false
+  }
+  execution.numeric_sealed = true
+  true
+}
+
+///|
+pub fn task_execution_numeric_capture_count(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Int? {
+  if task_execution_matches(run, execution) {
+    Some(execution.numeric_captures.length())
+  } else {
+    None
+  }
+}
+
+///|
+pub fn task_execution_numeric_capture_work(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  index : Int,
+) -> Int? {
+  if !task_execution_matches(run, execution) {
+    return None
+  }
+  execution.numeric_captures
+  .get(index)
+  .map(capture => @numeric.outcome_work(capture.outcome))
 }
 
 ///|
