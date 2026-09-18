@@ -84,12 +84,13 @@ function resultDefinition(name = 'answer') {
   });
 }
 
-function publicationRequest(result = resultDefinition()) {
+function publicationRequest(result = resultDefinition(),
+  runDefinitionCid = cids.run) {
   return seal('publication_request', {
     version: 'actql-publication-request/0.1',
     tenant_id: 'tenant-a',
     authority_scope_cid: cids.scope,
-    run_definition_cid: cids.run,
+    run_definition_cid: runDefinitionCid,
     inventory: [{
       result_name: result.result_name,
       result_definition_cid: result.result_definition_cid,
@@ -104,7 +105,7 @@ function publicationAttempt(request, attemptId = 'attempt-1') {
   return seal('publication_attempt', {
     version: 'actql-publication-attempt/0.1',
     publication_request_cid: request.publication_request_cid,
-    run_definition_cid: cids.run,
+    run_definition_cid: request.run_definition_cid,
     attempt_id: attemptId,
     fence_cid: cids.fence,
     started_at: '2026-09-18T00:00:01.000Z',
@@ -131,11 +132,11 @@ function indexEntry(request, attempt, invocationValue, values = {}) {
     version: 'actql-public-index-entry/0.1',
     tenant_id: 'tenant-a',
     authority_scope_cid: cids.scope,
-    run_definition_cid: cids.run,
+    run_definition_cid: request.run_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
-    result_manifest_cid: cids.manifest,
-    run_receipt_cid: cids.receipt,
-    captured_run_cid: cids.captured,
+    result_manifest_cid: invocationValue.invocation_cid,
+    run_receipt_cid: invocationValue.invocation_cid,
+    captured_run_cid: invocationValue.invocation_cid,
     publication_request_cid: request.publication_request_cid,
     publication_attempt_cid: attempt.publication_attempt_cid,
     committed_at: '2026-09-18T00:00:09.000Z',
@@ -149,16 +150,35 @@ const indexKey = Object.freeze({
   runDefinitionCid: cids.run,
 });
 
+const indexKeyFor = request => Object.freeze({
+  tenantId: request.tenant_id,
+  authorityScopeCid: request.authority_scope_cid,
+  runDefinitionCid: request.run_definition_cid,
+});
+
+function physicalCommitEvidence(invocationValue) {
+  // This suite isolates filesystem durability and CAS behavior with the
+  // independent contract-control fixture. The product integration suite uses
+  // distinct real contracts and the MoonBit commit-chain verdict.
+  const contract = contractControl.admit(
+    'run_invocation', wire(invocationValue), limits,
+  );
+  return Object.freeze({
+    runDefinition: contract,
+    invocation: contract,
+    definitions: Object.freeze([contract]),
+    artifacts: Object.freeze([contract]),
+    manifest: contract,
+    receipt: contract,
+    capturedRun: contract,
+  });
+}
+
 async function prepareCommit(store, request, attempt, invocationValue) {
-  const semantic = [
-    [invocationValue, invocationValue.invocation_cid],
-    [{version: 'manifest'}, cids.manifest],
-    [{version: 'receipt'}, cids.receipt],
-    [{version: 'captured'}, cids.captured],
-  ];
-  for (const [value, cid] of semantic) {
-    await store.putSemantic(wire(value), cid);
-  }
+  await store.putPublicationContract(
+    'run_invocation', wire(invocationValue),
+  );
+  const evidence = physicalCommitEvidence(invocationValue);
   await store.putPublicationContract('publication_request', wire(request));
   await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
@@ -168,14 +188,12 @@ async function prepareCommit(store, request, attempt, invocationValue) {
   return {
     preparing,
     committing,
-    required: [
+    evidence,
+    required: [...new Set([
       invocationValue.invocation_cid,
-      cids.manifest,
-      cids.receipt,
-      cids.captured,
       request.publication_request_cid,
       attempt.publication_attempt_cid,
-    ],
+    ])],
   };
 }
 
@@ -283,14 +301,20 @@ test('public index is invisible before commit and survives a lost response',
   async t => {
     const {store, configuration} = await fixture(t);
     const invocationValue = invocation();
-    const request = publicationRequest();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
     const attempt = publicationAttempt(request);
     const prepared = await prepareCommit(
       store, request, attempt, invocationValue,
     );
-    assert.equal(await store.inspectCommittedIndex(indexKey), undefined);
+    assert.equal(await store.inspectCommittedIndex(
+      indexKeyFor(request),
+    ), undefined);
     const entry = indexEntry(request, attempt, invocationValue);
-    const committed = await store.commitIndex(wire(entry), prepared.required);
+    const committed = await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
     assert.equal(committed.committed, true);
     // Simulate losing the response after the durable commit by closing without
     // appending the terminal attempt record, then reconcile after restart.
@@ -298,7 +322,9 @@ test('public index is invisible before commit and survives a lost response',
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
-    assert.deepEqual(await reopened.inspectCommittedIndex(indexKey), entry);
+    assert.deepEqual(await reopened.inspectCommittedIndex(
+      indexKeyFor(request),
+    ), entry);
     const succeeded = publicationRecord(attempt, 2, 'succeeded',
       prepared.committing, {public_index_entry_cid: entry.public_index_entry_cid});
     await reopened.appendRecord(
@@ -313,13 +339,17 @@ test('same intent is idempotent while conflicting commit is rejected',
   async t => {
     const {store} = await fixture(t);
     const invocationValue = invocation();
-    const request = publicationRequest();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
     const attempt = publicationAttempt(request);
     const prepared = await prepareCommit(
       store, request, attempt, invocationValue,
     );
     const entry = indexEntry(request, attempt, invocationValue);
-    await store.commitIndex(wire(entry), prepared.required);
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
 
     const retryAttempt = publicationAttempt(request, 'attempt-2');
     const retry = await prepareCommit(
@@ -329,13 +359,15 @@ test('same intent is idempotent while conflicting commit is rejected',
       committed_at: '2026-09-18T00:01:00.000Z',
     });
     const idempotent = await store.commitIndex(
-      wire(retryEntry), retry.required,
+      wire(retryEntry), retry.required, retry.evidence,
     );
     assert.equal(idempotent.committed, false);
     assert.equal(idempotent.idempotent, true);
     assert.deepEqual(idempotent.entry, entry);
 
-    const conflictingRequest = publicationRequest(resultDefinition('other'));
+    const conflictingRequest = publicationRequest(
+      resultDefinition('other'), invocationValue.invocation_cid,
+    );
     const conflictAttempt = publicationAttempt(
       conflictingRequest, 'attempt-3',
     );
@@ -346,7 +378,7 @@ test('same intent is idempotent while conflicting commit is rejected',
       conflictingRequest, conflictAttempt, invocationValue,
     );
     await assert.rejects(store.commitIndex(
-      wire(conflictingEntry), conflict.required,
+      wire(conflictingEntry), conflict.required, conflict.evidence,
     ), code('PublicationCommitConflict'));
   });
 

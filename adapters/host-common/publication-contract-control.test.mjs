@@ -159,7 +159,8 @@ test('portable control validates the exact Run Result publication chain', () => 
   ), false);
 });
 
-test('portable control validates Receipt and Captured Run references', () => {
+test('portable control validates Receipt and Captured Run references',
+  async t => {
   const control = runtimeCore(moon).publicationControl;
   const observation = sealEmbedded(minimumValue(
     protocolSchemas.run_receipt.properties.observation_set,
@@ -388,6 +389,94 @@ test('portable control validates Receipt and Captured Run references', () => {
     wrongIndex,
     limits,
   ), false);
+  const directory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-chain-',
+  ));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const store = await openLocalPublicationStore({
+    directory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  for (const contract of [
+    run,
+    invoked,
+    definition,
+    artifact,
+    manifest,
+    receipt,
+    captured,
+    request,
+    foreignDefinition,
+  ]) {
+    await store.putPublicationContract(contract.name, contract.wire);
+  }
+  await store.createAttempt(attempt.wire);
+  const preparing = control.seal('publication_record', JSON.stringify({
+    version: 'actql-publication-record/0.1',
+    publication_attempt_cid: attempt.identity,
+    sequence: 0,
+    state: 'preparing',
+    observed_at: '2026-09-18T00:00:03.000Z',
+    cleanup_owner_cids: [],
+  }), limits);
+  await store.appendRecord(preparing.wire, {
+    uncommittedConfirmed: false,
+  });
+  const committing = control.seal('publication_record', JSON.stringify({
+    version: 'actql-publication-record/0.1',
+    publication_attempt_cid: attempt.identity,
+    prior_record_cid: preparing.identity,
+    sequence: 1,
+    state: 'committing',
+    observed_at: '2026-09-18T00:00:04.000Z',
+    cleanup_owner_cids: [],
+  }), limits);
+  await store.appendRecord(committing.wire, {
+    uncommittedConfirmed: false,
+  });
+  const evidence = Object.freeze({
+    runDefinition: run,
+    invocation: invoked,
+    definitions: Object.freeze([definition]),
+    artifacts: Object.freeze([artifact]),
+    manifest,
+    receipt,
+    capturedRun: captured,
+  });
+  const required = [...new Set([
+    run.identity,
+    invoked.identity,
+    definition.identity,
+    artifact.identity,
+    manifest.identity,
+    receipt.identity,
+    captured.identity,
+    request.identity,
+    attempt.identity,
+  ])];
+  const foreignEvidence = Object.freeze({
+    ...evidence,
+    definitions: Object.freeze([foreignDefinition]),
+  });
+  await assert.rejects(store.commitIndex(
+    indexEntry.wire,
+    [...new Set([...required, foreignDefinition.identity])],
+    foreignEvidence,
+  ), error => error?.code === 'InvalidPublicationCommitChain');
+  const committed = await store.commitIndex(
+    indexEntry.wire, required, evidence,
+  );
+  assert.equal(committed.committed, true);
+  assert.deepEqual(await store.inspectCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  }), JSON.parse(indexEntry.wire));
 });
 
 test('local durable Store accepts only MoonBit-admitted contract wire',

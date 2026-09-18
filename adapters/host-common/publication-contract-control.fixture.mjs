@@ -275,6 +275,32 @@ export function createPublicationContractControlFixture() {
       return record.name === 'publication_record' &&
         token(record).state === 'committing';
     },
+    effectFreeCommitValid(
+      runDefinition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      capturedRun,
+      request,
+      attempt,
+      indexEntry,
+    ) {
+      const contracts = [
+        runDefinition,
+        invocation,
+        ...definitions,
+        ...artifacts,
+        manifest,
+        receipt,
+        capturedRun,
+        request,
+        attempt,
+        indexEntry,
+      ];
+      return contracts.every(contract => token(contract) !== undefined);
+    },
     deliveryTransition(previous, next) {
       const current = token(next);
       const prior = previous === undefined ? undefined : token(previous);

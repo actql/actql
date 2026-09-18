@@ -97,7 +97,8 @@ function validateContractControl(value) {
   if (value === null || typeof value !== 'object' ||
       typeof value.admit !== 'function' ||
       typeof value.recordTransition !== 'function' ||
-      typeof value.recordAllowsCommit !== 'function') {
+      typeof value.recordAllowsCommit !== 'function' ||
+      typeof value.effectFreeCommitValid !== 'function') {
     fail('InvalidPublicationContractControl');
   }
   return value;
@@ -629,7 +630,11 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     return entry;
   };
 
-  const commitIndex = async (suppliedWire, requiredObjectCids) => {
+  const commitIndex = async (
+    suppliedWire,
+    requiredObjectCids,
+    suppliedEvidence,
+  ) => {
     active();
     const admitted = admitContract('public_index_entry', suppliedWire);
     const entry = parseContract(admitted);
@@ -649,14 +654,74 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     ]) {
       if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
     }
+    if (!exactKeys(suppliedEvidence, [
+      'runDefinition',
+      'invocation',
+      'definitions',
+      'artifacts',
+      'manifest',
+      'receipt',
+      'capturedRun',
+    ]) || !Array.isArray(suppliedEvidence.definitions) ||
+        suppliedEvidence.definitions.length === 0 ||
+        !Array.isArray(suppliedEvidence.artifacts) ||
+        suppliedEvidence.artifacts.length === 0) {
+      fail('InvalidPublicationCommitEvidence');
+    }
+    const evidenceContracts = [
+      suppliedEvidence.runDefinition,
+      suppliedEvidence.invocation,
+      ...suppliedEvidence.definitions,
+      ...suppliedEvidence.artifacts,
+      suppliedEvidence.manifest,
+      suppliedEvidence.receipt,
+      suppliedEvidence.capturedRun,
+    ];
+    for (const contract of evidenceContracts) {
+      if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
+          typeof contract.name !== 'string' ||
+          typeof contract.identityField !== 'string' ||
+          !cidPattern.test(contract.identity) ||
+          typeof contract.wire !== 'string' ||
+          !required.has(contract.identity)) {
+        fail('InvalidPublicationCommitEvidence');
+      }
+      const persisted = await readSemanticBytes(contract.identity);
+      if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
+        fail('PublicationCommitEvidenceMismatch');
+      }
+    }
     for (const cid of required) await readSemanticBytes(cid);
-    const attempt = await readJsonObject(
+    const attemptStored = await readContract(
       entry.publication_attempt_cid, 'publication_attempt',
+    );
+    const attempt = attemptStored.value;
+    const requestStored = await readContract(
+      entry.publication_request_cid, 'publication_request',
     );
     if (attempt.publication_request_cid !== entry.publication_request_cid ||
         attempt.run_definition_cid !== entry.run_definition_cid) {
       fail('PublicationAttemptMismatch');
     }
+    let chainValid = false;
+    try {
+      chainValid = contractControl.effectFreeCommitValid(
+        suppliedEvidence.runDefinition,
+        suppliedEvidence.invocation,
+        suppliedEvidence.definitions,
+        suppliedEvidence.artifacts,
+        suppliedEvidence.manifest,
+        suppliedEvidence.receipt,
+        suppliedEvidence.capturedRun,
+        requestStored.contract,
+        attemptStored.contract,
+        admitted,
+        contractLimits,
+      );
+    } catch (error) {
+      fail('InvalidPublicationCommitChain', error);
+    }
+    if (chainValid !== true) fail('InvalidPublicationCommitChain');
     const previous = await latestRecordContract(entry.publication_attempt_cid);
     if (previous === undefined ||
         contractControl.recordAllowsCommit(previous) !== true) {
