@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {createManagedMemoryTransferProvider} from
   './managed-memory-transfer.mjs';
 import {registerManagedMemoryInput, withManagedInputRows} from
@@ -167,6 +168,75 @@ test('transfer charges before retention and rejects a byte overrun', async () =>
   }), {code: 'ManagedTransferByteLimit'});
   assert.deepEqual(events, []);
   assert.equal(original.registration.status().readers, 0);
+  await original.registration.close();
+});
+
+test('transfer counts exact UTF-8 bytes before bounded retention', async () => {
+  const rows = [
+    '{"t":"ASCII"}',
+    '{"t":"日本語"}',
+    '{"t":"😀"}',
+    '{"t":"escaped\\n\\\"value"}',
+  ];
+  const exactBytes = rows.reduce((sum, row) =>
+    sum + Buffer.byteLength(row, 'utf8'), 0);
+  const exactEstimate = Object.freeze({
+    transferBytes: BigInt(exactBytes),
+    retainedBytes: 16384n,
+    executionBytes: 128n,
+  });
+  const original = source(rows, exactEstimate);
+  const charged = [];
+  const provider = createManagedMemoryTransferProvider({
+    maxBatchRows: rows.length,
+    maxBatchBytes: exactBytes,
+  });
+  const destination = await provider.copy({
+    sourceMaterial: original.material,
+    input: original.input,
+    authorize: value => value === original.input,
+    destinationAuthorize: value => value === original.input,
+    charge: bytes => charged.push(bytes),
+    estimate: exactEstimate,
+  });
+  assert.equal(destination.bytes, BigInt(exactBytes));
+  assert.equal(charged.reduce((sum, value) => sum + value, 0n),
+    BigInt(exactBytes));
+  assert.deepEqual(await observeDestination(destination, original.input), rows);
+  await destination.close();
+  await original.registration.close();
+});
+
+test('batch rejection does not allocate a row-sized UTF-8 array', async () => {
+  const cell = 'a'.repeat(900 * 1024);
+  const row = JSON.stringify(Object.fromEntries(
+    Array.from({length: 9}, (_, index) => [`c${index}`, cell]),
+  ));
+  assert.ok(Buffer.byteLength(row, 'utf8') > 1024 * 1024);
+  const largeEstimate = Object.freeze({
+    transferBytes: BigInt(Buffer.byteLength(row, 'utf8')),
+    retainedBytes: BigInt(row.length * 2 + 4096),
+    executionBytes: 1024n * 1024n,
+  });
+  const original = source([row], largeEstimate);
+  const provider = createManagedMemoryTransferProvider({
+    maxBatchRows: 256,
+    maxBatchBytes: 1024 * 1024,
+  });
+  const charged = [];
+  await assert.rejects(provider.copy({
+    sourceMaterial: original.material,
+    input: original.input,
+    authorize: () => true,
+    destinationAuthorize: () => true,
+    charge: bytes => charged.push(bytes),
+    estimate: largeEstimate,
+  }), {code: 'ManagedTransferBatchLimit'});
+  assert.deepEqual(charged, []);
+  assert.equal(original.registration.status().readers, 0);
+  const implementation = await readFile(
+    new URL('./managed-memory-transfer.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(implementation, /TextEncoder|\.encode\(row\)/);
   await original.registration.close();
 });
 

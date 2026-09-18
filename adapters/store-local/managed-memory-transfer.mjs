@@ -4,8 +4,8 @@
 // logical CID; the common Host supplies authorization and ledger accounting.
 import {managedInputTransferEstimate, registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
+import {Buffer} from 'node:buffer';
 
-const encoder = new TextEncoder();
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
@@ -82,7 +82,10 @@ export function createManagedMemoryTransferProvider({
       const append = async row => {
         signal?.throwIfAborted();
         if (typeof row !== 'string') fail('InvalidManagedTransferRow');
-        const wireBytes = encoder.encode(row).byteLength;
+        // This provider needs the exact wire length, not an owned byte copy.
+        // Buffer.byteLength scans the string without allocating a row-sized
+        // Uint8Array before the execution-workspace bound is checked.
+        const wireBytes = Buffer.byteLength(row, 'utf8');
         if (wireBytes > maxBatchBytes) fail('ManagedTransferBatchLimit');
         if (current.length >= maxBatchRows ||
             currentBytes > maxBatchBytes - wireBytes) flush();
