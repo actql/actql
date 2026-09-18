@@ -113,6 +113,67 @@ test('installed publication control uses the portable contract owner', () => {
   );
 });
 
+test('portable evidence owner issues Invocation after exact capture', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const template = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      version: 'actql-bound-invocation-template/0.1',
+      program_definition_cid: cid('1'),
+      parameter_values_cid: cid('2'),
+      invocation_bindings_cid: cid('3'),
+      check_environment_cid: cid('4'),
+      grammar_manifest_cid: cid('5'),
+      required_profile_contracts: [],
+      barrier_contract_manifest_cid: cid('6'),
+      source_evidence: 'unbound',
+    }),
+    limits,
+  );
+  const observation = control.sealRunEvidence(
+    'observation_set',
+    JSON.stringify({
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: template.identity,
+      source_evidence_cids: [],
+      captured_input_artifact_cids: [],
+      consistency: 'no_external_sources',
+      capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {
+        materialized: false,
+        availability_evidence_cids: [],
+      },
+      data_policy_cid: cid('7'),
+    }),
+    limits,
+  );
+  assert.deepEqual(
+    control.admitRunEvidence(template.name, template.wire, limits),
+    template,
+  );
+  const issued = control.issueRunInvocation(template, observation, limits);
+  assert.deepEqual(JSON.parse(issued.wire), {
+    invocation_cid: issued.identity,
+    invocation_template_cid: template.identity,
+    observation_set_cid: observation.identity,
+    version: 'actql-run-invocation/0.1',
+  });
+  const foreign = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      ...JSON.parse(template.wire),
+      bound_invocation_template_cid: undefined,
+      program_definition_cid: cid('8'),
+    }),
+    limits,
+  );
+  assert.throws(
+    () => control.issueRunInvocation(foreign, observation, limits),
+    {code: 'MoonBitHostFailure'},
+  );
+});
+
 test('portable control validates the exact Run Result publication chain', () => {
   const control = runtimeCore(moon).publicationControl;
   const run = control.seal('run_definition', JSON.stringify({

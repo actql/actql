@@ -10,6 +10,8 @@ pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[Publi
 
 pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
 
+pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
@@ -35,6 +37,8 @@ pub fn issue_publication_request(PublicationContract, Array[PublicationContract]
 pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
+
+pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
@@ -68,7 +72,15 @@ pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
 
 pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
 
+pub fn run_evidence_value_identity(RunEvidenceValue) -> String
+
+pub fn run_evidence_value_json(RunEvidenceValue) -> String
+
+pub fn run_evidence_value_name(RunEvidenceValue) -> String
+
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
+pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
 
@@ -270,6 +282,21 @@ pub(all) enum RunEvidenceChainIssue {
   EvidenceInventoryMismatch(String)
   EvidenceNotEffectFree
   EvidenceEncoding
+} derive(Eq, @debug.Debug)
+
+type RunEvidenceValue
+
+pub(all) enum RunEvidenceValueIssue {
+  UnknownRunEvidence
+  RunEvidenceInvalidLimits
+  RunEvidenceInvalidWire
+  RunEvidenceInvalidShape
+  RunEvidenceIdentityAlreadyPresent
+  RunEvidenceIdentityMissing
+  RunEvidenceIdentityMismatch
+  RunEvidenceEncoding
+  RunEvidenceReferenceMismatch(String)
+  RunEvidenceContract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunNextAction {

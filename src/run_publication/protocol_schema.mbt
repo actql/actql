@@ -4,6 +4,7 @@ priv enum ProtocolSchemaRule {
   NullRule
   BoolRule(Bool?)
   StringRule(String?, Array[String], Int, Int)
+  NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool)
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?)
@@ -49,6 +50,11 @@ fn protocol_integer_rule(
   maximum : Int64?,
 ) -> ProtocolSchemaRule {
   IntegerRule(minimum, maximum)
+}
+
+///|
+fn protocol_number_rule() -> ProtocolSchemaRule {
+  NumberRule
 }
 
 ///|
@@ -118,6 +124,7 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
     2 => valid_timestamp(value)
     3 => valid_version_token(value)
     4 => valid_digest(value)
+    5 => value.has_prefix("$")
     _ => false
   }
 }
@@ -187,6 +194,7 @@ fn validate_protocol_node(
           protocol_string_pattern(text, pattern)
         _ => false
       }
+    NumberRule => value is @json.Number(_)
     IntegerRule(minimum, maximum) =>
       match value {
         @json.Number(number) =>

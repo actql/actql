@@ -193,6 +193,8 @@ pub fn strategy_issue_publication_request(@run_publication.PublicationContract, 
 
 pub fn strategy_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_issue_run_invocation(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String
@@ -208,6 +210,16 @@ pub fn strategy_publication_record_allows_commit(@run_publication.PublicationCon
 pub fn strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_run_evidence_admit(String, String, Int, Int, Int) -> @run_publication.RunEvidenceValue raise NodeHostFailure
+
+pub fn strategy_run_evidence_identity(@run_publication.RunEvidenceValue) -> String
+
+pub fn strategy_run_evidence_json(@run_publication.RunEvidenceValue) -> String
+
+pub fn strategy_run_evidence_name(@run_publication.RunEvidenceValue) -> String
+
+pub fn strategy_run_evidence_seal(String, String, Int, Int, Int) -> @run_publication.RunEvidenceValue raise NodeHostFailure
 
 pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 

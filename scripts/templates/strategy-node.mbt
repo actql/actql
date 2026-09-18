@@ -478,6 +478,84 @@ pub fn strategy_publication_admit(
 }
 
 ///|
+#export_name("strategyRunEvidenceSeal")
+pub fn strategy_run_evidence_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise NodeHostFailure {
+  match
+    @publication.seal_run_evidence_value(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunEvidenceAdmit")
+pub fn strategy_run_evidence_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise NodeHostFailure {
+  match
+    @publication.admit_run_evidence_value(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunEvidenceName")
+pub fn strategy_run_evidence_name(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_name(value)
+}
+
+///|
+#export_name("strategyRunEvidenceIdentity")
+pub fn strategy_run_evidence_identity(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_identity(value)
+}
+
+///|
+#export_name("strategyRunEvidenceJson")
+pub fn strategy_run_evidence_json(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_json(value)
+}
+
+///|
+#export_name("strategyIssueRunInvocation")
+pub fn strategy_issue_run_invocation(
+  template : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_run_invocation(
+      template, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,

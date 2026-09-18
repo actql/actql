@@ -52,6 +52,7 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const evidenceTokens = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -67,6 +68,20 @@ function publicationControl(moon) {
     if (result === undefined) {
       throw new TypeError('Foreign publication contract');
     }
+    return result;
+  };
+  const inspectEvidence = evidence => {
+    const value = Object.freeze({
+      name: moon.strategyRunEvidenceName(evidence),
+      identity: moon.strategyRunEvidenceIdentity(evidence),
+      wire: moon.strategyRunEvidenceJson(evidence),
+    });
+    evidenceTokens.set(value, evidence);
+    return value;
+  };
+  const evidenceToken = value => {
+    const result = evidenceTokens.get(value);
+    if (result === undefined) throw new TypeError('Foreign Run evidence');
     return result;
   };
   const issuanceLimits = (limits, label) => {
@@ -94,6 +109,36 @@ function publicationControl(moon) {
       return inspect(checked(moon.strategyPublicationAdmit(
         name,
         completeWire,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    sealRunEvidence(name, bodyWire, limits) {
+      issuanceLimits(limits, 'Run evidence');
+      return inspectEvidence(checked(moon.strategyRunEvidenceSeal(
+        name,
+        bodyWire,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    admitRunEvidence(name, completeWire, limits) {
+      issuanceLimits(limits, 'Run evidence');
+      return inspectEvidence(checked(moon.strategyRunEvidenceAdmit(
+        name,
+        completeWire,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueRunInvocation(template, observation, limits) {
+      issuanceLimits(limits, 'Run Invocation');
+      return inspect(checked(moon.strategyIssueRunInvocation(
+        evidenceToken(template),
+        evidenceToken(observation),
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,

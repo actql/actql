@@ -10,6 +10,38 @@ const output = join(
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
 const selected = Object.freeze({
+  bound_invocation_template: Object.freeze({
+    schema: 'bound_invocation_template',
+    identity: 'bound_invocation_template_cid',
+  }),
+  prepared_invocation: Object.freeze({
+    schema: 'prepared_invocation',
+    identity: 'prepared_invocation_cid',
+  }),
+  run_authorization: Object.freeze({
+    schema: 'run_authorization',
+    identity: 'run_authorization_cid',
+  }),
+  observation_set: Object.freeze({
+    schema: 'observation_set',
+    identity: 'observation_set_cid',
+  }),
+  normalization_journal: Object.freeze({
+    schema: 'normalization_journal',
+    identity: 'journal_cid',
+  }),
+  source_evidence: Object.freeze({
+    schema: 'source_evidence',
+    identity: 'source_evidence_cid',
+  }),
+  authoring_context: Object.freeze({
+    schema: 'authoring_context',
+    identity: 'authoring_context_cid',
+  }),
+  model_invocation_evidence: Object.freeze({
+    schema: 'model_invocation_evidence',
+    identity: 'model_invocation_evidence_cid',
+  }),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
     identity: 'receipt_identity_cid',
@@ -47,6 +79,7 @@ function patternTag(schema) {
       return 2;
     case '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$': return 3;
     case '^[0-9a-f]{64}$': return 4;
+    case '^\\$': return 5;
     default:
       throw new Error(`Unsupported publication schema pattern: ${schema.pattern}`);
   }
@@ -56,6 +89,11 @@ const nodes = [];
 function emitSchema(schema) {
   if (schema.oneOf !== undefined) {
     const alternatives = schema.oneOf.map(emitSchema);
+    nodes.push(`protocol_one_of_rule([${alternatives.join(', ')}])`);
+    return nodes.length - 1;
+  }
+  if (Array.isArray(schema.type)) {
+    const alternatives = schema.type.map(type => emitSchema({...schema, type}));
     nodes.push(`protocol_one_of_rule([${alternatives.join(', ')}])`);
     return nodes.length - 1;
   }
@@ -85,6 +123,10 @@ function emitSchema(schema) {
       `protocol_integer_rule(${optionInt64(schema.minimum)}, ` +
       `${optionInt64(schema.maximum)})`,
     );
+    return nodes.length - 1;
+  }
+  if (schema.type === 'number') {
+    nodes.push('protocol_number_rule()');
     return nodes.length - 1;
   }
   if (schema.type === 'array') {
