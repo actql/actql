@@ -96,6 +96,56 @@ test "empty map remains a node and filter fragment preserves outer producer" {
 }
 
 ///|
+test "group fragment retains source roots and canonical order expansion" {
+  let sequence = @lowering_relation.prepare_sequence(
+    expression_pipeline(
+      ",{\"group\":{\"by\":[\"id\"],\"aggregates\":{" +
+      "\"items\":{\"fn\":\"array_agg\",\"expr\":\"id + 1\"," +
+      "\"filter\":\"id > 0\",\"distinct\":true," +
+      "\"max_items\":3,\"order_by\":[{\"field\":\"id\"," +
+      "\"dir\":\"desc\",\"nulls\":\"first\"}]}}}}",
+    ),
+    sequence_limits(),
+  ).unwrap()
+  let fragment = @lowering_relation.prepare_fragment_pipeline(
+    sequence,
+    1,
+    root_limits(),
+  ).unwrap()
+  let source = fragment_wire(fragment, true)
+  assert_eq(
+    source,
+    "{\"output\":\"group_1\",\"sources\":{\"input\":{" +
+    "\"sort\":\"relation\"}},\"steps\":[{\"id\":\"group_1\"," +
+    "\"in\":[\"input\"],\"op\":\"REL.groupBy\",\"params\":{" +
+    "\"aggs\":{\"items\":{\"distinct\":true,\"expr\":{" +
+    "\"add\":[{\"field\":\"id\"},{\"literal\":1}]},\"filter\":{" +
+    "\"gt\":[{\"field\":\"id\"},{\"literal\":0}]},\"fn\":" +
+    "\"array_agg\",\"max_items\":3,\"order_by\":[{\"dir\":" +
+    "\"desc\",\"field\":\"id\",\"nulls\":\"first\"}]}},\"by\":" +
+    "[\"id\"]}}],\"version\":\"aoa-pipeline/0.1\"}",
+  )
+  let machine = fragment_wire(fragment, false)
+  assert_true(
+    machine.contains(
+      "{\"id\":\"aggregate_1\",\"in\":[\"input\"]," + "\"op\":\"REL.groupBy\"",
+    ),
+  )
+  assert_true(
+    machine.contains(
+      "{\"id\":\"group_1\",\"in\":[\"aggregate_1\"]," +
+      "\"op\":\"REL.orderByStable\"",
+    ),
+  )
+  assert_eq(
+    @lowering_relation.root_count(
+      @lowering_relation.fragment_pipeline_roots(fragment),
+    ),
+    2,
+  )
+}
+
+///|
 test "fragment pipeline writer budgets are cumulative and overflow is not publishable" {
   let sequence = @lowering_relation.prepare_sequence(
     expression_pipeline(",{\"derive\":{}}"),

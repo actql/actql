@@ -96,6 +96,58 @@ fn emit_fragment_pipeline(
         SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
         AssertAll(_) => "REL.assert_all"
+        Groups(_) => "REL.groupBy"
+        Select(_)
+        | AssertUnique(_)
+        | JsonPick(_, _, _)
+        | Limit(_, _, _)
+        | TopK(_, _)
+        | PartitionedTopK(_, _)
+        | Pivot(_)
+        | Unnest(_, _, _, _, _)
+        | Unpivot(_, _, _, _)
+        | DistinctRows
+        | DedupeRows
+        | StableSort(_)
+        | CountGroups(_) => raise @encode.InvalidStructure
+      },
+    )
+    @encode.key(out, "params")
+    if kernel.body is Groups(group) {
+      emit_group_params(group, out)
+    } else {
+      @encode.begin_object(out)
+      match kernel.body {
+        OrderedBindings(bindings) => {
+          @encode.key(out, "bindings")
+          @encode.begin_array(out)
+          for (name, expression) in bindings {
+            @encode.begin_object(out)
+            @encode.key(out, "name")
+            @encode.string_value(out, name)
+            @encode.key(out, "expr")
+            emit_expression_source(expression, out)
+            @encode.end_object(out)
+          }
+          @encode.end_array(out)
+        }
+        SnapshotMap(bindings) => {
+          @encode.key(out, "exprs")
+          @encode.begin_object(out)
+          for (name, expression) in bindings {
+            @encode.key(out, name)
+            emit_expression_source(expression, out)
+          }
+          @encode.end_object(out)
+        }
+        Filter(expression) => {
+          @encode.key(out, "expr")
+          emit_expression_source(expression, out)
+        }
+        AssertAll(expression) => {
+          @encode.key(out, "expr")
+          emit_expression_source(expression, out)
+        }
         Select(_)
         | AssertUnique(_)
         | JsonPick(_, _, _)
@@ -110,61 +162,17 @@ fn emit_fragment_pipeline(
         | StableSort(_)
         | CountGroups(_)
         | Groups(_) => raise @encode.InvalidStructure
-      },
-    )
-    @encode.key(out, "params")
-    @encode.begin_object(out)
-    match kernel.body {
-      OrderedBindings(bindings) => {
-        @encode.key(out, "bindings")
-        @encode.begin_array(out)
-        for (name, expression) in bindings {
-          @encode.begin_object(out)
-          @encode.key(out, "name")
-          @encode.string_value(out, name)
-          @encode.key(out, "expr")
-          emit_expression_source(expression, out)
-          @encode.end_object(out)
-        }
-        @encode.end_array(out)
       }
-      SnapshotMap(bindings) => {
-        @encode.key(out, "exprs")
-        @encode.begin_object(out)
-        for (name, expression) in bindings {
-          @encode.key(out, name)
-          emit_expression_source(expression, out)
-        }
-        @encode.end_object(out)
-      }
-      Filter(expression) => {
-        @encode.key(out, "expr")
-        emit_expression_source(expression, out)
-      }
-      AssertAll(expression) => {
-        @encode.key(out, "expr")
-        emit_expression_source(expression, out)
-      }
-      Select(_)
-      | AssertUnique(_)
-      | JsonPick(_, _, _)
-      | Limit(_, _, _)
-      | TopK(_, _)
-      | PartitionedTopK(_, _)
-      | Pivot(_)
-      | Unnest(_, _, _, _, _)
-      | Unpivot(_, _, _, _)
-      | DistinctRows
-      | DedupeRows
-      | StableSort(_)
-      | CountGroups(_)
-      | Groups(_) => raise @encode.InvalidStructure
+      @encode.end_object(out)
     }
-    @encode.end_object(out)
     @encode.end_object(out)
   } else {
     // Rebase only the local input reference, retaining checked owner and body.
-    emit_kernel_node({ ..kernel, input_id: "input", }, out)
+    let rebased = { ..kernel, input_id: "input", }
+    if rebased.body is Groups(_) {
+      emit_kernel_prefix(rebased, out)
+    }
+    emit_kernel_node(rebased, out)
   }
   @encode.end_array(out)
   @encode.key(out, "version")

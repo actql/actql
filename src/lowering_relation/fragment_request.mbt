@@ -86,7 +86,7 @@ pub fn emit_fragment_request(
           has_null = true
         }
       }
-    Filter(_) | AssertAll(_) => ()
+    Filter(_) | AssertAll(_) | Groups(_) => ()
     Select(_)
     | AssertUnique(_)
     | JsonPick(_, _, _)
@@ -99,8 +99,7 @@ pub fn emit_fragment_request(
     | DistinctRows
     | DedupeRows
     | StableSort(_)
-    | CountGroups(_)
-    | Groups(_) => raise @encode.InvalidStructure
+    | CountGroups(_) => raise @encode.InvalidStructure
   }
   if has_null {
     @encode.key(out, "null_contexts")
