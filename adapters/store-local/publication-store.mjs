@@ -11,7 +11,11 @@ import {
   open,
   readdir,
   readFile,
+  rename,
+  rm,
+  rmdir,
   unlink,
+  writeFile,
 } from 'node:fs/promises';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
@@ -69,6 +73,81 @@ async function readBounded(path, maximum) {
     fail('InvalidPublicationStoreObject');
   }
   return readFile(path);
+}
+
+async function processIsAlive(pid) {
+  if (!Number.isSafeInteger(pid) || pid < 1) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === 'ESRCH') return false;
+    if (error?.code === 'EPERM') return true;
+    throw error;
+  }
+}
+
+async function acquireStoreOwnership(root) {
+  const ownershipDirectory = resolve(root, 'owner');
+  const ownerPath = resolve(ownershipDirectory, 'owner.json');
+  const token = randomUUID();
+  while (true) {
+    try {
+      await mkdir(ownershipDirectory, {mode: 0o700});
+      const owner = Buffer.from(JSON.stringify({
+        version: 'actql-local-publication-store-owner/0.1',
+        pid: process.pid,
+        token,
+      }), 'utf8');
+      await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
+      await syncDirectory(ownershipDirectory);
+      await syncDirectory(root);
+      let released = false;
+      return Object.freeze({
+        async release() {
+          if (released) return false;
+          let existing;
+          try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+          catch (error) {
+            if (error?.code === 'ENOENT') return false;
+            throw error;
+          }
+          if (existing?.token !== token || existing?.pid !== process.pid) {
+            fail('PublicationStoreOwnershipLost');
+          }
+          await unlink(ownerPath);
+          await rmdir(ownershipDirectory);
+          await syncDirectory(root);
+          released = true;
+          return true;
+        },
+      });
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      let existing;
+      try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
+      catch (readError) {
+        if (readError?.code === 'ENOENT') {
+          fail('PublicationStoreBusy');
+        }
+        fail('InvalidPublicationStoreOwner', readError);
+      }
+      if (existing?.version !== 'actql-local-publication-store-owner/0.1' ||
+          typeof existing.token !== 'string' ||
+          !Number.isSafeInteger(existing.pid) || existing.pid < 1) {
+        fail('InvalidPublicationStoreOwner');
+      }
+      if (await processIsAlive(existing.pid)) fail('PublicationStoreBusy');
+      const stale = resolve(root, `stale-owner-${randomUUID()}`);
+      try { await rename(ownershipDirectory, stale); }
+      catch (renameError) {
+        if (renameError?.code === 'ENOENT') continue;
+        throw renameError;
+      }
+      await rm(stale, {recursive: true, force: false});
+      await syncDirectory(root);
+    }
+  }
 }
 
 function validateConfiguration(options) {
@@ -182,6 +261,11 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     fail('PublicationStoreObjectLimit');
   }
 
+  // One process owns the complete capacity authority for this local Store.
+  // A dead local owner can be reclaimed, but two live opens never maintain
+  // independent counters for the same physical allocation scope.
+  const ownership = await acquireStoreOwnership(root);
+
   let reservedBytes = 0;
   let reservedObjects = 0;
   let closed = false;
@@ -244,12 +328,17 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     const temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
     const hash = createHash('sha256');
     let bytes = 0;
+    let acceptedBytes = 0;
     let handle;
     let finished = false;
+    let cleanupPending = false;
+    let reservationHeld = true;
     let busy = Promise.resolve();
     const releaseReservation = () => {
+      if (!reservationHeld) return;
       reservedBytes -= maxBytes;
       reservedObjects--;
+      reservationHeld = false;
     };
     const start = async () => {
       try {
@@ -272,34 +361,65 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     };
     const cleanupTemporary = async () => {
       if (handle) {
-        try { await handle.close(); } catch {}
+        await handle.close();
         handle = undefined;
       }
       try { await unlink(temporary); }
       catch (error) { if (error?.code !== 'ENOENT') throw error; }
       await syncDirectory(stagingDirectory);
     };
+    const cleanupAndRelease = async () => {
+      try {
+        await cleanupTemporary();
+        cleanupPending = false;
+        releaseReservation();
+      } catch (error) {
+        cleanupPending = true;
+        throw error;
+      }
+    };
     return Object.freeze({
       append(frame) {
+        let length;
+        if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
+          length = frame.byteLength;
+        } else if (typeof frame === 'string') {
+          length = Buffer.byteLength(frame, 'utf8');
+        } else {
+          return queue(async () => fail('PublicationObjectLimit'));
+        }
+        if (finished || length > maxBytes - acceptedBytes) {
+          return queue(async () => {
+            if (finished) fail('PublicationObjectWriterClosed');
+            fail('PublicationObjectLimit');
+          });
+        }
+        // Snapshot caller-owned mutable input only after its exact size is
+        // known to fit. No rejected frame can force an unbounded copy.
+        const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
+          frame instanceof Uint8Array ? Buffer.from(frame) :
+            Buffer.from(frame, 'utf8');
+        acceptedBytes += length;
         return queue(async () => {
           await ready;
           if (finished) fail('PublicationObjectWriterClosed');
-          const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
-            frame instanceof Uint8Array ? Buffer.from(frame) :
-              typeof frame === 'string' ? Buffer.from(frame, 'utf8') : null;
-          if (buffer === null || bytes + buffer.byteLength > maxBytes) {
-            fail('PublicationObjectLimit');
+          try {
+            let offset = 0;
+            while (offset < buffer.byteLength) {
+              const result = await handle.write(
+                buffer, offset, buffer.byteLength - offset, bytes + offset,
+              );
+              if (result.bytesWritten === 0) {
+                fail('IncompletePublicationWrite');
+              }
+              offset += result.bytesWritten;
+            }
+            hash.update(buffer);
+            bytes += buffer.byteLength;
+          } catch (error) {
+            finished = true;
+            throw error;
           }
-          let offset = 0;
-          while (offset < buffer.byteLength) {
-            const result = await handle.write(
-              buffer, offset, buffer.byteLength - offset, bytes + offset,
-            );
-            if (result.bytesWritten === 0) fail('IncompletePublicationWrite');
-            offset += result.bytesWritten;
-          }
-          hash.update(buffer);
-          bytes += buffer.byteLength;
         });
       },
       seal(expectedCid) {
@@ -335,23 +455,29 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
               }
             }
             return Object.freeze({cid, bytes, created: installed});
-          } finally {
-            releaseReservation();
-            await cleanupTemporary();
-          }
+          } finally { await cleanupAndRelease(); }
         });
       },
       cancel() {
         return queue(async () => {
-          await ready;
-          if (finished) return false;
+          try { await ready; }
+          catch (error) {
+            if (!reservationHeld) return false;
+            throw error;
+          }
+          if (finished && !reservationHeld) return false;
           finished = true;
-          releaseReservation();
-          await cleanupTemporary();
+          await cleanupAndRelease();
           return true;
         });
       },
-      status: () => Object.freeze({maxBytes, bytes, finished}),
+      status: () => Object.freeze({
+        maxBytes,
+        bytes,
+        finished,
+        cleanupPending,
+        reservationHeld,
+      }),
     });
   };
 
@@ -374,11 +500,37 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     try {
       await writer.append(buffer);
       return await writer.seal(cid);
-    } catch (error) {
+    } catch (primaryFailure) {
+      const cleanupErrors = [];
       try {
-        if (!writer.status().finished) await writer.cancel();
-      } catch {}
-      throw error;
+        const status = writer.status();
+        if (status.reservationHeld) await writer.cancel();
+      } catch (error) { cleanupErrors.push(error); }
+      if (!writer.status().reservationHeld) throw primaryFailure;
+      const code = typeof primaryFailure?.code === 'string'
+        ? primaryFailure.code : 'PublicationObjectWriteFailed';
+      const failure = new PublicationStoreError(code, primaryFailure);
+      failure.primaryFailure = primaryFailure;
+      const status = () => Object.freeze({
+        pending: writer.status().reservationHeld,
+        errors: Object.freeze([...cleanupErrors]),
+      });
+      const cleanupHandle = Object.freeze({
+        status,
+        async retry() {
+          if (writer.status().reservationHeld) {
+            try { await writer.cancel(); }
+            catch (error) { cleanupErrors.push(error); }
+          }
+          failure.cleanupPending = status().pending;
+          failure.cleanupErrors = status().errors;
+          return status();
+        },
+      });
+      failure.cleanupPending = true;
+      failure.cleanupErrors = status().errors;
+      failure.cleanupHandle = cleanupHandle;
+      throw failure;
     }
   };
 
@@ -809,6 +961,14 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         closed,
       });
     },
-    close() { closed = true; },
+    close() {
+      closed = true;
+      if (reservedObjects !== 0) {
+        return Promise.reject(new PublicationStoreError(
+          'PublicationStoreCleanupPending',
+        ));
+      }
+      return ownership.release();
+    },
   });
 }

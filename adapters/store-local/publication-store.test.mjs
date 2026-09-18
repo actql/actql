@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  chmod,
+  mkdir,
   mkdtemp,
+  readdir,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -54,10 +57,12 @@ async function fixture(t, options = {}) {
     maxContractDepth: limits.maxDepth,
     ...options,
   };
+  const store = await openLocalPublicationStore(configuration, contractControl);
+  t.after(async () => { await store.close(); });
   return {
     directory,
     configuration,
-    store: await openLocalPublicationStore(configuration, contractControl),
+    store,
   };
 }
 
@@ -212,14 +217,129 @@ test('bounded object writes are durable, streamed, and physically addressed',
     const chunks = [];
     await store.consumeObject(stored.cid, chunk => chunks.push(Buffer.from(chunk)));
     assert.equal(Buffer.concat(chunks).toString('utf8'), 'abcdef');
-    store.close();
+    await store.close();
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
+    t.after(async () => { await reopened.close(); });
     assert.deepEqual(await reopened.verifyObject(stored.cid), {
       cid: stored.cid, bytes: 6,
     });
     assert.equal(reopened.status().storedBytes, 6);
+  });
+
+test('writer retains capacity and cleanup identity until unlink succeeds',
+  async t => {
+    const {store, directory} = await fixture(t, {
+      capacityBytes: 8,
+      maxObjectBytes: 8,
+    });
+    const staging = join(directory, 'staging');
+    const writer = store.createObjectWriter(8);
+    await writer.append('retained');
+    assert.equal((await readdir(staging)).length, 1);
+    await chmod(staging, 0o500);
+    try {
+      await assert.rejects(writer.seal(digest('retained')));
+    } finally {
+      await chmod(staging, 0o700);
+    }
+    assert.deepEqual(store.status(), {
+      storedBytes: 8,
+      reservedBytes: 8,
+      objectCount: 1,
+      reservedObjects: 1,
+      capacityBytes: 8,
+      closed: false,
+    });
+    assert.equal(writer.status().cleanupPending, true);
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    assert.equal(await writer.cancel(), true);
+    assert.equal(writer.status().cleanupPending, false);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.deepEqual(await readdir(staging), []);
+    assert.deepEqual(await store.verifyObject(digest('retained')), {
+      cid: digest('retained'), bytes: 8,
+    });
+  });
+
+test('writer checks exact byte length before copying caller-owned input',
+  async t => {
+    const {store} = await fixture(t, {
+      capacityBytes: 16,
+      maxObjectBytes: 16,
+    });
+    const writer = store.createObjectWriter(16);
+    const oversized = Buffer.alloc(2 * 1024 * 1024, 7);
+    const originalFrom = Buffer.from;
+    let copied = false;
+    Buffer.from = function(value, ...arguments_) {
+      if (value === oversized) copied = true;
+      return Reflect.apply(originalFrom, Buffer, [value, ...arguments_]);
+    };
+    try {
+      await assert.rejects(writer.append(oversized),
+        code('PublicationObjectLimit'));
+    } finally {
+      Buffer.from = originalFrom;
+    }
+    assert.equal(copied, false);
+    assert.equal(writer.status().bytes, 0);
+    assert.equal(writer.status().reservationHeld, true);
+    assert.equal(await writer.cancel(), true);
+
+    const snapshot = store.createObjectWriter(3);
+    const mutable = new Uint8Array([97, 98, 99]);
+    const appended = snapshot.append(mutable);
+    mutable.fill(120);
+    await appended;
+    assert.deepEqual(await snapshot.seal(digest('abc')), {
+      cid: digest('abc'), bytes: 3, created: true,
+    });
+  });
+
+test('one live Store owns the complete directory capacity authority',
+  async t => {
+    const {store, configuration} = await fixture(t, {
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+    });
+    await store.putBytes(Buffer.alloc(600));
+    await assert.rejects(
+      openLocalPublicationStore(configuration, contractControl),
+      code('PublicationStoreBusy'),
+    );
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal(reopened.status().storedBytes, 600);
+    await assert.rejects(reopened.putBytes(Buffer.alloc(600, 1)),
+      code('PublicationStoreCapacity'));
+  });
+
+test('a dead local Store owner is reclaimed without weakening live exclusion',
+  async t => {
+    const {store, configuration, directory} = await fixture(t);
+    await store.close();
+    const owner = join(directory, 'owner');
+    await mkdir(owner, {mode: 0o700});
+    await writeFile(join(owner, 'owner.json'), JSON.stringify({
+      version: 'actql-local-publication-store-owner/0.1',
+      pid: 2_147_483_647,
+      token: 'dead-owner',
+    }));
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    await assert.rejects(
+      openLocalPublicationStore(configuration, contractControl),
+      code('PublicationStoreBusy'),
+    );
   });
 
 test('semantic contract identity remains distinct from physical body digest',
@@ -318,10 +438,11 @@ test('public index is invisible before commit and survives a lost response',
     assert.equal(committed.committed, true);
     // Simulate losing the response after the durable commit by closing without
     // appending the terminal attempt record, then reconcile after restart.
-    store.close();
+    await store.close();
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
+    t.after(async () => { await reopened.close(); });
     assert.deepEqual(await reopened.inspectCommittedIndex(
       indexKeyFor(request),
     ), entry);
