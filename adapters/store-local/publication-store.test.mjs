@@ -29,6 +29,8 @@ const wire = value => JSON.stringify(value);
 
 const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
+const resultSchemaWire =
+  '{"answer":{"nullable":false,"type":"string"}}';
 const cids = Object.freeze({
   authority: digest('authority'),
   scope: digest('scope'),
@@ -38,6 +40,7 @@ const cids = Object.freeze({
   policy: digest('policy'),
   target: digest('target'),
   result: digest('result'),
+  schema: digest(resultSchemaWire),
   manifest: digest('manifest'),
   receipt: digest('receipt'),
   captured: digest('captured'),
@@ -190,6 +193,7 @@ async function prepareCommit(store, request, attempt, invocationValue) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
   );
+  await store.putSemantic(resultSchemaWire, cids.schema);
   const payload = Buffer.from('fixture durable Result payload', 'utf8');
   const writer = store.createPreparedObjectWriter(payload.byteLength);
   await writer.append(payload);
@@ -200,7 +204,7 @@ async function prepareCommit(store, request, attempt, invocationValue) {
     result_definition_cid: request.inventory[0].result_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
     logical_result_cid: cids.result,
-    result_schema_cid: cids.manifest,
+    result_schema_cid: cids.schema,
     ordering_evidence_cid: cids.receipt,
     codec_contract_cid: cids.captured,
     material_generation_cid: physical.cid,
@@ -555,7 +559,7 @@ test('public index is invisible before commit and survives a lost response',
     assert.deepEqual(consumed, {
       durableResultBindingCid: prepared.binding.identity,
       logicalResultCid: cids.result,
-      resultSchemaCid: cids.manifest,
+      resultSchemaCid: cids.schema,
       rowCount: 1,
       bytes: Buffer.byteLength('fixture durable Result payload', 'utf8'),
     });

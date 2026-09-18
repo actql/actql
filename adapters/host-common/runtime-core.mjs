@@ -740,6 +740,8 @@ function outputExportControl(moon, publications) {
           checked(moon.strategyHostOutputExportLogicalRelationCid(value)),
         resultSchemaCid:
           checked(moon.strategyHostOutputExportResultSchemaCid(value)),
+        resultSchemaWire:
+          checked(moon.strategyHostOutputExportResultSchemaWire(value)),
         codecContractCid:
           checked(moon.strategyHostOutputExportCodecContractCid(value)),
         bytes: checked(moon.strategyHostOutputExportBytes(value)),

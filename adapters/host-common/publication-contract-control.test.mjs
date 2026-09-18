@@ -350,6 +350,11 @@ test('portable control validates the exact Run Result publication chain', () => 
     metadata_retention_policy_cid: cid('c'),
     clock_contract_cid: cid('d'),
   }), limits);
+  const resultSchema = Object.freeze({
+    value: Object.freeze({nullable: false, type: 'integer'}),
+  });
+  const resultSchemaWire = JSON.stringify(canonical(resultSchema));
+  const resultSchemaCid = canonicalCid(resultSchema);
   const derivation = control.seal('derivation_evidence', JSON.stringify({
     version: 'actql-acquisition-derivation-evidence/0.1',
     producer_contract_cid: definition.identity,
@@ -359,7 +364,7 @@ test('portable control validates the exact Run Result publication chain', () => 
       sort: 'relation',
       value: [{value: 7}],
     }),
-    relation_schema_cid: cid('8'),
+    relation_schema_cid: resultSchemaCid,
     scope_cid: cid('5'),
     effective_data_policy_cid: cid('a'),
     ordering: {kind: 'occurrence', terms: []},
@@ -380,7 +385,7 @@ test('portable control validates the exact Run Result publication chain', () => 
     result_definition_cid: definition.identity,
     invocation_cid: invoked.identity,
     logical_result_cid: logicalResultCid,
-    result_schema_cid: cid('8'),
+    result_schema_cid: resultSchemaCid,
     ordering_evidence_cid: ordering.identity,
     actual_row_count: 1,
     actual_completeness: 'complete',
@@ -498,6 +503,11 @@ test('portable control validates Receipt and Captured Run references',
     metadata_retention_policy_cid: cid('c'),
     clock_contract_cid: cid('d'),
   }), limits);
+  const resultSchema = Object.freeze({
+    value: Object.freeze({nullable: false, type: 'integer'}),
+  });
+  const resultSchemaWire = JSON.stringify(canonical(resultSchema));
+  const resultSchemaCid = canonicalCid(resultSchema);
   const derivation = control.seal('derivation_evidence', JSON.stringify({
     version: 'actql-acquisition-derivation-evidence/0.1',
     producer_contract_cid: definition.identity,
@@ -507,7 +517,7 @@ test('portable control validates Receipt and Captured Run references',
       sort: 'relation',
       value: [{value: 7}],
     }),
-    relation_schema_cid: cid('8'),
+    relation_schema_cid: resultSchemaCid,
     scope_cid: cid('5'),
     effective_data_policy_cid: cid('a'),
     ordering: {kind: 'occurrence', terms: []},
@@ -528,7 +538,7 @@ test('portable control validates Receipt and Captured Run references',
     result_definition_cid: definition.identity,
     invocation_cid: invoked.identity,
     logical_result_cid: logicalResultCid,
-    result_schema_cid: cid('8'),
+    result_schema_cid: resultSchemaCid,
     ordering_evidence_cid: ordering.identity,
     actual_row_count: 1,
     actual_completeness: 'complete',
@@ -773,6 +783,7 @@ test('portable control validates Receipt and Captured Run references',
   ]) {
     await store.putPublicationContract(contract.name, contract.wire);
   }
+  await store.putSemantic(resultSchemaWire, resultSchemaCid);
   await store.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   await store.createAttempt(attempt.wire);
   const preparing = control.issuePublicationRecord(attempt, undefined, {
@@ -957,6 +968,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await lostBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await lostBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await lostBase.close(); });
   let loseCommitResponse = true;
@@ -998,6 +1010,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await raceBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await raceBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await raceBase.close(); });
   let commitArrivals = 0;
@@ -1044,6 +1057,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await unknownBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await unknownBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await unknownBase.close(); });
   let indexInspections = 0;
@@ -1094,6 +1108,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await cancelledBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await cancelledBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await cancelledBase.close(); });
   const cancellation = new AbortController();

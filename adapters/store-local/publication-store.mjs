@@ -775,7 +775,20 @@ export async function openLocalPublicationStore(
     if (physical.bytes !== binding.byte_count) {
       fail('PublicationDurableBindingMismatch');
     }
-    return Object.freeze({binding, physical});
+    const schemaBytes = await readSemanticBytes(binding.result_schema_cid);
+    const schemaCid = `sha256:${createHash('sha256')
+      .update(schemaBytes).digest('hex')}`;
+    if (schemaCid !== binding.result_schema_cid) {
+      fail('PublicationDurableBindingMismatch');
+    }
+    return Object.freeze({
+      binding,
+      physical,
+      schema: Object.freeze({
+        cid: schemaCid,
+        wire: schemaBytes.toString('utf8'),
+      }),
+    });
   };
 
   const createAttempt = async suppliedWire => {

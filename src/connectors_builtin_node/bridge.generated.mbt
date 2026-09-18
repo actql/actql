@@ -1465,6 +1465,17 @@ pub fn strategy_host_output_export_result_schema_cid(
 }
 
 ///|
+#export_name("strategyHostOutputExportResultSchemaWire")
+pub fn strategy_host_output_export_result_schema_wire(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
 /// Physical payload batches use the registered canonical ordered-row codec.
 /// This is the codec contract identity, not the payload content identity.
 #export_name("strategyHostOutputExportCodecContractCid")

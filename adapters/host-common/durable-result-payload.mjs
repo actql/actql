@@ -34,11 +34,14 @@ function validIdentity(value) {
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.resultSchemaCid) &&
+    typeof value.resultSchemaWire === 'string' &&
     /^sha256:[0-9a-f]{64}$/u.test(value.codecContractCid) &&
     ['bytes', 'nodes', 'rows'].every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0) &&
     ['schemaBytes', 'schemaNodes', 'schemaFields'].every(name =>
-      Number.isSafeInteger(value[name]) && value[name] >= 0);
+      Number.isSafeInteger(value[name]) && value[name] >= 0) &&
+    new TextEncoder().encode(value.resultSchemaWire).byteLength ===
+      value.schemaBytes;
 }
 
 function payloadFailure(reason, cleanupErrors, cleanupOwners) {
@@ -122,6 +125,7 @@ export async function storeCompletedResultPublicationPayload(
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
+      typeof store.putSemantic !== 'function' ||
       !validResultControl(control) ||
       typeof control.issueResultEvidence !== 'function' ||
       publication === null || typeof publication !== 'object' ||
@@ -188,6 +192,7 @@ async function storeCompletedPayload(
   let exportHandle;
   let writer;
   let prepared;
+  let schema;
   let sealed = false;
   let exportReleased = false;
   try {
@@ -212,6 +217,12 @@ async function storeCompletedPayload(
       fail('InvalidDurableResultPayloadIdentity');
     }
     const publication = issueEvidence?.(exportHandle);
+    if (publication !== undefined) {
+      schema = await store.putSemantic(
+        orderedRows.resultSchemaWire,
+        orderedRows.resultSchemaCid,
+      );
+    }
     const sealedPhysical = await writer.seal(orderedRows.orderedRowsCid);
     prepared = sealedPhysical.prepared;
     const physical = Object.freeze({
@@ -234,6 +245,7 @@ async function storeCompletedPayload(
       orderedRows: Object.freeze({...orderedRows}),
       ...(publication === undefined ? {} : {
         publication: Object.freeze({...publication, durableBinding}),
+        schema: Object.freeze({...schema}),
         prepared,
       }),
     });

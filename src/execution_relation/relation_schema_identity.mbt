@@ -21,9 +21,24 @@ pub(all) enum RelationSchemaIdentityIssue {
 /// a row object contract, a logical Relation value and a physical codec.
 struct RelationSchemaIdentity {
   cid : String
+  wire : String
   bytes : Int
   nodes : Int
   fields : Int
+}
+
+///|
+fn emit_relation_schema_identity(
+  schema : @schema.Schema,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for index = 0; index < @schema.field_count(schema); index = index + 1 {
+    let field = @schema.field_at(schema, index).unwrap()
+    @encode.key(writer, @schema.reference_name(field.name))
+    @contract.emit_checked(field.contract, writer)
+  }
+  @encode.end_object(writer)
 }
 
 ///|
@@ -45,20 +60,21 @@ pub fn identify_relation_schema(
     return Err(FieldLimit)
   }
   try {
-    let writer = @encode.hashing_writer(
+    let identity_writer = @encode.hashing_writer(
       limits.max_bytes,
       limits.max_nodes,
       limits.max_depth,
     )
-    @encode.begin_object(writer)
-    for index = 0; index < fields; index = index + 1 {
-      let field = @schema.field_at(schema, index).unwrap()
-      @encode.key(writer, @schema.reference_name(field.name))
-      @contract.emit_checked(field.contract, writer)
-    }
-    @encode.end_object(writer)
-    let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(writer)
-    Ok({ cid: "sha256:" + hash, bytes, nodes, fields, })
+    let wire_writer = @encode.writer(
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    emit_relation_schema_identity(schema, identity_writer)
+    emit_relation_schema_identity(schema, wire_writer)
+    let wire = @encode.finish(wire_writer)
+    let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(identity_writer)
+    Ok({ cid: "sha256:" + hash, wire, bytes, nodes, fields, })
   } catch {
     issue => Err(Encoding(issue))
   }
@@ -67,6 +83,11 @@ pub fn identify_relation_schema(
 ///|
 pub fn relation_schema_cid(value : RelationSchemaIdentity) -> String {
   value.cid
+}
+
+///|
+pub fn relation_schema_wire(value : RelationSchemaIdentity) -> String {
+  value.wire
 }
 
 ///|

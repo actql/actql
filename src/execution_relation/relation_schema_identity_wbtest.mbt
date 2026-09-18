@@ -31,6 +31,12 @@ test "schema identity hashes the complete recursive field-contract map" {
     relation_schema_cid(identity),
     "sha256:e13e51f472cae3497095edf7f88922ebd7bf0b1c48f2bc31480b47406728c2e6",
   )
+  assert_eq(
+    relation_schema_wire(identity),
+    (
+      #|{"😀":{"max_codepoints":4,"max_utf8_bytes":16,"min_length":1,"nullable":true,"type":"string"},"":{"items":{"nullable":true,"precision":9,"scale":2,"type":"decimal"},"max_items":3,"nullable":false,"type":"array"}}
+    ),
+  )
   assert_eq(relation_schema_usage(identity), (217, 16, 2))
 }
 
@@ -42,6 +48,7 @@ test "empty schema has an identity and every bound is enforced independently" {
     relation_schema_cid(identity),
     "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
   )
+  assert_eq(relation_schema_wire(identity), "{}")
   assert_eq(relation_schema_usage(identity), (2, 1, 0))
   let source = export_fixture(capture_fixture())
   let owner = @lower.sequence_owner(source.completion.sequence)

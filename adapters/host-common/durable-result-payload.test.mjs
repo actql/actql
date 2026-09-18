@@ -15,6 +15,8 @@ import {openLocalPublicationStore} from
 const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const defaultSchemaWire =
+  '{"answer":{"nullable":false,"type":"integer"}}';
 const limits = Object.freeze({
   maxRows: 10,
   maxValueNodes: 100,
@@ -72,16 +74,18 @@ function exportFixture(parts, text, hooks = {}) {
     },
     finish() { return hooks.tail ?? ''; },
     identity() {
+      const resultSchemaWire = hooks.schemaWire ?? defaultSchemaWire;
       return Object.freeze({
         orderedRowsCid: hooks.cid ?? digest(text),
         logicalRelationCid: hooks.logicalCid ??
           digest(`{"sort":"relation","value":${text}}`),
-        resultSchemaCid: hooks.schemaCid ?? cid('c'),
+        resultSchemaCid: hooks.schemaCid ?? digest(resultSchemaWire),
+        resultSchemaWire,
         codecContractCid: hooks.codecCid ?? cid('d'),
         bytes: Buffer.byteLength(text),
         nodes: 7,
         rows: 2,
-        schemaBytes: 64,
+        schemaBytes: Buffer.byteLength(resultSchemaWire),
         schemaNodes: 8,
         schemaFields: 1,
       });
@@ -214,6 +218,7 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(stored.publication.artifact, artifact);
     assert.equal(stored.publication.snapshot, snapshot);
     assert.equal(stored.publication.durableBinding, durableBinding);
+    assert.equal(stored.schema.semanticCid, digest(defaultSchemaWire));
     assert.deepEqual(events,
       ['evidence', 'artifact', 'snapshot', 'binding', 'cancel']);
     assert.equal(stored.prepared.status().pending, true);
@@ -234,12 +239,12 @@ test('Result evidence is issued before its durable payload becomes visible',
       error => error.code === 'DurableResultPayloadFailed' &&
         error.primaryFailure?.message === 'evidence rejected',
     );
-    assert.equal(store.status().objectCount, 1);
+    assert.equal(store.status().objectCount, 2);
     assert.equal(store.status().reservedBytes, 0);
     assert.equal(store.status().reservedObjects, 0);
     assert.equal(await stored.prepared.release(), true);
     assert.equal(stored.prepared.status().pending, false);
-    assert.equal(store.status().objectCount, 0);
+    assert.equal(store.status().objectCount, 1);
   });
 
 test('canonical batches stream to one durable object without whole-array input',
@@ -265,9 +270,12 @@ test('canonical batches stream to one durable object without whole-array input',
       orderedRows: {orderedRowsCid: digest(text),
         logicalRelationCid:
           'sha256:5b3aeccd9ebf1cf22f64ef2357114e647d1daac6fbb7957e30a3e3043d7254d1',
-        resultSchemaCid: cid('c'), codecContractCid: cid('d'),
+        resultSchemaCid: digest(defaultSchemaWire),
+        resultSchemaWire: defaultSchemaWire,
+        codecContractCid: cid('d'),
         bytes: Buffer.byteLength(text), nodes: 7, rows: 2,
-        schemaBytes: 64, schemaNodes: 8, schemaFields: 1},
+        schemaBytes: Buffer.byteLength(defaultSchemaWire),
+        schemaNodes: 8, schemaFields: 1},
     });
     assert.equal(cancelled, 1, 'the export receipt releases its source');
     const bytes = [];
