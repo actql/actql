@@ -634,6 +634,37 @@ function publicationControl(moon) {
         token(manifest), resultName, token(retention), observedAt,
       ));
     },
+    issueResultRetentionExtension(
+      base, availableUntil, admittedAt, limits,
+    ) {
+      issuanceLimits(limits, 'Result retention extension');
+      if (typeof availableUntil !== 'string' ||
+          typeof admittedAt !== 'string') {
+        throw new TypeError('Invalid Result retention extension');
+      }
+      return inspect(checked(moon.strategyIssueResultRetentionExtension(
+        token(base),
+        availableUntil,
+        admittedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    resultReadExtendedAvailability(
+      manifest, resultName, base, extension, observedAt,
+    ) {
+      if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
+        throw new TypeError('Invalid extended Result availability request');
+      }
+      return checked(moon.strategyResultReadExtendedAvailability(
+        token(manifest),
+        resultName,
+        token(base),
+        token(extension),
+        observedAt,
+      ));
+    },
     resultRetentionClockContractCid(retention) {
       return checked(moon.strategyResultRetentionClockContractCid(
         token(retention),

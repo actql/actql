@@ -27,7 +27,10 @@ import {
   readAuthorizedManifest,
 } from './manifest-access.mjs';
 import {
+  extendResultRetention,
   installResultRetentionAuthority,
+  installResultRetentionExtensionAuthority,
+  installResultRetentionExtensionService,
   installResultRetentionService,
   retireExpiredResult,
 } from './result-retention.mjs';
@@ -1261,6 +1264,8 @@ test('portable control validates Receipt and Captured Run references',
         deliveryStore.readPublicationContract(identity, name),
       observeTrustedClock: (identity, at) =>
         deliveryStore.observeTrustedClock(identity, at),
+      readCommittedResultRetentionExtension: (key, definition) =>
+        deliveryStore.readCommittedResultRetentionExtension(key, definition),
       withCommittedResult: async () => {
         throw new Error('temporary Store query failure');
       },
@@ -1614,6 +1619,91 @@ test('portable control validates Receipt and Captured Run references',
     recoveryAttempt.identity,
   )).state, 'failed');
 
+  accessTime = '2026-09-18T01:30:00.000Z';
+  const expiredBeforeExtension = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(expiredBeforeExtension.result_available, false);
+  assert.equal(
+    expiredBeforeExtension.result_availability.answer.reason,
+    'retention_expired',
+  );
+  const deniedExtensionService = installResultRetentionExtensionService({
+    store: deliveryStore,
+    control,
+    authority: installResultRetentionExtensionAuthority({
+      authorizeResultExtension: () => false,
+    }),
+    now: () => accessTime,
+    limits,
+  });
+  await assert.rejects(extendResultRetention(deniedExtensionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    availableUntil: '2026-09-18T01:45:00.000Z',
+    reason: 'authorized_download',
+  }), {code: 'ResultRetentionExtensionDenied'});
+  const extensionStages = [];
+  const extensionService = installResultRetentionExtensionService({
+    store: deliveryStore,
+    control,
+    authority: installResultRetentionExtensionAuthority({
+      authorizeResultExtension(facts) {
+        extensionStages.push(facts.stage);
+        return true;
+      },
+    }),
+    now: () => accessTime,
+    limits,
+  });
+  await assert.rejects(extendResultRetention(extensionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    availableUntil: '2026-09-18T02:00:00.001Z',
+    reason: 'forbidden_extension',
+  }), {code: 'ResultRetentionExtensionNotAllowed'});
+  const extended = await extendResultRetention(extensionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    availableUntil: '2026-09-18T01:45:00.000Z',
+    reason: 'authorized_download',
+  });
+  assert.equal(extended.idempotent, false);
+  assert.deepEqual(extensionStages, ['request', 'request', 'extend']);
+  const extensionRetry = await extendResultRetention(extensionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    availableUntil: '2026-09-18T01:45:00.000Z',
+    reason: 'authorized_download',
+  });
+  assert.equal(extensionRetry.idempotent, true);
+  const availableAfterExtension = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(availableAfterExtension.result_available, true);
+  assert.equal(
+    availableAfterExtension.result_availability.answer.reason,
+    'confirmed_present',
+  );
+  const extendedBytes = [];
+  const extendedDelivery = await deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: stateRequest.indexKey,
+      principalId: 'principal-a',
+      purpose: 'extended-download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorized-after-extension',
+    },
+    {write(bytes) {
+      extendedBytes.push(Buffer.from(bytes));
+      return {confirmedBytes: bytes.byteLength};
+    }},
+  );
+  assert.equal(extendedDelivery.idempotent, false);
+  assert.ok(Buffer.concat(extendedBytes).byteLength > 0);
+
   const retentionAuthority = installResultRetentionAuthority({
     authorizeResultDeletion: () => true,
   });
@@ -1657,6 +1747,12 @@ test('portable control validates Receipt and Captured Run references',
   });
   assert.equal(retired.cleanupPending, false);
   accessTime = '2026-09-18T02:00:00.000Z';
+  await assert.rejects(extendResultRetention(extensionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    availableUntil: '2026-09-18T01:50:00.000Z',
+    reason: 'too_late',
+  }), {code: 'ResultRetentionExtensionUnavailable'});
   await assert.rejects(deliverAuthorizedResult(
     accessService,
     {

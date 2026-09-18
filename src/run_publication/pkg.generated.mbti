@@ -66,6 +66,8 @@ pub fn issue_result_occurrence_evidence(PublicationContract, String, String, Str
 
 pub fn issue_result_read_grant(PublicationContract, PublicationContract, Array[String], Array[String], String, String, String, Int, Int, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
+pub fn issue_result_retention_extension(PublicationContract, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
 pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]
 
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
@@ -121,6 +123,8 @@ pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationC
 pub fn result_read_availability(PublicationContract, String, PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn result_read_definition_cid(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_read_extended_availability(PublicationContract, String, PublicationContract, PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 

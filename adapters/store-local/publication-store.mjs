@@ -23,6 +23,8 @@ import {createRetainedRowFrames} from './row-frames.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
+const timestampPattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export class PublicationStoreError extends Error {
   constructor(code, cause) {
@@ -235,11 +237,13 @@ export async function openLocalPublicationStore(
   const deliveriesDirectory = resolve(root, 'deliveries');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
+  const retentionExtensionsDirectory = resolve(root, 'retention-extensions');
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, attemptsDirectory, deliveriesDirectory,
-    manifestReadsDirectory, indexesDirectory, deletionsDirectory,
+    manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
+    deletionsDirectory,
     clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
@@ -319,6 +323,29 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
+  for (const keyHash of await readdir(retentionExtensionsDirectory)) {
+    const directory = resolve(retentionExtensionsDirectory, keyHash);
+    if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
+        !(await lstat(directory)).isDirectory()) {
+      fail('InvalidPublicationRetentionExtensionStore');
+    }
+    for (const name of await readdir(directory)) {
+      const path = resolve(directory, name);
+      if (!/^[0-9a-f]{64}$/u.test(name) ||
+          !(await lstat(path)).isDirectory()) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      for (const record of await readdir(path)) {
+        if (!recordNamePattern.test(record) ||
+            !(await lstat(resolve(path, record))).isFile()) {
+          fail('InvalidPublicationRetentionExtensionStore');
+        }
+      }
+      await syncDirectory(path);
+    }
+    await syncDirectory(directory);
+  }
+  await syncDirectory(retentionExtensionsDirectory);
   for (const keyHash of await readdir(deletionsDirectory)) {
     const directory = resolve(deletionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
@@ -355,7 +382,7 @@ export async function openLocalPublicationStore(
   let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
-  let resultDeletionBusy = Promise.resolve();
+  let resultRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
   const pendingResultDeletions = new Map();
   const reclaimingMaterialCids = new Set();
@@ -370,6 +397,16 @@ export async function openLocalPublicationStore(
     resolve(manifestReadsDirectory, cidHex(cid));
   const clockObservationPath = cid =>
     resolve(clocksDirectory, `${cidHex(cid)}.json`);
+  const retentionExtensionDirectory = keyHash =>
+    resolve(retentionExtensionsDirectory, keyHash);
+  const retentionExtensionResultDirectory = (
+    keyHash,
+    resultDefinitionCid,
+  ) =>
+    resolve(
+      retentionExtensionDirectory(keyHash),
+      cidHex(resultDefinitionCid),
+    );
   const resultDeletionDirectory = keyHash =>
     resolve(deletionsDirectory, keyHash);
   const resultDeletionPath = (keyHash, resultDefinitionCid) =>
@@ -1450,6 +1487,67 @@ export async function openLocalPublicationStore(
     return entry;
   };
 
+  const readResultRetentionExtension = async (
+    keyHash,
+    resultDefinitionCid,
+  ) => {
+    const directory = retentionExtensionResultDirectory(
+      keyHash, resultDefinitionCid,
+    );
+    let names;
+    try { names = await readdir(directory); }
+    catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    await syncDirectory(directory);
+    const records = names.map(name => {
+      const match = recordNamePattern.exec(name);
+      if (!match) fail('InvalidPublicationRetentionExtensionStore');
+      return {name, sequence: Number(match[1])};
+    }).sort((left, right) => left.sequence - right.sequence);
+    if (records.length === 0) {
+      fail('InvalidPublicationRetentionExtensionStore');
+    }
+    let previous;
+    for (let index = 0; index < records.length; index++) {
+      if (records[index].sequence !== index) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      const bytes = await readBounded(
+        resolve(directory, records[index].name),
+        configuration.maxObjectBytes,
+      );
+      let value;
+      try { value = JSON.parse(bytes.toString('utf8')); }
+      catch (error) {
+        fail('InvalidPublicationRetentionExtensionStore', error);
+      }
+      if (!exactKeys(value, [
+        'version', 'sequence', 'public_index_entry_cid',
+        'result_definition_cid', 'base_retention_policy_cid',
+        'prior_extension_policy_cid', 'extension_retention_policy_cid',
+        'admitted_at',
+      ]) ||
+          value.version !==
+            'actql-local-result-retention-extension/0.1' ||
+          value.sequence !== index ||
+          !cidPattern.test(value.public_index_entry_cid) ||
+          value.result_definition_cid !== resultDefinitionCid ||
+          !cidPattern.test(value.base_retention_policy_cid) ||
+          (value.prior_extension_policy_cid !== null &&
+            !cidPattern.test(value.prior_extension_policy_cid)) ||
+          !cidPattern.test(value.extension_retention_policy_cid) ||
+          !timestampPattern.test(value.admitted_at) ||
+          value.prior_extension_policy_cid !==
+            (previous?.extension_retention_policy_cid ?? null)) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      previous = Object.freeze(value);
+    }
+    return previous;
+  };
+
   const readResultDeletion = async (keyHash, resultDefinitionCid) => {
     const path = resultDeletionPath(keyHash, resultDefinitionCid);
     let bytes;
@@ -1888,6 +1986,138 @@ export async function openLocalPublicationStore(
     );
   };
 
+  const readCommittedResultRetentionExtension = async (
+    key,
+    resultDefinitionCid,
+  ) => {
+    active();
+    const selected = await requireCommittedResultBinding(
+      key, resultDefinitionCid,
+    );
+    const keyHash = indexKey(key);
+    await requireResultNotDeleted(
+      keyHash, selected, resultDefinitionCid,
+    );
+    const record = await readResultRetentionExtension(
+      keyHash, resultDefinitionCid,
+    );
+    if (record === undefined) return undefined;
+    if (record.public_index_entry_cid !==
+        selected.entry.public_index_entry_cid ||
+        record.base_retention_policy_cid !==
+          selected.value.effective_retention_policy_cid) {
+      fail('InvalidPublicationRetentionExtensionStore');
+    }
+    const extension = await readContract(
+      record.extension_retention_policy_cid,
+      'result_retention_policy',
+    );
+    return Object.freeze({record, extension: extension.contract});
+  };
+
+  const putCommittedResultRetentionExtension = async (
+    key,
+    resultDefinitionCid,
+    expectedPriorExtensionCid,
+    extension,
+    admittedAt,
+  ) => {
+    active();
+    if ((expectedPriorExtensionCid !== undefined &&
+          !cidPattern.test(expectedPriorExtensionCid)) ||
+        extension === null || typeof extension !== 'object' ||
+        extension.name !== 'result_retention_policy' ||
+        !cidPattern.test(extension.identity) ||
+        typeof extension.wire !== 'string' ||
+        !timestampPattern.test(admittedAt)) {
+      fail('InvalidPublicationRetentionExtension');
+    }
+    const operation = resultRetentionBusy.then(async () => {
+      const selected = await requireCommittedResultBinding(
+        key, resultDefinitionCid,
+      );
+      const keyHash = indexKey(key);
+      await requireResultNotDeleted(
+        keyHash, selected, resultDefinitionCid,
+      );
+      const current = await readResultRetentionExtension(
+        keyHash, resultDefinitionCid,
+      );
+      if (current?.public_index_entry_cid !== undefined &&
+          (current.public_index_entry_cid !==
+              selected.entry.public_index_entry_cid ||
+            current.base_retention_policy_cid !==
+              selected.value.effective_retention_policy_cid)) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      const currentCid = current?.extension_retention_policy_cid;
+      if (currentCid !== expectedPriorExtensionCid) {
+        fail('PublicationRetentionExtensionConflict');
+      }
+      if (currentCid === extension.identity) {
+        return Object.freeze({record: current, extension, idempotent: true});
+      }
+      const stored = await putPublicationContract(
+        'result_retention_policy', extension.wire,
+      );
+      if (stored.contract.identity !== extension.identity) {
+        fail('InvalidPublicationRetentionExtension');
+      }
+      const parent = retentionExtensionDirectory(keyHash);
+      let parentCreated = false;
+      try {
+        await mkdir(parent, {mode: 0o700});
+        parentCreated = true;
+      } catch (error) {
+        if (error?.code !== 'EEXIST' ||
+            !(await lstat(parent)).isDirectory()) throw error;
+      }
+      if (parentCreated) await syncDirectory(retentionExtensionsDirectory);
+      const directory = retentionExtensionResultDirectory(
+        keyHash, resultDefinitionCid,
+      );
+      let directoryCreated = false;
+      try {
+        await mkdir(directory, {mode: 0o700});
+        directoryCreated = true;
+      } catch (error) {
+        if (error?.code !== 'EEXIST' ||
+            !(await lstat(directory)).isDirectory()) throw error;
+      }
+      if (directoryCreated) await syncDirectory(parent);
+      const record = Object.freeze({
+        version: 'actql-local-result-retention-extension/0.1',
+        sequence: (current?.sequence ?? -1) + 1,
+        public_index_entry_cid: selected.entry.public_index_entry_cid,
+        result_definition_cid: resultDefinitionCid,
+        base_retention_policy_cid:
+          selected.value.effective_retention_policy_cid,
+        prior_extension_policy_cid: currentCid ?? null,
+        extension_retention_policy_cid: extension.identity,
+        admitted_at: admittedAt,
+      });
+      const bytes = Buffer.from(JSON.stringify(record), 'utf8');
+      if (bytes.byteLength > configuration.maxObjectBytes) {
+        fail('PublicationObjectLimit');
+      }
+      const path = resolve(directory, `${record.sequence}.json`);
+      try { await writeExclusive(path, bytes); }
+      catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        const existing = await readBounded(
+          path, configuration.maxObjectBytes,
+        );
+        if (!existing.equals(bytes)) {
+          fail('PublicationRetentionExtensionConflict');
+        }
+      }
+      await syncDirectory(directory);
+      return Object.freeze({record, extension, idempotent: false});
+    });
+    resultRetentionBusy = operation.catch(() => {});
+    return operation;
+  };
+
   const materialHasLiveReference = async materialCid => {
     for (const name of await readdir(indexesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
@@ -1978,7 +2208,7 @@ export async function openLocalPublicationStore(
       status,
       async retry() {
         if (!pending) return status();
-        const operation = resultDeletionBusy.then(async () => {
+        const operation = resultRetentionBusy.then(async () => {
           await ensureResultDeletionMarker(
             keyHash, resultDefinitionCid, marker,
           );
@@ -2036,7 +2266,7 @@ export async function openLocalPublicationStore(
           pendingResultDeletions.delete(deletionKey);
           reclaimingMaterialCids.delete(materialCid);
         });
-        resultDeletionBusy = operation.catch(() => {});
+        resultRetentionBusy = operation.catch(() => {});
         try { await operation; }
         catch (error) {
           errors.push(error);
@@ -2147,6 +2377,8 @@ export async function openLocalPublicationStore(
     withCommittedResult,
     withCommittedResultRows,
     consumeCommittedResult,
+    readCommittedResultRetentionExtension,
+    putCommittedResultRetentionExtension,
     retireCommittedResult,
     recoverRetiredResults,
     readJsonObject,

@@ -40,6 +40,8 @@ export function installRunStateService(configuration) {
       typeof configuration.store.readPublicationContract !== 'function' ||
       typeof configuration.store.observeTrustedClock !== 'function' ||
       typeof configuration.store.withCommittedResult !== 'function' ||
+      typeof configuration.store.readCommittedResultRetentionExtension !==
+        'function' ||
       configuration.control === null ||
       typeof configuration.control !== 'object' ||
       typeof configuration.control.manifestResultNames !== 'function' ||
@@ -47,6 +49,8 @@ export function installRunStateService(configuration) {
       typeof configuration.control.resultReadRetentionPolicyCid !==
         'function' ||
       typeof configuration.control.resultReadAvailability !== 'function' ||
+      typeof configuration.control.resultReadExtendedAvailability !==
+        'function' ||
       typeof configuration.control.resultRetentionClockContractCid !==
         'function' ||
       typeof configuration.control.runDefinitionRunId !== 'function' ||
@@ -130,13 +134,30 @@ async function observeResult(installed, context, resultName, at) {
   } catch (error) {
     return {name: resultName, ...unavailableFrom(error, at)};
   }
-  const retentionState = installed.control.resultReadAvailability(
-    context.manifest, resultName, retention, at,
+  const definitionCid = installed.control.resultReadDefinitionCid(
+    context.manifest, resultName,
   );
-  if (retentionState === 'delete_due') {
-    const definitionCid = installed.control.resultReadDefinitionCid(
-      context.manifest, resultName,
+  let retained;
+  try {
+    retained =
+      await installed.store.readCommittedResultRetentionExtension(
+        context.indexKey, definitionCid,
+      );
+  } catch (error) {
+    return {name: resultName, ...unavailableFrom(error, at)};
+  }
+  const retentionState = retained === undefined
+    ? installed.control.resultReadAvailability(
+      context.manifest, resultName, retention, at,
+    )
+    : installed.control.resultReadExtendedAvailability(
+      context.manifest,
+      resultName,
+      retention,
+      retained.extension,
+      at,
     );
+  if (retentionState === 'delete_due') {
     try {
       await installed.store.withCommittedResult(
         context.indexKey,
@@ -174,7 +195,11 @@ async function observeResult(installed, context, resultName, at) {
   try {
     policyAvailable = await installed.authority.resultPolicyAvailable(
       Object.freeze({
-        ...context, resultName, retention, observedAt: at,
+        ...context,
+        resultName,
+        retention: retained?.extension ?? retention,
+        baseRetention: retention,
+        observedAt: at,
       }),
     );
   } catch (error) {
@@ -188,9 +213,6 @@ async function observeResult(installed, context, resultName, at) {
       observedAt: at,
     };
   }
-  const definitionCid = installed.control.resultReadDefinitionCid(
-    context.manifest, resultName,
-  );
   try {
     await installed.store.withCommittedResult(
       context.indexKey,

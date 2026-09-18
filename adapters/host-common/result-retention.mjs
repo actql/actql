@@ -4,6 +4,8 @@
 
 const authorities = new WeakMap();
 const services = new WeakMap();
+const extensionAuthorities = new WeakMap();
+const extensionServices = new WeakMap();
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
@@ -28,6 +30,18 @@ export function installResultRetentionAuthority(configuration) {
   const authority = Object.freeze({});
   authorities.set(authority, Object.freeze({
     authorizeResultDeletion: configuration.authorizeResultDeletion,
+  }));
+  return authority;
+}
+
+export function installResultRetentionExtensionAuthority(configuration) {
+  if (!exactKeys(configuration, ['authorizeResultExtension']) ||
+      typeof configuration.authorizeResultExtension !== 'function') {
+    fail('InvalidResultRetentionExtensionAuthority');
+  }
+  const authority = Object.freeze({});
+  extensionAuthorities.set(authority, Object.freeze({
+    authorizeResultExtension: configuration.authorizeResultExtension,
   }));
   return authority;
 }
@@ -61,6 +75,47 @@ export function installResultRetentionService(configuration) {
     store: configuration.store,
     control: configuration.control,
     authority: authorities.get(configuration.authority),
+    now: configuration.now,
+    limits: Object.freeze({...configuration.limits}),
+  }));
+  return service;
+}
+
+export function installResultRetentionExtensionService(configuration) {
+  if (!exactKeys(configuration, [
+    'store', 'control', 'authority', 'now', 'limits',
+  ]) || configuration.store === null ||
+      typeof configuration.store !== 'object' ||
+      typeof configuration.store.confirmCommittedIndex !== 'function' ||
+      typeof configuration.store.readPublicationContract !== 'function' ||
+      typeof configuration.store.observeTrustedClock !== 'function' ||
+      typeof configuration.store.readCommittedResultRetentionExtension !==
+        'function' ||
+      typeof configuration.store.putCommittedResultRetentionExtension !==
+        'function' ||
+      configuration.control === null ||
+      typeof configuration.control !== 'object' ||
+      typeof configuration.control.resultReadRetentionPolicyCid !==
+        'function' ||
+      typeof configuration.control.resultReadDefinitionCid !== 'function' ||
+      typeof configuration.control.issueResultRetentionExtension !==
+        'function' ||
+      typeof configuration.control.resultReadExtendedAvailability !==
+        'function' ||
+      typeof configuration.control.resultRetentionClockContractCid !==
+        'function' ||
+      !extensionAuthorities.has(configuration.authority) ||
+      typeof configuration.now !== 'function' ||
+      !exactKeys(configuration.limits, [
+        'maxWireBytes', 'maxNodes', 'maxDepth',
+      ]) || !Object.values(configuration.limits).every(positive)) {
+    fail('InvalidResultRetentionExtensionService');
+  }
+  const service = Object.freeze({});
+  extensionServices.set(service, Object.freeze({
+    store: configuration.store,
+    control: configuration.control,
+    authority: extensionAuthorities.get(configuration.authority),
     now: configuration.now,
     limits: Object.freeze({...configuration.limits}),
   }));
@@ -153,4 +208,126 @@ export async function retireExpiredResult(service, request) {
     cleanupPending: retired.cleanup.status().pending,
     cleanupHandle: retired.cleanup,
   });
+}
+
+function validateExtensionRequest(request) {
+  if (!exactKeys(request, [
+    'indexKey', 'resultName', 'availableUntil', 'reason',
+  ]) || !exactKeys(request.indexKey, [
+    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+  ]) || typeof request.indexKey.tenantId !== 'string' ||
+      request.indexKey.tenantId.length === 0 ||
+      !cidPattern.test(request.indexKey.authorityScopeCid) ||
+      !cidPattern.test(request.indexKey.runDefinitionCid) ||
+      typeof request.resultName !== 'string' ||
+      request.resultName.length === 0 ||
+      typeof request.availableUntil !== 'string' ||
+      request.availableUntil.length === 0 ||
+      typeof request.reason !== 'string' || request.reason.length === 0) {
+    fail('InvalidResultRetentionExtensionRequest');
+  }
+}
+
+export async function extendResultRetention(service, request) {
+  const installed = extensionServices.get(service) ??
+    fail('ForeignResultRetentionExtensionService');
+  validateExtensionRequest(request);
+  const indexKey = Object.freeze({...request.indexKey});
+  const admittedAt = observedAt(installed.now);
+  const requestFacts = Object.freeze({
+    stage: 'request',
+    indexKey,
+    resultName: request.resultName,
+    availableUntil: request.availableUntil,
+    reason: request.reason,
+    observedAt: admittedAt,
+  });
+  if (await installed.authority.authorizeResultExtension(requestFacts) !==
+      true) {
+    fail('ResultRetentionExtensionDenied');
+  }
+  const entry = await installed.store.confirmCommittedIndex(indexKey);
+  if (entry === undefined) fail('ResultRetentionExtensionDenied');
+  const manifest = await installed.store.readPublicationContract(
+    entry.result_manifest_cid, 'result_manifest',
+  );
+  const baseCid = installed.control.resultReadRetentionPolicyCid(
+    manifest, request.resultName,
+  );
+  const base = await installed.store.readPublicationContract(
+    baseCid, 'result_retention_policy',
+  );
+  const resultDefinitionCid = installed.control.resultReadDefinitionCid(
+    manifest, request.resultName,
+  );
+  const clockCid = installed.control.resultRetentionClockContractCid(base);
+  await installed.store.observeTrustedClock(clockCid, admittedAt);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let current;
+    try {
+      current = await installed.store.readCommittedResultRetentionExtension(
+        indexKey, resultDefinitionCid,
+      );
+    } catch (error) {
+      if (error?.code === 'PublicationObjectMissing') {
+        fail('ResultRetentionExtensionUnavailable', error);
+      }
+      throw error;
+    }
+    const effective = current?.extension ?? base;
+    if (current !== undefined) {
+      installed.control.resultReadExtendedAvailability(
+        manifest, request.resultName, base, effective, admittedAt,
+      );
+    }
+    let extension;
+    try {
+      extension = installed.control.issueResultRetentionExtension(
+        effective,
+        request.availableUntil,
+        admittedAt,
+        installed.limits,
+      );
+      if (installed.control.resultReadExtendedAvailability(
+        manifest, request.resultName, base, extension, admittedAt,
+      ) !== 'available') {
+        fail('ResultRetentionExtensionNotAvailable');
+      }
+    } catch (error) {
+      fail('ResultRetentionExtensionNotAllowed', error);
+    }
+    if (await installed.authority.authorizeResultExtension(Object.freeze({
+      ...requestFacts,
+      stage: 'extend',
+      entry,
+      manifest,
+      base,
+      current: current?.extension,
+      extension,
+      resultDefinitionCid,
+    })) !== true) {
+      fail('ResultRetentionExtensionDenied');
+    }
+    try {
+      const stored =
+        await installed.store.putCommittedResultRetentionExtension(
+          indexKey,
+          resultDefinitionCid,
+          current?.extension?.identity,
+          extension,
+          admittedAt,
+        );
+      return Object.freeze({
+        resultName: request.resultName,
+        resultDefinitionCid,
+        admittedAt,
+        extension: stored.extension,
+        idempotent: stored.idempotent,
+      });
+    } catch (error) {
+      if (error?.code !== 'PublicationRetentionExtensionConflict' ||
+          attempt === 2) throw error;
+    }
+  }
+  fail('ResultRetentionExtensionConflict');
 }

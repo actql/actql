@@ -49,12 +49,17 @@ function validateServiceConfiguration(configuration) {
       typeof configuration.store.confirmCommittedIndex !== 'function' ||
       typeof configuration.store.readPublicationContract !== 'function' ||
       typeof configuration.store.observeTrustedClock !== 'function' ||
+      typeof configuration.store.readCommittedResultRetentionExtension !==
+        'function' ||
       configuration.control === null ||
       typeof configuration.control !== 'object' ||
       typeof configuration.control.issueResultReadGrant !== 'function' ||
       typeof configuration.control.resultReadRetentionPolicyCid !==
         'function' ||
       typeof configuration.control.resultReadAvailability !== 'function' ||
+      typeof configuration.control.resultReadExtendedAvailability !==
+        'function' ||
+      typeof configuration.control.resultReadDefinitionCid !== 'function' ||
       typeof configuration.control.resultRetentionClockContractCid !==
         'function' ||
       !authorities.has(configuration.authority) ||
@@ -161,12 +166,35 @@ export async function deliverAuthorizedResult(
   const retention = await installed.store.readPublicationContract(
     retentionPolicyCid, 'result_retention_policy',
   );
+  const resultDefinitionCid = installed.control.resultReadDefinitionCid(
+    manifest, request.resultName,
+  );
+  let retained;
+  try {
+    retained = await installed.store.readCommittedResultRetentionExtension(
+      indexKey, resultDefinitionCid,
+    );
+  } catch (error) {
+    if (error?.code === 'PublicationObjectMissing') {
+      fail('ResultUnavailable', error);
+    }
+    throw error;
+  }
+  const availability = observed => retained === undefined
+    ? installed.control.resultReadAvailability(
+      manifest, request.resultName, retention, observed,
+    )
+    : installed.control.resultReadExtendedAvailability(
+      manifest,
+      request.resultName,
+      retention,
+      retained.extension,
+      observed,
+    );
   const clockContractCid =
     installed.control.resultRetentionClockContractCid(retention);
   await installed.store.observeTrustedClock(clockContractCid, admittedAt);
-  if (installed.control.resultReadAvailability(
-    manifest, request.resultName, retention, admittedAt,
-  ) !== 'available') {
+  if (availability(admittedAt) !== 'available') {
     fail('ResultUnavailable');
   }
   const requestFacts = Object.freeze({
@@ -178,7 +206,8 @@ export async function deliverAuthorizedResult(
     resultName: request.resultName,
     format: request.format,
     attemptId: request.attemptId,
-    retention,
+    retention: retained?.extension ?? retention,
+    baseRetention: retention,
     observedAt: admittedAt,
   });
   const admission = await installed.authority.admitResultRead(requestFacts);
@@ -204,9 +233,7 @@ export async function deliverAuthorizedResult(
     await installed.store.observeTrustedClock(
       clockContractCid, facts.observedAt,
     );
-    if (installed.control.resultReadAvailability(
-      manifest, request.resultName, retention, facts.observedAt,
-    ) !== 'available') {
+    if (availability(facts.observedAt) !== 'available') {
       return false;
     }
     return installed.authority.authorizeResultRead(Object.freeze({

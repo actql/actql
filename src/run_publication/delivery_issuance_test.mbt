@@ -270,6 +270,36 @@ test "Result availability separates guarantee expiry and deletion deadline" {
       "2026-09-18T03:00:00.000Z",
     ),
   )
+  let extended = issue_result_retention_extension(
+    retention, "2026-09-18T02:30:00.000Z", "2026-09-18T01:30:00.000Z", 32768, 256,
+    16,
+  ).unwrap()
+  assert_eq(
+    result_read_extended_availability(
+      matching_manifest, "answer", retention, extended, "2026-09-18T02:15:00.000Z",
+    ),
+    Ok("available"),
+  )
+  assert_eq(
+    result_read_extended_availability(
+      matching_manifest, "answer", retention, extended, "2026-09-18T02:30:00.001Z",
+    ),
+    Ok("retention_expired"),
+  )
+  assert_true(
+    issue_result_retention_extension(
+      retention, "2026-09-18T03:00:00.001Z", "2026-09-18T01:30:00.000Z", 32768, 256,
+      16,
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("retention_extension")),
+  )
+  assert_true(
+    issue_result_retention_extension(
+      retention, "2026-09-18T01:59:59.999Z", "2026-09-18T01:30:00.000Z", 32768, 256,
+      16,
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("retention_extension")),
+  )
 }
 
 ///|

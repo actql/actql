@@ -195,6 +195,28 @@ pub fn result_read_retention_policy_cid(
 }
 
 ///|
+fn retention_interval_state(
+  retention : PublicationContract,
+  observed_at : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  guard contract_string(retention, "available_until") is Some(available_until) &&
+    contract_string(retention, "delete_by") is Some(delete_by) &&
+    valid_timestamp(observed_at) &&
+    valid_timestamp(available_until) &&
+    valid_timestamp(delete_by) &&
+    available_until <= delete_by else {
+    return Err(DeliveryIssuanceReferenceMismatch("retention_interval"))
+  }
+  if observed_at <= available_until {
+    Ok("available")
+  } else if observed_at < delete_by {
+    Ok("retention_expired")
+  } else {
+    Ok("delete_due")
+  }
+}
+
+///|
 pub fn result_read_availability(
   manifest : PublicationContract,
   result_name : String,
@@ -213,21 +235,125 @@ pub fn result_read_availability(
       DeliveryIssuanceReferenceMismatch("effective_retention_policy_cid"),
     )
   }
-  guard contract_string(retention, "available_until") is Some(available_until) &&
-    contract_string(retention, "delete_by") is Some(delete_by) &&
-    valid_timestamp(observed_at) &&
+  retention_interval_state(retention, observed_at)
+}
+
+///|
+fn retention_extension_valid(
+  base : PublicationContract,
+  extension : PublicationContract,
+) -> Bool {
+  if base.name != "result_retention_policy" ||
+    extension.name != "result_retention_policy" {
+    return false
+  }
+  for
+    field in [
+      "retention_contract_cid", "effective_data_policy_cid", "delete_by", "extension_ceiling_at",
+      "metadata_retention_policy_cid", "clock_contract_cid",
+    ] {
+    if contract_string(base, field) != contract_string(extension, field) {
+      return false
+    }
+  }
+  guard contract_string(base, "available_until") is Some(base_until) &&
+    contract_string(extension, "available_until") is Some(extended_until) &&
+    contract_string(base, "delete_by") is Some(delete_by) &&
+    contract_string(base, "extension_ceiling_at") is Some(ceiling) &&
+    valid_timestamp(base_until) &&
+    valid_timestamp(extended_until) &&
+    valid_timestamp(delete_by) &&
+    valid_timestamp(ceiling) else {
+    return false
+  }
+  base_until <= extended_until &&
+  extended_until <= delete_by &&
+  extended_until <= ceiling
+}
+
+///|
+pub fn issue_result_retention_extension(
+  base : PublicationContract,
+  available_until : String,
+  admitted_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, DeliveryIssuanceIssue] {
+  if base.name != "result_retention_policy" {
+    return Err(DeliveryIssuanceWrongContract("result_retention_policy"))
+  }
+  guard contract_string(base, "available_until") is Some(base_until) &&
+    contract_string(base, "delete_by") is Some(delete_by) &&
+    contract_string(base, "extension_ceiling_at") is Some(ceiling) &&
+    contract_string(base, "retention_contract_cid") is Some(contract_cid) &&
+    contract_string(base, "effective_data_policy_cid") is Some(data_policy) &&
+    contract_string(base, "metadata_retention_policy_cid")
+    is Some(metadata_policy) &&
+    contract_string(base, "clock_contract_cid") is Some(clock_contract) &&
+    valid_timestamp(base_until) &&
     valid_timestamp(available_until) &&
     valid_timestamp(delete_by) &&
-    available_until <= delete_by else {
-    return Err(DeliveryIssuanceReferenceMismatch("retention_interval"))
+    valid_timestamp(ceiling) &&
+    valid_timestamp(admitted_at) &&
+    base_until <= available_until &&
+    available_until <= delete_by &&
+    available_until <= ceiling &&
+    admitted_at <= available_until &&
+    admitted_at < delete_by else {
+    return Err(DeliveryIssuanceReferenceMismatch("retention_extension"))
   }
-  if observed_at <= available_until {
-    Ok("available")
-  } else if observed_at < delete_by {
-    Ok("retention_expired")
-  } else {
-    Ok("delete_due")
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
   }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "available_until")
+    @encode.string_value(writer, available_until)
+    @encode.key(writer, "clock_contract_cid")
+    @encode.string_value(writer, clock_contract)
+    @encode.key(writer, "delete_by")
+    @encode.string_value(writer, delete_by)
+    @encode.key(writer, "effective_data_policy_cid")
+    @encode.string_value(writer, data_policy)
+    @encode.key(writer, "extension_ceiling_at")
+    @encode.string_value(writer, ceiling)
+    @encode.key(writer, "metadata_retention_policy_cid")
+    @encode.string_value(writer, metadata_policy)
+    @encode.key(writer, "retention_contract_cid")
+    @encode.string_value(writer, contract_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-result-retention-policy/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  finish_delivery_body(
+    "result_retention_policy", writer, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+pub fn result_read_extended_availability(
+  manifest : PublicationContract,
+  result_name : String,
+  base : PublicationContract,
+  extension : PublicationContract,
+  observed_at : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  let expected = match result_read_retention_policy_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if base.name != "result_retention_policy" || base.identity != expected {
+    return Err(
+      DeliveryIssuanceReferenceMismatch("effective_retention_policy_cid"),
+    )
+  }
+  if !retention_extension_valid(base, extension) {
+    return Err(DeliveryIssuanceReferenceMismatch("retention_extension"))
+  }
+  retention_interval_state(extension, observed_at)
 }
 
 ///|

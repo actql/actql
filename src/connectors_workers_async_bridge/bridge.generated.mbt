@@ -1178,6 +1178,43 @@ pub fn strategy_result_read_availability(
 }
 
 ///|
+#export_name("strategyIssueResultRetentionExtension")
+pub fn strategy_issue_result_retention_extension(
+  base : @publication.PublicationContract,
+  available_until : String,
+  admitted_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_retention_extension(
+      base, available_until, admitted_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadExtendedAvailability")
+pub fn strategy_result_read_extended_availability(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  base : @publication.PublicationContract,
+  extension : @publication.PublicationContract,
+  observed_at : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.result_read_extended_availability(
+      manifest, result_name, base, extension, observed_at,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyResultRetentionClockContractCid")
 pub fn strategy_result_retention_clock_contract_cid(
   retention : @publication.PublicationContract,

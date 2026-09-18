@@ -264,7 +264,13 @@ function physicalCommitEvidence(invocationValue, binding) {
   });
 }
 
-async function prepareCommit(store, request, attempt, invocationValue) {
+async function prepareCommit(
+  store,
+  request,
+  attempt,
+  invocationValue,
+  retentionPolicyCid = cids.policy,
+) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
   );
@@ -285,7 +291,7 @@ async function prepareCommit(store, request, attempt, invocationValue) {
     result_fields: ['answer'],
     material_generation_cid: physical.cid,
     store_authority_cid: store.storeAuthorityCid,
-    effective_retention_policy_cid: cids.policy,
+    effective_retention_policy_cid: retentionPolicyCid,
     row_count: 1,
     byte_count: physical.bytes,
     physical_sha256: physical.cid.slice('sha256:'.length),
@@ -909,6 +915,101 @@ test('durable Result retirement blocks new reads and waits for active readers',
       () => true,
       () => assert.fail('retired Result survived restart'),
     ), code('PublicationObjectMissing'));
+  });
+
+test('Result retention extensions are append-only CAS records across restart',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const base = seal('result_retention_policy', {
+      version: 'actql-result-retention-policy/0.1',
+      retention_contract_cid: digest('retention-contract'),
+      effective_data_policy_cid: digest('data-policy'),
+      available_until: '2026-09-18T01:00:00.000Z',
+      delete_by: '2026-09-18T03:00:00.000Z',
+      extension_ceiling_at: '2026-09-18T02:30:00.000Z',
+      metadata_retention_policy_cid: digest('metadata-retention'),
+      clock_contract_cid: digest('clock-contract'),
+    });
+    const first = seal('result_retention_policy', {
+      ...base,
+      available_until: '2026-09-18T02:00:00.000Z',
+      effective_retention_policy_cid: undefined,
+    });
+    const second = seal('result_retention_policy', {
+      ...base,
+      available_until: '2026-09-18T02:15:00.000Z',
+      effective_retention_policy_cid: undefined,
+    });
+    await store.putPublicationContract(
+      'result_retention_policy', wire(base),
+    );
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store,
+      request,
+      attempt,
+      invocationValue,
+      base.effective_retention_policy_cid,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    const resultCid = request.inventory[0].result_definition_cid;
+    assert.equal(await store.readCommittedResultRetentionExtension(
+      indexKeyFor(request), resultCid,
+    ), undefined);
+    const installed = await store.putCommittedResultRetentionExtension(
+      indexKeyFor(request),
+      resultCid,
+      undefined,
+      contractControl.admit('result_retention_policy', wire(first), limits),
+      '2026-09-18T00:30:00.000Z',
+    );
+    assert.equal(installed.idempotent, false);
+    assert.equal(installed.record.sequence, 0);
+    const idempotent = await store.putCommittedResultRetentionExtension(
+      indexKeyFor(request),
+      resultCid,
+      first.effective_retention_policy_cid,
+      contractControl.admit('result_retention_policy', wire(first), limits),
+      '2026-09-18T00:30:00.000Z',
+    );
+    assert.equal(idempotent.idempotent, true);
+    await assert.rejects(store.putCommittedResultRetentionExtension(
+      indexKeyFor(request),
+      resultCid,
+      undefined,
+      contractControl.admit('result_retention_policy', wire(second), limits),
+      '2026-09-18T00:45:00.000Z',
+    ), code('PublicationRetentionExtensionConflict'));
+    const advanced = await store.putCommittedResultRetentionExtension(
+      indexKeyFor(request),
+      resultCid,
+      first.effective_retention_policy_cid,
+      contractControl.admit('result_retention_policy', wire(second), limits),
+      '2026-09-18T00:45:00.000Z',
+    );
+    assert.equal(advanced.record.sequence, 1);
+    assert.equal(advanced.record.prior_extension_policy_cid,
+      first.effective_retention_policy_cid);
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    const recovered = await reopened.readCommittedResultRetentionExtension(
+      indexKeyFor(request), resultCid,
+    );
+    assert.equal(recovered.record.sequence, 1);
+    assert.equal(recovered.extension.identity,
+      second.effective_retention_policy_cid);
   });
 
 test('Result retirement retains capacity until object durability retry',

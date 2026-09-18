@@ -229,6 +229,8 @@ pub fn strategy_issue_result_manifest(@run_publication.PublicationContract, @run
 
 pub fn strategy_issue_result_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[String], Array[String], String, String, String, Int, Int, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_issue_result_retention_extension(@run_publication.PublicationContract, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_run_invocation(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
@@ -264,6 +266,8 @@ pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publicat
 pub fn strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
 pub fn strategy_result_read_definition_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_result_read_extended_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
 pub fn strategy_result_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
 
