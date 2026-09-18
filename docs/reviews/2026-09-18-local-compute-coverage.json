@@ -1968,7 +1968,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2055,10 +2055,26 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "window_group",
+            "layer": "performance",
+            "path": "src/execution_relation/window_group_scale_wbtest.mbt",
+            "fixtures": [
+              "window group stays within indexed aggregation scaling floors",
+              "window group accepts exact work and storage boundaries"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets and through the standard Host. The remaining aggregate and type matrix, exact capacity boundaries, and fixed scaling evidence remain."
+        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets and through the standard Host. Exact work, storage, and output-row boundaries plus indexed scaling are fixed. The remaining aggregate and type matrix remains."
       ]
     },
     {
