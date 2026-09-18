@@ -347,6 +347,10 @@ export async function deliverPublishedResult(options) {
         confirmedByteCount,
         nextByteCount: confirmedByteCount + bytes.byteLength,
       });
+      const dispatchAt = trustedNow(now);
+      if (!control.resultReadGrantValidAt(grant, dispatchAt)) {
+        fail('ResultDeliveryGrantExpired');
+      }
       signal?.throwIfAborted();
       let result;
       try { result = await sink.write(bytes, signal); }

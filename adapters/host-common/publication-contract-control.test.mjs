@@ -1433,10 +1433,16 @@ test('portable control validates Receipt and Captured Run references',
       finish: () => hash.digest('hex'),
     });
   };
+  let requestAccessAllowed = true;
   let accessAllowed = true;
+  let advanceAccessTimeAt;
   let accessTime = '2026-09-18T01:00:00.000Z';
   const accessChecks = [];
   const accessAuthority = installResultAccessAuthority({
+    async authorizeResultReadRequest(facts) {
+      accessChecks.push(`authorize:request:${facts.resultName}`);
+      return requestAccessAllowed;
+    },
     async admitResultRead(facts) {
       accessChecks.push(`admit:${facts.resultName}:${facts.format}`);
       return {
@@ -1450,6 +1456,11 @@ test('portable control validates Receipt and Captured Run references',
     },
     async authorizeResultRead(facts) {
       accessChecks.push(`authorize:${facts.delivery.stage}`);
+      if (advanceAccessTimeAt !== undefined &&
+          facts.delivery.stage === 'write') {
+        await Promise.resolve();
+        accessTime = advanceAccessTimeAt;
+      }
       return accessAllowed;
     },
   });
@@ -1593,6 +1604,42 @@ test('portable control validates Receipt and Captured Run references',
   );
   manifestAccessAllowed = true;
   const authorizedChunks = [];
+  requestAccessAllowed = false;
+  for (const deniedRequest of [
+    {
+      ...stateRequest,
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'denied-existing',
+    },
+    {
+      ...stateRequest,
+      indexKey: {...stateRequest.indexKey, runDefinitionCid: cid('0')},
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'denied-missing-index',
+    },
+    {
+      ...stateRequest,
+      purpose: 'download',
+      resultName: 'missing-result',
+      format: 'json',
+      attemptId: 'denied-missing-result',
+    },
+  ]) {
+    await assert.rejects(deliverAuthorizedResult(
+      accessService,
+      deniedRequest,
+      {
+        write: () => assert.fail('denied request exposed bytes'),
+        finish: () => assert.fail('denied request completed delivery'),
+      },
+    ), error => error?.code === 'ResultAccessDenied' &&
+      error.cause === undefined && error.primaryFailure === undefined);
+  }
+  requestAccessAllowed = true;
   const authorizedDelivery = await deliverAuthorizedResult(
     accessService,
     {
@@ -1618,6 +1665,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(Buffer.concat(authorizedChunks).toString('utf8'),
     '[{"value":7}]');
   assert.equal(authorizedDelivery.idempotent, false);
+  assert.ok(accessChecks.includes('authorize:request:answer'));
   assert.ok(accessChecks.includes('authorize:read'));
   assert.ok(accessChecks.includes('authorize:write'));
   assert.ok(accessChecks.includes('authorize:receipt'));
@@ -1643,6 +1691,23 @@ test('portable control validates Receipt and Captured Run references',
   ), {code: 'ResultDeliveryDenied'});
   accessAllowed = true;
   accessTime = '2026-09-18T01:00:00.001Z';
+  requestAccessAllowed = false;
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: stateRequest.indexKey,
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'denied-expired',
+    },
+    {
+      write: () => assert.fail('denied expired Result exposed bytes'),
+      finish: () => assert.fail('denied expired Result finished delivery'),
+    },
+  ), {code: 'ResultAccessDenied'});
+  requestAccessAllowed = true;
   await assert.rejects(deliverAuthorizedResult(
     accessService,
     {
@@ -1693,6 +1758,89 @@ test('portable control validates Receipt and Captured Run references',
     authorize: () => true,
     signal: undefined,
   };
+  const expiringGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json'],
+      principalId: 'principal-a',
+      purpose: 'expiring-download',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 1,
+      expiresAt: '2026-09-18T01:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  let expiringTime = '2026-09-18T00:59:59.999Z';
+  let expiredSinkWrites = 0;
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    grant: expiringGrant,
+    format: 'json',
+    attemptId: 'delivery-expired-during-authorization',
+    now: () => expiringTime,
+    async authorize(facts) {
+      if (facts.stage === 'write') {
+        await Promise.resolve();
+        expiringTime = '2026-09-18T01:00:00.001Z';
+      }
+      return true;
+    },
+    sink: {
+      async write(bytes) {
+        expiredSinkWrites++;
+        return {confirmedBytes: bytes.byteLength};
+      },
+      async finish() { return {confirmed: true}; },
+    },
+  }), {code: 'ResultDeliveryGrantExpired'});
+  assert.equal(expiredSinkWrites, 0);
+
+  const cancelledGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json'],
+      principalId: 'principal-a',
+      purpose: 'cancelled-download',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 1,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  const cancelledController = new AbortController();
+  let cancelledSinkWrites = 0;
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    grant: cancelledGrant,
+    format: 'json',
+    attemptId: 'delivery-cancelled-during-authorization',
+    signal: cancelledController.signal,
+    async authorize(facts) {
+      if (facts.stage === 'write') {
+        await Promise.resolve();
+        cancelledController.abort(new Error('authorization cancelled'));
+      }
+      return true;
+    },
+    sink: {
+      async write(bytes) {
+        cancelledSinkWrites++;
+        return {confirmedBytes: bytes.byteLength};
+      },
+      async finish() { return {confirmed: true}; },
+    },
+  }), error => error?.message === 'authorization cancelled');
+  assert.equal(cancelledSinkWrites, 0);
   const expectedDelivery = Object.freeze({
     json: '[{"value":7}]',
     jsonl: '{"value":7}\n',
@@ -2174,6 +2322,29 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(extendedDelivery.idempotent, false);
   assert.ok(Buffer.concat(extendedBytes).byteLength > 0);
 
+  let unavailableSinkWrites = 0;
+  advanceAccessTimeAt = '2026-09-18T01:45:00.001Z';
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: stateRequest.indexKey,
+      principalId: 'principal-a',
+      purpose: 'authorization-crosses-retention',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorization-crosses-retention',
+    },
+    {
+      write(bytes) {
+        unavailableSinkWrites++;
+        return {confirmedBytes: bytes.byteLength};
+      },
+      finish() { return {confirmed: true}; },
+    },
+  ), {code: 'ResultDeliveryDenied'});
+  advanceAccessTimeAt = undefined;
+  assert.equal(unavailableSinkWrites, 0);
+
   const retentionAuthority = installResultRetentionAuthority({
     authorizeResultDeletion: () => true,
   });
@@ -2181,7 +2352,7 @@ test('portable control validates Receipt and Captured Run references',
     store: deliveryStore,
     control,
     authority: retentionAuthority,
-    now: () => '2026-09-18T01:30:00.000Z',
+    now: () => '2026-09-18T01:45:00.001Z',
     limits,
   });
   await assert.rejects(retireExpiredResult(notDueRetentionService, {
@@ -2223,6 +2394,23 @@ test('portable control validates Receipt and Captured Run references',
     availableUntil: '2026-09-18T01:50:00.000Z',
     reason: 'too_late',
   }), {code: 'ResultRetentionExtensionUnavailable'});
+  requestAccessAllowed = false;
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: stateRequest.indexKey,
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'denied-deleted',
+    },
+    {
+      write: () => assert.fail('denied deleted Result exposed bytes'),
+      finish: () => assert.fail('denied deleted Result finished delivery'),
+    },
+  ), {code: 'ResultAccessDenied'});
+  requestAccessAllowed = true;
   await assert.rejects(deliverAuthorizedResult(
     accessService,
     {

@@ -1125,6 +1125,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 assert.ok(received.length > 0);
               }
               const accessAuthority = installResultAccessAuthority({
+                authorizeResultReadRequest: () => true,
                 admitResultRead: () => ({
                   authorizationContextCid: hash('authorization-context'),
                   dataCeilingCid: hash('data-ceiling'),
@@ -1205,6 +1206,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 store: restartedPublicationStore,
                 control: runtime.publicationControl,
                 authority: installResultAccessAuthority({
+                  authorizeResultReadRequest() {
+                    return true;
+                  },
                   admitResultRead() {
                     restartedAdmissions++;
                     return {

@@ -23,8 +23,10 @@ const fail = (code, cause) => { throw new ResultAccessError(code, cause); };
 
 function validateAuthority(configuration) {
   if (!exactKeys(configuration, [
-    'admitResultRead', 'authorizeResultRead',
-  ]) || typeof configuration.admitResultRead !== 'function' ||
+    'authorizeResultReadRequest', 'admitResultRead',
+    'authorizeResultRead',
+  ]) || typeof configuration.authorizeResultReadRequest !== 'function' ||
+      typeof configuration.admitResultRead !== 'function' ||
       typeof configuration.authorizeResultRead !== 'function') {
     fail('InvalidResultAccessAuthority');
   }
@@ -34,6 +36,7 @@ export function installResultAccessAuthority(configuration) {
   validateAuthority(configuration);
   const authority = Object.freeze({});
   authorities.set(authority, Object.freeze({
+    authorizeResultReadRequest: configuration.authorizeResultReadRequest,
     admitResultRead: configuration.admitResultRead,
     authorizeResultRead: configuration.authorizeResultRead,
   }));
@@ -62,6 +65,7 @@ function validateServiceConfiguration(configuration) {
       typeof configuration.control.resultReadDefinitionCid !== 'function' ||
       typeof configuration.control.resultRetentionClockContractCid !==
         'function' ||
+      typeof configuration.control.resultReadGrantValidAt !== 'function' ||
       !authorities.has(configuration.authority) ||
       typeof configuration.now !== 'function' ||
       typeof configuration.createDigest !== 'function' ||
@@ -151,6 +155,22 @@ export async function deliverAuthorizedResult(
   }
   signal?.throwIfAborted();
   const indexKey = Object.freeze({...request.indexKey});
+  let requestAuthorized = false;
+  try {
+    requestAuthorized = await installed.authority
+      .authorizeResultReadRequest(Object.freeze({
+        indexKey,
+        principalId: request.principalId,
+        purpose: request.purpose,
+        resultName: request.resultName,
+        format: request.format,
+        attemptId: request.attemptId,
+      }));
+  } catch {
+    fail('ResultAccessDenied');
+  }
+  signal?.throwIfAborted();
+  if (requestAuthorized !== true) fail('ResultAccessDenied');
   const entry = await installed.store.confirmCommittedIndex(indexKey);
   if (entry === undefined) fail('ResultAccessDenied');
   const index = await installed.store.readPublicationContract(
@@ -237,13 +257,23 @@ export async function deliverAuthorizedResult(
     if (availability(facts.observedAt) !== 'available') {
       return false;
     }
-    return installed.authority.authorizeResultRead(Object.freeze({
+    const allowed = await installed.authority.authorizeResultRead(
+      Object.freeze({
         ...requestFacts,
         grant,
         authorizationContextCid: admission.authorizationContextCid,
         egressAdmissionCid: admission.egressAdmissionCid,
         delivery: facts,
-      }));
+      }),
+    );
+    if (allowed !== true) return false;
+    const authorizedAt = observedAt(installed.now);
+    await installed.store.observeTrustedClock(
+      clockContractCid, authorizedAt,
+    );
+    const usableAt = observedAt(installed.now);
+    return availability(usableAt) === 'available' &&
+      installed.control.resultReadGrantValidAt(grant, usableAt);
   };
   return deliverPublishedResult({
     store: installed.store,
