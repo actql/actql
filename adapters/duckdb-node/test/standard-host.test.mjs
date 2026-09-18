@@ -1149,102 +1149,116 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   await replaceRows(
     'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)',
   );
-  const publicationFixture = fixture.strategyFixtureCreate(
-    ...args,
-    JSON.stringify(numericProgram),
-  );
-  const publicationCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(publicationFixture),
-    suppliedLimits,
-  );
-  const publicationDirectory = await mkdtemp(join(
-    root,
-    '_build/duckdb-fixtures/standard-publication-entry-',
-  ));
-  let publicationOwner;
-  let publicationStore;
-  try {
-    assert.equal(
-      fixture.strategyFixtureOpen(
-        publicationFixture,
-        publicationCapture.source(),
-      ),
-      true,
+  for (const mode of [0, 3]) {
+    const publicationFixture = fixture.strategyFixtureCreate(
+      ...args,
+      JSON.stringify(numericProgram),
     );
-    const setup = fixture.strategyFixtureModuleSubset(publicationFixture, 0);
-    const runtime = runtimeCore(hostRuntime);
-    const resultCount = runtime.resultInventory(setup).length;
-    const programDefinitionCid = runtime.programDefinitionCid(setup);
-    publicationStore = await openLocalPublicationStore({
-      directory: publicationDirectory,
-      storeAuthorityCid: hash('standard-publication-entry-store'),
-      capacityBytes: 4 * 1024 * 1024,
-      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
-      maxObjects: 100,
-      maxContractNodes: 10000,
-      maxContractDepth: 64,
-    }, runtime.publicationControl);
-    const plan = standardPublicationPlan(
-      runtime,
-      programDefinitionCid,
-      resultCount,
-      'standard-publication-entry-attempt',
+    const publicationCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(publicationFixture),
+      suppliedLimits,
     );
-    const absent = new Proxy({}, {
-      get() {
-        assert.fail('unused Compute provider settings accessed');
-      },
-    });
-    publicationOwner = await runPublishedCapturedStrategy(
-      setup,
-      {store: publicationStore, plan},
-      {duckdb: absent},
-      new AbortController().signal,
-    );
-    assert.equal(publicationOwner.status, 'published');
-    assert.equal(
-      publicationOwner.execution.status,
-      'host-tasks-completed',
-    );
-    assert.equal(
-      publicationOwner.publication.publication.state,
-      'succeeded',
-    );
-    assert.equal(
-      publicationOwner.publication.results.length,
-      resultCount,
-    );
-    assert.equal(
-      publicationOwner.publication.evidence.artifacts.length,
-      resultCount,
-    );
-    assert.equal(
-      publicationOwner.execution.publicationPreflight.request.identity,
-      publicationOwner.publication.publication.request.identity,
-    );
-    assert.deepEqual(
-      await publicationStore.inspectCommittedIndex({
-        tenantId: plan.request.tenantId,
-        authorityScopeCid: plan.request.authorityScopeCid,
-        runDefinitionCid: plan.runDefinition.identity,
-      }),
-      JSON.parse(publicationOwner.publication.publication.index.wire),
-    );
-  } finally {
-    if (publicationOwner !== undefined) {
-      await publicationOwner.close();
-      assert.equal(publicationOwner.cleanupPending(), false);
-      assert.equal(await publicationOwner.cleanup(), true);
-      assert.equal(publicationOwner.execution.usage().heldBytes, 0n);
+    const publicationDirectory = await mkdtemp(join(
+      root,
+      `_build/duckdb-fixtures/standard-publication-entry-${mode}-`,
+    ));
+    let publicationOwner;
+    let publicationStore;
+    try {
       assert.equal(
-        publicationOwner.execution.usage().reservedExecutionBytes,
-        0n,
+        fixture.strategyFixtureOpen(
+          publicationFixture,
+          publicationCapture.source(),
+        ),
+        true,
       );
+      const setup = mode === 3
+        ? fixture.strategyFixtureDuckDBOnly(publicationFixture)
+        : fixture.strategyFixtureModuleSubset(publicationFixture, mode);
+      const runtime = runtimeCore(hostRuntime);
+      const resultCount = runtime.resultInventory(setup).length;
+      const programDefinitionCid = runtime.programDefinitionCid(setup);
+      publicationStore = await openLocalPublicationStore({
+        directory: publicationDirectory,
+        storeAuthorityCid: hash(`standard-publication-entry-store-${mode}`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime,
+        programDefinitionCid,
+        resultCount,
+        `standard-publication-entry-attempt-${mode}`,
+      );
+      const absent = new Proxy({}, {
+        get() {
+          assert.fail('unused Compute provider settings accessed');
+        },
+      });
+      const settings = mode === 3
+        ? {duckdb: prepareDuckDBStrategyConfiguration({
+          transportLimits: suppliedLimits,
+          importLimits: {maxRows: 100, maxCells: 1000},
+        })}
+        : {duckdb: absent};
+      publicationOwner = await runPublishedCapturedStrategy(
+        setup,
+        {store: publicationStore, plan},
+        settings,
+        new AbortController().signal,
+      );
+      assert.equal(publicationOwner.status, 'published');
+      assert.equal(
+        publicationOwner.execution.status,
+        'host-tasks-completed',
+      );
+      assert.deepEqual(
+        publicationOwner.execution.completed.map(value => value.realization),
+        Array(3).fill(mode === 3 ? 'duckdb' : 'local'),
+      );
+      assert.equal(
+        publicationOwner.publication.publication.state,
+        'succeeded',
+      );
+      assert.equal(
+        publicationOwner.publication.results.length,
+        resultCount,
+      );
+      assert.equal(
+        publicationOwner.publication.evidence.artifacts.length,
+        resultCount,
+      );
+      assert.equal(
+        publicationOwner.execution.publicationPreflight.request.identity,
+        publicationOwner.publication.publication.request.identity,
+      );
+      assert.deepEqual(
+        await publicationStore.inspectCommittedIndex({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }),
+        JSON.parse(publicationOwner.publication.publication.index.wire),
+      );
+    } finally {
+      if (publicationOwner !== undefined) {
+        await publicationOwner.close();
+        assert.equal(publicationOwner.cleanupPending(), false);
+        assert.equal(await publicationOwner.cleanup(), true);
+        assert.equal(publicationOwner.execution.usage().heldBytes, 0n);
+        assert.equal(
+          publicationOwner.execution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
+      publicationCapture.close();
+      await publicationStore?.close();
+      await rm(publicationDirectory, {recursive: true, force: true});
     }
-    publicationCapture.close();
-    await publicationStore?.close();
-    await rm(publicationDirectory, {recursive: true, force: true});
   }
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(
     ...args,
