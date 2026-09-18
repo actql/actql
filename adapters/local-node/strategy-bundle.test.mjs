@@ -179,6 +179,7 @@ test('an inapplicable managed connector does not hide a capable alternative', as
       strategyHostRegistrationSelectionKey: () => 'local',
       strategyHostNextTask: () => 2,
       strategyHostManagedProducers: () => [1],
+      strategyHostManagedInputCount: () => 1,
       strategyHostManagedRequiresLogicalIdentity: () => ok(false),
       strategyHostReleasableManagedProducers: () => [],
       strategyModule_local_ManagedDuration: () => 1n,
@@ -259,4 +260,57 @@ test('reference preparation propagates fatal failures instead of hiding them as 
     entry.prepareNext(new Map([[1, {material, completed: {}}]])),
     error => error.code === 'MoonBitHostFailure' && error.cause === fatal,
   );
+});
+
+test('Local preparation delegates checked zero-input applicability to MoonBit', async () => {
+  const setup = {}, registration = {}, configuration = {};
+  const seen = [];
+  const entry = localStrategyContribution({
+    strategyModule_local_Registration: owner => {
+      assert.equal(owner, setup);
+      return registration;
+    },
+    strategyHostRegistrationSelectionKey: value => {
+      assert.equal(value, registration);
+      return 'local';
+    },
+    strategyHostNextTask: owner => {
+      assert.equal(owner, setup);
+      return 1;
+    },
+    strategyHostManagedProducers: owner => {
+      assert.equal(owner, setup);
+      return [];
+    },
+    strategyHostManagedInputCount: owner => {
+      assert.equal(owner, setup);
+      return 0;
+    },
+    strategyHostManagedRequiresLogicalIdentity: owner => {
+      assert.equal(owner, setup);
+      return ok(false);
+    },
+    strategyHostReleasableManagedProducers: owner => {
+      assert.equal(owner, setup);
+      return [];
+    },
+    strategyModule_local_ManagedDispatch: (owner, inputs, bytes) => {
+      assert.equal(owner, setup);
+      seen.push(inputs);
+      assert.equal(bytes, 0n);
+      return ok(configuration);
+    },
+    strategyModule_local_ManagedDuration: value => {
+      assert.equal(value, configuration);
+      return 1n;
+    },
+    strategyModule_local_ManagedCapacity: value => {
+      assert.equal(value, configuration);
+      return [0n, 0n];
+    },
+  }, setup, checked);
+  const prepared = await entry.prepareNext(new Map());
+  assert.equal(prepared.configuration, configuration);
+  assert.deepEqual(prepared.inputs, []);
+  assert.deepEqual(seen, [[]]);
 });

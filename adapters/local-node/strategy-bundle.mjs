@@ -24,7 +24,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     async prepareNext(outputs) {
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
-      if (task < 1 || !Array.isArray(producers) || producers.length === 0 ||
+      if (task < 1 || !Array.isArray(producers)) return undefined;
+      const inputCount = moon.strategyHostManagedInputCount(setup);
+      if (!Number.isInteger(inputCount) || inputCount < 0 ||
+          producers.length !== inputCount ||
           checked(moon.strategyHostManagedRequiresLogicalIdentity(setup))) {
         return undefined;
       }

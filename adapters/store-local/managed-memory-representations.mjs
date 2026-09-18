@@ -319,11 +319,19 @@ export function registerManagedMemoryInput(
 export async function withManagedInputRows(
   occurrences, authorize, append, use, signal, beforeRead, commit,
 ) {
-  if (!Array.isArray(occurrences) || occurrences.length === 0 ||
+  if (!Array.isArray(occurrences) ||
       typeof authorize !== 'function' || typeof append !== 'function' ||
       typeof use !== 'function' ||
       (commit !== undefined && typeof commit !== 'function')) {
     throw issue('InvalidManagedInputUse');
+  }
+  if (occurrences.length === 0) {
+    signal?.throwIfAborted();
+    const provisional = await use();
+    signal?.throwIfAborted();
+    return typeof commit === 'function'
+      ? await commit(provisional)
+      : provisional;
   }
   const held = occurrences.map(occurrence =>
     representations.get(occurrence?.material));

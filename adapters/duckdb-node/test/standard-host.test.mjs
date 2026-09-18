@@ -420,7 +420,17 @@ test('standard native and broad Node Hosts own verification through real capture
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
   const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...source.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
+  const pinnedContract = name => {
+    const body = source.slice(source.indexOf(`fn ${name}()`));
+    const match = body.match(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/);
+    assert(match, `missing pinned ${name} contract`);
+    return JSON.parse(match[1]);
+  };
+  const contracts = [
+    pinnedContract('registered_body'),
+    pinnedContract('registered_values'),
+    pinnedContract('registered_fragment'),
+  ];
   const args = [JSON.parse(catalog[1]), catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
@@ -1462,6 +1472,131 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       recursive: true,
       force: true,
     });
+  }
+  const zeroInputProgram = {
+    version: 'actql/0.1',
+    id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{
+      id: 'a',
+      inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [
+        {filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'},
+      ],
+      results: {r: {from: 'captured', fields: ['id']}},
+    }, {
+      id: 'values_a',
+      inputs: {},
+      steps: [{
+        values: {
+          schema: {
+            id: {type: 'number', nullable: true},
+            label: {type: 'string', nullable: false},
+          },
+          rows: [{id: null, label: 'none'}, {id: 1, label: 'one'}],
+        },
+        as: 'out',
+      }],
+      results: {r: {from: 'out', fields: ['id', 'label']}},
+    }, {
+      id: 'consumer_a',
+      inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+      steps: [{select: ['id', 'label'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id', 'label']}},
+    }, {
+      id: 'consumer_b',
+      inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+      steps: [{select: ['label', 'id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['label', 'id']}},
+    }],
+    results: {source: {from: {stage: 'a', result: 'r'}}},
+  };
+  const appendProgram = structuredClone(zeroInputProgram);
+  appendProgram.stages.splice(1, 3, {
+    id: 'append_a',
+    inputs: {},
+    steps: [
+      {values: {
+        schema: {id: {type: 'number', nullable: false}},
+        rows: [{id: 1}],
+      }, as: 'left_rows'},
+      {values: {
+        schema: {id: {type: 'number', nullable: false}},
+        rows: [{id: 2}],
+      }, as: 'right_rows'},
+      {from: 'left_rows', append: {with: 'right_rows'}, as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: ['id']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `append_consumer_${id}`,
+    inputs: {x: {result: {stage: 'append_a', result: 'r'}}},
+    steps: [{select: ['id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  })));
+  const groupProgram = structuredClone(zeroInputProgram);
+  groupProgram.stages.splice(1, 3, {
+    id: 'group_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {id: {type: 'number', nullable: true}},
+      rows: [{id: null}, {id: 1}, {id: 1}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}},
+  }, {
+    id: 'group_a',
+    inputs: {x: {result: {stage: 'group_values', result: 'r'}}},
+    steps: [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'n']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `group_consumer_${id}`,
+    inputs: {x: {result: {stage: 'group_a', result: 'r'}}},
+    steps: [{select: id === 'a' ? ['id', 'n'] : ['n', 'id'], as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a' ? ['id', 'n'] : ['n', 'id'],
+    }},
+  })));
+  for (const [name, program, tasks] of [
+    ['values', zeroInputProgram, [1, 2, 3]],
+    ['append', appendProgram, [1, 2, 3]],
+    ['group count', groupProgram, [1, 2, 3, 4]],
+  ]) {
+    const zeroInputFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(program));
+    const zeroInputCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(zeroInputFixture), suppliedLimits);
+    let zeroInputExecution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        zeroInputFixture, zeroInputCapture.source()), true);
+      zeroInputExecution = await runCapturedInternalStrategy(
+        fixture.strategyFixtureModuleSubset(zeroInputFixture, 0),
+        {duckdb: new Proxy({}, {
+          get() { assert.fail('unused DuckDB settings accessed'); },
+        })},
+      );
+      assert.equal(zeroInputExecution.status, 'host-tasks-completed',
+        `${name}: ${JSON.stringify(zeroInputExecution.completed)}; ` +
+        `${zeroInputExecution.failure?.code ?? ''}: ` +
+        `${zeroInputExecution.failure?.stack ?? zeroInputExecution.failure}`);
+      assert.deepEqual(
+        zeroInputExecution.completed.map(item => item.realization),
+        Array(tasks.length).fill('local-managed'),
+        `${name} and both actual consumers use the real managed Local bridge`,
+      );
+      assert.deepEqual(
+        zeroInputExecution.completed.map(item => item.task),
+        tasks,
+        `${name} downstream computations complete instead of only opening handles`,
+      );
+    } finally {
+      await zeroInputExecution?.close();
+      zeroInputCapture.close();
+    }
+    assert.equal(zeroInputExecution.cleanupPending(), false);
+    assert.equal(await zeroInputExecution.cleanup(), true);
+    assert.equal(zeroInputExecution.usage().heldBytes, 0n);
+    assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
   }
   // The runnable application reads user-supplied documents, not conformance
   // exports or test catalogs. Tests supply their own documents at its boundary.
@@ -3027,7 +3162,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       if (identityCase.succeeds) {
         assert.deepEqual(identityExecution.completed.map(item => item.realization),
           ['duckdb-managed', 'reference-numeric-managed',
-            'reference-numeric-managed'],
+            'local-managed'],
         'equal-cost managed candidates use the stable registration key');
       } else {
         assert(identityExecution.failure != null);

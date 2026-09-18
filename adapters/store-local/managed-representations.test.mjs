@@ -608,3 +608,24 @@ test('managed memory attempts every input release after one fails', async () => 
   assert.equal(registrations[0].status().released, true);
   assert.equal(registrations[1].status().released, false);
 });
+
+test('zero-input managed row use executes and commits without a representation', async () => {
+  const events = [];
+  const value = await withManagedInputRows(
+    [],
+    () => assert.fail('zero-input execution has no authorization occurrence'),
+    () => assert.fail('zero-input execution has no imported row'),
+    () => {
+      events.push('execute');
+      return 'provisional';
+    },
+    undefined,
+    () => assert.fail('zero-input execution has no physical read'),
+    provisional => {
+      events.push(['commit', provisional]);
+      return 'completed';
+    },
+  );
+  assert.equal(value, 'completed');
+  assert.deepEqual(events, ['execute', ['commit', 'provisional']]);
+});

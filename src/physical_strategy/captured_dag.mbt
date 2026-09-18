@@ -556,6 +556,22 @@ pub fn captured_next_managed_producers(run : CapturedDAG) -> Array[Int] {
 }
 
 ///|
+/// Exact checked input-port count for the next managed task. Unlike the
+/// producer list, zero distinguishes a legitimate source-free operation from
+/// an incomplete topology for a task that requires inputs.
+pub fn captured_next_managed_input_count(run : CapturedDAG) -> Int? {
+  guard next_captured_task(run) is Some(task) &&
+    run.graph.owners.get(task) is Some(owner) else {
+    return None
+  }
+  Some(
+    @pipeline.input_count(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+    ),
+  )
+}
+
+///|
 /// Compatibility accessor for callers that intentionally support unary tasks.
 pub fn captured_next_managed_producer(run : CapturedDAG) -> Int? {
   let producers = captured_next_managed_producers(run)
