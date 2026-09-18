@@ -15,6 +15,11 @@ fn export_fixture(owner : @lower.BoundPrepared) -> CompletedOutput raise {
 }
 
 ///|
+fn publication_schema_limits() -> RelationSchemaIdentityLimits {
+  { max_fields: 100, max_bytes: 10000, max_nodes: 1000, max_depth: 20, }
+}
+
+///|
 fn export_all(
   source : CompletedOutput,
 ) -> (CompletedOutputExportReceipt, String) raise {
@@ -45,6 +50,7 @@ fn export_relation_all(
     stream_value_limits(),
     row_wire_limits(),
     { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
     64,
   ).unwrap()
   let text = StringBuilder()
@@ -75,6 +81,13 @@ test "publication export separates ordered rows from logical Relation identity" 
   )
   assert_eq(logical_relation_usage(relation), (65, 9, 2))
   assert_true(logical_relation_cid(relation) != content.cid)
+  let schema = completed_relation_export_schema_identity(receipt)
+  assert_eq(
+    relation_schema_cid(schema),
+    "sha256:91f065fb2cd5d7dce27dbd0e5d1e17644e21e521ec989fa9be93b52787b305b2",
+  )
+  assert_eq(relation_schema_usage(schema), (79, 7, 2))
+  assert_true(relation_schema_cid(schema) != logical_relation_cid(relation))
   cancel_completed_relation_export_receipt(receipt)
 }
 
@@ -87,6 +100,7 @@ test "publication export independently bounds the logical Relation preimage" {
     stream_value_limits(),
     row_wire_limits(),
     { ..row_wire_limits(), max_bytes: 64, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
     64,
   ).unwrap()
   assert_true(next_completed_output_export(stream) is Ok(Some(_)))

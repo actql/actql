@@ -29,7 +29,10 @@ function validIdentity(value) {
   return value !== null && typeof value === 'object' &&
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
+    /^sha256:[0-9a-f]{64}$/u.test(value.resultSchemaCid) &&
     ['bytes', 'nodes', 'rows'].every(name =>
+      Number.isSafeInteger(value[name]) && value[name] >= 0) &&
+    ['schemaBytes', 'schemaNodes', 'schemaFields'].every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0);
 }
 

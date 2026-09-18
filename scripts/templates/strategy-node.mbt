@@ -681,6 +681,10 @@ pub fn strategy_host_output_export_begin(
   max_logical_wire_bytes : Int,
   max_logical_wire_nodes : Int,
   max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
   max_batch_bytes : Int,
 ) -> StrategyHostOutputExport raise NodeHostFailure {
   match
@@ -706,6 +710,12 @@ pub fn strategy_host_output_export_begin(
         max_bytes: max_logical_wire_bytes,
         max_nodes: max_logical_wire_nodes,
         max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
       },
       max_batch_bytes,
     ) {
@@ -800,6 +810,50 @@ pub fn strategy_host_output_export_logical_relation_cid(
   @execution.logical_relation_cid(
     @execution.completed_relation_export_identity(receipt),
   )
+}
+
+///|
+#export_name("strategyHostOutputExportResultSchemaCid")
+pub fn strategy_host_output_export_result_schema_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaBytes")
+pub fn strategy_host_output_export_schema_bytes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).0
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaNodes")
+pub fn strategy_host_output_export_schema_nodes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).1
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaFields")
+pub fn strategy_host_output_export_schema_fields(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).2
 }
 
 ///|

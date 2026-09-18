@@ -83,7 +83,7 @@ pub fn strategy_host_next_task(@connectors_builtin.ConfiguredComputeHost[@physic
 
 pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
-pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
+pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -99,7 +99,15 @@ pub fn strategy_host_output_export_next(StrategyHostOutputExport) -> String? rai
 
 pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
+pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
+
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_schema_fields(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_schema_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
 pub fn strategy_host_program_definition_cid(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
 

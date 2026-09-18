@@ -4,6 +4,7 @@
 struct CompletedOutputExport {
   mut source : CompletedOutput?
   order : RowWireOrder
+  schema : RelationSchemaIdentity?
   writer : @encode.Writer
   logical_writer : @encode.Writer?
   budget : ValueBudget
@@ -25,6 +26,7 @@ struct CompletedOutputExportReceipt {
 struct CompletedRelationExportReceipt {
   rows : CompletedOutputExportReceipt
   logical : LogicalRelationIdentity
+  schema : RelationSchemaIdentity
 }
 
 ///|
@@ -37,6 +39,7 @@ pub(all) enum CompletedExportIssue {
   ForeignMaterial
   Admission(CaptureIssue)
   Wire(RowWireIssue)
+  Schema(RelationSchemaIdentityIssue)
 }
 
 ///|
@@ -53,6 +56,7 @@ pub fn prepare_completed_output_export(
     values,
     wire,
     None,
+    None,
     max_batch_bytes,
   )
 }
@@ -66,6 +70,7 @@ pub fn prepare_completed_relation_export(
   values : ValueLimits,
   payload_wire : RowWireLimits,
   logical_wire : RowWireLimits,
+  schema_limits : RelationSchemaIdentityLimits,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
   prepare_completed_export(
@@ -74,6 +79,7 @@ pub fn prepare_completed_relation_export(
     values,
     payload_wire,
     Some(logical_wire),
+    Some(schema_limits),
     max_batch_bytes,
   )
 }
@@ -85,6 +91,7 @@ fn prepare_completed_export(
   values : ValueLimits,
   wire : RowWireLimits,
   logical_wire : RowWireLimits?,
+  schema_limits : RelationSchemaIdentityLimits?,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
   if !completed_output_available(source) {
@@ -112,6 +119,20 @@ fn prepare_completed_export(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Wire(issue))
+  }
+  let schema_identity = match schema_limits {
+    None => None
+    Some(limits) => {
+      let owner = @lower.sequence_owner(source.completion.sequence)
+      let schema = @lower.preparation_schema_at(
+        @lower.bound_preparation(owner),
+        source.target,
+      ).unwrap()
+      match identify_relation_schema(schema, limits) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(Schema(issue))
+      }
+    }
   }
   if logical_wire is Some(limits) &&
     (
@@ -144,6 +165,7 @@ fn prepare_completed_export(
     Ok({
       source: Some(source),
       order,
+      schema: schema_identity,
       writer,
       logical_writer,
       budget,
@@ -274,7 +296,8 @@ pub fn finish_completed_relation_export(
   value.reading = false
   result.bind(finished => {
     guard finished.2 is Some(logical) else { return Err(Closed) }
-    Ok(({ rows: finished.0, logical, }, finished.1))
+    guard value.schema is Some(schema) else { return Err(Closed) }
+    Ok(({ rows: finished.0, logical, schema, }, finished.1))
   })
 }
 
@@ -360,6 +383,13 @@ pub fn completed_relation_export_identity(
   receipt : CompletedRelationExportReceipt,
 ) -> LogicalRelationIdentity {
   receipt.logical
+}
+
+///|
+pub fn completed_relation_export_schema_identity(
+  receipt : CompletedRelationExportReceipt,
+) -> RelationSchemaIdentity {
+  receipt.schema
 }
 
 ///|

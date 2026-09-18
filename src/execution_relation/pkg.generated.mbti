@@ -176,6 +176,8 @@ pub fn completed_relation_export_content(CompletedRelationExportReceipt) -> Admi
 
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
 
+pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
@@ -273,6 +275,8 @@ pub fn generated_sequence_requirements(GeneratedSequence, Int) -> Result[@loweri
 pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
+
+pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
 
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
 
@@ -434,7 +438,7 @@ pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWir
 
 pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
 
-pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 
@@ -541,6 +545,10 @@ pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> R
 pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[ProducerRead, ProducerReadIssue]
 
 pub fn register_managed_identity_issuance_capability(ManagedIdentityDomain, ManagedIdentitySubject, ManagedResultOccurrence?, String) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue]
+
+pub fn relation_schema_cid(RelationSchemaIdentity) -> String
+
+pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
 pub fn restrict_completed_output(CompletedOutput, () -> Bool) -> CompletedOutput
 
@@ -660,6 +668,7 @@ pub(all) enum CompletedExportIssue {
   ForeignMaterial
   Admission(CaptureIssue)
   Wire(RowWireIssue)
+  Schema(RelationSchemaIdentityIssue)
 }
 
 pub(all) enum CompletedImportIssue {
@@ -1132,6 +1141,21 @@ pub(all) struct RegistryLimits {
   max_body_bytes : Int
   max_body_nodes : Int
   max_body_depth : Int
+}
+
+type RelationSchemaIdentity
+
+pub(all) enum RelationSchemaIdentityIssue {
+  InvalidLimits
+  FieldLimit
+  Encoding(@encode_core.EncodeFailure)
+}
+
+pub(all) struct RelationSchemaIdentityLimits {
+  max_fields : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 pub(all) struct RetainedCompletionDescriptor {

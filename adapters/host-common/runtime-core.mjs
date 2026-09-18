@@ -170,6 +170,10 @@ function outputExportControl(moon) {
     'maxLogicalWireBytes',
     'maxLogicalWireNodes',
     'maxLogicalWireDepth',
+    'maxSchemaFields',
+    'maxSchemaBytes',
+    'maxSchemaNodes',
+    'maxSchemaDepth',
     'maxBatchBytes',
   ];
   return Object.freeze({
@@ -196,6 +200,10 @@ function outputExportControl(moon) {
         limits.maxLogicalWireBytes,
         limits.maxLogicalWireNodes,
         limits.maxLogicalWireDepth,
+        limits.maxSchemaFields,
+        limits.maxSchemaBytes,
+        limits.maxSchemaNodes,
+        limits.maxSchemaDepth,
         limits.maxBatchBytes,
       ));
     },
@@ -206,9 +214,14 @@ function outputExportControl(moon) {
         orderedRowsCid: moon.strategyHostOutputExportCid(value),
         logicalRelationCid:
           moon.strategyHostOutputExportLogicalRelationCid(value),
+        resultSchemaCid:
+          moon.strategyHostOutputExportResultSchemaCid(value),
         bytes: moon.strategyHostOutputExportBytes(value),
         nodes: moon.strategyHostOutputExportNodes(value),
         rows: moon.strategyHostOutputExportRows(value),
+        schemaBytes: moon.strategyHostOutputExportSchemaBytes(value),
+        schemaNodes: moon.strategyHostOutputExportSchemaNodes(value),
+        schemaFields: moon.strategyHostOutputExportSchemaFields(value),
       });
     },
     cancel: moon.strategyHostOutputExportCancel,

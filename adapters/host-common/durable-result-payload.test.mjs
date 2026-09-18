@@ -25,6 +25,10 @@ const limits = Object.freeze({
   maxLogicalWireBytes: 8192,
   maxLogicalWireNodes: 103,
   maxLogicalWireDepth: 12,
+  maxSchemaFields: 10,
+  maxSchemaBytes: 4096,
+  maxSchemaNodes: 100,
+  maxSchemaDepth: 10,
   maxBatchBytes: 32,
 });
 const unusedContractControl = Object.freeze({
@@ -67,9 +71,13 @@ function exportFixture(parts, text, hooks = {}) {
         orderedRowsCid: hooks.cid ?? digest(text),
         logicalRelationCid: hooks.logicalCid ??
           digest(`{"sort":"relation","value":${text}}`),
+        resultSchemaCid: hooks.schemaCid ?? cid('c'),
         bytes: Buffer.byteLength(text),
         nodes: 7,
         rows: 2,
+        schemaBytes: 64,
+        schemaNodes: 8,
+        schemaFields: 1,
       });
     },
     cancel() { hooks.cancelled?.(); },
@@ -99,7 +107,9 @@ test('canonical batches stream to one durable object without whole-array input',
       orderedRows: {orderedRowsCid: digest(text),
         logicalRelationCid:
           'sha256:5b3aeccd9ebf1cf22f64ef2357114e647d1daac6fbb7957e30a3e3043d7254d1',
-        bytes: Buffer.byteLength(text), nodes: 7, rows: 2},
+        resultSchemaCid: cid('c'),
+        bytes: Buffer.byteLength(text), nodes: 7, rows: 2,
+        schemaBytes: 64, schemaNodes: 8, schemaFields: 1},
     });
     assert.equal(cancelled, 1, 'the export receipt releases its source');
     const bytes = [];
