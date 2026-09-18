@@ -41,7 +41,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | window_group | C | - | - | - | Window projection and aggregate execution |
 | lag | C | - | - | - | Ordered partition execution |
 | watermark_rows | C | - | - | - | Finite watermark lowering and execution |
-| pivot | C | C | P | P | Exact deterministic aggregates are connected; binary64 numeric observation, decimal sum, full variants/types, native layout aggregation, and performance remain |
+| pivot | C | C | P | P | Exact deterministic aggregates, including precision-38 Decimal sum, are connected; binary64 numeric observation, full variants/types, native layout aggregation, and performance remain |
 | unpivot | C | C | P | P | Type matrix, native layout writer, and performance evidence |
 | json_pick | C | C | C | P | Failure, type, budget, and performance coverage |
 | unnest | C | - | - | - | Bounded expansion lowering and execution |

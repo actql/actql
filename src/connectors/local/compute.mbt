@@ -101,6 +101,13 @@ pub fn local_managed_sequence_supported(
               | @relation.Min
               | @relation.Max
               | @relation.First => true
+              @relation.Sum =>
+                match @relation.pivot(@lower.pivot_checked(pivot)) {
+                  Some(checked) =>
+                    @relation.pivot_result(checked).shape
+                    is @contract.Decimal(precision=38, ..)
+                  None => false
+                }
               _ => false
             }
         }

@@ -39,6 +39,10 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       ]
     "pivot" =>
       ["{\"id\":1,\"open\":0,\"won\":1}", "{\"id\":2,\"open\":2,\"won\":0}"]
+    "pivot_decimal_sum" =>
+      [
+        "{\"id\":1,\"open\":\"1.00\",\"won\":null}", "{\"id\":2,\"open\":\"2.00\",\"won\":\"3.00\"}",
+      ]
     "distinct" =>
       [
         "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
@@ -61,6 +65,12 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
       "{\"amount\":20,\"id\":2,\"status\":\"open\"}", "{\"amount\":10,\"id\":1,\"status\":\"won\"}",
       "{\"amount\":30,\"id\":2,\"status\":\"open\"}", "{\"amount\":null,\"id\":1,\"status\":\"open\"}",
       "{\"amount\":99,\"id\":1,\"status\":\"other\"}", "{\"amount\":5,\"id\":1,\"status\":null}",
+    ]
+  } else if kind == "pivot_decimal_sum" {
+    [
+      "{\"amount\":\"1.23\",\"id\":1,\"status\":\"open\"}", "{\"amount\":\"-0.23\",\"id\":1,\"status\":\"open\"}",
+      "{\"amount\":null,\"id\":1,\"status\":\"won\"}", "{\"amount\":\"2.00\",\"id\":2,\"status\":\"open\"}",
+      "{\"amount\":\"3.00\",\"id\":2,\"status\":\"won\"}",
     ]
   } else if kind == "json_pick" {
     [
@@ -210,7 +220,7 @@ test "Local managed unary source forms feed two downstream Computes" {
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
       "drop", "json_pick", "assert_where", "assert_unique", "sort", "take", "distinct",
-      "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot", "pivot",
+      "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot", "pivot", "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
