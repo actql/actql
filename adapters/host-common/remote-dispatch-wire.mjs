@@ -53,3 +53,54 @@ export function admitRemoteDispatchJson(
   }
   return request;
 }
+
+export function admitRemoteExecutionEvidenceJson(
+  control,
+  bodyText,
+  claimedEvidenceCid,
+  dispatch,
+  maxBytes = 65_536,
+) {
+  if (control === null || typeof control !== 'object' ||
+      typeof control.admitExecutionEvidence !== 'function' ||
+      typeof control.evidenceJson !== 'function' ||
+      typeof control.evidenceMatchesDispatch !== 'function' ||
+      !text(bodyText) || !text(claimedEvidenceCid) || dispatch === undefined ||
+      !Number.isSafeInteger(maxBytes) || maxBytes <= 0 ||
+      new TextEncoder().encode(bodyText).byteLength > maxBytes) {
+    fail('InvalidRemoteExecutionEvidenceWire');
+  }
+  let body;
+  try { body = JSON.parse(bodyText); }
+  catch (error) { fail('InvalidRemoteExecutionEvidenceWire', error); }
+  if (body === null || typeof body !== 'object' || Array.isArray(body) ||
+      body.version !== 'actql-remote-execution-evidence/0.1') {
+    fail('InvalidRemoteExecutionEvidenceWire');
+  }
+  let evidence;
+  try {
+    evidence = control.admitExecutionEvidence(Object.freeze({
+      connectorRegistration: body.connector_registration,
+      connectorRevision: body.connector_revision,
+      dispatchRequestCid: body.dispatch_request_cid,
+      evidenceKind: body.evidence_kind,
+      evidenceSubjectCid: body.evidence_subject_cid,
+      holdingEvidenceCid: body.holding_evidence_cid,
+      issuerCapabilityCid: body.issuer_capability_cid,
+      materialGeneration: body.material_generation,
+      obligationsCid: body.obligations_cid,
+      runtimeBundleCid: body.runtime_bundle_cid,
+      siteGeneration: body.site_generation,
+      siteKey: body.site_key,
+      strategyRevision: body.strategy_revision,
+      evidenceCid: claimedEvidenceCid,
+    }));
+  } catch (error) {
+    fail('InvalidRemoteExecutionEvidenceWire', error);
+  }
+  if (control.evidenceJson(evidence) !== bodyText ||
+      !control.evidenceMatchesDispatch(evidence, dispatch)) {
+    fail('NonCanonicalRemoteExecutionEvidenceWire');
+  }
+  return evidence;
+}

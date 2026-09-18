@@ -70,6 +70,27 @@ journal facts are durable. After restart, the Site generation changes and old
 execution authority is not restored. Historical terminal facts may still be
 queried, while current material availability is checked separately.
 
+An installed execution capability additionally binds the exact Site
+generation, runtime bundle, Connector registration and revision, strategy
+revision, and operation grant. Unsupported requests are rejected before
+durable admission. The environment runtime may invoke the registered physical
+handler only after MoonBit authorizes provisioning. Provisioning, running,
+native settlement, output retention, evidence, and release each use a durable
+MoonBit-prepared transition; the adapter does not infer terminal success from
+the handler Promise alone.
+
+If a handler returns before physical stop is confirmed, the durable execution
+and cleanup states become unknown. The runtime retains the exact cleanup
+authority and cannot release the responsibility merely because its Promise has
+settled. Only a later confirmed-stop observation permits MoonBit to reconcile
+the execution as failed or cancelled and then release cleanup. A missing,
+malformed, or failing cleanup status remains unknown.
+
+Status reconciliation is a separate authenticated operation, not dispatch
+retransmission. Durable evidence bodies are stored with their state transition
+and are re-admitted by the Coordinator through MoonBit canonicalization. A
+transport JSON object or a matching string field is not accepted as evidence.
+
 ## Independent state planes
 
 Execution, evidence, and cleanup are independent facts. A native operation may

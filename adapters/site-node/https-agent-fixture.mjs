@@ -6,6 +6,8 @@ import {admitRemoteDispatchJson} from
   '../host-common/remote-dispatch-wire.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {startHttpsRemoteSiteAgent} from './https-agent.mjs';
+import {createRemoteDispatchRuntime, prepareRemoteRuntimeRegistration} from
+  './remote-dispatch-runtime.mjs';
 import {openSqliteDispatchJournal} from './sqlite-dispatch-journal.mjs';
 
 const configurationPath = process.argv[2];
@@ -31,6 +33,20 @@ const store = openSqliteDispatchJournal(configuration.storeRoot, {
   siteGeneration: configuration.site.generation,
   runtimeRevision: configuration.site.runtimeRevision,
 });
+const registration = prepareRemoteRuntimeRegistration({
+  control: runtime.remoteSiteControl,
+  site,
+  ...configuration.runtime,
+  execute: async () => Object.freeze({
+    ...configuration.runtime.output,
+    async close() {},
+  }),
+});
+const dispatchRuntime = createRemoteDispatchRuntime({
+  control: runtime.remoteSiteControl,
+  store,
+  registrations: [registration],
+});
 const agent = await startHttpsRemoteSiteAgent({
   key,
   cert,
@@ -42,6 +58,7 @@ const agent = await startHttpsRemoteSiteAgent({
   store,
   control: runtime.remoteSiteControl,
   admitDispatchJson: admitRemoteDispatchJson,
+  dispatchRuntime,
 });
 
 process.send?.({type: 'ready', port: agent.port});

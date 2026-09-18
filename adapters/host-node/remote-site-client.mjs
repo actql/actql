@@ -1,11 +1,13 @@
 import {request as httpsRequest} from 'node:https';
+import {admitRemoteExecutionEvidenceJson} from
+  '../host-common/remote-dispatch-wire.mjs';
 
 const fail = (code, cause, details = {}) => {
   throw Object.assign(new Error(code, {cause}), {code, ...details});
 };
 const text = value => typeof value === 'string' && value.length > 0;
 
-export async function sendRemoteDispatch({
+async function exchangeRemoteDispatch({
   origin,
   ca,
   cert,
@@ -15,7 +17,7 @@ export async function sendRemoteDispatch({
   dispatch,
   signal,
   maxResponseBytes = 16_384,
-} = {}) {
+} = {}, query = false) {
   if (!text(origin) || ca === undefined || cert === undefined ||
       key === undefined || !text(servername) ||
       control === null || typeof control !== 'object' ||
@@ -30,7 +32,7 @@ export async function sendRemoteDispatch({
   const bodyBytes = Buffer.from(body, 'utf8');
   const parts = control.journalKey(dispatch);
   const path = `/v1/sites/${encodeURIComponent(parts[1])}/generations/` +
-    `${parts[2]}/dispatches`;
+    `${parts[2]}/dispatches${query ? '/query' : ''}`;
   return await new Promise((resolve, reject) => {
     const request = httpsRequest(new URL(path, origin), {
       method: 'POST',
@@ -76,23 +78,62 @@ export async function sendRemoteDispatch({
           }));
           return;
         }
-        if (payload?.version !== 'actql-remote-dispatch-response/0.1' ||
+        const expectedVersion = query
+          ? 'actql-remote-dispatch-status/0.1'
+          : 'actql-remote-dispatch-response/0.1';
+        const evidenceValid = !query || payload?.evidence === null ||
+          (payload?.evidence !== null &&
+          typeof payload?.evidence === 'object' &&
+          typeof payload.evidence.cid === 'string' &&
+          typeof payload.evidence.wire === 'string');
+        if (payload?.version !== expectedVersion ||
             payload.dispatch_request_cid !== control.identity(dispatch) ||
             !Number.isSafeInteger(payload.revision) ||
-            !Array.isArray(payload.state) || payload.state.length !== 5) {
+            !Array.isArray(payload.state) || payload.state.length !== 5 ||
+            !evidenceValid) {
           reject(Object.assign(new Error('InvalidRemoteSiteResponse'), {
             code: 'InvalidRemoteSiteResponse',
           }));
           return;
         }
+        let evidence;
+        if (query && payload.evidence !== null) {
+          try {
+            evidence = admitRemoteExecutionEvidenceJson(
+              control,
+              payload.evidence.wire,
+              payload.evidence.cid,
+              dispatch,
+              maxResponseBytes,
+            );
+          } catch (error) {
+            reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
+              cause: error,
+            }), {code: 'InvalidRemoteSiteResponse'}));
+            return;
+          }
+        }
         resolve(Object.freeze({
           dispatchRequestCid: payload.dispatch_request_cid,
           revision: payload.revision,
           state: Object.freeze([...payload.state]),
+          ...(query ? {
+            evidence,
+            evidenceCid: payload.evidence?.cid,
+            evidenceWire: payload.evidence?.wire,
+          } : {}),
         }));
       });
     });
     request.on('error', reject);
     request.end(bodyBytes);
   });
+}
+
+export function sendRemoteDispatch(options) {
+  return exchangeRemoteDispatch(options, false);
+}
+
+export function queryRemoteDispatch(options) {
+  return exchangeRemoteDispatch(options, true);
 }

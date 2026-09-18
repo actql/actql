@@ -45,6 +45,7 @@ export async function startHttpsRemoteSiteAgent({
   store,
   control,
   admitDispatchJson,
+  dispatchRuntime,
   maxRequestBytes = 65_536,
 } = {}) {
   if (!text(host) || !Number.isSafeInteger(port) || port < 0 ||
@@ -54,11 +55,16 @@ export async function startHttpsRemoteSiteAgent({
       siteGeneration < 0 || journal === undefined || store === undefined ||
       control === null || typeof control !== 'object' ||
       typeof admitDispatchJson !== 'function' ||
+      dispatchRuntime === null || typeof dispatchRuntime !== 'object' ||
+      typeof dispatchRuntime.supports !== 'function' ||
+      typeof dispatchRuntime.start !== 'function' ||
+      typeof dispatchRuntime.close !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     fail('InvalidRemoteSiteAgentConfiguration');
   }
   const endpoint = `/v1/sites/${encodeURIComponent(siteKey)}/generations/` +
     `${siteGeneration}/dispatches`;
+  const queryEndpoint = `${endpoint}/query`;
   const server = createServer({
     key,
     cert,
@@ -74,7 +80,11 @@ export async function startHttpsRemoteSiteAgent({
         reply(response, 404, {error: 'not_found'});
         return;
       }
-      if (request.method !== 'POST' || request.url !== endpoint ||
+      const admissionRequest = request.method === 'POST' &&
+        request.url === endpoint;
+      const queryRequest = request.method === 'POST' &&
+        request.url === queryEndpoint;
+      if ((!admissionRequest && !queryRequest) ||
           request.headers['content-type'] !== 'application/json') {
         reply(response, 404, {error: 'not_found'});
         return;
@@ -92,8 +102,43 @@ export async function startHttpsRemoteSiteAgent({
         reply(response, 404, {error: 'not_found'});
         return;
       }
+      if (queryRequest) {
+        const accepted = store.inspect(dispatch, control);
+        const state = store.inspectState(dispatch, control);
+        if (accepted === undefined || state === undefined ||
+            accepted.dispatch_request_cid !== control.identity(dispatch)) {
+          reply(response, 404, {error: 'not_found'});
+          return;
+        }
+        const evidence = store.inspectEvidence(dispatch, control);
+        reply(response, 200, {
+          version: 'actql-remote-dispatch-status/0.1',
+          dispatch_request_cid: control.identity(dispatch),
+          revision: state[0],
+          state: [
+            state[1],
+            state[2],
+            state[3],
+            state[4] ? 1 : 0,
+            state[5] ? 1 : 0,
+          ],
+          evidence: evidence === undefined ? null : {
+            cid: evidence.execution_evidence_cid,
+            wire: evidence.execution_evidence_json,
+          },
+        });
+        return;
+      }
       const admission = control.prepareAdmission(journal, dispatch);
+      if (!dispatchRuntime.supports(dispatch)) {
+        reply(response, 409, {error: 'dispatch_unsupported'});
+        return;
+      }
+      const isNew = control.admissionIsNew(admission);
       const record = store.accept(admission, dispatch, control);
+      if (isNew || control.status(record)[0] === 0) {
+        dispatchRuntime.start(dispatch, record);
+      }
       reply(response, 200, {
         version: 'actql-remote-dispatch-response/0.1',
         dispatch_request_cid: control.identity(dispatch),
@@ -136,6 +181,7 @@ export async function startHttpsRemoteSiteAgent({
         if (error) reject(error);
         else resolve();
       }));
+      await dispatchRuntime.close();
       return true;
     },
   });

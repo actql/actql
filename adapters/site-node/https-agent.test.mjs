@@ -9,7 +9,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {sendRemoteDispatch} from '../host-node/remote-site-client.mjs';
+import {queryRemoteDispatch, sendRemoteDispatch} from
+  '../host-node/remote-site-client.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
@@ -115,6 +116,20 @@ async function startFixture(root, material) {
       maxRetainedBytes: '1048576',
       maxExecutionBytes: '1048576',
     },
+    runtime: {
+      runtimeBundleCid: cid('a'),
+      connectorRegistration: 'local',
+      connectorRevision: 'local/1',
+      strategyRevision: 'strategy/1',
+      operationCapabilityCid: cid('4'),
+      evidenceKind: 'actql.remote.physical-output/0.1',
+      issuerCapabilityCid: cid('b'),
+      output: {
+        materialGeneration: 'material-generation-a',
+        holdingEvidenceCid: cid('c'),
+        evidenceSubjectCid: cid('d'),
+      },
+    },
   }), {mode: 0o600});
   const child = fork(
     new URL('./https-agent-fixture.mjs', import.meta.url),
@@ -154,6 +169,15 @@ async function startFixture(root, material) {
   });
 }
 
+async function terminalStatus(options) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const status = await queryRemoteDispatch(options);
+    if (status.state[0] >= 3) return status;
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  throw new Error('Remote dispatch did not reach terminal state');
+}
+
 test('mTLS subprocess durably reconciles exact dispatch retransmission',
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-remote-https-'));
@@ -171,9 +195,22 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       dispatch: request,
     };
     const first = await sendRemoteDispatch(options);
-    assert.deepEqual(first.state, [0, 0, 0, 0, 0]);
-    assert.equal(first.revision, 0);
-    assert.deepEqual(await sendRemoteDispatch(options), first);
+    assert.equal(first.dispatchRequestCid, runtime.remoteSiteControl.identity(request));
+    const completed = await terminalStatus(options);
+    assert.deepEqual(completed.state, [3, 2, 0, 1, 0]);
+    assert.equal(completed.revision, 5);
+    assert.equal(typeof completed.evidenceWire, 'string');
+    assert.equal(
+      runtime.remoteSiteControl.evidenceIdentity(completed.evidence),
+      completed.evidenceCid,
+    );
+    assert.equal(
+      JSON.parse(completed.evidenceWire).dispatch_request_cid,
+      first.dispatchRequestCid,
+    );
+    const retransmitted = await sendRemoteDispatch(options);
+    assert.deepEqual(retransmitted.state, completed.state);
+    assert.equal(retransmitted.revision, completed.revision);
 
     await assert.rejects(
       sendRemoteDispatch({...options, dispatch: dispatch('dispatch-a', 'local/2')}),

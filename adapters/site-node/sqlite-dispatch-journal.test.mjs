@@ -49,6 +49,17 @@ function site(generation = 1, runtimeRevision = cid('a')) {
   }));
 }
 
+function executionCapability(control, controlledSite = site()) {
+  return control.registerExecutionCapability(Object.freeze({
+    site: controlledSite,
+    runtimeBundleCid: cid('a'),
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
+    operationCapabilityCid: cid('4'),
+  }));
+}
+
 async function fixture(t, options = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-remote-journal-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -74,7 +85,10 @@ test('accepted dispatch is durable before MoonBit permits execution', async t =>
     dispatch_request_cid: control.identity(prepared),
     request_json: control.requestJson(prepared),
   });
-  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  ), record, control);
   store.advance(control.prepareExecution(record), record, control);
   assert.deepEqual(control.status(record), [2, 0, 0, 0, 0]);
   assert.equal(control.revision(record), 2);
@@ -147,8 +161,14 @@ test('durable transitions restore before later execution progress', async t => {
     prepared,
     control,
   );
-  const first = control.prepareProvisioning(record);
-  const competing = control.prepareProvisioning(record);
+  const first = control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  );
+  const competing = control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  );
   store.advance(first, record, control);
   assert.throws(
     () => store.advance(competing, record, control),
@@ -191,7 +211,10 @@ test('evidence and cleanup planes persist independently', async t => {
     prepared,
     control,
   );
-  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  ), record, control);
   store.advance(control.prepareExecution(record), record, control);
   store.advance(control.prepareSettled(record), record, control);
   store.advance(control.prepareRetained(
@@ -204,15 +227,25 @@ test('evidence and cleanup planes persist independently', async t => {
     runtimeBundleCid: cid('a'),
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1',
     evidenceKind: 'actql.remote.physical-output/0.1',
     issuerCapabilityCid: cid('b'),
   }));
   const evidence = control.issueExecutionEvidence(issuer, record, cid('d'));
   assert.equal(
     control.evidenceIdentity(evidence),
-    'sha256:2568eb7827d9a2b988538da15f7a03540b3ba3338a9d09e6ef54f6d35da5c65d',
+    'sha256:83266c6b43c6ad0c1c4e4a4cafcdf593852c97110d48a1d8691ea7b38406f250',
   );
-  store.advance(control.prepareEvidence(record, evidence), record, control);
+  store.advanceEvidence(
+    control.prepareEvidence(record, evidence),
+    evidence,
+    record,
+    control,
+  );
+  assert.deepEqual(store.inspectEvidence(prepared, control), {
+    execution_evidence_cid: control.evidenceIdentity(evidence),
+    execution_evidence_json: control.evidenceJson(evidence),
+  });
   store.advance(control.prepareRelease(record), record, control);
   assert.deepEqual(control.status(record), [3, 2, 1, 1, 0]);
   store.close();
@@ -269,7 +302,10 @@ test('generation restart persists unknown work before new admission', async t =>
     prepared,
     control,
   );
-  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  ), record, control);
   store.advance(control.prepareExecution(record), record, control);
   const nextRevision = cid('c');
   const restart = control.prepareRestart(journal, site(2, nextRevision));
@@ -327,7 +363,10 @@ test('Agent restart recovers old work before changing generation', async t => {
     prepared,
     control,
   );
-  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareProvisioning(
+    record,
+    executionCapability(control),
+  ), record, control);
   store.advance(control.prepareExecution(record), record, control);
   store.close();
 

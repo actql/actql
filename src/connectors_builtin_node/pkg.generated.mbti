@@ -278,6 +278,8 @@ pub fn strategy_remote_admission_prepare(@remote_site_protocol.SiteDispatchJourn
 
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
+pub fn strategy_remote_dispatch_execution_scope(@remote_site_protocol.DispatchRequest) -> Array[String]
+
 pub fn strategy_remote_dispatch_identity(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn strategy_remote_dispatch_journal_key(@remote_site_protocol.DispatchRequest) -> Array[String]
@@ -286,9 +288,15 @@ pub fn strategy_remote_dispatch_json(@remote_site_protocol.DispatchRequest) -> S
 
 pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
+pub fn strategy_remote_execution_capability_scope(@remote_site_protocol.RemoteExecutionCapability) -> Array[String]
+
+pub fn strategy_remote_execution_evidence_admit(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
 pub fn strategy_remote_execution_evidence_identity(@remote_site_protocol.RemoteExecutionEvidence) -> String
 
 pub fn strategy_remote_execution_evidence_json(@remote_site_protocol.RemoteExecutionEvidence) -> String raise NodeHostFailure
+
+pub fn strategy_remote_execution_evidence_matches_dispatch(@remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.DispatchRequest) -> Bool
 
 pub fn strategy_remote_force_loss_commit(@remote_site_protocol.ForceLossTransition, Bool) -> Unit raise NodeHostFailure
 
@@ -316,7 +324,11 @@ pub fn strategy_remote_prepare_force_loss(@remote_site_protocol.SiteDispatchJour
 
 pub fn strategy_remote_prepare_loss_recovery(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
-pub fn strategy_remote_prepare_provisioning(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+pub fn strategy_remote_prepare_provisioning(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionCapability) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_reconciled_cancellation(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_reconciled_failure(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_release(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
@@ -336,7 +348,9 @@ pub fn strategy_remote_record_revision(@remote_site_protocol.DispatchRecord) -> 
 
 pub fn strategy_remote_record_status(@remote_site_protocol.DispatchRecord) -> Array[Int]
 
-pub fn strategy_remote_register_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String) -> @remote_site_protocol.RemoteEvidenceIssuer raise NodeHostFailure
+pub fn strategy_remote_register_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String, String) -> @remote_site_protocol.RemoteEvidenceIssuer raise NodeHostFailure
+
+pub fn strategy_remote_register_execution_capability(@execution_site.ExecutionSite, String, String, String, String, String) -> @remote_site_protocol.RemoteExecutionCapability raise NodeHostFailure
 
 pub fn strategy_remote_restart_at(@remote_site_protocol.SiteRestartTransition, Int) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 

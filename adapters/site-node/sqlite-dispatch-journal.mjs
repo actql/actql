@@ -90,6 +90,7 @@ export function openSqliteDispatchJournal(root, {
         material_generation TEXT NOT NULL DEFAULT '',
         holding_evidence_cid TEXT NOT NULL DEFAULT '',
         execution_evidence_cid TEXT NOT NULL DEFAULT '',
+        execution_evidence_json TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (
           coordinator_authority,
           site_key,
@@ -109,9 +110,13 @@ export function openSqliteDispatchJournal(root, {
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
       if (version === undefined) {
-        database.prepare(
+        const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
-        ).run('schema_version', 'actql-remote-site-journal/0.2');
+        );
+        insert.run('schema_version', 'actql-remote-site-journal/0.4');
+        insert.run('site_key', siteKey);
+        insert.run('site_generation', String(siteGeneration));
+        insert.run('runtime_revision', runtimeRevision);
       } else if (version.value === 'actql-remote-site-journal/0.1') {
         database.exec(`
           ALTER TABLE dispatches ADD COLUMN revision INTEGER NOT NULL
@@ -137,7 +142,8 @@ export function openSqliteDispatchJournal(root, {
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
         ).run('actql-remote-site-journal/0.2', 'schema_version');
       } else if (version.value !== 'actql-remote-site-journal/0.2' &&
-          version.value !== 'actql-remote-site-journal/0.3') {
+          version.value !== 'actql-remote-site-journal/0.3' &&
+          version.value !== 'actql-remote-site-journal/0.4') {
         fail('UnsupportedRemoteJournalVersion');
       }
     });
@@ -166,8 +172,27 @@ export function openSqliteDispatchJournal(root, {
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
         ).run('actql-remote-site-journal/0.3', 'schema_version');
-      } else if (version?.value !== 'actql-remote-site-journal/0.3') {
+      } else if (version?.value !== 'actql-remote-site-journal/0.3' &&
+          version?.value !== 'actql-remote-site-journal/0.4') {
         fail('UnsupportedRemoteJournalVersion');
+      }
+      const current = database.prepare(
+        'SELECT value FROM journal_metadata WHERE key = ?',
+      ).get('schema_version');
+      if (current?.value === 'actql-remote-site-journal/0.3') {
+        const unverifiable = database.prepare(`
+          SELECT COUNT(*) AS count FROM dispatches WHERE evidence_state = 2
+        `).get();
+        if (Number(unverifiable.count) !== 0) {
+          fail('RemoteJournalEvidenceMigrationRequired');
+        }
+        database.exec(`
+          ALTER TABLE dispatches ADD COLUMN execution_evidence_json TEXT
+            NOT NULL DEFAULT ''
+        `);
+        database.prepare(
+          'UPDATE journal_metadata SET value = ? WHERE key = ?',
+        ).run('actql-remote-site-journal/0.4', 'schema_version');
       }
       const metadata = Object.fromEntries(database.prepare(`
         SELECT key, value FROM journal_metadata
@@ -189,7 +214,7 @@ export function openSqliteDispatchJournal(root, {
     SELECT dispatch_request_cid, request_json, revision, execution_state,
       evidence_state, cleanup_state, material_available,
       quarantined_capacity, material_generation, holding_evidence_cid,
-      execution_evidence_cid
+      execution_evidence_cid, execution_evidence_json
     FROM dispatches
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
@@ -198,7 +223,7 @@ export function openSqliteDispatchJournal(root, {
     SELECT dispatch_request_cid, request_json, revision, execution_state,
       evidence_state, cleanup_state, material_available,
       quarantined_capacity, material_generation, holding_evidence_cid,
-      execution_evidence_cid
+      execution_evidence_cid, execution_evidence_json
     FROM dispatches
     ORDER BY coordinator_authority, site_generation, dispatch_id
   `);
@@ -217,21 +242,23 @@ export function openSqliteDispatchJournal(root, {
       dispatch_request_cid, run_definition_cid, task_key, task_attempt,
       request_json, revision, execution_state, evidence_state, cleanup_state,
       material_available, quarantined_capacity, material_generation,
-      holding_evidence_cid, execution_evidence_cid
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, '', '', '')
+      holding_evidence_cid, execution_evidence_cid,
+      execution_evidence_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, '', '', '', '')
   `);
   const updateDispatch = database.prepare(`
     UPDATE dispatches SET
       revision = ?, execution_state = ?, evidence_state = ?,
       cleanup_state = ?, material_available = ?, quarantined_capacity = ?,
       material_generation = ?, holding_evidence_cid = ?,
-      execution_evidence_cid = ?
+      execution_evidence_cid = ?, execution_evidence_json = ?
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
       AND revision = ? AND execution_state = ? AND evidence_state = ?
       AND cleanup_state = ? AND material_available = ?
       AND quarantined_capacity = ? AND material_generation = ?
       AND holding_evidence_cid = ? AND execution_evidence_cid = ?
+      AND execution_evidence_json = ?
   `);
 
   const ensureOpen = () => {
@@ -333,19 +360,37 @@ export function openSqliteDispatchJournal(root, {
     }
     return Object.freeze({key, generation, states});
   };
-  const persistPhysicalTransition = prepared => {
+  const persistPhysicalTransition = (prepared, executionEvidenceJson) => {
     const {key, generation, states} = prepared;
     const found = selectDispatch.get(key[0], key[1], generation, key[3]);
     if (found === undefined) fail('RemoteJournalRecordMissing');
     const current = rowState(found);
-    if (equalState(current, states.next)) return states;
+    if (equalState(current, states.next)) {
+      if (executionEvidenceJson !== undefined &&
+          found.execution_evidence_json !== executionEvidenceJson) {
+        fail('RemoteDispatchStateCollision');
+      }
+      return states;
+    }
     if (!equalState(current, states.expected)) {
       fail('RemoteDispatchStateCollision');
     }
+    let nextEvidenceJson = found.execution_evidence_json;
+    if (executionEvidenceJson !== undefined) {
+      if (!text(executionEvidenceJson) || states.next[2] !== 2 ||
+          !text(states.next[8])) {
+        fail('InvalidRemoteExecutionEvidence');
+      }
+      nextEvidenceJson = executionEvidenceJson;
+    } else if (states.next[2] === 2 && states.expected[2] !== 2) {
+      fail('RemoteExecutionEvidenceMissing');
+    } else if (states.next[2] === 3) {
+      nextEvidenceJson = '';
+    }
     const result = updateDispatch.run(
-      ...states.next,
+      ...states.next, nextEvidenceJson,
       key[0], key[1], generation, key[3],
-      ...states.expected,
+      ...states.expected, found.execution_evidence_json,
     );
     if (result.changes !== 1) fail('RemoteDispatchStateCollision');
     return states;
@@ -469,6 +514,37 @@ export function openSqliteDispatchJournal(root, {
       }
       return record;
     },
+    advanceEvidence(transition, evidence, record, control) {
+      ensureOpen();
+      if (control === null || typeof control !== 'object' ||
+          typeof control.transitionKey !== 'function' ||
+          typeof control.transitionProjection !== 'function' ||
+          typeof control.commitTransition !== 'function' ||
+          typeof control.revision !== 'function' ||
+          typeof control.evidenceIdentity !== 'function' ||
+          typeof control.evidenceJson !== 'function') {
+        fail('MissingRemoteSiteControl');
+      }
+      const evidenceJson = control.evidenceJson(evidence);
+      const evidenceCid = control.evidenceIdentity(evidence);
+      const projection = control.transitionProjection(transition);
+      if (!Array.isArray(projection) || projection[17] !== evidenceCid) {
+        fail('RemoteExecutionEvidenceMismatch');
+      }
+      const prepared = preparePhysicalTransition(
+        control.transitionKey(transition),
+        projection,
+        control.revision(record),
+      );
+      transaction(database, () => {
+        persistPhysicalTransition(prepared, evidenceJson);
+      });
+      control.commitTransition(transition, true);
+      if (control.revision(record) !== prepared.states.next[0]) {
+        fail('RemoteJournalControlDiverged');
+      }
+      return record;
+    },
     forceLoss(transition, record, control) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
@@ -575,6 +651,20 @@ export function openSqliteDispatchJournal(root, {
       const key = control.journalKey(request);
       const found = selectDispatch.get(key[0], key[1], Number(key[2]), key[3]);
       return found === undefined ? undefined : stateFromRow(found);
+    },
+    inspectEvidence(request, control) {
+      ensureOpen();
+      const key = control.journalKey(request);
+      const found = selectDispatch.get(key[0], key[1], Number(key[2]), key[3]);
+      if (found === undefined || found.evidence_state !== 2 ||
+          !text(found.execution_evidence_cid) ||
+          !text(found.execution_evidence_json)) {
+        return undefined;
+      }
+      return Object.freeze({
+        execution_evidence_cid: found.execution_evidence_cid,
+        execution_evidence_json: found.execution_evidence_json,
+      });
     },
     close() {
       if (closed) return false;

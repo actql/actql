@@ -30,8 +30,22 @@ struct RemoteEvidenceIssuer {
   runtime_bundle_cid : String
   connector_registration : String
   connector_revision : String
+  strategy_revision : String
   evidence_kind : String
   issuer_capability_cid : String
+}
+
+///|
+/// Execution permission is separate from Site identity and evidence issuance.
+/// It is installed by the Host for one exact runtime implementation scope.
+struct RemoteExecutionCapability {
+  site_key : String
+  site_generation : Int
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  strategy_revision : String
+  operation_capability_cid : String
 }
 
 ///|
@@ -45,6 +59,7 @@ struct RemoteExecutionEvidence {
   runtime_bundle_cid : String
   connector_registration : String
   connector_revision : String
+  strategy_revision : String
   obligations_cid : String
   material_generation : String
   holding_evidence_cid : String
@@ -316,6 +331,7 @@ pub fn register_remote_evidence_issuer(
   runtime_bundle_cid : String,
   connector_registration : String,
   connector_revision : String,
+  strategy_revision : String,
   evidence_kind : String,
   issuer_capability_cid : String,
 ) -> Result[RemoteEvidenceIssuer, DispatchIssue] {
@@ -326,6 +342,7 @@ pub fn register_remote_evidence_issuer(
     ) ||
     connector_registration.is_empty() ||
     connector_revision.is_empty() ||
+    strategy_revision.is_empty() ||
     evidence_kind.is_empty() ||
     !valid_cid(issuer_capability_cid) {
     return Err(InvalidDispatch)
@@ -336,9 +353,56 @@ pub fn register_remote_evidence_issuer(
     runtime_bundle_cid,
     connector_registration,
     connector_revision,
+    strategy_revision,
     evidence_kind,
     issuer_capability_cid,
   })
+}
+
+///|
+pub fn register_remote_execution_capability(
+  site : @site.ExecutionSite,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  operation_capability_cid : String,
+) -> Result[RemoteExecutionCapability, DispatchIssue] {
+  if !@site.site_binding_current(
+      site,
+      @site.site_generation(site),
+      runtime_bundle_cid,
+    ) ||
+    connector_registration.is_empty() ||
+    connector_revision.is_empty() ||
+    strategy_revision.is_empty() ||
+    !valid_cid(operation_capability_cid) {
+    return Err(InvalidDispatch)
+  }
+  Ok({
+    site_key: @site.site_key(site),
+    site_generation: @site.site_generation(site),
+    runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    operation_capability_cid,
+  })
+}
+
+///|
+pub fn remote_execution_capability_scope(
+  capability : RemoteExecutionCapability,
+) -> Array[String] {
+  [
+    capability.site_key,
+    capability.site_generation.to_string(),
+    capability.runtime_bundle_cid,
+    capability.connector_registration,
+    capability.connector_revision,
+    capability.strategy_revision,
+    capability.operation_capability_cid,
+  ]
 }
 
 ///|
@@ -374,6 +438,8 @@ fn emit_remote_execution_evidence_body(
     @encode.number_value(writer, evidence.site_generation.to_double())
     @encode.key(writer, "site_key")
     @encode.string_value(writer, evidence.site_key)
+    @encode.key(writer, "strategy_revision")
+    @encode.string_value(writer, evidence.strategy_revision)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-remote-execution-evidence/0.1")
     @encode.end_object(writer)
@@ -398,6 +464,83 @@ fn remote_execution_evidence_identity(
 }
 
 ///|
+fn valid_remote_execution_evidence_fields(
+  evidence : RemoteExecutionEvidence,
+) -> Bool {
+  valid_cid(evidence.dispatch_request_cid) &&
+  !evidence.site_key.is_empty() &&
+  evidence.site_generation >= 0 &&
+  valid_cid(evidence.runtime_bundle_cid) &&
+  !evidence.connector_registration.is_empty() &&
+  !evidence.connector_revision.is_empty() &&
+  !evidence.strategy_revision.is_empty() &&
+  valid_cid(evidence.obligations_cid) &&
+  !evidence.material_generation.is_empty() &&
+  valid_cid(evidence.holding_evidence_cid) &&
+  !evidence.evidence_kind.is_empty() &&
+  valid_cid(evidence.evidence_subject_cid) &&
+  valid_cid(evidence.issuer_capability_cid)
+}
+
+///|
+pub fn admit_remote_execution_evidence(
+  connector_registration : String,
+  connector_revision : String,
+  dispatch_request_cid : String,
+  evidence_kind : String,
+  evidence_subject_cid : String,
+  holding_evidence_cid : String,
+  issuer_capability_cid : String,
+  material_generation : String,
+  obligations_cid : String,
+  runtime_bundle_cid : String,
+  site_generation : Int,
+  site_key : String,
+  strategy_revision : String,
+  claimed_evidence_cid : String,
+) -> Result[RemoteExecutionEvidence, DispatchIssue] {
+  let evidence : RemoteExecutionEvidence = {
+    connector_registration,
+    connector_revision,
+    dispatch_request_cid,
+    evidence_kind,
+    evidence_subject_cid,
+    holding_evidence_cid,
+    issuer_capability_cid,
+    material_generation,
+    obligations_cid,
+    runtime_bundle_cid,
+    site_generation,
+    site_key,
+    strategy_revision,
+    evidence_cid: claimed_evidence_cid,
+  }
+  if !valid_remote_execution_evidence_fields(evidence) ||
+    remote_execution_evidence_identity(evidence) != Ok(claimed_evidence_cid) {
+    Err(DispatchIdentityMismatch)
+  } else {
+    Ok(evidence)
+  }
+}
+
+///|
+pub fn remote_execution_evidence_matches_dispatch(
+  evidence : RemoteExecutionEvidence,
+  request : DispatchRequest,
+) -> Bool {
+  valid_remote_execution_evidence_fields(evidence) &&
+  evidence.dispatch_request_cid == request.dispatch_request_cid &&
+  evidence.site_key == request.site_key &&
+  evidence.site_generation == request.site_generation &&
+  evidence.runtime_bundle_cid == request.runtime_bundle_cid &&
+  evidence.connector_registration == request.connector_registration &&
+  evidence.connector_revision == request.connector_revision &&
+  evidence.strategy_revision == request.strategy_revision &&
+  evidence.obligations_cid == request.obligations_cid &&
+  remote_execution_evidence_identity(evidence) == Ok(evidence.evidence_cid)
+}
+
+///|
 pub fn issue_remote_execution_evidence(
   issuer : RemoteEvidenceIssuer,
   record : DispatchRecord,
@@ -410,6 +553,7 @@ pub fn issue_remote_execution_evidence(
     request.runtime_bundle_cid != issuer.runtime_bundle_cid ||
     request.connector_registration != issuer.connector_registration ||
     request.connector_revision != issuer.connector_revision ||
+    request.strategy_revision != issuer.strategy_revision ||
     record.execution != NativeSettled ||
     !record.material_available {
     return Err(InvalidDispatch)
@@ -425,6 +569,7 @@ pub fn issue_remote_execution_evidence(
     runtime_bundle_cid: request.runtime_bundle_cid,
     connector_registration: request.connector_registration,
     connector_revision: request.connector_revision,
+    strategy_revision: request.strategy_revision,
     obligations_cid: request.obligations_cid,
     material_generation,
     holding_evidence_cid,
@@ -444,6 +589,9 @@ pub fn issue_remote_execution_evidence(
 pub fn remote_execution_evidence_json(
   evidence : RemoteExecutionEvidence,
 ) -> Result[String, DispatchIssue] {
+  if !valid_remote_execution_evidence_fields(evidence) {
+    return Err(InvalidDispatch)
+  }
   let identity = match remote_execution_evidence_identity(evidence) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -469,6 +617,23 @@ pub fn dispatch_request_json(
     return Err(InvalidDispatch)
   }
   emit_dispatch_request_body(request)
+}
+
+///|
+/// Exact implementation scope used only to select a Host-installed runtime.
+/// It contains no future output or transport-session identity.
+pub fn dispatch_request_execution_scope(
+  request : DispatchRequest,
+) -> Array[String] {
+  [
+    request.site_key,
+    request.site_generation.to_string(),
+    request.runtime_bundle_cid,
+    request.connector_registration,
+    request.connector_revision,
+    request.strategy_revision,
+    request.grant_cid,
+  ]
 }
 
 ///|
@@ -741,7 +906,18 @@ fn prepare_transition(
 ///|
 pub fn prepare_begin_provisioning(
   record : DispatchRecord,
+  capability : RemoteExecutionCapability,
 ) -> Result[DispatchTransition, DispatchIssue] {
+  let request = record.request
+  if request.site_key != capability.site_key ||
+    request.site_generation != capability.site_generation ||
+    request.runtime_bundle_cid != capability.runtime_bundle_cid ||
+    request.connector_registration != capability.connector_registration ||
+    request.connector_revision != capability.connector_revision ||
+    request.strategy_revision != capability.strategy_revision ||
+    request.grant_cid != capability.operation_capability_cid {
+    return Err(InvalidDispatch)
+  }
   match record.execution {
     Accepted =>
       Ok(
@@ -885,6 +1061,48 @@ pub fn prepare_confirm_execution_cancelled(
 }
 
 ///|
+/// A rejected operation may become terminal only after its cleanup authority
+/// confirms that the previously unknown physical execution has stopped.
+pub fn prepare_reconcile_failed_execution(
+  record : DispatchRecord,
+) -> Result[DispatchTransition, DispatchIssue] {
+  match (record.execution, record.cleanup) {
+    (ExecutionUnknown, CleanupUnknown) =>
+      Ok(
+        prepare_transition(
+          record,
+          ExecutionFailed,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
+    _ => Err(InvalidTransition)
+  }
+}
+
+///|
+pub fn prepare_reconcile_cancelled_execution(
+  record : DispatchRecord,
+) -> Result[DispatchTransition, DispatchIssue] {
+  match (record.execution, record.cleanup) {
+    (ExecutionUnknown, CleanupUnknown) =>
+      Ok(
+        prepare_transition(
+          record,
+          ExecutionCancelled,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
+    _ => Err(InvalidTransition)
+  }
+}
+
+///|
 pub fn prepare_retain_remote_output(
   record : DispatchRecord,
   material_generation : String,
@@ -915,14 +1133,7 @@ pub fn prepare_durable_execution_evidence(
   evidence : RemoteExecutionEvidence,
 ) -> Result[DispatchTransition, DispatchIssue] {
   let request = record.request
-  if evidence.dispatch_request_cid != request.dispatch_request_cid ||
-    evidence.site_key != request.site_key ||
-    evidence.site_generation != request.site_generation ||
-    evidence.runtime_bundle_cid != request.runtime_bundle_cid ||
-    evidence.connector_registration != request.connector_registration ||
-    evidence.connector_revision != request.connector_revision ||
-    evidence.obligations_cid != request.obligations_cid ||
-    remote_execution_evidence_identity(evidence) != Ok(evidence.evidence_cid) {
+  if !remote_execution_evidence_matches_dispatch(evidence, request) {
     return Err(InvalidDispatch)
   }
   match record.evidence {

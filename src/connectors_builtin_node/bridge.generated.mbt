@@ -2450,6 +2450,14 @@ pub fn strategy_remote_dispatch_journal_key(
 }
 
 ///|
+#export_name("strategyRemoteDispatchExecutionScope")
+pub fn strategy_remote_dispatch_execution_scope(
+  request : @remote.DispatchRequest,
+) -> Array[String] {
+  @remote.dispatch_request_execution_scope(request)
+}
+
+///|
 #export_name("strategyRemoteJournalCreate")
 pub fn strategy_remote_journal_create(
   site : @site.ExecutionSite,
@@ -2507,8 +2515,9 @@ pub fn strategy_remote_admission_commit(
 #export_name("strategyRemotePrepareProvisioning")
 pub fn strategy_remote_prepare_provisioning(
   record : @remote.DispatchRecord,
+  capability : @remote.RemoteExecutionCapability,
 ) -> @remote.DispatchTransition raise NodeHostFailure {
-  match @remote.prepare_begin_provisioning(record) {
+  match @remote.prepare_begin_provisioning(record, capability) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -2559,6 +2568,28 @@ pub fn strategy_remote_prepare_cancelled(
 }
 
 ///|
+#export_name("strategyRemotePrepareReconciledFailure")
+pub fn strategy_remote_prepare_reconciled_failure(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_reconcile_failed_execution(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareReconciledCancellation")
+pub fn strategy_remote_prepare_reconciled_cancellation(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_reconcile_cancelled_execution(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemotePrepareRetained")
 pub fn strategy_remote_prepare_retained(
   record : @remote.DispatchRecord,
@@ -2581,17 +2612,46 @@ pub fn strategy_remote_register_evidence_issuer(
   runtime_bundle_cid : String,
   connector_registration : String,
   connector_revision : String,
+  strategy_revision : String,
   evidence_kind : String,
   issuer_capability_cid : String,
 ) -> @remote.RemoteEvidenceIssuer raise NodeHostFailure {
   match
     @remote.register_remote_evidence_issuer(
-      site, runtime_bundle_cid, connector_registration, connector_revision, evidence_kind,
-      issuer_capability_cid,
+      site, runtime_bundle_cid, connector_registration, connector_revision, strategy_revision,
+      evidence_kind, issuer_capability_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteRegisterExecutionCapability")
+pub fn strategy_remote_register_execution_capability(
+  site : @site.ExecutionSite,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  operation_capability_cid : String,
+) -> @remote.RemoteExecutionCapability raise NodeHostFailure {
+  match
+    @remote.register_remote_execution_capability(
+      site, runtime_bundle_cid, connector_registration, connector_revision, strategy_revision,
+      operation_capability_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteExecutionCapabilityScope")
+pub fn strategy_remote_execution_capability_scope(
+  capability : @remote.RemoteExecutionCapability,
+) -> Array[String] {
+  @remote.remote_execution_capability_scope(capability)
 }
 
 ///|
@@ -2616,6 +2676,45 @@ pub fn strategy_remote_execution_evidence_identity(
   evidence : @remote.RemoteExecutionEvidence,
 ) -> String {
   @remote.remote_execution_evidence_cid(evidence)
+}
+
+///|
+#export_name("strategyRemoteExecutionEvidenceAdmit")
+pub fn strategy_remote_execution_evidence_admit(
+  connector_registration : String,
+  connector_revision : String,
+  dispatch_request_cid : String,
+  evidence_kind : String,
+  evidence_subject_cid : String,
+  holding_evidence_cid : String,
+  issuer_capability_cid : String,
+  material_generation : String,
+  obligations_cid : String,
+  runtime_bundle_cid : String,
+  site_generation : Int,
+  site_key : String,
+  strategy_revision : String,
+  claimed_evidence_cid : String,
+) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
+  match
+    @remote.admit_remote_execution_evidence(
+      connector_registration, connector_revision, dispatch_request_cid, evidence_kind,
+      evidence_subject_cid, holding_evidence_cid, issuer_capability_cid, material_generation,
+      obligations_cid, runtime_bundle_cid, site_generation, site_key, strategy_revision,
+      claimed_evidence_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteExecutionEvidenceMatchesDispatch")
+pub fn strategy_remote_execution_evidence_matches_dispatch(
+  evidence : @remote.RemoteExecutionEvidence,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.remote_execution_evidence_matches_dispatch(evidence, request)
 }
 
 ///|

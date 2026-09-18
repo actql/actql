@@ -91,6 +91,7 @@ function remoteSiteControl(moon) {
     identity: moon.strategyRemoteDispatchIdentity,
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
     journalKey: moon.strategyRemoteDispatchJournalKey,
+    executionScope: moon.strategyRemoteDispatchExecutionScope,
     createJournal: value => checked(moon.strategyRemoteJournalCreate(value)),
     prepareAdmission: (journal, request) => checked(
       moon.strategyRemoteAdmissionPrepare(journal, request),
@@ -102,8 +103,19 @@ function remoteSiteControl(moon) {
     commitAdmission: (value, durable) => checked(
       moon.strategyRemoteAdmissionCommit(value, durable),
     ),
-    prepareProvisioning: value => checked(
-      moon.strategyRemotePrepareProvisioning(value),
+    registerExecutionCapability: configuration => checked(
+      moon.strategyRemoteRegisterExecutionCapability(
+        configuration.site,
+        configuration.runtimeBundleCid,
+        configuration.connectorRegistration,
+        configuration.connectorRevision,
+        configuration.strategyRevision,
+        configuration.operationCapabilityCid,
+      ),
+    ),
+    executionCapabilityScope: moon.strategyRemoteExecutionCapabilityScope,
+    prepareProvisioning: (value, capability) => checked(
+      moon.strategyRemotePrepareProvisioning(value, capability),
     ),
     prepareExecution: value => checked(
       moon.strategyRemotePrepareExecution(value),
@@ -117,6 +129,12 @@ function remoteSiteControl(moon) {
     prepareCancelled: value => checked(
       moon.strategyRemotePrepareCancelled(value),
     ),
+    prepareReconciledFailure: value => checked(
+      moon.strategyRemotePrepareReconciledFailure(value),
+    ),
+    prepareReconciledCancellation: value => checked(
+      moon.strategyRemotePrepareReconciledCancellation(value),
+    ),
     prepareRetained: (value, material, holding) => checked(
       moon.strategyRemotePrepareRetained(value, material, holding),
     ),
@@ -126,6 +144,7 @@ function remoteSiteControl(moon) {
         configuration.runtimeBundleCid,
         configuration.connectorRegistration,
         configuration.connectorRevision,
+        configuration.strategyRevision,
         configuration.evidenceKind,
         configuration.issuerCapabilityCid,
       ),
@@ -137,7 +156,27 @@ function remoteSiteControl(moon) {
         evidenceSubjectCid,
       ),
     ),
+    admitExecutionEvidence: evidence => checked(
+      moon.strategyRemoteExecutionEvidenceAdmit(
+        evidence.connectorRegistration,
+        evidence.connectorRevision,
+        evidence.dispatchRequestCid,
+        evidence.evidenceKind,
+        evidence.evidenceSubjectCid,
+        evidence.holdingEvidenceCid,
+        evidence.issuerCapabilityCid,
+        evidence.materialGeneration,
+        evidence.obligationsCid,
+        evidence.runtimeBundleCid,
+        evidence.siteGeneration,
+        evidence.siteKey,
+        evidence.strategyRevision,
+        evidence.evidenceCid,
+      ),
+    ),
     evidenceIdentity: moon.strategyRemoteExecutionEvidenceIdentity,
+    evidenceMatchesDispatch:
+      moon.strategyRemoteExecutionEvidenceMatchesDispatch,
     evidenceJson: value => checked(
       moon.strategyRemoteExecutionEvidenceJson(value),
     ),
