@@ -196,6 +196,8 @@ pub fn group_entry_count(PreparedGroup) -> Int
 
 pub fn group_input_schema(PreparedGroup) -> @relation_schema.Schema
 
+pub fn group_is_window(PreparedGroup) -> Bool
+
 pub fn group_key_at(PreparedGroup, Int) -> @relation_schema.FieldName?
 
 pub fn group_key_count(PreparedGroup) -> Int
@@ -798,6 +800,7 @@ pub enum Payload {
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)
   CountGroup(@relation_typing.CheckedOperation)
+  WindowGroup(@relation_typing.CheckedOperation)
   AssertRows(@relation_typing.CheckedOperation)
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)

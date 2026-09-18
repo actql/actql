@@ -7,7 +7,7 @@ pub fn emit_kernel_node(
 ) -> Unit raise @encode.EncodeFailure {
   let group_keys = match kernel.body {
     CountGroups(group) => Some(group.keys)
-    Groups(group) => Some(group.keys)
+    Groups(group) if !group.window => Some(group.keys)
     _ => None
   }
   if group_keys is Some(keys) {
@@ -79,11 +79,21 @@ pub fn emit_kernel_node(
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
       CountGroups(_) => "REL.groupBy"
-      Groups(_) => "REL.groupBy"
+      Groups(group) =>
+        if group.window {
+          "REL.window.project"
+        } else {
+          "REL.groupBy"
+        }
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
   @encode.key(out, "params")
+  if kernel.body is Groups(group) && group.window {
+    emit_group_params(group, out)
+    @encode.end_object(out)
+    return
+  }
   @encode.begin_object(out)
   match kernel.body {
     CountGroups(_) | Groups(_) => raise @encode.InvalidStructure
@@ -326,7 +336,7 @@ fn emit_kernel_prefix(
     @encode.end_object(out)
     return
   }
-  if kernel.body is Groups(group) {
+  if kernel.body is Groups(group) && !group.window {
     guard node.aggregation_id is Some(id) else {
       raise @encode.InvalidStructure
     }

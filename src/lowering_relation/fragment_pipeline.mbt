@@ -97,7 +97,12 @@ fn emit_fragment_pipeline(
         SnapshotMap(_) | OrderedBindings(_) => "REL.derive"
         Filter(_) => "REL.where"
         AssertAll(_) => "REL.assert_all"
-        Groups(_) => "REL.groupBy"
+        Groups(group) =>
+          if group.window {
+            "REL.window.project"
+          } else {
+            "REL.groupBy"
+          }
         Select(_)
         | AssertUnique(_)
         | JsonPick(_, _, _)

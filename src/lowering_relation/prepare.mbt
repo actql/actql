@@ -41,6 +41,7 @@ pub enum Payload {
   Dedupe(@relation.CheckedOperation)
   Sort(@relation.CheckedOperation)
   CountGroup(@relation.CheckedOperation)
+  WindowGroup(@relation.CheckedOperation)
   AssertRows(@relation.CheckedOperation)
   JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
@@ -158,6 +159,7 @@ pub fn operation(value : PreparedNode) -> String {
     Dedupe(_) => "REL.dedupeRows"
     Sort(_) => "REL.orderByStable"
     CountGroup(_) => "REL.groupBy"
+    WindowGroup(_) => "REL.window.project"
     AssertRows(op) =>
       match @relation.row_operation(op) {
         Some(@relation.AssertWhere) => "REL.assert_all"
@@ -204,6 +206,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     CrossJoin(checked~, ..) => Some(CrossJoinRows(checked))
     Append(checked~, ..) => Some(AppendRows(checked))
     Set(checked~, ..) => Some(SetRows(checked))
+    WindowGroup(v) => Some(WindowGroup(v))
     Nest(..)
     | IntervalJoin(..)
     | AsOfJoin(..)
@@ -229,8 +232,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | Pool(_)
     | Ranking(_)
     | TextRank(..)
-    | Event(_)
-    | WindowGroup(_) => None
+    | Event(_) => None
   }
 }
 
@@ -306,6 +308,7 @@ pub fn prepare(
       Dedupe(_) => ("dedupe", 1)
       Sort(_) => ("sort", 1)
       CountGroup(_) => ("group", 1)
+      WindowGroup(_) => ("window_group", 1)
       AssertRows(_) => ("assert", 1)
       JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
@@ -384,7 +387,8 @@ pub fn prepare(
       | Unpivot(_)
       | Dedupe(_)
       | Sort(_)
-      | CountGroup(_) => None
+      | CountGroup(_)
+      | WindowGroup(_) => None
       AssertRows(_) => None
       JsonPick(_) => None
       AppendRows(_) => None

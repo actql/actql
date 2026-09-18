@@ -379,7 +379,11 @@ fn lower_expression_measured(
       expression_fail(source, MissingCheckedBinding)
     }
     let op = match step.payload {
-      Derive(op) | Where(op) | CountGroup(op) | AssertRows(op) => op
+      Derive(op)
+      | Where(op)
+      | CountGroup(op)
+      | WindowGroup(op)
+      | AssertRows(op) => op
       Values(_)
       | RowWindow(_)
       | Select(_)

@@ -174,6 +174,7 @@ pub fn prepare_sequence(
       | Dedupe(_)
       | Sort(_)
       | CountGroup(_)
+      | WindowGroup(_)
       | AssertRows(_)
       | JsonPick(_) => {
         let (kernel, remaining, used_names, used_bindings) = match

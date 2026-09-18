@@ -249,6 +249,7 @@ fn prepare_kernel_measured(
     | Dedupe(op)
     | Sort(op)
     | CountGroup(op)
+    | WindowGroup(op)
     | AssertRows(op) => op
     JsonPick(op) => op
     Values(_)
@@ -688,15 +689,19 @@ fn prepare_kernel_measured(
       Pivot(pivot)
     }
     Aggregation => {
-      let count_group = match
-        prepare_count_group(
-          checked,
-          Int::min(max_bindings, remaining.max_work),
-          names_remaining,
-        ) {
-        Ok(group) => Some(group)
-        Err(UnsupportedAggregate(_)) => None
-        Err(e) => return Err(CountGroupFailure(e))
+      let count_group = if node.payload is WindowGroup(_) {
+        None
+      } else {
+        match
+          prepare_count_group(
+            checked,
+            Int::min(max_bindings, remaining.max_work),
+            names_remaining,
+          ) {
+          Ok(group) => Some(group)
+          Err(UnsupportedAggregate(_)) => None
+          Err(e) => return Err(CountGroupFailure(e))
+        }
       }
       match count_group {
         Some(group) => {

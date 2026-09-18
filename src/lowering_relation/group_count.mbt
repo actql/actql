@@ -46,7 +46,9 @@ struct PreparedAggregate {
 /// authority for validation and operation identity.
 struct PreparedGroup {
   checked : @relation.CheckedOperation
+  window : Bool
   keys : Array[@schema.FieldName]
+  authored_key_offset : Int
   aggregates : Array[PreparedAggregate]
   name_bytes : Int
   entries : Int
@@ -203,9 +205,13 @@ pub fn prepare_group(
     limits.max_literal_text_bytes < 0 {
     return Err(InvalidGroupLimits)
   }
-  guard owner.prepared.nodes.get(step_index) is Some(node) &&
-    node.payload is CountGroup(checked) else {
+  guard owner.prepared.nodes.get(step_index) is Some(node) else {
     return Err(GroupNotFound)
+  }
+  let (checked, window) = match node.payload {
+    CountGroup(checked) => (checked, false)
+    WindowGroup(checked) => (checked, true)
+    _ => return Err(GroupNotFound)
   }
   guard @relation.group(checked) is Some(group) else {
     return Err(GroupNotFound)
@@ -234,6 +240,18 @@ pub fn prepare_group(
       return Err(GroupPreparationLimit)
     }
     keys.push(key.field)
+  }
+  let authored_key_offset = if window { 2 } else { 0 }
+  if window {
+    guard checked_keys.length() >= 2 &&
+      @pipeline.step_at(owner.prepared.owner, step_index) is Some(step) &&
+      @pipeline.window_evidence(step) is Some(evidence) else {
+      return Err(GroupNotFound)
+    }
+    let (start, end) = @pipeline.window_fields(evidence)
+    if checked_keys[0].field != start || checked_keys[1].field != end {
+      return Err(GroupNotFound)
+    }
   }
   let mut remaining = limits
   let lower = fn(index : Int) -> Result[Expression, GroupIssue] {
@@ -393,7 +411,9 @@ pub fn prepare_group(
     (
       {
         checked,
+        window,
         keys,
+        authored_key_offset,
         aggregates,
         name_bytes: max_name_bytes - remaining_names,
         entries,
@@ -406,6 +426,11 @@ pub fn prepare_group(
 ///|
 pub fn group_checked(group : PreparedGroup) -> @relation.CheckedOperation {
   group.checked
+}
+
+///|
+pub fn group_is_window(group : PreparedGroup) -> Bool {
+  group.window
 }
 
 ///|
@@ -641,8 +666,8 @@ fn emit_group_params(
   @encode.end_object(out)
   @encode.key(out, "by")
   @encode.begin_array(out)
-  for field in group.keys {
-    @encode.string_value(out, @schema.reference_name(field))
+  for i = group.authored_key_offset; i < group.keys.length(); i = i + 1 {
+    @encode.string_value(out, @schema.reference_name(group.keys[i]))
   }
   @encode.end_array(out)
   @encode.end_object(out)
