@@ -2537,7 +2537,7 @@
       "canonical_operations": [
         "REL.cross_join"
       ],
-      "machine_registry": "target-requirement-only",
+      "machine_registry": "registered",
       "variant_scope": [
         "unrestricted",
         "right_rows one",
@@ -2547,22 +2547,87 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
         "performance": "missing"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
+        "source_connection": [
+          {
+            "operation": "cross_join",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+            "fixtures": [
+              "Local managed cross join reaches two consumers in left-major order",
+              "Local managed singleton cross join validates before two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "cross_join",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+            "fixtures": [
+              "Local managed cross join reaches two consumers in left-major order",
+              "Local managed singleton cross join validates before two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "cross_join",
+            "layer": "conformance",
+            "path": "src/execution_relation/cross_join_rows_wbtest.mbt",
+            "fixtures": [
+              "cross join emits the left-major product and empty-side results",
+              "cross join validates singleton and output ceilings atomically",
+              "cross join releases unpublished workspace after a bounded failure"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "cross_join",
+            "layer": "conformance",
+            "path": "src/lowering_relation/cross_join_test.mbt",
+            "fixtures": [
+              "cross join lowering retains projection assertion guard and inputs",
+              "cross join lowering rejects invalid preparation limits",
+              "cross join lowering resolves positive parameter guards only"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
         "performance": []
       },
       "gaps": [
-        "The target contract requires REL.cross_join but the pinned pipeline registry and Local path are missing it."
+        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, and bounded unpublished-workspace cleanup; the full relation_value type matrix, mixed physical input representations, cancellation lifecycle, and performance evidence remain."
       ]
     },
     {

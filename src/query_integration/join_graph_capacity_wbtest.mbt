@@ -95,7 +95,9 @@ fn query_capacity_proof(
   inputs? : Array[String] = [],
   step? : Int = 0,
 ) -> @wire.ProgramProofClaim {
-  let input_text = inputs.map(value => "\"" + value + "\"").join(",")
+  let proof_inputs = inputs.copy()
+  proof_inputs.sort()
+  let input_text = proof_inputs.map(value => "\"" + value + "\"").join(",")
   let semantic_ref = "checked-step:" + step.to_string()
   let proof_body = "{\"inputs\":[" +
     input_text +
@@ -107,7 +109,7 @@ fn query_capacity_proof(
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
-  let dependencies = inputs.copy()
+  let dependencies = proof_inputs.copy()
   dependencies.push(proof_cid)
   dependencies.sort()
   let unique_dependencies : Array[String] = []

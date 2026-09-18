@@ -12,6 +12,8 @@ fn query_checked_program_fixture(
   local_values_two_consumer_chain? : Bool = false,
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
+  local_values_cross_chain? : Bool = false,
+  local_values_cross_singleton? : Bool = false,
   local_values_set_operation? : String = "",
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
@@ -49,6 +51,25 @@ fn query_checked_program_fixture(
   let text = if local_values_append_chain {
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]},"as":"right_rows"},{"from":"left_rows","append":{"with":"right_rows"},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_cross_chain {
+    let cross =
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    cross
+    .replace(
+      old="__RIGHT_EXTRA__",
+      new=if local_values_cross_singleton { "" } else { ",{\"tag\":\"b\"}" },
+    )
+    .replace(
+      old="__RIGHT_ONE__",
+      new=if local_values_cross_singleton {
+        ",\"right_rows\":\"one\""
+      } else {
+        ""
+      },
     )
   } else {
     text
@@ -222,6 +243,46 @@ fn query_checked_program_fixture(
   )
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
+  } else if local_values_cross_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      if local_values_cross_singleton {
+        1L
+      } else {
+        2L
+      },
+      "{\"op\":\"source\"}",
+      step=2,
+    )
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      if local_values_cross_singleton {
+        2L
+      } else {
+        4L
+      },
+      "{\"op\":\"source\"}",
+      inputs=[
+        @wire.cid(@wire.program_proof_witness(left)),
+        @wire.cid(@wire.program_proof_witness(right)),
+      ],
+      step=4,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "crossed",
+        steps=[4],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else if local_values_join_chain {
     let full = local_values_join_kind == "full"
     let left = query_capacity_proof(

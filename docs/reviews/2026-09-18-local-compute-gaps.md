@@ -13,7 +13,6 @@ the implementation.
 | Gap | Evidence | Required resolution |
 | --- | --- | --- |
 | `nest` has no canonical AoA mapping | It appears in the normative RelA inventory, but not the normative canonical mapping table | Define the common typed operation and register it before Local lowering |
-| `REL.cross_join` is absent from the pinned pipeline registry | The target contract lists it as required | Add the shared registry operation, output order, and capacity contract |
 | `REL.analytic` is absent from both the pinned registry and target requirements | The normative mapping requires it | Complete the shared machine contract before lowering or execution |
 
 These are required-scope gaps, not reasons to remove operations from the Local
@@ -53,7 +52,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | values | C | C | C | P | Genuine zero-input Host path and two managed consumers; empty/nested variants remain |
 | except | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
 | intersect | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
-| cross_join | C | - | - | - | Registry, lowering, and execution |
+| cross_join | C | C | P | P | Full types, failure/cancellation lifetime, and performance evidence |
 | analytic | C | - | - | - | Machine contract, lowering, and execution |
 
 ## Shared-boundary notifications
