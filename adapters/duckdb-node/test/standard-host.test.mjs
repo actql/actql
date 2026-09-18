@@ -1672,6 +1672,60 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         : ['bucket', 'group', 'amount', 'id'],
     }},
   })));
+  const topKProgram = partitioned => {
+    const variant = structuredClone(zeroInputProgram);
+    const fields = ['id', 'amount', 'group'];
+    variant.stages.splice(1, 3, {
+      id: 'top_k_values',
+      inputs: {},
+      steps: [{values: {
+        schema: {
+          id: {type: 'number', nullable: false},
+          amount: {type: 'number', nullable: true},
+          group: {type: 'string', nullable: true},
+        },
+        rows: [
+          {id: 1, amount: 10, group: null},
+          {id: 2, amount: null, group: null},
+          {id: 3, amount: 30, group: 'a'},
+          {id: 4, amount: 20, group: 'a'},
+        ],
+      }, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, {
+      id: 'ranked',
+      inputs: {x: {result: {stage: 'top_k_values', result: 'r'}}},
+      steps: [
+        {assert_rows: {unique_by: ['id']}, as: 'unique'},
+        {from: 'unique', ...(partitioned ? {
+          top_k_by: {
+            partition_by: ['group'],
+            k: 1,
+            by: [{field: 'amount', dir: 'desc', nulls: 'first'}],
+          },
+        } : {
+          top_k: {
+            k: 2,
+            by: [
+              {field: 'amount', dir: 'desc', nulls: 'first'},
+              {id: 'asc'},
+            ],
+          },
+        }), as: 'out'},
+      ],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `top_k_consumer_${id}`,
+      inputs: {x: {result: {stage: 'ranked', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {
+        from: 'out', fields: id === 'a' ? fields : [...fields].reverse(),
+      }},
+    })));
+    return variant;
+  };
+  const globalTopKProgram = topKProgram(false);
+  const partitionedTopKProgram = topKProgram(true);
   const groupProgram = structuredClone(zeroInputProgram);
   groupProgram.stages.splice(1, 3, {
     id: 'group_values',
@@ -1824,6 +1878,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['select', selectProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
+    ['global top k', globalTopKProgram, [1, 2, 3, 4]],
+    ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
@@ -1878,6 +1934,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 2, 2, 2],
           'dedupe and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'global top k' || name === 'partitioned top k') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 2, 2, 2],
+          `${name} and both consumers publish complete retained outputs`,
         );
       }
     } finally {

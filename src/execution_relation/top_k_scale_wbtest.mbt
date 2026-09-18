@@ -83,3 +83,72 @@ test "global and partitioned top-k stay within indexed scaling floors" {
     check_top_k_scale(count, true)
   }
 }
+
+///|
+test "large global and partitioned top-k budgets are exact" {
+  let count = 1000
+  for partitioned in [false, true] {
+    let tail = if partitioned {
+      "[{\"top_k_by\":{\"partition_by\":[\"s\"],\"k\":3," +
+      "\"by\":[{\"n\":\"desc\"}]}}]"
+    } else {
+      "[{\"top_k\":{\"k\":6," + "\"by\":[{\"s\":\"asc\"},{\"n\":\"desc\"}]}}]"
+    }
+    let owner = take_key_owner(tail)
+    let input = top_k_scale_table(owner, count)
+    let maximum = 10000000
+    let control = { remaining: maximum, max_frames: 100, }
+    let workspace = { limit: maximum, live: 0, peak: 0, }
+    let expected = evaluate_top_k_selection(
+      row_kernel(owner, 0),
+      input,
+      if partitioned {
+        3L
+      } else {
+        6L
+      },
+      count,
+      control,
+      value_budget({
+        max_nodes: maximum,
+        max_text_bytes: maximum,
+        max_depth: 10,
+        max_work: maximum,
+      }).unwrap(),
+      workspace,
+    ).unwrap()
+    assert_eq(expected.length(), 6)
+    let used = maximum - control.remaining
+    let peak = workspace.peak
+    for
+      (work, entries, good) in [
+        (used, peak, true),
+        (used - 1, peak, false),
+        (used, peak - 1, false),
+      ] {
+      let result = evaluate_top_k_selection(
+        row_kernel(owner, 0),
+        input,
+        if partitioned {
+          3L
+        } else {
+          6L
+        },
+        count,
+        { remaining: work, max_frames: 100, },
+        value_budget({
+          max_nodes: maximum,
+          max_text_bytes: maximum,
+          max_depth: 10,
+          max_work: maximum,
+        }).unwrap(),
+        { limit: entries, live: 0, peak: 0, },
+      )
+      if good {
+        assert_eq(result.unwrap(), expected)
+      } else {
+        assert_true(result is Err(RowLimit))
+      }
+    }
+  }
+}

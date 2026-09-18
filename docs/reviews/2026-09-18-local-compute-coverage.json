@@ -1336,11 +1336,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -1359,7 +1359,18 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter k"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "parameter_binding"
+              ]
+            }
           },
           {
             "operation": "top_k",
@@ -1373,7 +1384,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -1390,6 +1406,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "top_k",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -1402,14 +1431,36 @@
               "partitioned top-k retains repeated and empty partition occurrences",
               "partitioned top-k orders nullable partitions canonically before ranking",
               "top-k validates the complete supplied key before prefix selection",
-              "top-k shares one execution budget and accepts the exact boundary"
+              "top-k shares one execution budget and accepts the exact boundary",
+              "top-k variants preserve every relation value payload domain",
+              "top-k variants order every author orderable domain"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "compound order",
+                "stable ties",
+                "NULL ordering"
+              ],
+              "types": [
+                "relation_value",
+                "author_orderable"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "top_k",
@@ -1432,7 +1483,8 @@
             "layer": "performance",
             "path": "src/execution_relation/top_k_scale_wbtest.mbt",
             "fixtures": [
-              "global and partitioned top-k stay within indexed scaling floors"
+              "global and partitioned top-k stay within indexed scaling floors",
+              "large global and partitioned top-k budgets are exact"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -1443,9 +1495,7 @@
           }
         ]
       },
-      "gaps": [
-        "Literal and parameter global TopK, compound NULL ordering, checked stable completion, exact small-case budgets, two managed consumers, and indexed O(N log N) work with O(N) workspace are covered on three targets. Standard Host evidence, the broader orderable type matrix, and large-scale exact/one-short budget evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "top_k_by",
@@ -1465,11 +1515,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -1488,7 +1538,18 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter k"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "parameter_binding"
+              ]
+            }
           },
           {
             "operation": "top_k_by",
@@ -1502,7 +1563,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -1519,6 +1585,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "top_k_by",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -1531,14 +1610,39 @@
               "partitioned top-k retains repeated and empty partition occurrences",
               "partitioned top-k orders nullable partitions canonically before ranking",
               "top-k validates the complete supplied key before prefix selection",
-              "top-k shares one execution budget and accepts the exact boundary"
+              "top-k shares one execution budget and accepts the exact boundary",
+              "top-k variants preserve every relation value payload domain",
+              "top-k variants order every author orderable domain",
+              "partitioned top-k compares every key domain including owned references"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "partition keys",
+                "compound order",
+                "stable ties",
+                "nullable keys"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "top_k_by",
@@ -1561,7 +1665,8 @@
             "layer": "performance",
             "path": "src/execution_relation/top_k_scale_wbtest.mbt",
             "fixtures": [
-              "global and partitioned top-k stay within indexed scaling floors"
+              "global and partitioned top-k stay within indexed scaling floors",
+              "large global and partitioned top-k budgets are exact"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -1572,9 +1677,7 @@
           }
         ]
       },
-      "gaps": [
-        "Repeated, empty, and nullable partition occurrences, literal and parameter counts, exact small-case budgets, two managed consumers, and indexed O(N log N) work with O(N) workspace are covered on three targets. Standard Host evidence, the broader key/orderable type matrix, and large-scale exact/one-short budget evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "row_window",
