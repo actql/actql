@@ -52,7 +52,7 @@
         "managed": "complete",
         "source_connection": "complete",
         "two_consumer_e2e": "complete",
-        "three_target_conformance": "partial",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -70,7 +70,17 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "structured predicate",
+                "text predicate",
+                "NULL and demanded evaluation"
+              ],
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -130,13 +140,39 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "demand",
+                "failure_atomicity"
+              ]
+            }
+          },
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/execution_relation/row_scope_wbtest.mbt",
+            "fixtures": [
+              "filter enforces demanded operand ceilings even when no row is published"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "obligations": [
+                "capacity"
+              ]
+            }
           },
           {
             "operation": "filter",
             "layer": "conformance",
             "path": "src/execution_relation/fragment_supplied_input_wbtest.mbt",
             "fixtures": [
+              "checked fragment sequence accepts supplied keyed rows and bound parameters together",
               "fragment admission does not replace actual supplied input key validation"
             ],
             "suite": "moon:execution_relation",
@@ -144,7 +180,44 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "parameter operands"
+              ],
+              "obligations": [
+                "parameter_binding"
+              ]
+            }
+          },
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/execution_relation/filter_conformance_wbtest.mbt",
+            "fixtures": [
+              "filter preserves every relation value domain through a true predicate",
+              "filter compares every admitted key and order domain",
+              "filter executes every base predicate operator with specified demand"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable",
+                "predicate"
+              ],
+              "obligations": [
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "filter",
@@ -178,9 +251,7 @@
           }
         ]
       },
-      "gaps": [
-        "Text, structured parameter, NULL, demanded-failure, managed lifetime, and linear-work cases are covered; the complete formal predicate/operator and admitted type matrix remains, including the shared owned-reference runtime boundary."
-      ]
+      "gaps": []
     },
     {
       "operation": "select",
