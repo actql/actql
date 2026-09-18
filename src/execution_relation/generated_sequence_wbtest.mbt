@@ -99,6 +99,39 @@ test "generated composition rejects incomplete and foreign fragments before exec
 }
 
 ///|
+test "generated analytic aggregate expressions require their exact fragment" {
+  let sequence = prepared_sequence(
+    bound_pipeline(
+      "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"amount\":0,\"id\":1}]},\"as\":\"seed\"},{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":{\"lowest\":{\"fn\":\"min\",\"expr\":\"10 / amount\",\"filter\":\"amount > 0\"}}}}]",
+    ),
+  )
+  let contracts = registered_relation_contracts()
+  assert_true(
+    prepare_generated_sequence(
+      contracts,
+      sequence,
+      [],
+      ["analytic_1"],
+      100000,
+      10000,
+    )
+    is Err(MissingFragmentContext(1)),
+  )
+  let context = sequence_fragment_context(sequence, 1, 1L)
+  assert_true(
+    prepare_generated_sequence(
+      contracts,
+      sequence,
+      [context],
+      ["analytic_1"],
+      100000,
+      10000,
+    )
+    is Ok(_),
+  )
+}
+
+///|
 test "generated row capability inspection rejects other prepared step kinds" {
   let row = input_owner()
   let row_sequence = prepared_sequence(row)

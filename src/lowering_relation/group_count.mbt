@@ -596,6 +596,13 @@ pub fn group_aggregate_requires_numeric_observation(
 }
 
 ///|
+pub fn group_aggregate_requires_expression_context(
+  value : PreparedAggregate,
+) -> Bool {
+  value.filter is Some(_) || value.argument is AggregateExpression(_)
+}
+
+///|
 fn group_aggregate_function_name(
   function : @relation.AggregateFunction,
 ) -> String {

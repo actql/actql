@@ -487,6 +487,17 @@ pub fn analytic_call_result(value : PreparedAnalyticCall) -> @contract.Contract 
 }
 
 ///|
+pub fn analytic_requires_expression_context(value : PreparedAnalytic) -> Bool {
+  for call in value.calls {
+    if call.function is PreparedFrameAggregate(aggregate) &&
+      group_aggregate_requires_expression_context(aggregate) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 pub fn analytic_name_bytes(value : PreparedAnalytic) -> Int {
   value.name_bytes
 }

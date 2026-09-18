@@ -86,9 +86,7 @@ fn prepare_ordered_budgets(
                 aggregate < @lower.group_aggregate_count(group)
                 aggregate = aggregate + 1 {
               let value = @lower.group_aggregate_at(group, aggregate).unwrap()
-              if @lower.group_aggregate_filter(value) is Some(_) ||
-                @lower.group_aggregate_argument(value)
-                is @lower.AggregateExpression(_) {
+              if @lower.group_aggregate_requires_expression_context(value) {
                 required = true
               }
             }
@@ -96,6 +94,11 @@ fn prepare_ordered_budgets(
               return Err(Rows(i, MissingOrderedResourceContext))
             }
           }
+          @lower.AnalyticRows(analytic) =>
+            if @lower.analytic_requires_expression_context(analytic) &&
+              !budgets.contains(i) {
+              return Err(Rows(i, MissingOrderedResourceContext))
+            }
           @lower.SnapshotMap(_)
           | @lower.Filter(_)
           | @lower.AssertAll(_)
@@ -113,7 +116,6 @@ fn prepare_ordered_budgets(
           | @lower.StableSort(_)
           | @lower.Lag(_, _)
           | @lower.Watermark(_, _, _, _)
-          | @lower.AnalyticRows(_)
           | @lower.CountGroups(_) => ()
         }
         release_slots(metadata, entries)

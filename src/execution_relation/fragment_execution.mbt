@@ -84,7 +84,11 @@ fn attach_fragment_budgets(
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
-          @lower.AnalyticRows(_) => ()
+          @lower.AnalyticRows(analytic) =>
+            if @lower.analytic_requires_expression_context(analytic) &&
+              !budgets.contains(i) {
+              return Err(MissingFragmentContext(i))
+            }
           @lower.Select(_) => ()
           @lower.JsonPick(_, _, _) => ()
           @lower.Watermark(time, _, _, _) => {
@@ -180,11 +184,7 @@ fn attach_fragment_budgets(
             }
             for j = 0; j < @lower.group_aggregate_count(group); j = j + 1 {
               let aggregate = @lower.group_aggregate_at(group, j).unwrap()
-              if (
-                  @lower.group_aggregate_filter(aggregate) is Some(_) ||
-                  @lower.group_aggregate_argument(aggregate)
-                  is @lower.AggregateExpression(_)
-                ) &&
+              if @lower.group_aggregate_requires_expression_context(aggregate) &&
                 !budgets.contains(i) {
                 return Err(MissingFragmentContext(i))
               }
