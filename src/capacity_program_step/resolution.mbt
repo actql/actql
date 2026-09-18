@@ -300,6 +300,7 @@ pub fn resolve_applications(
             table,
             policy,
             v.index,
+            guards=v.guards,
             max_work=max_work - work,
           ) {
           Ok(v) => v

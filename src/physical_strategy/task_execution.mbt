@@ -122,8 +122,7 @@ pub fn[I, T] start_captured_managed_execution(
   if !@connector.prepared_managed_execution_available(prepared) {
     return Err(Compute(NotSelected))
   }
-  for (step, claim) in run.join_limits[task] {
-    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+  for (step, required) in run.join_limits[task] {
     guard @connector.prepared_managed_execution_join_output_ceiling(
         prepared, step,
       )
@@ -243,8 +242,7 @@ fn[T] start_task_execution(
   if !@connector.prepared_execution_available(prepared) {
     return Err(Compute(NotSelected))
   }
-  for (step, claim) in run.join_limits[task] {
-    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+  for (step, required) in run.join_limits[task] {
     guard @connector.prepared_execution_join_output_ceiling(prepared, step)
       is Some(actual) &&
       actual <= required else {

@@ -74,7 +74,7 @@ pub fn check_join_applications(@pipeline_typing.CheckedPipeline, @capacity_host_
 
 pub fn check_join_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[JoinLimit], max_work~ : Int) -> Result[JoinApplications, JoinCollectionIssue]
 
-pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, max_work~ : Int) -> Result[JoinLimit, JoinLimitIssue]
+pub fn check_join_limit(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, guards? : @pipeline_typing.BoundAuthorGuards?, max_work~ : Int) -> Result[JoinLimit, JoinLimitIssue]
 
 pub fn check_join_with_uniqueness(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.ProgramProofClaim, Array[StepBound], max_input_work? : Int) -> Result[StepBound, Issue]
 
@@ -197,6 +197,14 @@ pub fn join_application_work(JoinApplications) -> Int
 pub fn join_consumes_limit(JoinApplications, Int) -> Bool
 
 pub fn join_limit_claim(JoinLimit) -> @capacity_witness.LimitClaim
+
+pub fn join_limit_effective_maximum(JoinLimit) -> Int64
+
+pub fn join_limit_guard_index(JoinLimit) -> Int?
+
+pub fn join_limit_guard_value(JoinLimit) -> Int64?
+
+pub fn join_limit_guards(JoinLimit) -> @pipeline_typing.BoundAuthorGuards?
 
 pub fn join_limit_index(JoinLimit) -> Int
 
@@ -487,6 +495,8 @@ pub(all) enum JoinLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
   ForeignClaims
   MissingMixedClosure
   MissingLimit

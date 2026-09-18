@@ -21,6 +21,8 @@ pub enum CapacityStageIssue {
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
   RowCapacity(RowCapacityIssue)
+  ResolvedJoinLimits(Int, @host.ResolvedLimitIssue)
+  MissingJoinCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -213,6 +215,21 @@ fn prepare_local_stage_contexts_owned(
           @graph.options(operation)
           is @graph.ComponentOptions(_, max_output_rows=Some(_)) {
           needs_guards = true
+        }
+        if request is @capacity.Join(step~, ..) &&
+          @pipeline.step_at(pipeline, step) is Some(checked) {
+          let authored = match checked.operation {
+            @pipeline.Join(checked=operation, ..) =>
+              @join.output_guard(operation) is Some(_)
+            @pipeline.CrossJoin(checked=operation, ..) =>
+              @join.cross_output_guard(operation) is Some(_)
+            @pipeline.IntervalJoin(checked=operation, ..) =>
+              @join.interval_output_guard(operation) is Some(_)
+            _ => false
+          }
+          if authored {
+            needs_guards = true
+          }
         }
       }
       let guards = if needs_guards {

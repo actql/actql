@@ -26,9 +26,21 @@ pub fn emit(Witness, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailu
 
 pub fn extend_program_sources(HostSources, Array[@capacity_witness.ProgramProofClaim], @capacity_witness.ClosureLimits) -> Result[HostSources, @capacity_witness.ProgramExtensionIssue]
 
+pub fn extend_resolved_limits(HostSources, @capacity_policy.Ceiling, Array[ResolvedLimitRequest], @capacity_witness.Enforcement, ResolvedLimitLimits) -> Result[ResolvedLimitExtension, ResolvedLimitIssue]
+
 pub fn extend_source_dependencies(HostSources, Array[HostSources], Array[@capacity_witness.ProgramProofClaim], @capacity_witness.ClosureLimits, max_work~ : Int) -> Result[(HostSources, Int), @capacity_witness.ProgramDependencyIssue]
 
 pub fn law_id(Witness) -> String
+
+pub fn resolved_limit_at(ResolvedLimitExtension, Int) -> @capacity_witness.LimitClaim?
+
+pub fn resolved_limit_count(ResolvedLimitExtension) -> Int
+
+pub fn resolved_limit_index(ResolvedLimitExtension, Int) -> Int?
+
+pub fn resolved_limit_sources(ResolvedLimitExtension) -> HostSources
+
+pub fn resolved_limit_usage(ResolvedLimitExtension) -> (Int, Int, Int)
 
 pub fn same_source_origin(HostSources, HostSources) -> Bool
 
@@ -84,6 +96,33 @@ pub(all) struct Limits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+}
+
+type ResolvedLimitExtension
+
+pub(all) enum ResolvedLimitIssue {
+  InvalidLimits
+  BudgetExceeded
+  MissingCandidate(Int, Int)
+  InvalidCandidate(Int, Int)
+  ConflictingHostClaim
+  Host(Issue)
+  Wire(@capacity_witness.Issue)
+  Mixed(@capacity_witness.MixedIssue)
+  Program(@capacity_witness.ProgramClosureIssue)
+  Encoding(@encode_core.EncodeFailure)
+} derive(@debug.Debug)
+
+pub(all) struct ResolvedLimitLimits {
+  max_work : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) struct ResolvedLimitRequest {
+  subject : String
+  candidates : Array[@capacity_witness.ProgramProofClaim]
 }
 
 type Witness

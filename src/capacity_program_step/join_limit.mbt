@@ -5,6 +5,8 @@ pub(all) enum JoinLimitIssue {
   InvalidStep
   WrongOperation
   UnresolvedAuthorSource
+  ForeignGuardOwner
+  MissingGuard
   ForeignClaims
   MissingMixedClosure
   MissingLimit
@@ -27,6 +29,8 @@ struct JoinLimit {
   limit : @wire.LimitClaim
   index : Int
   work : Int
+  guards : @pipeline.BoundAuthorGuards?
+  output_guard : Int?
 }
 
 ///|
@@ -39,6 +43,7 @@ pub fn check_join_limit(
   program : Applications,
   policy : @policy.Policy,
   index : Int,
+  guards? : @pipeline.BoundAuthorGuards? = None,
   max_work~ : Int,
 ) -> Result[JoinLimit, JoinLimitIssue] {
   if max_work < 0 {
@@ -47,16 +52,23 @@ pub fn check_join_limit(
   guard @pipeline.step_at(pipeline, step) is Some(checked) else {
     return Err(InvalidStep)
   }
-  let authored = match checked.operation {
-    @pipeline.Join(checked~, ..) => @join.output_guard(checked) is Some(_)
+  let (authored, guard_scope) = match checked.operation {
+    @pipeline.Join(checked~, ..) =>
+      (@join.output_guard(checked) is Some(_), Some(@pipeline.JoinOutputRows))
     @pipeline.CrossJoin(checked~, ..) =>
-      @join.cross_output_guard(checked) is Some(_)
+      (
+        @join.cross_output_guard(checked) is Some(_),
+        Some(@pipeline.CrossJoinOutputRows),
+      )
     @pipeline.IntervalJoin(checked~, ..) =>
-      @join.interval_output_guard(checked) is Some(_)
-    @pipeline.AsOfJoin(..) => false
+      (
+        @join.interval_output_guard(checked) is Some(_),
+        Some(@pipeline.IntervalJoinOutputRows),
+      )
+    @pipeline.AsOfJoin(..) => (false, None)
     _ => return Err(WrongOperation)
   }
-  if authored {
+  if authored && guards is None {
     return Err(UnresolvedAuthorSource)
   }
   if !physical_equal(@host.source_claims(sources), program.claims) {
@@ -75,7 +87,33 @@ pub fn check_join_limit(
   if @wire.limit_enforcement(limit) != @wire.EngineAtomic {
     return Err(WrongEnforcement)
   }
-  let work = match
+  let mut work = 0
+  let mut output_guard = None
+  if guards is Some(bound) {
+    let occurrences = @pipeline.bound_guard_occurrences(bound)
+    if !physical_equal(@pipeline.author_guards_pipeline(occurrences), pipeline) {
+      return Err(ForeignGuardOwner)
+    }
+    let (first, end) = @pipeline.author_guard_step_range(occurrences, step).unwrap()
+    if end - first > max_work {
+      return Err(WorkLimit)
+    }
+    work += end - first
+    for guard_index in first..<end {
+      if Some(
+          @pipeline.author_guard_scope(
+            @pipeline.author_guard_at(occurrences, guard_index).unwrap(),
+          ),
+        ) ==
+        guard_scope {
+        output_guard = Some(guard_index)
+      }
+    }
+    if authored != (output_guard is Some(_)) {
+      return Err(MissingGuard)
+    }
+  }
+  let candidate_work = match
     check_limit_candidates(
       pipeline,
       step,
@@ -89,7 +127,7 @@ pub fn check_join_limit(
       // A resolved output depends on this minimum; it is not an independent
       // candidate for the minimum that produced it.
       app => app.enforcement is None,
-      max_work,
+      max_work - work,
     ) {
     Ok(n) => n
     Err(WorkLimit) => return Err(WorkLimit)
@@ -100,7 +138,19 @@ pub fn check_join_limit(
     Err(MissingProgramCandidate(i)) => return Err(MissingProgramCandidate(i))
     Err(MissingProgramEvidence) => return Err(MissingHostCandidate)
   }
-  Ok({ pipeline, step, sources, program, policy, limit, index, work, })
+  work += candidate_work
+  Ok({
+    pipeline,
+    step,
+    sources,
+    program,
+    policy,
+    limit,
+    index,
+    work,
+    guards,
+    output_guard,
+  })
 }
 
 ///|
@@ -131,6 +181,33 @@ pub fn join_limit_policy(v : JoinLimit) -> @policy.Policy {
 ///|
 pub fn join_limit_claim(v : JoinLimit) -> @wire.LimitClaim {
   v.limit
+}
+
+///|
+pub fn join_limit_guards(v : JoinLimit) -> @pipeline.BoundAuthorGuards? {
+  v.guards
+}
+
+///|
+pub fn join_limit_guard_index(v : JoinLimit) -> Int? {
+  v.output_guard
+}
+
+///|
+pub fn join_limit_guard_value(v : JoinLimit) -> Int64? {
+  guard v.guards is Some(guards) && v.output_guard is Some(index) else {
+    return None
+  }
+  @pipeline.bound_guard_value_at(guards, index)
+}
+
+///|
+pub fn join_limit_effective_maximum(v : JoinLimit) -> Int64 {
+  let maximum = @arithmetic.minimum_value(@wire.limit_minimum(v.limit))
+  match join_limit_guard_value(v) {
+    Some(value) => maximum.min(value)
+    None => maximum
+  }
 }
 
 ///|

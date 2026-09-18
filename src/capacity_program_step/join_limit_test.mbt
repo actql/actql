@@ -326,3 +326,92 @@ test "join output consumers require applicable Host and all available Program ca
     }
   }
 }
+
+///|
+test "join output limits retain exact bound author guards" {
+  let checked = pipeline(
+    "[{\"cross_join\":{\"with\":\"rows\"," + "\"max_output_rows\":1}}]",
+  )
+  let occurrences = @pipeline.collect_author_guards(
+    checked,
+    max_work=10,
+    max_text_bytes=100,
+  ).unwrap()
+  let guards = @pipeline.bind_author_guards(
+    occurrences,
+    None,
+    max_work=1,
+    max_text_bytes=0,
+  ).unwrap()
+  let sources = join_limit_sources([], 1)
+  let program = @capacity_program_step.check_applications(
+    @host.source_claims(sources),
+    [],
+    max_work=100,
+  ).unwrap()
+  let limit = @capacity_program_step.check_join_limit(
+    checked,
+    0,
+    sources,
+    program,
+    join_policy(),
+    0,
+    guards=Some(guards),
+    max_work=100,
+  ).unwrap()
+  assert_eq(@capacity_program_step.join_limit_guard_value(limit), Some(1L))
+  assert_eq(@capacity_program_step.join_limit_effective_maximum(limit), 1L)
+  let used = @capacity_program_step.join_limit_work(limit)
+  assert_true(
+    @capacity_program_step.check_join_limit(
+      checked,
+      0,
+      sources,
+      program,
+      join_policy(),
+      0,
+      guards=Some(guards),
+      max_work=used,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @capacity_program_step.check_join_limit(
+      checked,
+      0,
+      sources,
+      program,
+      join_policy(),
+      0,
+      guards=Some(guards),
+      max_work=used - 1,
+    )
+    is Err(WorkLimit),
+  )
+  let foreign_pipeline = pipeline(
+    "[{\"cross_join\":{\"with\":\"rows\"," + "\"max_output_rows\":1}}]",
+  )
+  let foreign = @pipeline.bind_author_guards(
+    @pipeline.collect_author_guards(
+      foreign_pipeline,
+      max_work=10,
+      max_text_bytes=100,
+    ).unwrap(),
+    None,
+    max_work=1,
+    max_text_bytes=0,
+  ).unwrap()
+  assert_true(
+    @capacity_program_step.check_join_limit(
+      checked,
+      0,
+      sources,
+      program,
+      join_policy(),
+      0,
+      guards=Some(foreign),
+      max_work=100,
+    )
+    is Err(ForeignGuardOwner),
+  )
+}

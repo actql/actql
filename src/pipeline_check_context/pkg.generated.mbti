@@ -1309,6 +1309,8 @@ pub enum CapacityStageIssue {
   Inputs(CapacityInputsIssue)
   Values(Int, ValuesCapacityIssue)
   RowCapacity(RowCapacityIssue)
+  ResolvedJoinLimits(Int, @capacity_host_witness.ResolvedLimitIssue)
+  MissingJoinCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded

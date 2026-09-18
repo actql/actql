@@ -61,6 +61,7 @@ priv enum RowCapacityFrame {
 ///|
 priv struct RowCapacityResult {
   materials : Array[CapacityMaterial]
+  applications : Array[Array[@step_bounds.StepBound]]
   work : Int
   text : Int
   bytes : Int
@@ -284,9 +285,27 @@ fn derive_row_capacity(
       // its input count. Its array envelope nevertheless needs input bounds,
       // including when a different target is published. Register one demand
       // per operation, not one copy of the traversal per aggregate call.
+      let selected_join_limits : Map[Int, Bool] = Map([])
+      for consumer in materials[stage].consumers {
+        if consumer is @capacity.Join(step~, ..) {
+          selected_join_limits[step] = true
+        }
+      }
       for index in 0..<steps {
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
+        match step.operation {
+          @pipeline.Join(..)
+          | @pipeline.CrossJoin(..)
+          | @pipeline.IntervalJoin(..)
+          | @pipeline.AsOfJoin(..) if !selected_join_limits.contains(index) => {
+            // The selected output limit must include every applicable local
+            // Program candidate, including for an unpublished branch.
+            spend(1)
+            roots.push(@pipeline.Step(index))
+          }
+          _ => ()
+        }
         guard step.input is Some(input) else { continue }
         if step.operation is @pipeline.Join(right=@pipeline.Input(index), ..) &&
           remote_inputs[index] {
@@ -404,6 +423,11 @@ fn derive_row_capacity(
         proof_count,
         graph_inputs: None,
       })
+      for seed in seeds[stage] {
+        if seed is Some(bound) {
+          add_closure(stage, bound)
+        }
+      }
       let key = @decode.cursor_span(@pipeline.source(pipeline)).start_byte
       match owners.get(key) {
         Some(bucket) => bucket.push(stage)
@@ -620,8 +644,13 @@ fn derive_row_capacity(
                   operand_work += used.1
                   match checked {
                     Ok(bound) => {
-                      reused = Some(bound)
-                      break
+                      // Retain all applicable candidates. Limit resolution
+                      // must not omit a second valid proof merely because the
+                      // first one was sufficient to derive the numeric bound.
+                      add_closure(stage, bound)
+                      if reused is None {
+                        reused = Some(bound)
+                      }
                     }
                     Err(
                       @step_bounds.InputWorkLimit
@@ -680,9 +709,23 @@ fn derive_row_capacity(
       }
     }
     let output = []
+    let applications : Array[Array[@step_bounds.StepBound]] = []
     for stage in 0..<stages.length() {
       spend(1)
       let entry = stages[stage]
+      let owned : Array[@step_bounds.StepBound] = []
+      for _, bucket in entry.applications {
+        spend(bucket.length())
+        for bound in bucket {
+          if physical_equal(
+              @step_bounds.checked_pipeline(bound),
+              entry.pipeline,
+            ) {
+            owned.push(bound)
+          }
+        }
+      }
+      applications.push(owned)
       if !entry.dependencies.is_empty() {
         let (sources, used) = match
           @host.extend_source_dependencies(
@@ -743,6 +786,7 @@ fn derive_row_capacity(
     }
     Ok({
       materials: output,
+      applications,
       work: max_work - remaining,
       text,
       bytes,

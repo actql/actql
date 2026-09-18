@@ -9,6 +9,7 @@ import {
   "actql/actql/capacity_policy" @policy,
   "actql/actql/capacity_derivation" @derivation,
   "actql/actql/encode_core" @encode,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {

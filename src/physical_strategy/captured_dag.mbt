@@ -11,7 +11,7 @@ struct CapturedDAG {
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
-  join_limits : Array[Array[(Int, @witness.LimitClaim)]]
+  join_limits : Array[Array[(Int, Int64)]]
   aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
   analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]]
   inputs : Array[Array[@execution.ProducerRead?]]
@@ -117,10 +117,7 @@ pub fn open_captured_dag(
     return Err(ForeignCapture)
   }
   let seen = Array::make(count, 0)
-  let join_limits : Array[Array[(Int, @witness.LimitClaim)]] = Array::makei(
-    count,
-    _ => [],
-  )
+  let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
   let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
     count,
     _ => [],
@@ -162,7 +159,10 @@ pub fn open_captured_dag(
     for requirement in graph.operations[index] {
       if requirement.disposition is ExecutionCheck(JoinOutputLimit(check)) {
         join_limits[index].push(
-          (check.site.step, @step_bounds.join_limit_claim(check.limit)),
+          (
+            check.site.step,
+            @step_bounds.join_limit_effective_maximum(check.limit),
+          ),
         )
       }
       if requirement.disposition is ExecutionCheck(GroupExecution(check)) {
@@ -789,8 +789,7 @@ pub fn execute_captured_synchronous_task(
   if !@connector.synchronous_compute_available(compute) {
     return Err(Compute(NotSelected))
   }
-  for (step, claim) in run.join_limits[task] {
-    let required = @derivation.minimum_value(@witness.limit_minimum(claim))
+  for (step, required) in run.join_limits[task] {
     guard @connector.synchronous_compute_join_output_ceiling(compute, step)
       is Some(actual) &&
       actual <= required else {
@@ -1072,7 +1071,7 @@ pub fn captured_task_join_output_limit(
     }
     None
   })
-  .map(limit => @derivation.minimum_value(@witness.limit_minimum(limit)))
+  .map(limit => limit)
 }
 
 ///|
@@ -1086,12 +1085,7 @@ pub fn captured_task_join_output_at(
   task : Int,
   index : Int,
 ) -> (Int, Int64)? {
-  run.join_limits
-  .get(task)
-  .bind(items => items.get(index))
-  .map(pair => {
-    (pair.0, @derivation.minimum_value(@witness.limit_minimum(pair.1)))
-  })
+  run.join_limits.get(task).bind(items => items.get(index)).map(pair => pair)
 }
 
 ///|

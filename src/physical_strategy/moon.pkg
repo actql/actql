@@ -14,8 +14,6 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/capacity_program_step" @step_bounds,
-  "actql/actql/capacity_witness" @witness,
-  "actql/actql/capacity_derivation" @derivation,
   "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,
 }
