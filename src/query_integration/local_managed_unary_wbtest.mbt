@@ -299,14 +299,43 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
     (failed.inputs[0].append)(row).unwrap()
   }
   (failed.inputs[0].finish)().unwrap()
-  assert_true(
-    (failed.execute)()
-    is Err(
-      @local_driver.Configuration(
-        @connector.Execution(@execution.Rows(_, @execution.Evaluation(0, 0, _)))
+  let result = (failed.execute)()
+  match kind {
+    "filter_failure" | "derive_failure" | "assert_where_eval_failure" =>
+      assert_true(
+        result
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(_, @execution.Evaluation(0, 0, _))
+            )
+          )
+        ),
       )
-    ),
-  )
+    "assert_where_failure" =>
+      assert_true(
+        result
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(_, @execution.AssertionPredicate(0))
+            )
+          )
+        ),
+      )
+    "assert_unique_null_failure" =>
+      assert_true(
+        result
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(_, @execution.AssertionNullKey(1, 0))
+            )
+          )
+        ),
+      )
+    _ => abort("unknown Local unary failure fixture")
+  }
   assert_false(@strategy.captured_task_completed(run, 2))
   assert_true(@execution.managed_completed_output_available(values))
   (failed.settle)().unwrap()
@@ -331,7 +360,11 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
 
 ///|
 test "Local managed demanded failures publish nothing and release their use" {
-  for kind in ["filter_failure", "derive_failure"] {
+  for
+    kind in [
+      "filter_failure", "derive_failure", "assert_where_failure", "assert_where_eval_failure",
+      "assert_unique_null_failure",
+    ] {
     run_local_managed_unary_failure_case(kind)
   }
 }

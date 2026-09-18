@@ -553,8 +553,14 @@ fn local_values_unary_program(kind : String) -> String {
     "drop_empty" => "{\"drop\":[],\"as\":\"out\"}"
     "drop_repeated" => "{\"drop\":[\"amount\",\"amount\"],\"as\":\"out\"}"
     "assert_where" => "{\"assert_rows\":{\"where\":\"id > 0\"},\"as\":\"out\"}"
+    "assert_where_failure" =>
+      "{\"assert_rows\":{\"where\":\"id > 1\"},\"as\":\"out\"}"
+    "assert_where_eval_failure" =>
+      "{\"assert_rows\":{\"where\":\"1 / 0 > 0\"},\"as\":\"out\"}"
     "assert_unique" =>
       "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"out\"}"
+    "assert_unique_null_failure" =>
+      "{\"assert_rows\":{\"unique_by\":[\"amount\"]},\"as\":\"out\"}"
     _ => abort("unknown Local unary fixture")
   }
   let fields = match kind {

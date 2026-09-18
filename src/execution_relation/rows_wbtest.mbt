@@ -136,6 +136,49 @@ test "row assertions preserve exact rows and fail atomically" {
 }
 
 ///|
+test "compound nullable assertion keys reject nulls and exact duplicates" {
+  let valid = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"a\":1,\"b\":\"x\"},{\"a\":1,\"b\":\"y\"}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"a\",\"b\"]}}]",
+  )
+  let result = evaluate_rows(
+    row_kernel(valid, 1),
+    row_capture(valid),
+    2,
+    { remaining: 10000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(result.rows.length(), 2)
+
+  let null_key = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"a\":1,\"b\":\"x\"},{\"a\":1,\"b\":null}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"a\",\"b\"]}}]",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(null_key, 1),
+      row_capture(null_key),
+      2,
+      { remaining: 10000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(AssertionNullKey(1, 1)),
+  )
+
+  let duplicate = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true}},\"rows\":[{\"a\":1,\"b\":\"x\"},{\"a\":1,\"b\":\"x\"}]},\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"a\",\"b\"]}}]",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(duplicate, 1),
+      row_capture(duplicate),
+      2,
+      { remaining: 10000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(AssertionDuplicate(0, 1)),
+  )
+}
+
+///|
 test "json pick traverses admitted objects and composes nullable parents" {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"inner\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"leaf\":{\"type\":\"number\",\"nullable\":false}}}}}},\"rows\":[{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}},{\"id\":2,\"payload\":null}]},\"as\":\"seed\"},{\"json_pick\":{\"column\":\"payload\",\"path\":[\"inner\",\"leaf\"],\"output\":\"picked\"}}]",
