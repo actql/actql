@@ -45,8 +45,8 @@ standard-Host candidate and execution support, not a direct kernel call.
 | join | C | P | P | P | All five equality kinds are managed end-to-end; cross-stage full identity transfer, compound/self joins, types, diagnostics, and indexed performance remain |
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | P | Count is managed for empty, nullable, and compound keys with two consumers, result limits, and subquadratic work; non-count aggregates and remaining key domains remain |
-| distinct | C | C | C | P | Keyed/NULL/type and indexed performance evidence |
-| dedupe_rows | C | C | C | P | Compound/NULL/tie and indexed performance evidence |
+| distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
+| dedupe_rows | C | C | C | P | Standard-Host evidence, the broader key/orderable domain matrix, and shared owned-reference comparison; compound nullable keys, tie failure, two consumers, and indexed scaling are covered |
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
 | append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
 | values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |

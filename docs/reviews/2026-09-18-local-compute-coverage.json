@@ -2179,7 +2179,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2248,6 +2248,21 @@
           {
             "operation": "distinct",
             "layer": "conformance",
+            "path": "src/execution_relation/keyed_distinct_sequence_wbtest.mbt",
+            "fixtures": [
+              "keyed distinct matches explicit projection and never returns omitted payload",
+              "keyed distinct follows authored projection order after shadow and rename"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "distinct",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
               "Local managed unary source forms feed two downstream Computes"
@@ -2260,10 +2275,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "distinct",
+            "layer": "performance",
+            "path": "src/execution_relation/distinct_indices_wbtest.mbt",
+            "fixtures": [
+              "distinct work is subquadratic for all equal and all different rows"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Whole-row first-occurrence distinct reaches two managed consumers on three targets; keyed compound projection, NULL and broad type conformance, and indexed performance evidence remain."
+        "Whole-row and keyed nullable first-occurrence distinct, authored projection order, two managed consumers, exact small-case budgets, and indexed subquadratic work are covered on three targets. Standard Host evidence, the broader whole-row domain matrix, shared owned-reference comparison, and large-scale exact/one-short budgets remain."
       ]
     },
     {
@@ -2289,7 +2319,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2361,6 +2391,23 @@
           {
             "operation": "dedupe_rows",
             "layer": "conformance",
+            "path": "src/execution_relation/dedupe_indices_wbtest.mbt",
+            "fixtures": [
+              "dedupe groups use canonical tuple identities not scalar key order",
+              "dedupe global partition empty input and lower-ranked ties",
+              "dedupe top tie fails before any survivor escapes and resets only local scratch",
+              "dedupe budget exactness includes canonical identity and final group sorting"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "dedupe_rows",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
               "Local managed unary source forms feed two downstream Computes"
@@ -2373,10 +2420,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "dedupe_rows",
+            "layer": "performance",
+            "path": "src/execution_relation/dedupe_indices_wbtest.mbt",
+            "fixtures": [
+              "dedupe grouping remains bounded for equal and different keys at scale"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Single numeric key representative selection reaches two managed consumers on three targets; compound and nullable keys, tie failure through Host, broad type conformance, and indexed performance evidence remain."
+        "Compound nullable grouping, global and repeated keys, canonical group order, managed top-tie failure, two consumers, exact small-case budgets, and bounded indexed work are covered on three targets. Standard Host evidence, the broader key/orderable domain matrix, shared owned-reference comparison, and large-scale exact/one-short budgets remain."
       ]
     },
     {
