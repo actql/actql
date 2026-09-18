@@ -27,7 +27,7 @@
   ],
   "operations": [
     {"operation":"filter","variants":["structured predicate","text predicate","parameter operands","NULL and demanded evaluation"],"types":["relation_value","key_comparable","author_orderable","predicate"],"obligations":["capacity","demand","failure_atomicity","null_semantics","ownership","parameter_binding","schema","value_validation"]},
-    {"operation":"select","variants":["ordered projection","qualified and unqualified fields","empty and nonempty projections"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","measurement","ownership","schema","value_validation"]},
+    {"operation":"select","variants":["ordered nonempty projection","qualified and unqualified fields","deterministic aliasing"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","measurement","ownership","schema","value_validation"]},
     {"operation":"rename","variants":["single and multiple renames","name collision rejection","order preservation"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","ownership","schema","value_validation"]},
     {"operation":"drop","variants":["single and multiple drops","empty result schema rules","order preservation"],"types":["relation_value"],"obligations":["capacity","failure_atomicity","logical_order","ownership","schema","value_validation"]},
     {"operation":"derive","variants":["snapshot map","ordered bindings","parameters","demanded expressions","overwrite and append fields"],"types":["relation_value","key_comparable","author_orderable","numeric"],"obligations":["capacity","demand","failure_atomicity","logical_order","null_semantics","ownership","parameter_binding","schema","value_validation"]},

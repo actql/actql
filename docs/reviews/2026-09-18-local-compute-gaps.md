@@ -26,7 +26,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | Operation | Checked | Lowering | Kernel | Host | Main gap |
 | --- | :---: | :---: | :---: | :---: | --- |
 | filter | C | C | C | P | Complete NULL, demanded-failure, type, and performance coverage |
-| select | C | C | C | C | Complete three-target and performance evidence |
+| select | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all directly admitted domains, source variants, two consumers, and the performance floor are covered |
 | rename | C | C | C | P | Multiple rename, collision, type, and performance coverage |
 | drop | C | C | C | P | Multiple drop, empty-schema, type, and performance coverage |
 | derive | C | C | C | P | Demanded failure, type, overwrite, and performance coverage |
@@ -76,7 +76,9 @@ notification happens before editing it.
 
 ## Completion evidence
 
-`values` is the first operation with all newly agreed evidence. The remaining
+`values` is the first operation with all newly agreed evidence. `select` now
+has complete source, managed two-consumer, and performance evidence; its
+remaining gap is the shared owned-reference runtime boundary. The remaining
 28 operations still need one or more of:
 
 - every formal source variant connected to common lowering;

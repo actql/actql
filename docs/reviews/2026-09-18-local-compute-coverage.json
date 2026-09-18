@@ -134,31 +134,45 @@
       ],
       "machine_registry": "registered",
       "variant_scope": [
-        "ordered projection",
+        "ordered nonempty projection",
         "qualified and unqualified fields",
-        "empty and nonempty projections"
+        "deterministic aliasing"
       ],
       "layers": {
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
         "managed": "complete",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
           {
             "operation": "select",
             "layer": "source_connection",
-            "path": "src/lowering_relation/projection_encode_test.mbt",
+            "path": "src/pipeline_typing/row_operations_test.mbt",
             "fixtures": [
-              "rename and drop emit normative select nodes without deleting empty operations",
-              "projection preparation preserves cumulative binding and name budgets"
+              "select flattens qualified join fields in authored order"
             ],
-            "suite": "moon:lowering_relation",
+            "suite": "moon:pipeline_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "select",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes",
+              "Local qualified select feeds two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
@@ -170,9 +184,10 @@
           {
             "operation": "select",
             "layer": "two_consumer_e2e",
-            "path": "src/query_integration/local_managed_support_wbtest.mbt",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
-              "Local managed support is a finite checked surface"
+              "Local managed unary source forms feed two downstream Computes",
+              "Local qualified select feeds two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -180,17 +195,30 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "select",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
           {
             "operation": "select",
             "layer": "conformance",
-            "path": "src/execution_relation/managed_output_retention_wbtest.mbt",
+            "path": "src/execution_relation/select_conformance_wbtest.mbt",
             "fixtures": [
-              "managed retention binds the exact admission stream rather than equal owner or rows",
-              "managed retention rejects unavailable invalid unverified and cancelled issuance",
-              "managed retention cannot revive cancellation during verifier or availability callback"
+              "select preserves every directly admitted value domain and NULL",
+              "select resolves qualified fields and keeps authored projection order",
+              "select work and retained slots scale with rows and projected width"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -200,10 +228,39 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "select",
+            "layer": "performance",
+            "path": "src/execution_relation/select_conformance_wbtest.mbt",
+            "fixtures": [
+              "select work and retained slots scale with rows and projected width"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "select",
+            "layer": "performance",
+            "path": "src/execution_relation/completed_admitted_projection_wbtest.mbt",
+            "fixtures": [
+              "admitted projection retains nonnumeric values aliases and empty schema metadata"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "The existing managed path needs manifest-linked three-target two-consumer and performance evidence."
+        "Owned resource_ref and artifact_ref values lack a Local runtime representation and trusted import boundary; all directly admitted scalar and structured domains are covered."
       ]
     },
     {
