@@ -907,11 +907,72 @@ test('delivery attempts and records remain append-only after restart',
       await reopened.latestDeliveryRecord(attempt.delivery_attempt_cid),
       failed,
     );
-    await assert.rejects(
-      reopened.appendDeliveryRecord(wire(failed)),
-      code('InvalidDeliveryRecordTransition'),
+    assert.deepEqual(
+      await reopened.appendDeliveryRecord(wire(failed)),
+      failed,
     );
   });
+
+test('delivery record durability retries the exact visible record', async t => {
+  const directory = await mkdtemp(join(
+    tmpdir(), 'actql-delivery-record-durability-',
+  ));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const deliveries = join(directory, 'deliveries');
+  let failRecordSync = false;
+  let recordSyncFailures = 0;
+  const durability = Object.freeze({
+    async syncDirectory(path) {
+      if (failRecordSync && path.startsWith(`${deliveries}/`)) {
+        failRecordSync = false;
+        recordSyncFailures++;
+        const error = new Error('injected delivery directory sync failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  const store = await openLocalPublicationStore({
+    directory,
+    storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, contractControl, durability);
+  t.after(async () => { await store.close(); });
+  const root = deliveryFixture();
+  const attempt = deliveryAttempt(root, 'delivery-durability-retry');
+  await store.createDeliveryAttempt(wire(attempt), wire(root.grant));
+  const streaming = deliveryRecord(attempt, 0, 'streaming');
+  await store.appendDeliveryRecord(wire(streaming));
+  const failed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    confirmed_byte_count: 7,
+    failure_cid: digest('delivery failure'),
+  });
+  failRecordSync = true;
+  await assert.rejects(
+    store.appendDeliveryRecord(wire(failed)),
+    code('EIO'),
+  );
+  assert.equal(recordSyncFailures, 1);
+  assert.deepEqual(
+    await store.latestDeliveryRecord(attempt.delivery_attempt_cid),
+    failed,
+  );
+  assert.deepEqual(
+    await store.appendDeliveryRecord(wire(failed)),
+    failed,
+  );
+  assert.deepEqual(
+    await store.confirmDeliveryRecord(wire(failed)),
+    failed,
+  );
+});
 
 test('delivery grant use limit is durable and concurrent attempts are CAS',
   async t => {

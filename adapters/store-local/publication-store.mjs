@@ -1823,6 +1823,45 @@ export async function openLocalPublicationStore(
     return contract === undefined ? undefined : parseContract(contract);
   };
 
+  const confirmDeliveryRecord = async suppliedWire => {
+    active();
+    const contract = admitContract('delivery_record', suppliedWire);
+    const record = parseContract(contract);
+    const directory = deliveryAttemptPath(record.delivery_attempt_cid);
+    const target = resolve(directory, `${record.sequence}.json`);
+    let installed;
+    try {
+      const bytes = await readBounded(target, configuration.maxObjectBytes);
+      installed = admitContract(
+        'delivery_record', bytes.toString('utf8'),
+      );
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        fail('DeliveryRecordMissing', error);
+      }
+      throw error;
+    }
+    if (installed.identity !== contract.identity ||
+        installed.wire !== contract.wire) {
+      fail('DeliveryRecordConflict');
+    }
+    // A directory entry may be visible before its containing directory is
+    // durable. Re-sync the exact immutable record, then verify that the same
+    // record remains installed before acknowledging it.
+    await syncDirectory(directory);
+    const confirmed = await readBounded(
+      target, configuration.maxObjectBytes,
+    );
+    const admitted = admitContract(
+      'delivery_record', confirmed.toString('utf8'),
+    );
+    if (admitted.identity !== contract.identity ||
+        admitted.wire !== contract.wire) {
+      fail('DeliveryRecordDurabilityMismatch');
+    }
+    return record;
+  };
+
   const appendDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
@@ -1837,6 +1876,9 @@ export async function openLocalPublicationStore(
     const previous = await latestDeliveryRecordContract(
       record.delivery_attempt_cid,
     );
+    if (previous?.identity === contract.identity) {
+      return confirmDeliveryRecord(contract.wire);
+    }
     if (contractControl.deliveryTransition(previous, contract) !== true) {
       fail('InvalidDeliveryRecordTransition');
     }
@@ -1864,8 +1906,7 @@ export async function openLocalPublicationStore(
       if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
       throw error;
     }
-    await syncDirectory(directory);
-    return record;
+    return confirmDeliveryRecord(contract.wire);
   };
 
   const inspectCommittedIndexRaw = async key => {
@@ -3548,6 +3589,7 @@ export async function openLocalPublicationStore(
     createDeliveryAttempt,
     latestDeliveryRecord,
     latestDeliveryRecordContract,
+    confirmDeliveryRecord,
     appendDeliveryRecord,
     commitIndex,
     validateCommittedEvidence,

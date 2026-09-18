@@ -1183,6 +1183,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                         delivered.push(Buffer.from(bytes));
                         return {confirmedBytes: bytes.byteLength};
                       },
+                      async finish() { return {confirmed: true}; },
                     },
                     controller.signal,
                   );
@@ -1251,6 +1252,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                     restartedBytes.push(Buffer.from(bytes));
                     return {confirmedBytes: bytes.byteLength};
                   },
+                  async finish() { return {confirmed: true}; },
                 },
                 controller.signal,
               );

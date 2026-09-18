@@ -1612,6 +1612,7 @@ test('portable control validates Receipt and Captured Run references',
         authorizedChunks.push(Buffer.from(bytes));
         return {confirmedBytes: bytes.byteLength};
       },
+      async finish() { return {confirmed: true}; },
     },
   );
   assert.equal(Buffer.concat(authorizedChunks).toString('utf8'),
@@ -1635,7 +1636,10 @@ test('portable control validates Receipt and Captured Run references',
       format: 'json',
       attemptId: 'authorized-revoked',
     },
-    {write: () => assert.fail('revoked access exposed bytes')},
+    {
+      write: () => assert.fail('revoked access exposed bytes'),
+      finish: () => assert.fail('revoked access finished delivery'),
+    },
   ), {code: 'ResultDeliveryDenied'});
   accessAllowed = true;
   accessTime = '2026-09-18T01:00:00.001Z';
@@ -1653,7 +1657,10 @@ test('portable control validates Receipt and Captured Run references',
       format: 'json',
       attemptId: 'authorized-expired',
     },
-    {write: () => assert.fail('expired Result exposed bytes')},
+    {
+      write: () => assert.fail('expired Result exposed bytes'),
+      finish: () => assert.fail('expired Result finished delivery'),
+    },
   ), {code: 'ResultUnavailable'});
   const expiredState = await inspectAuthorizedRunState(
     stateService, stateRequest,
@@ -1702,6 +1709,7 @@ test('portable control validates Receipt and Captured Run references',
           chunks.push(Buffer.from(bytes));
           return {confirmedBytes: bytes.byteLength};
         },
+        async finish() { return {confirmed: true}; },
       },
     });
     const deliveryBytes = Buffer.concat(chunks);
@@ -1712,11 +1720,117 @@ test('portable control validates Receipt and Captured Run references',
       createHash('sha256').update(deliveryBytes).digest('hex'),
     );
   }
+  const emptyGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['jsonl'],
+      principalId: 'principal-a',
+      purpose: 'empty-download',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 3,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  const emptyStore = Object.freeze({
+    ...deliveryStore,
+    withCommittedResultRows(
+      indexKey,
+      resultDefinitionCid,
+      authorize,
+      suppliedFrameLimits,
+      use,
+    ) {
+      return deliveryStore.withCommittedResultRows(
+        indexKey,
+        resultDefinitionCid,
+        authorize,
+        suppliedFrameLimits,
+        (metadata, _readRows) => use(
+          Object.freeze({...metadata, rowCount: 0}),
+          async _emit => undefined,
+        ),
+      );
+    },
+  });
+  let emptyFinishes = 0;
+  const emptyDelivery = await deliverPublishedResult({
+    ...deliveryBase,
+    store: emptyStore,
+    grant: emptyGrant,
+    format: 'jsonl',
+    attemptId: 'delivery-empty-jsonl',
+    sink: {
+      write: () => assert.fail('empty JSONL wrote bytes'),
+      async finish() {
+        emptyFinishes++;
+        return {confirmed: true};
+      },
+    },
+  });
+  assert.equal(emptyFinishes, 1);
+  assert.equal(emptyDelivery.byteCount, 0);
+  assert.equal(
+    emptyDelivery.sha256,
+    createHash('sha256').update('').digest('hex'),
+  );
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    store: emptyStore,
+    grant: emptyGrant,
+    format: 'jsonl',
+    attemptId: 'delivery-empty-finish-failed',
+    sink: {
+      write: () => assert.fail('empty JSONL wrote bytes'),
+      finish: () => Promise.reject(new Error('sink finish failed')),
+    },
+  }), {code: 'ResultDeliverySinkCompletionFailed'});
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    store: emptyStore,
+    grant: emptyGrant,
+    format: 'jsonl',
+    attemptId: 'delivery-empty-finish-unknown',
+    sink: {
+      write: () => assert.fail('empty JSONL wrote bytes'),
+      finish: () => ({confirmed: false}),
+    },
+  }), {code: 'ResultDeliverySinkCompletionUnknown'});
+  for (const attemptId of [
+    'delivery-empty-finish-failed',
+    'delivery-empty-finish-unknown',
+  ]) {
+    const attempt = control.issueDeliveryAttempt(
+      deliveryIndex,
+      deliveryManifest,
+      emptyGrant,
+      {
+        resultName: 'answer',
+        format: 'jsonl',
+        attemptId,
+        requestedAt: '2026-09-18T01:00:00.000Z',
+      },
+      limits,
+    );
+    const record = await deliveryStore.latestDeliveryRecord(
+      attempt.identity,
+    );
+    assert.equal(record.state, 'failed');
+    assert.equal(record.result_delivery_receipt_cid, undefined);
+  }
   const idempotentDelivery = await deliverPublishedResult({
     ...deliveryBase,
     format: 'json',
     attemptId: 'delivery-json',
-    sink: {write: () => assert.fail('idempotent delivery wrote bytes')},
+    sink: {
+      write: () => assert.fail('idempotent delivery wrote bytes'),
+      finish: () => assert.fail('idempotent delivery finished sink'),
+    },
   });
   assert.equal(idempotentDelivery.idempotent, true);
 
@@ -1739,6 +1853,7 @@ test('portable control validates Receipt and Captured Run references',
         };
         throw failure;
       },
+      async finish() { return {confirmed: true}; },
     },
   }), /ResultDeliverySinkWriteFailed/u);
   const partialAttempt = control.issueDeliveryAttempt(
@@ -1792,6 +1907,7 @@ test('portable control validates Receipt and Captured Run references',
         exposedWrites++;
         return {confirmedBytes: bytes.byteLength};
       },
+      async finish() { return {confirmed: true}; },
     },
   }), {code: 'ResultDeliveryDenied'});
   assert.equal(exposedWrites, 1);
@@ -1815,7 +1931,10 @@ test('portable control validates Receipt and Captured Run references',
     ...deliveryBase,
     format: 'json',
     attemptId: 'delivery-over-limit',
-    sink: {write: () => assert.fail('exhausted grant wrote bytes')},
+    sink: {
+      write: () => assert.fail('exhausted grant wrote bytes'),
+      finish: () => assert.fail('exhausted grant finished delivery'),
+    },
   }), {code: 'DeliveryGrantUseLimit'});
 
   const recoveryGrant = control.issueResultReadGrant(
@@ -1857,7 +1976,10 @@ test('portable control validates Receipt and Captured Run references',
       grant: recoveryGrant,
       format: 'json',
       attemptId: 'delivery-cleanup-retry',
-      sink: {write: () => Promise.reject(new Error('sink unavailable'))},
+      sink: {
+        write: () => Promise.reject(new Error('sink unavailable')),
+        finish: () => assert.fail('failed delivery finished sink'),
+      },
     });
     assert.fail('delivery unexpectedly succeeded');
   } catch (error) {
@@ -1881,6 +2003,88 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal((await deliveryStore.latestDeliveryRecord(
     recoveryAttempt.identity,
   )).state, 'failed');
+
+  const durabilityGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json'],
+      principalId: 'principal-a',
+      purpose: 'durability-recovery',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 1,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  let failSucceededDurability = true;
+  const durabilityStore = Object.freeze({
+    ...deliveryStore,
+    async appendDeliveryRecord(recordWire) {
+      const result = await deliveryStore.appendDeliveryRecord(recordWire);
+      if (failSucceededDurability &&
+          JSON.parse(recordWire).state === 'succeeded') {
+        failSucceededDurability = false;
+        const error = new Error('injected delivery record sync failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      return result;
+    },
+  });
+  let durabilityWrites = 0;
+  let durabilityFinishes = 0;
+  let durabilityFailure;
+  try {
+    await deliverPublishedResult({
+      ...deliveryBase,
+      store: durabilityStore,
+      grant: durabilityGrant,
+      format: 'json',
+      attemptId: 'delivery-durability-retry',
+      sink: {
+        async write(bytes) {
+          durabilityWrites++;
+          return {confirmedBytes: bytes.byteLength};
+        },
+        async finish() {
+          durabilityFinishes++;
+          return {confirmed: true};
+        },
+      },
+    });
+    assert.fail('delivery durability failure was accepted');
+  } catch (error) {
+    durabilityFailure = error;
+  }
+  assert.equal(
+    durabilityFailure.code,
+    'ResultDeliveryDurabilityPending',
+  );
+  assert.equal(durabilityFailure.cleanupPending, true);
+  assert.equal(durabilityWrites > 0, true);
+  assert.equal(durabilityFinishes, 1);
+  assert.equal(
+    (await durabilityFailure.cleanupHandle.retry()).pending,
+    false,
+  );
+  const durabilityRetry = await deliverPublishedResult({
+    ...deliveryBase,
+    store: durabilityStore,
+    grant: durabilityGrant,
+    format: 'json',
+    attemptId: 'delivery-durability-retry',
+    sink: {
+      write: () => assert.fail('durability retry repeated delivery'),
+      finish: () => assert.fail('durability retry repeated completion'),
+    },
+  });
+  assert.equal(durabilityRetry.idempotent, true);
+  assert.equal(durabilityFinishes, 1);
 
   accessTime = '2026-09-18T01:30:00.000Z';
   const expiredBeforeExtension = await inspectAuthorizedRunState(
@@ -1959,10 +2163,13 @@ test('portable control validates Receipt and Captured Run references',
       format: 'json',
       attemptId: 'authorized-after-extension',
     },
-    {write(bytes) {
-      extendedBytes.push(Buffer.from(bytes));
-      return {confirmedBytes: bytes.byteLength};
-    }},
+    {
+      write(bytes) {
+        extendedBytes.push(Buffer.from(bytes));
+        return {confirmedBytes: bytes.byteLength};
+      },
+      finish() { return {confirmed: true}; },
+    },
   );
   assert.equal(extendedDelivery.idempotent, false);
   assert.ok(Buffer.concat(extendedBytes).byteLength > 0);
@@ -2026,7 +2233,10 @@ test('portable control validates Receipt and Captured Run references',
       format: 'json',
       attemptId: 'authorized-after-deletion',
     },
-    {write: () => assert.fail('deleted Result exposed bytes')},
+    {
+      write: () => assert.fail('deleted Result exposed bytes'),
+      finish: () => assert.fail('deleted Result finished delivery'),
+    },
   ), {code: 'ResultUnavailable'});
   const deletedState = await inspectAuthorizedRunState(
     stateService, stateRequest,

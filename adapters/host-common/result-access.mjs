@@ -144,7 +144,8 @@ export async function deliverAuthorizedResult(
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   validateRequest(request);
   if (sink === null || typeof sink !== 'object' ||
-      typeof sink.write !== 'function' || signal !== undefined &&
+      typeof sink.write !== 'function' ||
+      typeof sink.finish !== 'function' || signal !== undefined &&
       (signal === null || typeof signal.throwIfAborted !== 'function')) {
     fail('InvalidResultAccessRequest');
   }

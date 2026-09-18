@@ -26,7 +26,8 @@ function validateStore(store) {
   if (store === null || typeof store !== 'object' ||
       !['confirmCommittedIndex', 'readPublicationContract',
         'createDeliveryAttempt', 'latestDeliveryRecord',
-        'latestDeliveryRecordContract', 'appendDeliveryRecord',
+        'latestDeliveryRecordContract', 'confirmDeliveryRecord',
+        'appendDeliveryRecord',
         'putPublicationContract', 'withCommittedResultRows']
         .every(name => typeof store[name] === 'function')) {
     fail('InvalidResultDeliveryStore');
@@ -72,6 +73,7 @@ function validateRequest(options) {
         Number.isSafeInteger(value) && value > 0) ||
       typeof options.now !== 'function' ||
       typeof options.sink?.write !== 'function' ||
+      typeof options.sink?.finish !== 'function' ||
       typeof options.createDigest !== 'function' ||
       typeof options.authorize !== 'function' ||
       options.signal !== undefined &&
@@ -130,20 +132,22 @@ function sinkFailure(reason, length) {
 }
 
 async function appendExactRecord(store, record) {
-  try { return await store.appendDeliveryRecord(record.wire); }
-  catch (error) {
-    const latest = await store.latestDeliveryRecordContract(
-      JSON.parse(record.wire).delivery_attempt_cid,
-    );
-    if (latest?.identity === record.identity) return JSON.parse(record.wire);
-    throw error;
-  }
+  return store.appendDeliveryRecord(record.wire);
 }
 
-function pendingTerminalFailure(reason, store, terminal, recordFailure) {
-  const failure = new ResultDeliveryError('ResultDeliveryFailed', reason);
+class DeliveryRecordDurabilityFailure extends ResultDeliveryError {}
+
+function pendingRecordFailure(
+  code,
+  reason,
+  store,
+  records,
+  recordFailure,
+) {
+  const failure = new DeliveryRecordDurabilityFailure(code, reason);
   const errors = [recordFailure];
   let pending = true;
+  let nextRecord = 0;
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),
@@ -157,19 +161,38 @@ function pendingTerminalFailure(reason, store, terminal, recordFailure) {
   failure.cleanupHandle = Object.freeze({
     status,
     async retry() {
-      if (pending) {
+      while (pending && nextRecord < records.length) {
         try {
-          await appendExactRecord(store, terminal);
-          pending = false;
+          await appendExactRecord(store, records[nextRecord]);
+          nextRecord++;
         } catch (error) {
           errors.push(error);
+          break;
         }
       }
+      pending = nextRecord < records.length;
       return update();
     },
   });
   update();
   return failure;
+}
+
+function pendingTerminalFailure(reason, store, terminal, recordFailure) {
+  return pendingRecordFailure(
+    'ResultDeliveryFailed', reason, store, [terminal], recordFailure,
+  );
+}
+
+async function finishSink(sink, signal) {
+  let result;
+  try { result = await sink.finish(signal); }
+  catch (cause) {
+    fail('ResultDeliverySinkCompletionFailed', cause);
+  }
+  if (!exactKeys(result, ['confirmed']) || result.confirmed !== true) {
+    fail('ResultDeliverySinkCompletionUnknown');
+  }
 }
 
 export async function deliverPublishedResult(options) {
@@ -219,6 +242,16 @@ export async function deliverPublishedResult(options) {
     if (existing !== undefined) {
       const value = JSON.parse(existing.wire);
       if (value.state === 'succeeded') {
+        try { await store.confirmDeliveryRecord(existing.wire); }
+        catch (recordFailure) {
+          throw pendingRecordFailure(
+            'ResultDeliveryDurabilityPending',
+            recordFailure,
+            store,
+            [existing],
+            recordFailure,
+          );
+        }
         await requireCurrentAuthorization(authorize, {
           ...authorizationFacts,
           attempt,
@@ -260,7 +293,27 @@ export async function deliverPublishedResult(options) {
       observedAt: trustedNow(now),
       cleanupOwnerCids: [],
     }, limits);
-    await store.appendDeliveryRecord(streaming.wire);
+    try { await store.appendDeliveryRecord(streaming.wire); }
+    catch (recordFailure) {
+      const terminal = control.issueDeliveryRecord(attempt, streaming, {
+        state: 'failed',
+        confirmedByteCount: 0,
+        exposure: 'exact',
+        possibleUnconfirmedMaxBytes: undefined,
+        deliveredSha256: undefined,
+        receipt: undefined,
+        failureCid: undefined,
+        observedAt: trustedNow(now),
+        cleanupOwnerCids: [],
+      }, limits);
+      throw pendingRecordFailure(
+        'ResultDeliveryFailed',
+        recordFailure,
+        store,
+        [streaming, terminal],
+        recordFailure,
+      );
+    }
     ownsStreaming = true;
 
     const resultDefinitionCid = control.deliveryResultDefinitionCid(
@@ -354,6 +407,16 @@ export async function deliverPublishedResult(options) {
         await write(control.finishResultDelivery(serializer));
       },
     );
+    const finishedAt = trustedNow(now);
+    await requireCurrentAuthorization(authorize, {
+      ...authorizationFacts,
+      attempt,
+      stage: 'finish',
+      observedAt: finishedAt,
+      confirmedByteCount,
+    });
+    signal?.throwIfAborted();
+    await finishSink(sink, signal);
     const committedAt = trustedNow(now);
     if (!control.resultReadGrantValidAt(grant, committedAt)) {
       fail('ResultDeliveryGrantExpired');
@@ -389,7 +452,16 @@ export async function deliverPublishedResult(options) {
       observedAt: committedAt,
       cleanupOwnerCids: [],
     }, limits);
-    await appendExactRecord(store, succeeded);
+    try { await appendExactRecord(store, succeeded); }
+    catch (recordFailure) {
+      throw pendingRecordFailure(
+        'ResultDeliveryDurabilityPending',
+        recordFailure,
+        store,
+        [succeeded],
+        recordFailure,
+      );
+    }
     return Object.freeze({
       attempt,
       record: succeeded,
@@ -399,6 +471,7 @@ export async function deliverPublishedResult(options) {
       idempotent: false,
     });
   } catch (reason) {
+    if (reason instanceof DeliveryRecordDurabilityFailure) throw reason;
     if (!ownsStreaming) throw reason;
     const terminal = control.issueDeliveryRecord(attempt, streaming, {
       state: signal?.aborted ? 'cancelled' : 'failed',
