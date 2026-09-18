@@ -235,10 +235,12 @@ export async function openLocalPublicationStore(
   const deliveriesDirectory = resolve(root, 'deliveries');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
+  const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, attemptsDirectory, deliveriesDirectory,
-    manifestReadsDirectory, indexesDirectory, clocksDirectory]) {
+    manifestReadsDirectory, indexesDirectory, deletionsDirectory,
+    clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
@@ -317,6 +319,20 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
+  for (const keyHash of await readdir(deletionsDirectory)) {
+    const directory = resolve(deletionsDirectory, keyHash);
+    if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
+        !(await lstat(directory)).isDirectory()) {
+      fail('InvalidPublicationDeletionStore');
+    }
+    for (const name of await readdir(directory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+          !(await lstat(resolve(directory, name))).isFile()) {
+        fail('InvalidPublicationDeletionStore');
+      }
+    }
+  }
+  await syncDirectory(deletionsDirectory);
   for (const name of await readdir(clocksDirectory)) {
     const path = resolve(clocksDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -339,6 +355,10 @@ export async function openLocalPublicationStore(
   let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
+  let resultDeletionBusy = Promise.resolve();
+  const activeResultReaders = new Map();
+  const pendingResultDeletions = new Map();
+  const reclaimingMaterialCids = new Set();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
@@ -350,6 +370,13 @@ export async function openLocalPublicationStore(
     resolve(manifestReadsDirectory, cidHex(cid));
   const clockObservationPath = cid =>
     resolve(clocksDirectory, `${cidHex(cid)}.json`);
+  const resultDeletionDirectory = keyHash =>
+    resolve(deletionsDirectory, keyHash);
+  const resultDeletionPath = (keyHash, resultDefinitionCid) =>
+    resolve(
+      resultDeletionDirectory(keyHash),
+      `${cidHex(resultDefinitionCid)}.json`,
+    );
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
   };
@@ -599,6 +626,9 @@ export async function openLocalPublicationStore(
               fail('PublicationObjectIdentityMismatch');
             }
             const finalPath = objectPath(cid);
+            if (reclaimingMaterialCids.has(cid)) {
+              fail('PublicationObjectReclamationPending');
+            }
             try {
               await link(temporary, finalPath);
               installed = true;
@@ -1420,6 +1450,68 @@ export async function openLocalPublicationStore(
     return entry;
   };
 
+  const readResultDeletion = async (keyHash, resultDefinitionCid) => {
+    const path = resultDeletionPath(keyHash, resultDefinitionCid);
+    let bytes;
+    try { bytes = await readBounded(path, configuration.maxObjectBytes); }
+    catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) { fail('InvalidPublicationDeletionStore', error); }
+    if (!exactKeys(value, [
+      'version', 'public_index_entry_cid', 'result_definition_cid',
+      'material_generation_cid',
+    ]) || value.version !== 'actql-local-result-deletion/0.1' ||
+        !cidPattern.test(value.public_index_entry_cid) ||
+        value.result_definition_cid !== resultDefinitionCid ||
+        !cidPattern.test(value.material_generation_cid)) {
+      fail('InvalidPublicationDeletionStore');
+    }
+    return Object.freeze(value);
+  };
+
+  const requireCommittedResultBinding = async (
+    key,
+    resultDefinitionCid,
+  ) => {
+    cidHex(resultDefinitionCid);
+    const entry = await confirmCommittedIndex(key);
+    if (entry === undefined) fail('PublicationLookupDenied');
+    const matches = [];
+    for (const bindingCid of entry.durable_result_binding_cids) {
+      const contract = (await readContract(
+        bindingCid, 'durable_result_binding',
+      )).contract;
+      const value = parseContract(contract);
+      if (value.result_definition_cid === resultDefinitionCid) {
+        matches.push({contract, value});
+      }
+    }
+    if (matches.length !== 1) fail('PublicationLookupDenied');
+    return Object.freeze({entry, ...matches[0]});
+  };
+
+  const requireResultNotDeleted = async (
+    keyHash,
+    selected,
+    resultDefinitionCid,
+  ) => {
+    const deletion = await readResultDeletion(
+      keyHash, resultDefinitionCid,
+    );
+    if (deletion === undefined) return;
+    if (deletion.public_index_entry_cid !==
+        selected.entry.public_index_entry_cid ||
+        deletion.material_generation_cid !==
+          selected.value.material_generation_cid) {
+      fail('InvalidPublicationDeletionStore');
+    }
+    fail('PublicationObjectMissing');
+  };
+
   const verifyCommitEvidence = async (
     admitted,
     entry,
@@ -1672,20 +1764,13 @@ export async function openLocalPublicationStore(
     }
     const request = Object.freeze({...key, resultDefinitionCid});
     if (authorize(request) !== true) fail('PublicationLookupDenied');
-    const entry = await confirmCommittedIndex(key);
-    if (entry === undefined) fail('PublicationLookupDenied');
-    const matches = [];
-    for (const bindingCid of entry.durable_result_binding_cids) {
-      const contract = (await readContract(
-        bindingCid, 'durable_result_binding',
-      )).contract;
-      const value = parseContract(contract);
-      if (value.result_definition_cid === resultDefinitionCid) {
-        matches.push({contract, value});
-      }
-    }
-    if (matches.length !== 1) fail('PublicationLookupDenied');
-    const selected = matches[0];
+    const selected = await requireCommittedResultBinding(
+      key, resultDefinitionCid,
+    );
+    const keyHash = indexKey(key);
+    await requireResultNotDeleted(
+      keyHash, selected, resultDefinitionCid,
+    );
     const authorization = Object.freeze({
       ...request,
       durableResultBindingCid: selected.contract.identity,
@@ -1693,29 +1778,40 @@ export async function openLocalPublicationStore(
       resultSchemaCid: selected.value.result_schema_cid,
     });
     if (authorize(authorization) !== true) fail('PublicationLookupDenied');
-    const verified = await verifyDurableResultBinding(selected.contract);
-    const metadata = Object.freeze({
-      durableResultBindingCid: selected.contract.identity,
-      logicalResultCid: verified.binding.logical_result_cid,
-      resultSchemaCid: verified.binding.result_schema_cid,
-      resultSchemaWire: verified.schema.wire,
-      resultFields: Object.freeze([...verified.binding.result_fields]),
-      rowCount: verified.binding.row_count,
-      payloadBytes: verified.physical.bytes,
-    });
-    let scopeOpen = true;
-    let consumed = false;
-    const consume = async accept => {
-      if (!scopeOpen || consumed || typeof accept !== 'function') {
-        fail('InvalidPublicationObjectConsumer');
-      }
-      consumed = true;
-      return consumeObject(
-        verified.binding.material_generation_cid, accept,
+    const materialCid = selected.value.material_generation_cid;
+    activeResultReaders.set(
+      materialCid, (activeResultReaders.get(materialCid) ?? 0) + 1,
+    );
+    try {
+      const verified = await verifyDurableResultBinding(selected.contract);
+      await requireResultNotDeleted(
+        keyHash, selected, resultDefinitionCid,
       );
-    };
-    try { return await use(metadata, consume); }
-    finally { scopeOpen = false; }
+      const metadata = Object.freeze({
+        durableResultBindingCid: selected.contract.identity,
+        logicalResultCid: verified.binding.logical_result_cid,
+        resultSchemaCid: verified.binding.result_schema_cid,
+        resultSchemaWire: verified.schema.wire,
+        resultFields: Object.freeze([...verified.binding.result_fields]),
+        rowCount: verified.binding.row_count,
+        payloadBytes: verified.physical.bytes,
+      });
+      let scopeOpen = true;
+      let consumed = false;
+      const consume = async accept => {
+        if (!scopeOpen || consumed || typeof accept !== 'function') {
+          fail('InvalidPublicationObjectConsumer');
+        }
+        consumed = true;
+        return consumeObject(materialCid, accept);
+      };
+      try { return await use(metadata, consume); }
+      finally { scopeOpen = false; }
+    } finally {
+      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
+      if (remaining === 0) activeResultReaders.delete(materialCid);
+      else activeResultReaders.set(materialCid, remaining);
+    }
   };
 
   const consumeCommittedResult = async (
@@ -1792,6 +1888,250 @@ export async function openLocalPublicationStore(
     );
   };
 
+  const materialHasLiveReference = async materialCid => {
+    for (const name of await readdir(indexesDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationStoreIndex');
+      }
+      const keyHash = name.slice(0, -5);
+      const bytes = await readBounded(
+        resolve(indexesDirectory, name), configuration.maxObjectBytes,
+      );
+      const indexContract = admitContract(
+        'public_index_entry', bytes.toString('utf8'),
+      );
+      const entry = parseContract(indexContract);
+      for (const bindingCid of entry.durable_result_binding_cids) {
+        const binding = parseContract((await readContract(
+          bindingCid, 'durable_result_binding',
+        )).contract);
+        if (binding.material_generation_cid !== materialCid) continue;
+        const deletion = await readResultDeletion(
+          keyHash, binding.result_definition_cid,
+        );
+        if (deletion === undefined) return true;
+        if (deletion.public_index_entry_cid !== indexContract.identity ||
+            deletion.material_generation_cid !==
+              binding.material_generation_cid) {
+          fail('InvalidPublicationDeletionStore');
+        }
+      }
+    }
+    return false;
+  };
+
+  const ensureResultDeletionMarker = async (
+    keyHash,
+    resultDefinitionCid,
+    value,
+  ) => {
+    const directory = resultDeletionDirectory(keyHash);
+    let createdDirectory = false;
+    try {
+      await mkdir(directory, {mode: 0o700});
+      createdDirectory = true;
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      if (!(await lstat(directory)).isDirectory()) {
+        fail('InvalidPublicationDeletionStore');
+      }
+    }
+    if (createdDirectory) await syncDirectory(deletionsDirectory);
+    const path = resultDeletionPath(keyHash, resultDefinitionCid);
+    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+    if (bytes.byteLength > configuration.maxObjectBytes) {
+      fail('PublicationObjectLimit');
+    }
+    try { await writeExclusive(path, bytes); }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readBounded(
+        path, configuration.maxObjectBytes,
+      );
+      if (!existing.equals(bytes)) fail('PublicationDeletionConflict');
+    }
+    await syncDirectory(directory);
+    return path;
+  };
+
+  const createResultDeletionCleanup = async (
+    keyHash,
+    resultDefinitionCid,
+    marker,
+    expectedBytes,
+  ) => {
+    const materialCid = marker.material_generation_cid;
+    const deletionKey = `${keyHash}/${cidHex(resultDefinitionCid)}`;
+    const existing = pendingResultDeletions.get(deletionKey);
+    if (existing !== undefined) {
+      return Object.freeze({marker, cleanup: existing, deleted: false});
+    }
+    let pending = true;
+    let unlinked = false;
+    let accounted = false;
+    const errors = [];
+    const status = () => Object.freeze({
+      pending,
+      errors: Object.freeze([...errors]),
+    });
+    const cleanup = Object.freeze({
+      status,
+      async retry() {
+        if (!pending) return status();
+        const operation = resultDeletionBusy.then(async () => {
+          await ensureResultDeletionMarker(
+            keyHash, resultDefinitionCid, marker,
+          );
+          if ((activeResultReaders.get(materialCid) ?? 0) !== 0) return;
+          const prepared = preparedObjects.get(materialCid);
+          if (prepared !== undefined &&
+              (prepared.holders.size !== 0 ||
+                prepared.commitOwners.size !== 0)) return;
+          if (await materialHasLiveReference(materialCid)) {
+            pending = false;
+            pendingResultDeletions.delete(deletionKey);
+            return;
+          }
+          const currentPrepared = preparedObjects.get(materialCid);
+          if (currentPrepared !== undefined &&
+              (currentPrepared.holders.size !== 0 ||
+                currentPrepared.commitOwners.size !== 0)) return;
+          reclaimingMaterialCids.add(materialCid);
+          const path = objectPath(materialCid);
+          if (!unlinked) {
+            let state;
+            try { state = await lstat(path); }
+            catch (error) {
+              if (error?.code !== 'ENOENT') throw error;
+            }
+            if (state === undefined) {
+              pending = false;
+              pendingResultDeletions.delete(deletionKey);
+              reclaimingMaterialCids.delete(materialCid);
+              return;
+            }
+            if (!state.isFile() || state.size !== expectedBytes) {
+              fail('PublicationDurableBindingMismatch');
+            }
+            // A semantic contract or another Store-owned physical reference
+            // can share this inode without appearing in the Result index.
+            // Removing the base name would not reclaim that allocation, so
+            // retain both the object path and its capacity charge.
+            if (state.nlink > 1) {
+              pending = false;
+              pendingResultDeletions.delete(deletionKey);
+              reclaimingMaterialCids.delete(materialCid);
+              return;
+            }
+            await unlink(path);
+            unlinked = true;
+          }
+          await syncDirectory(objectsDirectory);
+          if (!accounted) {
+            storedBytes -= expectedBytes;
+            objectCount--;
+            accounted = true;
+          }
+          pending = false;
+          pendingResultDeletions.delete(deletionKey);
+          reclaimingMaterialCids.delete(materialCid);
+        });
+        resultDeletionBusy = operation.catch(() => {});
+        try { await operation; }
+        catch (error) {
+          errors.push(error);
+          throw error;
+        }
+        return status();
+      },
+    });
+    pendingResultDeletions.set(deletionKey, cleanup);
+    try { await cleanup.retry(); }
+    catch {}
+    return Object.freeze({
+      marker,
+      cleanup,
+      deleted: cleanup.status().pending === false,
+    });
+  };
+
+  const retireCommittedResult = async (key, resultDefinitionCid) => {
+    active();
+    const selected = await requireCommittedResultBinding(
+      key, resultDefinitionCid,
+    );
+    const expectedBytes = selected.value.byte_count;
+    if (!quantity(expectedBytes)) fail('InvalidPublicationDurableBinding');
+    return createResultDeletionCleanup(
+      indexKey(key),
+      resultDefinitionCid,
+      Object.freeze({
+        version: 'actql-local-result-deletion/0.1',
+        public_index_entry_cid: selected.entry.public_index_entry_cid,
+        result_definition_cid: resultDefinitionCid,
+        material_generation_cid: selected.value.material_generation_cid,
+      }),
+      expectedBytes,
+    );
+  };
+
+  const recoverRetiredResults = async () => {
+    active();
+    const recovered = [];
+    for (const keyHash of await readdir(deletionsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(keyHash)) {
+        fail('InvalidPublicationDeletionStore');
+      }
+      const indexBytes = await readBounded(
+        resolve(indexesDirectory, `${keyHash}.json`),
+        configuration.maxObjectBytes,
+      );
+      const indexContract = admitContract(
+        'public_index_entry', indexBytes.toString('utf8'),
+      );
+      const entry = parseContract(indexContract);
+      for (const name of await readdir(resultDeletionDirectory(keyHash))) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+          fail('InvalidPublicationDeletionStore');
+        }
+        const resultDefinitionCid = `sha256:${name.slice(0, -5)}`;
+        const marker = await readResultDeletion(
+          keyHash, resultDefinitionCid,
+        );
+        if (marker.public_index_entry_cid !== indexContract.identity) {
+          fail('InvalidPublicationDeletionStore');
+        }
+        const matches = [];
+        for (const bindingCid of entry.durable_result_binding_cids) {
+          const binding = parseContract((await readContract(
+            bindingCid, 'durable_result_binding',
+          )).contract);
+          if (binding.result_definition_cid === resultDefinitionCid) {
+            matches.push(binding);
+          }
+        }
+        if (matches.length !== 1 ||
+            matches[0].material_generation_cid !==
+              marker.material_generation_cid ||
+            !quantity(matches[0].byte_count)) {
+          fail('InvalidPublicationDeletionStore');
+        }
+        recovered.push(await createResultDeletionCleanup(
+          keyHash,
+          resultDefinitionCid,
+          marker,
+          matches[0].byte_count,
+        ));
+      }
+    }
+    return Object.freeze(recovered);
+  };
+
+  // Reconcile durable deletion markers before accepting new Store work.
+  // A failed physical cleanup remains owned by the returned Store and can be
+  // retried without making the deleted Result visible again.
+  await recoverRetiredResults();
+
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
     createObjectWriter,
@@ -1807,6 +2147,8 @@ export async function openLocalPublicationStore(
     withCommittedResult,
     withCommittedResultRows,
     consumeCommittedResult,
+    retireCommittedResult,
+    recoverRetiredResults,
     readJsonObject,
     async readPublicationContract(cid, name) {
       active();
@@ -1841,7 +2183,9 @@ export async function openLocalPublicationStore(
     },
     close() {
       closed = true;
-      if (reservedObjects !== 0 || preparedObjects.size !== 0) {
+      if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
+          pendingResultDeletions.size !== 0 ||
+          activeResultReaders.size !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));

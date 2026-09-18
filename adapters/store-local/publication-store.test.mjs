@@ -848,6 +848,276 @@ test('public index is invisible before commit and survives a lost response',
     )).state, 'succeeded');
   });
 
+test('durable Result retirement blocks new reads and waits for active readers',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    let enterReader;
+    const readerEntered = new Promise(resolve => { enterReader = resolve; });
+    let finishReader;
+    const readerFinished = new Promise(resolve => { finishReader = resolve; });
+    const reading = store.withCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      () => true,
+      async () => {
+        enterReader();
+        await readerFinished;
+      },
+    );
+    await readerEntered;
+    const retired = await store.retireCommittedResult(
+      indexKeyFor(request), request.inventory[0].result_definition_cid,
+    );
+    assert.equal(retired.cleanup.status().pending, true);
+    await assert.rejects(store.consumeCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      () => true,
+      () => assert.fail('retired Result exposed bytes'),
+    ), code('PublicationObjectMissing'));
+    await assert.rejects(
+      store.close(), code('PublicationStoreCleanupPending'),
+    );
+    finishReader();
+    await reading;
+    assert.deepEqual(await retired.cleanup.retry(), {
+      pending: false,
+      errors: [],
+    });
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    await assert.rejects(reopened.consumeCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      () => true,
+      () => assert.fail('retired Result survived restart'),
+    ), code('PublicationObjectMissing'));
+  });
+
+test('Result retirement retains capacity until object durability retry',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-retirement-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let objectSyncFailures = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'objects') && objectSyncFailures > 0) {
+          objectSyncFailures--;
+          const error = new Error('injected object sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    t.after(async () => { await store.close(); });
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    const before = store.status().storedBytes;
+    objectSyncFailures = 1;
+    const retired = await store.retireCommittedResult(
+      indexKeyFor(request), request.inventory[0].result_definition_cid,
+    );
+    assert.equal(retired.cleanup.status().pending, true);
+    assert.equal(store.status().storedBytes, before);
+    const replacementPayload = Buffer.from(
+      'fixture durable Result payload', 'utf8',
+    );
+    const replacement = store.createPreparedObjectWriter(
+      replacementPayload.byteLength,
+    );
+    await replacement.append(replacementPayload);
+    await assert.rejects(
+      replacement.seal(digest(replacementPayload)),
+      code('PublicationObjectReclamationPending'),
+    );
+    assert.equal(store.status().reservedBytes, 0);
+    const recovered = await retired.cleanup.retry();
+    assert.equal(recovered.pending, false);
+    assert.equal(recovered.errors.length, 1);
+    assert.equal(
+      store.status().storedBytes,
+      before - Buffer.byteLength('fixture durable Result payload', 'utf8'),
+    );
+  });
+
+test('restart reconciles a retired Result after unlink response is lost',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-retirement-restart-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let objectSyncFailures = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'objects') && objectSyncFailures > 0) {
+          objectSyncFailures--;
+          const error = new Error('lost object directory sync response');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    objectSyncFailures = 1;
+    const retired = await store.retireCommittedResult(
+      indexKeyFor(request), request.inventory[0].result_definition_cid,
+    );
+    assert.equal(retired.cleanup.status().pending, true);
+    // Model abrupt process loss: no product close or cleanup callback runs.
+    // Only the dead owner's fencing record is removed before reopen.
+    await rm(join(directory, 'owner'), {recursive: true, force: false});
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    const recovered = await reopened.recoverRetiredResults();
+    assert.equal(recovered.length, 1);
+    assert.equal(recovered[0].cleanup.status().pending, false);
+    await assert.rejects(reopened.consumeCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      () => true,
+      () => assert.fail('retired Result reappeared after restart'),
+    ), code('PublicationObjectMissing'));
+  });
+
+test('Result retirement preserves a physical allocation held by another Run',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const firstRequest = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const secondRequest = publicationRequest(
+      resultDefinition('other'), digest('second Run Definition'),
+    );
+    const commits = [];
+    for (const [request, attemptId] of [
+      [firstRequest, 'shared-attempt-a'],
+      [secondRequest, 'shared-attempt-b'],
+    ]) {
+      const attempt = publicationAttempt(request, attemptId);
+      const prepared = await prepareCommit(
+        store, request, attempt, invocationValue,
+      );
+      const entry = indexEntry(request, attempt, invocationValue, {
+        durable_result_binding_cids: [prepared.binding.identity],
+      });
+      await store.commitIndex(
+        wire(entry), prepared.required, prepared.evidence,
+      );
+      commits.push({request, prepared});
+    }
+    assert.equal(
+      commits[0].prepared.binding.wire === commits[1].prepared.binding.wire,
+      false,
+    );
+    const physicalCid = JSON.parse(
+      commits[0].prepared.binding.wire,
+    ).material_generation_cid;
+    assert.equal(
+      JSON.parse(commits[1].prepared.binding.wire).material_generation_cid,
+      physicalCid,
+    );
+    const firstRetired = await store.retireCommittedResult(
+      indexKeyFor(firstRequest),
+      firstRequest.inventory[0].result_definition_cid,
+    );
+    assert.equal(firstRetired.cleanup.status().pending, false);
+    assert.equal((await store.verifyObject(physicalCid)).cid, physicalCid);
+    const remaining = [];
+    await store.consumeCommittedResult(
+      indexKeyFor(secondRequest),
+      secondRequest.inventory[0].result_definition_cid,
+      () => true,
+      chunk => remaining.push(Buffer.from(chunk)),
+    );
+    assert.equal(Buffer.concat(remaining).toString('utf8'),
+      'fixture durable Result payload');
+    const secondRetired = await store.retireCommittedResult(
+      indexKeyFor(secondRequest),
+      secondRequest.inventory[0].result_definition_cid,
+    );
+    assert.equal(secondRetired.cleanup.status().pending, false);
+    await assert.rejects(
+      store.verifyObject(physicalCid), code('PublicationObjectMissing'),
+    );
+  });
+
 test('visible index is not committed until directory durability is confirmed',
   async t => {
     const directory = await mkdtemp(join(

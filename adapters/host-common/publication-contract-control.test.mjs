@@ -26,6 +26,11 @@ import {
   installManifestAccessService,
   readAuthorizedManifest,
 } from './manifest-access.mjs';
+import {
+  installResultRetentionAuthority,
+  installResultRetentionService,
+  retireExpiredResult,
+} from './result-retention.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -1608,6 +1613,72 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal((await deliveryStore.latestDeliveryRecord(
     recoveryAttempt.identity,
   )).state, 'failed');
+
+  const retentionAuthority = installResultRetentionAuthority({
+    authorizeResultDeletion: () => true,
+  });
+  const notDueRetentionService = installResultRetentionService({
+    store: deliveryStore,
+    control,
+    authority: retentionAuthority,
+    now: () => '2026-09-18T01:30:00.000Z',
+    limits,
+  });
+  await assert.rejects(retireExpiredResult(notDueRetentionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    reason: 'retention_deadline',
+  }), {code: 'ResultDeletionNotDue'});
+  const deniedRetentionService = installResultRetentionService({
+    store: deliveryStore,
+    control,
+    authority: installResultRetentionAuthority({
+      authorizeResultDeletion: () => false,
+    }),
+    now: () => '2026-09-18T02:00:00.000Z',
+    limits,
+  });
+  await assert.rejects(retireExpiredResult(deniedRetentionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    reason: 'retention_deadline',
+  }), {code: 'ResultRetentionDenied'});
+  const retentionService = installResultRetentionService({
+    store: deliveryStore,
+    control,
+    authority: retentionAuthority,
+    now: () => '2026-09-18T02:00:00.000Z',
+    limits,
+  });
+  const retired = await retireExpiredResult(retentionService, {
+    indexKey: stateRequest.indexKey,
+    resultName: 'answer',
+    reason: 'retention_deadline',
+  });
+  assert.equal(retired.cleanupPending, false);
+  accessTime = '2026-09-18T02:00:00.000Z';
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: stateRequest.indexKey,
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorized-after-deletion',
+    },
+    {write: () => assert.fail('deleted Result exposed bytes')},
+  ), {code: 'ResultUnavailable'});
+  const deletedState = await inspectAuthorizedRunState(
+    stateService, stateRequest,
+  );
+  assert.equal(deletedState.status, 'succeeded');
+  assert.equal(deletedState.result_available, false);
+  assert.deepEqual(deletedState.next_action, {kind: 'none'});
+  assert.equal(
+    deletedState.result_availability.answer.reason,
+    'deleted',
+  );
 
   const lostDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-lost-response-',

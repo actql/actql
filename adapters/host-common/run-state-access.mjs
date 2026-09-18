@@ -133,11 +133,40 @@ async function observeResult(installed, context, resultName, at) {
   const retentionState = installed.control.resultReadAvailability(
     context.manifest, resultName, retention, at,
   );
-  if (retentionState !== 'available') {
+  if (retentionState === 'delete_due') {
+    const definitionCid = installed.control.resultReadDefinitionCid(
+      context.manifest, resultName,
+    );
+    try {
+      await installed.store.withCommittedResult(
+        context.indexKey,
+        definitionCid,
+        () => true,
+        async () => undefined,
+      );
+      return {
+        name: resultName,
+        state: 'unavailable',
+        reason: 'retention_expired',
+        observedAt: at,
+      };
+    } catch (error) {
+      return {name: resultName, ...unavailableFrom(error, at)};
+    }
+  }
+  if (retentionState === 'retention_expired') {
     return {
       name: resultName,
       state: 'unavailable',
       reason: 'retention_expired',
+      observedAt: at,
+    };
+  }
+  if (retentionState !== 'available') {
+    return {
+      name: resultName,
+      state: 'unknown',
+      reason: 'store_query_failed',
       observedAt: at,
     };
   }
