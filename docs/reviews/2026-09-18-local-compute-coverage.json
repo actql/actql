@@ -293,9 +293,9 @@
       "canonical_operations": ["REL.values"],
       "machine_registry": "registered",
       "variant_scope": ["empty and nonempty rows", "scalar and nested values", "explicit schema", "NULL values", "metadata and capacity limits"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/sequence_test.mbt","src/query_integration/local_managed_values_wbtest.mbt"],"two_consumer_e2e":[],"conformance":["src/query_integration/local_managed_values_wbtest.mbt"],"performance":[]},
-      "gaps": ["Zero-input managed execution is connected; empty, nested, and NULL variants, two real downstream Computes, and performance evidence remain."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/sequence_test.mbt","src/query_integration/local_managed_values_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_values_wbtest.mbt"],"conformance":["src/query_integration/local_managed_values_wbtest.mbt"],"performance":[]},
+      "gaps": ["Zero-input managed execution with NULL and scalar rows feeds two real downstream Computes; empty and nested variants, broad limits, and performance evidence remain."]
     },
     {
       "operation": "except",

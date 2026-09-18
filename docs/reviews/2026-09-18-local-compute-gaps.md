@@ -52,7 +52,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | dedupe_rows | C | C | C | P | Compound/NULL/tie and indexed performance evidence |
 | assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
 | append | C | - | - | - | Common two-input lowering |
-| values | C | C | C | - | Genuine zero-input Host path |
+| values | C | C | C | P | Genuine zero-input Host path and two managed consumers; empty/nested variants remain |
 | except | C | - | - | - | Registry, lowering, and execution |
 | intersect | C | - | - | - | Registry, lowering, and execution |
 | cross_join | C | - | - | - | Registry, lowering, and execution |
