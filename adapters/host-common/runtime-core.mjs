@@ -659,9 +659,14 @@ export function runtimeCore(moon) {
         throw new TypeError('Invalid Result inventory projection');
       }
       return Object.freeze(Array.from({length: count}, (_, index) => {
-        const definition = JSON.parse(checked(
-          moon.strategyHostPublicationInventoryDefinitionJson(inventory, index),
-        ));
+        const definitionContract = publications.admit(
+          'result_definition',
+          checked(moon.strategyHostPublicationInventoryDefinitionJson(
+            inventory, index,
+          )),
+          {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64},
+        );
+        const definition = JSON.parse(definitionContract.wire);
         return Object.freeze({
           name: checked(
             moon.strategyHostPublicationInventoryName(inventory, index),
@@ -670,6 +675,7 @@ export function runtimeCore(moon) {
             moon.strategyHostPublicationInventoryTask(inventory, index),
           ),
           definition: Object.freeze(definition),
+          definitionContract,
         });
       }));
     },

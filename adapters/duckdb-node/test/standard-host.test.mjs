@@ -43,6 +43,8 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   '../../host-common/execution-sites.mjs';
 import {createManagedMemoryTransferProvider} from
   '../../store-local/managed-memory-transfer.mjs';
+import {openLocalPublicationStore} from
+  '../../store-local/publication-store.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -517,50 +519,20 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           else assert.equal(execution.usage().transferredBytes, 0n);
           if (mode === 0) {
             const runtime = runtimeCore(hostRuntime);
-            const exportControl = runtime.outputExportControl;
-            const resultExport = exportControl.beginResult(
-              setup, 0, publicationResultExportLimits,
-            );
+            const publicationDirectory = await mkdtemp(join(
+              root, '_build/duckdb-fixtures/publication-payload-',
+            ));
+            const publicationStore = await openLocalPublicationStore({
+              directory: publicationDirectory,
+              storeAuthorityCid: hash('publication-store'),
+              capacityBytes: 2 * 1024 * 1024,
+              maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+              maxObjects: 100,
+              maxContractNodes: 10000,
+              maxContractDepth: 64,
+            }, runtime.publicationControl);
             try {
-              let resultWire = '';
-              for (;;) {
-                const part = exportControl.next(resultExport);
-                if (part === undefined) break;
-                resultWire += part;
-              }
-              resultWire += exportControl.finish(resultExport);
-              assert.deepEqual(JSON.parse(resultWire), [
-                {id: 3}, {id: 2}, {id: 3},
-              ]);
-              const identity = exportControl.identity(resultExport);
-              assert.match(identity.logicalRelationCid,
-                /^sha256:[0-9a-f]{64}$/u);
-              assert.match(identity.resultSchemaCid,
-                /^sha256:[0-9a-f]{64}$/u);
               const effectiveDataPolicyCid = hash('effective-policy');
-              const issued = exportControl.issueResultEvidence(
-                resultExport,
-                {
-                  computationContractCid: hash('checked-computation'),
-                  inputRelationCids: [],
-                  scopeCid: hash('result-scope'),
-                  effectiveDataPolicyCid,
-                  authorityScopeCid: hash('authority-scope'),
-                },
-                {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64},
-              );
-              const derivation = JSON.parse(issued.derivation.wire);
-              const ordering = JSON.parse(issued.ordering.wire);
-              assert.equal(derivation.producer_contract_cid,
-                execution.publicationInventory.occurrences[0]
-                  .definition.result_definition_cid);
-              assert.equal(derivation.logical_value_cid,
-                identity.logicalRelationCid);
-              assert.equal(derivation.relation_schema_cid,
-                identity.resultSchemaCid);
-              assert.deepEqual(ordering.witness_evidence, [{
-                kind: 'derivation', cid: issued.derivation.identity,
-              }]);
               const contractLimits = {
                 maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64,
               };
@@ -587,19 +559,63 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 }),
                 contractLimits,
               );
-              const artifact = runtime.publicationControl.issueResultArtifact(
-                resultExport, invocation, retention, contractLimits,
+              const stored = await execution.storePublicationResult(
+                0,
+                publicationStore,
+                {
+                  outputLimits: publicationResultExportLimits,
+                  contractLimits,
+                  invocation,
+                  retention,
+                  evidenceContext: {
+                    computationContractCid: hash('checked-computation'),
+                    inputRelationCids: [],
+                    scopeCid: hash('result-scope'),
+                    effectiveDataPolicyCid,
+                    authorityScopeCid: hash('authority-scope'),
+                  },
+                },
+                controller.signal,
               );
-              const artifactValue = JSON.parse(artifact.wire);
+              const identity = stored.orderedRows;
+              const payload = [];
+              await publicationStore.consumeObject(
+                stored.physical.cid,
+                chunk => payload.push(Buffer.from(chunk)),
+              );
+              assert.deepEqual(JSON.parse(Buffer.concat(payload)
+                .toString('utf8')), [{id: 3}, {id: 2}, {id: 3}]);
+              assert.match(identity.logicalRelationCid,
+                /^sha256:[0-9a-f]{64}$/u);
+              assert.match(identity.resultSchemaCid,
+                /^sha256:[0-9a-f]{64}$/u);
+              const derivation = JSON.parse(
+                stored.publication.derivation.wire,
+              );
+              const ordering = JSON.parse(stored.publication.ordering.wire);
+              assert.equal(derivation.producer_contract_cid,
+                stored.occurrence.definition.identity);
+              assert.equal(derivation.logical_value_cid,
+                identity.logicalRelationCid);
+              assert.equal(derivation.relation_schema_cid,
+                identity.resultSchemaCid);
+              assert.deepEqual(ordering.witness_evidence, [{
+                kind: 'derivation',
+                cid: stored.publication.derivation.identity,
+              }]);
+              const artifactValue = JSON.parse(
+                stored.publication.artifact.wire,
+              );
               assert.equal(artifactValue.logical_result_cid,
                 identity.logicalRelationCid);
               assert.equal(artifactValue.result_schema_cid,
                 identity.resultSchemaCid);
               assert.equal(artifactValue.actual_row_count, 3);
               assert.equal(artifactValue.ordering_evidence_cid,
-                issued.ordering.identity);
+                stored.publication.ordering.identity);
             } finally {
-              exportControl.cancel(resultExport);
+              await publicationStore.close();
+              await rm(publicationDirectory, {recursive: true, force: true});
             }
           }
         }

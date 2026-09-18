@@ -9,12 +9,17 @@ import {bindExecutionSiteCandidate, executionSiteCandidate,
   startExecutionSiteOperation} from './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
+import {storeCompletedResultPublicationPayload} from
+  './durable-result-payload.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
 }
 
 const active = new WeakSet();
+const publicationContract = value => value !== null &&
+  typeof value === 'object' && typeof value.name === 'string' &&
+  typeof value.identity === 'string' && typeof value.wire === 'string';
 const failureMember = (value, name) => {
   try {
     return value !== null &&
@@ -263,6 +268,7 @@ export async function runInstalledStrategy(
           name: result.name,
           task: result.task,
           definition: result.definition,
+          definitionContract: result.definitionContract,
         }))),
       requestInventory: Object.freeze(resultInventory.map(result =>
         Object.freeze({
@@ -625,6 +631,48 @@ export async function runInstalledStrategy(
     programDefinitionCid,
     resultInventory: checkedResultInventory,
     publicationInventory,
+    async storePublicationResult(result, store, publication, signal) {
+      if (closed) throw new StrategyHostError('ReleasedStrategy');
+      if (!Number.isSafeInteger(result) || result < 0 ||
+          result >= resultInventory.length ||
+          publication === null || typeof publication !== 'object' ||
+          publication.outputLimits === undefined ||
+          publication.contractLimits === undefined ||
+          publication.invocation === undefined ||
+          publication.retention === undefined ||
+          publication.evidenceContext === undefined ||
+          typeof core.outputExportControl?.beginResult !== 'function' ||
+          typeof core.publicationControl?.issueResultArtifact !== 'function') {
+        throw new StrategyHostError('InvalidResultPublicationExport');
+      }
+      const occurrence = resultInventory[result];
+      if (!publicationContract(occurrence.definitionContract)) {
+        throw new StrategyHostError('MissingResultDefinitionContract');
+      }
+      const stored = await storeCompletedResultPublicationPayload(
+        store,
+        core.outputExportControl,
+        setup,
+        result,
+        publication.outputLimits,
+        {
+          control: core.publicationControl,
+          invocation: publication.invocation,
+          retention: publication.retention,
+          evidenceContext: publication.evidenceContext,
+          limits: publication.contractLimits,
+        },
+        signal,
+      );
+      return Object.freeze({
+        occurrence: Object.freeze({
+          name: occurrence.name,
+          task: occurrence.task,
+          definition: occurrence.definitionContract,
+        }),
+        ...stored,
+      });
+    },
     usage: () => core.usage(setup),
     cleanupPending,
     cleanup() {
