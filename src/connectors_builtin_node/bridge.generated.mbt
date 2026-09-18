@@ -2504,22 +2504,207 @@ pub fn strategy_remote_admission_commit(
 }
 
 ///|
-#export_name("strategyRemoteBeginProvisioning")
-pub fn strategy_remote_begin_provisioning(
+#export_name("strategyRemotePrepareProvisioning")
+pub fn strategy_remote_prepare_provisioning(
   record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_begin_provisioning(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareExecution")
+pub fn strategy_remote_prepare_execution(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_begin_remote_execution(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareSettled")
+pub fn strategy_remote_prepare_settled(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_confirm_native_settled(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareFailed")
+pub fn strategy_remote_prepare_failed(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_confirm_execution_failed(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareCancelled")
+pub fn strategy_remote_prepare_cancelled(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_confirm_execution_cancelled(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareRetained")
+pub fn strategy_remote_prepare_retained(
+  record : @remote.DispatchRecord,
+  material_generation : String,
+  holding_evidence_cid : String,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match
+    @remote.prepare_retain_remote_output(
+      record, material_generation, holding_evidence_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareEvidence")
+pub fn strategy_remote_prepare_evidence(
+  record : @remote.DispatchRecord,
+  evidence_cid : String,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_durable_execution_evidence(record, evidence_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareEvidenceRejection")
+pub fn strategy_remote_prepare_evidence_rejection(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_reject_execution_evidence(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareUnknown")
+pub fn strategy_remote_prepare_unknown(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_mark_execution_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareRelease")
+pub fn strategy_remote_prepare_release(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_begin_remote_release(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareReleased")
+pub fn strategy_remote_prepare_released(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_confirm_remote_release(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareLossRecovery")
+pub fn strategy_remote_prepare_loss_recovery(
+  record : @remote.DispatchRecord,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.prepare_reconcile_cleanup_after_loss(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemotePrepareForceLoss")
+pub fn strategy_remote_prepare_force_loss(
+  journal : @remote.SiteDispatchJournal,
+  record : @remote.DispatchRecord,
+  authorized : Bool,
+) -> @remote.ForceLossTransition raise NodeHostFailure {
+  match @remote.prepare_force_loss(journal, record, authorized) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteForceLossProjection")
+pub fn strategy_remote_force_loss_projection(
+  transition : @remote.ForceLossTransition,
+) -> Array[String] {
+  @remote.force_loss_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteForceLossKey")
+pub fn strategy_remote_force_loss_key(
+  transition : @remote.ForceLossTransition,
+) -> Array[String] {
+  @remote.force_loss_journal_key(transition)
+}
+
+///|
+#export_name("strategyRemoteForceLossCommit")
+pub fn strategy_remote_force_loss_commit(
+  transition : @remote.ForceLossTransition,
+  durable : Bool,
 ) -> Unit raise NodeHostFailure {
-  match @remote.begin_provisioning(record) {
+  match @remote.commit_force_loss(transition, durable) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
   }
 }
 
 ///|
-#export_name("strategyRemoteBeginExecution")
-pub fn strategy_remote_begin_execution(
-  record : @remote.DispatchRecord,
+#export_name("strategyRemoteTransitionProjection")
+pub fn strategy_remote_transition_projection(
+  transition : @remote.DispatchTransition,
+) -> Array[String] {
+  @remote.dispatch_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteTransitionKey")
+pub fn strategy_remote_transition_key(
+  transition : @remote.DispatchTransition,
+) -> Array[String] {
+  @remote.dispatch_transition_journal_key(transition)
+}
+
+///|
+#export_name("strategyRemoteTransitionCommit")
+pub fn strategy_remote_transition_commit(
+  transition : @remote.DispatchTransition,
+  durable : Bool,
 ) -> Unit raise NodeHostFailure {
-  match @remote.begin_remote_execution(record) {
+  match @remote.commit_dispatch_transition(transition, durable) {
     Ok(_) => ()
     Err(issue) => raise RemoteDispatch(issue)
   }
@@ -2531,6 +2716,36 @@ pub fn strategy_remote_record_status(
   record : @remote.DispatchRecord,
 ) -> Array[Int] {
   @remote.dispatch_record_state_codes(record)
+}
+
+///|
+#export_name("strategyRemoteRecordRevision")
+pub fn strategy_remote_record_revision(record : @remote.DispatchRecord) -> Int {
+  @remote.dispatch_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteRecordRestore")
+pub fn strategy_remote_record_restore(
+  record : @remote.DispatchRecord,
+  revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  material_generation : String,
+  holding_evidence_cid : String,
+  execution_evidence_cid : String,
+) -> Unit raise NodeHostFailure {
+  match
+    @remote.restore_dispatch_record(
+      record, revision, execution, evidence, cleanup, material_available, quarantined_capacity,
+      material_generation, holding_evidence_cid, execution_evidence_cid,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|

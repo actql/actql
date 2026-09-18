@@ -58,6 +58,27 @@ fn accept(
 }
 
 ///|
+fn provision(record : DispatchRecord) -> Unit {
+  commit_dispatch_transition(prepare_begin_provisioning(record).unwrap(), true).unwrap()
+}
+
+///|
+fn execute(record : DispatchRecord) -> Unit {
+  commit_dispatch_transition(
+    prepare_begin_remote_execution(record).unwrap(),
+    true,
+  ).unwrap()
+}
+
+///|
+fn settle(record : DispatchRecord) -> Unit {
+  commit_dispatch_transition(
+    prepare_confirm_native_settled(record).unwrap(),
+    true,
+  ).unwrap()
+}
+
+///|
 test "dispatch retransmission reconciles without admitting another attempt" {
   let state = journal()
   let bundle = cid(
@@ -136,25 +157,60 @@ test "execution evidence and cleanup advance independently" {
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
   let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
-  begin_provisioning(record).unwrap()
-  begin_remote_execution(record).unwrap()
-  confirm_native_settled(record).unwrap()
+  provision(record)
+  execute(record)
+  settle(record)
   assert_false(remote_completion_evidence_available(record))
-  retain_remote_output(
-    record,
-    "material-generation-a",
-    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      record,
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
   ).unwrap()
   assert_false(remote_completion_evidence_available(record))
-  record_durable_execution_evidence(
-    record,
-    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  commit_dispatch_transition(
+    prepare_durable_execution_evidence(
+      record,
+      cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    ).unwrap(),
+    true,
   ).unwrap()
   assert_true(remote_completion_evidence_available(record))
-  begin_remote_release(record).unwrap()
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
   assert_true(remote_completion_evidence_available(record))
-  confirm_remote_release(record).unwrap()
+  commit_dispatch_transition(
+    prepare_confirm_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
   assert_false(remote_completion_evidence_available(record))
+}
+
+///|
+test "execution transition requires durable exact CAS" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
+  let first = prepare_begin_provisioning(record).unwrap()
+  assert_eq(dispatch_record_revision(record), 0)
+  assert_eq(dispatch_transition_projection(first), [
+    "0", "0", "0", "0", "0", "0", "", "", "", "1", "1", "0", "0", "0", "0", "", "",
+    "",
+  ])
+  assert_eq(
+    commit_dispatch_transition(first, false),
+    Err(DurabilityUnconfirmed),
+  )
+  let competing = prepare_begin_provisioning(record).unwrap()
+  commit_dispatch_transition(first, true).unwrap()
+  assert_eq(dispatch_record_revision(record), 1)
+  assert_eq(commit_dispatch_transition(competing, true), Err(StateCollision))
 }
 
 ///|
@@ -164,8 +220,8 @@ test "restart changes generation without reviving old authority" {
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
   let (_, record) = accept(state, request("dispatch-a", 1, 1, old_bundle))
-  begin_provisioning(record).unwrap()
-  begin_remote_execution(record).unwrap()
+  provision(record)
+  execute(record)
   assert_eq(
     restart_site_generation(
       state,
@@ -196,17 +252,23 @@ test "restart preserves settled history but requires current availability" {
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
   let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
-  begin_provisioning(record).unwrap()
-  begin_remote_execution(record).unwrap()
-  confirm_native_settled(record).unwrap()
-  retain_remote_output(
-    record,
-    "material-generation-a",
-    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+  provision(record)
+  execute(record)
+  settle(record)
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      record,
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
   ).unwrap()
-  record_durable_execution_evidence(
-    record,
-    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  commit_dispatch_transition(
+    prepare_durable_execution_evidence(
+      record,
+      cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    ).unwrap(),
+    true,
   ).unwrap()
   ignore(
     restart_site_generation(
@@ -263,8 +325,10 @@ test "force loss quarantines capacity until exact late cleanup" {
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   )
   let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
-  assert_eq(force_loss(state, record, false), Err(UnauthorizedForceLoss))
-  force_loss(state, record, true).unwrap()
+  assert_true(
+    prepare_force_loss(state, record, false) is Err(UnauthorizedForceLoss),
+  )
+  commit_force_loss(prepare_force_loss(state, record, true).unwrap(), true).unwrap()
   let (execution, _, cleanup, available, quarantined) = dispatch_record_state(
     record,
   )
@@ -272,7 +336,10 @@ test "force loss quarantines capacity until exact late cleanup" {
   assert_eq(cleanup, CleanupForceLost)
   assert_false(available)
   assert_true(quarantined)
-  reconcile_cleanup_after_loss(record).unwrap()
+  commit_dispatch_transition(
+    prepare_reconcile_cleanup_after_loss(record).unwrap(),
+    true,
+  ).unwrap()
   let (_, _, reconciled, restored, still_quarantined) = dispatch_record_state(
     record,
   )

@@ -276,10 +276,6 @@ pub fn strategy_remote_admission_json(@remote_site_protocol.DispatchAdmission) -
 
 pub fn strategy_remote_admission_prepare(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchAdmission raise NodeHostFailure
 
-pub fn strategy_remote_begin_execution(@remote_site_protocol.DispatchRecord) -> Unit raise NodeHostFailure
-
-pub fn strategy_remote_begin_provisioning(@remote_site_protocol.DispatchRecord) -> Unit raise NodeHostFailure
-
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_identity(@remote_site_protocol.DispatchRequest) -> String
@@ -290,9 +286,51 @@ pub fn strategy_remote_dispatch_json(@remote_site_protocol.DispatchRequest) -> S
 
 pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
+pub fn strategy_remote_force_loss_commit(@remote_site_protocol.ForceLossTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_force_loss_key(@remote_site_protocol.ForceLossTransition) -> Array[String]
+
+pub fn strategy_remote_force_loss_projection(@remote_site_protocol.ForceLossTransition) -> Array[String]
+
 pub fn strategy_remote_journal_create(@execution_site.ExecutionSite) -> @remote_site_protocol.SiteDispatchJournal raise NodeHostFailure
 
+pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_evidence(@remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_evidence_rejection(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_execution(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_failed(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_force_loss(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRecord, Bool) -> @remote_site_protocol.ForceLossTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_loss_recovery(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_provisioning(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_release(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_released(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, String, String) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_unknown(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_record_restore(@remote_site_protocol.DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_record_revision(@remote_site_protocol.DispatchRecord) -> Int
+
 pub fn strategy_remote_record_status(@remote_site_protocol.DispatchRecord) -> Array[Int]
+
+pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
+
+pub fn strategy_remote_transition_projection(@remote_site_protocol.DispatchTransition) -> Array[String]
 
 pub fn strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
 

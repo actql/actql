@@ -9,27 +9,19 @@ import {
 // Values
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
-pub fn begin_provisioning(DispatchRecord) -> Result[Unit, DispatchIssue]
-
-pub fn begin_remote_execution(DispatchRecord) -> Result[Unit, DispatchIssue]
-
-pub fn begin_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
-
 pub fn commit_dispatch_acceptance(DispatchAdmission, Bool) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
 
-pub fn confirm_execution_cancelled(DispatchRecord) -> Result[Unit, DispatchIssue]
+pub fn commit_dispatch_transition(DispatchTransition, Bool) -> Result[Unit, DispatchIssue]
 
-pub fn confirm_execution_failed(DispatchRecord) -> Result[Unit, DispatchIssue]
-
-pub fn confirm_native_settled(DispatchRecord) -> Result[Unit, DispatchIssue]
-
-pub fn confirm_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
+pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssue]
 
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
 pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
 
 pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, DispatchIssue]
+
+pub fn dispatch_record_revision(DispatchRecord) -> Int
 
 pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
 
@@ -41,25 +33,49 @@ pub fn dispatch_request_journal_key(DispatchRequest) -> Array[String]
 
 pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
 
-pub fn force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[Unit, DispatchIssue]
+pub fn dispatch_transition_journal_key(DispatchTransition) -> Array[String]
 
-pub fn mark_execution_unknown(DispatchRecord) -> Unit
+pub fn dispatch_transition_projection(DispatchTransition) -> Array[String]
+
+pub fn force_loss_journal_key(ForceLossTransition) -> Array[String]
+
+pub fn force_loss_projection(ForceLossTransition) -> Array[String]
+
+pub fn prepare_begin_provisioning(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_begin_remote_execution(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_begin_remote_release(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_confirm_execution_cancelled(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_confirm_execution_failed(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_confirm_native_settled(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_confirm_remote_release(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
-pub fn reconcile_cleanup_after_loss(DispatchRecord) -> Result[Unit, DispatchIssue]
+pub fn prepare_durable_execution_evidence(DispatchRecord, String) -> Result[DispatchTransition, DispatchIssue]
 
-pub fn record_durable_execution_evidence(DispatchRecord, String) -> Result[Unit, DispatchIssue]
+pub fn prepare_force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[ForceLossTransition, DispatchIssue]
 
-pub fn reject_execution_evidence(DispatchRecord) -> Result[Unit, DispatchIssue]
+pub fn prepare_mark_execution_unknown(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_reconcile_cleanup_after_loss(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
+
+pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
 
 pub fn restart_site_generation(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[Int, DispatchIssue]
 
-pub fn retain_remote_output(DispatchRecord, String, String) -> Result[Unit, DispatchIssue]
+pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
 pub fn site_dispatch_generation(SiteDispatchJournal) -> Int
 
@@ -89,11 +105,16 @@ pub(all) enum DispatchIssue {
   UnauthorizedForceLoss
   DispatchIdentityMismatch
   DurabilityUnconfirmed
+  StateCollision
 } derive(Eq, @debug.Debug)
 
 type DispatchRecord
 
 type DispatchRequest
+
+type DispatchTransition
+
+type ForceLossTransition
 
 pub(all) enum RemoteCleanupState {
   CleanupActive

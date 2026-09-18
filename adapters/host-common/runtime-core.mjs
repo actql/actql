@@ -102,13 +102,63 @@ function remoteSiteControl(moon) {
     commitAdmission: (value, durable) => checked(
       moon.strategyRemoteAdmissionCommit(value, durable),
     ),
-    beginProvisioning: value => checked(
-      moon.strategyRemoteBeginProvisioning(value),
+    prepareProvisioning: value => checked(
+      moon.strategyRemotePrepareProvisioning(value),
     ),
-    beginExecution: value => checked(
-      moon.strategyRemoteBeginExecution(value),
+    prepareExecution: value => checked(
+      moon.strategyRemotePrepareExecution(value),
+    ),
+    prepareSettled: value => checked(
+      moon.strategyRemotePrepareSettled(value),
+    ),
+    prepareFailed: value => checked(
+      moon.strategyRemotePrepareFailed(value),
+    ),
+    prepareCancelled: value => checked(
+      moon.strategyRemotePrepareCancelled(value),
+    ),
+    prepareRetained: (value, material, holding) => checked(
+      moon.strategyRemotePrepareRetained(value, material, holding),
+    ),
+    prepareEvidence: (value, evidence) => checked(
+      moon.strategyRemotePrepareEvidence(value, evidence),
+    ),
+    prepareEvidenceRejection: value => checked(
+      moon.strategyRemotePrepareEvidenceRejection(value),
+    ),
+    prepareUnknown: value => checked(
+      moon.strategyRemotePrepareUnknown(value),
+    ),
+    prepareRelease: value => checked(
+      moon.strategyRemotePrepareRelease(value),
+    ),
+    prepareReleased: value => checked(
+      moon.strategyRemotePrepareReleased(value),
+    ),
+    prepareLossRecovery: value => checked(
+      moon.strategyRemotePrepareLossRecovery(value),
+    ),
+    prepareForceLoss: (journal, value, authorized) => checked(
+      moon.strategyRemotePrepareForceLoss(journal, value, authorized),
+    ),
+    forceLossProjection: moon.strategyRemoteForceLossProjection,
+    forceLossKey: moon.strategyRemoteForceLossKey,
+    commitForceLoss: (value, durable) => checked(
+      moon.strategyRemoteForceLossCommit(value, durable),
+    ),
+    transitionProjection: moon.strategyRemoteTransitionProjection,
+    transitionKey: moon.strategyRemoteTransitionKey,
+    commitTransition: (value, durable) => checked(
+      moon.strategyRemoteTransitionCommit(value, durable),
     ),
     status: moon.strategyRemoteRecordStatus,
+    revision: moon.strategyRemoteRecordRevision,
+    restore(record, state) {
+      if (!Array.isArray(state) || state.length !== 9) {
+        throw new TypeError('Invalid remote dispatch state');
+      }
+      return checked(moon.strategyRemoteRecordRestore(record, ...state));
+    },
   });
   remoteSiteControls.set(moon, control);
   return control;

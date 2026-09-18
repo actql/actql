@@ -71,17 +71,46 @@ pub(all) enum DispatchIssue {
   UnauthorizedForceLoss
   DispatchIdentityMismatch
   DurabilityUnconfirmed
+  StateCollision
 } derive(Eq, Debug)
 
 ///|
 /// A journal record keeps historical facts while current availability changes.
 struct DispatchRecord {
   request : DispatchRequest
+  mut revision : Int
   mut execution : RemoteExecutionState
   mut evidence : RemoteEvidenceState
   mut cleanup : RemoteCleanupState
   mut material_available : Bool
   mut quarantined_capacity : Bool
+}
+
+///|
+/// A portable transition plan has no authority until its exact target state
+/// is durably installed by the physical journal.
+struct DispatchTransition {
+  record : DispatchRecord
+  expected_revision : Int
+  expected_execution : RemoteExecutionState
+  expected_evidence : RemoteEvidenceState
+  expected_cleanup : RemoteCleanupState
+  expected_material_available : Bool
+  expected_quarantined_capacity : Bool
+  next_execution : RemoteExecutionState
+  next_evidence : RemoteEvidenceState
+  next_cleanup : RemoteCleanupState
+  next_material_available : Bool
+  next_quarantined_capacity : Bool
+  mut consumed : Bool
+}
+
+///|
+/// Force loss includes the Site authority that must be revoked after the
+/// exact quarantined record state is durable.
+struct ForceLossTransition {
+  journal : SiteDispatchJournal
+  transition : DispatchTransition
 }
 
 ///|
@@ -412,6 +441,7 @@ pub fn commit_dispatch_acceptance(
       }
       let record = {
         request,
+        revision: 0,
         execution: Accepted,
         evidence: NoEvidence,
         cleanup: CleanupActive,
@@ -441,98 +471,191 @@ pub fn dispatch_admission_request_json(
 }
 
 ///|
-pub fn begin_provisioning(
+fn prepare_transition(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+  next_execution : RemoteExecutionState,
+  next_evidence : RemoteEvidenceState,
+  next_cleanup : RemoteCleanupState,
+  next_material_available : Bool,
+  next_quarantined_capacity : Bool,
+) -> DispatchTransition {
+  {
+    record,
+    expected_revision: record.revision,
+    expected_execution: record.execution,
+    expected_evidence: record.evidence,
+    expected_cleanup: record.cleanup,
+    expected_material_available: record.material_available,
+    expected_quarantined_capacity: record.quarantined_capacity,
+    next_execution,
+    next_evidence,
+    next_cleanup,
+    next_material_available,
+    next_quarantined_capacity,
+    consumed: false,
+  }
+}
+
+///|
+pub fn prepare_begin_provisioning(
+  record : DispatchRecord,
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.execution {
-    Accepted => {
-      record.execution = Provisioning
-      Ok(())
-    }
+    Accepted =>
+      Ok(
+        prepare_transition(
+          record,
+          Provisioning,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn begin_remote_execution(
+pub fn prepare_begin_remote_execution(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.execution {
-    Provisioning => {
-      record.execution = Running
-      Ok(())
-    }
+    Provisioning =>
+      Ok(
+        prepare_transition(
+          record,
+          Running,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn confirm_native_settled(
+pub fn prepare_confirm_native_settled(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.execution {
-    Running => {
-      record.execution = NativeSettled
-      Ok(())
-    }
+    Running =>
+      Ok(
+        prepare_transition(
+          record,
+          NativeSettled,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn confirm_execution_failed(
-  record : DispatchRecord,
+pub fn commit_dispatch_transition(
+  transition : DispatchTransition,
+  durable : Bool,
 ) -> Result[Unit, DispatchIssue] {
+  if transition.consumed {
+    return Err(InvalidTransition)
+  }
+  if !durable {
+    return Err(DurabilityUnconfirmed)
+  }
+  let record = transition.record
+  if record.revision != transition.expected_revision ||
+    record.execution != transition.expected_execution ||
+    record.evidence != transition.expected_evidence ||
+    record.cleanup != transition.expected_cleanup ||
+    record.material_available != transition.expected_material_available ||
+    record.quarantined_capacity != transition.expected_quarantined_capacity {
+    return Err(StateCollision)
+  }
+  record.execution = transition.next_execution
+  record.evidence = transition.next_evidence
+  record.cleanup = transition.next_cleanup
+  record.material_available = transition.next_material_available
+  record.quarantined_capacity = transition.next_quarantined_capacity
+  record.revision += 1
+  transition.consumed = true
+  Ok(())
+}
+
+///|
+pub fn prepare_confirm_execution_failed(
+  record : DispatchRecord,
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.execution {
-    Provisioning | Running => {
-      record.execution = ExecutionFailed
-      Ok(())
-    }
-    ExecutionFailed => Ok(())
+    Provisioning | Running =>
+      Ok(
+        prepare_transition(
+          record,
+          ExecutionFailed,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn confirm_execution_cancelled(
+pub fn prepare_confirm_execution_cancelled(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.execution {
-    Accepted | Provisioning | Running => {
-      record.execution = ExecutionCancelled
-      Ok(())
-    }
-    ExecutionCancelled => Ok(())
+    Accepted | Provisioning | Running =>
+      Ok(
+        prepare_transition(
+          record,
+          ExecutionCancelled,
+          record.evidence,
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn retain_remote_output(
+pub fn prepare_retain_remote_output(
   record : DispatchRecord,
   material_generation : String,
   holding_evidence_cid : String,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   if material_generation.is_empty() || !valid_cid(holding_evidence_cid) {
     return Err(InvalidDispatch)
   }
   match (record.execution, record.evidence, record.cleanup) {
-    (NativeSettled, NoEvidence, CleanupActive) => {
-      record.evidence = OutputRetained(
-        material_generation, holding_evidence_cid,
+    (NativeSettled, NoEvidence, CleanupActive) =>
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          OutputRetained(material_generation, holding_evidence_cid),
+          record.cleanup,
+          true,
+          record.quarantined_capacity,
+        ),
       )
-      record.material_available = true
-      Ok(())
-    }
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn record_durable_execution_evidence(
+pub fn prepare_durable_execution_evidence(
   record : DispatchRecord,
   evidence_cid : String,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   if !valid_cid(evidence_cid) {
     return Err(InvalidDispatch)
   }
@@ -541,103 +664,169 @@ pub fn record_durable_execution_evidence(
       if !record.material_available {
         return Err(MaterialUnavailable)
       }
-      record.evidence = EvidenceDurable(
-        material_generation, holding_evidence_cid, evidence_cid,
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          EvidenceDurable(
+            material_generation, holding_evidence_cid, evidence_cid,
+          ),
+          record.cleanup,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
       )
-      Ok(())
     }
-    EvidenceDurable(_, _, prior) if prior == evidence_cid => Ok(())
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn reject_execution_evidence(
+pub fn prepare_reject_execution_evidence(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.evidence {
-    NoEvidence | OutputRetained(_, _) => {
-      record.evidence = EvidenceRejected
-      record.material_available = false
-      Ok(())
-    }
-    EvidenceRejected => Ok(())
+    NoEvidence | OutputRetained(_, _) =>
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          EvidenceRejected,
+          record.cleanup,
+          false,
+          record.quarantined_capacity,
+        ),
+      )
     EvidenceDurable(_, _, _) => Err(InvalidTransition)
+    EvidenceRejected => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn mark_execution_unknown(record : DispatchRecord) -> Unit {
-  match record.execution {
-    Accepted | Provisioning | Running => record.execution = ExecutionUnknown
-    _ => ()
-  }
-  if record.cleanup != CleanupReleased &&
-    record.cleanup != CleanupRecoveredAfterLoss {
-    record.cleanup = CleanupUnknown
-  }
-}
-
-///|
-pub fn begin_remote_release(
+pub fn prepare_mark_execution_unknown(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
+  let execution = match record.execution {
+    Accepted | Provisioning | Running => ExecutionUnknown
+    state => state
+  }
+  let cleanup = match record.cleanup {
+    CleanupReleased | CleanupRecoveredAfterLoss => record.cleanup
+    _ => CleanupUnknown
+  }
+  if execution == record.execution && cleanup == record.cleanup {
+    return Err(InvalidTransition)
+  }
+  Ok(
+    prepare_transition(
+      record,
+      execution,
+      record.evidence,
+      cleanup,
+      record.material_available,
+      record.quarantined_capacity,
+    ),
+  )
+}
+
+///|
+pub fn prepare_begin_remote_release(
+  record : DispatchRecord,
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.cleanup {
-    CleanupActive | CleanupUnknown => {
-      record.cleanup = CleanupReleasing
-      Ok(())
-    }
+    CleanupActive | CleanupUnknown =>
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          record.evidence,
+          CleanupReleasing,
+          record.material_available,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
-pub fn confirm_remote_release(
+pub fn prepare_confirm_remote_release(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.cleanup {
-    CleanupReleasing => {
-      record.cleanup = CleanupReleased
-      record.material_available = false
-      Ok(())
-    }
+    CleanupReleasing =>
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          record.evidence,
+          CleanupReleased,
+          false,
+          record.quarantined_capacity,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
 
 ///|
 /// Force loss terminates management without claiming physical reclamation.
-pub fn force_loss(
+pub fn prepare_force_loss(
   journal : SiteDispatchJournal,
   record : DispatchRecord,
   authorized : Bool,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[ForceLossTransition, DispatchIssue] {
   if !authorized {
     return Err(UnauthorizedForceLoss)
   }
   if record.request.site_key != @site.site_key(journal.site) {
     return Err(ForeignSite)
   }
-  @site.revoke_site(journal.site)
-  record.execution = ExecutionUnknown
-  record.cleanup = CleanupForceLost
-  record.material_available = false
-  record.quarantined_capacity = true
-  Ok(())
+  Ok({
+    journal,
+    transition: prepare_transition(
+      record,
+      ExecutionUnknown,
+      record.evidence,
+      CleanupForceLost,
+      false,
+      true,
+    ),
+  })
+}
+
+///|
+pub fn commit_force_loss(
+  force : ForceLossTransition,
+  durable : Bool,
+) -> Result[Unit, DispatchIssue] {
+  match commit_dispatch_transition(force.transition, durable) {
+    Ok(_) => {
+      @site.revoke_site(force.journal.site)
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
 /// Late exact cleanup evidence may discharge quarantined physical capacity. It
 /// never restores execution success, material availability, or completion.
-pub fn reconcile_cleanup_after_loss(
+pub fn prepare_reconcile_cleanup_after_loss(
   record : DispatchRecord,
-) -> Result[Unit, DispatchIssue] {
+) -> Result[DispatchTransition, DispatchIssue] {
   match record.cleanup {
-    CleanupForceLost => {
-      record.cleanup = CleanupRecoveredAfterLoss
-      record.quarantined_capacity = false
-      Ok(())
-    }
+    CleanupForceLost =>
+      Ok(
+        prepare_transition(
+          record,
+          record.execution,
+          record.evidence,
+          CleanupRecoveredAfterLoss,
+          record.material_available,
+          false,
+        ),
+      )
     _ => Err(InvalidTransition)
   }
 }
@@ -701,9 +890,8 @@ pub fn dispatch_record_state(
 }
 
 ///|
-/// Stable adapter projection. Codes are local API values, not wire identity.
-pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
-  let execution = match record.execution {
+fn execution_state_code(state : RemoteExecutionState) -> Int {
+  match state {
     Accepted => 0
     Provisioning => 1
     Running => 2
@@ -712,13 +900,21 @@ pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
     ExecutionCancelled => 5
     ExecutionUnknown => 6
   }
-  let evidence = match record.evidence {
+}
+
+///|
+fn evidence_state_code(state : RemoteEvidenceState) -> Int {
+  match state {
     NoEvidence => 0
     OutputRetained(_, _) => 1
     EvidenceDurable(_, _, _) => 2
     EvidenceRejected => 3
   }
-  let cleanup = match record.cleanup {
+}
+
+///|
+fn cleanup_state_code(state : RemoteCleanupState) -> Int {
+  match state {
     CleanupActive => 0
     CleanupReleasing => 1
     CleanupReleased => 2
@@ -726,10 +922,85 @@ pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
     CleanupForceLost => 4
     CleanupRecoveredAfterLoss => 5
   }
+}
+
+///|
+fn evidence_state_fields(state : RemoteEvidenceState) -> Array[String] {
+  match state {
+    NoEvidence | EvidenceRejected => ["", "", ""]
+    OutputRetained(material, holding) => [material, holding, ""]
+    EvidenceDurable(material, holding, evidence) =>
+      [material, holding, evidence]
+  }
+}
+
+///|
+fn bool_code(value : Bool) -> String {
+  if value {
+    "1"
+  } else {
+    "0"
+  }
+}
+
+///|
+fn execution_state_from_code(
+  code : Int,
+) -> Result[RemoteExecutionState, DispatchIssue] {
+  match code {
+    0 => Ok(Accepted)
+    1 => Ok(Provisioning)
+    2 => Ok(Running)
+    3 => Ok(NativeSettled)
+    4 => Ok(ExecutionFailed)
+    5 => Ok(ExecutionCancelled)
+    6 => Ok(ExecutionUnknown)
+    _ => Err(InvalidJournal)
+  }
+}
+
+///|
+fn evidence_state_from_fields(
+  code : Int,
+  material : String,
+  holding : String,
+  evidence : String,
+) -> Result[RemoteEvidenceState, DispatchIssue] {
+  match code {
+    0 if material.is_empty() && holding.is_empty() && evidence.is_empty() =>
+      Ok(NoEvidence)
+    1 if !material.is_empty() && valid_cid(holding) && evidence.is_empty() =>
+      Ok(OutputRetained(material, holding))
+    2 if !material.is_empty() && valid_cid(holding) && valid_cid(evidence) =>
+      Ok(EvidenceDurable(material, holding, evidence))
+    3 if material.is_empty() && holding.is_empty() && evidence.is_empty() =>
+      Ok(EvidenceRejected)
+    _ => Err(InvalidJournal)
+  }
+}
+
+///|
+fn cleanup_state_from_code(
+  code : Int,
+) -> Result[RemoteCleanupState, DispatchIssue] {
+  match code {
+    0 => Ok(CleanupActive)
+    1 => Ok(CleanupReleasing)
+    2 => Ok(CleanupReleased)
+    3 => Ok(CleanupUnknown)
+    4 => Ok(CleanupForceLost)
+    5 => Ok(CleanupRecoveredAfterLoss)
+    _ => Err(InvalidJournal)
+  }
+}
+
+///|
+/// Stable adapter projection. Codes are local API values, not wire identity.
+pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
   [
-    execution,
-    evidence,
-    cleanup,
+    execution_state_code(record.execution),
+    evidence_state_code(record.evidence),
+    cleanup_state_code(record.cleanup),
     if record.material_available {
       1
     } else {
@@ -741,6 +1012,124 @@ pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
       0
     },
   ]
+}
+
+///|
+pub fn dispatch_record_revision(record : DispatchRecord) -> Int {
+  record.revision
+}
+
+///|
+/// Restore a durable state into a freshly accepted in-memory record. This is
+/// reconciliation, not permission to advance or revive physical authority.
+pub fn restore_dispatch_record(
+  record : DispatchRecord,
+  revision : Int,
+  execution_code : Int,
+  evidence_code : Int,
+  cleanup_code : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  material_generation : String,
+  holding_evidence_cid : String,
+  execution_evidence_cid : String,
+) -> Result[Unit, DispatchIssue] {
+  if record.revision != 0 ||
+    record.execution != Accepted ||
+    record.evidence != NoEvidence ||
+    record.cleanup != CleanupActive ||
+    record.material_available ||
+    record.quarantined_capacity ||
+    revision < 0 {
+    return Err(InvalidTransition)
+  }
+  let execution = match execution_state_from_code(execution_code) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let evidence = match
+    evidence_state_from_fields(
+      evidence_code, material_generation, holding_evidence_cid, execution_evidence_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let cleanup = match cleanup_state_from_code(cleanup_code) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if (
+      material_available &&
+      !(evidence is OutputRetained(_, _) || evidence is EvidenceDurable(_, _, _))
+    ) ||
+    (quarantined_capacity && cleanup != CleanupForceLost) ||
+    (cleanup == CleanupRecoveredAfterLoss && quarantined_capacity) ||
+    (
+      revision == 0 &&
+      (
+        execution != Accepted ||
+        evidence != NoEvidence ||
+        cleanup != CleanupActive ||
+        material_available ||
+        quarantined_capacity
+      )
+    ) {
+    return Err(InvalidJournal)
+  }
+  record.revision = revision
+  record.execution = execution
+  record.evidence = evidence
+  record.cleanup = cleanup
+  record.material_available = material_available
+  record.quarantined_capacity = quarantined_capacity
+  Ok(())
+}
+
+///|
+/// Exact CAS projection for a durable physical journal. State codes are not a
+/// transport contract and remain subordinate to the MoonBit transition.
+pub fn dispatch_transition_projection(
+  transition : DispatchTransition,
+) -> Array[String] {
+  let expected_evidence = evidence_state_fields(transition.expected_evidence)
+  let next_evidence = evidence_state_fields(transition.next_evidence)
+  [
+    transition.expected_revision.to_string(),
+    execution_state_code(transition.expected_execution).to_string(),
+    evidence_state_code(transition.expected_evidence).to_string(),
+    cleanup_state_code(transition.expected_cleanup).to_string(),
+    bool_code(transition.expected_material_available),
+    bool_code(transition.expected_quarantined_capacity),
+    expected_evidence[0],
+    expected_evidence[1],
+    expected_evidence[2],
+    (transition.expected_revision + 1).to_string(),
+    execution_state_code(transition.next_execution).to_string(),
+    evidence_state_code(transition.next_evidence).to_string(),
+    cleanup_state_code(transition.next_cleanup).to_string(),
+    bool_code(transition.next_material_available),
+    bool_code(transition.next_quarantined_capacity),
+    next_evidence[0],
+    next_evidence[1],
+    next_evidence[2],
+  ]
+}
+
+///|
+pub fn dispatch_transition_journal_key(
+  transition : DispatchTransition,
+) -> Array[String] {
+  dispatch_request_journal_key(transition.record.request)
+}
+
+///|
+pub fn force_loss_projection(force : ForceLossTransition) -> Array[String] {
+  dispatch_transition_projection(force.transition)
+}
+
+///|
+pub fn force_loss_journal_key(force : ForceLossTransition) -> Array[String] {
+  dispatch_transition_journal_key(force.transition)
 }
 
 ///|
