@@ -11,6 +11,7 @@ import { runNativeHostQuery } from '../host.mjs';
 import { runCapturedStrategy } from '../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -40,8 +41,7 @@ test('case-distinct names preserve group order and exclude lossy resident storag
   const source = await readFile(join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
   const match = source.split('fn query_amount_nullable_catalog')[1].match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
   const seed = JSON.parse(JSON.parse(match[1]));
-  const engine = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...engine.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(item => JSON.parse(item[1]));
+  const contracts = await pinnedEngineContracts(root);
   const shared = await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
   const output = fields => ({ r: { from: 'out', fields } });

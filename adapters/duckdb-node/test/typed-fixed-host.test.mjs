@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { runFixedHostCompute } from '../host.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -19,8 +20,7 @@ test('standard fixed Host retains typed projected values through completion and 
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/host_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/duckdb_conformance'], { cwd: root });
   const moon = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
-  const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...source.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
+  const contracts = await pinnedEngineContracts(root);
   const cases = [
     [{ type: 'string', nullable: true }, '日本語'],
     [{ type: 'boolean', nullable: true }, false],

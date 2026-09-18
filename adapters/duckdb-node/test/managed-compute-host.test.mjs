@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {exportPhysicalValue, bindPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
@@ -52,8 +53,7 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
   }
   const moon = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/host_node/host_node.js')));
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/duckdb_conformance/duckdb_conformance.js')));
-  const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...source.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
+  const contracts = await pinnedEngineContracts(root);
   const profile = checked(fixture.managedFileProfile(await readFile(join(root,
     'spec/contracts/actql-managed-retained-execution.json'), 'utf8')));
   const pipeline = JSON.stringify([

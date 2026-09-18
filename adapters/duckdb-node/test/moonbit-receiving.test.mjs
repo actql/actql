@@ -11,6 +11,7 @@ import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
 import { runBroadAcquisition } from '../broad-acquisition.mjs';
 import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -89,10 +90,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
   const moon = await import(pathToFileURL(join(root, '_build/js/debug/build/duckdb_conformance/duckdb_conformance.js')));
   // Reuse the engine's adopted fixed contract fixture, not an unadmitted newer
   // registry or expected values derived from execution output.
-  const fixture = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const residualContracts = [...fixture.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)]
-    .map(match => JSON.parse(match[1]));
-  assert.equal(residualContracts.length, 3);
+  const residualContracts = await pinnedEngineContracts(root);
   const base = join(root, '_build/duckdb-fixtures');
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'moon-receiving-'));

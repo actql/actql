@@ -9,6 +9,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runBroadHostQuery } from '../host.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -38,8 +39,7 @@ test('standard native and broad Hosts admit exact scalar families and reject dis
   const match = source.split('fn query_amount_nullable_catalog')[1]
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")/);
   const seed = JSON.parse(JSON.parse(match[1]));
-  const engine = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...engine.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(item => JSON.parse(item[1]));
+  const contracts = await pinnedEngineContracts(root);
   const shared = await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json', 'actql-query-two-receipt.json']
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
   const base = join(root, '_build/duckdb-fixtures');

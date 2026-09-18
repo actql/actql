@@ -13,6 +13,7 @@ import { runNativeHostQuery, runRetainedNativeHostQuery, runRetainedStrategyNati
 import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {runCapturedInternalStrategy,
   runCapturedStrategy,
   runPublishedCapturedStrategy} from '../../host-node/entry.mjs';
@@ -419,18 +420,7 @@ test('standard native and broad Node Hosts own verification through real capture
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
-  const source = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const pinnedContract = name => {
-    const body = source.slice(source.indexOf(`fn ${name}()`));
-    const match = body.match(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/);
-    assert(match, `missing pinned ${name} contract`);
-    return JSON.parse(match[1]);
-  };
-  const contracts = [
-    pinnedContract('registered_body'),
-    pinnedContract('registered_values'),
-    pinnedContract('registered_fragment'),
-  ];
+  const contracts = await pinnedEngineContracts(root);
   const args = [JSON.parse(catalog[1]), catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),

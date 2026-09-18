@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeQuery } from '../native-query.mjs';
+import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -109,9 +110,7 @@ test('real native SQL and public CheckedProgram produce independently checked tw
   const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
-  const fixtures = await readFile(join(root, 'src/query_integration/pinned_engine_contracts_wbtest.mbt'), 'utf8');
-  const contracts = [...fixtures.matchAll(/@json\.parse\(\s*("(?:[^"\\]|\\.)*")/g)].map(match => JSON.parse(match[1]));
-  assert.equal(contracts.length, 3);
+  const contracts = await pinnedEngineContracts(root);
   const configuration = [JSON.parse(catalog[1]), catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
