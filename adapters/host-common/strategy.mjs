@@ -9,6 +9,8 @@ import {bindExecutionSiteCandidate, executionSiteCandidate,
   startExecutionSiteOperation} from './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
+import {prepareCheckedPublicationInventory} from
+  './publication-inventory.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -251,6 +253,7 @@ export async function runInstalledStrategy(
       (typeof programDefinitionCid !== 'string' ||
         !/^sha256:[0-9a-f]{64}$/u.test(programDefinitionCid))) ||
       !Array.isArray(resultInventory) ||
+      (resultInventory.length > 0 && programDefinitionCid === undefined) ||
       resultInventory.some(result => result === null ||
         typeof result !== 'object' || typeof result.name !== 'string' ||
         result.name.length === 0 ||
@@ -263,6 +266,12 @@ export async function runInstalledStrategy(
       checkedResultInventory.length) {
     throw new StrategyHostError('InvalidCheckedResultInventory');
   }
+  const publicationInventory = checkedResultInventory.length === 0
+    ? undefined
+    : prepareCheckedPublicationInventory(
+      programDefinitionCid,
+      checkedResultInventory,
+    );
   active.add(setup);
   const completed = [];
   const candidateExclusions = [];
@@ -617,6 +626,7 @@ export async function runInstalledStrategy(
     candidateComparisons: Object.freeze(candidateComparisons),
     programDefinitionCid,
     resultInventory: checkedResultInventory,
+    publicationInventory,
     usage: () => core.usage(setup),
     cleanupPending,
     cleanup() {

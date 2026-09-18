@@ -94,9 +94,38 @@ test('installed Host snapshots the checked Program and Result inventory', async 
     {name: 'first', task: 1},
     {name: 'second', task: 1},
   ]);
+  assert.deepEqual(
+    result.publicationInventory.occurrences.map(value => ({
+      name: value.name,
+      task: value.task,
+      programDefinitionCid: value.definition.program_definition_cid,
+    })),
+    [
+      {name: 'first', task: 1, programDefinitionCid},
+      {name: 'second', task: 1, programDefinitionCid},
+    ],
+  );
+  assert.deepEqual(
+    result.publicationInventory.requestInventory.map(value =>
+      value.result_name),
+    ['first', 'second'],
+  );
   assert(Object.isFrozen(result.resultInventory));
   assert(result.resultInventory.every(Object.isFrozen));
+  assert(Object.isFrozen(result.publicationInventory));
   result.close();
+});
+
+test('checked Results cannot lose their Program Definition identity', async () => {
+  const registration = {}, f = fixture([registration]);
+  f.core.resultInventory = () => [{name: 'r', task: 1}];
+  await assert.rejects(
+    runInstalledStrategy(f.setup, f.core, [{
+      registration,
+      run() { f.complete.add(1); },
+    }]),
+    {code: 'InvalidCheckedResultInventory'},
+  );
 });
 
 test('resolved connector callback without common completion cannot issue an observed output', async () => {
