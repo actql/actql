@@ -1447,7 +1447,7 @@
         "source_connection": "complete",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1502,10 +1502,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "lag",
+            "layer": "performance",
+            "path": "src/execution_relation/lag_scale_wbtest.mbt",
+            "fixtures": [
+              "lag stays within indexed ordering and linear retention floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Literal, default, and Parameter offsets now lower through the common typed kernel. Nullable partitions, completed ties, original occurrence order, exact execution budgets, two independently released managed consumers, and final reclamation pass on three targets. The complete value, key, and orderable type matrix, Standard Host evidence, cancellation coverage, and fixed indexed-scaling evidence remain."
+        "Literal, default, and Parameter offsets now lower through the common typed kernel. Nullable partitions, completed ties, original occurrence order, exact execution budgets, two independently released managed consumers, final reclamation, and indexed scaling pass on three targets. The complete value, key, and orderable type matrix, Standard Host evidence, and cancellation coverage remain."
       ]
     },
     {

@@ -36,7 +36,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | top_k_by | C | C | P | P | Standard-Host evidence, the broader key/orderable type matrix, and large-scale exact budget boundaries; repeated/nullable partitions, literal/parameter counts, two consumers, and indexed scaling are covered |
 | row_window | C | C | P | P | Fixed/sliding numeric and timestamp windows reach two managed consumers on three targets; Standard-Host evidence, parameter-bound managed execution, runtime budget boundaries, temporal edge cases, and fixed scaling evidence remain |
 | window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, and Decimal sum reach two managed consumers on three targets; expression/filter aggregates, remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
-| lag | C | C | P | P | Full value/key/orderable type matrix, Standard Host evidence, cancellation, and indexed scaling |
+| lag | C | C | P | P | Full value/key/orderable type matrix, Standard Host evidence, and cancellation |
 | watermark_rows | C | - | - | - | Finite watermark lowering and execution |
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
 | unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |
