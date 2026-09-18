@@ -53,7 +53,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "partial"
       },
       "evidence": {
         "source_connection": [
@@ -1751,7 +1751,11 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_group_wbtest.mbt",
             "fixtures": [
-              "Local managed group count feeds two real downstream Computes"
+              "Local managed group count orders nullable keys for two consumers",
+              "Local managed group count preserves compound canonical order",
+              "Local managed keyed group emits no group for empty input",
+              "Local managed global group emits zero for empty input",
+              "Local managed group distinguishes row and field counts"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1767,7 +1771,11 @@
             "layer": "two_consumer_e2e",
             "path": "src/query_integration/local_managed_group_wbtest.mbt",
             "fixtures": [
-              "Local managed group count feeds two real downstream Computes"
+              "Local managed group count orders nullable keys for two consumers",
+              "Local managed group count preserves compound canonical order",
+              "Local managed keyed group emits no group for empty input",
+              "Local managed global group emits zero for empty input",
+              "Local managed group distinguishes row and field counts"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1797,7 +1805,8 @@
             "path": "src/execution_relation/group_rows_wbtest.mbt",
             "fixtures": [
               "checked group count runs through generated sequence without expression contexts",
-              "empty global count publishes zero and feeds an independently completed consumer"
+              "empty global count publishes zero and feeds an independently completed consumer",
+              "group count enforces its cumulative result ceiling"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -1811,7 +1820,11 @@
             "layer": "conformance",
             "path": "src/query_integration/local_managed_group_wbtest.mbt",
             "fixtures": [
-              "Local managed group count feeds two real downstream Computes"
+              "Local managed group count orders nullable keys for two consumers",
+              "Local managed group count preserves compound canonical order",
+              "Local managed keyed group emits no group for empty input",
+              "Local managed global group emits zero for empty input",
+              "Local managed group distinguishes row and field counts"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1821,10 +1834,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "group",
+            "layer": "performance",
+            "path": "src/execution_relation/count_groups_wbtest.mbt",
+            "fixtures": [
+              "count grouping work stays subquadratic across key distributions"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Managed count-group covers NULL-first keys and two consumers; non-count aggregates, compound managed keys, and performance evidence remain."
+        "Count-group covers empty and compound keys, NULL-first order, row and field counts, two consumers, result limits, and subquadratic work; non-count aggregates and the remaining formal key domains remain."
       ]
     },
     {

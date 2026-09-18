@@ -44,7 +44,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unnest | C | - | - | - | Bounded expansion lowering and execution |
 | join | C | P | P | P | All five equality kinds are managed end-to-end; cross-stage full identity transfer, compound/self joins, types, diagnostics, and indexed performance remain |
 | nest | C | - | - | - | Canonical common contract is missing |
-| group | C | P | P | - | Only count aggregation is lowered |
+| group | C | P | P | P | Count is managed for empty, nullable, and compound keys with two consumers, result limits, and subquadratic work; non-count aggregates and remaining key domains remain |
 | distinct | C | C | C | P | Keyed/NULL/type and indexed performance evidence |
 | dedupe_rows | C | C | C | P | Compound/NULL/tie and indexed performance evidence |
 | assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
