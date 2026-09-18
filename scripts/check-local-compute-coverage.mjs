@@ -16,6 +16,10 @@ const registryPath = path.join(
   "spec/dependencies/aoa-pipeline-registry.json",
 );
 const contractPath = path.join(root, "spec/contracts/actql-aoa.json");
+const normativeScopePath = path.join(
+  root,
+  "docs/reviews/2026-09-18-local-compute-normative-scope.json",
+);
 
 function readText(file) {
   return fs.readFileSync(file, "utf8");
@@ -111,6 +115,7 @@ for (const row of mappingRows) {
 const manifest = readJson(manifestPath);
 const registry = readJson(registryPath);
 const contract = readJson(contractPath);
+const normativeScope = readJson(normativeScopePath);
 const registered = new Set(Object.keys(registry));
 const targetRequirements = new Set(
   Object.keys(contract.target_registry_requirements ?? {}),
@@ -129,11 +134,30 @@ if (manifest.family !== "RelA") {
 if (!sameStrings(manifest.targets ?? [], ["js", "wasm", "native"])) {
   fail(errors, "targets must be exactly js, wasm, native");
 }
+if (
+  manifest.normative_sources?.scope !==
+  "docs/reviews/2026-09-18-local-compute-normative-scope.json"
+) {
+  fail(errors, "manifest must pin the independent normative scope");
+}
+if (
+  normativeScope.version !== "actql-local-compute-normative-scope/0.1" ||
+  normativeScope.baseline !== manifest.baseline ||
+  normativeScope.family !== manifest.family
+) {
+  fail(errors, "independent normative scope does not match the fixed baseline");
+}
 
 const normativeSet = new Set(normativeOperations);
 const entries = manifest.operations ?? [];
 const entryNames = entries.map((entry) => entry.operation);
 const entrySet = new Set(entryNames);
+const scopeEntries = normativeScope.operations ?? [];
+const scopeByOperation = new Map(
+  scopeEntries.map((entry) => [entry.operation, entry]),
+);
+const typeSets = new Set(Object.keys(normativeScope.type_sets ?? {}));
+const obligations = new Set(normativeScope.obligations ?? []);
 
 if (normativeOperations.length !== 29 || normativeSet.size !== 29) {
   fail(
@@ -146,6 +170,9 @@ if (entries.length !== 29 || entrySet.size !== 29) {
     errors,
     `manifest must contain 29 distinct operations; found ${entries.length}/${entrySet.size}`,
   );
+}
+if (scopeEntries.length !== 29 || scopeByOperation.size !== 29) {
+  fail(errors, "independent normative scope must contain 29 operations");
 }
 for (const operation of normativeSet) {
   if (!entrySet.has(operation)) {
@@ -167,8 +194,60 @@ const evidenceForLayer = new Map([
   ["performance", "performance"],
 ]);
 
+function expectedSuite(file) {
+  const moon = file.match(/^src\/([^/]+)\/.*_(?:wb)?test\.mbt$/u);
+  if (moon !== null) return `moon:${moon[1]}`;
+  if (file === "adapters/duckdb-node/test/standard-host.test.mjs") {
+    return "node:standard-host";
+  }
+  if (/^(?:benchmarks\/|adapters\/[^/]+\/bench\/)/u.test(file)) {
+    return "benchmark:local-compute";
+  }
+  return undefined;
+}
+
+function fixtureIds(source) {
+  return new Set(
+    [...source.matchAll(
+      /(?:^|\n)\s*test(?:\s+|\(\s*)["']([^"']+)["']/gu,
+    )]
+      .map((match) => match[1]),
+  );
+}
+
+function addCoverage(target, values) {
+  if (!Array.isArray(values)) return;
+  for (const value of values) target.add(value);
+}
+
 for (const entry of entries) {
   const label = entry.operation;
+  const scope = scopeByOperation.get(label);
+  if (scope === undefined) {
+    fail(errors, `${label}: independent normative scope is missing`);
+  } else {
+    if (!sameStrings(entry.variant_scope ?? [], scope.variants ?? [])) {
+      fail(errors, `${label}: variant_scope differs from the normative scope`);
+    }
+    if (!Array.isArray(scope.types) || scope.types.length === 0) {
+      fail(errors, `${label}: normative type scope must not be empty`);
+    } else {
+      for (const type of scope.types) {
+        if (!typeSets.has(type)) {
+          fail(errors, `${label}: unknown normative type set ${type}`);
+        }
+      }
+    }
+    if (!Array.isArray(scope.obligations) || scope.obligations.length === 0) {
+      fail(errors, `${label}: normative obligations must not be empty`);
+    } else {
+      for (const obligation of scope.obligations) {
+        if (!obligations.has(obligation)) {
+          fail(errors, `${label}: unknown normative obligation ${obligation}`);
+        }
+      }
+    }
+  }
   if (typeof entry.input_shape !== "string" || entry.input_shape.length === 0) {
     fail(errors, `${label}: input_shape is required`);
   }
@@ -178,17 +257,6 @@ for (const entry of entries) {
   ) {
     fail(errors, `${label}: normative_anchor is required`);
   }
-  if (!Array.isArray(entry.variant_scope) || entry.variant_scope.length === 0) {
-    fail(errors, `${label}: variant_scope must not be empty`);
-  }
-  if (
-    entry.variant_scope?.some(
-      (variant) => typeof variant !== "string" || variant.length === 0,
-    )
-  ) {
-    fail(errors, `${label}: variant_scope contains an invalid value`);
-  }
-
   const normativeCanonical = canonicalBySource.get(label);
   if (normativeCanonical === undefined) {
     if (entry.machine_registry !== "canonical-mapping-gap") {
@@ -244,22 +312,70 @@ for (const entry of entries) {
     fail(errors, `${label}: evidence object is required`);
     continue;
   }
+  const scopedCoverage = {
+    variants: new Set(),
+    types: new Set(),
+    obligations: new Set(),
+  };
   for (const evidenceName of evidenceForLayer.values()) {
-    const files = entry.evidence[evidenceName];
-    if (!Array.isArray(files)) {
+    const records = entry.evidence[evidenceName];
+    if (!Array.isArray(records)) {
       fail(errors, `${label}: evidence.${evidenceName} must be an array`);
       continue;
     }
-    for (const file of files) {
-      const resolved = path.join(root, file);
+    for (const record of records) {
+      if (record === null || typeof record !== "object" || Array.isArray(record)) {
+        fail(errors, `${label}: evidence.${evidenceName} must use fixture records`);
+        continue;
+      }
+      const file = record.path;
+      const resolved = typeof file === "string"
+        ? path.resolve(root, file)
+        : "";
       if (
         typeof file !== "string" ||
         path.isAbsolute(file) ||
+        !resolved.startsWith(`${root}${path.sep}`) ||
         !fs.existsSync(resolved) ||
         !fs.statSync(resolved).isFile()
       ) {
         fail(errors, `${label}: evidence file does not exist: ${file}`);
+        continue;
       }
+      const suite = expectedSuite(file);
+      if (suite === undefined) {
+        fail(errors, `${label}: evidence is not a registered test suite: ${file}`);
+      } else if (record.suite !== suite) {
+        fail(errors, `${label}: ${file} must use suite ${suite}`);
+      }
+      if (record.operation !== label || record.layer !== evidenceName) {
+        fail(errors, `${label}: evidence owner or layer mismatch for ${file}`);
+      }
+      if (!Array.isArray(record.targets) || record.targets.length === 0) {
+        fail(errors, `${label}: ${file} must bind at least one execution target`);
+      } else {
+        const allowedTargets = suite?.startsWith("moon:")
+          ? new Set(manifest.targets)
+          : new Set(["node"]);
+        for (const target of record.targets) {
+          if (!allowedTargets.has(target)) {
+            fail(errors, `${label}: ${file} has invalid target ${target}`);
+          }
+        }
+      }
+      if (!Array.isArray(record.fixtures) || record.fixtures.length === 0) {
+        fail(errors, `${label}: ${file} must bind an explicit fixture ID`);
+      } else {
+        const actual = fixtureIds(readText(resolved));
+        for (const fixture of record.fixtures) {
+          if (typeof fixture !== "string" || !actual.has(fixture)) {
+            fail(errors, `${label}: missing fixture ID in ${file}: ${fixture}`);
+          }
+        }
+      }
+      addCoverage(scopedCoverage.variants, record.covers?.variants);
+      addCoverage(scopedCoverage.types, record.covers?.types);
+      addCoverage(scopedCoverage.obligations, record.covers?.obligations);
     }
   }
   for (const [layer, evidenceName] of evidenceForLayer) {
@@ -282,6 +398,44 @@ for (const entry of entries) {
     (entry.gaps?.length ?? 0) !== 0
   ) {
     fail(errors, `${label}: fully complete coverage must not retain gap text`);
+  }
+  if (!incomplete && scope !== undefined) {
+    for (const [axis, required] of [
+      ["variants", scope.variants],
+      ["types", scope.types],
+      ["obligations", scope.obligations],
+    ]) {
+      const actual = scopedCoverage[axis];
+      for (const value of required) {
+        if (!actual.has(value)) {
+          fail(errors, `${label}: complete coverage lacks ${axis} claim ${value}`);
+        }
+      }
+      for (const value of actual) {
+        if (!required.includes(value)) {
+          fail(errors, `${label}: evidence invents non-normative ${axis} ${value}`);
+        }
+      }
+    }
+  }
+  if (entry.layers.two_consumer_e2e === "complete") {
+    const hostEvidence = entry.evidence.two_consumer_e2e.some(
+      (record) => record.standard_host === true &&
+        record.suite === "node:standard-host",
+    );
+    if (!hostEvidence) {
+      fail(errors, `${label}: complete two_consumer_e2e lacks standard Host evidence`);
+    }
+  }
+  if (entry.layers.three_target_conformance === "complete") {
+    const targets = new Set(
+      entry.evidence.conformance.flatMap((record) => record.targets ?? []),
+    );
+    for (const target of manifest.targets) {
+      if (!targets.has(target)) {
+        fail(errors, `${label}: conformance lacks target ${target}`);
+      }
+    }
   }
 }
 

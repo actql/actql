@@ -2,14 +2,23 @@
   "version": "actql-local-compute-coverage/0.1",
   "baseline": "5a305f3ce5cdac421985fb9a71878bc22af51237",
   "family": "RelA",
-  "targets": ["js", "wasm", "native"],
+  "targets": [
+    "js",
+    "wasm",
+    "native"
+  ],
   "normative_sources": {
     "inventory": "docs/spec/language.md#operation-inventory",
     "canonical_mapping": "docs/spec/language.md#algebra-lowering",
     "pipeline_registry": "spec/dependencies/aoa-pipeline-registry.json",
-    "target_contract": "spec/contracts/actql-aoa.json"
+    "target_contract": "spec/contracts/actql-aoa.json",
+    "scope": "docs/reviews/2026-09-18-local-compute-normative-scope.json"
   },
-  "layer_states": ["complete", "partial", "missing"],
+  "layer_states": [
+    "complete",
+    "partial",
+    "missing"
+  ],
   "required_layers": [
     "checker",
     "lowering",
@@ -26,199 +35,1580 @@
       "operation": "filter",
       "input_shape": "relation",
       "normative_anchor": "filter",
-      "canonical_operations": ["REL.where"],
+      "canonical_operations": [
+        "REL.where"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["structured predicate", "text predicate", "parameter operands", "NULL and demanded evaluation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/fragment_execution_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Text and structured parameter predicates reach two managed consumers on three targets; NULL, demanded-failure, full type, and performance coverage remain."]
+      "variant_scope": [
+        "structured predicate",
+        "text predicate",
+        "parameter operands",
+        "NULL and demanded evaluation"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "filter",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "filter",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/execution_relation/fragment_execution_wbtest.mbt",
+            "fixtures": [
+              "checked map and filter fragments drive the existing four-operation sequence",
+              "fragment context preflight rejects missing and foreign evidence before RHS failure"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "filter",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Text and structured parameter predicates reach two managed consumers on three targets; NULL, demanded-failure, full type, and performance coverage remain."
+      ]
     },
     {
       "operation": "select",
       "input_shape": "relation",
       "normative_anchor": "select",
-      "canonical_operations": ["REL.select"],
+      "canonical_operations": [
+        "REL.select"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["ordered projection", "qualified and unqualified fields", "empty and nonempty projections"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/projection_encode_test.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_support_wbtest.mbt"],"conformance":["src/execution_relation/managed_output_retention_wbtest.mbt"],"performance":[]},
-      "gaps": ["The existing managed path needs manifest-linked three-target two-consumer and performance evidence."]
+      "variant_scope": [
+        "ordered projection",
+        "qualified and unqualified fields",
+        "empty and nonempty projections"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "select",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/projection_encode_test.mbt",
+            "fixtures": [
+              "rename and drop emit normative select nodes without deleting empty operations",
+              "projection preparation preserves cumulative binding and name budgets"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "select",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_support_wbtest.mbt",
+            "fixtures": [
+              "Local managed support is a finite checked surface"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "select",
+            "layer": "conformance",
+            "path": "src/execution_relation/managed_output_retention_wbtest.mbt",
+            "fixtures": [
+              "managed retention binds the exact admission stream rather than equal owner or rows",
+              "managed retention rejects unavailable invalid unverified and cancelled issuance",
+              "managed retention cannot revive cancellation during verifier or availability callback"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "The existing managed path needs manifest-linked three-target two-consumer and performance evidence."
+      ]
     },
     {
       "operation": "rename",
       "input_shape": "relation",
       "normative_anchor": "select",
-      "canonical_operations": ["REL.select"],
+      "canonical_operations": [
+        "REL.select"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["single and multiple renames", "name collision rejection", "order preservation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["A single rename reaches two managed consumers on three targets; multiple renames, collision rejection, full type, and performance coverage remain."]
+      "variant_scope": [
+        "single and multiple renames",
+        "name collision rejection",
+        "order preservation"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "rename",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "rename",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "rename",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "A single rename reaches two managed consumers on three targets; multiple renames, collision rejection, full type, and performance coverage remain."
+      ]
     },
     {
       "operation": "drop",
       "input_shape": "relation",
       "normative_anchor": "select",
-      "canonical_operations": ["REL.select"],
+      "canonical_operations": [
+        "REL.select"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["single and multiple drops", "empty result schema rules", "order preservation"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["A single drop reaches two managed consumers on three targets; multiple drops, empty-schema rules, full type, and performance coverage remain."]
+      "variant_scope": [
+        "single and multiple drops",
+        "empty result schema rules",
+        "order preservation"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "drop",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "drop",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "drop",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "A single drop reaches two managed consumers on three targets; multiple drops, empty-schema rules, full type, and performance coverage remain."
+      ]
     },
     {
       "operation": "derive",
       "input_shape": "relation",
       "normative_anchor": "derive",
-      "canonical_operations": ["REL.derive"],
+      "canonical_operations": [
+        "REL.derive"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["snapshot map", "ordered bindings", "parameters", "demanded expressions", "overwrite and append fields"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/ordered_execution_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Snapshot-map and ordered parameter derives reach two managed consumers on three targets; demanded failures, full type and overwrite coverage, and performance evidence remain."]
+      "variant_scope": [
+        "snapshot map",
+        "ordered bindings",
+        "parameters",
+        "demanded expressions",
+        "overwrite and append fields"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "derive",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "derive",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "derive",
+            "layer": "conformance",
+            "path": "src/execution_relation/ordered_execution_wbtest.mbt",
+            "fixtures": [
+              "single sequence driver enforces ordered limits through values filter select",
+              "sequence preflight rejects duplicate foreign and missing ordered contexts"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "derive",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Snapshot-map and ordered parameter derives reach two managed consumers on three targets; demanded failures, full type and overwrite coverage, and performance evidence remain."
+      ]
     },
     {
       "operation": "sort",
       "input_shape": "relation",
       "normative_anchor": "sort",
-      "canonical_operations": ["REL.orderByStable"],
+      "canonical_operations": [
+        "REL.orderByStable"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["ascending and descending", "NULLS FIRST and LAST", "compound keys", "stable ties", "parameter expressions"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/sort_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/sort_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Ascending stable sort reaches two managed consumers on three targets; descending, NULL placement, compound and parameter terms, and O(N log N)-class performance evidence remain."]
+      "variant_scope": [
+        "ascending and descending",
+        "NULLS FIRST and LAST",
+        "compound keys",
+        "stable ties",
+        "parameter expressions"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "sort",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/sort_encode_test.mbt",
+            "fixtures": [
+              "sort emits only compiler resolved terms and keeps empty sort as a node"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "sort",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "sort",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "sort",
+            "layer": "conformance",
+            "path": "src/execution_relation/sort_sequence_wbtest.mbt",
+            "fixtures": [
+              "sort retains hidden prior order across projection and exposes no CID tie break",
+              "sort obeys explicit null placement independently of direction and retains empty identity",
+              "sort keeps an imported total witness only from its actual completed producer",
+              "sort executes each supported scalar domain using the shared comparator",
+              "sort charges shared work across distinct and take and can retry with fresh limits",
+              "sort candidate completion uses checked keys and validates actual uniqueness"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "sort",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Ascending stable sort reaches two managed consumers on three targets; descending, NULL placement, compound and parameter terms, and O(N log N)-class performance evidence remain."
+      ]
     },
     {
       "operation": "take",
       "input_shape": "relation",
       "normative_anchor": "take",
-      "canonical_operations": ["REL.limit"],
+      "canonical_operations": [
+        "REL.limit"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["literal and parameter count", "offset", "inherited order", "zero and boundary counts"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/take_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/take_inherited_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Literal count and offset reach two managed consumers on three targets; parameter, zero/boundary, inherited-order, whole-input validation, and performance evidence remain."]
+      "variant_scope": [
+        "literal and parameter count",
+        "offset",
+        "inherited order",
+        "zero and boundary counts"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "take",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/take_encode_test.mbt",
+            "fixtures": [
+              "take encodes both count and offset and retains order owner",
+              "take binds retained parameter values and rejects invalid ranges before rows"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "take",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "take",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "take",
+            "layer": "conformance",
+            "path": "src/execution_relation/take_inherited_wbtest.mbt",
+            "fixtures": [
+              "take never reapplies historical completion after shadow rename projection or another take",
+              "producer completion transfers established take order without replaying its key"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "take",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Literal count and offset reach two managed consumers on three targets; parameter, zero/boundary, inherited-order, whole-input validation, and performance evidence remain."
+      ]
     },
     {
       "operation": "top_k",
       "input_shape": "relation",
       "normative_anchor": "top-k",
-      "canonical_operations": ["REL.topk"],
+      "canonical_operations": [
+        "REL.topk"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["compound order", "stable ties", "literal and parameter k", "NULL ordering"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/top_k_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/top_k_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Literal global TopK with checked order completion reaches two managed consumers; parameter binding, nullable/compound ordering, and exact/one-short budgets have focused conformance coverage. Broader type conformance, a parameterized standard-Host E2E, and performance evidence remain."]
+      "variant_scope": [
+        "compound order",
+        "stable ties",
+        "literal and parameter k",
+        "NULL ordering"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "top_k",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/top_k_encode_test.mbt",
+            "fixtures": [
+              "top-k emits the checked total order without a sort-limit substitute",
+              "partitioned top-k retains repeated partitions and completed rank order",
+              "top-k binds a whole positive safe-integer Parameter before execution"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "top_k",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "top_k",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "top_k",
+            "layer": "conformance",
+            "path": "src/execution_relation/top_k_sequence_wbtest.mbt",
+            "fixtures": [
+              "global top-k executes its completed total order as one owned operation",
+              "partitioned top-k retains repeated and empty partition occurrences",
+              "partitioned top-k orders nullable partitions canonically before ranking",
+              "top-k validates the complete supplied key before prefix selection",
+              "top-k shares one execution budget and accepts the exact boundary"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "top_k",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Literal global TopK with checked order completion reaches two managed consumers; parameter binding, nullable/compound ordering, and exact/one-short budgets have focused conformance coverage. Broader type conformance, a parameterized standard-Host E2E, and performance evidence remain."
+      ]
     },
     {
       "operation": "top_k_by",
       "input_shape": "relation",
       "normative_anchor": "top-k",
-      "canonical_operations": ["REL.topk_partitioned"],
+      "canonical_operations": [
+        "REL.topk_partitioned"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["partition keys", "compound order", "stable ties", "literal and parameter k", "nullable keys"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/top_k_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/top_k_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Repeated and empty partition occurrences, nullable canonical partition order, and exact/one-short budgets execute through Local. A parameterized standard-Host E2E, broader type conformance, and performance evidence remain."]
+      "variant_scope": [
+        "partition keys",
+        "compound order",
+        "stable ties",
+        "literal and parameter k",
+        "nullable keys"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "top_k_by",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/top_k_encode_test.mbt",
+            "fixtures": [
+              "top-k emits the checked total order without a sort-limit substitute",
+              "partitioned top-k retains repeated partitions and completed rank order",
+              "top-k binds a whole positive safe-integer Parameter before execution"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "top_k_by",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "top_k_by",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "top_k_by",
+            "layer": "conformance",
+            "path": "src/execution_relation/top_k_sequence_wbtest.mbt",
+            "fixtures": [
+              "global top-k executes its completed total order as one owned operation",
+              "partitioned top-k retains repeated and empty partition occurrences",
+              "partitioned top-k orders nullable partitions canonically before ranking",
+              "top-k validates the complete supplied key before prefix selection",
+              "top-k shares one execution budget and accepts the exact boundary"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "top_k_by",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Repeated and empty partition occurrences, nullable canonical partition order, and exact/one-short budgets execute through Local. A parameterized standard-Host E2E, broader type conformance, and performance evidence remain."
+      ]
     },
     {
       "operation": "row_window",
       "input_shape": "relation",
       "normative_anchor": "event-windows",
-      "canonical_operations": ["REL.window.fixed", "REL.window.sliding"],
+      "canonical_operations": [
+        "REL.window.fixed",
+        "REL.window.sliding"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["fixed", "sliding", "literal and parameter size and step", "boundary labels", "capacity multiplication"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and finite Local window assignment are missing."]
+      "variant_scope": [
+        "fixed",
+        "sliding",
+        "literal and parameter size and step",
+        "boundary labels",
+        "capacity multiplication"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "Common lowering and finite Local window assignment are missing."
+      ]
     },
     {
       "operation": "window_group",
       "input_shape": "relation",
       "normative_anchor": "relational-temporal",
-      "canonical_operations": ["REL.window.project"],
+      "canonical_operations": [
+        "REL.window.project"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["window keys", "aggregate bindings", "empty windows", "ordering", "capacity guards"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and aggregate execution are missing."]
+      "variant_scope": [
+        "window keys",
+        "aggregate bindings",
+        "empty windows",
+        "ordering",
+        "capacity guards"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "Common lowering and aggregate execution are missing."
+      ]
     },
     {
       "operation": "lag",
       "input_shape": "relation",
       "normative_anchor": "relational-temporal",
-      "canonical_operations": ["REL.window.lag"],
+      "canonical_operations": [
+        "REL.window.lag"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["literal and parameter offset", "default value", "partition and order", "NULL values", "boundary rows"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and ordered partition execution are missing."]
+      "variant_scope": [
+        "literal and parameter offset",
+        "default value",
+        "partition and order",
+        "NULL values",
+        "boundary rows"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "Common lowering and ordered partition execution are missing."
+      ]
     },
     {
       "operation": "watermark_rows",
       "input_shape": "relation",
       "normative_anchor": "relational-temporal",
-      "canonical_operations": ["REL.watermark"],
+      "canonical_operations": [
+        "REL.watermark"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["time field", "lateness bound", "parameter values", "NULL and invalid time", "order obligations"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and finite watermark semantics are missing."]
+      "variant_scope": [
+        "time field",
+        "lateness bound",
+        "parameter values",
+        "NULL and invalid time",
+        "order obligations"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "Common lowering and finite watermark semantics are missing."
+      ]
     },
     {
       "operation": "pivot",
       "input_shape": "relation",
       "normative_anchor": "reshaping",
-      "canonical_operations": ["REL.pivot"],
+      "canonical_operations": [
+        "REL.pivot"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["empty and nonempty axis", "aggregate bindings", "fill policy", "numeric profiles", "generated field identity"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/pivot_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/pivot_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, final Decimal overflow checks, and exact/one-short work. Count and Decimal sum results reach two managed consumers on three targets. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; full type/parameter conformance, native layout aggregation, all-variant managed coverage, and performance evidence remain."]
+      "variant_scope": [
+        "empty and nonempty axis",
+        "aggregate bindings",
+        "fill policy",
+        "numeric profiles",
+        "generated field identity"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "pivot",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/pivot_encode_test.mbt",
+            "fixtures": [
+              "pivot lowers the checked axis, aggregate, and fill exactly",
+              "pivot retains the admitted empty global axis"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "pivot",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "pivot",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "pivot",
+            "layer": "conformance",
+            "path": "src/execution_relation/pivot_sequence_wbtest.mbt",
+            "fixtures": [
+              "pivot count uses canonical groups and generated-column order",
+              "pivot min fills empty buckets and ignores undeclared axes",
+              "pivot max and first preserve their distinct aggregate laws",
+              "pivot decimal sum is exact and checks only the final precision-38 result",
+              "pivot decimal sum rejects a final coefficient wider than precision 38",
+              "empty pivot axes retain first index occurrence and global empty output",
+              "pivot accepts exact shared work and rejects one-short execution"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "pivot",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, final Decimal overflow checks, and exact/one-short work. Count and Decimal sum results reach two managed consumers on three targets. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; full type/parameter conformance, native layout aggregation, all-variant managed coverage, and performance evidence remain."
+      ]
     },
     {
       "operation": "unpivot",
       "input_shape": "relation",
       "normative_anchor": "reshaping",
-      "canonical_operations": ["REL.unpivot"],
+      "canonical_operations": [
+        "REL.unpivot"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["selected fields", "name and value outputs", "heterogeneous rejection", "NULL values", "row expansion bounds"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/unpivot_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/unpivot_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Repeated authored columns, ordered keep fields, NULL values, empty input, bounded expansion, exact/one-short work, and two managed consumers execute on three targets. Heterogeneous rejection evidence, broader value-type conformance, a native layout expansion writer, and performance evidence remain."]
+      "variant_scope": [
+        "selected fields",
+        "name and value outputs",
+        "heterogeneous rejection",
+        "NULL values",
+        "row expansion bounds"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "unpivot",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/unpivot_encode_test.mbt",
+            "fixtures": [
+              "unpivot lowers repeated columns and overlapping kept fields exactly"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "unpivot",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "unpivot",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "unpivot",
+            "layer": "conformance",
+            "path": "src/execution_relation/unpivot_sequence_wbtest.mbt",
+            "fixtures": [
+              "unpivot expands repeated authored occurrences and retains NULL values",
+              "unpivot keeps an empty typed input empty",
+              "unpivot accepts exact shared work and rejects one-short execution"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "unpivot",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Repeated authored columns, ordered keep fields, NULL values, empty input, bounded expansion, exact/one-short work, and two managed consumers execute on three targets. Heterogeneous rejection evidence, broader value-type conformance, a native layout expansion writer, and performance evidence remain."
+      ]
     },
     {
       "operation": "json_pick",
       "input_shape": "relation",
       "normative_anchor": "reshaping",
-      "canonical_operations": ["REL.json.pick"],
+      "canonical_operations": [
+        "REL.json.pick"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["path selection", "missing and NULL values", "target typing", "invalid JSON shape", "parameter path components"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/kernel_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/rows_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Nested typed-object extraction and nullable parents reach two managed consumers on three targets; missing-path and malformed retained-value failures, broader type conformance, budget boundaries, and performance evidence remain."]
+      "variant_scope": [
+        "path selection",
+        "missing and NULL values",
+        "target typing",
+        "invalid JSON shape",
+        "parameter path components"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "json_pick",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/kernel_test.mbt",
+            "fixtures": [
+              "json pick kernel retains exact checked field path and output"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "json_pick",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "json_pick",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "json_pick",
+            "layer": "conformance",
+            "path": "src/execution_relation/rows_wbtest.mbt",
+            "fixtures": [
+              "json pick traverses admitted objects and composes nullable parents"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "json_pick",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Nested typed-object extraction and nullable parents reach two managed consumers on three targets; missing-path and malformed retained-value failures, broader type conformance, budget boundaries, and performance evidence remain."
+      ]
     },
     {
       "operation": "unnest",
       "input_shape": "relation",
       "normative_anchor": "reshaping",
-      "canonical_operations": ["REL.unnest"],
+      "canonical_operations": [
+        "REL.unnest"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["outer and non-outer", "with and without index", "NULL and empty collections", "max_items", "nested value types"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/unnest_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/unnest_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Broader nested-value conformance, a native layout expansion writer, and performance evidence remain."]
+      "variant_scope": [
+        "outer and non-outer",
+        "with and without index",
+        "NULL and empty collections",
+        "max_items",
+        "nested value types"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "unnest",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/unnest_encode_test.mbt",
+            "fixtures": [
+              "unnest lowers its normalized outer and explicit index contract",
+              "unnest omits an absent index and normalizes omitted outer to false"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "unnest",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "unnest",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "unnest",
+            "layer": "conformance",
+            "path": "src/execution_relation/unnest_sequence_wbtest.mbt",
+            "fixtures": [
+              "unnest preserves parent and element order without synthesizing inner rows",
+              "outer unnest emits one nullable indexed row for empty and null arrays",
+              "unnest rejects an input array beyond its checked maximum before execution",
+              "unnest accepts exact shared work and rejects one-short execution"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "unnest",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Broader nested-value conformance, a native layout expansion writer, and performance evidence remain."
+      ]
     },
     {
       "operation": "join",
       "input_shape": "relation x relation",
       "normative_anchor": "join",
-      "canonical_operations": ["REL.join"],
+      "canonical_operations": [
+        "REL.join"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["inner", "left", "full", "semi", "anti", "compound nullable equality keys", "cardinality assertions", "self join"],
-      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/inner_join_test.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_join_wbtest.mbt"],"conformance":["src/execution_relation/retained_join_validation_wbtest.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"performance":[]},
-      "gaps": ["All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. Cross-stage full-join identity transfer, compound nullable match keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."]
+      "variant_scope": [
+        "inner",
+        "left",
+        "full",
+        "semi",
+        "anti",
+        "compound nullable equality keys",
+        "cardinality assertions",
+        "self join"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "partial",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "join",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/inner_join_test.mbt",
+            "fixtures": [
+              "inner join preparation retains exact checked ownership repeated keys and every alias",
+              "inner join omitted projection retains both qualified sides without inventing assertions",
+              "join sequence preserves two self input occurrences and emits checked projection after join",
+              "join emission retains every checked equality kind"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "join",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_join_wbtest.mbt",
+            "fixtures": [
+              "Local managed full join retains stable identities for two consumers",
+              "Local managed equality joins bind both ports and feed two Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "join",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_join_wbtest.mbt",
+            "fixtures": [
+              "Local managed full join retains stable identities for two consumers",
+              "Local managed equality joins bind both ports and feed two Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "join",
+            "layer": "conformance",
+            "path": "src/execution_relation/retained_join_validation_wbtest.mbt",
+            "fixtures": [
+              "shape-only join preflight accepts exact retained inputs with unchanged work limits",
+              "shape-only retained validation never discharges value-sensitive join obligations"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "join",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_join_wbtest.mbt",
+            "fixtures": [
+              "Local managed full join retains stable identities for two consumers",
+              "Local managed equality joins bind both ports and feed two Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. Cross-stage full-join identity transfer, compound nullable match keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."
+      ]
     },
     {
       "operation": "nest",
@@ -226,120 +1616,869 @@
       "normative_anchor": "nest",
       "canonical_operations": [],
       "machine_registry": "canonical-mapping-gap",
-      "variant_scope": ["correlation keys", "nested relation value", "empty matches", "ordering", "array capacity"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["The normative canonical AoA mapping omits nest; the shared contract must be completed before lowering."]
+      "variant_scope": [
+        "correlation keys",
+        "nested relation value",
+        "empty matches",
+        "ordering",
+        "array capacity"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "The normative canonical AoA mapping omits nest; the shared contract must be completed before lowering."
+      ]
     },
     {
       "operation": "group",
       "input_shape": "relation",
       "normative_anchor": "group",
-      "canonical_operations": ["REL.groupBy"],
+      "canonical_operations": [
+        "REL.groupBy"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["empty and compound keys", "all aggregate bindings", "NULL keys and values", "empty input", "canonical output order", "aggregate overflow"],
-      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/group_count_test.mbt","src/query_integration/local_managed_group_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_group_wbtest.mbt"],"conformance":["src/execution_relation/group_rows_wbtest.mbt","src/query_integration/local_managed_group_wbtest.mbt"],"performance":[]},
-      "gaps": ["Managed count-group covers NULL-first keys and two consumers; non-count aggregates, compound managed keys, and performance evidence remain."]
+      "variant_scope": [
+        "empty and compound keys",
+        "all aggregate bindings",
+        "NULL keys and values",
+        "empty input",
+        "canonical output order",
+        "aggregate overflow"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "partial",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "group",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/group_count_test.mbt",
+            "fixtures": [
+              "count profile retains repeated grouping occurrences and empty aggregate maps",
+              "count profile preserves exact owner, key order and canonical count names",
+              "global count and explicit non-distinct stay admitted without expression roots",
+              "count profile rejects other aggregates, expressions, filters and distinct",
+              "count group lowering emits explicit canonical order and preserves distinct false"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_group_wbtest.mbt",
+            "fixtures": [
+              "Local managed group count feeds two real downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "group",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_group_wbtest.mbt",
+            "fixtures": [
+              "Local managed group count feeds two real downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "group",
+            "layer": "conformance",
+            "path": "src/execution_relation/group_rows_wbtest.mbt",
+            "fixtures": [
+              "checked group count runs through generated sequence without expression contexts",
+              "empty global count publishes zero and feeds an independently completed consumer"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_group_wbtest.mbt",
+            "fixtures": [
+              "Local managed group count feeds two real downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Managed count-group covers NULL-first keys and two consumers; non-count aggregates, compound managed keys, and performance evidence remain."
+      ]
     },
     {
       "operation": "distinct",
       "input_shape": "relation",
       "normative_anchor": "distinct-and-dedupe",
-      "canonical_operations": ["REL.distinct"],
+      "canonical_operations": [
+        "REL.distinct"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["whole row", "selected compound key", "NULL equality", "representative order", "keyed projection"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/distinct_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/distinct_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Whole-row first-occurrence distinct reaches two managed consumers on three targets; keyed compound projection, NULL and broad type conformance, and indexed performance evidence remain."]
+      "variant_scope": [
+        "whole row",
+        "selected compound key",
+        "NULL equality",
+        "representative order",
+        "keyed projection"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "distinct",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/distinct_encode_test.mbt",
+            "fixtures": [
+              "whole-row distinct emits the registered node with closed empty params"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "distinct",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "distinct",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "distinct",
+            "layer": "conformance",
+            "path": "src/execution_relation/distinct_sequence_wbtest.mbt",
+            "fixtures": [
+              "whole-row distinct preserves first occurrence and feeds take in the same driver",
+              "distinct comparison readiness depends on selected schema not row count",
+              "empty-schema distinct collapses identical empty tuples but preserves empty input"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "distinct",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Whole-row first-occurrence distinct reaches two managed consumers on three targets; keyed compound projection, NULL and broad type conformance, and indexed performance evidence remain."
+      ]
     },
     {
       "operation": "dedupe_rows",
       "input_shape": "relation",
       "normative_anchor": "distinct-and-dedupe",
-      "canonical_operations": ["REL.dedupeRows"],
+      "canonical_operations": [
+        "REL.dedupeRows"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["compound key", "ordering and tie policy", "NULL equality", "representative selection", "required tie failures"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/dedupe_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/dedupe_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Single numeric key representative selection reaches two managed consumers on three targets; compound and nullable keys, tie failure through Host, broad type conformance, and indexed performance evidence remain."]
+      "variant_scope": [
+        "compound key",
+        "ordering and tie policy",
+        "NULL equality",
+        "representative selection",
+        "required tie failures"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "dedupe_rows",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/dedupe_encode_test.mbt",
+            "fixtures": [
+              "dedupe emits authored repeated keys and explicit representative invariants",
+              "dedupe semantic view preserves different keys and representative order"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "dedupe_rows",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "dedupe_rows",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "dedupe_rows",
+            "layer": "conformance",
+            "path": "src/execution_relation/dedupe_sequence_wbtest.mbt",
+            "fixtures": [
+              "dedupe runs through the owned driver retaining payload and canonical group order",
+              "global dedupe handles empty input and rejects only first-place ties",
+              "unselected dedupe top tie fails the sequence without publishing an earlier output",
+              "dedupe rejects unsupported reference equality at preparation even for empty input",
+              "dedupe shares sequence work and enforces the exact execution boundary"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "dedupe_rows",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Single numeric key representative selection reaches two managed consumers on three targets; compound and nullable keys, tie failure through Host, broad type conformance, and indexed performance evidence remain."
+      ]
     },
     {
       "operation": "assert_rows",
       "input_shape": "relation",
       "normative_anchor": "assert-rows",
-      "canonical_operations": ["REL.assert_all", "REL.assert_unique"],
+      "canonical_operations": [
+        "REL.assert_all",
+        "REL.assert_unique"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["where", "unique_by", "compound nullable key", "demanded predicate failures", "logical failure location"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/kernel_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/rows_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
-      "gaps": ["Where and single-field unique assertions reach two managed consumers and their core failures are atomic; compound nullable/reference keys, demanded-failure locations through Host, and performance evidence remain."]
+      "variant_scope": [
+        "where",
+        "unique_by",
+        "compound nullable key",
+        "demanded predicate failures",
+        "logical failure location"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "assert_rows",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/kernel_test.mbt",
+            "fixtures": [
+              "assertion kernels preserve checked predicate and authored unique tuple"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "assert_rows",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "assert_rows",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "assert_rows",
+            "layer": "conformance",
+            "path": "src/execution_relation/rows_wbtest.mbt",
+            "fixtures": [
+              "row assertions preserve exact rows and fail atomically"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "assert_rows",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+            "fixtures": [
+              "Local managed unary source forms feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Where and single-field unique assertions reach two managed consumers and their core failures are atomic; compound nullable/reference keys, demanded-failure locations through Host, and performance evidence remain."
+      ]
     },
     {
       "operation": "append",
       "input_shape": "relation x relation",
       "normative_anchor": "append",
-      "canonical_operations": ["REL.unionAll"],
+      "canonical_operations": [
+        "REL.unionAll"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["literal and referenced right input", "schema alignment", "left then right order", "empty sides", "shared and distinct producers"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/execution_relation/append_rows_wbtest.mbt","src/query_integration/local_managed_append_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_append_wbtest.mbt"],"conformance":["src/execution_relation/append_rows_wbtest.mbt","src/query_integration/local_managed_append_wbtest.mbt"],"performance":[]},
-      "gaps": ["Managed append preserves alignment and feeds two consumers; empty sides, shared external producers, full type coverage, and performance evidence remain."]
+      "variant_scope": [
+        "literal and referenced right input",
+        "schema alignment",
+        "left then right order",
+        "empty sides",
+        "shared and distinct producers"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "append",
+            "layer": "source_connection",
+            "path": "src/execution_relation/append_rows_wbtest.mbt",
+            "fixtures": [
+              "checked append aligns columns and preserves left then right order",
+              "append enforces the cumulative output row ceiling"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "append",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_append_wbtest.mbt",
+            "fixtures": [
+              "Local managed append feeds two downstream Computes in source order"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "append",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_append_wbtest.mbt",
+            "fixtures": [
+              "Local managed append feeds two downstream Computes in source order"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "append",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "append",
+            "layer": "conformance",
+            "path": "src/execution_relation/append_rows_wbtest.mbt",
+            "fixtures": [
+              "checked append aligns columns and preserves left then right order",
+              "append enforces the cumulative output row ceiling"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "append",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_append_wbtest.mbt",
+            "fixtures": [
+              "Local managed append feeds two downstream Computes in source order"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Managed append preserves alignment and feeds two consumers; empty sides, shared external producers, full type coverage, and performance evidence remain."
+      ]
     },
     {
       "operation": "values",
       "input_shape": "none",
       "normative_anchor": "values",
-      "canonical_operations": ["REL.values"],
+      "canonical_operations": [
+        "REL.values"
+      ],
       "machine_registry": "registered",
-      "variant_scope": ["empty and nonempty rows", "scalar and nested values", "explicit schema", "NULL values", "metadata and capacity limits"],
-      "layers": {"checker":"complete","lowering":"complete","kernel":"complete","managed":"complete","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/sequence_test.mbt","src/query_integration/local_managed_values_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_values_wbtest.mbt"],"conformance":["src/query_integration/local_managed_values_wbtest.mbt"],"performance":[]},
-      "gaps": ["Zero-input managed execution with NULL and scalar rows feeds two real downstream Computes; empty and nested variants, broad limits, and performance evidence remain."]
+      "variant_scope": [
+        "empty and nonempty rows",
+        "scalar and nested values",
+        "explicit schema",
+        "NULL values",
+        "metadata and capacity limits"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [
+          {
+            "operation": "values",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/sequence_test.mbt",
+            "fixtures": [
+              "all four operations prepare under one owner and emit one ordered step array",
+              "sequence preparation shares expression budget and exposes no partial result",
+              "ordered preparation does not confer fragment encoding admission",
+              "multiple values nodes share row and cell preparation ceilings"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "values",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_values_wbtest.mbt",
+            "fixtures": [
+              "Local managed execution admits checked zero-input values without a dummy producer",
+              "Local managed zero-input values feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "values",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_values_wbtest.mbt",
+            "fixtures": [
+              "Local managed execution admits checked zero-input values without a dummy producer",
+              "Local managed zero-input values feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "values",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "values",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_values_wbtest.mbt",
+            "fixtures": [
+              "Local managed execution admits checked zero-input values without a dummy producer",
+              "Local managed zero-input values feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "performance": []
+      },
+      "gaps": [
+        "Zero-input managed execution with NULL and scalar rows feeds two real downstream Computes; empty and nested variants, broad limits, and performance evidence remain."
+      ]
     },
     {
       "operation": "except",
       "input_shape": "relation x relation",
       "normative_anchor": "row-set-operations",
-      "canonical_operations": ["REL.except_rows"],
+      "canonical_operations": [
+        "REL.except_rows"
+      ],
       "machine_registry": "target-requirement-only",
-      "variant_scope": ["row equality", "NULL equality", "duplicate treatment", "left order", "empty sides"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["The target contract requires REL.except_rows but the pinned pipeline registry and Local path are missing it."]
+      "variant_scope": [
+        "row equality",
+        "NULL equality",
+        "duplicate treatment",
+        "left order",
+        "empty sides"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "The target contract requires REL.except_rows but the pinned pipeline registry and Local path are missing it."
+      ]
     },
     {
       "operation": "intersect",
       "input_shape": "relation x relation",
       "normative_anchor": "row-set-operations",
-      "canonical_operations": ["REL.intersect_rows"],
+      "canonical_operations": [
+        "REL.intersect_rows"
+      ],
       "machine_registry": "target-requirement-only",
-      "variant_scope": ["row equality", "NULL equality", "duplicate treatment", "left order", "empty sides"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["The target contract requires REL.intersect_rows but the pinned pipeline registry and Local path are missing it."]
+      "variant_scope": [
+        "row equality",
+        "NULL equality",
+        "duplicate treatment",
+        "left order",
+        "empty sides"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "The target contract requires REL.intersect_rows but the pinned pipeline registry and Local path are missing it."
+      ]
     },
     {
       "operation": "cross_join",
       "input_shape": "relation x relation",
       "normative_anchor": "cross-join",
-      "canonical_operations": ["REL.cross_join"],
+      "canonical_operations": [
+        "REL.cross_join"
+      ],
       "machine_registry": "target-requirement-only",
-      "variant_scope": ["unrestricted", "right_rows one", "empty sides", "left-major output order", "output capacity overflow"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["The target contract requires REL.cross_join but the pinned pipeline registry and Local path are missing it."]
+      "variant_scope": [
+        "unrestricted",
+        "right_rows one",
+        "empty sides",
+        "left-major output order",
+        "output capacity overflow"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "The target contract requires REL.cross_join but the pinned pipeline registry and Local path are missing it."
+      ]
     },
     {
       "operation": "analytic",
       "input_shape": "relation",
       "normative_anchor": "analytic",
-      "canonical_operations": ["REL.analytic"],
+      "canonical_operations": [
+        "REL.analytic"
+      ],
       "machine_registry": "missing",
-      "variant_scope": ["partition keys", "ordered frame", "all analytic bindings", "NULL values", "numeric slots", "array capacity"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["REL.analytic is normative but absent from both the pinned registry and target requirements; shared contract work is required."]
+      "variant_scope": [
+        "partition keys",
+        "ordered frame",
+        "all analytic bindings",
+        "NULL values",
+        "numeric slots",
+        "array capacity"
+      ],
+      "layers": {
+        "checker": "complete",
+        "lowering": "missing",
+        "kernel": "missing",
+        "managed": "missing",
+        "source_connection": "missing",
+        "two_consumer_e2e": "missing",
+        "three_target_conformance": "missing",
+        "performance": "missing"
+      },
+      "evidence": {
+        "source_connection": [],
+        "two_consumer_e2e": [],
+        "conformance": [],
+        "performance": []
+      },
+      "gaps": [
+        "REL.analytic is normative but absent from both the pinned registry and target requirements; shared contract work is required."
+      ]
     }
-  ]
+  ],
+  "evidence_schema": "test fixture ID, registered suite, and execution target binding"
 }

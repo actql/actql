@@ -68,3 +68,51 @@ test("canonical opcodes come from the normative mapping", () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /canonical operations differ/u);
 });
+
+test("invented variants cannot replace the independent normative scope", () => {
+  const value = manifest();
+  const select = value.operations.find((entry) => entry.operation === "select");
+  select.variant_scope = ["imaginary projection"];
+  const result = run(value);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /variant_scope differs from the normative scope/u);
+});
+
+test("product code cannot stand in for executed fixture evidence", () => {
+  const value = manifest();
+  const select = value.operations.find((entry) => entry.operation === "select");
+  for (const layer of Object.keys(select.layers)) {
+    select.layers[layer] = "complete";
+  }
+  select.gaps = [];
+  for (const evidenceName of Object.keys(select.evidence)) {
+    select.evidence[evidenceName] = [{
+      operation: "select",
+      layer: evidenceName,
+      path: "src/connectors/local/compute.mbt",
+      fixtures: ["product implementation"],
+      suite: "moon:connectors",
+      targets: ["js", "wasm", "native"],
+    }];
+  }
+  const result = run(value);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /evidence is not a registered test suite/u);
+});
+
+test("evidence binds an exact fixture ID suite and execution target", () => {
+  for (const [field, replacement, pattern] of [
+    ["fixtures", ["not an actual fixture"], /missing fixture ID/u],
+    ["suite", "moon:not-the-owning-package", /must use suite/u],
+    ["targets", ["unknown-target"], /has invalid target/u],
+  ]) {
+    const value = manifest();
+    const filter = value.operations.find(
+      (entry) => entry.operation === "filter",
+    );
+    filter.evidence.source_connection[0][field] = replacement;
+    const result = run(value);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, pattern);
+  }
+});

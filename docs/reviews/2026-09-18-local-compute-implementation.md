@@ -58,6 +58,15 @@ layers, fixtures, and explicit gaps. The manifest is checked against the
 normative operation inventory and canonical mapping; it is not generated from
 Local implementation code.
 
+The independent
+[normative scope](2026-09-18-local-compute-normative-scope.json) freezes each
+operation's variants, applicable type classes, and semantic obligations at the
+baseline. Status entries must match that scope exactly. Evidence is not a file
+existence claim: every record binds an exact test ID, its registered execution
+suite, and its targets. A fully complete operation must additionally account
+for every normative variant, type class, and obligation, and two-consumer
+completion requires an actual standard-Host fixture.
+
 Coverage states have these meanings:
 
 | Normative and implementation state | Treatment |
