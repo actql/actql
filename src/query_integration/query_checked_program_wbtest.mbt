@@ -460,6 +460,8 @@ fn local_ordered_set_program(kind : String) -> String {
     "sort_compound" =>
       "{\"sort\":[{\"field\":\"amount\",\"dir\":\"desc\",\"nulls\":\"first\"},{\"id\":\"asc\"}],\"as\":\"out\"}"
     "take" => "{\"take\":{\"count\":2,\"offset\":1},\"as\":\"out\"}"
+    "take_parameter" =>
+      "{\"take\":{\"count\":{\"$param\":\"minimum\"},\"offset\":1},\"as\":\"out\"}"
     "top_k" =>
       "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":2,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
     "top_k_by" =>
@@ -543,6 +545,7 @@ fn local_values_unary_program(kind : String) -> String {
   if kind == "sort" ||
     kind == "sort_compound" ||
     kind == "take" ||
+    kind == "take_parameter" ||
     kind == "top_k" ||
     kind == "top_k_by" ||
     kind == "distinct" ||
