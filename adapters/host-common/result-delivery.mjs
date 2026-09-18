@@ -49,7 +49,7 @@ function validateRequest(options) {
   if (!exactKeys(options, [
     'store', 'control', 'indexKey', 'grant', 'resultName', 'format',
     'attemptId', 'limits', 'frameLimits', 'now', 'sink', 'createDigest',
-    'signal',
+    'authorize', 'signal',
   ]) || !exactKeys(options.indexKey, [
     'tenantId', 'authorityScopeCid', 'runDefinitionCid',
   ]) || typeof options.indexKey.tenantId !== 'string' ||
@@ -73,10 +73,17 @@ function validateRequest(options) {
       typeof options.now !== 'function' ||
       typeof options.sink?.write !== 'function' ||
       typeof options.createDigest !== 'function' ||
+      typeof options.authorize !== 'function' ||
       options.signal !== undefined &&
         (options.signal === null ||
           typeof options.signal.throwIfAborted !== 'function')) {
     fail('InvalidResultDeliveryRequest');
+  }
+}
+
+async function requireCurrentAuthorization(authorize, facts) {
+  if (await authorize(Object.freeze(facts)) !== true) {
+    fail('ResultDeliveryDenied');
   }
 }
 
@@ -170,7 +177,7 @@ export async function deliverPublishedResult(options) {
   validateStore(options.store);
   validateControl(options.control);
   const {store, control, indexKey, grant, resultName, format, attemptId,
-    limits, frameLimits, now, sink, createDigest, signal} = options;
+    limits, frameLimits, now, sink, createDigest, authorize, signal} = options;
   signal?.throwIfAborted();
 
   const entry = await store.confirmCommittedIndex(indexKey);
@@ -182,6 +189,19 @@ export async function deliverPublishedResult(options) {
     entry.result_manifest_cid, 'result_manifest',
   );
   const requestedAt = trustedNow(now);
+  const authorizationFacts = Object.freeze({
+    index,
+    manifest,
+    grant,
+    resultName,
+    format,
+    attemptId,
+  });
+  await requireCurrentAuthorization(authorize, {
+    ...authorizationFacts,
+    stage: 'attempt',
+    observedAt: requestedAt,
+  });
   const attempt = control.issueDeliveryAttempt(
     index,
     manifest,
@@ -199,6 +219,12 @@ export async function deliverPublishedResult(options) {
     if (existing !== undefined) {
       const value = JSON.parse(existing.wire);
       if (value.state === 'succeeded') {
+        await requireCurrentAuthorization(authorize, {
+          ...authorizationFacts,
+          attempt,
+          stage: 'receipt',
+          observedAt: trustedNow(now),
+        });
         const receipt = await store.readPublicationContract(
           value.result_delivery_receipt_cid,
           'result_delivery_receipt',
@@ -260,6 +286,14 @@ export async function deliverPublishedResult(options) {
       )) {
         fail('ResultDeliveryByteLimit');
       }
+      await requireCurrentAuthorization(authorize, {
+        ...authorizationFacts,
+        attempt,
+        stage: 'write',
+        observedAt,
+        confirmedByteCount,
+        nextByteCount: confirmedByteCount + bytes.byteLength,
+      });
       signal?.throwIfAborted();
       let result;
       try { result = await sink.write(bytes, signal); }
@@ -293,10 +327,21 @@ export async function deliverPublishedResult(options) {
     await store.withCommittedResultRows(
       indexKey,
       resultDefinitionCid,
-      authorization => authorization.resultDefinitionCid ===
-        resultDefinitionCid,
+      authorization =>
+        authorization.resultDefinitionCid === resultDefinitionCid,
       frameLimits,
       async (metadata, readRows) => {
+        await requireCurrentAuthorization(authorize, {
+          ...authorizationFacts,
+          attempt,
+          stage: 'read',
+          observedAt: trustedNow(now),
+          durableResultBindingCid: metadata.durableResultBindingCid,
+          logicalResultCid: metadata.logicalResultCid,
+          resultSchemaCid: metadata.resultSchemaCid,
+          rowCount: metadata.rowCount,
+          payloadBytes: metadata.payloadBytes,
+        });
         const serializer = control.prepareResultDeliverySerializer(
           format,
           metadata.resultSchemaWire,
@@ -313,6 +358,13 @@ export async function deliverPublishedResult(options) {
     if (!control.resultReadGrantValidAt(grant, committedAt)) {
       fail('ResultDeliveryGrantExpired');
     }
+    await requireCurrentAuthorization(authorize, {
+      ...authorizationFacts,
+      attempt,
+      stage: 'receipt',
+      observedAt: committedAt,
+      confirmedByteCount,
+    });
     const deliveredSha256 = digest.finish();
     if (!digestPattern.test(deliveredSha256)) {
       fail('InvalidResultDeliveryDigest');

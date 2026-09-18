@@ -11,6 +11,11 @@ import {publishEffectFreeRun} from './run-publication.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
 import {deliverPublishedResult} from './result-delivery.mjs';
+import {
+  deliverAuthorizedResult,
+  installResultAccessAuthority,
+  installNodeResultAccessService,
+} from '../host-node/result-access.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -1055,6 +1060,83 @@ test('portable control validates Receipt and Captured Run references',
       finish: () => hash.digest('hex'),
     });
   };
+  let accessAllowed = true;
+  const accessChecks = [];
+  const accessAuthority = installResultAccessAuthority({
+    async admitResultRead(facts) {
+      accessChecks.push(`admit:${facts.resultName}:${facts.format}`);
+      return {
+        authorizationContextCid: cid('2'),
+        dataCeilingCid: cid('1'),
+        egressAdmissionCid: cid('3'),
+        expiresAt: '2026-09-19T00:00:00.000Z',
+        maxBytes: 1024,
+        maxUses: 1,
+      };
+    },
+    async authorizeResultRead(facts) {
+      accessChecks.push(`authorize:${facts.delivery.stage}`);
+      return accessAllowed;
+    },
+  });
+  const accessService = installNodeResultAccessService({
+    store: deliveryStore,
+    control,
+    authority: accessAuthority,
+    now: () => '2026-09-18T01:00:00.000Z',
+    limits,
+    frameLimits: {
+      maxRowBytes: 4096,
+      maxDepth: 32,
+      maxFrameBytes: 4096,
+    },
+  });
+  const authorizedChunks = [];
+  const authorizedDelivery = await deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: {
+        tenantId: 'tenant-a',
+        authorityScopeCid: cid('d'),
+        runDefinitionCid: run.identity,
+      },
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorized-json',
+    },
+    {
+      async write(bytes) {
+        authorizedChunks.push(Buffer.from(bytes));
+        return {confirmedBytes: bytes.byteLength};
+      },
+    },
+  );
+  assert.equal(Buffer.concat(authorizedChunks).toString('utf8'),
+    '[{"value":7}]');
+  assert.equal(authorizedDelivery.idempotent, false);
+  assert.ok(accessChecks.includes('authorize:read'));
+  assert.ok(accessChecks.includes('authorize:write'));
+  assert.ok(accessChecks.includes('authorize:receipt'));
+  accessAllowed = false;
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: {
+        tenantId: 'tenant-a',
+        authorityScopeCid: cid('d'),
+        runDefinitionCid: run.identity,
+      },
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorized-revoked',
+    },
+    {write: () => assert.fail('revoked access exposed bytes')},
+  ), {code: 'ResultDeliveryDenied'});
+  accessAllowed = true;
   const deliveryBase = {
     store: deliveryStore,
     control,
@@ -1073,6 +1155,7 @@ test('portable control validates Receipt and Captured Run references',
     },
     now: () => '2026-09-18T01:00:00.000Z',
     createDigest,
+    authorize: () => true,
     signal: undefined,
   };
   const expectedDelivery = Object.freeze({
@@ -1148,6 +1231,58 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(partialRecord.state, 'failed');
   assert.equal(partialRecord.exposure, 'unknown_additional');
   assert.ok(partialRecord.confirmed_byte_count > 1);
+
+  const revocationGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json'],
+      principalId: 'principal-a',
+      purpose: 'revocation-check',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 1,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  let authorizedWrites = 0;
+  let exposedWrites = 0;
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    grant: revocationGrant,
+    format: 'json',
+    attemptId: 'delivery-revoked',
+    authorize(facts) {
+      return facts.stage !== 'write' || ++authorizedWrites === 1;
+    },
+    sink: {
+      async write(bytes) {
+        exposedWrites++;
+        return {confirmedBytes: bytes.byteLength};
+      },
+    },
+  }), {code: 'ResultDeliveryDenied'});
+  assert.equal(exposedWrites, 1);
+  const revokedAttempt = control.issueDeliveryAttempt(
+    deliveryIndex,
+    deliveryManifest,
+    revocationGrant,
+    {
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'delivery-revoked',
+      requestedAt: '2026-09-18T01:00:00.000Z',
+    },
+    limits,
+  );
+  assert.equal((await deliveryStore.latestDeliveryRecord(
+    revokedAttempt.identity,
+  )).state, 'failed');
+
   await assert.rejects(deliverPublishedResult({
     ...deliveryBase,
     format: 'json',
