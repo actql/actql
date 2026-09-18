@@ -8,6 +8,8 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
+import {publishCompletedEffectFreeRun} from
+  './completed-run-publication.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -745,7 +747,81 @@ test('portable control validates Receipt and Captured Run references',
     now: () => times.shift() ?? '2026-09-18T00:00:07.000Z',
     signal: undefined,
   };
-  const committed = await publishEffectFreeRun(publicationOptions);
+  let exportedResults = 0;
+  const execution = Object.freeze({
+    status: 'host-tasks-completed',
+    resultInventory: Object.freeze([{name: 'answer', task: 1}]),
+    publicationInventory: Object.freeze({
+      occurrences: Object.freeze([Object.freeze({
+        name: 'answer',
+        task: 1,
+        definitionContract: definition,
+      })]),
+    }),
+    async storePublicationResult(index, target, supplied) {
+      exportedResults++;
+      assert.equal(index, 0);
+      assert.equal(target, store);
+      assert.equal(supplied.runDefinition, run);
+      assert.equal(supplied.invocation, invoked);
+      assert.equal(supplied.retention, retention);
+      return Object.freeze({
+        occurrence: Object.freeze({
+          name: 'answer', task: 1, definition,
+        }),
+        physical: Object.freeze({cid: physicalCid, bytes: payloadBytes}),
+        orderedRows: Object.freeze({rows: 1}),
+        publication: Object.freeze({
+          derivation,
+          ordering,
+          artifact,
+          snapshot,
+          durableBinding: binding,
+        }),
+      });
+    },
+  });
+  const completedPublicationOptions = {
+    execution,
+    store,
+    control,
+    admission,
+    runDefinition: run,
+    invocation: invoked,
+    observation,
+    normalizationJournal,
+    authoringContext,
+    results: [{retention, evidenceContext: {}}],
+    receiptEvidence: {
+      bindings: [],
+      sourceEvidence: [],
+      modelEvidence: [],
+      barrierAttemptReceiptCids: [],
+    },
+    captureEvidence: {
+      pendingSourceStateAdvances: [],
+      modelEvidence: [],
+    },
+    request: publicationOptions.request,
+    attempt: publicationOptions.attempt,
+    outputLimits: {},
+    contractLimits: limits,
+    now: () => '2026-09-18T00:00:05.000Z',
+    signal: undefined,
+  };
+  await assert.rejects(publishCompletedEffectFreeRun({
+    ...completedPublicationOptions,
+    results: [],
+  }), {code: 'InvalidCompletedRunPublicationOptions'});
+  assert.equal(exportedResults, 0);
+  const assembled = await publishCompletedEffectFreeRun(
+    completedPublicationOptions,
+  );
+  assert.equal(exportedResults, 1);
+  assert.equal(assembled.evidence.manifest.identity, manifest.identity);
+  assert.equal(assembled.evidence.receipt.identity, receipt.identity);
+  assert.equal(assembled.evidence.capturedRun.identity, captured.identity);
+  const committed = assembled.publication;
   assert.equal(committed.state, 'succeeded');
   assert.equal(committed.committed, true);
   assert.equal(committed.idempotent, false);
