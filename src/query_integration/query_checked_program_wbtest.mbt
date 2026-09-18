@@ -14,6 +14,8 @@ fn query_checked_program_fixture(
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
+  local_values_window_chain? : Bool = false,
+  local_values_window_variant? : String = "fixed",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -41,6 +43,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_group_chain {
     local_values_group_program(local_values_group_variant)
+  } else {
+    text
+  }
+  let text = if local_values_window_chain {
+    local_values_window_program(local_values_window_variant)
   } else {
     text
   }
