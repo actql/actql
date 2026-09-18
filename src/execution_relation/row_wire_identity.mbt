@@ -36,6 +36,17 @@ struct RowWireIdentity {
 }
 
 ///|
+/// Registered logical Relation identity. Its preimage is the canonical object
+/// `{sort:"relation",value:<ordered rows>}`, not the bare ordered-row array,
+/// a physical payload digest, or a delivery hash.
+struct LogicalRelationIdentity {
+  cid : String
+  bytes : Int
+  nodes : Int
+  rows : Int
+}
+
+///|
 priv struct CapturedWireRows {
   rows : CapturedRows
 }
@@ -206,6 +217,18 @@ pub fn ordered_rows_canonical_contract_cid() -> String {
 
 ///|
 pub fn row_wire_usage(value : RowWireIdentity) -> (Int, Int, Int) {
+  (value.bytes, value.nodes, value.rows)
+}
+
+///|
+pub fn logical_relation_cid(value : LogicalRelationIdentity) -> String {
+  value.cid
+}
+
+///|
+pub fn logical_relation_usage(
+  value : LogicalRelationIdentity,
+) -> (Int, Int, Int) {
   (value.bytes, value.nodes, value.rows)
 }
 

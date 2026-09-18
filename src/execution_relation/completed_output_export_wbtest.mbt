@@ -36,6 +36,69 @@ fn export_all(
 }
 
 ///|
+fn export_relation_all(
+  source : CompletedOutput,
+) -> (CompletedRelationExportReceipt, String) {
+  let stream = prepare_completed_relation_export(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    64,
+  ).unwrap()
+  let text = StringBuilder()
+  while next_completed_output_export(stream).unwrap() is Some(part) {
+    text.write_string(part)
+  }
+  let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  text.write_string(tail)
+  (receipt, text.to_string())
+}
+
+///|
+test "publication export separates ordered rows from logical Relation identity" {
+  let source = export_fixture(capture_fixture())
+  let (receipt, text) = export_relation_all(source)
+  assert_eq(text, "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]")
+  let content = completed_relation_export_content(receipt)
+  let relation = completed_relation_export_identity(receipt)
+  assert_eq(
+    content.cid,
+    "sha256:1f3a78f3ede9a4385bbcbf098a3f0fdb9b16dc3e0e8d78f05255682d9c25f3e0",
+  )
+  // Independent SHA-256 of the canonical preimage
+  // {"sort":"relation","value":<the ordered rows above>}.
+  assert_eq(
+    logical_relation_cid(relation),
+    "sha256:5f089a447a51c56f479c2c6258d8c3b687ec1368bf8e0bc28eda2d53efa0e5b8",
+  )
+  assert_eq(logical_relation_usage(relation), (65, 9, 2))
+  assert_true(logical_relation_cid(relation) != content.cid)
+  cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+test "publication export independently bounds the logical Relation preimage" {
+  let source = export_fixture(capture_fixture())
+  let stream = prepare_completed_relation_export(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 64, max_nodes: 100, max_depth: 20, },
+    64,
+  ).unwrap()
+  assert_true(next_completed_output_export(stream) is Ok(Some(_)))
+  assert_true(next_completed_output_export(stream) is Ok(Some(_)))
+  assert_true(next_completed_output_export(stream) is Ok(None))
+  assert_true(
+    finish_completed_relation_export(stream) is Err(Wire(Encoding(_))),
+  )
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "Local completion exports bounded canonical batches into the same logical result" {
   let owner = capture_fixture()
   let source = export_fixture(owner)

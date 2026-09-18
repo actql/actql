@@ -28,6 +28,7 @@ function validControl(control) {
 function validIdentity(value) {
   return value !== null && typeof value === 'object' &&
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
+    /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
     ['bytes', 'nodes', 'rows'].every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0);
 }

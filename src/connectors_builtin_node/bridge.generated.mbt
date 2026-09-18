@@ -16,7 +16,7 @@ pub(all) suberror NodeHostFailure {
 /// interpretation, canonical ordering, admission, and the content receipt.
 struct StrategyHostOutputExport {
   stream : @execution.CompletedOutputExport
-  mut receipt : @execution.CompletedOutputExportReceipt?
+  mut receipt : @execution.CompletedRelationExportReceipt?
 }
 
 ///|
@@ -679,10 +679,13 @@ pub fn strategy_host_output_export_begin(
   max_wire_depth : Int,
   max_columns : Int,
   max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
   max_batch_bytes : Int,
 ) -> StrategyHostOutputExport raise NodeHostFailure {
   match
-    @execution.prepare_completed_output_export(
+    @execution.prepare_completed_relation_export(
       output,
       max_rows,
       {
@@ -697,6 +700,13 @@ pub fn strategy_host_output_export_begin(
         max_bytes: max_wire_bytes,
         max_nodes: max_wire_nodes,
         max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
       },
       max_batch_bytes,
     ) {
@@ -729,7 +739,7 @@ pub fn strategy_host_output_export_finish(
   if value.receipt is Some(_) {
     raise InvalidCommand
   }
-  match @execution.finish_completed_output_export(value.stream) {
+  match @execution.finish_completed_relation_export(value.stream) {
     Ok((receipt, tail)) => {
       value.receipt = Some(receipt)
       tail
@@ -745,7 +755,7 @@ pub fn strategy_host_output_export_cid(
 ) -> String raise NodeHostFailure {
   guard value.receipt is Some(receipt) else { raise InvalidCommand }
   @execution.output_stream_identity(
-    @execution.completed_export_content(receipt),
+    @execution.completed_relation_export_content(receipt),
   ).0
 }
 
@@ -756,7 +766,7 @@ pub fn strategy_host_output_export_bytes(
 ) -> Int raise NodeHostFailure {
   guard value.receipt is Some(receipt) else { raise InvalidCommand }
   @execution.output_stream_identity(
-    @execution.completed_export_content(receipt),
+    @execution.completed_relation_export_content(receipt),
   ).1
 }
 
@@ -767,7 +777,7 @@ pub fn strategy_host_output_export_nodes(
 ) -> Int raise NodeHostFailure {
   guard value.receipt is Some(receipt) else { raise InvalidCommand }
   @execution.output_stream_identity(
-    @execution.completed_export_content(receipt),
+    @execution.completed_relation_export_content(receipt),
   ).2
 }
 
@@ -778,8 +788,19 @@ pub fn strategy_host_output_export_rows(
 ) -> Int raise NodeHostFailure {
   guard value.receipt is Some(receipt) else { raise InvalidCommand }
   @execution.output_stream_identity(
-    @execution.completed_export_content(receipt),
+    @execution.completed_relation_export_content(receipt),
   ).3
+}
+
+///|
+#export_name("strategyHostOutputExportLogicalRelationCid")
+pub fn strategy_host_output_export_logical_relation_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
 }
 
 ///|
@@ -789,7 +810,7 @@ pub fn strategy_host_output_export_cancel(
 ) -> Unit {
   match value.receipt {
     Some(receipt) => {
-      @execution.cancel_completed_export_receipt(receipt)
+      @execution.cancel_completed_relation_export_receipt(receipt)
       value.receipt = None
     }
     None => @execution.cancel_completed_output_export(value.stream)

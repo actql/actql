@@ -104,6 +104,8 @@ pub fn cancel_completed_output_export(CompletedOutputExport) -> Unit
 
 pub fn cancel_completed_output_import(CompletedOutputImport) -> Bool
 
+pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) -> Unit
+
 pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
 
 pub fn cancel_local_compute_attempt(LocalComputeAttempt) -> Bool
@@ -170,6 +172,10 @@ pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPr
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
 
+pub fn completed_relation_export_content(CompletedRelationExportReceipt) -> AdmittedOutputStreamReceipt
+
+pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
+
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
@@ -211,6 +217,8 @@ pub fn finish_admitted_output_stream(AdmittedOutputStream) -> Result[(AdmittedOu
 pub fn finish_completed_output_export(CompletedOutputExport) -> Result[(CompletedOutputExportReceipt, String), CompletedExportIssue]
 
 pub fn finish_completed_output_import(CompletedOutputImport) -> Result[CompletedOutput, CompletedImportIssue]
+
+pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue]
 
 pub fn finish_fixed_join_stream(FixedJoinStream) -> Result[FixedJoinValidation, RowIssue]
 
@@ -269,6 +277,10 @@ pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWire
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
 
 pub fn local_compute_result(LocalComputeAttempt) -> Result[CompletedSequence, LocalComputeIssue]
+
+pub fn logical_relation_cid(LogicalRelationIdentity) -> String
+
+pub fn logical_relation_usage(LogicalRelationIdentity) -> (Int, Int, Int)
 
 pub fn[T] managed_completed_deadline_satisfied(ManagedCompletedOutput[T], ManagedIdentityDeadline) -> Bool
 
@@ -421,6 +433,8 @@ pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipelin
 pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+
+pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 
@@ -668,6 +682,8 @@ type CompletedOutputExportReceipt
 
 type CompletedOutputImport
 
+type CompletedRelationExportReceipt
+
 type CompletedSequence
 
 type CompletionPreparation
@@ -818,6 +834,8 @@ pub(all) enum LogicalMeasureIssue {
   HostMeasureLimit
   WireMeasureFailure
 } derive(Eq, @debug.Debug)
+
+type LogicalRelationIdentity
 
 pub(all) struct ManagedColumnMeasurement {
   rows : Int

@@ -167,6 +167,9 @@ function outputExportControl(moon) {
     'maxWireDepth',
     'maxColumns',
     'maxOrderWork',
+    'maxLogicalWireBytes',
+    'maxLogicalWireNodes',
+    'maxLogicalWireDepth',
     'maxBatchBytes',
   ];
   return Object.freeze({
@@ -190,6 +193,9 @@ function outputExportControl(moon) {
         limits.maxWireDepth,
         limits.maxColumns,
         limits.maxOrderWork,
+        limits.maxLogicalWireBytes,
+        limits.maxLogicalWireNodes,
+        limits.maxLogicalWireDepth,
         limits.maxBatchBytes,
       ));
     },
@@ -198,6 +204,8 @@ function outputExportControl(moon) {
     identity(value) {
       return Object.freeze({
         orderedRowsCid: moon.strategyHostOutputExportCid(value),
+        logicalRelationCid:
+          moon.strategyHostOutputExportLogicalRelationCid(value),
         bytes: moon.strategyHostOutputExportBytes(value),
         nodes: moon.strategyHostOutputExportNodes(value),
         rows: moon.strategyHostOutputExportRows(value),

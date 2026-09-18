@@ -83,6 +83,24 @@ pub fn strategy_host_next_task(@connectors_builtin.ConfiguredComputeHost[@physic
 
 pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
+pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
+
+pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_cancel(StrategyHostOutputExport) -> Unit
+
+pub fn strategy_host_output_export_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
+
+pub fn strategy_host_output_export_finish(StrategyHostOutputExport) -> String raise NodeHostFailure
+
+pub fn strategy_host_output_export_logical_relation_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
+
+pub fn strategy_host_output_export_next(StrategyHostOutputExport) -> String? raise NodeHostFailure
+
+pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
 pub fn strategy_host_program_definition_cid(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
 
 pub fn strategy_host_publication_inventory(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @run_publication.CheckedPublicationInventory raise NodeHostFailure
@@ -214,9 +232,11 @@ pub(all) suberror NodeHostFailure {
   Execution(@physical_strategy.RunIssue)
   InvalidCommand
   Encoding(@encode_core.EncodeFailure)
+  OutputExport(@execution_relation.CompletedExportIssue)
 }
 
 // Types and methods
+type StrategyHostOutputExport
 
 // Type aliases
 

@@ -5,6 +5,7 @@ struct CompletedOutputExport {
   mut source : CompletedOutput?
   order : RowWireOrder
   writer : @encode.Writer
+  logical_writer : @encode.Writer?
   budget : ValueBudget
   mut row : Int
   mut reading : Bool
@@ -16,6 +17,14 @@ struct CompletedOutputExportReceipt {
   mut source : CompletedOutput?
   content : AdmittedOutputStreamReceipt
   mut binding : Bool
+}
+
+///|
+/// One publication export establishes the bare ordered-row receipt and the
+/// registered logical Relation identity from the same immutable traversal.
+struct CompletedRelationExportReceipt {
+  rows : CompletedOutputExportReceipt
+  logical : LogicalRelationIdentity
 }
 
 ///|
@@ -38,6 +47,46 @@ pub fn prepare_completed_output_export(
   wire : RowWireLimits,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  prepare_completed_export(
+    source,
+    max_rows,
+    values,
+    wire,
+    None,
+    max_batch_bytes,
+  )
+}
+
+///|
+/// Publication export hashes the registered logical Relation preimage while
+/// returning only the physical ordered-row batches to the environment adapter.
+pub fn prepare_completed_relation_export(
+  source : CompletedOutput,
+  max_rows : Int,
+  values : ValueLimits,
+  payload_wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  prepare_completed_export(
+    source,
+    max_rows,
+    values,
+    payload_wire,
+    Some(logical_wire),
+    max_batch_bytes,
+  )
+}
+
+///|
+fn prepare_completed_export(
+  source : CompletedOutput,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  logical_wire : RowWireLimits?,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
@@ -46,7 +95,9 @@ pub fn prepare_completed_output_export(
   if max_rows < 0 || IndexedRows::row_count(table) > max_rows {
     return Err(Admission(CaptureLimit))
   }
-  if !row_wire_valid_limits(wire) || max_batch_bytes < 1 {
+  if !row_wire_valid_limits(wire) ||
+    (logical_wire is Some(limits) && !row_wire_valid_limits(limits)) ||
+    max_batch_bytes < 1 {
     return Err(Wire(InvalidLimits))
   }
   let budget = match value_budget(values) {
@@ -62,6 +113,13 @@ pub fn prepare_completed_output_export(
     Ok(value) => value
     Err(issue) => return Err(Wire(issue))
   }
+  if logical_wire is Some(limits) &&
+    (
+      limits.max_columns < wire.max_columns ||
+      limits.max_order_work < wire.max_order_work
+    ) {
+    return Err(Wire(OrderLimit))
+  }
   try {
     let writer = @encode.buffered_hashing_writer(
       wire.max_bytes,
@@ -70,7 +128,28 @@ pub fn prepare_completed_output_export(
       max_batch_bytes,
     )
     @encode.begin_array(writer)
-    Ok({ source: Some(source), order, writer, budget, row: 0, reading: false, })
+    let logical_writer = logical_wire.map(limits => {
+      let value = @encode.hashing_writer(
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      )
+      @encode.begin_object(value)
+      @encode.key(value, "sort")
+      @encode.string_value(value, "relation")
+      @encode.key(value, "value")
+      @encode.begin_array(value)
+      value
+    })
+    Ok({
+      source: Some(source),
+      order,
+      writer,
+      logical_writer,
+      budget,
+      row: 0,
+      reading: false,
+    })
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }
@@ -139,20 +218,35 @@ fn export_completed_row(
     return Err(Admission(CaptureLimit))
   }
   try {
-    @encode.begin_object(value.writer)
     for (name, column) in value.order.columns {
       let cell = IndexedRows::read_cell(table, value.row, column)
       if !charge_text(value.budget, name) || !measure_result(cell, value.budget) {
         return Err(Admission(CaptureLimit))
       }
-      @encode.key(value.writer, name)
-      emit_runtime_value(cell, value.writer)
     }
-    @encode.end_object(value.writer)
+    emit_completed_export_row(value, table, value.writer)
+    if value.logical_writer is Some(writer) {
+      emit_completed_export_row(value, table, writer)
+    }
     Ok(@encode.drain_hash_output(value.writer))
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }
+}
+
+///|
+fn emit_completed_export_row(
+  value : CompletedOutputExport,
+  table : CompletedTable,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for (name, column) in value.order.columns {
+    let cell = IndexedRows::read_cell(table, value.row, column)
+    @encode.key(writer, name)
+    emit_runtime_value(cell, writer)
+  }
+  @encode.end_object(writer)
 }
 
 ///|
@@ -165,13 +259,32 @@ pub fn finish_completed_output_export(
   value.reading = true
   let result = finish_completed_export_stream(value)
   value.reading = false
-  result
+  result.map(finished => (finished.0, finished.1))
+}
+
+///|
+pub fn finish_completed_relation_export(
+  value : CompletedOutputExport,
+) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue] {
+  if value.reading {
+    return Err(Closed)
+  }
+  value.reading = true
+  let result = finish_completed_export_stream(value)
+  value.reading = false
+  result.bind(finished => {
+    guard finished.2 is Some(logical) else { return Err(Closed) }
+    Ok(({ rows: finished.0, logical, }, finished.1))
+  })
 }
 
 ///|
 fn finish_completed_export_stream(
   value : CompletedOutputExport,
-) -> Result[(CompletedOutputExportReceipt, String), CompletedExportIssue] {
+) -> Result[
+  (CompletedOutputExportReceipt, String, LogicalRelationIdentity?),
+  CompletedExportIssue,
+] {
   guard value.source is Some(source) else { return Err(Closed) }
   if !completed_output_available(source) {
     value.source = None
@@ -193,6 +306,19 @@ fn finish_completed_export_stream(
     @encode.end_array(value.writer)
     let tail = @encode.drain_hash_output(value.writer)
     let (hash, bytes, nodes, depth) = @encode.finish_hash_metrics(value.writer)
+    let logical = value.logical_writer.map(writer => {
+      @encode.end_array(writer)
+      @encode.end_object(writer)
+      let (logical_hash, logical_bytes, logical_nodes, _) = @encode.finish_hash_metrics(
+        writer,
+      )
+      {
+        cid: "sha256:" + logical_hash,
+        bytes: logical_bytes,
+        nodes: logical_nodes,
+        rows: value.row,
+      }
+    })
     let content : AdmittedOutputStreamReceipt = {
       owner,
       target: source.target,
@@ -209,7 +335,7 @@ fn finish_completed_export_stream(
       },
       measurement_identity: None,
     }
-    Ok(({ source: Some(source), content, binding: false, }, tail))
+    Ok(({ source: Some(source), content, binding: false, }, tail, logical))
   } catch {
     issue => Err(Wire(Encoding(issue)))
   }
@@ -223,10 +349,31 @@ pub fn completed_export_content(
 }
 
 ///|
+pub fn completed_relation_export_content(
+  receipt : CompletedRelationExportReceipt,
+) -> AdmittedOutputStreamReceipt {
+  receipt.rows.content
+}
+
+///|
+pub fn completed_relation_export_identity(
+  receipt : CompletedRelationExportReceipt,
+) -> LogicalRelationIdentity {
+  receipt.logical
+}
+
+///|
 pub fn cancel_completed_export_receipt(
   receipt : CompletedOutputExportReceipt,
 ) -> Unit {
   receipt.source = None
+}
+
+///|
+pub fn cancel_completed_relation_export_receipt(
+  receipt : CompletedRelationExportReceipt,
+) -> Unit {
+  cancel_completed_export_receipt(receipt.rows)
 }
 
 ///|
