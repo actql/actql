@@ -14,6 +14,7 @@ struct ManagedOutputValues {
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
   column_nulls : Array[Int]
+  reference_rows : Array[Array[Array[@admitted.ReferenceValue]]]
   mut row_measurements : ManagedRowMeasurements?
   max_value_bytes : Int
   max_rows : Int
@@ -25,7 +26,9 @@ struct ManagedOutputValues {
 
 ///|
 /// Separate from the old CID-bearing receipt: no missing/dummy CID can enter an
-/// old completion through this type. No data buffers or source handles escape.
+/// old completion through this type. No data buffers or source read handles
+/// escape. Opaque reference authority handles remain occurrence-scoped so a
+/// later checked reader never fabricates issuer evidence from wire bytes.
 struct ManagedOutputValueReceipt {
   identity : Ref[Unit]
   owner : @lower.BoundPrepared
@@ -39,6 +42,7 @@ struct ManagedOutputValueReceipt {
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
   column_nulls : Array[Int]
+  reference_rows : Array[Array[Array[@admitted.ReferenceValue]]]
   measured_depth : Int
   mut row_measurements : ManagedRowMeasurements?
 }
@@ -49,6 +53,7 @@ pub(all) enum ManagedOutputValueIssue {
   Guard(FixedInputGuardIssue)
   Closed
   MeasurementIndexLimit
+  ReferenceUnavailable(Int, Int)
 }
 
 ///|
@@ -88,6 +93,7 @@ pub fn prepare_managed_output_values(
     column_usage: Array::make(@schema.field_count(output.buffer.schema), (0, 0)),
     column_maxima: Array::make(@schema.field_count(output.buffer.schema), 0),
     column_nulls: Array::make(@schema.field_count(output.buffer.schema), 0),
+    reference_rows: [],
     row_measurements: None,
     max_value_bytes,
     max_rows,
@@ -107,6 +113,7 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
   if value.row_measurements is Some(index) {
     discard_managed_row_measurements(index)
   }
+  value.reference_rows.clear()
   cancel_admitted_buffer(value.buffer) |> ignore
   true
 }
@@ -286,6 +293,18 @@ fn managed_output_row_finish(
         )
     }
   }
+  let references : Array[Array[@admitted.ReferenceValue]] = []
+  for column, value in stream.buffer.rows[0] {
+    match
+      collect_managed_references(value, stream.buffer.budget.limits.max_nodes) {
+      Some(found) => references.push(found)
+      None => {
+        cancel_managed_output_values(stream) |> ignore
+        return Err(ReferenceUnavailable(stream.rows, column))
+      }
+    }
+  }
+  stream.reference_rows.push(references)
   // Admission keeps running after a deferred measurement failure, as in the old
   // streamed output path. No successful receipt may conceal that failure.
   stream.buffer.rows.clear()
@@ -299,6 +318,14 @@ pub fn finish_managed_output_values(
 ) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue] {
   if !stream.open || stream.reading {
     return Err(Closed)
+  }
+  for row, cells in stream.reference_rows {
+    for column, references in cells {
+      if references.any(reference => !@admitted.reference_available(reference)) {
+        cancel_managed_output_values(stream) |> ignore
+        return Err(ReferenceUnavailable(row, column))
+      }
+    }
   }
   stream.open = false
   stream.buffer.open = false
@@ -376,9 +403,59 @@ pub fn finish_managed_output_values(
     column_usage: stream.column_usage.copy(),
     column_maxima: stream.column_maxima.copy(),
     column_nulls: stream.column_nulls.copy(),
+    reference_rows: stream.reference_rows.map(row => {
+      row.map(references => references.copy())
+    }),
     measured_depth: stream.measurement.depth,
     row_measurements: stream.row_measurements,
   })
+}
+
+///|
+/// Preserve only opaque authority handles while the ordinary row buffer is
+/// still available. Traversal is bounded by the already-admitted value limit.
+fn collect_managed_references(
+  value : @admitted.Value,
+  max_nodes : Int,
+) -> Array[@admitted.ReferenceValue]? {
+  let pending = [value]
+  let references = []
+  let mut remaining = max_nodes
+  while pending.pop() is Some(current) {
+    if remaining == 0 {
+      return None
+    }
+    remaining -= 1
+    match current {
+      @admitted.Reference(reference) => {
+        if !@admitted.reference_available(reference) {
+          return None
+        }
+        references.push(reference)
+      }
+      @admitted.Array(values) =>
+        for index = @admitted.element_count(values) - 1
+            index >= 0
+            index = index - 1 {
+          pending.push(@admitted.element_at(values, index).unwrap())
+        }
+      @admitted.Object(values) =>
+        for index = @admitted.element_count(values) - 1
+            index >= 0
+            index = index - 1 {
+          pending.push(@admitted.element_at(values, index).unwrap().1)
+        }
+      @admitted.Null
+      | @admitted.Boolean(_)
+      | @admitted.Number(_)
+      | @admitted.Text(_)
+      | @admitted.Date(_)
+      | @admitted.Timestamp(_)
+      | @admitted.Decimal(_)
+      | @admitted.Vector(_) => ()
+    }
+  }
+  Some(references)
 }
 
 ///|

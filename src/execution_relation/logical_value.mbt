@@ -10,6 +10,7 @@ pub(all) enum LogicalMeasureIssue {
   LogicalWorkLimit
   HostMeasureLimit
   WireMeasureFailure
+  ReferenceUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -114,6 +115,14 @@ fn measure_logical_value(
               return Err(LogicalWorkLimit)
             }
             nodes += count
+          }
+          @admitted.Reference(reference) => {
+            if !@admitted.reference_available(reference) {
+              return Err(ReferenceUnavailable)
+            }
+            if !text_weight(@admitted.reference_wire(reference)) {
+              return Err(LogicalWorkLimit)
+            }
           }
         }
       }

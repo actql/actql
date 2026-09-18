@@ -2972,7 +2972,7 @@
               "dedupe runs through the owned driver retaining payload and canonical group order",
               "global dedupe handles empty input and rejects only first-place ties",
               "unselected dedupe top tie fails the sequence without publishing an earlier output",
-              "dedupe rejects unsupported reference equality at preparation even for empty input",
+              "dedupe prepares owned reference equality before reading rows",
               "dedupe shares sequence work and enforces the exact execution boundary"
             ],
             "suite": "moon:execution_relation",

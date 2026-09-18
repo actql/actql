@@ -125,6 +125,7 @@ fn decode_retained_row(
   schema : @schema.Schema,
   text : String,
   limits : RetainedRowDecodeLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
 ) -> Result[Array[@admitted.CheckedValue], RetainedRowDecodeIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
@@ -161,7 +162,9 @@ fn decode_retained_row(
     Err(issue) => return Err(Decode(issue))
   }
   let width = @schema.field_count(schema)
-  if width > limits.max_nodes || @decode.object_length(cursor) != Some(width) {
+  if width > limits.max_nodes ||
+    @decode.object_length(cursor) != Some(width) ||
+    (reference_cells is Some(cells) && cells.length() != width) {
     return Err(InvalidShape)
   }
   let names = Array::makei(width, column => {
@@ -179,17 +182,63 @@ fn decode_retained_row(
       Some(cell) => cell
       None => return Err(InvalidShape)
     }
-    match
-      @admitted.admit(
-        @schema.field_at(schema, column).unwrap().contract,
-        cell,
-        {
+    let contract = @schema.field_at(schema, column).unwrap().contract
+    let used = Ref(0)
+    let references = match reference_cells {
+      Some(cells) => cells[column]
+      None => []
+    }
+    let admitted = match reference_cells {
+      Some(_) => {
+        let issuer = @admitted.bind_reference_reissuer((required, wire) => {
+          guard references.get(used.val) is Some(reference) &&
+            @admitted.reference_wire(reference) == wire &&
+            @admitted.reference_compatible(reference, required) else {
+            return None
+          }
+          used.val += 1
+          Some(reference)
+        })
+        @admitted.admit_host(
+          issuer,
+          contract,
+          cell,
+          {
+            max_nodes: limits.max_nodes,
+            max_text_bytes: limits.max_text_bytes,
+            max_depth: limits.max_depth,
+          },
+          {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_text_units: limits.max_text_bytes,
+          },
+        )
+      }
+      None =>
+        @admitted.admit(contract, cell, {
           max_nodes: limits.max_nodes,
           max_text_bytes: limits.max_text_bytes,
           max_depth: limits.max_depth,
-        },
-      ) {
-      Ok(value) => values.push(value)
+        })
+    }
+    match admitted {
+      Ok(value) => {
+        if used.val != references.length() {
+          return Err(
+            Value(
+              column,
+              @admitted.ValueIssue(
+                @admitted.InvalidReference,
+                path=@decode.cursor_path(cell),
+                span=@decode.cursor_span(cell),
+              ),
+            ),
+          )
+        }
+        values.push(value)
+      }
       Err(issue) => return Err(Value(column, issue))
     }
   }

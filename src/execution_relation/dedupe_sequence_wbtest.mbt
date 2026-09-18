@@ -114,7 +114,7 @@ test "unselected dedupe top tie fails the sequence without publishing an earlier
 }
 
 ///|
-test "dedupe rejects unsupported reference equality at preparation even for empty input" {
+test "dedupe prepares owned reference equality before reading rows" {
   let contract = @contract.read_author(
     input_cursor(
       "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"k\":{\"type\":\"resource_ref\",\"resource_kind\":\"file\",\"nullable\":true},\"rank\":{\"type\":\"number\",\"nullable\":false}}}",
@@ -150,7 +150,6 @@ test "dedupe rejects unsupported reference equality at preparation even for empt
   ).unwrap()
   let sequence = prepared_sequence(owner)
   for rows in [[], [input_cursor("{\"k\":null,\"rank\":1}")]] {
-    // Value admission accepts nullable absence; comparison capability does not.
     assert_true(
       capture_input(owner, 0, rows, max_rows=1, run_limits().input_values)
       is Ok(_),
@@ -164,7 +163,7 @@ test "dedupe rejects unsupported reference equality at preparation even for empt
         100000,
         10000,
       )
-      is Err(UnsupportedRowComparison(0, @schema.Unqualified("k"))),
+      is Ok(_),
     )
   }
 }

@@ -68,15 +68,18 @@ and operation-specific numerical restrictions belong to those consumers after
 their normative dependencies are resolved. Do not infer scoring readiness from a
 checked vector, or add an exact-f32-representability restriction here.
 
-A non-null value under a `resource_ref` or `artifact_ref` contract returns
-`UnsupportedReference`. This is an implementation scope restriction, not a language prohibition.
+Ordinary authored admission returns `UnsupportedReference` for a non-null value
+under a `resource_ref` or `artifact_ref` contract. A separate Host entry accepts
+such a value only through an opaque issuer bound to evidence validation and a
+current authorization check. Re-admission of retained rows requires the exact
+previously issued occurrence; canonical wire bytes alone cannot manufacture a
+new authority handle. This applies recursively inside arrays and objects.
+
 Null follows the ordinary nullability rule even under a Ref contract: nullable
-accepts the absence and non-nullable rejects it as `UnexpectedNull`. This also
-applies inside arrays and objects. Accepting absence does not issue a reference
-or make a structurally plausible non-null authored object authoritative.
-An empty array with a Ref item contract contains no visited Ref values and may
-pass. Reference envelope/CID validation, issuer evidence and current usage
-authorization require a separate boundary; authored JSON cannot establish them.
+accepts the absence and non-nullable rejects it as `UnexpectedNull`. Accepting
+absence does not issue a reference or make a structurally plausible non-null
+authored object authoritative. An empty array with a Ref item contract contains
+no visited Ref values and may pass ordinary authored admission.
 
 ## Budgets, diagnostics and ownership
 

@@ -142,6 +142,11 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
             b.nodes += count
             b.work += count
           }
+          @admitted.Reference(reference) =>
+            if !@admitted.reference_available(reference) ||
+              !charge_text(b, @admitted.reference_wire(reference)) {
+              return false
+            }
         }
       }
       ArrayNext(items, index, depth) =>

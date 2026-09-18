@@ -41,7 +41,8 @@ fn json_pick_value(
       | @admitted.Timestamp(_)
       | @admitted.Decimal(_)
       | @admitted.Array(_)
-      | @admitted.Vector(_) => return Err(InvalidRows)
+      | @admitted.Vector(_)
+      | @admitted.Reference(_) => return Err(InvalidRows)
     }
   }
   Ok(capture(current))

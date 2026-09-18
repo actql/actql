@@ -127,7 +127,7 @@ test "decimal comparison runs through checked map filter and immutable completio
 }
 
 ///|
-test "unsupported reference equality still fails preparation including unselected branches" {
+test "reference equality is prepared in selected and lazy branches" {
   let c = @contract.read_checked(
     input_cursor(
       "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
@@ -182,15 +182,22 @@ test "unsupported reference equality still fails preparation including unselecte
         registry_limits(),
         capability_limits(),
       )
-      is Err(Runtime(Capability(issue))) else {
-      fail("unsupported reference comparison")
+      is Ok(_) else {
+      fail("supported reference equality")
     }
-    assert_true(issue.kind is UnsupportedComparison(Equal))
-    assert_eq(issue.root.step_index, 0)
-    assert_eq(
-      @decode.text(@lower.expression_location(issue.expression).source).unwrap(),
-      expression,
-    )
-    assert_true(@lower.expression_location(issue.expression).range is Some(_))
   }
+}
+
+///|
+test "artifact equality ignores compatible media restrictions" {
+  let pdf = select_checked_contract(
+    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}",
+  )
+  let json = select_checked_contract(
+    "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+  )
+  assert_true(supported_comparison(pdf, json))
+  assert_true(supported_binary_comparison(Equal, pdf, json))
+  assert_true(supported_binary_comparison(NotEqual, pdf, json))
+  assert_false(supported_binary_comparison(Less, pdf, json))
 }

@@ -107,7 +107,8 @@ fn emit_bound_value(
           pending.push(ObjectRest(entries, fields, 0, escaped, false))
         }
         // Ordinary Parameter declaration admission excludes vector and Ref.
-        @value.Vector(_) => abort("invalid bound Parameter domain")
+        @value.Vector(_) | @value.Reference(_) =>
+          abort("invalid bound Parameter domain")
       }
     } else {
       match pending.pop().unwrap() {

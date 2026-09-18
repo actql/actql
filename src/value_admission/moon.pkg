@@ -6,12 +6,18 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/canonical_json" @identity,
   "actql/actql/source_span" @span,
+  "moonbitlang/core/json",
 }
 
 import {
   "actql/actql/source_value" @source,
 } for "test"
+
+import {
+  "actql/actql/source_value" @source,
+} for "wbtest"
 
 formatter(
   ignore: [ "corpus.generated_test.mbt", "values_execution.generated_test.mbt" ],

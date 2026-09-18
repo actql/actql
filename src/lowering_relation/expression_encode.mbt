@@ -201,6 +201,7 @@ fn emit_frames(
             @encode.begin_array(output)
             pending.push(Vectors(items, 0))
           }
+          @value.Reference(_) => abort("opaque reference literal")
         }
       Values(items, index) =>
         if @value.element_at(items, index) is Some(value) {

@@ -117,6 +117,8 @@ fn run(
   root : @decode.Cursor,
   contract : @contract.Contract,
   budget : Budget,
+  reference_issuer? : ReferenceIssuer,
+  reference_limits? : ReferenceLimits,
 ) -> Value raise Abort {
   reserve(root, 1, budget)
   let work : Array[Work] = [Read(root, Some(contract), 0)]
@@ -198,8 +200,32 @@ fn run(
             }
             values.push(Vector({ values: components, }))
           }
-          Some(@contract.ResourceRef(_)) | Some(@contract.ArtifactRef(_)) =>
-            fail(cursor, UnsupportedReference)
+          Some(@contract.ResourceRef(_)) | Some(@contract.ArtifactRef(_)) => {
+            guard reference_issuer is Some(issuer) &&
+              reference_limits is Some(limits) &&
+              expected is Some(reference_contract) else {
+              fail(cursor, UnsupportedReference)
+            }
+            let issued = match
+              issue_reference_cursor_usage(issuer, reference_contract, cursor, {
+                ..limits,
+                max_depth: Int::min(
+                  limits.max_depth,
+                  budget.max_depth - parent_depth,
+                ),
+              }) {
+              Ok(value) => value
+              Err(Unauthorized) => fail(cursor, UnauthorizedReference)
+              Err(_) => fail(cursor, InvalidReference)
+            }
+            let (checked, nodes, text) = issued
+            if nodes < 1 || nodes - 1 > budget.nodes || text > budget.text {
+              fail(cursor, BudgetExceeded)
+            }
+            budget.nodes -= nodes - 1
+            budget.text -= text
+            values.push(checked.value)
+          }
           Some(@contract.Array(_, max_items~)) => {
             let items = decoded(@decode.elements(cursor))
             if max_items is Some(n) && items.length().to_int64() > n {
@@ -314,6 +340,72 @@ pub fn admit_usage(
       max_depth: limits.max_depth,
     }
     let value = run(cursor, contract, budget)
+    Ok(
+      (
+        { contract, value, },
+        limits.max_nodes - budget.nodes,
+        limits.max_text_bytes - budget.text,
+      ),
+    )
+  } catch {
+    Abort(issue) => Err(issue)
+  }
+}
+
+///|
+/// Admit a value supplied by a trusted Host representation. The issuer proves
+/// reference provenance and retains current authorization; ordinary authored
+/// admission intentionally has no route to this entry.
+pub fn admit_host(
+  issuer : ReferenceIssuer,
+  contract : @contract.Contract,
+  cursor : @decode.Cursor,
+  limits : Limits,
+  reference_limits : ReferenceLimits,
+) -> Result[CheckedValue, Issue] {
+  match admit_host_usage(issuer, contract, cursor, limits, reference_limits) {
+    Ok((value, _, _)) => Ok(value)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Host admission with exact value-node and UTF-8 text usage.
+pub fn admit_host_usage(
+  issuer : ReferenceIssuer,
+  contract : @contract.Contract,
+  cursor : @decode.Cursor,
+  limits : Limits,
+  reference_limits : ReferenceLimits,
+) -> Result[(CheckedValue, Int, Int), Issue] {
+  if limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_text_bytes < 0 ||
+    reference_limits.max_bytes < 0 ||
+    reference_limits.max_nodes < 1 ||
+    reference_limits.max_depth < 0 ||
+    reference_limits.max_text_units < 0 {
+    return Err(
+      ValueIssue(
+        InvalidLimits,
+        path=@decode.cursor_path(cursor),
+        span=@decode.cursor_span(cursor),
+      ),
+    )
+  }
+  try {
+    let budget = {
+      nodes: limits.max_nodes,
+      text: limits.max_text_bytes,
+      max_depth: limits.max_depth,
+    }
+    let value = run(
+      cursor,
+      contract,
+      budget,
+      reference_issuer=issuer,
+      reference_limits~,
+    )
     Ok(
       (
         { contract, value, },

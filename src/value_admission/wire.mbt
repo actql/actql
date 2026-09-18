@@ -60,6 +60,7 @@ pub fn emit_wire_value(
             @encode.begin_array(output)
             pending.push(VectorNext(items, 0))
           }
+          Reference(reference) => emit_reference(reference, output)
         }
       ArrayNext(items, index) =>
         if items.values.get(index) is Some(child) {

@@ -8,6 +8,7 @@ priv enum KeyAtom {
   KeyDate(String)
   KeyTimestamp(String)
   KeyDecimal(String, Int)
+  KeyReference(String)
 } derive(Eq, Hash)
 
 ///|
@@ -112,6 +113,16 @@ fn validate_captured_keys(
               return Err(Limit)
             }
             KeyDecimal(d.coefficient, d.scale)
+          }
+          @admitted.Reference(reference) => {
+            if !@admitted.reference_available(reference) ||
+              !spend_control_text(
+                control,
+                @admitted.reference_identity_cid(reference),
+              ) {
+              return Err(Limit)
+            }
+            KeyReference(@admitted.reference_identity_cid(reference))
           }
           @admitted.Array(_) | @admitted.Object(_) | @admitted.Vector(_) =>
             return Err(UnsupportedKeyDomain)

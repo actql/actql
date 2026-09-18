@@ -37,6 +37,15 @@ fn[T : IndexedRows] dedupe_key_identity(
             | Date(_)
             | Timestamp(_)
             | Decimal(_) => emit_runtime_value(value, writer)
+            Reference(reference) => {
+              if !@admitted.reference_available(reference) {
+                return Err(Ordering(Scalar(InvalidOperand)))
+              }
+              @encode.string_value(
+                writer,
+                @admitted.reference_identity_cid(reference),
+              )
+            }
           }
       }
     }

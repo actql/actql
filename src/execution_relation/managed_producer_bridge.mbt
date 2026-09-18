@@ -8,6 +8,7 @@ struct ManagedProducerBridge[T] {
   rows : Ref[AdmittedOutputRows?]
   port : TrustedOutputPort[Unit]
   live : Ref[Bool]
+  mut imported_rows : Int
   mut finished : Bool
 }
 
@@ -69,7 +70,7 @@ pub fn[T] prepare_managed_producer_bridge(
       return Err(Completion(issue))
     }
   }
-  Ok({ input, admitted, rows, port, live, finished: false, })
+  Ok({ input, admitted, rows, port, live, imported_rows: 0, finished: false, })
 }
 
 ///|
@@ -88,7 +89,15 @@ pub fn[T] append_managed_producer_bridge_wire(
     return Err(Unavailable)
   }
   let schema = bridge.input.output.material.receipt.schema
-  let values = match decode_retained_row(schema, text, limits) {
+  guard bridge.input.output.material.receipt.reference_rows.get(
+      bridge.imported_rows,
+    )
+    is Some(source_references) else {
+    close_managed_producer_bridge(bridge)
+    return Err(Wire(InvalidShape))
+  }
+  let values = match
+    decode_retained_row(schema, text, limits, reference_cells=source_references) {
     Ok(values) => values
     Err(issue) => {
       close_managed_producer_bridge(bridge)
@@ -96,7 +105,10 @@ pub fn[T] append_managed_producer_bridge_wire(
     }
   }
   match append_admitted_output(bridge.admitted, values) {
-    Ok(_) => Ok(())
+    Ok(_) => {
+      bridge.imported_rows += 1
+      Ok(())
+    }
     Err(issue) => {
       close_managed_producer_bridge(bridge)
       Err(Admission(issue))
@@ -115,7 +127,8 @@ pub fn[T] finish_managed_producer_bridge(
 ) -> Result[ProducerRead, ManagedProducerBridgeIssue] {
   if !bridge.live.val ||
     bridge.finished ||
-    !managed_producer_read_available(bridge.input) {
+    !managed_producer_read_available(bridge.input) ||
+    bridge.imported_rows != bridge.input.output.material.receipt.rows {
     return Err(Closed)
   }
   bridge.finished = true

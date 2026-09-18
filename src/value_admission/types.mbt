@@ -17,6 +17,7 @@ pub enum Value {
   Array(FrozenArray[Value])
   Object(FrozenArray[(String, Value)])
   Vector(FrozenArray[Double])
+  Reference(ReferenceValue)
 }
 
 ///|
@@ -105,6 +106,8 @@ pub(all) enum IssueKind {
   ArrayConstraint
   VectorDimension
   UnsupportedReference
+  InvalidReference
+  UnauthorizedReference
   BudgetExceeded
 } derive(Eq, Debug)
 

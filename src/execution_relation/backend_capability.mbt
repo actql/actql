@@ -25,12 +25,25 @@ fn supported_comparison(
     Date => right.shape is @contract.Date
     Timestamp => right.shape is @contract.Timestamp
     Decimal(..) => right.shape is @contract.Decimal(..)
-    Json
-    | Array(_, ..)
-    | Object(_)
-    | Vector(..)
-    | ResourceRef(..)
-    | ArtifactRef(..) => false
+    ResourceRef(resource_kind=left_kind) =>
+      right.shape is @contract.ResourceRef(resource_kind=right_kind) &&
+      left_kind == right_kind
+    ArtifactRef(..) => right.shape is @contract.ArtifactRef(..)
+    Json | Array(_, ..) | Object(_) | Vector(..) => false
+  }
+}
+
+///|
+fn supported_binary_comparison(
+  operation : @lower.BinaryOperator,
+  left : @contract.Contract,
+  right : @contract.Contract,
+) -> Bool {
+  match left.shape {
+    ResourceRef(..) | ArtifactRef(..) =>
+      supported_comparison(left, right) &&
+      (operation is Equal || operation is NotEqual || operation is NullIf)
+    _ => supported_comparison(left, right)
   }
 }
 
@@ -86,7 +99,8 @@ fn check_backend_capabilities(
             | Greater
             | GreaterEqual
             | NullIf =>
-              if !supported_comparison(
+              if !supported_binary_comparison(
+                  op,
                   @lower.expression_contract(left),
                   @lower.expression_contract(right),
                 ) {

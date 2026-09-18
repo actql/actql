@@ -8,7 +8,7 @@ fn emit_runtime_value(
     Number(n) => @encode.number_value(writer, n)
     Boolean(b) => @encode.bool_value(writer, b)
     Text(s) => @encode.string_value(writer, s)
-    Captured(v) => @lower.emit_wire_value(v, writer)
+    Captured(v) => @admitted.emit_wire_value(v, writer)
   }
 }
 

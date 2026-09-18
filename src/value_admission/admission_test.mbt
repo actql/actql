@@ -78,6 +78,8 @@ fn outcome(
         @value_admission.ArrayConstraint => "ArrayConstraint"
         @value_admission.VectorDimension => "VectorDimension"
         @value_admission.UnsupportedReference => "UnsupportedReference"
+        @value_admission.InvalidReference => "InvalidReference"
+        @value_admission.UnauthorizedReference => "UnauthorizedReference"
         @value_admission.BudgetExceeded => "BudgetExceeded"
       }
   }

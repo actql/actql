@@ -62,6 +62,7 @@ fn admitted_rank(value : @admitted.Value) -> Int {
     @admitted.Array(_) => 7
     @admitted.Object(_) => 8
     @admitted.Vector(_) => 9
+    @admitted.Reference(_) => 10
   }
 }
 
@@ -99,6 +100,19 @@ fn compare_admitted_value(
       compare_admitted_objects(a, b, control)
     (@admitted.Vector(a), @admitted.Vector(b)) =>
       compare_admitted_vectors(a, b, control)
+    (@admitted.Reference(a), @admitted.Reference(b)) => {
+      if !@admitted.reference_available(a) || !@admitted.reference_available(b) {
+        return Err(Scalar(InvalidOperand))
+      }
+      if !@admitted.reference_same_domain(a, b) {
+        return Err(Scalar(ComparisonDomainNotImplemented))
+      }
+      compare_complete_text(
+        @admitted.reference_identity_cid(a),
+        @admitted.reference_identity_cid(b),
+        control,
+      )
+    }
     _ => Ok(Int::compare(admitted_rank(left), admitted_rank(right)))
   }
 }

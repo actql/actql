@@ -28,7 +28,8 @@ pub fn capture(value : @admitted.Value) -> Value {
     | @admitted.Decimal(_)
     | @admitted.Array(_)
     | @admitted.Object(_)
-    | @admitted.Vector(_) => Captured(value)
+    | @admitted.Vector(_)
+    | @admitted.Reference(_) => Captured(value)
   }
 }
 
@@ -84,6 +85,19 @@ fn compare(left : Value, right : Value) -> Result[Int, ScalarIssue] {
       Ok(@canonical.compare_utf16(a, b))
     (Captured(@admitted.Decimal(a)), Captured(@admitted.Decimal(b))) =>
       Ok(compare_decimal(a, b))
+    (Captured(@admitted.Reference(a)), Captured(@admitted.Reference(b))) =>
+      if !@admitted.reference_available(a) || !@admitted.reference_available(b) {
+        Err(InvalidOperand)
+      } else if !@admitted.reference_same_domain(a, b) {
+        Err(ComparisonDomainNotImplemented)
+      } else {
+        Ok(
+          @canonical.compare_utf16(
+            @admitted.reference_identity_cid(a),
+            @admitted.reference_identity_cid(b),
+          ),
+        )
+      }
     (Captured(_), _) | (_, Captured(_)) => Err(ComparisonDomainNotImplemented)
     _ => Err(InvalidOperand)
   }
@@ -138,6 +152,9 @@ fn charge_comparison_operand(budget : ControlBudget, value : Value) -> Bool {
     Captured(@admitted.Date(s)) | Captured(@admitted.Timestamp(s)) =>
       spend_control_text(budget, s)
     Captured(@admitted.Decimal(d)) => spend_control_text(budget, d.coefficient)
+    Captured(@admitted.Reference(reference)) =>
+      @admitted.reference_available(reference) &&
+      spend_control_text(budget, @admitted.reference_identity_cid(reference))
     Null | Number(_) | Boolean(_) | Captured(_) => true
   }
 }

@@ -897,6 +897,7 @@ pub(all) enum LogicalMeasureIssue {
   LogicalWorkLimit
   HostMeasureLimit
   WireMeasureFailure
+  ReferenceUnavailable
 } derive(Eq, @debug.Debug)
 
 type LogicalRelationIdentity
@@ -1026,6 +1027,7 @@ pub(all) enum ManagedOutputValueIssue {
   Guard(FixedInputGuardIssue)
   Closed
   MeasurementIndexLimit
+  ReferenceUnavailable(Int, Int)
 }
 
 type ManagedOutputValueReceipt

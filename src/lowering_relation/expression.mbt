@@ -343,6 +343,7 @@ fn charge_bound_literal(
         b.literal_nodes += count
         b.work += count
       }
+      @value.Reference(_) => abort("opaque reference literal")
     }
   }
 }
