@@ -4,7 +4,7 @@ Date: 2026-09-19
 
 Owner: common execution engine
 
-Verified implementation SHA: `1618a7211a9487ab9fbda282b9104facb9ea11a7`
+Verified implementation SHA: `4a0dc78ae40a7a5bd197dcd166941b2074918c20`
 
 Plan: [Run-Bound Named Result Publication Implementation][plan]
 
@@ -236,6 +236,10 @@ it does not serialize or send the Result again.
 Manifest access, Run-state access, Result retention extension, Result
 retirement, and metadata retirement use their separate installed authorities.
 Individual Result access does not require permission to inspect the Manifest.
+The Result request authority runs before Store resolution so denied callers
+cannot distinguish a missing, expired, deleted, or malformed internal target.
+After asynchronous authorization, the Host rechecks MoonBit-owned grant and
+retention rules immediately before starting each new sink write.
 
 ## 7. Acceptance evidence
 
@@ -248,9 +252,9 @@ Individual Result access does not require permission to inspect the Manifest.
 | Evidence | Negative MoonBit chain, Receipt, Captured Run, ordering, policy, and provenance tests |
 | Publication retry | Lost response, same-intent idempotency, conflict, and concurrent-race tests |
 | Publication unknown | Failed reconciliation remains unknown; fenced noncommit and cancellation tests |
-| Crash | Prepared payload, semantic pre-link, index durability, shared custody, and unpublished metadata restart tests |
+| Crash | Prepared payload, failed writer seal, semantic pre-link, index durability, shared custody, and unpublished metadata restart tests |
 | Availability | Available, partial, unavailable, expired, policy-unavailable, deleted, and Store-unknown tests |
-| Authorization | Manifest-only, Result-only, revoked, expired, wrong binding, use limit, and hidden absence tests |
+| Authorization | Request-stage denial, Manifest-only, Result-only, revoked, expiry races, wrong binding, use limit, and hidden state tests |
 | Retention | Extension, forbidden extension, trusted-clock rollback, active readers, deletion retry, and metadata deletion tests |
 | Formats | MoonBit fixed JSON, JSONL, and CSV vectors plus real standard Host delivery |
 | Delivery | Success, idempotency, empty-stream finish, byte-zero retry, known prefix, unknown exposure, record durability retry, sink failure, and corruption tests |
@@ -300,7 +304,7 @@ plan, which is unrelated to this branch and was not staged or modified.
 | `moon test --target native --deny-warn` | 4,591 passed |
 | `node scripts/check-moonbit-api.mjs` | pass |
 | `node --test scripts/moonbit-environment.test.mjs` | 3 passed |
-| `npm run check:retained-boundary` | 222 passed |
+| `npm run check:retained-boundary` | 223 passed |
 | `npm run check:publication-runtime` | 16 passed |
 | retained benchmark fixture tests | 26 passed |
 | `npm run check:process-capacity` | 15 passed |
