@@ -12,7 +12,13 @@ import {openSqliteDispatchJournal} from './sqlite-dispatch-journal.mjs';
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
 
-const request = (dispatchId, taskAttempt = 1, connectorRevision = 'local/1') =>
+const request = (
+  dispatchId,
+  taskAttempt = 1,
+  connectorRevision = 'local/1',
+  siteGeneration = 1,
+  runtimeBundleCid = cid('a'),
+) =>
   Object.freeze({
     coordinatorAuthority: 'coordinator-a',
     runDefinitionCid: cid('0'),
@@ -20,8 +26,8 @@ const request = (dispatchId, taskAttempt = 1, connectorRevision = 'local/1') =>
     taskAttempt,
     dispatchId,
     siteKey: 'site-a',
-    siteGeneration: 1,
-    runtimeBundleCid: cid('a'),
+    siteGeneration,
+    runtimeBundleCid,
     connectorRegistration: 'local',
     connectorRevision,
     strategyRevision: 'strategy/1',
@@ -31,11 +37,11 @@ const request = (dispatchId, taskAttempt = 1, connectorRevision = 'local/1') =>
     grantCid: cid('4'),
   });
 
-function site() {
+function site(generation = 1, runtimeRevision = cid('a')) {
   return runtime.siteControl.create(Object.freeze({
     key: 'site-a',
-    generation: 1,
-    runtimeRevision: cid('a'),
+    generation,
+    runtimeRevision,
     maxConcurrentOperations: 4,
     maxConcurrentTransfers: 4,
     maxRetainedBytes: 1_048_576n,
@@ -49,6 +55,7 @@ async function fixture(t, options = {}) {
   const store = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
     siteGeneration: 1,
+    runtimeRevision: cid('a'),
     ...options,
   });
   t.after(() => store.close());
@@ -84,6 +91,7 @@ test('reopen reconciles exact resend and rejects durable collisions', async t =>
   const reopened = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
     siteGeneration: 1,
+    runtimeRevision: cid('a'),
   });
   t.after(() => reopened.close());
   const recoveredJournal = control.createJournal(site());
@@ -155,6 +163,7 @@ test('durable transitions restore before later execution progress', async t => {
   const reopened = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
     siteGeneration: 1,
+    runtimeRevision: cid('a'),
   });
   t.after(() => reopened.close());
   const recoveredJournal = control.createJournal(site());
@@ -197,6 +206,7 @@ test('evidence and cleanup planes persist independently', async t => {
   const reopened = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
     siteGeneration: 1,
+    runtimeRevision: cid('a'),
   });
   t.after(() => reopened.close());
   const recoveredJournal = control.createJournal(site());
@@ -233,6 +243,102 @@ test('force loss durably quarantines before revoking Site authority', async t =>
   assert.equal(siteControl.revoked(controlledSite), true);
   store.advance(control.prepareLossRecovery(record), record, control);
   assert.deepEqual(control.status(record), [6, 0, 5, 0, 0]);
+});
+
+test('generation restart persists unknown work before new admission', async t => {
+  const {root, store} = await fixture(t);
+  const control = runtime.remoteSiteControl;
+  const journal = control.createJournal(site());
+  const prepared = control.prepare(request('dispatch-a'));
+  const record = store.accept(
+    control.prepareAdmission(journal, prepared),
+    prepared,
+    control,
+  );
+  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareExecution(record), record, control);
+  const nextRevision = cid('c');
+  const restart = control.prepareRestart(journal, site(2, nextRevision));
+  assert.equal(store.restart(restart, control), 1);
+  assert.deepEqual(control.status(record), [6, 0, 3, 0, 0]);
+
+  const nextRequest = control.prepare(
+    request('dispatch-b', 2, 'local/1', 2, nextRevision),
+  );
+  const nextRecord = store.accept(
+    control.prepareAdmission(journal, nextRequest),
+    nextRequest,
+    control,
+  );
+  assert.deepEqual(control.status(nextRecord), [0, 0, 0, 0, 0]);
+  store.advance(control.prepareRelease(record), record, control);
+  store.advance(control.prepareReleased(record), record, control);
+  assert.deepEqual(control.status(record), [6, 0, 2, 0, 0]);
+  store.close();
+
+  assert.throws(() => openSqliteDispatchJournal(root, {
+    siteKey: 'site-a',
+    siteGeneration: 1,
+    runtimeRevision: cid('a'),
+  }), {code: 'RemoteJournalGenerationMismatch'});
+  const reopened = openSqliteDispatchJournal(root, {
+    siteKey: 'site-a',
+    siteGeneration: 2,
+    runtimeRevision: nextRevision,
+  });
+  t.after(() => reopened.close());
+  const recoveredJournal = control.createJournal(site(2, nextRevision));
+  const history = reopened.recoverJournal(recoveredJournal, control);
+  assert.equal(history.length, 2);
+  assert.deepEqual(control.status(history[0].record), [6, 0, 2, 0, 0]);
+  assert.deepEqual(control.status(history[1].record), [0, 0, 0, 0, 0]);
+  const recoveredRequest = control.prepare(
+    request('dispatch-b', 2, 'local/1', 2, nextRevision),
+  );
+  const recovered = reopened.accept(
+    control.prepareAdmission(recoveredJournal, recoveredRequest),
+    recoveredRequest,
+    control,
+  );
+  assert.deepEqual(control.status(recovered), [0, 0, 0, 0, 0]);
+});
+
+test('Agent restart recovers old work before changing generation', async t => {
+  const {root, store} = await fixture(t);
+  const control = runtime.remoteSiteControl;
+  const firstJournal = control.createJournal(site());
+  const prepared = control.prepare(request('dispatch-a'));
+  const record = store.accept(
+    control.prepareAdmission(firstJournal, prepared),
+    prepared,
+    control,
+  );
+  store.advance(control.prepareProvisioning(record), record, control);
+  store.advance(control.prepareExecution(record), record, control);
+  store.close();
+
+  const restarted = openSqliteDispatchJournal(root, {
+    siteKey: 'site-a',
+    siteGeneration: 1,
+    runtimeRevision: cid('a'),
+  });
+  t.after(() => restarted.close());
+  const recoveredJournal = control.createJournal(site());
+  const recovered = restarted.recoverJournal(recoveredJournal, control);
+  assert.equal(recovered.length, 1);
+  assert.deepEqual(control.status(recovered[0].record), [2, 0, 0, 0, 0]);
+  const nextRevision = cid('c');
+  const restart = control.prepareRestart(
+    recoveredJournal,
+    site(2, nextRevision),
+  );
+  assert.equal(restarted.restart(restart, control), 1);
+  assert.deepEqual(control.status(recovered[0].record), [6, 0, 3, 0, 0]);
+  assert.deepEqual(restarted.configuration(), {
+    siteKey: 'site-a',
+    siteGeneration: 2,
+    runtimeRevision: nextRevision,
+  });
 });
 
 test('journal migration preserves accepted request identity', async t => {
@@ -283,6 +389,7 @@ test('journal migration preserves accepted request identity', async t => {
   const migrated = openSqliteDispatchJournal(root, {
     siteKey: 'site-a',
     siteGeneration: 1,
+    runtimeRevision: cid('a'),
   });
   t.after(() => migrated.close());
   const journal = control.createJournal(site());

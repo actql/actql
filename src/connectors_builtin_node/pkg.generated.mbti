@@ -292,6 +292,8 @@ pub fn strategy_remote_force_loss_key(@remote_site_protocol.ForceLossTransition)
 
 pub fn strategy_remote_force_loss_projection(@remote_site_protocol.ForceLossTransition) -> Array[String]
 
+pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
 pub fn strategy_remote_journal_create(@execution_site.ExecutionSite) -> @remote_site_protocol.SiteDispatchJournal raise NodeHostFailure
 
 pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
@@ -314,6 +316,8 @@ pub fn strategy_remote_prepare_release(@remote_site_protocol.DispatchRecord) -> 
 
 pub fn strategy_remote_prepare_released(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_prepare_restart(@remote_site_protocol.SiteDispatchJournal, @execution_site.ExecutionSite) -> @remote_site_protocol.SiteRestartTransition raise NodeHostFailure
+
 pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, String, String) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
@@ -325,6 +329,14 @@ pub fn strategy_remote_record_restore(@remote_site_protocol.DispatchRecord, Int,
 pub fn strategy_remote_record_revision(@remote_site_protocol.DispatchRecord) -> Int
 
 pub fn strategy_remote_record_status(@remote_site_protocol.DispatchRecord) -> Array[Int]
+
+pub fn strategy_remote_restart_at(@remote_site_protocol.SiteRestartTransition, Int) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_restart_commit(@remote_site_protocol.SiteRestartTransition, Bool) -> Int raise NodeHostFailure
+
+pub fn strategy_remote_restart_count(@remote_site_protocol.SiteRestartTransition) -> Int
+
+pub fn strategy_remote_restart_metadata(@remote_site_protocol.SiteRestartTransition) -> Array[String]
 
 pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
 

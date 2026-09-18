@@ -15,6 +15,8 @@ pub fn commit_dispatch_transition(DispatchTransition, Bool) -> Result[Unit, Disp
 
 pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssue]
 
+pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
+
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
 pub fn dispatch_admission_kind(DispatchAdmission) -> DispatchAcceptance
@@ -71,15 +73,23 @@ pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTrans
 
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
+pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
+
 pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
 
-pub fn restart_site_generation(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[Int, DispatchIssue]
-
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
+
+pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
 
 pub fn site_dispatch_generation(SiteDispatchJournal) -> Int
 
 pub fn site_dispatch_protocol_version(SiteDispatchJournal) -> String
+
+pub fn site_restart_metadata(SiteRestartTransition) -> Array[String]
+
+pub fn site_restart_transition_at(SiteRestartTransition, Int) -> DispatchTransition?
+
+pub fn site_restart_transition_count(SiteRestartTransition) -> Int
 
 pub fn stop_site_admission(SiteDispatchJournal) -> Unit
 
@@ -106,6 +116,7 @@ pub(all) enum DispatchIssue {
   DispatchIdentityMismatch
   DurabilityUnconfirmed
   StateCollision
+  QuarantinedCapacity
 } derive(Eq, @debug.Debug)
 
 type DispatchRecord
@@ -143,6 +154,8 @@ pub(all) enum RemoteExecutionState {
 } derive(Eq, @debug.Debug)
 
 type SiteDispatchJournal
+
+type SiteRestartTransition
 
 // Type aliases
 

@@ -38,10 +38,12 @@ function transaction(database, body) {
 export function openSqliteDispatchJournal(root, {
   siteKey,
   siteGeneration,
+  runtimeRevision,
   maxDispatches = 100_000,
   maxRequestBytes = 65_536,
 } = {}) {
   if (!text(root) || !text(siteKey) || !count(siteGeneration) ||
+      !text(runtimeRevision) ||
       !count(maxDispatches) || maxDispatches === 0 ||
       !count(maxRequestBytes) || maxRequestBytes === 0) {
     fail('InvalidRemoteJournalConfiguration');
@@ -49,6 +51,8 @@ export function openSqliteDispatchJournal(root, {
   mkdirSync(root, {recursive: true, mode: 0o700});
   const directory = realpathSync(root);
   const path = join(directory, 'dispatch-journal.sqlite3');
+  let currentGeneration = siteGeneration;
+  let currentRuntimeRevision = runtimeRevision;
   const existed = existsSync(path);
   const database = new DatabaseSync(path, {
     open: true,
@@ -130,8 +134,47 @@ export function openSqliteDispatchJournal(root, {
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
         ).run('actql-remote-site-journal/0.2', 'schema_version');
-      } else if (version.value !== 'actql-remote-site-journal/0.2') {
+      } else if (version.value !== 'actql-remote-site-journal/0.2' &&
+          version.value !== 'actql-remote-site-journal/0.3') {
         fail('UnsupportedRemoteJournalVersion');
+      }
+    });
+    transaction(database, () => {
+      const version = database.prepare(
+        'SELECT value FROM journal_metadata WHERE key = ?',
+      ).get('schema_version');
+      if (version?.value === 'actql-remote-site-journal/0.2') {
+        const foreign = database.prepare(`
+          SELECT COUNT(*) AS count FROM dispatches WHERE site_key != ?
+        `).get(siteKey);
+        const newest = database.prepare(`
+          SELECT MAX(site_generation) AS generation FROM dispatches
+        `).get();
+        if (Number(foreign.count) !== 0 ||
+            (newest.generation !== null &&
+            Number(newest.generation) > siteGeneration)) {
+          fail('ForeignRemoteJournalSite');
+        }
+        const insert = database.prepare(
+          'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
+        );
+        insert.run('site_key', siteKey);
+        insert.run('site_generation', String(siteGeneration));
+        insert.run('runtime_revision', runtimeRevision);
+        database.prepare(
+          'UPDATE journal_metadata SET value = ? WHERE key = ?',
+        ).run('actql-remote-site-journal/0.3', 'schema_version');
+      } else if (version?.value !== 'actql-remote-site-journal/0.3') {
+        fail('UnsupportedRemoteJournalVersion');
+      }
+      const metadata = Object.fromEntries(database.prepare(`
+        SELECT key, value FROM journal_metadata
+        WHERE key IN ('site_key', 'site_generation', 'runtime_revision')
+      `).all().map(row => [row.key, row.value]));
+      if (metadata.site_key !== siteKey ||
+          metadata.site_generation !== String(siteGeneration) ||
+          metadata.runtime_revision !== runtimeRevision) {
+        fail('RemoteJournalGenerationMismatch');
       }
     });
     if (!existed) syncDirectory(directory);
@@ -148,6 +191,14 @@ export function openSqliteDispatchJournal(root, {
     FROM dispatches
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
+  `);
+  const selectAllDispatches = database.prepare(`
+    SELECT dispatch_request_cid, request_json, revision, execution_state,
+      evidence_state, cleanup_state, material_available,
+      quarantined_capacity, material_generation, holding_evidence_cid,
+      execution_evidence_cid
+    FROM dispatches
+    ORDER BY coordinator_authority, site_generation, dispatch_id
   `);
   const selectAttempt = database.prepare(`
     SELECT dispatch_id, dispatch_request_cid
@@ -209,6 +260,37 @@ export function openSqliteDispatchJournal(root, {
       row.execution_evidence_cid,
     ]);
   };
+  const requestFromRow = (row, control) => {
+    let body;
+    try { body = JSON.parse(row.request_json); }
+    catch (error) { fail('InvalidRemoteJournalRequest', error); }
+    if (body === null || typeof body !== 'object' || Array.isArray(body) ||
+        body.version !== 'actql-remote-dispatch-request/0.1') {
+      fail('InvalidRemoteJournalRequest');
+    }
+    const request = control.admit(Object.freeze({
+      coordinatorAuthority: body.coordinator_authority,
+      runDefinitionCid: body.run_definition_cid,
+      taskKey: body.task_key,
+      taskAttempt: body.task_attempt,
+      dispatchId: body.dispatch_id,
+      dispatchRequestCid: row.dispatch_request_cid,
+      siteKey: body.site_key,
+      siteGeneration: body.site_generation,
+      runtimeBundleCid: body.runtime_bundle_cid,
+      connectorRegistration: body.connector_registration,
+      connectorRevision: body.connector_revision,
+      strategyRevision: body.strategy_revision,
+      inputBindingCid: body.input_binding_cid,
+      obligationsCid: body.obligations_cid,
+      budgetCid: body.budget_cid,
+      grantCid: body.grant_cid,
+    }));
+    if (control.requestJson(request) !== row.request_json) {
+      fail('InvalidRemoteJournalRequest');
+    }
+    return request;
+  };
   const parseProjection = value => {
     if (!Array.isArray(value) || value.length !== 18 ||
         value.some(item => typeof item !== 'string')) {
@@ -255,34 +337,40 @@ export function openSqliteDispatchJournal(root, {
   const equalState = (left, right) =>
     left.length === right.length &&
     left.every((value, index) => value === right[index]);
-  const persistTransition = (key, projection, revision) => {
+  const preparePhysicalTransition = (key, projection, revision) => {
+    const generation = Number(key?.[2]);
     if (!Array.isArray(key) || key.length !== 7 ||
         key.some(value => !text(value)) || key[1] !== siteKey ||
-        Number(key[2]) !== siteGeneration) {
+        !count(generation) || generation > currentGeneration) {
       fail('ForeignRemoteJournalSite');
     }
     const states = parseProjection(projection);
-    if (revision !== states.expected[0]) {
+    if (revision !== undefined && revision !== states.expected[0]) {
       fail('RemoteDispatchStateCollision');
     }
-    transaction(database, () => {
-      const found = selectDispatch.get(
-        key[0], key[1], Number(key[2]), key[3],
-      );
-      if (found === undefined) fail('RemoteJournalRecordMissing');
-      const current = rowState(found);
-      if (equalState(current, states.next)) return;
-      if (!equalState(current, states.expected)) {
-        fail('RemoteDispatchStateCollision');
-      }
-      const result = updateDispatch.run(
-        ...states.next,
-        key[0], key[1], Number(key[2]), key[3],
-        ...states.expected,
-      );
-      if (result.changes !== 1) fail('RemoteDispatchStateCollision');
-    });
+    return Object.freeze({key, generation, states});
+  };
+  const persistPhysicalTransition = prepared => {
+    const {key, generation, states} = prepared;
+    const found = selectDispatch.get(key[0], key[1], generation, key[3]);
+    if (found === undefined) fail('RemoteJournalRecordMissing');
+    const current = rowState(found);
+    if (equalState(current, states.next)) return states;
+    if (!equalState(current, states.expected)) {
+      fail('RemoteDispatchStateCollision');
+    }
+    const result = updateDispatch.run(
+      ...states.next,
+      key[0], key[1], generation, key[3],
+      ...states.expected,
+    );
+    if (result.changes !== 1) fail('RemoteDispatchStateCollision');
     return states;
+  };
+  const persistTransition = (key, projection, revision) => {
+    const prepared = preparePhysicalTransition(key, projection, revision);
+    transaction(database, () => persistPhysicalTransition(prepared));
+    return prepared.states;
   };
   const install = (request, requestJson, control) => {
     ensureOpen();
@@ -300,7 +388,7 @@ export function openSqliteDispatchJournal(root, {
     }
     const generation = Number(key[2]);
     const attempt = Number(key[6]);
-    if (key[1] !== siteKey || generation !== siteGeneration ||
+    if (key[1] !== siteKey || generation !== currentGeneration ||
         !count(generation) || !count(attempt) || attempt === 0) {
       fail('ForeignRemoteJournalSite');
     }
@@ -329,6 +417,31 @@ export function openSqliteDispatchJournal(root, {
 
   return Object.freeze({
     path,
+    configuration() {
+      ensureOpen();
+      return Object.freeze({
+        siteKey,
+        siteGeneration: currentGeneration,
+        runtimeRevision: currentRuntimeRevision,
+      });
+    },
+    recoverJournal(journal, control) {
+      ensureOpen();
+      if (control === null || typeof control !== 'object' ||
+          typeof control.admit !== 'function' ||
+          typeof control.restoreHistorical !== 'function' ||
+          typeof control.restore !== 'function') {
+        fail('MissingRemoteSiteControl');
+      }
+      const recovered = [];
+      for (const row of selectAllDispatches.all()) {
+        const request = requestFromRow(row, control);
+        const record = control.restoreHistorical(journal, request);
+        control.restore(record, stateFromRow(row));
+        recovered.push(Object.freeze({request, record}));
+      }
+      return Object.freeze(recovered);
+    },
     accept(admission, request, control) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
@@ -392,6 +505,78 @@ export function openSqliteDispatchJournal(root, {
         fail('RemoteJournalControlDiverged');
       }
       return record;
+    },
+    restart(restart, control) {
+      ensureOpen();
+      if (control === null || typeof control !== 'object' ||
+          typeof control.restartMetadata !== 'function' ||
+          typeof control.restartCount !== 'function' ||
+          typeof control.restartAt !== 'function' ||
+          typeof control.transitionKey !== 'function' ||
+          typeof control.transitionProjection !== 'function' ||
+          typeof control.commitRestart !== 'function') {
+        fail('MissingRemoteSiteControl');
+      }
+      const metadata = control.restartMetadata(restart);
+      if (!Array.isArray(metadata) || metadata.length !== 4 ||
+          metadata.some(value => !text(value))) {
+        fail('InvalidRemoteJournalRestart');
+      }
+      const oldGeneration = Number(metadata[1]);
+      const newGeneration = Number(metadata[2]);
+      if (metadata[0] !== siteKey || oldGeneration !== currentGeneration ||
+          !count(newGeneration) || newGeneration <= oldGeneration) {
+        fail('RemoteJournalGenerationMismatch');
+      }
+      const total = control.restartCount(restart);
+      if (!count(total) || total > maxDispatches) {
+        fail('InvalidRemoteJournalRestart');
+      }
+      const transitions = [];
+      for (let index = 0; index < total; index++) {
+        const transition = control.restartAt(restart, index);
+        transitions.push(preparePhysicalTransition(
+          control.transitionKey(transition),
+          control.transitionProjection(transition),
+          undefined,
+        ));
+      }
+      transaction(database, () => {
+        const storedGeneration = database.prepare(`
+          SELECT value FROM journal_metadata WHERE key = 'site_generation'
+        `).get()?.value;
+        const storedRevision = database.prepare(`
+          SELECT value FROM journal_metadata WHERE key = 'runtime_revision'
+        `).get()?.value;
+        const alreadyCommitted = storedGeneration === String(newGeneration) &&
+          storedRevision === metadata[3];
+        if (!alreadyCommitted &&
+            (storedGeneration !== String(oldGeneration) ||
+            storedRevision !== currentRuntimeRevision)) {
+          fail('RemoteJournalGenerationMismatch');
+        }
+        for (const transition of transitions) {
+          persistPhysicalTransition(transition);
+        }
+        if (!alreadyCommitted) {
+          const generationUpdate = database.prepare(`
+            UPDATE journal_metadata SET value = ?
+            WHERE key = 'site_generation' AND value = ?
+          `).run(String(newGeneration), String(oldGeneration));
+          const revisionUpdate = database.prepare(`
+            UPDATE journal_metadata SET value = ?
+            WHERE key = 'runtime_revision' AND value = ?
+          `).run(metadata[3], currentRuntimeRevision);
+          if (generationUpdate.changes !== 1 || revisionUpdate.changes !== 1) {
+            fail('RemoteJournalGenerationMismatch');
+          }
+        }
+      });
+      const affected = control.commitRestart(restart, true);
+      if (affected !== total) fail('RemoteJournalControlDiverged');
+      currentGeneration = newGeneration;
+      currentRuntimeRevision = metadata[3];
+      return affected;
     },
     inspect(request, control) {
       ensureOpen();

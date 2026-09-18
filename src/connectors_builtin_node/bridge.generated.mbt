@@ -2683,6 +2683,58 @@ pub fn strategy_remote_force_loss_commit(
 }
 
 ///|
+#export_name("strategyRemotePrepareRestart")
+pub fn strategy_remote_prepare_restart(
+  journal : @remote.SiteDispatchJournal,
+  replacement : @site.ExecutionSite,
+) -> @remote.SiteRestartTransition raise NodeHostFailure {
+  match @remote.prepare_site_generation_restart(journal, replacement) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRestartCount")
+pub fn strategy_remote_restart_count(
+  restart : @remote.SiteRestartTransition,
+) -> Int {
+  @remote.site_restart_transition_count(restart)
+}
+
+///|
+#export_name("strategyRemoteRestartAt")
+pub fn strategy_remote_restart_at(
+  restart : @remote.SiteRestartTransition,
+  index : Int,
+) -> @remote.DispatchTransition raise NodeHostFailure {
+  match @remote.site_restart_transition_at(restart, index) {
+    Some(value) => value
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRemoteRestartMetadata")
+pub fn strategy_remote_restart_metadata(
+  restart : @remote.SiteRestartTransition,
+) -> Array[String] {
+  @remote.site_restart_metadata(restart)
+}
+
+///|
+#export_name("strategyRemoteRestartCommit")
+pub fn strategy_remote_restart_commit(
+  restart : @remote.SiteRestartTransition,
+  durable : Bool,
+) -> Int raise NodeHostFailure {
+  match @remote.commit_site_generation_restart(restart, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteTransitionProjection")
 pub fn strategy_remote_transition_projection(
   transition : @remote.DispatchTransition,
@@ -2744,6 +2796,18 @@ pub fn strategy_remote_record_restore(
       material_generation, holding_evidence_cid, execution_evidence_cid,
     ) {
     Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteHistoricalRestore")
+pub fn strategy_remote_historical_restore(
+  journal : @remote.SiteDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.restore_historical_dispatch(journal, request) {
+    Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
 }

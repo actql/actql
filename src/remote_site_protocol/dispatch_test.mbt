@@ -79,6 +79,17 @@ fn settle(record : DispatchRecord) -> Unit {
 }
 
 ///|
+fn restart(
+  state : SiteDispatchJournal,
+  replacement : @site.ExecutionSite,
+) -> Int {
+  commit_site_generation_restart(
+    prepare_site_generation_restart(state, replacement).unwrap(),
+    true,
+  ).unwrap()
+}
+
+///|
 test "dispatch retransmission reconciles without admitting another attempt" {
   let state = journal()
   let bundle = cid(
@@ -223,14 +234,14 @@ test "restart changes generation without reviving old authority" {
   provision(record)
   execute(record)
   assert_eq(
-    restart_site_generation(
+    restart(
       state,
       replacement_site(
         2,
         cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
       ),
     ),
-    Ok(1),
+    1,
   )
   let (execution, _, cleanup, available, _) = dispatch_record_state(record)
   assert_eq(execution, ExecutionUnknown)
@@ -271,13 +282,13 @@ test "restart preserves settled history but requires current availability" {
     true,
   ).unwrap()
   ignore(
-    restart_site_generation(
+    restart(
       state,
       replacement_site(
         2,
         cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
       ),
-    ).unwrap(),
+    ),
   )
   let (execution, evidence, cleanup, available, _) = dispatch_record_state(
     record,
@@ -336,6 +347,16 @@ test "force loss quarantines capacity until exact late cleanup" {
   assert_eq(cleanup, CleanupForceLost)
   assert_false(available)
   assert_true(quarantined)
+  assert_true(
+    prepare_site_generation_restart(
+      state,
+      replacement_site(
+        2,
+        cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+      ),
+    )
+    is Err(QuarantinedCapacity),
+  )
   commit_dispatch_transition(
     prepare_reconcile_cleanup_after_loss(record).unwrap(),
     true,
@@ -347,4 +368,14 @@ test "force loss quarantines capacity until exact late cleanup" {
   assert_false(restored)
   assert_false(still_quarantined)
   assert_false(remote_completion_evidence_available(record))
+  assert_true(
+    prepare_site_generation_restart(
+      state,
+      replacement_site(
+        2,
+        cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+      ),
+    )
+    is Err(QuarantinedCapacity),
+  )
 }

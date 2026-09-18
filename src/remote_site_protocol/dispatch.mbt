@@ -72,6 +72,7 @@ pub(all) enum DispatchIssue {
   DispatchIdentityMismatch
   DurabilityUnconfirmed
   StateCollision
+  QuarantinedCapacity
 } derive(Eq, Debug)
 
 ///|
@@ -111,6 +112,17 @@ struct DispatchTransition {
 struct ForceLossTransition {
   journal : SiteDispatchJournal
   transition : DispatchTransition
+}
+
+///|
+/// A generation restart is one durable metadata transition plus the exact
+/// record transitions made unknown by loss of the old Agent process.
+struct SiteRestartTransition {
+  journal : SiteDispatchJournal
+  replacement : @site.ExecutionSite
+  expected_generation : Int
+  transitions : Array[DispatchTransition]
+  mut consumed : Bool
 }
 
 ///|
@@ -457,6 +469,51 @@ pub fn commit_dispatch_acceptance(
 }
 
 ///|
+/// Reinstall an exact durable historical request after process restart. This
+/// does not authorize execution and accepts only this Site's prior generation.
+pub fn restore_historical_dispatch(
+  journal : SiteDispatchJournal,
+  request : DispatchRequest,
+) -> Result[DispatchRecord, DispatchIssue] {
+  if !valid_request(request) {
+    return Err(InvalidDispatch)
+  }
+  if request.site_key != @site.site_key(journal.site) {
+    return Err(ForeignSite)
+  }
+  if request.site_generation > @site.site_generation(journal.site) {
+    return Err(StaleSiteGeneration)
+  }
+  let key = dispatch_key(request)
+  match journal.dispatches.get(key) {
+    Some(record) =>
+      if record.request.dispatch_request_cid == request.dispatch_request_cid {
+        Ok(record)
+      } else {
+        Err(DispatchCollision)
+      }
+    None => {
+      let occurrence = attempt_key(request)
+      if journal.attempts.contains(occurrence) {
+        return Err(AttemptAlreadyDispatched)
+      }
+      let record = {
+        request,
+        revision: 0,
+        execution: Accepted,
+        evidence: NoEvidence,
+        cleanup: CleanupActive,
+        material_available: false,
+        quarantined_capacity: false,
+      }
+      journal.dispatches[key] = record
+      journal.attempts[occurrence] = key
+      Ok(record)
+    }
+  }
+}
+
+///|
 pub fn dispatch_admission_kind(
   admission : DispatchAdmission,
 ) -> DispatchAcceptance {
@@ -567,15 +624,27 @@ pub fn commit_dispatch_transition(
   if !durable {
     return Err(DurabilityUnconfirmed)
   }
-  let record = transition.record
-  if record.revision != transition.expected_revision ||
-    record.execution != transition.expected_execution ||
-    record.evidence != transition.expected_evidence ||
-    record.cleanup != transition.expected_cleanup ||
-    record.material_available != transition.expected_material_available ||
-    record.quarantined_capacity != transition.expected_quarantined_capacity {
+  if !transition_matches_current(transition) {
     return Err(StateCollision)
   }
+  apply_transition(transition)
+  Ok(())
+}
+
+///|
+fn transition_matches_current(transition : DispatchTransition) -> Bool {
+  let record = transition.record
+  record.revision == transition.expected_revision &&
+  record.execution == transition.expected_execution &&
+  record.evidence == transition.expected_evidence &&
+  record.cleanup == transition.expected_cleanup &&
+  record.material_available == transition.expected_material_available &&
+  record.quarantined_capacity == transition.expected_quarantined_capacity
+}
+
+///|
+fn apply_transition(transition : DispatchTransition) -> Unit {
+  let record = transition.record
   record.execution = transition.next_execution
   record.evidence = transition.next_evidence
   record.cleanup = transition.next_cleanup
@@ -583,7 +652,11 @@ pub fn commit_dispatch_transition(
   record.quarantined_capacity = transition.next_quarantined_capacity
   record.revision += 1
   transition.consumed = true
-  Ok(())
+}
+
+///|
+fn transition_has_state_collision(transition : DispatchTransition) -> Bool {
+  transition.consumed || !transition_matches_current(transition)
 }
 
 ///|
@@ -835,30 +908,85 @@ pub fn prepare_reconcile_cleanup_after_loss(
 /// Starting a new Agent generation invalidates old execution authority. Old
 /// terminal facts remain queryable, while current material availability must
 /// be established again through a separate physical check.
-pub fn restart_site_generation(
+pub fn prepare_site_generation_restart(
   journal : SiteDispatchJournal,
   replacement : @site.ExecutionSite,
-) -> Result[Int, DispatchIssue] {
+) -> Result[SiteRestartTransition, DispatchIssue] {
   if @site.site_key(replacement) != @site.site_key(journal.site) ||
     @site.site_generation(replacement) <= @site.site_generation(journal.site) ||
     !valid_cid(@site.site_runtime_revision(replacement)) {
     return Err(InvalidJournal)
   }
-  let mut affected = 0
+  if @site.site_revoked(journal.site) {
+    return Err(QuarantinedCapacity)
+  }
+  let transitions : Array[DispatchTransition] = []
+  let mut quarantined = false
   journal.dispatches.each((_, record) => {
+    if record.quarantined_capacity || record.cleanup == CleanupForceLost {
+      quarantined = true
+    }
     if record.cleanup != CleanupReleased &&
       record.cleanup != CleanupRecoveredAfterLoss {
-      match record.execution {
-        Accepted | Provisioning | Running => record.execution = ExecutionUnknown
-        _ => ()
+      let execution = match record.execution {
+        Accepted | Provisioning | Running => ExecutionUnknown
+        state => state
       }
-      record.cleanup = CleanupUnknown
-      record.material_available = false
-      affected += 1
+      if execution != record.execution ||
+        record.cleanup != CleanupUnknown ||
+        record.material_available {
+        transitions.push(
+          prepare_transition(
+            record,
+            execution,
+            record.evidence,
+            CleanupUnknown,
+            false,
+            record.quarantined_capacity,
+          ),
+        )
+      }
     }
   })
-  journal.site = replacement
-  Ok(affected)
+  if quarantined {
+    return Err(QuarantinedCapacity)
+  }
+  Ok({
+    journal,
+    replacement,
+    expected_generation: @site.site_generation(journal.site),
+    transitions,
+    consumed: false,
+  })
+}
+
+///|
+pub fn commit_site_generation_restart(
+  restart : SiteRestartTransition,
+  durable : Bool,
+) -> Result[Int, DispatchIssue] {
+  if restart.consumed {
+    return Err(InvalidTransition)
+  }
+  if !durable {
+    return Err(DurabilityUnconfirmed)
+  }
+  if @site.site_generation(restart.journal.site) != restart.expected_generation {
+    return Err(StateCollision)
+  }
+  let mut collision = false
+  restart.transitions.each(transition => {
+    if transition_has_state_collision(transition) {
+      collision = true
+    }
+  })
+  if collision {
+    return Err(StateCollision)
+  }
+  restart.transitions.each(apply_transition)
+  restart.journal.site = restart.replacement
+  restart.consumed = true
+  Ok(restart.transitions.length())
 }
 
 ///|
@@ -1130,6 +1258,29 @@ pub fn force_loss_projection(force : ForceLossTransition) -> Array[String] {
 ///|
 pub fn force_loss_journal_key(force : ForceLossTransition) -> Array[String] {
   dispatch_transition_journal_key(force.transition)
+}
+
+///|
+pub fn site_restart_transition_count(restart : SiteRestartTransition) -> Int {
+  restart.transitions.length()
+}
+
+///|
+pub fn site_restart_transition_at(
+  restart : SiteRestartTransition,
+  index : Int,
+) -> DispatchTransition? {
+  restart.transitions.get(index)
+}
+
+///|
+pub fn site_restart_metadata(restart : SiteRestartTransition) -> Array[String] {
+  [
+    @site.site_key(restart.journal.site),
+    restart.expected_generation.to_string(),
+    @site.site_generation(restart.replacement).to_string(),
+    @site.site_runtime_revision(restart.replacement),
+  ]
 }
 
 ///|

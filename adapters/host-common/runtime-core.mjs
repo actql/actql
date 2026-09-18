@@ -146,6 +146,17 @@ function remoteSiteControl(moon) {
     commitForceLoss: (value, durable) => checked(
       moon.strategyRemoteForceLossCommit(value, durable),
     ),
+    prepareRestart: (journal, replacement) => checked(
+      moon.strategyRemotePrepareRestart(journal, replacement),
+    ),
+    restartCount: moon.strategyRemoteRestartCount,
+    restartAt: (restart, index) => checked(
+      moon.strategyRemoteRestartAt(restart, index),
+    ),
+    restartMetadata: moon.strategyRemoteRestartMetadata,
+    commitRestart: (restart, durable) => checked(
+      moon.strategyRemoteRestartCommit(restart, durable),
+    ),
     transitionProjection: moon.strategyRemoteTransitionProjection,
     transitionKey: moon.strategyRemoteTransitionKey,
     commitTransition: (value, durable) => checked(
@@ -159,6 +170,9 @@ function remoteSiteControl(moon) {
       }
       return checked(moon.strategyRemoteRecordRestore(record, ...state));
     },
+    restoreHistorical: (journal, request) => checked(
+      moon.strategyRemoteHistoricalRestore(journal, request),
+    ),
   });
   remoteSiteControls.set(moon, control);
   return control;
