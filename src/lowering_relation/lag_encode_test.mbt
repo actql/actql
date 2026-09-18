@@ -103,3 +103,20 @@ test "lag binds a positive safe integer offset before kernel publication" {
     }
   }
 }
+
+///|
+test "lag default offset normalizes to the explicit one-row kernel" {
+  let owner = lag_owner(
+    "\"lag\":{\"partition_by\":[],\"order_by\":[{\"id\":" +
+    "\"asc\"}],\"field\":\"amount\",\"output\":\"previous\"}",
+  )
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("default lag")
+  }
+  assert_eq(
+    @lowering_relation.kernel_lag(kernel),
+    Some((@schema.Unqualified("amount"), "previous", 1L)),
+  )
+}
