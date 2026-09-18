@@ -564,11 +564,7 @@ pub fn captured_next_managed_input_count(run : CapturedDAG) -> Int? {
     run.graph.owners.get(task) is Some(owner) else {
     return None
   }
-  Some(
-    @pipeline.input_count(
-      @lower.pipeline(@lower.bound_preparation(owner)),
-    ),
-  )
+  Some(@pipeline.input_count(@lower.pipeline(@lower.bound_preparation(owner))))
 }
 
 ///|

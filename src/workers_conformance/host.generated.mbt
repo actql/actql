@@ -52,6 +52,18 @@ pub fn strategy_host_managed_producers(
 }
 
 ///|
+/// Exact checked input-port count. This disambiguates a legitimate zero-input
+/// operation from an empty producer list caused by unavailable topology.
+#export_name("strategyHostManagedInputCount")
+pub fn strategy_host_managed_input_count(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.captured_next_managed_input_count(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  ).unwrap_or(-1)
+}
+
+///|
 /// Compatibility accessor for installed unary implementations.
 #export_name("strategyHostManagedProducer")
 pub fn strategy_host_managed_producer(
@@ -2485,6 +2497,18 @@ pub fn async_strategy_host_managed_producers(
   @strategy.captured_next_managed_producers(
     @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
   )
+}
+
+///|
+/// Exact checked input-port count. This disambiguates a legitimate zero-input
+/// operation from an empty producer list caused by unavailable topology.
+#export_name("asyncStrategyHostManagedInputCount")
+pub fn async_strategy_host_managed_input_count(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Int {
+  @strategy.captured_next_managed_input_count(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  ).unwrap_or(-1)
 }
 
 ///|

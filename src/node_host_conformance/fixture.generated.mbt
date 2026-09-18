@@ -8,10 +8,22 @@ fn captured_graph_fixture(
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
   sort_take? : Bool = false,
+  values? : Bool = false,
+  local_values_two_consumer_chain? : Bool = false,
+  local_values_group_chain? : Bool = false,
+  local_values_append_chain? : Bool = false,
+  local_values_cross_chain? : Bool = false,
+  local_values_cross_singleton? : Bool = false,
+  local_values_set_operation? : String = "",
+  local_values_set_duplicates? : String = "all",
+  local_values_join_chain? : Bool = false,
+  local_values_join_kind? : String = "inner",
+  local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
+  ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
@@ -22,13 +34,29 @@ fn captured_graph_fixture(
     self_join~,
     numeric_dag~,
     sort_take~,
+    dag_values=values,
+    local_values_two_consumer_chain~,
+    local_values_group_chain~,
+    local_values_append_chain~,
+    local_values_cross_chain~,
+    local_values_cross_singleton~,
+    local_values_set_operation~,
+    local_values_set_duplicates~,
+    local_values_join_chain~,
+    local_values_join_kind~,
+    local_values_unary_chain~,
     join_steps~,
     compute_filter~,
   )
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
   owners[0] = @query.query_sequence_owner(sequence)
-  let graph = @strategy.prepare_checked_dag(program, owners, 5, 1000).unwrap()
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program),
+    1000,
+  ).unwrap()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
     @program_check.source_identity(program),
@@ -54,14 +82,16 @@ fn captured_graph_fixture(
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
-  let ledger = @resources.create_ledger({
-    planning_work: 10000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 300000L,
-    retained_bytes: 32000000L,
-    execution_bytes: 134217728L,
-  }).unwrap()
+  let ledger = @resources.create_ledger(
+    ledger_limits.unwrap_or({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 32000000L,
+      execution_bytes: 134217728L,
+    }),
+  ).unwrap()
   (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
 }
 
@@ -110,6 +140,8 @@ fn join_graph_capacity_material(
   environment : @environment.WireEnvironment,
   stage : String,
   steps? : Array[Int] = [0],
+  proofs? : Array[@wire.ProgramProofClaim] = [],
+  candidates? : Array[@wire.ProgramProofClaim] = [],
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -130,9 +162,23 @@ fn join_graph_capacity_material(
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
+  let candidate_wires = candidates.map(@wire.program_proof_witness)
+  candidate_wires.push(witness)
+  candidate_wires.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
+  let candidate_text = candidate_wires.map(candidate => {
+    let writer = @encode.writer(10000, 1000, 30)
+    @wire.emit(candidate, writer)
+    @encode.finish(writer)
+  })
+  let mut effective_max = @wire.value(candidate_wires[0])
+  for candidate in candidate_wires {
+    effective_max = Int64::min(effective_max, @wire.value(candidate))
+  }
   let body = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\",\"candidates\":[" +
-    host_text +
-    "],\"effective_max\":10000,\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:0:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
+    candidate_text.join(",") +
+    "],\"effective_max\":" +
+    effective_max.to_string() +
+    ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"join:checked-step:0:output\",\"unit\":\"rows\",\"version\":\"actql-resolved-limit/0.1\"}"
   let artifacts = steps.map(step => {
     let body = body.replace(
       old="checked-step:0:",
@@ -145,14 +191,16 @@ fn join_graph_capacity_material(
     )
     (@utf8.encode(resolved), cid)
   })
-  let mixed = @wire.check_mixed_claims([witness], artifacts, {
+  let witnesses = proofs.map(@wire.program_proof_witness)
+  witnesses.push(witness)
+  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
     max_entities: 10,
     max_references: 20,
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 30,
   }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, [], {
+  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
     max_witnesses: 10,
     max_references: 20,
   }).unwrap()
@@ -169,6 +217,140 @@ fn join_graph_capacity_material(
       Join(step=steps[i], output=@wire.mixed_limit_at(mixed, i).unwrap())
     }),
   }
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_decimal_pivot_sum_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"status":{"type":"string","nullable":true},"amount":{"type":"decimal","precision":4,"scale":2,"nullable":true}},"rows":[{"id":1,"status":"open","amount":"1.23"},{"id":1,"status":"open","amount":"-0.23"},{"id":1,"status":"won","amount":null},{"id":2,"status":"open","amount":"2.00"},{"id":2,"status":"won","amount":"3.00"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","status"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"pivot":{"index":["id"],"column":"status","values":["won","open"],"value":"amount","aggregate":"sum"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_json_pick_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"inner":{"type":"object","nullable":false,"fields":{"leaf":{"type":"number","nullable":false}}}}}},"rows":[{"id":1,"payload":{"inner":{"leaf":3}}},{"id":2,"payload":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"json_pick":{"column":"payload","path":["inner","leaf"],"output":"picked"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","payload","picked"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","payload","picked"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","payload","picked"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_ordered_set_program(kind : String) -> String {
+  let operation = match kind {
+    "sort" => "{\"sort\":[{\"id\":\"asc\"}],\"as\":\"out\"}"
+    "take" => "{\"take\":{\"count\":2,\"offset\":1},\"as\":\"out\"}"
+    "top_k" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":2,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_by" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"id\",\"id\"],\"k\":1,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "distinct" => "{\"distinct\":true,\"as\":\"out\"}"
+    "dedupe_rows" =>
+      "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    _ => abort("unknown Local ordered/set fixture")
+  }
+  let prefix =
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":2,"amount":20},{"id":1,"amount":10},{"id":2,"amount":20},{"id":2,"amount":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[
+  let consumer =
+    #|,"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}}
+  prefix +
+  operation +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"amount\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+  consumer +
+  ",{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+  consumer +
+  "],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_pivot_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"status":{"type":"string","nullable":true},"amount":{"type":"number","nullable":true}},"rows":[{"id":2,"status":"open","amount":20},{"id":1,"status":"won","amount":10},{"id":2,"status":"open","amount":30},{"id":1,"status":"open","amount":null},{"id":1,"status":"other","amount":99},{"id":1,"status":null,"amount":5}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","status"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"pivot":{"index":["id","id"],"column":"status","values":["won","open"],"value":"amount","aggregate":"count"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_unnest_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"items":{"type":"array","nullable":true,"items":{"type":"number","nullable":true},"max_items":2}},"rows":[{"id":1,"items":[2,null]},{"id":2,"items":[]},{"id":3,"items":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","items"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"unnest":{"column":"items","as":"item","with_index":"position","outer":true},"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","item","items","position"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","item","items","position"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_unpivot_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"jan":{"type":"number","nullable":true},"feb":{"type":"number","nullable":true}},"rows":[{"id":1,"jan":10,"feb":null},{"id":2,"jan":null,"feb":20}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","jan","feb"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"unpivot":{"columns":["jan","feb","jan"],"keep":["id","jan"],"name_column":"metric","value_column":"amount"},"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_values_unary_program(kind : String) -> String {
+  if kind == "unnest" {
+    return local_unnest_program()
+  }
+  if kind == "unpivot" {
+    return local_unpivot_program()
+  }
+  if kind == "pivot" {
+    return local_pivot_program()
+  }
+  if kind == "pivot_decimal_sum" {
+    return local_decimal_pivot_sum_program()
+  }
+  if kind == "json_pick" {
+    return local_json_pick_program()
+  }
+  if kind == "sort" ||
+    kind == "take" ||
+    kind == "top_k" ||
+    kind == "top_k_by" ||
+    kind == "distinct" ||
+    kind == "dedupe_rows" {
+    return local_ordered_set_program(kind)
+  }
+  let operation = match kind {
+    "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"
+    "filter_structured" =>
+      "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
+    "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
+    "derive_ordered" =>
+      "{\"derive\":[{\"saved\":\"id\"},{\"id\":\"id + $minimum\"},{\"next\":\"saved + id\"}],\"as\":\"out\"}"
+    "rename" => "{\"rename\":{\"amount\":\"total\"},\"as\":\"out\"}"
+    "drop" => "{\"drop\":[\"amount\"],\"as\":\"out\"}"
+    "assert_where" => "{\"assert_rows\":{\"where\":\"id > 0\"},\"as\":\"out\"}"
+    "assert_unique" =>
+      "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"out\"}"
+    _ => abort("unknown Local unary fixture")
+  }
+  let fields = match kind {
+    "derive_map" => "[\"id\",\"amount\",\"next\"]"
+    "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
+    "rename" => "[\"id\",\"total\"]"
+    "drop" => "[\"id\"]"
+    _ => "[\"id\",\"amount\"]"
+  }
+  let prefix =
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":true}},"rows":[{"id":1,"amount":10},{"id":2,"amount":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[
+  let consumer =
+    #|,"as":"out"}],"results":{"r":{"from":"out","fields":
+  prefix +
+  operation +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  consumer +
+  fields +
+  "}}},{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  consumer +
+  fields +
+  "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -240,6 +422,70 @@ fn prepared_sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
       max_literal_text_bytes: 10000,
     },
   }).unwrap()
+}
+
+///|
+/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
+// Integrity-valid authored capacity evidence for a fixed fixture operation.
+// Application and ownership remain the formal checker's responsibility.
+fn query_capacity_proof(
+  law : String,
+  value : Int64,
+  derivation : String,
+  inputs? : Array[String] = [],
+  step? : Int = 0,
+) -> @wire.ProgramProofClaim {
+  let proof_inputs = inputs.copy()
+  proof_inputs.sort()
+  let input_text = proof_inputs.map(value => "\"" + value + "\"").join(",")
+  let semantic_ref = "checked-step:" + step.to_string()
+  let proof_body = "{\"inputs\":[" +
+    input_text +
+    "],\"law_id\":\"" +
+    law +
+    "\",\"semantic_ref\":\"" +
+    semantic_ref +
+    "\",\"unit\":\"rows\",\"value\":" +
+    value.to_string() +
+    ",\"version\":\"actql-bound-proof/0.1\"}"
+  let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
+  let dependencies = proof_inputs.copy()
+  dependencies.push(proof_cid)
+  dependencies.sort()
+  let unique_dependencies : Array[String] = []
+  for dependency in dependencies {
+    if !unique_dependencies.contains(dependency) {
+      unique_dependencies.push(dependency)
+    }
+  }
+  let dependency_text = unique_dependencies
+    .map(value => "\"" + value + "\"")
+    .join(",")
+  let prefix = "{\"dependencies\":[" +
+    dependency_text +
+    "],\"derivation\":" +
+    derivation +
+    ",\"law_id\":\"" +
+    law +
+    "\",\"role\":\"proven_upper_bound\",\"source\":{\"kind\":\"program\",\"proof_cid\":\"" +
+    proof_cid +
+    "\",\"semantic_ref\":\"" +
+    semantic_ref +
+    "\"},\"unit\":\"rows\",\"value\":" +
+    value.to_string() +
+    ",\"version\":\"actql-bound-witness/0.1\""
+  let witness_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + "}"))
+  let limits : @wire.Limits = {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 30,
+  }
+  let witness = @wire.admit(
+    @utf8.encode(prefix + ",\"witness_cid\":\"" + witness_cid + "\"}"),
+    witness_cid,
+    limits,
+  ).unwrap()
+  @wire.bind_program_proof(@utf8.encode(proof_body), witness, limits).unwrap()
 }
 
 ///|
@@ -334,6 +580,17 @@ fn query_checked_program_fixture(
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
   sort_take? : Bool = false,
+  dag_values? : Bool = false,
+  local_values_two_consumer_chain? : Bool = false,
+  local_values_group_chain? : Bool = false,
+  local_values_append_chain? : Bool = false,
+  local_values_cross_chain? : Bool = false,
+  local_values_cross_singleton? : Bool = false,
+  local_values_set_operation? : String = "",
+  local_values_set_duplicates? : String = "all",
+  local_values_join_chain? : Bool = false,
+  local_values_join_kind? : String = "inner",
+  local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
@@ -349,10 +606,132 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if local_values_group_chain {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true}},"rows":[{"id":null},{"id":1},{"id":1}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"group":{"by":["id"],"aggregates":{"n":{"fn":"count"}}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","n"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","n"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","n"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["n","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["n","id"]}}}],"results":{"c":{"from":{"stage":"compute_c","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_two_consumer_chain {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"values_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":null,"label":"none"},{"id":1,"label":"one"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_append_chain {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]},"as":"right_rows"},{"from":"left_rows","append":{"with":"right_rows"},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_cross_chain {
+    let cross =
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    cross
+    .replace(
+      old="__RIGHT_EXTRA__",
+      new=if local_values_cross_singleton { "" } else { ",{\"tag\":\"b\"}" },
+    )
+    .replace(
+      old="__RIGHT_ONE__",
+      new=if local_values_cross_singleton {
+        ",\"right_rows\":\"one\""
+      } else {
+        ""
+      },
+    )
+  } else {
+    text
+  }
+  let text = if local_values_set_operation != "" {
+    let set_text =
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"set_rows","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":1,"label":"a"},{"id":1,"label":"a"},{"id":2,"label":"b"},{"id":null,"label":"n"}]},"as":"left_rows"},{"values":{"schema":{"label":{"type":"string","nullable":false},"id":{"type":"number","nullable":true}},"rows":[{"label":"a","id":1},{"label":"c","id":3}]},"as":"right_rows"},{"from":"left_rows","__set_operation__":{"with":"right_rows","duplicates":"__set_duplicates__"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"set_rows","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"set_rows","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    set_text
+    .replace(old="__set_operation__", new=local_values_set_operation)
+    .replace(old="__set_duplicates__", new=local_values_set_duplicates)
+  } else {
+    text
+  }
+  let text = if local_values_join_chain {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":null,"l":"ln"},{"id":2,"l":"l3"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":null,"r":"rn"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain && local_values_join_kind == "full" {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"joined","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]},"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]},"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"right_rows"},{"from":"left_rows","join":{"with":"right_rows","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"joined_raw"},{"from":"joined_raw","distinct":true,"as":"unique"},{"from":"unique","sort":[{"id":"asc"},{"l":"asc"},{"r":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain && local_values_join_kind == "full" {
+    text.replace(
+      old="{\"select\":[\"r\",\"l\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"r\",\"l\",\"id\"]}}}",
+      new="{\"select\":[\"id\",\"l\",\"r\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"l\",\"r\"]}}}",
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain && local_values_join_kind != "inner" {
+    text.replace(
+      old="\"kind\":\"inner\"",
+      new="\"kind\":\"" + local_values_join_kind + "\"",
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain &&
+    (local_values_join_kind == "semi" || local_values_join_kind == "anti") {
+    text
+    .replace(
+      old="\"select\":{\"id\":\"left.id\",\"l\":\"left.l\",\"r\":\"right.r\"}",
+      new="\"select\":{\"id\":\"left.id\",\"l\":\"left.l\"}",
+    )
+    .replace_all(
+      old="\"fields\":[\"id\",\"l\",\"r\"]",
+      new="\"fields\":[\"id\",\"l\"]",
+    )
+    .replace(
+      old="\"select\":[\"id\",\"l\",\"r\"]",
+      new="\"select\":[\"id\",\"l\"]",
+    )
+    .replace(
+      old="\"select\":[\"r\",\"l\",\"id\"]",
+      new="\"select\":[\"l\",\"id\"]",
+    )
+    .replace(
+      old="\"fields\":[\"r\",\"l\",\"id\"]",
+      new="\"fields\":[\"l\",\"id\"]",
+    )
+  } else {
+    text
+  }
+  let text = match local_values_unary_chain {
+    None => text
+    Some(kind) => local_values_unary_program(kind)
+  }
   let text = if sort_take {
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
       new="{\"sort\":[{\"id\":\"desc\"}]},{\"take\":2,\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_values {
+    text
+    .replace(
+      old="{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"a\",\"result\":\"r\"}}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"out\"}]",
+      new="{\"id\":\"compute_b\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":7}]},\"as\":\"out\"}]",
+    )
+    .replace(
+      old="\"results\":{\"b\":{\"from\":{\"stage\":\"compute_b\",\"result\":\"r\"}},\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}",
+      new="\"results\":{\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}",
     )
   } else {
     text
@@ -436,6 +815,93 @@ fn query_checked_program_fixture(
   )
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
+  } else if local_values_cross_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      if local_values_cross_singleton {
+        1L
+      } else {
+        2L
+      },
+      "{\"op\":\"source\"}",
+      step=2,
+    )
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      if local_values_cross_singleton {
+        2L
+      } else {
+        4L
+      },
+      "{\"op\":\"source\"}",
+      inputs=[
+        @wire.cid(@wire.program_proof_witness(left)),
+        @wire.cid(@wire.program_proof_witness(right)),
+      ],
+      step=4,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "crossed",
+        steps=[4],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
+  } else if local_values_join_chain {
+    let full = local_values_join_kind == "full"
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      if full {
+        3L
+      } else {
+        4L
+      },
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      if full {
+        4L
+      } else {
+        5L
+      },
+      "{\"op\":\"source\"}",
+      step=if full { 2 } else { 0 },
+    )
+    let left_cid = @wire.cid(@wire.program_proof_witness(left))
+    let right_cid = @wire.cid(@wire.program_proof_witness(right))
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      if full {
+        12L
+      } else if local_values_join_kind == "semi" ||
+        local_values_join_kind == "anti" {
+        4L
+      } else {
+        20L
+      },
+      "{\"op\":\"source\"}",
+      inputs=[left_cid, right_cid],
+      step=if full { 4 } else { 0 },
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "joined",
+        steps=if full { [4] } else { [0] },
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else {
     []
   }
@@ -455,7 +921,16 @@ fn query_checked_program_fixture(
       ),
       Some(input_cursor(parameter_json)),
       evidence,
-      { input: input_limits, compilation: query_checked_limits(10), },
+      {
+        input: input_limits,
+        compilation: query_checked_limits(
+          if local_values_join_chain && local_values_join_kind == "full" {
+            20
+          } else {
+            10
+          },
+        ),
+      },
     ) {
     Checked(value) => value
     NeedsInputs(_) => fail("fixture requires complete checking inputs")
@@ -635,7 +1110,7 @@ fn query_retention_limits() -> @mock.MockRetentionLimits {
 fn registered_body() -> @identity.CanonicalValue raise {
   @identity.from_json(
     @json.parse(
-      "{\"REL.select\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.where\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_all\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_unique\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.derive\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_extensions\":{\"ordered_bindings\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.derive.ordered\",\"cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}},\"REL.orderByStable\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.limit\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.fixed\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.sliding\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.project\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.lag\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.watermark\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.pivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unpivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unnest\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.dedupeRows\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.json.pick\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.groupBy\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.distinct\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unionAll\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.topk_partitioned\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"SGA.normalize\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.reachable\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.bounds_check\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.degree_metrics\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.apply_delta\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.diff\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.graft\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.union_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.diff_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.match_nodes\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.match_edges\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.traverse\":{\"inputs\":[\"graph\",\"relation\"],\"output\":\"relation\"},\"SGA.shortest_path\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.components\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"TEA.window.fixed_label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.sliding_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.watermark.label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.session_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.dedupe\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.join.asof\":{\"inputs\":[\"event_stream\",\"relation\"],\"output\":\"relation\"},\"TEA.sequence.match\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"VEC.normalize_l2\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.score_sort\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.knn_join\":{\"inputs\":[\"vector_set\",\"vector_set\"],\"output\":\"relation\"},\"VEC.pool\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.merge_rankings\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"BRIDGE.graph.to_edge_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.graph.to_node_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.rows.to_graph\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"graph\"},\"BRIDGE.events.to_rows\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"BRIDGE.rows.to_events\":{\"inputs\":[\"relation\"],\"output\":\"event_stream\"},\"BRIDGE.vectors.to_rows\":{\"inputs\":[\"vector_set\"],\"output\":\"relation\"},\"BRIDGE.rows.to_vectors\":{\"inputs\":[\"relation\"],\"output\":\"vector_set\"},\"EFFECT.plan\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.values\":{\"inputs\":[],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.values\",\"cid\":\"sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17\"}},\"ACTQL.expression_fragment/0.1\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/ACTQL.expression_fragment~10.1\",\"cid\":\"sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60\"}}}",
+      "{\"REL.select\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.where\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_all\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_unique\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.derive\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_extensions\":{\"ordered_bindings\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.derive.ordered\",\"cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}},\"REL.orderByStable\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.limit\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.fixed\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.sliding\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.project\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.lag\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.watermark\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.pivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unpivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unnest\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.dedupeRows\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.json.pick\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.groupBy\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.distinct\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unionAll\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.except_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.intersect_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.cross_join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.topk_partitioned\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"SGA.normalize\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.reachable\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.bounds_check\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.degree_metrics\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.apply_delta\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.diff\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.graft\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.union_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.diff_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.match_nodes\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.match_edges\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.traverse\":{\"inputs\":[\"graph\",\"relation\"],\"output\":\"relation\"},\"SGA.shortest_path\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.components\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"TEA.window.fixed_label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.sliding_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.watermark.label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.session_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.dedupe\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.join.asof\":{\"inputs\":[\"event_stream\",\"relation\"],\"output\":\"relation\"},\"TEA.sequence.match\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"VEC.normalize_l2\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.score_sort\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.knn_join\":{\"inputs\":[\"vector_set\",\"vector_set\"],\"output\":\"relation\"},\"VEC.pool\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.merge_rankings\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"BRIDGE.graph.to_edge_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.graph.to_node_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.rows.to_graph\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"graph\"},\"BRIDGE.events.to_rows\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"BRIDGE.rows.to_events\":{\"inputs\":[\"relation\"],\"output\":\"event_stream\"},\"BRIDGE.vectors.to_rows\":{\"inputs\":[\"vector_set\"],\"output\":\"relation\"},\"BRIDGE.rows.to_vectors\":{\"inputs\":[\"relation\"],\"output\":\"vector_set\"},\"EFFECT.plan\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.values\":{\"inputs\":[],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.values\",\"cid\":\"sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44\"}},\"ACTQL.expression_fragment/0.1\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/ACTQL.expression_fragment~10.1\",\"cid\":\"sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60\"}}}",
     ),
     10000,
     100,
@@ -649,6 +1124,19 @@ fn registered_fragment() -> @identity.CanonicalValue raise {
   @identity.from_json(
     @json.parse(
       "{\"version\":\"actql-expression-fragment-execution/0.1\",\"operation\":\"ACTQL.expression_fragment/0.1\",\"inputs\":[\"relation\"],\"output\":\"relation\",\"dependencies\":{\"expression_contract\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"\",\"cid\":\"sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb\"},\"fragment_schema\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"/schemas/fragment\",\"cid\":\"sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4\"}},\"params_schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"urn:actql:expression-fragment-params:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"fragment\"],\"properties\":{\"fragment\":{\"$ref\":\"urn:actql:expression-fragment:0.1\"}}},\"semantics\":{\"schema_resolution\":\"resolve_fragment_schema_from_exact_pinned_dependency_without_network_lookup\",\"local_source\":\"exactly_one_request_pipeline_source_named_input\",\"admission\":\"regenerate_and_compare_sealed_fragment_under_pinned_expression_contract_before_evaluation\",\"fragment_identity\":\"hash_complete_canonical_fragment_excluding_only_root_fragment_cid\",\"retained_material\":\"retain_opcode_and_complete_fragment_in_canonical_composition\",\"inner_graph\":\"not_a_standalone_execution_artifact\",\"carrier_projection\":\"validation_witness_only_never_hashed_executed_or_used_as_type_evidence\",\"obligations\":\"enforce_fragment_input_root_output_limits_demands_and_runtime_checks\",\"backend\":\"reject_execution_without_support_for_exact_contract_and_all_used_extensions\",\"authority\":\"registration_does_not_establish_program_completion_or_execution_permission\"}}",
+    ),
+    10000,
+    100,
+    100000,
+  )
+}
+
+///|
+/// Fixture owner: query_integration/pinned_engine_contracts_wbtest.mbt
+fn registered_ordered() -> @identity.CanonicalValue raise {
+  @identity.from_json(
+    @json.parse(
+      "{\"version\":\"actql-ordered-derive-execution/0.1\",\"operation\":\"REL.derive\",\"inputs\":[\"relation\"],\"output\":\"relation\",\"applies_to\":\"ordered_parameters_only\",\"dependencies\":{\"expression_contract\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"\",\"cid\":\"sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb\"},\"expression_node\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"/schemas/expression_node\",\"cid\":\"sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94\"},\"source_expression\":{\"file\":\"spec/contracts/actql-expressions.json\",\"pointer\":\"/schemas/expression\",\"cid\":\"sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f\"},\"derive_binding\":{\"file\":\"spec/contracts/actql-stage-contracts.json\",\"pointer\":\"/schemas/derive_binding\",\"cid\":\"sha256:d74bb697d91a2daf2c51e0d6c492f4bb35fdea5e542d606318683b1c9c5f06f9\"},\"value_contract\":{\"file\":\"spec/contracts/actql-protocol-schemas.json\",\"pointer\":\"/schemas/canonical_value_contract\",\"cid\":\"sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551\"}},\"schemas\":{\"params\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"urn:actql:ordered-derive-params:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"row_kernel_contract_cid\",\"bindings\",\"references\"],\"properties\":{\"row_kernel_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"bindings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"name\",\"expr\"],\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"expr\":{\"$ref\":\"urn:actql:expression-node:0.1\"}}},\"minItems\":1},\"references\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"at\",\"target\"],\"properties\":{\"at\":{\"type\":\"string\",\"pattern\":\"^/bindings/(0|[1-9][0-9]*)/expr(?:/.*)?$\"},\"target\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"input_field\"],\"properties\":{\"input_field\":{\"type\":\"string\",\"minLength\":1}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"prior_slot\"],\"properties\":{\"prior_slot\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}}]}}}}}},\"source_params\":{\"$id\":\"urn:actql:ordered-derive-source-params:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"bindings\"],\"properties\":{\"bindings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"name\",\"expr\"],\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"expr\":{\"$ref\":\"urn:actql:expression:0.1\"}}},\"minItems\":1}}},\"node_preimage\":{\"$id\":\"urn:actql:ordered-derive-node-preimage:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"in\",\"op\",\"params\"],\"properties\":{\"id\":{\"type\":\"string\",\"minLength\":1},\"in\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"minLength\":1},\"minItems\":1,\"maxItems\":1},\"op\":{\"const\":\"REL.derive\"},\"params\":{\"$ref\":\"urn:actql:ordered-derive-params:0.1\"}}},\"context\":{\"$id\":\"urn:actql:derive-row-context:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"input_contract_cid\",\"prior_slots\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-derive-row-context/0.1\"},\"input_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"prior_slots\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"name\",\"contract\"],\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1},\"contract\":{\"$ref\":\"#/$defs/value_contract\"}}}},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}},\"$defs\":{\"value_contract\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"properties\":{\"type\":{\"const\":\"decimal\"},\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":38},\"scale\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":38}},\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}]},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"min_length\":{\"type\":\"integer\",\"minimum\":0},\"max_codepoints\":{\"type\":\"integer\",\"minimum\":0},\"max_utf8_bytes\":{\"type\":\"integer\",\"minimum\":0}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\",\"json\"]},\"nullable\":{\"type\":\"boolean\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"items\"],\"properties\":{\"type\":{\"const\":\"array\"},\"nullable\":{\"type\":\"boolean\"},\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"type\":\"integer\",\"minimum\":0}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"properties\":{\"type\":{\"const\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"additional_properties\":{\"const\":false},\"fields\":{\"type\":\"object\",\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"properties\":{\"type\":{\"const\":\"vector\"},\"nullable\":{\"type\":\"boolean\"},\"dimensions\":{\"type\":\"integer\",\"minimum\":1},\"element_type\":{\"const\":\"f32\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"resource_kind\"],\"properties\":{\"type\":{\"const\":\"resource_ref\"},\"nullable\":{\"type\":\"boolean\"},\"resource_kind\":{\"type\":\"string\",\"minLength\":1}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"artifact_ref\"},\"nullable\":{\"type\":\"boolean\"},\"media_type\":{\"type\":\"string\",\"minLength\":1}}}]}}},\"limits\":{\"$id\":\"urn:actql:derive-row-limits:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"max_input_rows\",\"max_value_bytes\",\"max_live_value_bytes\",\"max_work\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-derive-row-limits/0.1\"},\"max_input_rows\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_value_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_live_value_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_work\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}}},\"shape\":{\"$id\":\"urn:actql:derive-row-shape:0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"fields\",\"required_fields\",\"additional_fields\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-derive-row-shape/0.1\"},\"fields\":{\"type\":\"object\",\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}},\"required_fields\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"minLength\":1}},\"additional_fields\":{\"type\":\"boolean\"},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"}},\"$defs\":{\"value_contract\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"properties\":{\"type\":{\"const\":\"decimal\"},\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":38},\"scale\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":38}},\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}]},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"min_length\":{\"type\":\"integer\",\"minimum\":0},\"max_codepoints\":{\"type\":\"integer\",\"minimum\":0},\"max_utf8_bytes\":{\"type\":\"integer\",\"minimum\":0}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\",\"json\"]},\"nullable\":{\"type\":\"boolean\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"items\"],\"properties\":{\"type\":{\"const\":\"array\"},\"nullable\":{\"type\":\"boolean\"},\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"type\":\"integer\",\"minimum\":0}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"properties\":{\"type\":{\"const\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"additional_properties\":{\"const\":false},\"fields\":{\"type\":\"object\",\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"properties\":{\"type\":{\"const\":\"vector\"},\"nullable\":{\"type\":\"boolean\"},\"dimensions\":{\"type\":\"integer\",\"minimum\":1},\"element_type\":{\"const\":\"f32\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"resource_kind\"],\"properties\":{\"type\":{\"const\":\"resource_ref\"},\"nullable\":{\"type\":\"boolean\"},\"resource_kind\":{\"type\":\"string\",\"minLength\":1}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"artifact_ref\"},\"nullable\":{\"type\":\"boolean\"},\"media_type\":{\"type\":\"string\",\"minLength\":1}}}]}}}},\"semantics\":{\"dispatch\":\"exact_registered_extension_cid_and_closed_ordered_params_no_legacy_fallback\",\"legacy\":\"snapshot_map_exprs_node_representation_unchanged\",\"source_params\":\"exactly_bindings_name_and_canonical_source_expr_preserve_parameter_references_no_reference_table_extension_pin_machine_nodes_or_evidence\",\"source_binding\":\"request_pipeline_and_graph_preserve_exact_step_ids_input_edges_and_binding_names_order_replace_only_expression_payloads_and_add_registered_pin_and_regenerated_references\",\"node_identity\":\"canonical_CID_of_complete_corresponding_graph_steps_entry_id_in_op_params_no_wrapper_or_omissions_includes_extension_pin_references_and_lowered_expressions_excludes_external_evidence\",\"names\":\"canonical_AuthoredFieldName_unique_in_authored_binding_order\",\"references\":\"binding_order_then_expression_semantic_preorder_exact_field_occurrences_no_literal_traversal\",\"targets\":\"latest_prior_slot_with_same_name_else_original_input_never_self_or_future\",\"field_spelling\":\"field_body_matches_target_field_or_prior_slot_name_and_checked_type\",\"context\":\"input_contract_cid_matches_derive_evidence_prior_slots_equal_exact_checked_prefix\",\"evidence\":\"one_derive_binding_per_ordered_graph_node_with_exact_node_input_output_expression_context_limits_ownership\",\"expression_identity\":\"checked_expression_cid_hashes_complete_corresponding_fragment_root_including_step_id_parameter_pointer_source_node_contract_demand_paths\",\"row_shape_identity\":\"input_and_output_contract_cids_resolve_row_shape_self_cids_excluding_only_self_cid\",\"row_shape\":\"required_fields_unique_UTF16_sorted_fields_known_subset_required_additional_fields_controls_unknown_names_no_invented_types\",\"admission\":\"all_required_input_values_before_shadowing_preserve_admitted_unknown_fields\",\"evaluation\":\"logical_row_then_authored_binding_then_common_expression_order_with_existing_lazy_demands\",\"failure\":\"first_demanded_failure_no_partial_operation_publication_or_slot_elimination\",\"output\":\"retain_input_fields_replace_only_shadowed_fields_using_rhs_type_no_coercion\",\"identity\":\"authored_order_reference_multiplicity_and_full_params_are_semantic_no_source_spans\",\"acyclic\":\"node_includes_extension_pin_not_evidence_self_cid_evidence_then_names_node\",\"limits_identity\":\"limits_cid_resolves_exact_request_row_kernel_limits_for_same_step_self_cid_excluding_only_self_cid\",\"limits_owner\":\"request_row_kernel_limits_names_exact_ordered_steps_value_and_row_caps_do_not_exceed_enclosing_request_caps_selected_host_limits_remain_required\",\"context_identity\":\"context_contract_cid_resolves_row_context_self_cid_excluding_only_self_cid\",\"rows\":\"max_input_rows_counts_all_input_row_occurrences_before_evaluation\",\"value_bytes\":\"canonical_JSON_UTF8_of_typed_wire_value_for_each_input_value_demanded_root_and_complete_retained_output_row\",\"live_bytes\":\"sum_typed_wire_bytes_of_live_input_slot_temporary_and_pending_output_value_roots_count_alias_roots_separately_release_after_last_use\",\"work\":\"one_per_row_and_binding_and_demanded_expression_entry_plus_value_weight_for_input_admission_each_consumed_operand_each_produced_value_and_retained_output\",\"value_weight\":\"one_per_scalar_or_container_plus_raw_UTF8_octets_of_string_values_and_object_keys_count_every_logical_occurrence_including_shared_values\",\"work_scope\":\"logical_workload_not_instruction_count_or_heap_visits_no_discount_for_caching_or_short_circuit_scalar_comparison_additional_backend_algorithm_limits_remain_separate\",\"charging\":\"preflight_before_traversal_or_construction_check_arithmetic_overflow_exact_caps_accepted_no_per_slot_or_row_reset\",\"physical_memory\":\"logical_measures_not_heap_ceiling_backend_may_apply_additional_host_resource_limits\",\"bounds\":\"no_static_capacity_proof_fabrication_no_early_projection_waiver\",\"unsupported\":\"reject_executable_plan_if_contract_expression_or_measure_cannot_be_enforced\"}}",
     ),
     10000,
     100,
@@ -671,7 +1159,7 @@ fn registered_relation_contracts() -> @execution.RegisteredRelationContracts rai
 fn registered_values() -> @identity.CanonicalValue raise {
   @identity.from_json(
     @json.parse(
-      "{\"version\":\"actql-rel-values-execution/0.1\",\"operation\":\"REL.values\",\"inputs\":[],\"output\":\"relation\",\"dependencies\":{\"canonical_value_contract\":{\"path\":\"spec/contracts/actql-protocol-schemas.json\",\"pointer\":\"/schemas/canonical_value_contract\",\"cid\":\"sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551\"}},\"params_schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql/rel-values-params-0.1.json\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"schema\",\"rows\"],\"properties\":{\"schema\":{\"type\":\"object\",\"minProperties\":1,\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}},\"rows\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"}}}},\"$defs\":{\"value_contract\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"properties\":{\"type\":{\"const\":\"decimal\"},\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":38},\"scale\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":38}},\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}]},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"min_length\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_codepoints\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_utf8_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\"]},\"nullable\":{\"type\":\"boolean\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"items\"],\"properties\":{\"type\":{\"const\":\"array\"},\"nullable\":{\"type\":\"boolean\"},\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"properties\":{\"type\":{\"const\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"additional_properties\":{\"const\":false},\"fields\":{\"type\":\"object\",\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"properties\":{\"type\":{\"const\":\"vector\"},\"nullable\":{\"type\":\"boolean\"},\"dimensions\":{\"type\":\"integer\",\"minimum\":1},\"element_type\":{\"const\":\"f32\"}}}]},\"wire_value\":{\"oneOf\":[{\"type\":[\"null\",\"boolean\",\"number\",\"string\"]},{\"type\":\"array\",\"items\":{\"$ref\":\"#/$defs/wire_value\"}},{\"type\":\"object\",\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"}}]}}},\"semantics\":{\"schema_form\":\"nonempty_field_map_of_complete_checked_constructible_contracts\",\"cells\":\"bound_typed_wire_values_without_cell_wrappers\",\"quotation\":\"remove_exact_singleton_literal_once_before_execution_params\",\"parameter_resolution\":\"resolve_only_authored_cell_root_holes_before_execution_params\",\"business_objects\":\"never_reinterpret_param_or_literal_members\",\"row_fields\":\"exact_declared_set_including_nullable_fields\",\"values\":\"recursive_declared_type_admission_without_cast_repair_or_rounding\",\"decimal\":\"canonical_fixed_scale_string_under_declared_precision_and_scale\",\"empty_rows\":\"retain_declared_schema\",\"row_order\":\"retain_occurrence_order\",\"row_multiplicity\":\"retain_all_occurrences\",\"object_key_order\":\"canonical_utf16_order_not_row_order\",\"publication\":\"validate_all_rows_and_resolved_limits_before_publication\",\"unsupported_backend\":\"reject_runnable_plan_without_exact_registered_contract_support\"}}",
+      "{\"version\":\"actql-rel-values-execution/0.1\",\"operation\":\"REL.values\",\"inputs\":[],\"output\":\"relation\",\"dependencies\":{\"canonical_value_contract\":{\"path\":\"spec/contracts/actql-protocol-schemas.json\",\"pointer\":\"/schemas/canonical_value_contract\",\"cid\":\"sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551\"}},\"params_schema\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql/rel-values-params-0.1.json\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"schema\",\"rows\"],\"properties\":{\"schema\":{\"type\":\"object\",\"minProperties\":1,\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}},\"rows\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"}}}},\"$defs\":{\"value_contract\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"precision\",\"scale\"],\"properties\":{\"type\":{\"const\":\"decimal\"},\"nullable\":{\"type\":\"boolean\"},\"precision\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":38},\"scale\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":38}},\"allOf\":[{\"if\":{\"properties\":{\"precision\":{\"const\":1}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":1}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":2}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":2}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":3}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":3}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":4}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":4}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":5}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":5}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":6}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":6}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":7}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":7}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":8}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":8}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":9}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":9}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":10}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":10}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":11}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":11}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":12}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":12}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":13}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":13}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":14}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":14}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":15}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":15}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":16}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":16}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":17}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":17}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":18}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":18}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":19}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":19}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":20}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":20}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":21}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":21}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":22}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":22}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":23}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":23}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":24}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":24}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":25}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":25}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":26}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":26}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":27}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":27}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":28}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":28}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":29}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":29}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":30}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":30}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":31}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":31}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":32}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":32}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":33}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":33}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":34}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":34}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":35}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":35}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":36}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":36}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":37}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":37}}}},{\"if\":{\"properties\":{\"precision\":{\"const\":38}},\"required\":[\"precision\"]},\"then\":{\"properties\":{\"scale\":{\"maximum\":38}}}}]},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"const\":\"string\"},\"nullable\":{\"type\":\"boolean\"},\"min_length\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_codepoints\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"max_utf8_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\"],\"properties\":{\"type\":{\"enum\":[\"number\",\"boolean\",\"timestamp\",\"date\"]},\"nullable\":{\"type\":\"boolean\"}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"items\"],\"properties\":{\"type\":{\"const\":\"array\"},\"nullable\":{\"type\":\"boolean\"},\"items\":{\"$ref\":\"#/$defs/value_contract\"},\"max_items\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"additional_properties\",\"fields\"],\"properties\":{\"type\":{\"const\":\"object\"},\"nullable\":{\"type\":\"boolean\"},\"additional_properties\":{\"const\":false},\"fields\":{\"type\":\"object\",\"propertyNames\":{\"pattern\":\"^(?!__cid$)(?!__actql_)(?![\\\\s\\\\S]*\\\\.)(?=[\\\\s\\\\S]*\\\\S)[\\\\s\\\\S]+$\"},\"additionalProperties\":{\"$ref\":\"#/$defs/value_contract\"}}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"type\",\"nullable\",\"dimensions\",\"element_type\"],\"properties\":{\"type\":{\"const\":\"vector\"},\"nullable\":{\"type\":\"boolean\"},\"dimensions\":{\"type\":\"integer\",\"minimum\":1},\"element_type\":{\"const\":\"f32\"}}}]},\"wire_value\":{\"oneOf\":[{\"type\":[\"null\",\"boolean\",\"number\",\"string\"]},{\"type\":\"array\",\"items\":{\"$ref\":\"#/$defs/wire_value\"}},{\"type\":\"object\",\"additionalProperties\":{\"$ref\":\"#/$defs/wire_value\"}}]}}},\"semantics\":{\"schema_form\":\"nonempty_field_map_of_complete_checked_constructible_contracts\",\"cells\":\"bound_typed_wire_values_without_cell_wrappers\",\"quotation\":\"remove_exact_singleton_literal_once_before_execution_params\",\"parameter_resolution\":\"resolve_only_authored_cell_root_holes_before_execution_params\",\"business_objects\":\"never_reinterpret_param_or_literal_members\",\"row_fields\":\"exact_declared_set_including_nullable_fields\",\"values\":\"recursive_declared_type_admission_without_cast_repair_or_rounding\",\"decimal\":\"canonical_fixed_scale_string_under_declared_precision_and_scale\",\"empty_rows\":\"retain_declared_schema\",\"row_order\":\"retain_occurrence_order\",\"row_multiplicity\":\"retain_all_occurrences\",\"object_key_order\":\"canonical_utf16_order_not_row_order\",\"publication\":\"validate_all_rows_and_resolved_limits_before_publication\",\"recursive_resources\":{\"selected_root_types\":[\"array\",\"object\",\"vector\"],\"bytes\":\"sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers\",\"byte_exclusions\":[\"scalar_typed_cells\",\"row_keys\",\"row_wrappers\",\"rows_wrapper\",\"schema\"],\"host_byte_ceiling\":\"max_nested_value_bytes\",\"depth\":\"declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields\",\"depth_excludes\":[\"row_wrapper\",\"rows_wrapper\"],\"host_depth_ceiling\":\"max_nested_value_depth\",\"empty_or_null\":\"type_depth_still_checked_zero_selected_cells_have_zero_bytes\",\"failure\":\"atomic_before_any_consumer_without_truncation\"},\"unsupported_backend\":\"reject_runnable_plan_without_exact_registered_contract_support\"}}",
     ),
     10000,
     100,
@@ -715,23 +1203,45 @@ fn sequence_fragment_context(
   step : Int,
   rows : Int64,
 ) -> @execution.FragmentRuntimeContext raise {
+  let logical : @lower.FragmentRowLimits = {
+    max_input_rows: rows,
+    max_value_bytes: 1000L,
+    max_live_value_bytes: 10000L,
+    max_work: 100000L,
+  }
   let pipeline = @lower.prepare_fragment_pipeline(sequence, step, {
     max_roots: 100,
     max_pointer_bytes: 10000,
     max_work: 100000,
   }).unwrap()
-  let request = @lower.prepare_fragment_request(pipeline, 10L, 1000L).unwrap()
+  let ordered = match @lower.sequence_step(sequence, step) {
+    Some(@lower.RowStep(kernel)) =>
+      if @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
+        Some(
+          @execution.admit_ordered_contract(
+            registered_relation_contracts(),
+            registered_ordered(),
+            registry_limits(),
+          ).unwrap(),
+        )
+      } else {
+        None
+      }
+    _ => None
+  }
+  let request = @lower.prepare_fragment_request(
+    pipeline,
+    10L,
+    1000L,
+    row_limits=if ordered is Some(_) { Some(logical) } else { None },
+  ).unwrap()
   @execution.prepare_runtime_fragment(
     request,
     test_fragment_contract(),
     material_demands(),
     registry_limits(),
-    {
-      max_input_rows: rows,
-      max_value_bytes: 1000L,
-      max_live_value_bytes: 10000L,
-      max_work: 100000L,
-    },
+    logical,
+    ordered~,
   ).unwrap()
 }
 
@@ -783,7 +1293,7 @@ fn task_test_generated(
   for step in 0..<@lower.sequence_count(sequence) {
     if @lower.sequence_step(sequence, step) is Some(RowStep(kernel)) {
       match @lower.kernel_body(kernel) {
-        SnapshotMap(_) | OrderedBindings(_) | Filter(_) =>
+        SnapshotMap(_) | OrderedBindings(_) | Filter(_) | AssertAll(_) =>
           contexts.push(sequence_fragment_context(sequence, step, 10L))
         _ => ()
       }
