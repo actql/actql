@@ -229,6 +229,7 @@ fn run_local_managed_group_case(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
+  let expanded = variant == "direct" || variant == "ordered"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -236,41 +237,41 @@ fn run_local_managed_group_case(
       values: limits.local_execution.rows.input_values,
       wire: {
         ..retained_attempt_wire_limits(),
-        max_bytes: if variant == "direct" {
+        max_bytes: if expanded {
           512
         } else {
           100
         },
-        max_nodes: if variant == "direct" {
+        max_nodes: if expanded {
           100
         } else {
           20
         },
-        max_columns: if variant == "direct" {
+        max_columns: if expanded {
           6
         } else {
           4
         },
       },
       row: {
-        max_bytes: if variant == "direct" {
+        max_bytes: if expanded {
           1000
         } else {
           100
         },
-        max_nodes: if variant == "direct" {
+        max_nodes: if expanded {
           100
         } else {
           20
         },
         max_depth: 4,
-        max_text_bytes: if variant == "direct" {
+        max_text_bytes: if expanded {
           1000
         } else {
           100
         },
       },
-      max_batch_bytes: if variant == "direct" {
+      max_batch_bytes: if expanded {
         512
       } else {
         64
@@ -426,6 +427,25 @@ test "Local managed direct aggregates reach two independent consumers" {
       "{\"total\":\"0.25\",\"lowest\":\"a\",\"k\":null,\"hits\":1,\"highest\":\"c\",\"distinct_labels\":2}",
       "{\"total\":null,\"lowest\":null,\"k\":1,\"hits\":0,\"highest\":null,\"distinct_labels\":0}",
       "{\"total\":\"3.25\",\"lowest\":\"a\",\"k\":2,\"hits\":1,\"highest\":\"b\",\"distinct_labels\":2}",
+    ],
+  )
+}
+
+///|
+test "Local managed ordered aggregates reach two independent consumers" {
+  run_local_managed_group_case(
+    "ordered",
+    [
+      "{\"id\":1,\"k\":1,\"label\":null}", "{\"id\":2,\"k\":1,\"label\":\"low\"}",
+      "{\"id\":3,\"k\":1,\"label\":\"high\"}", "{\"id\":1,\"k\":2,\"label\":null}",
+    ],
+    [
+      "{\"first_asc\":\"low\",\"first_desc\":\"high\",\"k\":1,\"last_asc\":\"high\",\"last_desc\":\"low\"}",
+      "{\"first_asc\":null,\"first_desc\":null,\"k\":2,\"last_asc\":null,\"last_desc\":null}",
+    ],
+    [
+      "{\"last_desc\":\"low\",\"last_asc\":\"high\",\"k\":1,\"first_desc\":\"high\",\"first_asc\":\"low\"}",
+      "{\"last_desc\":null,\"last_asc\":null,\"k\":2,\"first_desc\":null,\"first_asc\":null}",
     ],
   )
 }

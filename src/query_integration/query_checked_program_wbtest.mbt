@@ -781,6 +781,14 @@ fn local_values_group_program(variant : String) -> String {
         "[\"amount\",\"flag\",\"k\",\"label\"]", "[\"distinct_labels\",\"highest\",\"hits\",\"k\",\"lowest\",\"total\"]",
         "[\"total\",\"lowest\",\"k\",\"hits\",\"highest\",\"distinct_labels\"]",
       )
+    "ordered" =>
+      (
+        "{\"k\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"k\":1,\"id\":1,\"label\":null},{\"k\":1,\"id\":2,\"label\":\"low\"},{\"k\":1,\"id\":3,\"label\":\"high\"},{\"k\":2,\"id\":1,\"label\":null}]",
+        "[\"k\"]", "{\"first_asc\":{\"fn\":\"first\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}]},\"first_desc\":{\"fn\":\"first\",\"field\":\"label\",\"order_by\":[{\"id\":\"desc\"}]},\"last_asc\":{\"fn\":\"last\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}]},\"last_desc\":{\"fn\":\"last\",\"field\":\"label\",\"order_by\":[{\"id\":\"desc\"}]}}",
+        "[\"id\",\"k\",\"label\"]", "[\"first_asc\",\"first_desc\",\"k\",\"last_asc\",\"last_desc\"]",
+        "[\"last_desc\",\"last_asc\",\"k\",\"first_desc\",\"first_asc\"]",
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =

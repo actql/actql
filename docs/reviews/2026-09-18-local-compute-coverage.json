@@ -2148,7 +2148,8 @@
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
-              "Local managed direct aggregates reach two independent consumers"
+              "Local managed direct aggregates reach two independent consumers",
+              "Local managed ordered aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2169,7 +2170,8 @@
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
-              "Local managed direct aggregates reach two independent consumers"
+              "Local managed direct aggregates reach two independent consumers",
+              "Local managed ordered aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2203,6 +2205,7 @@
               "group count enforces its cumulative result ceiling",
               "complete direct aggregates preserve group order and exact values",
               "empty direct aggregates retain the global group laws",
+              "ordered first and last exclude null and keep independent orders",
               "direct decimal sum checks only its final public precision",
               "direct group capability rejects work owned by other contracts",
               "direct group accepts exact shared work and rejects one-short execution",
@@ -2225,7 +2228,8 @@
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
-              "Local managed direct aggregates reach two independent consumers"
+              "Local managed direct aggregates reach two independent consumers",
+              "Local managed ordered aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2267,7 +2271,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, and exact Decimal sum cover NULL-first groups, empty global input, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, ordered aggregates, binary64 observation folds, statistical aggregates, array/string aggregates, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, and direct first/last cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, percentile/statistical aggregates, array/string aggregates, and remaining formal key domains remain."
       ]
     },
     {

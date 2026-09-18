@@ -6,6 +6,47 @@ priv struct AggregateGroupRange {
 }
 
 ///|
+/// A read-only group-member view. Sorting this view produces local member
+/// coordinates while the original relation and group index remain immutable.
+priv struct AggregateRangeRows[T] {
+  input : T
+  indices : Array[Int]
+  start : Int
+  end : Int
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn row_count(
+  self,
+) {
+  self.end - self.start
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn column_count(
+  self,
+) {
+  self.input.column_count()
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn row_width(
+  self,
+  row,
+) {
+  self.input.row_width(self.indices[self.start + row])
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn read_cell(
+  self,
+  row,
+  column,
+) {
+  self.input.read_cell(self.indices[self.start + row], column)
+}
+
+///|
 /// Exact initial Local capability for complete group descriptors. A false
 /// result is a candidate-selection decision, never permission to reinterpret
 /// the checked aggregate through another physical law.
@@ -28,6 +69,13 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
       @lower.group_aggregate_requires_numeric_observation(aggregate) {
       return false
     }
+    for j = 0; j < @lower.group_aggregate_order_count(aggregate); j = j + 1 {
+      let (field, _, _) = @lower.group_aggregate_order_term_at(aggregate, j).unwrap()
+      guard @schema.lookup(input, field) is Some(contract) else { return false }
+      if !supported_comparison(contract, contract) {
+        return false
+      }
+    }
     match
       (
         @lower.group_aggregate_function(aggregate),
@@ -46,6 +94,11 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
       (@relation.Sum, @lower.AggregateField(_)) =>
         if !(@lower.group_aggregate_result(aggregate).shape
           is @contract.Decimal(precision=38, ..)) {
+          return false
+        }
+      (@relation.First, @lower.AggregateField(_))
+      | (@relation.Last, @lower.AggregateField(_)) =>
+        if @lower.group_aggregate_order_count(aggregate) == 0 {
           return false
         }
       _ => return false
@@ -187,10 +240,44 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
   indices : Array[Int],
   range : AggregateGroupRange,
   argument : Int?,
+  order : Array[ColumnOrder],
   control : ControlBudget,
   workspace : RowWorkspace,
 ) -> Result[Value, RowIssue] {
   let function = @lower.group_aggregate_function(aggregate)
+  if function is @relation.First || function is @relation.Last {
+    guard argument is Some(column) && !order.is_empty() else {
+      return Err(InvalidRows)
+    }
+    let members : AggregateRangeRows[T] = {
+      input,
+      indices,
+      start: range.start,
+      end: range.end,
+    }
+    let ordered = match
+      stable_order_indices(members, order, control, workspace) {
+      Ok(ordered) => ordered
+      Err(InvalidInput) => return Err(InvalidRows)
+      Err(Limit) => return Err(RowLimit)
+      Err(Scalar(issue)) => return Err(Comparison(issue))
+    }
+    for offset = 0; offset < ordered.length(); offset = offset + 1 {
+      if !spend_control(control, 1) {
+        return Err(RowLimit)
+      }
+      let position = if function is @relation.First {
+        offset
+      } else {
+        ordered.length() - offset - 1
+      }
+      let value = IndexedRows::read_cell(members, ordered[position], column)
+      if !(value is Null) {
+        return Ok(value)
+      }
+    }
+    return Ok(Null)
+  }
   let values : Array[Value] = []
   let mut count = 0
   for position = range.start; position < range.end; position = position + 1 {
@@ -338,6 +425,7 @@ fn[T : RelationRows] evaluate_group_into(
   let aggregate_count = @lower.group_aggregate_count(group)
   if !reserve_slots(workspace, key_count) ||
     !reserve_slots(workspace, aggregate_count) ||
+    !reserve_slots(workspace, aggregate_count) ||
     !reserve_slots(workspace, aggregate_count) {
     return Err(RowLimit)
   }
@@ -357,6 +445,7 @@ fn[T : RelationRows] evaluate_group_into(
   }
   let aggregate_by_name : Map[String, Int] = Map([])
   let arguments : Array[Int?] = []
+  let aggregate_orders : Array[Array[ColumnOrder]] = []
   for i in 0..<aggregate_count {
     let aggregate = @lower.group_aggregate_at(group, i).unwrap()
     let name = @lower.group_aggregate_name(aggregate)
@@ -375,6 +464,22 @@ fn[T : RelationRows] evaluate_group_into(
         @lower.AggregateExpression(_) => return Err(InvalidRows)
       },
     )
+    let term_count = @lower.group_aggregate_order_count(aggregate)
+    if !reserve_slots(workspace, term_count) {
+      return Err(RowLimit)
+    }
+    let aggregate_order : Array[ColumnOrder] = []
+    for j in 0..<term_count {
+      let (field, descending, nulls_first) = @lower.group_aggregate_order_term_at(
+        aggregate, j,
+      ).unwrap()
+      let column = match resolve(field) {
+        Ok(column) => column
+        Err(issue) => return Err(issue)
+      }
+      aggregate_order.push({ column, descending, nulls_first, })
+    }
+    aggregate_orders.push(aggregate_order)
   }
   let schema = @lower.group_output_schema(group)
   let width = @schema.field_count(schema)
@@ -426,6 +531,7 @@ fn[T : RelationRows] evaluate_group_into(
           indices,
           range,
           arguments[i],
+          aggregate_orders[i],
           control,
           workspace,
         ) {

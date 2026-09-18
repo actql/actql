@@ -207,6 +207,55 @@ test "empty direct aggregates retain the global group laws" {
 }
 
 ///|
+test "ordered first and last exclude null and keep independent orders" {
+  let owner = bound_pipeline(
+    (
+      #|[{"values":{"schema":{"k":{"type":"number","nullable":false},"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"tag":{"type":"string","nullable":false}}}},"rows":[{"k":1,"id":1,"payload":null},{"k":1,"id":2,"payload":{"tag":"low"}},{"k":1,"id":3,"payload":{"tag":"high"}},{"k":2,"id":1,"payload":null}]} ,"as":"seed"},{"group":{"by":["k"],"aggregates":{"first_asc":{"fn":"first","field":"payload","order_by":[{"field":"id","dir":"asc","nulls":"last"}]},"first_desc":{"fn":"first","field":"payload","order_by":[{"field":"id","dir":"desc","nulls":"first"}]},"last_asc":{"fn":"last","field":"payload","order_by":[{"field":"id","dir":"asc","nulls":"last"}]},"last_desc":{"fn":"last","field":"payload","order_by":[{"field":"id","dir":"desc","nulls":"first"}]}}}}]
+    ),
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["group_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let completed = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+  assert_eq(table.names, [
+    "first_asc", "first_desc", "k", "last_asc", "last_desc",
+  ])
+  assert_eq(table.rows.length(), 2)
+  assert_true(table.rows[0][0] is Captured(@admitted.Object(_)))
+  assert_true(table.rows[0][1] is Captured(@admitted.Object(_)))
+  assert_true(table.rows[0][3] is Captured(@admitted.Object(_)))
+  assert_true(table.rows[0][4] is Captured(@admitted.Object(_)))
+  let labels = table.rows[0].map(value => {
+    match value {
+      Captured(@admitted.Object(fields)) => {
+        guard @admitted.element_at(fields, 0) is Some(("tag", Text(label))) else {
+          fail("ordered object expected")
+        }
+        label
+      }
+      Number(_) => "key"
+      _ => fail("unexpected ordered result")
+    }
+  })
+  assert_eq(labels, ["low", "high", "key", "high", "low"])
+  assert_true(table.rows[1][0] is Null)
+  assert_true(table.rows[1][1] is Null)
+  assert_true(table.rows[1][2] is Number(2))
+  assert_true(table.rows[1][3] is Null)
+  assert_true(table.rows[1][4] is Null)
+}
+
+///|
 test "direct decimal sum checks only its final public precision" {
   let maximum = "999999999999999999999999999999999999.99"
   let owner = bound_pipeline(
@@ -269,7 +318,7 @@ test "direct group capability rejects work owned by other contracts" {
 test "direct group accepts exact shared work and rejects one-short execution" {
   let owner = bound_pipeline(
     (
-      #|[{"values":{"schema":{"k":{"type":"number","nullable":true},"amount":{"type":"decimal","precision":4,"scale":2,"nullable":true},"label":{"type":"string","nullable":true}},"rows":[{"k":1,"amount":"1.25","label":{"literal":"a"}},{"k":1,"amount":"2.00","label":{"literal":"b"}}]},"as":"seed"},{"group":{"by":["k"],"aggregates":{"labels":{"fn":"count","field":"label","distinct":true},"total":{"fn":"sum","field":"amount"}}}}]
+      #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"k":{"type":"number","nullable":true},"amount":{"type":"decimal","precision":4,"scale":2,"nullable":true},"label":{"type":"string","nullable":true}},"rows":[{"id":1,"k":1,"amount":"1.25","label":{"literal":"a"}},{"id":2,"k":1,"amount":"2.00","label":{"literal":"b"}}]},"as":"seed"},{"group":{"by":["k"],"aggregates":{"first":{"fn":"first","field":"label","order_by":[{"id":"asc"}]},"labels":{"fn":"count","field":"label","distinct":true},"total":{"fn":"sum","field":"amount"}}}}]
     ),
   )
   let sequence = prepared_sequence(owner)
@@ -303,9 +352,10 @@ test "direct group accepts exact shared work and rejects one-short execution" {
   }
   let completed = execute_generated_sequence(generated, [], exact).unwrap()
   let table = test_row_output(completed_output(completed, Step(1)).unwrap())
-  assert_eq(table.names, ["k", "labels", "total"])
+  assert_eq(table.names, ["first", "k", "labels", "total"])
   assert_eq(table.rows.length(), 1)
-  assert_true(table.rows[0][1] is Number(2))
+  assert_true(table.rows[0][0] is Text("a"))
+  assert_true(table.rows[0][2] is Number(2))
   assert_true(
     execute_generated_sequence(generated, [], { ..exact, max_work: used - 1, })
     is Err(_),
@@ -317,14 +367,18 @@ test "direct group accepts exact shared work and rejects one-short execution" {
 fn direct_group_scale_sample(count : Int) -> (Int, Int) raise {
   let owner = bound_pipeline(
     (
-      #|[{"values":{"schema":{"k":{"type":"number","nullable":false},"label":{"type":"string","nullable":false}},"rows":[{"k":0,"label":{"literal":"v0"}}]},"as":"seed"},{"group":{"by":["k"],"aggregates":{"labels":{"fn":"count","field":"label","distinct":true},"lowest":{"fn":"min","field":"label"},"highest":{"fn":"max","field":"label"}}}}]
+      #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"k":{"type":"number","nullable":false},"label":{"type":"string","nullable":false}},"rows":[{"id":0,"k":0,"label":{"literal":"v0"}}]},"as":"seed"},{"group":{"by":["k"],"aggregates":{"first":{"fn":"first","field":"label","order_by":[{"id":"asc"}]},"last":{"fn":"last","field":"label","order_by":[{"id":"asc"}]},"labels":{"fn":"count","field":"label","distinct":true},"lowest":{"fn":"min","field":"label"},"highest":{"fn":"max","field":"label"}}}}]
     ),
   )
   let template = row_capture(owner)
   let input = {
     ..template,
     rows: Array::makei(count, index => {
-      [Number((index % 64).to_double()), Text("v" + (index % 32).to_string())]
+      [
+        Number(index.to_double()),
+        Number((index % 64).to_double()),
+        Text("v" + (index % 32).to_string()),
+      ]
     }),
   }
   let maximum = 100000000
