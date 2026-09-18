@@ -2,7 +2,9 @@
 /// Owner-bound pivot profile. The checker remains authoritative for schema,
 /// aggregate applicability, stable-order obligations, and fill typing.
 struct PreparedPivot {
-  checked : @relation.CheckedOperation
+  input_schema : @schema.Schema
+  output_schema : @schema.Schema
+  result_contract : @contract.Contract
   index : Array[@schema.FieldName]
   column : @schema.FieldName
   value : @schema.FieldName
@@ -88,7 +90,9 @@ fn prepare_pivot(
   Ok(
     (
       {
-        checked,
+        input_schema: @relation.input_schema(checked),
+        output_schema: @relation.output_schema(checked),
+        result_contract: @relation.pivot_result(pivot),
         index,
         column,
         value,
@@ -100,11 +104,6 @@ fn prepare_pivot(
       index_count + value_count + 2,
     ),
   )
-}
-
-///|
-pub fn pivot_checked(value : PreparedPivot) -> @relation.CheckedOperation {
-  value.checked
 }
 
 ///|
@@ -149,10 +148,17 @@ pub fn pivot_fill(value : PreparedPivot) -> PreparedPivotFill? {
 
 ///|
 pub fn pivot_input_schema(value : PreparedPivot) -> @schema.Schema {
-  @relation.input_schema(value.checked)
+  value.input_schema
 }
 
 ///|
 pub fn pivot_output_schema(value : PreparedPivot) -> @schema.Schema {
-  @relation.output_schema(value.checked)
+  value.output_schema
+}
+
+///|
+/// Checked aggregate result contract projected at the common lowering boundary.
+/// Backends use this readonly view without reopening frontend operations.
+pub fn pivot_result_contract(value : PreparedPivot) -> @contract.Contract {
+  value.result_contract
 }

@@ -156,13 +156,9 @@ fn[T : RelationRows] evaluate_pivot_rows(
   let function = @lower.pivot_function(pivot)
   let decimal_sum_scale = match function {
     @relation.Sum =>
-      match @relation.pivot(@lower.pivot_checked(pivot)) {
-        Some(checked) =>
-          match @relation.pivot_result(checked).shape {
-            @contract.Decimal(precision=38, scale~) => Some(scale)
-            _ => None
-          }
-        None => None
+      match @lower.pivot_result_contract(pivot).shape {
+        @contract.Decimal(precision=38, scale~) => Some(scale)
+        _ => None
       }
     _ => None
   }

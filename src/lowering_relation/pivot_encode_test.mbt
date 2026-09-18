@@ -63,6 +63,10 @@ test "pivot lowers the checked axis, aggregate, and fill exactly" {
   assert_eq(@lowering_relation.pivot_axis_at(pivot, 1), Some("open"))
   assert_eq(@lowering_relation.pivot_function(pivot), @relation.Sum)
   assert_true(
+    @lowering_relation.pivot_result_contract(pivot).shape
+    is @contract.Number,
+  )
+  assert_true(
     @lowering_relation.pivot_fill(pivot)
     is Some(@lowering_relation.Value(value)) &&
     value.value is @value.Number(0),
