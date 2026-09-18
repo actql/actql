@@ -75,6 +75,9 @@ priv enum FieldRule {
   ResultList
   FormatList
   ManifestResults
+  Ordering
+  OrderingTerms
+  WitnessList
 }
 
 ///|
@@ -146,6 +149,36 @@ fn contract_spec(name : String) -> ContractSpec? {
         fields: [
           required("program_definition_cid", Cid),
           required("result_name", NonemptyText),
+        ],
+      })
+    "derivation_evidence" =>
+      Some({
+        name,
+        version: "actql-acquisition-derivation-evidence/0.1",
+        identity: "self_cid",
+        fields: [
+          required("producer_contract_cid", Cid),
+          required("computation_contract_cid", Cid),
+          required("input_relation_cids", CidList),
+          required("logical_value_cid", Cid),
+          required("relation_schema_cid", Cid),
+          required("scope_cid", Cid),
+          required("effective_data_policy_cid", Cid),
+          required("ordering", Ordering),
+          required("issuer_id", NonemptyText),
+          required("authority_scope_cid", Cid),
+        ],
+      })
+    "ordering_evidence" =>
+      Some({
+        name,
+        version: "actql-acquisition-ordering/0.1",
+        identity: "self_cid",
+        fields: [
+          required("producer_contract_cid", Cid),
+          required("kind", Choice(["occurrence", "keys"])),
+          required("terms", OrderingTerms),
+          required("witness_evidence", WitnessList),
         ],
       })
     "run_invocation" =>
@@ -555,6 +588,88 @@ fn validate_string_array(
 }
 
 ///|
+fn validate_order_term(value : @json.CanonicalValue) -> Bool {
+  guard object_fields(value) is Ok(fields) else { return false }
+  if fields.length() != 3 {
+    return false
+  }
+  guard optional_string(field_value(fields, "field")) is Some(field) else {
+    return false
+  }
+  guard optional_string(field_value(fields, "dir")) is Some(direction) else {
+    return false
+  }
+  guard optional_string(field_value(fields, "nulls")) is Some(nulls) else {
+    return false
+  }
+  !field.is_empty() &&
+  (direction == "asc" || direction == "desc") &&
+  (nulls == "first" || nulls == "last")
+}
+
+///|
+fn validate_order_terms(value : @json.CanonicalValue) -> Bool {
+  guard value is @json.Array(frozen) else { return false }
+  for term in @json.array_values(frozen) {
+    if !validate_order_term(term) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn validate_ordering(value : @json.CanonicalValue) -> Bool {
+  guard object_fields(value) is Ok(fields) else { return false }
+  if fields.length() != 2 {
+    return false
+  }
+  guard optional_string(field_value(fields, "kind")) is Some(kind) else {
+    return false
+  }
+  guard field_value(fields, "terms") is Some(terms) else { return false }
+  if !validate_order_terms(terms) {
+    return false
+  }
+  guard terms is @json.Array(frozen) else { return false }
+  let count = @json.array_values(frozen).length()
+  (kind == "occurrence" && count == 0) || (kind == "keys" && count > 0)
+}
+
+///|
+fn validate_witness_list(value : @json.CanonicalValue) -> Bool {
+  guard value is @json.Array(frozen) else { return false }
+  let witnesses = @json.array_values(frozen)
+  if witnesses.is_empty() {
+    return false
+  }
+  let mut prior_kind = -1
+  let mut prior_cid = ""
+  for witness in witnesses {
+    guard object_fields(witness) is Ok(fields) else { return false }
+    if fields.length() != 2 {
+      return false
+    }
+    guard optional_string(field_value(fields, "kind")) is Some(kind) else {
+      return false
+    }
+    guard optional_string(field_value(fields, "cid")) is Some(cid) else {
+      return false
+    }
+    if (kind != "source" && kind != "derivation") || !valid_contract_cid(cid) {
+      return false
+    }
+    let rank = if kind == "derivation" { 0 } else { 1 }
+    if rank < prior_kind || (rank == prior_kind && cid.compare(prior_cid) <= 0) {
+      return false
+    }
+    prior_kind = rank
+    prior_cid = cid
+  }
+  true
+}
+
+///|
 fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
   match rule {
     Exact(expected) => string_value(value) == Some(expected)
@@ -601,6 +716,9 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
       }
       true
     }
+    Ordering => validate_ordering(value)
+    OrderingTerms => validate_order_terms(value)
+    WitnessList => validate_witness_list(value)
   }
 }
 
@@ -664,6 +782,19 @@ fn conditional_validation(
   spec : ContractSpec,
   fields : Array[(String, @json.CanonicalValue)],
 ) -> Result[Unit, PublicationContractIssue] {
+  if spec.name == "ordering_evidence" {
+    let kind = optional_string(field_value(fields, "kind")).unwrap()
+    guard field_value(fields, "terms") is Some(terms) else {
+      return Err(ConditionalField("terms"))
+    }
+    guard terms is @json.Array(frozen) else {
+      return Err(ConditionalField("terms"))
+    }
+    let count = @json.array_values(frozen).length()
+    if (kind == "occurrence" && count != 0) || (kind == "keys" && count == 0) {
+      return Err(ConditionalField("terms"))
+    }
+  }
   if spec.name == "publication_record" {
     let state = optional_string(field_value(fields, "state")).unwrap()
     if state == "succeeded" &&

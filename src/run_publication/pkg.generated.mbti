@@ -46,6 +46,14 @@ pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
 
+pub fn result_ordering_derivation_cid(ResultOrderingEvidence) -> String
+
+pub fn result_ordering_derivation_contract(ResultOrderingEvidence) -> PublicationContract
+
+pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
+
+pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
+
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
@@ -55,6 +63,10 @@ pub fn validate_effect_free_publication_commit(PublicationContract, PublicationC
 pub fn validate_effect_free_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
+
+pub fn validate_result_artifact_evidence(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
+
+pub fn validate_result_occurrence_ordering_evidence(PublicationContract, PublicationContract, PublicationContract, String, String, String) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue]
 
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
@@ -118,6 +130,18 @@ pub(all) enum PublicationTransitionIssue {
   UncommittedNotConfirmed
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ResultArtifactEvidenceIssue {
+  ArtifactWrongContract
+  ArtifactDefinitionMismatch
+  ArtifactLogicalValueMismatch
+  ArtifactSchemaMismatch
+  ArtifactOrderingMismatch
+  ArtifactPolicyMismatch
+  ArtifactRetentionMismatch
+  ArtifactMissingDerivation
+  ArtifactEncoding
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ResultAvailability {
   name : String
   state : ResultAvailabilityState
@@ -150,6 +174,21 @@ pub(all) enum ResultDefinitionIssue {
   NonCanonicalResultName
   ResultNameLimit
   Contract(PublicationContractIssue)
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ResultOrderingEvidence
+
+pub(all) enum ResultOrderingEvidenceIssue {
+  WrongDefinition
+  WrongDerivation
+  WrongOrdering
+  ProducerMismatch
+  LogicalValueMismatch
+  SchemaMismatch
+  PolicyMismatch
+  OrderingMismatch
+  WitnessMismatch
   Encoding
 } derive(Eq, @debug.Debug)
 
