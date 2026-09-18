@@ -10,12 +10,16 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"id\":1,\"amount\":10,\"next\":2}", "{\"id\":2,\"amount\":null,\"next\":3}",
       ]
+    "derive_empty" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
+    "rename_empty" | "drop_empty" =>
+      ["{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}"]
     "derive_ordered" =>
       [
         "{\"id\":2,\"amount\":10,\"saved\":1,\"next\":3}", "{\"id\":3,\"amount\":null,\"saved\":2,\"next\":5}",
       ]
     "rename" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
-    "drop" => ["{\"id\":1}", "{\"id\":2}"]
+    "rename_swap" => ["{\"id\":10,\"amount\":1}", "{\"id\":null,\"amount\":2}"]
+    "drop" | "drop_repeated" => ["{\"id\":1}", "{\"id\":2}"]
     "json_pick" =>
       [
         "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}},\"picked\":3}", "{\"id\":2,\"payload\":null,\"picked\":null}",
@@ -97,6 +101,12 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
 fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
   if kind == "rename" {
     ["{\"id\":1,\"total\":10}", "{\"id\":2,\"total\":null}"]
+  } else if kind == "rename_swap" {
+    ["{\"amount\":1,\"id\":10}", "{\"amount\":2,\"id\":null}"]
+  } else if kind == "derive_empty" ||
+    kind == "rename_empty" ||
+    kind == "drop_empty" {
+    ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
   } else {
     local_managed_unary_expected(kind)
   }
@@ -221,7 +231,8 @@ test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
       "select", "filter_text", "filter_structured", "filter_null", "derive_map",
-      "derive_ordered", "rename", "drop", "json_pick", "assert_where", "assert_unique",
+      "derive_empty", "derive_ordered", "rename", "rename_swap", "rename_empty",
+      "drop", "drop_empty", "drop_repeated", "json_pick", "assert_where", "assert_unique",
       "sort", "take", "distinct", "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot",
       "pivot", "pivot_decimal_sum",
     ] {
@@ -230,9 +241,9 @@ test "Local managed unary source forms feed two downstream Computes" {
 }
 
 ///|
-test "Local managed filter failure publishes nothing and releases its use" {
+fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
-    local_values_unary_chain=Some("filter_failure"),
+    local_values_unary_chain=Some(kind),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -316,6 +327,13 @@ test "Local managed filter failure publishes nothing and releases its use" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed demanded failures publish nothing and release their use" {
+  for kind in ["filter_failure", "derive_failure"] {
+    run_local_managed_unary_failure_case(kind)
+  }
 }
 
 ///|

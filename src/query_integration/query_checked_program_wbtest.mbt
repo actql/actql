@@ -541,10 +541,17 @@ fn local_values_unary_program(kind : String) -> String {
     "filter_null" => "{\"filter\":\"amount > 0\",\"as\":\"out\"}"
     "filter_failure" => "{\"filter\":\"false AND 1 / 0 > 0\",\"as\":\"out\"}"
     "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
+    "derive_empty" => "{\"derive\":{},\"as\":\"out\"}"
+    "derive_failure" => "{\"derive\":{\"unused\":\"1 / 0\"},\"as\":\"out\"}"
     "derive_ordered" =>
       "{\"derive\":[{\"saved\":\"id\"},{\"id\":\"id + $minimum\"},{\"next\":\"saved + id\"}],\"as\":\"out\"}"
     "rename" => "{\"rename\":{\"amount\":\"total\"},\"as\":\"out\"}"
+    "rename_swap" =>
+      "{\"rename\":{\"id\":\"amount\",\"amount\":\"id\"},\"as\":\"out\"}"
+    "rename_empty" => "{\"rename\":{},\"as\":\"out\"}"
     "drop" => "{\"drop\":[\"amount\"],\"as\":\"out\"}"
+    "drop_empty" => "{\"drop\":[],\"as\":\"out\"}"
+    "drop_repeated" => "{\"drop\":[\"amount\",\"amount\"],\"as\":\"out\"}"
     "assert_where" => "{\"assert_rows\":{\"where\":\"id > 0\"},\"as\":\"out\"}"
     "assert_unique" =>
       "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"out\"}"
@@ -554,8 +561,9 @@ fn local_values_unary_program(kind : String) -> String {
     "select" => "[\"total\",\"id\"]"
     "derive_map" => "[\"id\",\"amount\",\"next\"]"
     "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
+    "rename_swap" => "[\"amount\",\"id\"]"
     "rename" => "[\"id\",\"total\"]"
-    "drop" => "[\"id\"]"
+    "drop" | "drop_repeated" => "[\"id\"]"
     _ => "[\"id\",\"amount\"]"
   }
   let prefix =
