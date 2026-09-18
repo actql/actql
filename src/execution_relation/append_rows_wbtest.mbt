@@ -55,3 +55,229 @@ test "append enforces the cumulative output row ceiling" {
     is Err(_),
   )
 }
+
+///|
+fn append_contract(body : String) -> @contract.Contract {
+  @contract.read_checked(input_cursor(body), {
+    max_nodes: 100,
+    max_depth: 10,
+    max_text_bytes: 1000,
+  }).unwrap()
+}
+
+///|
+fn append_input_owner(contract : @contract.Contract) -> @lower.BoundPrepared {
+  let schema = @schema.from_fields(
+    [(@schema.Unqualified("value"), contract)],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let carrier = @carrier.relation(@carrier.typed_rows(schema))
+  let checked = @pipeline.check_with_evidence(
+    input_cursor("[{\"from\":\"l\",\"append\":{\"with\":\"r\"}}]"),
+    [
+      ("l", @pipeline.CarrierInput(carrier)),
+      ("r", @pipeline.CarrierInput(carrier)),
+    ],
+    None,
+    None,
+    {
+      max_steps: 100,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn append_value_equal(left : Value, right : Value) -> Bool {
+  match (left, right) {
+    (Null, Null) => true
+    (Number(a), Number(b)) => a == b
+    (Boolean(a), Boolean(b)) => a == b
+    (Text(a), Text(b)) => a == b
+    (Captured(a), Captured(b)) => physical_equal(a, b)
+    _ => false
+  }
+}
+
+///|
+test "append lowers every normative relation value contract" {
+  let contracts = [
+    "{\"type\":\"string\",\"nullable\":true}", "{\"type\":\"number\",\"nullable\":true}",
+    "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "{\"type\":\"boolean\",\"nullable\":true}",
+    "{\"type\":\"timestamp\",\"nullable\":true}", "{\"type\":\"date\",\"nullable\":true}",
+    "{\"type\":\"json\",\"nullable\":true}", "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
+    "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
+    "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
+    "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"file\"}", "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+  ]
+  for body in contracts {
+    let owner = append_input_owner(append_contract(body))
+    let sequence = prepared_sequence(owner)
+    assert_true(@lower.sequence_step(sequence, 0) is Some(@lower.AppendStep(_)))
+  }
+}
+
+///|
+test "append preserves every directly admitted value domain and NULL" {
+  let cases = [
+    ("{\"type\":\"string\",\"nullable\":true}", "\"é\""),
+    ("{\"type\":\"number\",\"nullable\":true}", "1"),
+    (
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+    ),
+    ("{\"type\":\"boolean\",\"nullable\":true}", "true"),
+    (
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+    ),
+    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\""),
+    ("{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}"),
+    (
+      "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
+      "{\"x\":\"v\"}",
+    ),
+    (
+      "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
+      "[1,null]",
+    ),
+    (
+      "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
+      "[1,2]",
+    ),
+  ]
+  for (contract_body, wire) in cases {
+    let contract = append_contract(contract_body)
+    let owner = append_input_owner(contract)
+    let sequence = prepared_sequence(owner)
+    guard @lower.sequence_step(sequence, 0) is Some(@lower.AppendStep(kernel)) else {
+      fail("append kernel was not prepared")
+    }
+    let value = @admitted.admit(contract, input_cursor(wire), {
+        max_nodes: 100,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      }).unwrap().value
+    let null = @admitted.admit(contract, input_cursor("null"), {
+        max_nodes: 1,
+        max_depth: 0,
+        max_text_bytes: 0,
+      }).unwrap().value
+    let result = evaluate_append_rows(
+      kernel,
+      AdmittedTable({ owner, id: "input_0", names: ["value"], rows: [[value]], }),
+      AdmittedTable({ owner, id: "input_1", names: ["value"], rows: [[null]], }),
+      2,
+      { remaining: 100000, max_frames: 100, },
+      value_budget({
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 10,
+        max_work: 100000,
+      }).unwrap(),
+      { limit: 10000, live: 0, peak: 0, },
+    ).unwrap()
+    assert_eq(result.rows.length(), 2)
+    assert_true(append_value_equal(result.rows[0][0], capture(value)))
+    assert_true(append_value_equal(result.rows[1][0], capture(null)))
+  }
+}
+
+///|
+fn append_scale_sample(
+  left_count : Int,
+  right_count : Int,
+  width : Int,
+) -> (Int, Int, Int) raise {
+  let fields = Array::makei(width, index => {
+    "\"f" + index.to_string() + "\":{\"type\":\"number\",\"nullable\":false}"
+  })
+  let row_fields = Array::makei(width, index => {
+    "\"f" + index.to_string() + "\":" + index.to_string()
+  })
+  let row = "{" + row_fields.join(",") + "}"
+  let schema = "{" + fields.join(",") + "}"
+  let left = Array::make(left_count, row).join(",")
+  let right = Array::make(right_count, row).join(",")
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[" +
+    left +
+    "]},\"as\":\"left_rows\"},{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[" +
+    right +
+    "]},\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"append\":{\"with\":\"right_rows\"}}]",
+  )
+  let sequence = prepared_sequence(owner)
+  guard @lower.sequence_step(sequence, 2) is Some(@lower.AppendStep(kernel)) else {
+    fail("append kernel was not prepared")
+  }
+  let control_max = 100000000
+  let control = { remaining: control_max, max_frames: 100, }
+  let workspace : RowWorkspace = { limit: 100000000, live: 0, peak: 0, }
+  let output = value_budget({
+    max_nodes: 10000000,
+    max_text_bytes: 10000000,
+    max_depth: 10,
+    max_work: 100000000,
+  }).unwrap()
+  let result = evaluate_append_rows(
+    kernel,
+    table_from_capture(
+      capture_values(owner, 0, max_rows=left_count, {
+        max_nodes: 10000000,
+        max_text_bytes: 10000000,
+        max_depth: 10,
+        max_work: 100000000,
+      }).unwrap(),
+    ),
+    table_from_capture(
+      capture_values(owner, 1, max_rows=right_count, {
+        max_nodes: 10000000,
+        max_text_bytes: 10000000,
+        max_depth: 10,
+        max_work: 100000000,
+      }).unwrap(),
+    ),
+    left_count + right_count,
+    control,
+    output,
+    workspace,
+  ).unwrap()
+  assert_eq(result.rows.length(), left_count + right_count)
+  (control_max - control.remaining, workspace.peak, output.work)
+}
+
+///|
+test "append work and retained slots scale with rows and value width" {
+  for (left, right, width) in [(4, 4, 4), (32, 32, 4), (4, 4, 32)] {
+    let (work, peak, output_work) = append_scale_sample(left, right, width)
+    let rows = left + right
+    let mut name_bytes = 0
+    for index in 0..<width {
+      name_bytes += ("f" + index.to_string()).length()
+    }
+    // One alignment walk plus one left-to-right pass over each output cell.
+    assert_eq(work, width + name_bytes + rows * (1 + width))
+    // Two row-index arrays, three width arrays, and two value arrays per row.
+    assert_eq(peak, 2 * rows + 3 * width + 2 * rows * width)
+    // Every retained row, field name, and scalar value is charged exactly once.
+    assert_eq(output_work, rows * (1 + name_bytes + width))
+  }
+}

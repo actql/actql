@@ -83,6 +83,18 @@ fn run_local_managed_test_task(
         )
       )
     ) => fail("Local managed execution lacked an ordered resource context")
+    Err(@local_driver.Configuration(@connector.Execution(InputOwnership))) =>
+      fail("Local managed sequence rejected input ownership")
+    Err(@local_driver.Configuration(@connector.Execution(InputSet))) =>
+      fail("Local managed sequence rejected the input set")
+    Err(@local_driver.Configuration(@connector.Execution(Wiring(_)))) =>
+      fail("Local managed sequence rejected input wiring")
+    Err(
+      @local_driver.Configuration(@connector.Execution(Rows(_, InputMismatch)))
+    ) => fail("Local managed sequence rejected aligned input fields")
+    Err(
+      @local_driver.Configuration(@connector.Execution(Rows(_, OwnerMismatch)))
+    ) => fail("Local managed sequence rejected a row owner")
     Err(@local_driver.Configuration(@connector.Execution(_))) =>
       fail("Local managed sequence failed")
     Err(_) => fail("Local managed dispatch failed")
