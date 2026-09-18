@@ -48,7 +48,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | distinct | C | C | C | P | Keyed/NULL/type and indexed performance evidence |
 | dedupe_rows | C | C | C | P | Compound/NULL/tie and indexed performance evidence |
 | assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
-| append | C | - | - | - | Common two-input lowering |
+| append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
 | values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |
 | except | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
 | intersect | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
@@ -76,10 +76,10 @@ notification happens before editing it.
 
 ## Completion evidence
 
-`values` is the first operation with all newly agreed evidence. `select` now
-has complete source, managed two-consumer, and performance evidence; its
-remaining gap is the shared owned-reference runtime boundary. The remaining
-28 operations still need one or more of:
+`values` is the first operation with all newly agreed evidence. `select` and
+`append` now have complete source, managed two-consumer, and performance
+evidence; their remaining gap is the shared owned-reference runtime boundary.
+The remaining 28 operations still need one or more of:
 
 - every formal source variant connected to common lowering;
 - every allowed operation/type combination checked on JS, Wasm, and native;

@@ -2179,10 +2179,10 @@
         "lowering": "complete",
         "kernel": "complete",
         "managed": "complete",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2192,7 +2192,9 @@
             "path": "src/execution_relation/append_rows_wbtest.mbt",
             "fixtures": [
               "checked append aligns columns and preserves left then right order",
-              "append enforces the cumulative output row ceiling"
+              "append enforces the cumulative output row ceiling",
+              "append lowers every normative relation value contract",
+              "append preserves every directly admitted value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2206,7 +2208,13 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_append_wbtest.mbt",
             "fixtures": [
-              "Local managed append feeds two downstream Computes in source order"
+              "Local managed append joins distinct local producers",
+              "Local managed append retains both self occurrences",
+              "Local managed append handles an empty left side",
+              "Local managed append handles an empty right side",
+              "Local managed append handles two empty sides",
+              "Local managed append aligns fields in authored left order",
+              "Local managed append consumes two imported producers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2222,7 +2230,13 @@
             "layer": "two_consumer_e2e",
             "path": "src/query_integration/local_managed_append_wbtest.mbt",
             "fixtures": [
-              "Local managed append feeds two downstream Computes in source order"
+              "Local managed append joins distinct local producers",
+              "Local managed append retains both self occurrences",
+              "Local managed append handles an empty left side",
+              "Local managed append handles an empty right side",
+              "Local managed append handles two empty sides",
+              "Local managed append aligns fields in authored left order",
+              "Local managed append consumes two imported producers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2252,7 +2266,23 @@
             "path": "src/execution_relation/append_rows_wbtest.mbt",
             "fixtures": [
               "checked append aligns columns and preserves left then right order",
-              "append enforces the cumulative output row ceiling"
+              "append enforces the cumulative output row ceiling",
+              "append lowers every normative relation value contract",
+              "append preserves every directly admitted value domain and NULL"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "append",
+            "layer": "conformance",
+            "path": "src/execution_relation/fixed_append_inputs_wbtest.mbt",
+            "fixtures": [
+              "fixed append executes both produced input ports"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2266,7 +2296,13 @@
             "layer": "conformance",
             "path": "src/query_integration/local_managed_append_wbtest.mbt",
             "fixtures": [
-              "Local managed append feeds two downstream Computes in source order"
+              "Local managed append joins distinct local producers",
+              "Local managed append retains both self occurrences",
+              "Local managed append handles an empty left side",
+              "Local managed append handles an empty right side",
+              "Local managed append handles two empty sides",
+              "Local managed append aligns fields in authored left order",
+              "Local managed append consumes two imported producers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2276,10 +2312,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "append",
+            "layer": "performance",
+            "path": "src/execution_relation/append_rows_wbtest.mbt",
+            "fixtures": [
+              "append work and retained slots scale with rows and value width"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Managed append preserves alignment and feeds two consumers; empty sides, shared external producers, full type coverage, and performance evidence remain."
+        "All source variants, two-consumer lifetimes, schema alignment, directly admitted values, and linear work are covered; resource_ref and artifact_ref still need the shared owned-reference runtime boundary."
       ]
     },
     {
