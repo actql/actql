@@ -1268,9 +1268,10 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_window_wbtest.mbt",
             "fixtures": [
-              "Local managed fixed row windows feed two downstream Computes",
-              "Local managed sliding row windows feed two downstream Computes",
-              "Local managed timestamp row windows use epoch milliseconds"
+          "Local managed fixed row windows feed two downstream Computes",
+          "Local managed sliding row windows feed two downstream Computes",
+          "Local managed timestamp row windows use epoch milliseconds",
+          "Local managed row windows retain exact large-offset membership"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1286,9 +1287,10 @@
             "layer": "two_consumer_e2e",
             "path": "src/query_integration/local_managed_window_wbtest.mbt",
             "fixtures": [
-              "Local managed fixed row windows feed two downstream Computes",
-              "Local managed sliding row windows feed two downstream Computes",
-              "Local managed timestamp row windows use epoch milliseconds"
+          "Local managed fixed row windows feed two downstream Computes",
+          "Local managed sliding row windows feed two downstream Computes",
+          "Local managed timestamp row windows use epoch milliseconds",
+          "Local managed row windows retain exact large-offset membership"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1304,10 +1306,14 @@
             "layer": "conformance",
             "path": "src/execution_relation/row_window_rows_wbtest.mbt",
             "fixtures": [
-              "fixed row windows use the signed epoch grid and retain occurrence order",
-              "sliding row windows emit each occurrence in ascending start order",
-              "sliding row windows retain gaps and reject expansion past the row limit",
-              "timestamp row windows convert canonical UTC values to Unix milliseconds"
+          "fixed row windows use the signed epoch grid and retain occurrence order",
+          "sliding row windows emit each occurrence in ascending start order",
+          "sliding row windows retain gaps and reject expansion past the row limit",
+          "timestamp row windows convert canonical UTC values to Unix milliseconds",
+          "fixed row windows retain exact grids across large signed offsets",
+          "row windows preserve exact boundaries for fractional times",
+          "sliding row windows use exact large-offset overlap boundaries",
+          "row windows reject unrepresentable exact boundaries as arithmetic"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -1320,7 +1326,7 @@
         "performance": []
       },
       "gaps": [
-        "Fixed and sliding numeric and timestamp windows now lower from checked source forms and run through managed Local execution with two independently released consumers on three targets. Standard Host evidence, parameter-bound managed execution, exact runtime budget boundaries, broader temporal edge cases, and fixed scaling evidence remain."
+      "Fixed and sliding numeric and timestamp windows now lower from checked source forms and run through managed Local execution with two independently released consumers on three targets. Exact signed-offset grids, fractional boundaries, and explicit arithmetic failure are covered. Standard Host evidence, parameter-bound managed execution, exact runtime budget boundaries, and fixed scaling evidence remain."
       ]
     },
     {
@@ -1539,24 +1545,90 @@
         "order obligations"
       ],
       "layers": {
-        "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
-        "performance": "missing"
-      },
-      "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
-        "performance": []
-      },
-      "gaps": [
-        "Common lowering and finite watermark semantics are missing."
+      "checker": "complete",
+      "lowering": "complete",
+      "kernel": "partial",
+      "managed": "partial",
+      "source_connection": "complete",
+      "two_consumer_e2e": "partial",
+      "three_target_conformance": "partial",
+      "performance": "complete"
+    },
+    "evidence": {
+      "source_connection": [
+        {
+          "operation": "watermark_rows",
+          "layer": "source_connection",
+          "path": "src/lowering_relation/watermark_encode_test.mbt",
+          "fixtures": [
+            "watermark emits bound fixed and prefix thresholds",
+            "watermark binds number and duration parameters before publication",
+            "prefix watermark requires checked input order",
+            "watermark lowering charges its field and threshold atomically"
+          ],
+          "suite": "moon:lowering_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ]
+        }
+      ],
+      "two_consumer_e2e": [
+        {
+          "operation": "watermark_rows",
+          "layer": "two_consumer_e2e",
+          "path": "src/query_integration/local_managed_watermark_wbtest.mbt",
+          "fixtures": [
+            "Local managed fixed watermark feeds two downstream Computes",
+            "Local managed prefix watermark feeds two downstream Computes"
+          ],
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ]
+        }
+      ],
+      "conformance": [
+        {
+          "operation": "watermark_rows",
+          "layer": "conformance",
+          "path": "src/execution_relation/watermark_sequence_wbtest.mbt",
+          "fixtures": [
+            "watermark preserves occurrence order for mark and drop policies",
+            "watermark timestamp comparisons use canonical epoch milliseconds",
+            "watermark shares exact execution work and rejects invalid physical time"
+          ],
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ]
+        }
+      ],
+      "performance": [
+        {
+          "operation": "watermark_rows",
+          "layer": "performance",
+          "path": "src/execution_relation/watermark_scale_wbtest.mbt",
+          "fixtures": [
+            "watermark uses one prefix scan and linear retained storage"
+          ],
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ]
+        }
       ]
+    },
+    "gaps": [
+      "Fixed and prefix thresholds, number and timestamp inputs, mark and drop policies, invalid physical time, exact work boundaries, two independently released managed consumers, final reclamation, and linear prefix scaling pass on three targets. Parameter-bound managed execution, complete ordering interactions, Standard Host evidence, and cancellation coverage remain."
+    ]
     },
     {
       "operation": "pivot",
