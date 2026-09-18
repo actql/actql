@@ -427,6 +427,7 @@ fn run_sequence_invocation(
           aggregate_outputs,
           @lower.kernel_step(kernel),
         ),
+        identity_limits=Some(invocation.limits.input_values),
       )
     },
     store => RowStore(store),

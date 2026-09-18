@@ -99,6 +99,7 @@ fn evaluate_physical_sequence(
           aggregate_outputs,
           @lower.kernel_step(kernel),
         ),
+        identity_limits=Some(invocation.limits.input_values),
       )
     },
     store => PhysicalStore(store),

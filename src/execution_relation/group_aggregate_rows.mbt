@@ -134,18 +134,34 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
 fn runtime_value_identity(
   value : Value,
   control : ControlBudget,
+  workspace : RowWorkspace,
+  limits : ValueLimits,
 ) -> Result[String, RowIssue] {
-  try {
-    let writer = @encode.hashing_writer(control.remaining, control.remaining, 4)
+  if limits.max_nodes < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_work < 0 ||
+    limits.max_depth < 0 ||
+    !reserve_slots(workspace, limits.max_depth) {
+    return Err(RowLimit)
+  }
+  let result : Result[String, RowIssue] = try {
+    let writer = @encode.hashing_writer(
+      Int::min(control.remaining, limits.max_work),
+      Int::min(Int::min(control.remaining, limits.max_work), limits.max_nodes),
+      limits.max_depth,
+    )
     emit_runtime_value(value, writer)
     let (cid, bytes, _) = @encode.finish_hash_usage(writer)
     if !spend_control(control, bytes) {
-      return Err(RowLimit)
+      Err(RowLimit)
+    } else {
+      Ok(cid)
     }
-    Ok(cid)
   } catch {
     _ => Err(RowLimit)
   }
+  release_slots(workspace, limits.max_depth)
+  result
 }
 
 ///|
@@ -153,6 +169,7 @@ fn distinct_aggregate_values(
   values : Array[Value],
   control : ControlBudget,
   workspace : RowWorkspace,
+  identity_limits : ValueLimits,
 ) -> Result[Array[Value], RowIssue] {
   let buckets : Map[String, Array[Value]] = Map([])
   let output : Array[Value] = []
@@ -160,7 +177,8 @@ fn distinct_aggregate_values(
     if !spend_control(control, 1) {
       return Err(RowLimit)
     }
-    let cid = match runtime_value_identity(value, control) {
+    let cid = match
+      runtime_value_identity(value, control, workspace, identity_limits) {
       Ok(cid) => cid
       Err(issue) => return Err(issue)
     }
@@ -450,6 +468,7 @@ fn canonical_numeric_values(
   values : Array[Value],
   control : ControlBudget,
   workspace : RowWorkspace,
+  identity_limits : ValueLimits,
 ) -> Result[Array[Double], RowIssue] {
   let entries : Array[(String, Double)] = []
   if !reserve_slots(workspace, values.length()) ||
@@ -460,7 +479,8 @@ fn canonical_numeric_values(
     guard value is Number(number) && !number.is_nan() && !number.is_inf() else {
       return Err(InvalidRows)
     }
-    let cid = match runtime_value_identity(value, control) {
+    let cid = match
+      runtime_value_identity(value, control, workspace, identity_limits) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -489,13 +509,15 @@ fn evaluate_statistical_aggregate(
   values : Array[Value],
   control : ControlBudget,
   workspace : RowWorkspace,
+  identity_limits : ValueLimits,
 ) -> Result[Value, RowIssue] {
   let function = @lower.group_aggregate_function(aggregate)
   let sample = function is @relation.VarSamp || function is @relation.StddevSamp
   if values.is_empty() || (sample && values.length() < 2) {
     return Ok(Null)
   }
-  let numbers = match canonical_numeric_values(values, control, workspace) {
+  let numbers = match
+    canonical_numeric_values(values, control, workspace, identity_limits) {
     Ok(values) => values
     Err(issue) => return Err(issue)
   }
@@ -623,6 +645,7 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
   control : ControlBudget,
   workspace : RowWorkspace,
   selected : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
 ) -> Result[Value, RowIssue] {
   let function = @lower.group_aggregate_function(aggregate)
   if function is @relation.ArrayAgg || function is @relation.StringAgg {
@@ -637,7 +660,8 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
       Err(issue) => return Err(issue)
     }
     let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
-      match distinct_aggregate_values(ordered, control, workspace) {
+      match
+        distinct_aggregate_values(ordered, control, workspace, identity_limits) {
         Ok(values) => values
         Err(issue) => return Err(issue)
       }
@@ -728,7 +752,8 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     }
   }
   let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
-    match distinct_aggregate_values(values, control, workspace) {
+    match
+      distinct_aggregate_values(values, control, workspace, identity_limits) {
       Ok(values) => values
       Err(issue) => return Err(issue)
     }
@@ -797,7 +822,9 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     | @relation.VarSamp
     | @relation.StddevPop
     | @relation.StddevSamp =>
-      evaluate_statistical_aggregate(aggregate, values, control, workspace)
+      evaluate_statistical_aggregate(
+        aggregate, values, control, workspace, identity_limits,
+      )
     _ => Err(InvalidRows)
   }
 }
@@ -815,6 +842,7 @@ fn[T : RelationRows] evaluate_group_into(
     RowIssue,
   ],
   aggregate_outputs : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
 ) -> Result[Array[String], RowIssue] {
   if !group_execution_supported(group) {
     return Err(InvalidRows)
@@ -956,6 +984,7 @@ fn[T : RelationRows] evaluate_group_into(
           control,
           workspace,
           aggregate_outputs,
+          identity_limits,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)

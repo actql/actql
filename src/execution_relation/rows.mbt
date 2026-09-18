@@ -147,6 +147,7 @@ fn evaluate_rows_with_workspace(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  identity_limits? : ValueLimits? = None,
 ) -> Result[Table, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -202,6 +203,7 @@ fn evaluate_rows_with_workspace(
           workspace,
           ordered_budget=logical,
           aggregate_outputs~,
+          identity_limits~,
         )
       },
     },
@@ -314,6 +316,7 @@ fn[T : RelationRows] evaluate_row_body(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  identity_limits? : ValueLimits? = None,
 ) -> Result[Table, RowIssue] {
   let rows : Array[Array[Value]] = []
   let names = match
@@ -330,6 +333,7 @@ fn[T : RelationRows] evaluate_row_body(
       },
       ordered_budget~,
       aggregate_outputs~,
+      identity_limits~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -354,6 +358,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   ],
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  identity_limits? : ValueLimits? = None,
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
     if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
@@ -369,7 +374,16 @@ fn[T : RelationRows] evaluate_row_body_into(
       ExpressionRoots)
   })
   let result = evaluate_row_body_impl(
-    body, input, max_rows, control, output, workspace, scope, accept_row, aggregate_outputs,
+    body,
+    input,
+    max_rows,
+    control,
+    output,
+    workspace,
+    scope,
+    accept_row,
+    aggregate_outputs,
+    identity_limits.unwrap_or(output.limits),
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -394,6 +408,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
     RowIssue,
   ],
   aggregate_outputs : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -427,6 +442,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   if body is PreparedBody(kernel) && @lower.kernel_group(kernel) is Some(group) {
     return evaluate_group_into(
       group, input, max_rows, control, output, workspace, accept_row, aggregate_outputs,
+      identity_limits,
     )
   }
   let view_entries = match body {
