@@ -312,6 +312,8 @@ export function createManagedSiteTransferCoordinator(
         authorize: value =>
           core.managedInputMatches(value, occurrence.material) === true &&
           executionSiteTransferOperationAvailable(siteOperation),
+        destinationAuthorize: value =>
+          core.managedInputMatches(value, occurrence.material) === true,
         charge: bytes => core.transferCharge(setup, transfer, bytes),
         signal,
         estimate,

@@ -50,6 +50,7 @@ async function requirePreservedRows(provider, rows) {
     sourceMaterial: original.material,
     input: original.input,
     authorize: value => value === original.input,
+    destinationAuthorize: value => value === original.input,
     charge() {},
     estimate,
   });
@@ -73,11 +74,13 @@ test('bounded transfer creates an independent destination generation', async () 
     maxBatchRows: 2,
     maxBatchBytes: 64,
   });
+  let sourceAuthorized = true;
   assert.deepEqual(provider.estimate(original.material), estimate);
   const destination = await provider.copy({
     sourceMaterial: original.material,
     input: original.input,
-    authorize: value => value === original.input,
+    authorize: value => sourceAuthorized && value === original.input,
+    destinationAuthorize: value => value === original.input,
     charge: bytes => charged.push(bytes),
     estimate,
   });
@@ -89,6 +92,7 @@ test('bounded transfer creates an independent destination generation', async () 
   assert.equal(destination.bytes,
     charged.reduce((sum, value) => sum + value, 0n));
 
+  sourceAuthorized = false;
   await original.registration.close();
   assert.equal(original.released(), true);
   const observed = [];
@@ -127,6 +131,7 @@ test('independent preservation fixture detects value substitution and reordering
           sourceMaterial: replacement.material,
           input: replacement.input,
           authorize: value => value === replacement.input,
+          destinationAuthorize: value => value === replacement.input,
         });
         const close = copied.close;
         return Object.freeze({
@@ -156,6 +161,7 @@ test('transfer charges before retention and rejects a byte overrun', async () =>
     sourceMaterial: original.material,
     input: original.input,
     authorize: () => true,
+    destinationAuthorize: () => true,
     charge: bytes => events.push(bytes),
     estimate: limited,
   }), {code: 'ManagedTransferByteLimit'});
@@ -176,6 +182,7 @@ test('transfer cancellation releases a stopped source use', async () => {
     sourceMaterial: original.material,
     input: original.input,
     authorize: () => true,
+    destinationAuthorize: () => true,
     charge() {
       charges++;
       controller.abort();

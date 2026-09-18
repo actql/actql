@@ -44,12 +44,14 @@ export function createManagedMemoryTransferProvider({
       sourceMaterial,
       input,
       authorize,
+      destinationAuthorize,
       charge,
       signal,
       estimate,
     } = {}) {
       if (!sourceMaterial || typeof sourceMaterial !== 'object' ||
           input == null || typeof authorize !== 'function' ||
+          typeof destinationAuthorize !== 'function' ||
           typeof charge !== 'function' || !estimate ||
           ![estimate.transferBytes, estimate.retainedBytes,
             estimate.executionBytes].every(value =>
@@ -125,7 +127,7 @@ export function createManagedMemoryTransferProvider({
           });
           const registered = registerManagedMemoryInput(
             material,
-            value => authorize(value) === true,
+            value => destinationAuthorize(value) === true,
             () => open,
             Object.freeze({
               async read(_file, emit, readSignal) {
