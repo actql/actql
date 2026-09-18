@@ -23,6 +23,10 @@ test "Local managed support is a finite checked surface" {
     (
       "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10}}]", true,
     ),
+    (
+      "[{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10}},{\"window_group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+      true,
+    ),
   ]
   for (wire, expected) in shapes {
     let receiver = typed_receiver(source, wire)
