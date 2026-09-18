@@ -2988,11 +2988,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3010,7 +3010,17 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index"
+              ],
+              "obligations": [
+                "ownership",
+                "schema"
+              ]
+            }
           },
           {
             "operation": "unnest",
@@ -3024,7 +3034,17 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3040,7 +3060,34 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index"
+              ],
+              "types": [
+                "collection",
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "unnest",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -3059,7 +3106,23 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index",
+                "NULL and empty collections",
+                "max_items"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "ownership"
+              ]
+            }
           },
           {
             "operation": "unnest",
@@ -3073,7 +3136,83 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index",
+                "NULL and empty collections"
+              ],
+              "types": [
+                "collection",
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "unnest",
+            "layer": "conformance",
+            "path": "src/execution_relation/unnest_domains_wbtest.mbt",
+            "fixtures": [
+              "unnest expands every relation value item into sealed columns"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "nested value types"
+              ],
+              "types": [
+                "collection",
+                "relation_value"
+              ],
+              "obligations": [
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "unnest",
+            "layer": "conformance",
+            "path": "src/relation_typing/reshape_test.mbt",
+            "fixtures": [
+              "deep picks are iterative and unnest preserves deep opaque child contracts",
+              "unnest outer and nullable array containers have distinct element contracts",
+              "reshape rejects invalid shapes and reports the exact option or segment"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "outer and non-outer",
+                "with and without index",
+                "nested value types"
+              ],
+              "types": [
+                "collection",
+                "relation_value"
+              ],
+              "obligations": [
+                "schema",
+                "value_validation"
+              ]
+            }
           }
         ],
         "performance": [
@@ -3089,13 +3228,21 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "max_items"
+              ],
+              "obligations": [
+                "capacity",
+                "logical_order",
+                "measurement"
+              ]
+            }
           }
         ]
       },
-      "gaps": [
-        "Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Both endpoint variants reach two managed consumers on three targets, and fixed linear work and workspace floors track parent rows plus emitted values without bound-sized preallocation. Broader nested-value conformance and a native layout expansion writer remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "join",

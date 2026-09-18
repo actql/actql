@@ -1940,6 +1940,50 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         : [...unpivotFields].reverse(),
     }},
   })));
+  const unnestProgram = structuredClone(zeroInputProgram);
+  const unnestFields = ['id', 'item', 'items', 'position'];
+  unnestProgram.stages.splice(1, 3, {
+    id: 'unnest_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        items: {
+          type: 'array',
+          nullable: true,
+          items: {type: 'number', nullable: true},
+          max_items: 2,
+        },
+      },
+      rows: [
+        {id: 1, items: [2, null]},
+        {id: 2, items: []},
+        {id: 3, items: null},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'items']}},
+  }, {
+    id: 'unnested',
+    inputs: {x: {result: {stage: 'unnest_values', result: 'r'}}},
+    steps: [{unnest: {
+      column: 'items',
+      as: 'item',
+      with_index: 'position',
+      outer: true,
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: unnestFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `unnest_consumer_${id}`,
+    inputs: {x: {result: {stage: 'unnested', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? unnestFields
+      : [...unnestFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a'
+        ? unnestFields
+        : [...unnestFields].reverse(),
+    }},
+  })));
   const crossJoinProgram = singleton => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'tag'];
@@ -1995,6 +2039,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
     ['parameter lag', lagProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
+    ['unnest', unnestProgram, [1, 2, 3, 4]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
@@ -2056,6 +2101,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 6, 6, 6],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'unnest') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 4, 4, 4],
           `${name} and both consumers publish complete retained outputs`,
         );
       }

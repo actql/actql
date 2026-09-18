@@ -2,15 +2,15 @@
 /// Expand an admitted array without preallocating from its declared bound.
 /// Input-row and element order are retained exactly; outer synthetic rows use
 /// NULL for both the element and exposed index.
-fn[T : RelationRows] evaluate_unnest_rows(
+fn[T : RelationRows] evaluate_unnest_into(
   kernel : @lower.PreparedKernel,
   input : T,
-  output_id : String,
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
-) -> Result[Table, RowIssue] {
+  emit : (Array[Value]) -> Result[Unit, RowIssue],
+) -> Result[Array[String], RowIssue] {
   guard @lower.kernel_unnest(kernel)
     is Some((column, element, index_name, outer, max_items)) else {
     return Err(InvalidRows)
@@ -65,7 +65,7 @@ fn[T : RelationRows] evaluate_unnest_rows(
       return Err(InvalidRows)
     }
   }
-  let result : Array[Array[Value]] = []
+  let mut emitted = 0
   let rows = IndexedRows::row_count(input)
   if !reserve_slots(workspace, rows) ||
     !reserve_slots(workspace, width) ||
@@ -80,7 +80,7 @@ fn[T : RelationRows] evaluate_unnest_rows(
       return Err(RowLimit)
     }
     let cell = IndexedRows::read_cell(input, source, source_column)
-    let mut emitted = false
+    let mut row_emitted = false
     match cell {
       Captured(@admitted.Array(items)) => {
         let count = @admitted.element_count(items)
@@ -91,7 +91,7 @@ fn[T : RelationRows] evaluate_unnest_rows(
           guard @admitted.element_at(items, item_index) is Some(item) else {
             return Err(InvalidRows)
           }
-          if result.length() >= max_rows ||
+          if emitted >= max_rows ||
             !reserve_slots(workspace, output_names.length()) ||
             !spend_control(control, 1) {
             return Err(RowLimit)
@@ -108,15 +108,19 @@ fn[T : RelationRows] evaluate_unnest_rows(
           if !retain_row(row, output_names, output) {
             return Err(RowLimit)
           }
-          result.push(row)
-          emitted = true
+          match emit(row) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          emitted += 1
+          row_emitted = true
         }
       }
       Null => ()
       _ => return Err(InvalidRows)
     }
-    if outer && !emitted {
-      if result.length() >= max_rows ||
+    if outer && !row_emitted {
+      if emitted >= max_rows ||
         !reserve_slots(workspace, output_names.length()) ||
         !spend_control(control, 1) {
         return Err(RowLimit)
@@ -131,13 +135,92 @@ fn[T : RelationRows] evaluate_unnest_rows(
       if !retain_row(row, output_names, output) {
         return Err(RowLimit)
       }
-      result.push(row)
+      match emit(row) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      emitted += 1
     }
+  }
+  Ok(output_names)
+}
+
+///|
+fn[T : RelationRows] evaluate_unnest_rows(
+  kernel : @lower.PreparedKernel,
+  input : T,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[Table, RowIssue] {
+  let result : Array[Array[Value]] = []
+  let names = match
+    evaluate_unnest_into(kernel, input, max_rows, control, output, workspace, row => {
+      result.push(row)
+      Ok(())
+    }) {
+    Ok(names) => names
+    Err(issue) => return Err(issue)
   }
   Ok({
     owner: RelationRows::checked_owner(input),
     id: output_id,
-    names: output_names,
+    names,
     rows: result,
   })
+}
+
+///|
+// Expand an existing physical completion directly into sealed columns. The
+// representation is selected before execution and never used as a retry after
+// a semantic or capacity failure.
+fn evaluate_unnest_columns(
+  kernel : @lower.PreparedKernel,
+  input : CompletedTable,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[CompletedTable, RowIssue] {
+  let columns : Array[Array[Value]] = []
+  let names = match
+    evaluate_unnest_into(kernel, input, max_rows, control, output, workspace, row => {
+      if columns.is_empty() {
+        for _value in row {
+          columns.push([])
+        }
+      }
+      if row.length() != columns.length() {
+        return Err(InvalidRows)
+      }
+      for i, value in row {
+        columns[i].push(value)
+      }
+      Ok(())
+    }) {
+    Ok(names) => names
+    Err(issue) => return Err(issue)
+  }
+  if columns.is_empty() {
+    for _name in names {
+      columns.push([])
+    }
+  }
+  Ok(
+    ColumnTable({
+      owner: RelationRows::checked_owner(input),
+      id: output_id,
+      names,
+      columns,
+      count: if columns.is_empty() {
+        0
+      } else {
+        columns[0].length()
+      },
+      selection: None,
+    }),
+  )
 }

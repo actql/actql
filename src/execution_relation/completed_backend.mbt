@@ -294,9 +294,15 @@ fn evaluate_completed_rows(
         }
       },
       unnest: fn(kernel, input, id) {
-        evaluate_unnest_rows(
-          kernel, input, id, max_rows, control, output, workspace,
-        ).map(table => RowTable(table))
+        if input is RowTable(_) {
+          evaluate_unnest_rows(
+            kernel, input, id, max_rows, control, output, workspace,
+          ).map(table => RowTable(table))
+        } else {
+          evaluate_unnest_columns(
+            kernel, input, id, max_rows, control, output, workspace,
+          )
+        }
       },
       unpivot: fn(kernel, input, id) {
         if input is RowTable(_) {

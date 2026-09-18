@@ -40,7 +40,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
 | unpivot | C | C | C | C | Complete: repeated selected fields, exact names, heterogeneous rejection, every relation value domain, NULLs, bounded ordered expansion, sealed column output, Standard Host execution, two consumers, and linear scaling |
 | json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
-| unnest | C | C | P | P | Inner/outer managed paths and linear scaling are covered; nested-value matrix and native layout writer remain |
+| unnest | C | C | C | C | Complete: inner and outer expansion, optional indices, NULL and empty arrays, max-items admission, all relation value domains, sealed column output, Standard Host execution, two consumers, exact budgets, and linear scaling |
 | join | C | P | P | P | Equality kinds, compound nullable keys, self joins, cardinality, and indexed scaling are covered; cross-stage full identity transfer, broader types, and diagnostics remain |
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | P | Count, deep structured distinct, direct, and ordered collection aggregates are managed with two consumers; percentile/statistical kernels cover deterministic folds and failures, while expression/filter, numeric observation, managed statistics, broader domains, and remaining keys remain |
