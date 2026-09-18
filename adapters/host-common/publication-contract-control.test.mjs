@@ -175,12 +175,9 @@ test('portable control validates the exact Run Result publication chain', () => 
     effective_retention_policy_cid: retention.identity,
     provenance_evidence_cids: [derivation.identity],
   }), limits);
-  const manifest = control.seal('result_manifest', JSON.stringify({
-    version: 'actql-result-manifest/0.1',
-    run_definition_cid: run.identity,
-    invocation_cid: invoked.identity,
-    results: {answer: JSON.parse(artifact.wire)},
-  }), limits);
+  const manifest = control.issueResultManifest(
+    run, invoked, [definition], [artifact], limits,
+  );
   assert.equal(control.runChainValid(
     run, invoked, [definition], [artifact], manifest, limits,
   ), true);
@@ -263,12 +260,9 @@ test('portable control validates Receipt and Captured Run references',
     provenance_evidence_cids: [derivation.identity],
   }), limits);
   const artifactValue = JSON.parse(artifact.wire);
-  const manifest = control.seal('result_manifest', JSON.stringify({
-    version: 'actql-result-manifest/0.1',
-    run_definition_cid: run.identity,
-    invocation_cid: invoked.identity,
-    results: {answer: artifactValue},
-  }), limits);
+  const manifest = control.issueResultManifest(
+    run, invoked, [definition], [artifact], limits,
+  );
   const receiptValue = minimumValue(protocolSchemas.run_receipt);
   const prepared = receiptValue.prepared_invocation;
   prepared.invocation_template_cid = cid('1');

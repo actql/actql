@@ -562,6 +562,29 @@ pub fn strategy_run_publication_chain_valid(
 }
 
 ///|
+/// Construct the complete name-sorted Manifest from admitted Run contracts.
+/// The environment adapter cannot omit or rename a declared Result.
+#export_name("strategyIssueResultManifest")
+pub fn strategy_issue_result_manifest(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_manifest(
+      run_definition, invocation, definitions, artifacts, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyEffectFreeRunEvidenceChainValid")
 pub fn strategy_effect_free_run_evidence_chain_valid(
   run_definition : @publication.PublicationContract,

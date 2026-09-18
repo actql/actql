@@ -183,6 +183,8 @@ pub fn strategy_host_transfer_settle(@connectors_builtin.ConfiguredComputeHost[@
 
 pub fn strategy_host_usage(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
 
+pub fn strategy_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String

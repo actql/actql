@@ -111,6 +111,26 @@ function publicationControl(moon) {
         limits.maxDepth,
       );
     },
+    issueResultManifest(runDefinition, invocation, definitions, artifacts,
+      limits) {
+      if (limits === null || typeof limits !== 'object' ||
+          !Number.isSafeInteger(limits.maxWireBytes) ||
+          !Number.isSafeInteger(limits.maxNodes) ||
+          !Number.isSafeInteger(limits.maxDepth) ||
+          limits.maxWireBytes < 0 || limits.maxNodes < 0 ||
+          limits.maxDepth < 0) {
+        throw new TypeError('Invalid Result Manifest issuance limits');
+      }
+      return inspect(checked(moon.strategyIssueResultManifest(
+        token(runDefinition),
+        token(invocation),
+        definitions.map(token),
+        artifacts.map(token),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
     effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, receipt, capturedRun, limits) {
       return moon.strategyEffectFreeRunEvidenceChainValid(

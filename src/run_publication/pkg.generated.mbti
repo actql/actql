@@ -24,6 +24,8 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
+
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
@@ -214,6 +216,16 @@ pub(all) enum ResultEvidenceSetIssue {
   ResultEvidenceDuplicate
   ResultEvidenceArtifact(ResultArtifactEvidenceIssue)
   ResultEvidenceOrdering(ResultOrderingEvidenceIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultManifestIssuanceIssue {
+  ManifestIssuanceWrongContract
+  ManifestIssuanceEmptyInventory
+  ManifestIssuanceInventoryMismatch
+  ManifestIssuanceDuplicateResult(String)
+  ManifestIssuanceEncoding
+  ManifestIssuanceContract(PublicationContractIssue)
+  ManifestIssuanceChain(RunPublicationChainIssue)
 } derive(Eq, @debug.Debug)
 
 type ResultOrderingEvidence

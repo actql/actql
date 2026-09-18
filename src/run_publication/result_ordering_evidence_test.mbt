@@ -150,6 +150,60 @@ test "Result ordering requires its exact admitted derivation witness" {
     ),
     Ok(()),
   )
+  let second_definition = result_definition_contract(
+    prepare_result_definition(ordering_test_cid("1"), "second").unwrap(),
+  )
+  let second_derivation = ordering_test_derivation(
+    second_definition, ordering_test_cid("c"), schema, policy,
+  )
+  let second_ordering = ordering_test_ordering(
+    second_definition, second_derivation,
+  )
+  let second_artifact = seal_publication_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    publication_contract_identity(second_definition) +
+    "\",\"invocation_cid\":\"" +
+    ordering_test_cid("b") +
+    "\",\"logical_result_cid\":\"" +
+    ordering_test_cid("c") +
+    "\",\"result_schema_cid\":\"" +
+    schema +
+    "\",\"ordering_evidence_cid\":\"" +
+    publication_contract_identity(second_ordering) +
+    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    policy +
+    "\",\"effective_retention_policy_cid\":\"" +
+    publication_contract_identity(retention) +
+    "\",\"provenance_evidence_cids\":[\"" +
+    publication_contract_identity(second_derivation) +
+    "\"]}",
+    16384,
+    128,
+    5,
+  ).unwrap()
+  assert_eq(
+    validate_result_evidence_set(
+      [definition, second_definition],
+      [artifact, second_artifact],
+      [result_ordering_derivation_contract(evidence), second_derivation],
+      [result_ordering_evidence_contract(evidence), second_ordering],
+      [retention],
+    ),
+    Ok(()),
+  )
+  assert_true(
+    validate_result_evidence_set(
+      [definition, second_definition],
+      [artifact, second_artifact],
+      [result_ordering_derivation_contract(evidence), second_derivation],
+      [result_ordering_evidence_contract(evidence), second_ordering],
+      [retention, retention],
+    )
+    is Err(ResultEvidenceDuplicate),
+  )
   assert_true(
     validate_result_evidence_set(
       [definition],

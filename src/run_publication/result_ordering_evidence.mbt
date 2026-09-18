@@ -373,9 +373,10 @@ fn ordering_derivation_cid(ordering : PublicationContract) -> String? {
 
 ///|
 /// Resolve every Artifact dependency from the exact supplied evidence set.
-/// Equal content may share physical bytes, but dependency contracts remain
-/// one-to-one with the declared Result occurrence and no unreferenced evidence
-/// is accepted into the publication commit inventory.
+/// Result-bound derivation and ordering contracts remain one-to-one with the
+/// declared Result occurrence. A content-addressed retention contract may be
+/// shared by several Results, but every supplied contract must be referenced
+/// and duplicate evidence entries are rejected.
 pub fn validate_result_evidence_set(
   definitions : Array[PublicationContract],
   artifacts : Array[PublicationContract],
@@ -386,8 +387,15 @@ pub fn validate_result_evidence_set(
   if definitions.length() != artifacts.length() ||
     artifacts.length() != derivations.length() ||
     artifacts.length() != orderings.length() ||
-    artifacts.length() != retentions.length() {
+    (artifacts.length() > 0 && retentions.is_empty()) {
     return Err(ResultEvidenceCount)
+  }
+  let retention_identities : Array[String] = []
+  for retention in retentions {
+    if retention_identities.contains(retention.identity) {
+      return Err(ResultEvidenceDuplicate)
+    }
+    retention_identities.push(retention.identity)
   }
   let used_derivations : Array[String] = []
   let used_orderings : Array[String] = []
@@ -424,13 +432,14 @@ pub fn validate_result_evidence_set(
       return Err(ResultEvidenceMissingRetention)
     }
     if used_derivations.contains(derivation_cid) ||
-      used_orderings.contains(ordering_cid) ||
-      used_retentions.contains(retention_cid) {
+      used_orderings.contains(ordering_cid) {
       return Err(ResultEvidenceDuplicate)
     }
     used_derivations.push(derivation_cid)
     used_orderings.push(ordering_cid)
-    used_retentions.push(retention_cid)
+    if !used_retentions.contains(retention_cid) {
+      used_retentions.push(retention_cid)
+    }
     let logical = contract_string(artifact, "logical_result_cid").unwrap()
     let schema = contract_string(artifact, "result_schema_cid").unwrap()
     let policy = contract_string(artifact, "effective_data_policy_cid").unwrap()
@@ -448,6 +457,9 @@ pub fn validate_result_evidence_set(
       Ok(_) => ()
       Err(issue) => return Err(ResultEvidenceArtifact(issue))
     }
+  }
+  if used_retentions.length() != retentions.length() {
+    return Err(ResultEvidenceCount)
   }
   Ok(())
 }
