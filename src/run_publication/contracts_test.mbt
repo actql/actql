@@ -33,6 +33,212 @@ test "Run Invocation has one portable canonical identity owner" {
 }
 
 ///|
+test "Run Definition and Result Artifact use fixed independent identities" {
+  let run = seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\"," +
+    "\"scope_id\":\"scope\",\"run_id\":\"run\"," +
+    "\"compiled_plan_cid\":\"" +
+    contract_cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    contract_cid("2") +
+    "\",\"authorization_context_cid\":\"" +
+    contract_cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    contract_cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\"," +
+    "\"valid_until\":\"2026-09-18T01:00:00.000Z\"}",
+    8192,
+    64,
+    4,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(run),
+    "sha256:4a288ff6406340fbcf51438ee9f493b1cb32c8d804be16cab0774cdbdfe3484f",
+  )
+  let artifact = seal_publication_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    contract_cid("1") +
+    "\",\"invocation_cid\":\"" +
+    contract_cid("2") +
+    "\",\"logical_result_cid\":\"" +
+    contract_cid("3") +
+    "\",\"result_schema_cid\":\"" +
+    contract_cid("7") +
+    "\",\"ordering_evidence_cid\":\"" +
+    contract_cid("4") +
+    "\",\"actual_row_count\":2,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    contract_cid("5") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    contract_cid("6") +
+    "\",\"provenance_evidence_cids\":[]}",
+    8192,
+    64,
+    4,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(artifact),
+    "sha256:ffd75122db1282710004afc340b1777265d292e05006b8143f658262a85a2914",
+  )
+}
+
+///|
+fn chain_artifact(
+  definition : ResultDefinition,
+  invocation : PublicationContract,
+  digit : String,
+) -> PublicationContract {
+  seal_publication_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    result_definition_cid(definition) +
+    "\",\"invocation_cid\":\"" +
+    publication_contract_identity(invocation) +
+    "\",\"logical_result_cid\":\"" +
+    contract_cid(digit) +
+    "\",\"result_schema_cid\":\"" +
+    contract_cid("7") +
+    "\",\"ordering_evidence_cid\":\"" +
+    contract_cid("8") +
+    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    contract_cid("5") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    contract_cid("6") +
+    "\",\"provenance_evidence_cids\":[]}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+}
+
+///|
+test "Run publication chain fixes every declared Result exactly once" {
+  let template = contract_cid("2")
+  let run = seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\"," +
+    "\"scope_id\":\"scope\",\"run_id\":\"run\"," +
+    "\"compiled_plan_cid\":\"" +
+    contract_cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    template +
+    "\",\"authorization_context_cid\":\"" +
+    contract_cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    contract_cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\"," +
+    "\"valid_until\":\"2026-09-18T01:00:00.000Z\"}",
+    8192,
+    64,
+    4,
+  ).unwrap()
+  let invocation = seal_publication_contract(
+    "run_invocation",
+    "{\"version\":\"actql-run-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    template +
+    "\",\"observation_set_cid\":\"" +
+    contract_cid("9") +
+    "\"}",
+    8192,
+    64,
+    4,
+  ).unwrap()
+  let answer = prepare_result_definition(contract_cid("a"), "answer").unwrap()
+  let detail = prepare_result_definition(contract_cid("a"), "detail").unwrap()
+  let answer_artifact = chain_artifact(answer, invocation, "b")
+  let detail_artifact = chain_artifact(detail, invocation, "c")
+  let manifest = seal_publication_contract(
+    "result_manifest",
+    "{\"version\":\"actql-result-manifest/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    publication_contract_identity(run) +
+    "\",\"invocation_cid\":\"" +
+    publication_contract_identity(invocation) +
+    "\",\"results\":{\"answer\":" +
+    publication_contract_json(answer_artifact) +
+    ",\"detail\":" +
+    publication_contract_json(detail_artifact) +
+    "}}",
+    65536,
+    512,
+    12,
+  ).unwrap()
+  assert_true(
+    validate_run_publication_chain(
+      run,
+      invocation,
+      [result_definition_contract(answer), result_definition_contract(detail)],
+      [answer_artifact, detail_artifact],
+      manifest,
+      65536,
+      512,
+      12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    validate_run_publication_chain(
+      run,
+      invocation,
+      [result_definition_contract(answer), result_definition_contract(detail)],
+      [answer_artifact],
+      manifest,
+      65536,
+      512,
+      12,
+    )
+    is Err(ChainArtifactMismatch("inventory")),
+  )
+}
+
+///|
+test "Manifest sealing rejects a nested Artifact with a false self identity" {
+  let c = contract_cid("1")
+  let false_artifact = "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    c +
+    "\",\"invocation_cid\":\"" +
+    c +
+    "\",\"logical_result_cid\":\"" +
+    c +
+    "\",\"result_schema_cid\":\"" +
+    c +
+    "\",\"ordering_evidence_cid\":\"" +
+    c +
+    "\",\"actual_row_count\":0,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    c +
+    "\",\"effective_retention_policy_cid\":\"" +
+    c +
+    "\",\"provenance_evidence_cids\":[],\"result_artifact_cid\":\"" +
+    c +
+    "\"}"
+  assert_true(
+    seal_publication_contract(
+      "result_manifest",
+      "{\"version\":\"actql-result-manifest/0.1\"," +
+      "\"run_definition_cid\":\"" +
+      c +
+      "\",\"invocation_cid\":\"" +
+      c +
+      "\",\"results\":{\"answer\":" +
+      false_artifact +
+      "}}",
+      32768,
+      256,
+      12,
+    )
+    is Err(InvalidField("results")),
+  )
+}
+
+///|
 test "closed contract admission rejects ambiguous bodies and identities" {
   let prefix = "{\"version\":\"actql-run-invocation/0.1\"," +
     "\"invocation_template_cid\":\"" +

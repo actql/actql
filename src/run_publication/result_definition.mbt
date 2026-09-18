@@ -142,6 +142,14 @@ pub fn result_definition_cid(definition : ResultDefinition) -> String {
 }
 
 ///|
+/// Opaque admitted contract for common publication-chain validation.
+pub fn result_definition_contract(
+  definition : ResultDefinition,
+) -> PublicationContract {
+  definition.contract
+}
+
+///|
 /// Canonical complete body for a representation adapter. Identity and schema
 /// decisions have already been made; this is not a second contract encoder.
 pub fn result_definition_json(

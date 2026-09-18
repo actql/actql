@@ -9,8 +9,6 @@ import {bindExecutionSiteCandidate, executionSiteCandidate,
   startExecutionSiteOperation} from './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
-import {prepareCheckedPublicationInventory} from
-  './publication-inventory.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -250,31 +248,28 @@ export async function runInstalledStrategy(
   };
   const programDefinitionCid = core.programDefinitionCid?.(setup);
   const resultInventory = core.resultInventory?.(setup) ?? [];
-  if ((programDefinitionCid !== undefined &&
-      (typeof programDefinitionCid !== 'string' ||
-        !/^sha256:[0-9a-f]{64}$/u.test(programDefinitionCid))) ||
-      !Array.isArray(resultInventory) ||
-      (resultInventory.length > 0 && programDefinitionCid === undefined) ||
-      resultInventory.some(result => result === null ||
-        typeof result !== 'object' || typeof result.name !== 'string' ||
-        result.name.length === 0 ||
-        !Number.isSafeInteger(result.task) || result.task < 0 ||
-        result.definition === null ||
-        typeof result.definition !== 'object')) {
+  if (!Array.isArray(resultInventory) ||
+      (resultInventory.length > 0 && programDefinitionCid === undefined)) {
     throw new StrategyHostError('InvalidCheckedResultInventory');
   }
   const checkedResultInventory = Object.freeze(resultInventory.map(result =>
     Object.freeze({name: result.name, task: result.task})));
-  if (new Set(checkedResultInventory.map(result => result.name)).size !==
-      checkedResultInventory.length) {
-    throw new StrategyHostError('InvalidCheckedResultInventory');
-  }
   const publicationInventory = checkedResultInventory.length === 0
     ? undefined
-    : prepareCheckedPublicationInventory(
+    : Object.freeze({
       programDefinitionCid,
-      resultInventory,
-    );
+      occurrences: Object.freeze(resultInventory.map(result =>
+        Object.freeze({
+          name: result.name,
+          task: result.task,
+          definition: result.definition,
+        }))),
+      requestInventory: Object.freeze(resultInventory.map(result =>
+        Object.freeze({
+          result_name: result.name,
+          result_definition_cid: result.definition.result_definition_cid,
+        }))),
+    });
   active.add(setup);
   const completed = [];
   const candidateExclusions = [];

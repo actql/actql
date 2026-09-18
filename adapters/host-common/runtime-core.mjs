@@ -7,13 +7,6 @@ const tuplePair = value => Array.isArray(value)
   : value !== null && typeof value === 'object'
     ? [value._0, value._1]
     : undefined;
-const cidPattern = /^sha256:[0-9a-f]{64}$/u;
-const resultDefinitionKeys = [
-  'program_definition_cid',
-  'result_definition_cid',
-  'result_name',
-  'version',
-];
 const siteControls = new WeakMap();
 const publicationControls = new WeakMap();
 
@@ -105,6 +98,19 @@ function publicationControl(moon) {
     recordAllowsCommit(record) {
       return moon.strategyPublicationRecordAllowsCommit(token(record));
     },
+    runChainValid(runDefinition, invocation, definitions, artifacts,
+      manifest, limits) {
+      return moon.strategyRunPublicationChainValid(
+        token(runDefinition),
+        token(invocation),
+        definitions.map(token),
+        artifacts.map(token),
+        token(manifest),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      );
+    },
     deliveryTransition(previous, next) {
       return moon.strategyDeliveryRecordTransition(
         previous === undefined ? undefined : token(previous),
@@ -114,23 +120,6 @@ function publicationControl(moon) {
   });
   publicationControls.set(moon, control);
   return control;
-}
-
-function checkedResultDefinition(text, name) {
-  let definition;
-  try { definition = JSON.parse(text); }
-  catch { throw new TypeError('Invalid checked Result Definition'); }
-  if (definition === null || typeof definition !== 'object' ||
-      Array.isArray(definition) ||
-      Object.keys(definition).sort().join('\0') !==
-        resultDefinitionKeys.join('\0') ||
-      definition.version !== 'actql-result-definition/0.1' ||
-      definition.result_name !== name ||
-      !cidPattern.test(definition.program_definition_cid) ||
-      !cidPattern.test(definition.result_definition_cid)) {
-    throw new TypeError('Invalid checked Result Definition');
-  }
-  return Object.freeze({...definition});
 }
 
 // Trusted assembly only. Standard entries bind this to their generated runtime;
@@ -143,22 +132,27 @@ export function runtimeCore(moon) {
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     resultInventory(value) {
       const names = moon.strategyHostResultNames(value);
-      const tasks = moon.strategyHostResultTasks(value);
-      const definitions = checked(moon.strategyHostResultDefinitions(value));
-      if (!Array.isArray(names) || !Array.isArray(tasks) ||
-          !Array.isArray(definitions) || names.length !== tasks.length ||
-          names.length !== definitions.length ||
-          new Set(names).size !== names.length ||
-          names.some(name => typeof name !== 'string' || name.length === 0) ||
-          tasks.some(task => !Number.isSafeInteger(task) || task < 0) ||
-          definitions.some(body => typeof body !== 'string')) {
-        throw new TypeError('Invalid checked Result inventory');
+      if (!Array.isArray(names)) throw new TypeError('Invalid Result inventory');
+      if (names.length === 0) return Object.freeze([]);
+      const inventory = checked(moon.strategyHostPublicationInventory(value));
+      const count = moon.strategyHostPublicationInventoryCount(inventory);
+      if (count !== names.length) {
+        throw new TypeError('Invalid Result inventory projection');
       }
-      return Object.freeze(names.map((name, index) => Object.freeze({
-        name,
-        task: tasks[index],
-        definition: checkedResultDefinition(definitions[index], name),
-      })));
+      return Object.freeze(Array.from({length: count}, (_, index) => {
+        const definition = JSON.parse(checked(
+          moon.strategyHostPublicationInventoryDefinitionJson(inventory, index),
+        ));
+        return Object.freeze({
+          name: checked(
+            moon.strategyHostPublicationInventoryName(inventory, index),
+          ),
+          task: checked(
+            moon.strategyHostPublicationInventoryTask(inventory, index),
+          ),
+          definition: Object.freeze(definition),
+        });
+      }));
     },
     next: value => checked(moon.strategyHostNext(value)),
     nextTask: moon.strategyHostNextTask,

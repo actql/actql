@@ -325,6 +325,98 @@ pub fn strategy_host_result_definitions(
 }
 
 ///|
+/// Complete publication inventory owned by the portable core. JavaScript may
+/// project this opaque value for coordination but cannot supply or alter its
+/// Result occurrences.
+#export_name("strategyHostPublicationInventory")
+pub fn strategy_host_publication_inventory(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @publication.CheckedPublicationInventory raise NodeHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  let names : Array[String] = []
+  let tasks : Array[Int] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    names.push(@strategy.graph_result_name(graph, index).unwrap())
+    tasks.push(@strategy.graph_result_task(graph, index).unwrap())
+  }
+  match
+    @publication.prepare_checked_publication_inventory(
+      @strategy.graph_program_definition_cid(graph), names, tasks,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryProgramCid")
+pub fn strategy_host_publication_inventory_program_cid(
+  inventory : @publication.CheckedPublicationInventory,
+) -> String {
+  @publication.checked_publication_inventory_program_cid(inventory)
+}
+
+///|
+#export_name("strategyHostPublicationInventoryCount")
+pub fn strategy_host_publication_inventory_count(
+  inventory : @publication.CheckedPublicationInventory,
+) -> Int {
+  @publication.checked_publication_inventory_count(inventory)
+}
+
+///|
+#export_name("strategyHostPublicationInventoryName")
+pub fn strategy_host_publication_inventory_name(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match @publication.checked_publication_inventory_name(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryTask")
+pub fn strategy_host_publication_inventory_task(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> Int raise NodeHostFailure {
+  match @publication.checked_publication_inventory_task(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryDefinitionCid")
+pub fn strategy_host_publication_inventory_definition_cid(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_cid(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryDefinitionJson")
+pub fn strategy_host_publication_inventory_definition_json(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_json(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 /// Admit and seal a bounded publication body in the portable contract owner.
 /// The Node adapter supplies bytes and budgets; it does not define canonical
 /// identity or contract validity.
@@ -423,6 +515,30 @@ pub fn strategy_publication_record_allows_commit(
   record : @publication.PublicationContract,
 ) -> Bool {
   @publication.publication_record_allows_commit(record)
+}
+
+///|
+#export_name("strategyRunPublicationChainValid")
+pub fn strategy_run_publication_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_run_publication_chain(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ) is Ok(_)
 }
 
 ///|

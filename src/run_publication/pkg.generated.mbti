@@ -10,6 +10,20 @@ pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[Publi
 
 pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
 
+pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
+
+pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
+
+pub fn checked_publication_inventory_definition_json(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
+
+pub fn checked_publication_inventory_name(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
+
+pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) -> String
+
+pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
+
+pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
 
 pub fn publication_contract_identity(PublicationContract) -> String
@@ -24,6 +38,8 @@ pub fn publication_record_allows_commit(PublicationContract) -> Bool
 
 pub fn result_definition_cid(ResultDefinition) -> String
 
+pub fn result_definition_contract(ResultDefinition) -> PublicationContract
+
 pub fn result_definition_json(ResultDefinition) -> Result[String, ResultDefinitionIssue]
 
 pub fn result_definition_name(ResultDefinition) -> String
@@ -36,11 +52,15 @@ pub fn validate_delivery_record_transition(PublicationContract?, PublicationCont
 
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
+pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
+
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
 // Errors
 
 // Types and methods
+type CheckedPublicationInventory
+
 pub(all) enum DeliveryTransitionIssue {
   DeliveryWrongContract
   DeliveryAttemptMismatch
@@ -65,6 +85,16 @@ pub(all) enum PublicationContractIssue {
   IdentityMismatch
   ConditionalField(String)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationInventoryIssue {
+  InvalidProgramDefinitionCid
+  EmptyInventory
+  LengthMismatch
+  InvalidTask(Int)
+  DuplicateResult(String)
+  ResultDefinition(ResultDefinitionIssue)
+  InvalidIndex
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationTransitionIssue {
@@ -128,6 +158,20 @@ pub(all) enum RunOutcomeStatus {
   Succeeded
   Failed
   Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunPublicationChainIssue {
+  ChainWrongContract(String)
+  ChainRunDefinitionMismatch
+  ChainInvocationMismatch
+  ChainInvocationTemplateMismatch
+  ChainEmptyInventory
+  ChainDuplicateResult(String)
+  ChainMissingResult(String)
+  ChainForeignResult(String)
+  ChainResultDefinitionMismatch(String)
+  ChainArtifactMismatch(String)
+  ChainEncoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunStateIssue {

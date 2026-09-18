@@ -48,6 +48,52 @@ test('installed publication control uses the portable contract owner', () => {
   );
 });
 
+test('portable control validates the exact Run Result publication chain', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const run = control.seal('run_definition', JSON.stringify({
+    version: 'actql-run-definition/0.1',
+    scope_id: 'scope',
+    run_id: 'run',
+    compiled_plan_cid: cid('3'),
+    invocation_template_cid: cid('1'),
+    authorization_context_cid: cid('4'),
+    input_artifact_set_cid: cid('5'),
+    created_at: '2026-09-18T00:00:00.000Z',
+    valid_until: '2026-09-18T01:00:00.000Z',
+  }), limits);
+  const invoked = invocation(control);
+  const definition = control.seal('result_definition', JSON.stringify({
+    version: 'actql-result-definition/0.1',
+    program_definition_cid: cid('6'),
+    result_name: 'answer',
+  }), limits);
+  const artifact = control.seal('result_artifact', JSON.stringify({
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: definition.identity,
+    invocation_cid: invoked.identity,
+    logical_result_cid: cid('7'),
+    result_schema_cid: cid('8'),
+    ordering_evidence_cid: cid('9'),
+    actual_row_count: 1,
+    actual_completeness: 'complete',
+    effective_data_policy_cid: cid('a'),
+    effective_retention_policy_cid: cid('b'),
+    provenance_evidence_cids: [],
+  }), limits);
+  const manifest = control.seal('result_manifest', JSON.stringify({
+    version: 'actql-result-manifest/0.1',
+    run_definition_cid: run.identity,
+    invocation_cid: invoked.identity,
+    results: {answer: JSON.parse(artifact.wire)},
+  }), limits);
+  assert.equal(control.runChainValid(
+    run, invoked, [definition], [artifact], manifest, limits,
+  ), true);
+  assert.equal(control.runChainValid(
+    run, invoked, [definition], [], manifest, limits,
+  ), false);
+});
+
 test('local durable Store accepts only MoonBit-admitted contract wire',
   async t => {
     const directory = await mkdtemp(join(

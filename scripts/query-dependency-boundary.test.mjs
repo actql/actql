@@ -134,7 +134,6 @@ test('standard Node execution uses the connector-free serial driver and exact re
   assert.deepEqual(driverImports, [
     './execution-sites.mjs',
     './managed-site-transfer.mjs',
-    './publication-inventory.mjs',
   ]);
   assert.doesNotMatch(driver, /strategyHostNative|strategyHostTakeNative|DuckDB|duckdb|resident/);
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);

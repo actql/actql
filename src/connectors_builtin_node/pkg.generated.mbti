@@ -81,6 +81,20 @@ pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_
 
 pub fn strategy_host_program_definition_cid(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
 
+pub fn strategy_host_publication_inventory(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @run_publication.CheckedPublicationInventory raise NodeHostFailure
+
+pub fn strategy_host_publication_inventory_count(@run_publication.CheckedPublicationInventory) -> Int
+
+pub fn strategy_host_publication_inventory_definition_cid(@run_publication.CheckedPublicationInventory, Int) -> String raise NodeHostFailure
+
+pub fn strategy_host_publication_inventory_definition_json(@run_publication.CheckedPublicationInventory, Int) -> String raise NodeHostFailure
+
+pub fn strategy_host_publication_inventory_name(@run_publication.CheckedPublicationInventory, Int) -> String raise NodeHostFailure
+
+pub fn strategy_host_publication_inventory_program_cid(@run_publication.CheckedPublicationInventory) -> String
+
+pub fn strategy_host_publication_inventory_task(@run_publication.CheckedPublicationInventory, Int) -> Int raise NodeHostFailure
+
 pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
@@ -144,6 +158,8 @@ pub fn strategy_publication_record_allows_commit(@run_publication.PublicationCon
 pub fn strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_site_available(@execution_site.ExecutionSite) -> Bool
 

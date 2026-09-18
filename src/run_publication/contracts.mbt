@@ -47,6 +47,21 @@ pub(all) enum DeliveryTransitionIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum RunPublicationChainIssue {
+  ChainWrongContract(String)
+  ChainRunDefinitionMismatch
+  ChainInvocationMismatch
+  ChainInvocationTemplateMismatch
+  ChainEmptyInventory
+  ChainDuplicateResult(String)
+  ChainMissingResult(String)
+  ChainForeignResult(String)
+  ChainResultDefinitionMismatch(String)
+  ChainArtifactMismatch(String)
+  ChainEncoding
+} derive(Eq, Debug)
+
+///|
 priv enum FieldRule {
   Exact(String)
   Cid
@@ -59,6 +74,7 @@ priv enum FieldRule {
   Inventory
   ResultList
   FormatList
+  ManifestResults
 }
 
 ///|
@@ -106,6 +122,22 @@ fn common_grant_fields() -> Array[FieldSpec] {
 ///|
 fn contract_spec(name : String) -> ContractSpec? {
   match name {
+    "run_definition" =>
+      Some({
+        name,
+        version: "actql-run-definition/0.1",
+        identity: "run_definition_cid",
+        fields: [
+          required("scope_id", NonemptyText),
+          required("run_id", NonemptyText),
+          required("compiled_plan_cid", Cid),
+          required("invocation_template_cid", Cid),
+          required("authorization_context_cid", Cid),
+          required("input_artifact_set_cid", Cid),
+          required("created_at", Timestamp),
+          required("valid_until", Timestamp),
+        ],
+      })
     "result_definition" =>
       Some({
         name,
@@ -160,6 +192,35 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("row_count", SafeCount),
           required("byte_count", SafeCount),
           required("physical_sha256", Digest),
+        ],
+      })
+    "result_artifact" =>
+      Some({
+        name,
+        version: "actql-result-artifact/0.1",
+        identity: "result_artifact_cid",
+        fields: [
+          required("result_definition_cid", Cid),
+          required("invocation_cid", Cid),
+          required("logical_result_cid", Cid),
+          required("result_schema_cid", Cid),
+          required("ordering_evidence_cid", Cid),
+          required("actual_row_count", SafeCount),
+          required("actual_completeness", Choice(["complete", "partial"])),
+          required("effective_data_policy_cid", Cid),
+          required("effective_retention_policy_cid", Cid),
+          required("provenance_evidence_cids", CidList),
+        ],
+      })
+    "result_manifest" =>
+      Some({
+        name,
+        version: "actql-result-manifest/0.1",
+        identity: "result_manifest_cid",
+        fields: [
+          required("run_definition_cid", Cid),
+          required("invocation_cid", Cid),
+          required("results", ManifestResults),
         ],
       })
     "publication_request" =>
@@ -505,7 +566,76 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
       validate_unique_named_array(value, "result_name", "result_artifact_cid")
     FormatList =>
       validate_string_array(value, Some(["json", "jsonl", "csv"]), false)
+    ManifestResults => {
+      guard object_fields(value) is Ok(results) else { return false }
+      if results.is_empty() {
+        return false
+      }
+      let artifact_spec = contract_spec("result_artifact").unwrap()
+      for (name, artifact) in results {
+        if name.is_empty() ||
+          validate_contract(artifact_spec, artifact, true) is Err(_) {
+          return false
+        }
+      }
+      true
+    }
   }
+}
+
+///|
+fn validate_identity(
+  spec : ContractSpec,
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  guard optional_string(@json.object_field(value, spec.identity))
+    is Some(identity) else {
+    return Err(IdentityMissing)
+  }
+  let preimage = match @json.object_without_field(value, spec.identity) {
+    Some(value) => value
+    None => return Err(IdentityMissing)
+  }
+  let expected = @json.cid_value(preimage, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  if expected != identity {
+    return Err(IdentityMismatch)
+  }
+  Ok(())
+}
+
+///|
+fn validate_nested_identities(
+  spec : ContractSpec,
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  if spec.name != "result_manifest" {
+    return Ok(())
+  }
+  guard @json.object_field(value, "results") is Some(results_value) else {
+    return Err(MissingField("results"))
+  }
+  guard object_fields(results_value) is Ok(results) else {
+    return Err(InvalidField("results"))
+  }
+  let artifact_spec = contract_spec("result_artifact").unwrap()
+  for (_, artifact) in results {
+    match
+      validate_identity(
+        artifact_spec, artifact, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(_) => ()
+      Err(_) => return Err(InvalidField("results"))
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -649,6 +779,13 @@ pub fn seal_publication_contract(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  match
+    validate_nested_identities(
+      spec, complete, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let wire = @json.stringify_value(
     complete, max_wire_bytes, max_nodes, max_depth,
   ) catch {
@@ -678,20 +815,19 @@ pub fn admit_publication_contract(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard optional_string(@json.object_field(complete, spec.identity))
-    is Some(identity) else {
-    return Err(IdentityMissing)
+  match
+    validate_identity(spec, complete, max_wire_bytes, max_nodes, max_depth) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
-  let preimage = match @json.object_without_field(complete, spec.identity) {
-    Some(value) => value
-    None => return Err(IdentityMissing)
+  match
+    validate_nested_identities(
+      spec, complete, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
-  let expected = @json.cid_value(preimage, max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  if expected != identity {
-    return Err(IdentityMismatch)
-  }
+  let identity = optional_string(@json.object_field(complete, spec.identity)).unwrap()
   let wire = @json.stringify_value(
     complete, max_wire_bytes, max_nodes, max_depth,
   ) catch {
@@ -789,6 +925,144 @@ pub fn validate_publication_record_transition(
 pub fn publication_record_allows_commit(record : PublicationContract) -> Bool {
   record.name == "publication_record" &&
   contract_string(record, "state") == Some("committing")
+}
+
+///|
+fn canonical_value_wire(
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String? {
+  Some(@json.stringify_value(value, max_wire_bytes, max_nodes, max_depth)) catch {
+    _ => None
+  }
+}
+
+///|
+fn artifact_for_definition(
+  artifacts : Array[PublicationContract],
+  definition_cid : String,
+) -> PublicationContract? {
+  let found : Array[PublicationContract] = []
+  for artifact in artifacts {
+    if contract_string(artifact, "result_definition_cid") ==
+      Some(definition_cid) {
+      found.push(artifact)
+    }
+  }
+  if found.length() == 1 {
+    Some(found[0])
+  } else {
+    None
+  }
+}
+
+///|
+/// Validate the bounded acyclic root of one Run-bound publication chain.
+/// Reference-kind resolution for plan, observation, schema, ordering, policy,
+/// and provenance CIDs remains a separate typed admission step; this function
+/// makes no CID-shaped string stand in for those referenced contracts.
+pub fn validate_run_publication_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, RunPublicationChainIssue] {
+  if run_definition.name != "run_definition" {
+    return Err(ChainWrongContract("run_definition"))
+  }
+  if invocation.name != "run_invocation" {
+    return Err(ChainWrongContract("run_invocation"))
+  }
+  if manifest.name != "result_manifest" {
+    return Err(ChainWrongContract("result_manifest"))
+  }
+  for definition in definitions {
+    if definition.name != "result_definition" {
+      return Err(ChainWrongContract("result_definition"))
+    }
+  }
+  for artifact in artifacts {
+    if artifact.name != "result_artifact" {
+      return Err(ChainWrongContract("result_artifact"))
+    }
+  }
+  if definitions.is_empty() || artifacts.is_empty() {
+    return Err(ChainEmptyInventory)
+  }
+  if contract_string(run_definition, "invocation_template_cid") !=
+    contract_string(invocation, "invocation_template_cid") {
+    return Err(ChainInvocationTemplateMismatch)
+  }
+  if contract_string(manifest, "run_definition_cid") !=
+    Some(run_definition.identity) {
+    return Err(ChainRunDefinitionMismatch)
+  }
+  if contract_string(manifest, "invocation_cid") != Some(invocation.identity) {
+    return Err(ChainInvocationMismatch)
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results_value) else {
+    return Err(ChainEncoding)
+  }
+  guard object_fields(results_value) is Ok(results) else {
+    return Err(ChainEncoding)
+  }
+  let declared : Array[String] = []
+  for definition in definitions {
+    guard contract_string(definition, "result_name") is Some(name) else {
+      return Err(ChainEncoding)
+    }
+    if declared.contains(name) {
+      return Err(ChainDuplicateResult(name))
+    }
+    declared.push(name)
+  }
+  if results.length() != definitions.length() ||
+    artifacts.length() != definitions.length() {
+    for name in declared {
+      if field_value(results, name) is None {
+        return Err(ChainMissingResult(name))
+      }
+    }
+    return Err(ChainArtifactMismatch("inventory"))
+  }
+  for (name, _) in results {
+    if !declared.contains(name) {
+      return Err(ChainForeignResult(name))
+    }
+  }
+  for definition in definitions {
+    guard contract_string(definition, "result_name") is Some(name) else {
+      return Err(ChainEncoding)
+    }
+    let definition_cid = definition.identity
+    guard artifact_for_definition(artifacts, definition_cid) is Some(artifact) else {
+      return Err(ChainArtifactMismatch(name))
+    }
+    if contract_string(artifact, "invocation_cid") != Some(invocation.identity) {
+      return Err(ChainInvocationMismatch)
+    }
+    if contract_string(artifact, "result_definition_cid") !=
+      Some(definition_cid) {
+      return Err(ChainResultDefinitionMismatch(name))
+    }
+    guard field_value(results, name) is Some(nested) else {
+      return Err(ChainMissingResult(name))
+    }
+    guard canonical_value_wire(nested, max_wire_bytes, max_nodes, max_depth)
+      is Some(nested_wire) else {
+      return Err(ChainEncoding)
+    }
+    if nested_wire != artifact.wire {
+      return Err(ChainArtifactMismatch(name))
+    }
+  }
+  Ok(())
 }
 
 ///|
