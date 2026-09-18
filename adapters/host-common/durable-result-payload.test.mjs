@@ -231,7 +231,8 @@ test('Result evidence is issued before its durable payload becomes visible',
         resultLimits,
         publication,
       ),
-      /evidence rejected/u,
+      error => error.code === 'DurableResultPayloadFailed' &&
+        error.primaryFailure?.message === 'evidence rejected',
     );
     assert.equal(store.status().objectCount, 1);
     assert.equal(store.status().reservedBytes, 0);
@@ -299,8 +300,11 @@ test('identity mismatch and cancellation cannot leave a sealed object',
           store, control, output, limits, controller.signal,
         ),
         mode === 'identity'
-          ? error => error.code === 'PublicationObjectIdentityMismatch'
-          : error => error.name === 'AbortError',
+          ? error => error.code === 'DurableResultPayloadFailed' &&
+            error.primaryFailure?.code ===
+              'PublicationObjectIdentityMismatch'
+          : error => error.code === 'DurableResultPayloadFailed' &&
+            error.primaryFailure?.name === 'AbortError',
       );
       assert.equal(cancelled, 1);
       assert.equal(store.status().storedBytes, 0);
@@ -309,3 +313,66 @@ test('identity mismatch and cancellation cannot leave a sealed object',
       assert.equal(store.status().reservedObjects, 0);
     }
   });
+
+test('immutable and primitive failures retain every cleanup owner', async () => {
+  const primaries = [
+    Object.freeze(new Error('frozen')),
+    Object.seal(new Error('sealed')),
+    null,
+    false,
+    'failure',
+  ];
+  for (const primary of primaries) {
+    let reservationHeld = true;
+    let writerCancels = 0;
+    let exportCancels = 0;
+    const writerFailure = new Error('writer cancel failed');
+    const exportFailure = new Error('export cancel failed');
+    const writer = Object.freeze({
+      append() { throw new Error('unexpected append'); },
+      seal() { throw new Error('unexpected seal'); },
+      status: () => Object.freeze({reservationHeld}),
+      async cancel() {
+        writerCancels++;
+        if (writerCancels === 1) throw writerFailure;
+        reservationHeld = false;
+        return true;
+      },
+    });
+    const store = Object.freeze({
+      createObjectWriter() { return writer; },
+    });
+    const control = Object.freeze({
+      begin() { return {}; },
+      next() { throw primary; },
+      finish() { throw new Error('unexpected finish'); },
+      identity() { throw new Error('unexpected identity'); },
+      cancel() {
+        exportCancels++;
+        if (exportCancels === 1) throw exportFailure;
+      },
+    });
+    let failure;
+    try {
+      await storeCompletedOutputPayload(store, control, {}, limits);
+      assert.fail('payload export must fail');
+    } catch (error) {
+      failure = error;
+    }
+    assert.equal(failure.code, 'DurableResultPayloadFailed');
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(failure.cause, primary);
+    assert.equal(failure.cleanupPending, true);
+    assert.deepEqual(failure.cleanupErrors, [writerFailure, exportFailure]);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    const retried = await failure.cleanupHandle.retry();
+    assert.equal(retried.pending, false);
+    assert.equal(failure.cleanupPending, false);
+    assert.equal(reservationHeld, false);
+    assert.equal(writerCancels, 2);
+    assert.equal(exportCancels, 2);
+    await failure.cleanupHandle.retry();
+    assert.equal(writerCancels, 2);
+    assert.equal(exportCancels, 2);
+  }
+});

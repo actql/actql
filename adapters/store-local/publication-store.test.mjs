@@ -288,6 +288,33 @@ test('prepared payload holdings reclaim only the final uncommitted owner',
     );
   });
 
+test('prepared payload cleanup retains ownership and capacity until retry',
+  async t => {
+    const {store, directory} = await fixture(t);
+    const writer = store.createPreparedObjectWriter(7);
+    await writer.append('payload');
+    const stored = await writer.seal(digest('payload'));
+    const objects = join(directory, 'objects');
+    await chmod(objects, 0o500);
+    try {
+      await assert.rejects(stored.prepared.release());
+      assert.equal(stored.prepared.status().pending, true);
+      assert.equal(store.status().storedBytes, 7);
+      await assert.rejects(
+        store.close(),
+        code('PublicationStoreCleanupPending'),
+      );
+    } finally {
+      await chmod(objects, 0o700);
+    }
+    const retried = await stored.prepared.retry();
+    assert.equal(retried.pending, false);
+    assert.equal(retried.errors.length, 1);
+    assert.equal(retried.errors[0].code, 'EACCES');
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(await store.close(), true);
+  });
+
 test('writer retains capacity and cleanup identity until unlink succeeds',
   async t => {
     const {store, directory} = await fixture(t, {

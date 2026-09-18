@@ -41,38 +41,37 @@ function validIdentity(value) {
       Number.isSafeInteger(value[name]) && value[name] >= 0);
 }
 
-function payloadFailure(reason, cleanupErrors, writer, prepared) {
-  const failure = reason instanceof Error
-    ? reason
-    : new DurableResultPayloadError('DurableResultPayloadFailed', reason);
-  if (cleanupErrors.length !== 0) {
-    failure.cleanupErrors = Object.freeze([...cleanupErrors]);
-  }
-  if (writer?.status().reservationHeld === true ||
-      prepared?.status().pending === true) {
-    const status = () => Object.freeze({
-      pending: writer?.status().reservationHeld === true ||
-        prepared?.status().pending === true,
-      errors: Object.freeze([...cleanupErrors]),
-    });
-    failure.cleanupPending = true;
+function payloadFailure(reason, cleanupErrors, cleanupOwners) {
+  // The caller's throwable can be a primitive or an immutable Error. Keep all
+  // cleanup metadata on an envelope owned by this adapter.
+  const failure = new DurableResultPayloadError(
+    'DurableResultPayloadFailed', reason,
+  );
+  failure.primaryFailure = reason;
+  const status = () => Object.freeze({
+    pending: cleanupOwners.some(owner => owner.pending()),
+    errors: Object.freeze([...cleanupErrors]),
+  });
+  const update = () => {
+    const current = status();
+    failure.cleanupPending = current.pending;
+    failure.cleanupErrors = current.errors;
+    return current;
+  };
+  if (status().pending) {
     failure.cleanupHandle = Object.freeze({
       status,
       async retry() {
-        if (writer.status().reservationHeld === true) {
-          try { await writer.cancel(); }
+        for (const owner of cleanupOwners) {
+          if (!owner.pending()) continue;
+          try { await owner.retry(); }
           catch (error) { cleanupErrors.push(error); }
         }
-        if (prepared?.status().pending === true) {
-          try { await prepared.retry(); }
-          catch (error) { cleanupErrors.push(error); }
-        }
-        failure.cleanupPending = status().pending;
-        failure.cleanupErrors = status().errors;
-        return status();
+        return update();
       },
     });
   }
+  update();
   return failure;
 }
 
@@ -240,18 +239,42 @@ async function storeCompletedPayload(
     });
   } catch (reason) {
     const cleanupErrors = [];
+    const cleanupOwners = [];
     if (writer !== undefined && !sealed) {
       try { await writer.cancel(); }
-      catch (error) { cleanupErrors.push(error); }
+      catch (error) {
+        cleanupErrors.push(error);
+        cleanupOwners.push(Object.freeze({
+          pending: () => writer.status().reservationHeld === true,
+          retry: () => writer.cancel(),
+        }));
+      }
     }
     if (prepared?.status().pending === true) {
       try { await prepared.release(); }
-      catch (error) { cleanupErrors.push(error); }
+      catch (error) {
+        cleanupErrors.push(error);
+        cleanupOwners.push(Object.freeze({
+          pending: () => prepared.status().pending === true,
+          retry: () => prepared.retry(),
+        }));
+      }
     }
     if (exportHandle !== undefined && !exportReleased) {
-      try { control.cancel(exportHandle); }
-      catch (error) { cleanupErrors.push(error); }
+      try {
+        control.cancel(exportHandle);
+        exportReleased = true;
+      } catch (error) {
+        cleanupErrors.push(error);
+        cleanupOwners.push(Object.freeze({
+          pending: () => !exportReleased,
+          retry: async () => {
+            control.cancel(exportHandle);
+            exportReleased = true;
+          },
+        }));
+      }
     }
-    throw payloadFailure(reason, cleanupErrors, writer, prepared);
+    throw payloadFailure(reason, cleanupErrors, cleanupOwners);
   }
 }
