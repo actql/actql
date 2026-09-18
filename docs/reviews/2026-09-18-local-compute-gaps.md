@@ -34,7 +34,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | take | C | C | C | P | Standard-Host evidence, the full admitted value-domain retention matrix, and large-scale exact/one-short budgets; literal and parameter counts, offsets, inherited order, boundary rejection, whole-input validation, branches, two consumers, and linear scaling are covered |
 | top_k | C | C | P | P | Standard-Host evidence, the broader orderable type matrix, and large-scale exact budget boundaries; literal/parameter counts, compound NULL order, stable completion, two consumers, and indexed scaling are covered |
 | top_k_by | C | C | P | P | Standard-Host evidence, the broader key/orderable type matrix, and large-scale exact budget boundaries; repeated/nullable partitions, literal/parameter counts, two consumers, and indexed scaling are covered |
-| row_window | C | - | - | - | Fixed/sliding lowering and execution |
+| row_window | C | C | P | P | Fixed/sliding numeric and timestamp windows reach two managed consumers on three targets; Standard-Host evidence, parameter-bound managed execution, runtime budget boundaries, temporal edge cases, and fixed scaling evidence remain |
 | window_group | C | - | - | - | Window projection and aggregate execution |
 | lag | C | - | - | - | Ordered partition execution |
 | watermark_rows | C | - | - | - | Finite watermark lowering and execution |
