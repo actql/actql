@@ -38,9 +38,7 @@ fn task_test_generated(
               aggregate < @lower.group_aggregate_count(group)
               aggregate = aggregate + 1 {
             let value = @lower.group_aggregate_at(group, aggregate).unwrap()
-            if @lower.group_aggregate_filter(value) is Some(_) ||
-              @lower.group_aggregate_argument(value)
-              is @lower.AggregateExpression(_) {
+            if @lower.group_aggregate_requires_expression_context(value) {
               required = true
             }
           }
@@ -48,6 +46,10 @@ fn task_test_generated(
             contexts.push(sequence_fragment_context(sequence, step, 10L))
           }
         }
+        AnalyticRows(analytic) =>
+          if @lower.analytic_requires_expression_context(analytic) {
+            contexts.push(sequence_fragment_context(sequence, step, 10L))
+          }
         _ => ()
       }
     }

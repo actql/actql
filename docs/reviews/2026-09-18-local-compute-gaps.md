@@ -42,7 +42,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | top_k | C | C | C | C | Complete: compound NULL order, stable completion, literal and parameter counts, all payload and orderable domains, exact large budgets, standard Host, two consumers, and indexed scaling |
 | top_k_by | C | C | C | C | Complete: repeated and nullable partitions, all payload, key, and orderable domains, literal and parameter counts, exact large budgets, standard Host, two consumers, and indexed scaling |
 | row_window | C | C | C | C | Complete: fixed/sliding number and timestamp windows, literal and Parameter bounds, exact signed grids, arithmetic failures, budgets, Standard Host execution, two consumers, and emitted-membership scaling |
-| window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, and Decimal sum reach two managed consumers on three targets; expression/filter aggregates, remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
+| window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, Decimal sum, and filtered expression aggregates reach two managed consumers on three targets; remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
 | lag | C | C | C | C | Complete: literal, default, and Parameter offsets; full value, key, and orderable type matrices; stable ties and NULL boundaries; exact budgets; Standard Host execution; two consumers; cancellation; and indexed scaling |
 | watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/max/first, literal and Parameter fill, every AuthorOrderable min/max domain, empty axes, and Decimal sum are managed; count uses the standard Host, while binary64 observation and native observation-aware aggregation remain |
@@ -51,7 +51,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unnest | C | C | C | C | Complete: inner and outer expansion, optional indices, NULL and empty arrays, max-items admission, all relation value domains, sealed column output, Standard Host execution, two consumers, exact budgets, and linear scaling |
 | join | C | C | C | C | All equality kinds, cross-stage full identity, all value and key domains, exact diagnostics, multiple invocations, two consumers, and indexed scaling are covered |
 | nest | C | - | - | - | Canonical common contract is missing |
-| group | C | P | P | P | Count, deep structured distinct, direct, and ordered collection aggregates are managed with two consumers; percentile/statistical kernels cover deterministic folds and failures, while expression/filter, numeric observation, managed statistics, broader domains, and remaining keys remain |
+| group | C | P | P | P | Count, deep structured distinct, direct, ordered collection, and filtered expression aggregates are managed with two consumers; percentile/statistical kernels cover deterministic folds and failures, while numeric observation, managed statistics, broader domains, and remaining keys remain |
 | distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
 | dedupe_rows | C | C | C | C | Complete: compound nullable and global keys, canonical representative order, required tie failure, all key/orderable and payload domains, owned-reference lifetime, exact large indexed budgets, standard Host, two consumers, and final reclamation |
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
@@ -60,7 +60,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
-| analytic | C | C | P | P | Ranking, navigation, direct and collection frame aggregates, exact runtime envelopes, indexed scaling, and two managed consumers are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
+| analytic | C | C | P | P | Ranking, navigation, direct, collection, and filtered expression frame aggregates, exact runtime envelopes, indexed scaling, and two managed consumers are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
 
 ## Shared-boundary notifications
 

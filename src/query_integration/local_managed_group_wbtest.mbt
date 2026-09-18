@@ -232,7 +232,8 @@ fn run_local_managed_group_case(
   let expanded = variant == "direct" ||
     variant == "ordered" ||
     variant == "collections" ||
-    variant == "nested_distinct"
+    variant == "nested_distinct" ||
+    variant == "filtered_expression"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -485,5 +486,17 @@ test "Local managed nested distinct count reaches two independent consumers" {
     ],
     ["{\"n\":2}"],
     ["{\"n\":2}"],
+  )
+}
+
+///|
+test "Local managed filtered expressions reach two independent consumers" {
+  run_local_managed_group_case(
+    "filtered_expression",
+    [
+      "{\"id\":0,\"k\":1}", "{\"id\":1,\"k\":1}", "{\"id\":2,\"k\":1}", "{\"id\":2,\"k\":1}",
+    ],
+    ["{\"k\":1,\"lowest\":5}"],
+    ["{\"lowest\":5,\"k\":1}"],
   )
 }

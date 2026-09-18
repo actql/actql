@@ -23,6 +23,7 @@ fn query_checked_program_fixture(
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
   local_values_analytic_chain? : Bool = false,
+  local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -76,7 +77,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_values_analytic_chain {
-    local_values_analytic_program()
+    local_values_analytic_program(local_values_analytic_variant)
   } else {
     text
   }
@@ -902,6 +903,13 @@ fn local_values_group_program(variant : String) -> String {
         "[{\"v\":[[[[[[1]]]]]]},{\"v\":[[[[[[1]]]]]]},{\"v\":[[[[[[2]]]]]]},{\"v\":null}]",
         "[]", "{\"n\":{\"fn\":\"count\",\"field\":\"v\",\"distinct\":true}}", "[\"v\"]",
         "[\"n\"]", "[\"n\"]",
+      )
+    "filtered_expression" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":false},\"k\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"id\":0,\"k\":1},{\"id\":1,\"k\":1},{\"id\":2,\"k\":1},{\"id\":2,\"k\":1}]",
+        "[\"k\"]", "{\"lowest\":{\"fn\":\"min\",\"expr\":\"10 / id\",\"filter\":\"id > 0\"}}",
+        "[\"id\",\"k\"]", "[\"k\",\"lowest\"]", "[\"lowest\",\"k\"]",
       )
     _ => abort("unknown Local group fixture")
   }

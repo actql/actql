@@ -22,6 +22,13 @@ fn local_values_window_group_program(variant : String) -> String {
         "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}}",
         "[\"total\",\"window_end\",\"window_start\"]", "[\"window_start\",\"total\",\"window_end\"]",
       )
+    "filtered_expression" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"at\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":0,\"at\":1},{\"amount\":10,\"at\":2},{\"amount\":20,\"at\":11}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"lowest\":{\"fn\":\"min\",\"expr\":\"100 / amount\",\"filter\":\"amount > 0\"}}}",
+        "[\"lowest\",\"window_end\",\"window_start\"]", "[\"window_start\",\"lowest\",\"window_end\"]",
+      )
     _ => abort("unknown Local window group fixture")
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
@@ -191,6 +198,19 @@ test "Local managed window Decimal sums feed two downstream Computes" {
     ],
     [
       "{\"window_start\":0,\"total\":\"3.25\",\"window_end\":10}", "{\"window_start\":10,\"total\":null,\"window_end\":20}",
+    ],
+  )
+}
+
+///|
+test "Local managed window filters gate aggregate expression demand" {
+  run_local_managed_window_group_case(
+    "filtered_expression",
+    [
+      "{\"lowest\":10,\"window_end\":10,\"window_start\":0}", "{\"lowest\":5,\"window_end\":20,\"window_start\":10}",
+    ],
+    [
+      "{\"window_start\":0,\"lowest\":10,\"window_end\":10}", "{\"window_start\":10,\"lowest\":5,\"window_end\":20}",
     ],
   )
 }

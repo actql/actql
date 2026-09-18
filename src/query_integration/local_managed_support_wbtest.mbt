@@ -70,8 +70,8 @@ test "Local managed support is a finite checked surface" {
       ("{\"n\":{\"fn\":\"sum\",\"field\":\"exact\"}}", true),
       ("{\"n\":{\"fn\":\"sum\",\"field\":\"amount\"}}", false),
       ("{\"n\":{\"fn\":\"avg\",\"field\":\"amount\"}}", false),
-      ("{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", false),
-      ("{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}", false),
+      ("{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", true),
+      ("{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}", true),
     ] {
     let grouped = local_managed_support_owner(
       "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"exact\":{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true},\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":[]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":" +

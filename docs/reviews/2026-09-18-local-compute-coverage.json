@@ -1994,7 +1994,8 @@
             "fixtures": [
               "Local managed fixed window groups feed two downstream Computes",
               "Local managed sliding window groups feed two downstream Computes",
-              "Local managed window Decimal sums feed two downstream Computes"
+              "Local managed window Decimal sums feed two downstream Computes",
+              "Local managed window filters gate aggregate expression demand"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2012,7 +2013,8 @@
             "fixtures": [
               "Local managed fixed window groups feed two downstream Computes",
               "Local managed sliding window groups feed two downstream Computes",
-              "Local managed window Decimal sums feed two downstream Computes"
+              "Local managed window Decimal sums feed two downstream Computes",
+              "Local managed window filters gate aggregate expression demand"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2043,7 +2045,7 @@
         "performance": []
       },
       "gaps": [
-        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, and Decimal sum now reach managed Local execution with two independently released consumers on three targets. Expression and filtered aggregate bindings, the remaining aggregate and type matrix, Standard Host evidence, exact capacity boundaries, and fixed scaling evidence remain."
+        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets. The remaining aggregate and type matrix, Standard Host evidence, exact capacity boundaries, and fixed scaling evidence remain."
       ]
     },
     {
@@ -3921,7 +3923,8 @@
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
-              "Local managed nested distinct count reaches two independent consumers"
+              "Local managed nested distinct count reaches two independent consumers",
+              "Local managed filtered expressions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -3945,7 +3948,8 @@
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
-              "Local managed nested distinct count reaches two independent consumers"
+              "Local managed nested distinct count reaches two independent consumers",
+              "Local managed filtered expressions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -3981,7 +3985,8 @@
               "empty direct aggregates retain the global group laws",
               "ordered first and last exclude null and keep independent orders",
               "direct decimal sum checks only its final public precision",
-              "direct group capability rejects work owned by other contracts",
+              "direct group capability separates numeric observations from expressions",
+              "aggregate filters gate expression demand before ordered distinct folds",
               "direct group accepts exact shared work and rejects one-short execution",
               "direct group stays within indexed aggregation scaling floors"
             ],
@@ -4061,7 +4066,8 @@
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
-              "Local managed nested distinct count reaches two independent consumers"
+              "Local managed nested distinct count reaches two independent consumers",
+              "Local managed filtered expressions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4103,7 +4109,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, deterministic statistical folds, nonfinite failures, two consumers for implemented managed variants, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, filtered expression arguments, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, demanded filter ordering, deterministic statistical folds, two consumers for implemented managed variants, exact work boundaries, and indexed scaling. Binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
       ]
     },
     {
@@ -5641,7 +5647,8 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
             "fixtures": [
-              "Local managed analytic reaches two downstream Computes"
+              "Local managed analytic reaches two downstream Computes",
+              "Local managed analytic filters gate aggregate expression demand"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5657,7 +5664,8 @@
             "layer": "two_consumer_e2e",
             "path": "src/query_integration/local_managed_analytic_wbtest.mbt",
             "fixtures": [
-              "Local managed analytic reaches two downstream Computes"
+              "Local managed analytic reaches two downstream Computes",
+              "Local managed analytic filters gate aggregate expression demand"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5676,6 +5684,8 @@
               "analytic envelope enforces exact typed wire scopes",
               "analytic ranking navigation and frame values retain source order",
               "analytic expression failure follows partition source and call order",
+              "analytic aggregate capability accepts lowered filter and expression demand",
+              "analytic aggregate filters gate frame expression demand",
               "analytic direct aggregates use each row frame and retain source order",
               "analytic count indices preserve partitions and clipped frames",
               "analytic collection limits bind exact prepared calls"
@@ -5706,7 +5716,7 @@
         ]
       },
       "gaps": [
-        "Ranking, navigation, direct and collection frame aggregates now lower and run through managed Local execution with exact envelopes, two downstream consumers, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
+        "Ranking, navigation, direct and collection frame aggregates, including filtered expression arguments, now lower and run through managed Local execution with exact expression contexts, exact envelopes, two downstream consumers, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
       ]
     }
   ],
