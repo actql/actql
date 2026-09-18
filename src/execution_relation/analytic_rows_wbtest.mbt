@@ -232,7 +232,7 @@ test "analytic execution has an exact control work boundary" {
 }
 
 ///|
-test "analytic aggregates stay outside the partial execution capability" {
+test "analytic aggregates requiring numeric observation stay unsupported" {
   let owner = analytic_execution_owner(
     "\"analytic\":{\"partition_by\":[]," +
     "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
@@ -242,6 +242,167 @@ test "analytic aggregates stay outside the partial execution capability" {
   )
   let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
   assert_false(analytic_execution_supported(analytic))
+}
+
+///|
+test "analytic aggregate capability rejects unresolved demand variants" {
+  for
+    functions in [
+      "{\"v\":{\"fn\":\"min\",\"expr\":\"amount\"}}",
+      "{\"v\":{\"fn\":\"min\",\"field\":\"amount\"," +
+      "\"filter\":\"amount > 0\"}}",
+    ] {
+    let owner = analytic_execution_owner(
+      "\"analytic\":{\"partition_by\":[]," +
+      "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+      "\"unbounded_preceding\",\"end\":\"current_row\"}," +
+      "\"functions\":" +
+      functions +
+      "}",
+    )
+    let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
+    assert_false(analytic_execution_supported(analytic))
+  }
+}
+
+///|
+test "analytic direct aggregates use each row frame and retain source order" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+    "\"unbounded_preceding\",\"end\":\"current_row\"}," +
+    "\"functions\":{\"first\":{\"fn\":\"first\"," +
+    "\"field\":\"amount\"},\"items\":{\"fn\":\"array_agg\"," +
+    "\"field\":\"amount\",\"distinct\":true,\"max_items\":3}," +
+    "\"last\":{" +
+    "\"fn\":\"last\",\"field\":\"amount\"},\"lowest\":{" +
+    "\"fn\":\"min\",\"field\":\"amount\"},\"n\":{" +
+    "\"fn\":\"count\",\"field\":\"amount\",\"distinct\":true}," +
+    "\"text\":{" +
+    "\"fn\":\"string_agg\",\"field\":\"group\"," +
+    "\"delimiter\":\",\",\"max_bytes\":5}}}",
+  )
+  let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
+  assert_true(analytic_execution_supported(analytic))
+  let table = evaluate_rows(
+    row_kernel(owner, 0),
+    analytic_execution_input(owner),
+    5,
+    { remaining: 100000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(table.names, [
+    "amount", "first", "group", "id", "items", "last", "lowest", "n", "text",
+  ])
+  assert_eq(table.rows.length(), 5)
+  assert_true(table.rows[0][1] is Number(10))
+  assert_true(table.rows[0][5] is Number(30))
+  assert_true(table.rows[0][6] is Number(10))
+  assert_true(table.rows[0][7] is Number(2))
+  assert_true(table.rows[0][8] is Text("a,a"))
+  guard table.rows[0][4] is Captured(@admitted.Array(items)) else {
+    fail("array aggregate expected")
+  }
+  assert_eq(@admitted.element_count(items), 2)
+  assert_true(@admitted.element_at(items, 0) is Some(@admitted.Number(10)))
+  assert_true(@admitted.element_at(items, 1) is Some(@admitted.Number(30)))
+  guard table.rows[4][4] is Captured(@admitted.Array(full_items)) else {
+    fail("distinct array aggregate expected")
+  }
+  assert_eq(@admitted.element_count(full_items), 2)
+  assert_true(table.rows[4][7] is Number(2))
+  assert_true(table.rows[4][8] is Text("a,a,a"))
+  assert_true(table.rows[1][8] is Null)
+}
+
+///|
+test "analytic direct aggregates preserve empty frame laws" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":{" +
+    "\"following\":2},\"end\":{\"following\":3}},\"functions\":{" +
+    "\"items\":{\"fn\":\"array_agg\",\"field\":\"amount\"," +
+    "\"max_items\":3},\"lowest\":{\"fn\":\"min\"," +
+    "\"field\":\"amount\"},\"n\":{\"fn\":\"count\"," +
+    "\"field\":\"amount\"}}}",
+  )
+  let table = evaluate_rows(
+    row_kernel(owner, 0),
+    analytic_execution_input(owner),
+    5,
+    { remaining: 100000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(table.names, ["amount", "group", "id", "items", "lowest", "n"])
+  assert_true(table.rows[4][4] is Null)
+  assert_true(table.rows[4][5] is Number(0))
+  guard table.rows[4][3] is Captured(@admitted.Array(items)) else {
+    fail("empty array aggregate expected")
+  }
+  assert_eq(@admitted.element_count(items), 0)
+}
+
+///|
+test "analytic authored collection ceilings fail atomically" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+    "\"unbounded_preceding\",\"end\":\"current_row\"}," +
+    "\"functions\":{\"items\":{\"fn\":\"array_agg\"," +
+    "\"field\":\"amount\",\"max_items\":2}}}",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(RowLimit),
+  )
+}
+
+///|
+test "analytic aggregate execution has an exact control boundary" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+    "\"unbounded_preceding\",\"end\":\"current_row\"}," +
+    "\"functions\":{\"n\":{\"fn\":\"count\"," +
+    "\"field\":\"amount\"}}}",
+  )
+  let control = { remaining: 100000, max_frames: 100, }
+  ignore(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      control,
+      row_output(),
+    ).unwrap(),
+  )
+  let used = 100000 - control.remaining
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: used, max_frames: 100, },
+      row_output(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: used - 1, max_frames: 100, },
+      row_output(),
+    )
+    is Err(RowLimit),
+  )
 }
 
 ///|

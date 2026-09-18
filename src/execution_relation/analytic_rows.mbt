@@ -36,7 +36,14 @@ pub fn analytic_execution_supported(analytic : @lower.PreparedAnalytic) -> Bool 
       | PreparedLead(_, _)
       | PreparedFirstValue(_)
       | PreparedLastValue(_) => ()
-      PreparedFrameAggregate(_) => return false
+      PreparedFrameAggregate(aggregate) =>
+        if @lower.analytic_frame(analytic) is None ||
+          !direct_aggregate_execution_supported(
+            aggregate,
+            @lower.analytic_position_term_count(analytic) > 0,
+          ) {
+          return false
+        }
     }
   }
   true
@@ -131,6 +138,8 @@ fn[T : RelationRows] evaluate_analytic_into(
   output : ValueBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
+  aggregate_outputs : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
   accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
     Unit,
     RowIssue,
@@ -265,6 +274,28 @@ fn[T : RelationRows] evaluate_analytic_into(
     }
   }
   let call_count = @lower.analytic_call_count(analytic)
+  let aggregate_arguments : Array[Int?] = Array::make(call_count, None)
+  if !reserve_slots(workspace, call_count) {
+    return Err(RowLimit)
+  }
+  for call_index in 0..<call_count {
+    guard @lower.analytic_call_function(
+        @lower.analytic_call_at(analytic, call_index).unwrap(),
+      )
+      is PreparedFrameAggregate(aggregate) else {
+      continue
+    }
+    aggregate_arguments[call_index] = match
+      @lower.group_aggregate_argument(aggregate) {
+      @lower.AggregateRows => None
+      @lower.AggregateField(field) =>
+        match resolve(field) {
+          Ok(column) => Some(column)
+          Err(issue) => return Err(issue)
+        }
+      @lower.AggregateExpression(_) => return Err(InvalidRows)
+    }
+  }
   let position_by_row = Array::make(count, -1)
   let partition_start = Array::make(count, -1)
   let partition_by_row = Array::make(count, -1)
@@ -353,7 +384,7 @@ fn[T : RelationRows] evaluate_analytic_into(
             }
           }
           PreparedRowNumber | PreparedRank | PreparedDenseRank => -1
-          PreparedFrameAggregate(_) => return Err(InvalidRows)
+          PreparedFrameAggregate(_) => -1
         }
         references[call_index][source] = reference
       }
@@ -425,6 +456,43 @@ fn[T : RelationRows] evaluate_analytic_into(
     for source in failure_sources[range_index] {
       for call_index in call_order {
         let call = @lower.analytic_call_at(analytic, call_index).unwrap()
+        if @lower.analytic_call_function(call)
+          is PreparedFrameAggregate(aggregate) {
+          guard @lower.analytic_frame(analytic) is Some(frame) else {
+            return Err(InvalidRows)
+          }
+          let position = position_by_row[source] - ranges[range_index].start
+          let length = ranges[range_index].end - ranges[range_index].start
+          let (first, end) = match
+            analytic_frame_range(frame, position, length) {
+            Some((first, end)) =>
+              (
+                ranges[range_index].start + first,
+                ranges[range_index].start + end,
+              )
+            None => (ranges[range_index].start, ranges[range_index].start)
+          }
+          let baseline = workspace.live
+          let value = match
+            evaluate_direct_aggregate(
+              aggregate,
+              input,
+              sorted,
+              { representative: Some(source), start: first, end, },
+              aggregate_arguments[call_index],
+              complete,
+              control,
+              workspace,
+              aggregate_outputs,
+              identity_limits,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          release_slots(workspace, workspace.live - baseline)
+          evaluated[call_index][source] = Some(value)
+          continue
+        }
         if demanded[call_index][source] {
           let expression = match @lower.analytic_call_function(call) {
             PreparedLag(expression, _)
@@ -506,7 +574,11 @@ fn[T : RelationRows] evaluate_analytic_into(
                 evaluated[index][reference].unwrap()
               }
             }
-            PreparedFrameAggregate(_) => return Err(InvalidRows)
+            PreparedFrameAggregate(_) =>
+              match evaluated[index][source] {
+                Some(value) => value
+                None => return Err(InvalidRows)
+              }
           },
         )
       }

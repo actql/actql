@@ -468,7 +468,8 @@ fn[T : RelationRows] evaluate_row_body_impl(
   if body is PreparedBody(kernel) &&
     @lower.kernel_analytic(kernel) is Some(analytic) {
     return evaluate_analytic_into(
-      analytic, input, max_rows, control, output, workspace, scope, accept_row,
+      analytic, input, max_rows, control, output, workspace, scope, aggregate_outputs,
+      identity_limits, accept_row,
     )
   }
   let view_entries = match body {

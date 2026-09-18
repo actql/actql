@@ -47,6 +47,67 @@ impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn read_cell(
 }
 
 ///|
+// Shared direct fold capability. Group supplies aggregate-local ordering;
+// analytic supplies its completed frame ordering.
+fn direct_aggregate_execution_supported(
+  aggregate : @lower.PreparedAggregate,
+  ordered : Bool,
+) -> Bool {
+  if @lower.group_aggregate_filter(aggregate) is Some(_) ||
+    @lower.group_aggregate_argument(aggregate) is @lower.AggregateExpression(_) ||
+    @lower.group_aggregate_requires_numeric_observation(aggregate) {
+    return false
+  }
+  match
+    (
+      @lower.group_aggregate_function(aggregate),
+      @lower.group_aggregate_argument(aggregate),
+    ) {
+    (@relation.Count, @lower.AggregateRows)
+    | (@relation.Count, @lower.AggregateField(_))
+    | (@relation.CountIf, @lower.AggregateField(_)) => ()
+    (@relation.Min, @lower.AggregateField(_))
+    | (@relation.Max, @lower.AggregateField(_)) => {
+      let result = @lower.group_aggregate_result(aggregate)
+      if !supported_comparison(result, result) {
+        return false
+      }
+    }
+    (@relation.Sum, @lower.AggregateField(_)) =>
+      if !(@lower.group_aggregate_result(aggregate).shape
+        is @contract.Decimal(precision=38, ..)) {
+        return false
+      }
+    (@relation.First, @lower.AggregateField(_))
+    | (@relation.Last, @lower.AggregateField(_)) => if !ordered { return false }
+    (@relation.ArrayAgg, @lower.AggregateField(_)) =>
+      if !ordered {
+        return false
+      }
+    (@relation.StringAgg, @lower.AggregateField(_)) =>
+      if !ordered || @lower.group_aggregate_delimiter(aggregate) is None {
+        return false
+      }
+    (@relation.PercentileDisc, @lower.AggregateField(_)) => {
+      let result = @lower.group_aggregate_result(aggregate)
+      if !supported_comparison(result, result) {
+        return false
+      }
+    }
+    (@relation.PercentileCont, @lower.AggregateField(_))
+    | (@relation.VarPop, @lower.AggregateField(_))
+    | (@relation.VarSamp, @lower.AggregateField(_))
+    | (@relation.StddevPop, @lower.AggregateField(_))
+    | (@relation.StddevSamp, @lower.AggregateField(_)) =>
+      if !(@lower.group_aggregate_result(aggregate).shape is @contract.Number) {
+        return false
+      }
+    _ => return false
+  }
+  true
+}
+
+///|
 /// Exact initial Local capability for complete group descriptors. A false
 /// result is a candidate-selection decision, never permission to reinterpret
 /// the checked aggregate through another physical law.
@@ -63,12 +124,6 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
   }
   for i = 0; i < @lower.group_aggregate_count(group); i = i + 1 {
     let aggregate = @lower.group_aggregate_at(group, i).unwrap()
-    if @lower.group_aggregate_filter(aggregate) is Some(_) ||
-      @lower.group_aggregate_argument(aggregate)
-      is @lower.AggregateExpression(_) ||
-      @lower.group_aggregate_requires_numeric_observation(aggregate) {
-      return false
-    }
     for j = 0; j < @lower.group_aggregate_order_count(aggregate); j = j + 1 {
       let (field, _, _) = @lower.group_aggregate_order_term_at(aggregate, j).unwrap()
       guard @schema.lookup(input, field) is Some(contract) else { return false }
@@ -76,55 +131,11 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
         return false
       }
     }
-    match
-      (
-        @lower.group_aggregate_function(aggregate),
-        @lower.group_aggregate_argument(aggregate),
+    if !direct_aggregate_execution_supported(
+        aggregate,
+        @lower.group_aggregate_order_count(aggregate) > 0,
       ) {
-      (@relation.Count, @lower.AggregateRows)
-      | (@relation.Count, @lower.AggregateField(_))
-      | (@relation.CountIf, @lower.AggregateField(_)) => ()
-      (@relation.Min, @lower.AggregateField(_))
-      | (@relation.Max, @lower.AggregateField(_)) => {
-        let result = @lower.group_aggregate_result(aggregate)
-        if !supported_comparison(result, result) {
-          return false
-        }
-      }
-      (@relation.Sum, @lower.AggregateField(_)) =>
-        if !(@lower.group_aggregate_result(aggregate).shape
-          is @contract.Decimal(precision=38, ..)) {
-          return false
-        }
-      (@relation.First, @lower.AggregateField(_))
-      | (@relation.Last, @lower.AggregateField(_)) =>
-        if @lower.group_aggregate_order_count(aggregate) == 0 {
-          return false
-        }
-      (@relation.ArrayAgg, @lower.AggregateField(_)) =>
-        if @lower.group_aggregate_order_count(aggregate) == 0 {
-          return false
-        }
-      (@relation.StringAgg, @lower.AggregateField(_)) =>
-        if @lower.group_aggregate_order_count(aggregate) == 0 ||
-          @lower.group_aggregate_delimiter(aggregate) is None {
-          return false
-        }
-      (@relation.PercentileDisc, @lower.AggregateField(_)) => {
-        let result = @lower.group_aggregate_result(aggregate)
-        if !supported_comparison(result, result) {
-          return false
-        }
-      }
-      (@relation.PercentileCont, @lower.AggregateField(_))
-      | (@relation.VarPop, @lower.AggregateField(_))
-      | (@relation.VarSamp, @lower.AggregateField(_))
-      | (@relation.StddevPop, @lower.AggregateField(_))
-      | (@relation.StddevSamp, @lower.AggregateField(_)) =>
-        if !(@lower.group_aggregate_result(aggregate).shape is @contract.Number) {
-          return false
-        }
-      _ => return false
+      return false
     }
   }
   true
