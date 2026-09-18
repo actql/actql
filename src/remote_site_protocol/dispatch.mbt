@@ -21,6 +21,40 @@ struct DispatchRequest {
 }
 
 ///|
+/// A Host-registered issuer is scoped to one live Site generation, runtime,
+/// Connector revision and evidence kind. Possessing Site identity alone does
+/// not authorize every assertion the Site could make.
+struct RemoteEvidenceIssuer {
+  site_key : String
+  site_generation : Int
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  evidence_kind : String
+  issuer_capability_cid : String
+}
+
+///|
+/// Durable evidence binds a registered assertion to the exact dispatch and
+/// retained material. Its identity is independent from transport encoding and
+/// from the logical identity of the result itself.
+struct RemoteExecutionEvidence {
+  dispatch_request_cid : String
+  site_key : String
+  site_generation : Int
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  obligations_cid : String
+  material_generation : String
+  holding_evidence_cid : String
+  evidence_kind : String
+  evidence_subject_cid : String
+  issuer_capability_cid : String
+  evidence_cid : String
+}
+
+///|
 /// Physical execution observations and common completion are different facts.
 pub(all) enum RemoteExecutionState {
   Accepted
@@ -274,6 +308,157 @@ fn request_identity(request : DispatchRequest) -> Result[String, DispatchIssue] 
     Ok(value) => Ok("sha256:" + value)
     Err(_) => Err(InvalidDispatch)
   }
+}
+
+///|
+pub fn register_remote_evidence_issuer(
+  site : @site.ExecutionSite,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  evidence_kind : String,
+  issuer_capability_cid : String,
+) -> Result[RemoteEvidenceIssuer, DispatchIssue] {
+  if !@site.site_binding_current(
+      site,
+      @site.site_generation(site),
+      runtime_bundle_cid,
+    ) ||
+    connector_registration.is_empty() ||
+    connector_revision.is_empty() ||
+    evidence_kind.is_empty() ||
+    !valid_cid(issuer_capability_cid) {
+    return Err(InvalidDispatch)
+  }
+  Ok({
+    site_key: @site.site_key(site),
+    site_generation: @site.site_generation(site),
+    runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    evidence_kind,
+    issuer_capability_cid,
+  })
+}
+
+///|
+fn emit_remote_execution_evidence_body(
+  evidence : RemoteExecutionEvidence,
+) -> Result[String, DispatchIssue] {
+  let writer = @encode.writer(65536, 32, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "connector_registration")
+    @encode.string_value(writer, evidence.connector_registration)
+    @encode.key(writer, "connector_revision")
+    @encode.string_value(writer, evidence.connector_revision)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, evidence.dispatch_request_cid)
+    @encode.key(writer, "evidence_kind")
+    @encode.string_value(writer, evidence.evidence_kind)
+    @encode.key(writer, "evidence_subject_cid")
+    @encode.string_value(writer, evidence.evidence_subject_cid)
+    @encode.key(writer, "holding_evidence_cid")
+    @encode.string_value(writer, evidence.holding_evidence_cid)
+    @encode.key(writer, "issuer_capability_cid")
+    @encode.string_value(writer, evidence.issuer_capability_cid)
+    @encode.key(writer, "material_generation")
+    @encode.string_value(writer, evidence.material_generation)
+    @encode.key(writer, "obligations_cid")
+    @encode.string_value(writer, evidence.obligations_cid)
+    @encode.key(writer, "runtime_bundle_cid")
+    @encode.string_value(writer, evidence.runtime_bundle_cid)
+    @encode.key(writer, "site_generation")
+    @encode.number_value(writer, evidence.site_generation.to_double())
+    @encode.key(writer, "site_key")
+    @encode.string_value(writer, evidence.site_key)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-execution-evidence/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+fn remote_execution_evidence_identity(
+  evidence : RemoteExecutionEvidence,
+) -> Result[String, DispatchIssue] {
+  let body = match emit_remote_execution_evidence_body(evidence) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
+pub fn issue_remote_execution_evidence(
+  issuer : RemoteEvidenceIssuer,
+  record : DispatchRecord,
+  evidence_subject_cid : String,
+) -> Result[RemoteExecutionEvidence, DispatchIssue] {
+  let request = record.request
+  if !valid_cid(evidence_subject_cid) ||
+    request.site_key != issuer.site_key ||
+    request.site_generation != issuer.site_generation ||
+    request.runtime_bundle_cid != issuer.runtime_bundle_cid ||
+    request.connector_registration != issuer.connector_registration ||
+    request.connector_revision != issuer.connector_revision ||
+    record.execution != NativeSettled ||
+    !record.material_available {
+    return Err(InvalidDispatch)
+  }
+  let (material_generation, holding_evidence_cid) = match record.evidence {
+    OutputRetained(material, holding) => (material, holding)
+    _ => return Err(InvalidTransition)
+  }
+  let pending : RemoteExecutionEvidence = {
+    dispatch_request_cid: request.dispatch_request_cid,
+    site_key: request.site_key,
+    site_generation: request.site_generation,
+    runtime_bundle_cid: request.runtime_bundle_cid,
+    connector_registration: request.connector_registration,
+    connector_revision: request.connector_revision,
+    obligations_cid: request.obligations_cid,
+    material_generation,
+    holding_evidence_cid,
+    evidence_kind: issuer.evidence_kind,
+    evidence_subject_cid,
+    issuer_capability_cid: issuer.issuer_capability_cid,
+    evidence_cid: "pending",
+  }
+  let identity = match remote_execution_evidence_identity(pending) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..pending, evidence_cid: identity, })
+}
+
+///|
+pub fn remote_execution_evidence_json(
+  evidence : RemoteExecutionEvidence,
+) -> Result[String, DispatchIssue] {
+  let identity = match remote_execution_evidence_identity(evidence) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if identity != evidence.evidence_cid {
+    return Err(InvalidDispatch)
+  }
+  emit_remote_execution_evidence_body(evidence)
+}
+
+///|
+pub fn remote_execution_evidence_cid(
+  evidence : RemoteExecutionEvidence,
+) -> String {
+  evidence.evidence_cid
 }
 
 ///|
@@ -727,14 +912,24 @@ pub fn prepare_retain_remote_output(
 ///|
 pub fn prepare_durable_execution_evidence(
   record : DispatchRecord,
-  evidence_cid : String,
+  evidence : RemoteExecutionEvidence,
 ) -> Result[DispatchTransition, DispatchIssue] {
-  if !valid_cid(evidence_cid) {
+  let request = record.request
+  if evidence.dispatch_request_cid != request.dispatch_request_cid ||
+    evidence.site_key != request.site_key ||
+    evidence.site_generation != request.site_generation ||
+    evidence.runtime_bundle_cid != request.runtime_bundle_cid ||
+    evidence.connector_registration != request.connector_registration ||
+    evidence.connector_revision != request.connector_revision ||
+    evidence.obligations_cid != request.obligations_cid ||
+    remote_execution_evidence_identity(evidence) != Ok(evidence.evidence_cid) {
     return Err(InvalidDispatch)
   }
   match record.evidence {
     OutputRetained(material_generation, holding_evidence_cid) => {
-      if !record.material_available {
+      if !record.material_available ||
+        evidence.material_generation != material_generation ||
+        evidence.holding_evidence_cid != holding_evidence_cid {
         return Err(MaterialUnavailable)
       }
       Ok(
@@ -742,7 +937,9 @@ pub fn prepare_durable_execution_evidence(
           record,
           record.execution,
           EvidenceDurable(
-            material_generation, holding_evidence_cid, evidence_cid,
+            material_generation,
+            holding_evidence_cid,
+            evidence.evidence_cid,
           ),
           record.cleanup,
           record.material_available,

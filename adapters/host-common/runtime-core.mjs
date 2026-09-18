@@ -120,6 +120,27 @@ function remoteSiteControl(moon) {
     prepareRetained: (value, material, holding) => checked(
       moon.strategyRemotePrepareRetained(value, material, holding),
     ),
+    registerEvidenceIssuer: configuration => checked(
+      moon.strategyRemoteRegisterEvidenceIssuer(
+        configuration.site,
+        configuration.runtimeBundleCid,
+        configuration.connectorRegistration,
+        configuration.connectorRevision,
+        configuration.evidenceKind,
+        configuration.issuerCapabilityCid,
+      ),
+    ),
+    issueExecutionEvidence: (issuer, record, evidenceSubjectCid) => checked(
+      moon.strategyRemoteIssueExecutionEvidence(
+        issuer,
+        record,
+        evidenceSubjectCid,
+      ),
+    ),
+    evidenceIdentity: moon.strategyRemoteExecutionEvidenceIdentity,
+    evidenceJson: value => checked(
+      moon.strategyRemoteExecutionEvidenceJson(value),
+    ),
     prepareEvidence: (value, evidence) => checked(
       moon.strategyRemotePrepareEvidence(value, evidence),
     ),

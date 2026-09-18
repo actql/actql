@@ -183,8 +183,9 @@ test('durable transitions restore before later execution progress', async t => {
 test('evidence and cleanup planes persist independently', async t => {
   const {root, store} = await fixture(t);
   const control = runtime.remoteSiteControl;
+  const controlledSite = site();
   const prepared = control.prepare(request('dispatch-a'));
-  const journal = control.createJournal(site());
+  const journal = control.createJournal(controlledSite);
   const record = store.accept(
     control.prepareAdmission(journal, prepared),
     prepared,
@@ -198,7 +199,20 @@ test('evidence and cleanup planes persist independently', async t => {
     'material-generation-a',
     cid('c'),
   ), record, control);
-  store.advance(control.prepareEvidence(record, cid('d')), record, control);
+  const issuer = control.registerEvidenceIssuer(Object.freeze({
+    site: controlledSite,
+    runtimeBundleCid: cid('a'),
+    connectorRegistration: 'local',
+    connectorRevision: 'local/1',
+    evidenceKind: 'actql.remote.physical-output/0.1',
+    issuerCapabilityCid: cid('b'),
+  }));
+  const evidence = control.issueExecutionEvidence(issuer, record, cid('d'));
+  assert.equal(
+    control.evidenceIdentity(evidence),
+    'sha256:2568eb7827d9a2b988538da15f7a03540b3ba3338a9d09e6ef54f6d35da5c65d',
+  );
+  store.advance(control.prepareEvidence(record, evidence), record, control);
   store.advance(control.prepareRelease(record), record, control);
   assert.deepEqual(control.status(record), [3, 2, 1, 1, 0]);
   store.close();

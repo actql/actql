@@ -2717,12 +2717,73 @@ pub fn strategy_remote_prepare_retained(
 }
 
 ///|
+#export_name("strategyRemoteRegisterEvidenceIssuer")
+pub fn strategy_remote_register_evidence_issuer(
+  site : @site.ExecutionSite,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  evidence_kind : String,
+  issuer_capability_cid : String,
+) -> @remote.RemoteEvidenceIssuer raise NodeHostFailure {
+  match
+    @remote.register_remote_evidence_issuer(
+      site,
+      runtime_bundle_cid,
+      connector_registration,
+      connector_revision,
+      evidence_kind,
+      issuer_capability_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteIssueExecutionEvidence")
+pub fn strategy_remote_issue_execution_evidence(
+  issuer : @remote.RemoteEvidenceIssuer,
+  record : @remote.DispatchRecord,
+  evidence_subject_cid : String,
+) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
+  match
+    @remote.issue_remote_execution_evidence(
+      issuer,
+      record,
+      evidence_subject_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteExecutionEvidenceIdentity")
+pub fn strategy_remote_execution_evidence_identity(
+  evidence : @remote.RemoteExecutionEvidence,
+) -> String {
+  @remote.remote_execution_evidence_cid(evidence)
+}
+
+///|
+#export_name("strategyRemoteExecutionEvidenceJson")
+pub fn strategy_remote_execution_evidence_json(
+  evidence : @remote.RemoteExecutionEvidence,
+) -> String raise NodeHostFailure {
+  match @remote.remote_execution_evidence_json(evidence) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemotePrepareEvidence")
 pub fn strategy_remote_prepare_evidence(
   record : @remote.DispatchRecord,
-  evidence_cid : String,
+  evidence : @remote.RemoteExecutionEvidence,
 ) -> @remote.DispatchTransition raise NodeHostFailure {
-  match @remote.prepare_durable_execution_evidence(record, evidence_cid) {
+  match @remote.prepare_durable_execution_evidence(record, evidence) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }

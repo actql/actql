@@ -77,6 +77,16 @@ be settled while its evidence is not durable. Durable evidence does not release
 an output used by another consumer. Cleanup may remain unknown after either a
 successful or failed execution.
 
+Execution evidence is a typed canonical record issued only through a
+Host-registered capability. The capability is scoped to the exact Site
+generation, runtime bundle, Connector registration and revision, and evidence
+kind. The record additionally binds the dispatch request, obligations,
+retained material generation, holding evidence, and verified subject. An
+arbitrary CID string is not an execution-evidence admission surface. The
+registered verifier remains the trust boundary for the asserted subject; the
+record identity does not turn that assertion into a proof against a malicious
+implementation.
+
 Timeout, connection loss, or Agent restart does not prove that a child process
 or external operation stopped. Unknown responsibility retains its reservations
 and pins. An authorized force-loss operation may end management of a Run, but

@@ -43,6 +43,8 @@ pub fn force_loss_journal_key(ForceLossTransition) -> Array[String]
 
 pub fn force_loss_projection(ForceLossTransition) -> Array[String]
 
+pub fn issue_remote_execution_evidence(RemoteEvidenceIssuer, DispatchRecord, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
+
 pub fn prepare_begin_provisioning(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_begin_remote_execution(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
@@ -61,7 +63,7 @@ pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Resu
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
-pub fn prepare_durable_execution_evidence(DispatchRecord, String) -> Result[DispatchTransition, DispatchIssue]
+pub fn prepare_durable_execution_evidence(DispatchRecord, RemoteExecutionEvidence) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[ForceLossTransition, DispatchIssue]
 
@@ -75,7 +77,13 @@ pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[Di
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
 
+pub fn register_remote_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String) -> Result[RemoteEvidenceIssuer, DispatchIssue]
+
 pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
+
+pub fn remote_execution_evidence_cid(RemoteExecutionEvidence) -> String
+
+pub fn remote_execution_evidence_json(RemoteExecutionEvidence) -> Result[String, DispatchIssue]
 
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
@@ -136,12 +144,16 @@ pub(all) enum RemoteCleanupState {
   CleanupRecoveredAfterLoss
 } derive(Eq, @debug.Debug)
 
+type RemoteEvidenceIssuer
+
 pub(all) enum RemoteEvidenceState {
   NoEvidence
   OutputRetained(String, String)
   EvidenceDurable(String, String, String)
   EvidenceRejected
 } derive(Eq, @debug.Debug)
+
+type RemoteExecutionEvidence
 
 pub(all) enum RemoteExecutionState {
   Accepted

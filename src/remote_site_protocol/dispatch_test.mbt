@@ -44,6 +44,28 @@ fn journal() -> SiteDispatchJournal {
 }
 
 ///|
+fn issuer(state : SiteDispatchJournal) -> RemoteEvidenceIssuer {
+  ignore(state)
+  let site = @site.create_site(
+    "site-a",
+    1,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  register_remote_evidence_issuer(
+    site,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    "local",
+    "local/1",
+    "actql.remote.physical-output/0.1",
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+  ).unwrap()
+}
+
+///|
 fn replacement_site(generation : Int, bundle : String) -> @site.ExecutionSite {
   @site.create_site("site-a", generation, bundle, 4, 4, 1048576L, 1048576L).unwrap()
 }
@@ -184,7 +206,11 @@ test "execution evidence and cleanup advance independently" {
   commit_dispatch_transition(
     prepare_durable_execution_evidence(
       record,
-      cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+      issue_remote_execution_evidence(
+        issuer(state),
+        record,
+        cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+      ).unwrap(),
     ).unwrap(),
     true,
   ).unwrap()
@@ -199,6 +225,56 @@ test "execution evidence and cleanup advance independently" {
     true,
   ).unwrap()
   assert_false(remote_completion_evidence_available(record))
+}
+
+///|
+test "registered issuer binds evidence to exact dispatch and material" {
+  let state = journal()
+  let bundle = cid(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  )
+  let (_, record) = accept(state, request("dispatch-a", 1, 1, bundle))
+  provision(record)
+  execute(record)
+  settle(record)
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      record,
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let evidence = issue_remote_execution_evidence(
+    issuer(state),
+    record,
+    cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+  ).unwrap()
+  assert_eq(
+    remote_execution_evidence_cid(evidence),
+    "sha256:2568eb7827d9a2b988538da15f7a03540b3ba3338a9d09e6ef54f6d35da5c65d",
+  )
+  assert_eq(
+    remote_execution_evidence_json(evidence).unwrap(),
+    "{\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"evidence_kind\":\"actql.remote.physical-output/0.1\",\"evidence_subject_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"material_generation\":\"material-generation-a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"version\":\"actql-remote-execution-evidence/0.1\"}",
+  )
+  let foreign_site = replacement_site(1, bundle)
+  let wrong = register_remote_evidence_issuer(
+    foreign_site,
+    bundle,
+    "local",
+    "local/2",
+    "actql.remote.physical-output/0.1",
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+  ).unwrap()
+  assert_true(
+    issue_remote_execution_evidence(
+      wrong,
+      record,
+      cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    )
+    is Err(InvalidDispatch),
+  )
 }
 
 ///|
@@ -277,7 +353,11 @@ test "restart preserves settled history but requires current availability" {
   commit_dispatch_transition(
     prepare_durable_execution_evidence(
       record,
-      cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+      issue_remote_execution_evidence(
+        issuer(state),
+        record,
+        cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+      ).unwrap(),
     ).unwrap(),
     true,
   ).unwrap()
