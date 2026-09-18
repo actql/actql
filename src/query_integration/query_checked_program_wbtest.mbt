@@ -805,6 +805,13 @@ fn local_values_group_program(variant : String) -> String {
         "[\"k\"]", "{\"items\":{\"fn\":\"array_agg\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":5},\"n\":{\"fn\":\"count\"},\"text\":{\"fn\":\"string_agg\",\"field\":\"label\",\"delimiter\":\"|\",\"order_by\":[{\"id\":\"desc\"}],\"max_bytes\":17}}",
         "[\"id\",\"k\",\"label\"]", "[\"items\",\"k\",\"n\",\"text\"]", "[\"text\",\"n\",\"k\",\"items\"]",
       )
+    "nested_distinct" =>
+      (
+        "{\"v\":{\"type\":\"array\",\"nullable\":true,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":false}}}}}}}}",
+        "[{\"v\":[[[[[[1]]]]]]},{\"v\":[[[[[[1]]]]]]},{\"v\":[[[[[[2]]]]]]},{\"v\":null}]",
+        "[]", "{\"n\":{\"fn\":\"count\",\"field\":\"v\",\"distinct\":true}}", "[\"v\"]",
+        "[\"n\"]", "[\"n\"]",
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =

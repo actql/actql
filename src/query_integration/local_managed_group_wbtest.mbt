@@ -231,7 +231,8 @@ fn run_local_managed_group_case(
   ).unwrap()
   let expanded = variant == "direct" ||
     variant == "ordered" ||
-    variant == "collections"
+    variant == "collections" ||
+    variant == "nested_distinct"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -248,6 +249,11 @@ fn run_local_managed_group_case(
           100
         } else {
           20
+        },
+        max_depth: if variant == "nested_distinct" {
+          10
+        } else {
+          4
         },
         max_columns: if expanded {
           6
@@ -266,7 +272,11 @@ fn run_local_managed_group_case(
         } else {
           20
         },
-        max_depth: 4,
+        max_depth: if variant == "nested_distinct" {
+          10
+        } else {
+          4
+        },
         max_text_bytes: if expanded {
           1000
         } else {
@@ -462,5 +472,18 @@ test "Local managed collection aggregates reach two independent consumers" {
     ],
     ["{\"items\":[\"a\",\"b\"],\"k\":1,\"n\":3,\"text\":\"b|a\"}"],
     ["{\"text\":\"b|a\",\"n\":3,\"k\":1,\"items\":[\"a\",\"b\"]}"],
+  )
+}
+
+///|
+test "Local managed nested distinct count reaches two independent consumers" {
+  run_local_managed_group_case(
+    "nested_distinct",
+    [
+      "{\"v\":[[[[[[1]]]]]]}", "{\"v\":[[[[[[1]]]]]]}", "{\"v\":[[[[[[2]]]]]]}",
+      "{\"v\":null}",
+    ],
+    ["{\"n\":2}"],
+    ["{\"n\":2}"],
   )
 }
