@@ -3,6 +3,7 @@
 /// conversion, never execution or a way to admit caller-supplied output values.
 struct CompletedOutputExport {
   mut source : CompletedOutput?
+  rows : CompletedExportRows
   order : RowWireOrder
   schema : RelationSchemaIdentity?
   writer : @encode.Writer
@@ -40,6 +41,7 @@ pub(all) enum CompletedExportIssue {
   Admission(CaptureIssue)
   Wire(RowWireIssue)
   Schema(RelationSchemaIdentityIssue)
+  ResultView(CompletedResultViewIssue)
 }
 
 ///|
@@ -52,6 +54,7 @@ pub fn prepare_completed_output_export(
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
   prepare_completed_export(
     source,
+    None,
     max_rows,
     values,
     wire,
@@ -75,6 +78,34 @@ pub fn prepare_completed_relation_export(
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
   prepare_completed_export(
     source,
+    None,
+    max_rows,
+    values,
+    payload_wire,
+    Some(logical_wire),
+    Some(schema_limits),
+    max_batch_bytes,
+  )
+}
+
+///|
+/// Export one exact checked Named Result occurrence. Projection and total
+/// publication order are applied as bounded index views before any identity is
+/// established; cells remain in the completed producer representation.
+pub fn prepare_completed_result_relation_export(
+  source : CompletedOutput,
+  occurrence : ManagedResultOccurrence,
+  result_view : CompletedResultViewLimits,
+  max_rows : Int,
+  values : ValueLimits,
+  payload_wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+  schema_limits : RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  prepare_completed_export(
+    source,
+    Some((occurrence, result_view)),
     max_rows,
     values,
     payload_wire,
@@ -87,6 +118,7 @@ pub fn prepare_completed_relation_export(
 ///|
 fn prepare_completed_export(
   source : CompletedOutput,
+  result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,
   max_rows : Int,
   values : ValueLimits,
   wire : RowWireLimits,
@@ -97,9 +129,17 @@ fn prepare_completed_export(
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
-  guard source.table is Some(table) else { return Err(NotCellRepresentation) }
+  guard source.table is Some(_) else { return Err(NotCellRepresentation) }
   guard source.target is Step(_) else { return Err(InvalidTarget) }
-  if max_rows < 0 || IndexedRows::row_count(table) > max_rows {
+  let rows = match result_view {
+    None => completed_output_export_rows(source)
+    Some((occurrence, limits)) =>
+      match completed_result_export_rows(source, occurrence, limits) {
+        Ok(value) => value
+        Err(issue) => return Err(ResultView(issue))
+      }
+  }
+  if max_rows < 0 || IndexedRows::row_count(rows) > max_rows {
     return Err(Admission(CaptureLimit))
   }
   if !row_wire_valid_limits(wire) ||
@@ -113,7 +153,7 @@ fn prepare_completed_export(
   }
   let order = match
     prepare_row_wire_order(
-      RelationRows::field_names(table),
+      completed_export_field_names(rows),
       wire.max_columns,
       wire.max_order_work,
     ) {
@@ -122,17 +162,11 @@ fn prepare_completed_export(
   }
   let schema_identity = match schema_limits {
     None => None
-    Some(limits) => {
-      let owner = @lower.sequence_owner(source.completion.sequence)
-      let schema = @lower.preparation_schema_at(
-        @lower.bound_preparation(owner),
-        source.target,
-      ).unwrap()
-      match identify_relation_schema(schema, limits) {
+    Some(limits) =>
+      match identify_relation_schema(rows.schema, limits) {
         Ok(value) => Some(value)
         Err(issue) => return Err(Schema(issue))
       }
-    }
   }
   if logical_wire is Some(limits) &&
     (
@@ -164,6 +198,7 @@ fn prepare_completed_export(
     })
     Ok({
       source: Some(source),
+      rows,
       order,
       schema: schema_identity,
       writer,
@@ -210,11 +245,10 @@ fn next_completed_export_row(
   if value.source is None {
     return Err(Closed)
   }
-  let table = source.table.unwrap()
-  if value.row == IndexedRows::row_count(table) {
+  if value.row == IndexedRows::row_count(value.rows) {
     return Ok(None)
   }
-  let result = export_completed_row(value, table)
+  let result = export_completed_row(value, value.rows)
   match result {
     Ok(text) => {
       value.row += 1
@@ -230,7 +264,7 @@ fn next_completed_export_row(
 ///|
 fn export_completed_row(
   value : CompletedOutputExport,
-  table : CompletedTable,
+  table : CompletedExportRows,
 ) -> Result[String, CompletedExportIssue] {
   if IndexedRows::row_width(table, value.row) !=
     IndexedRows::column_count(table) {
@@ -259,7 +293,7 @@ fn export_completed_row(
 ///|
 fn emit_completed_export_row(
   value : CompletedOutputExport,
-  table : CompletedTable,
+  table : CompletedExportRows,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
@@ -316,15 +350,11 @@ fn finish_completed_export_stream(
   if value.source is None {
     return Err(Closed)
   }
-  if value.row != completed_row_count(source) {
+  if value.row != IndexedRows::row_count(value.rows) {
     return Err(NotFinished)
   }
   value.source = None
   let owner = @lower.sequence_owner(source.completion.sequence)
-  let schema = @lower.preparation_schema_at(
-    @lower.bound_preparation(owner),
-    source.target,
-  ).unwrap()
   try {
     @encode.end_array(value.writer)
     let tail = @encode.drain_hash_output(value.writer)
@@ -345,7 +375,7 @@ fn finish_completed_export_stream(
     let content : AdmittedOutputStreamReceipt = {
       owner,
       target: source.target,
-      schema,
+      schema: value.rows.schema,
       rows: value.row,
       cid: "sha256:" + hash,
       bytes,

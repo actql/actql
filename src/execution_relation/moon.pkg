@@ -15,6 +15,7 @@ import {
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
   "actql/actql/value_contract" @contract,
+  "actql/actql/order_key" @order,
   "moonbitlang/core/json",
 }
 

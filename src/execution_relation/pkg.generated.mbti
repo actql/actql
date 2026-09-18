@@ -440,6 +440,8 @@ pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWir
 
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
+pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
+
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 
 pub fn prepare_fixed_join_stream(@lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead], FixedJoinValidationLimits) -> Result[FixedJoinStream, RowIssue]
@@ -669,6 +671,7 @@ pub(all) enum CompletedExportIssue {
   Admission(CaptureIssue)
   Wire(RowWireIssue)
   Schema(RelationSchemaIdentityIssue)
+  ResultView(CompletedResultViewIssue)
 }
 
 pub(all) enum CompletedImportIssue {
@@ -692,6 +695,22 @@ type CompletedOutputExportReceipt
 type CompletedOutputImport
 
 type CompletedRelationExportReceipt
+
+pub(all) enum CompletedResultViewIssue {
+  InvalidLimits
+  Unavailable
+  ForeignOccurrence
+  InvalidProjection
+  Limit
+  Comparison(ScalarIssue)
+}
+
+pub(all) struct CompletedResultViewLimits {
+  max_fields : Int
+  max_mapping_work : Int
+  max_order_work : Int
+  max_workspace_entries : Int
+}
 
 type CompletedSequence
 

@@ -20,6 +20,60 @@ fn publication_schema_limits() -> RelationSchemaIdentityLimits {
 }
 
 ///|
+fn result_export_owner() -> @lower.BoundPrepared {
+  bound_pipeline(
+    "[{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":false},\"s\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]},\"as\":\"v\"},{\"select\":[\"s\",\"n\"],\"as\":\"selected\"}]",
+  )
+}
+
+///|
+fn result_export_occurrence(
+  owner : @lower.BoundPrepared,
+  name : String,
+  body : String,
+) -> ManagedResultOccurrence {
+  let checked = @results.check(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    input_cursor(body),
+    {
+      max_results: 10,
+      max_work: 100000,
+      max_nodes: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let orders = @results.resolve_all_orders(checked, {
+    max_steps: 10,
+    max_results: 10,
+    max_work: 100000,
+    max_text_bytes: 100000,
+  }).unwrap()
+  let ports = @results.prepare_ports(orders, {
+    max_results: 10,
+    max_work: 200000,
+    max_nodes: 20000,
+    max_text_bytes: 200000,
+    max_depth: 100,
+  }).unwrap()
+  bind_managed_result_occurrence(
+    owner,
+    name,
+    @results.lookup_port(ports, name).unwrap(),
+  ).unwrap()
+}
+
+///|
+fn result_view_limits() -> CompletedResultViewLimits {
+  {
+    max_fields: 10,
+    max_mapping_work: 100,
+    max_order_work: 1000,
+    max_workspace_entries: 20,
+  }
+}
+
+///|
 fn export_all(
   source : CompletedOutput,
 ) -> (CompletedOutputExportReceipt, String) raise {
@@ -109,6 +163,95 @@ test "publication export independently bounds the logical Relation preimage" {
   assert_true(
     finish_completed_relation_export(stream) is Err(Wire(Encoding(_))),
   )
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "Named Result export applies its exact projection and total order as views" {
+  let owner = result_export_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  let stream = prepare_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  let text = StringBuilder()
+  while next_completed_output_export(stream).unwrap() is Some(part) {
+    text.write_string(part)
+  }
+  let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  text.write_string(tail)
+  assert_eq(text.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
+  let content = completed_relation_export_content(receipt)
+  assert_eq(
+    content.cid,
+    "sha256:b02d1ca0bcef117894d3a35792bce4057604d152c60c7719a222833466811088",
+  )
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    "sha256:f690ca53202a4e4fd0736d14fb759522c904e416982f72d2dbbdbb7a63332fbb",
+  )
+  assert_eq(
+    relation_schema_cid(completed_relation_export_schema_identity(receipt)),
+    "sha256:572f534f7825ac4eb8718cc624861dc01efecd8307333cf7639ec5ed312df476",
+  )
+  assert_eq(@schema.field_count(content.schema), 1)
+  assert_eq(
+    @schema.reference_name(@schema.field_at(content.schema, 0).unwrap().name),
+    "s",
+  )
+  assert_true(completed_output_available(source))
+  cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+test "Named Result export rejects foreign occurrence and exact view limits" {
+  let owner = result_export_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  let foreign_owner = result_export_owner()
+  let foreign = result_export_occurrence(
+    foreign_owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  let prepare = fn(
+    selected : ManagedResultOccurrence,
+    view : CompletedResultViewLimits,
+  ) {
+    prepare_completed_result_relation_export(
+      source,
+      selected,
+      view,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      row_wire_limits(),
+      publication_schema_limits(),
+      64,
+    )
+  }
+  assert_true(
+    prepare(foreign, result_view_limits()) is Err(ResultView(ForeignOccurrence)),
+  )
+  for
+    view in [
+      { ..result_view_limits(), max_fields: 0, },
+      { ..result_view_limits(), max_mapping_work: 0, },
+      { ..result_view_limits(), max_order_work: 0, },
+      { ..result_view_limits(), max_workspace_entries: 1, },
+    ] {
+    assert_true(prepare(occurrence, view) is Err(ResultView(Limit)))
+  }
   assert_true(completed_output_available(source))
 }
 
