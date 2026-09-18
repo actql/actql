@@ -556,6 +556,51 @@ test "contract parsing keeps explicit budgets and strict JSON" {
 }
 
 ///|
+test "Result retention fixes an independent metadata deletion deadline" {
+  let c = contract_cid("1")
+  let prefix = "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    c +
+    "\",\"effective_data_policy_cid\":\"" +
+    c +
+    "\",\"available_until\":\"2026-09-18T00:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T01:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    c +
+    "\""
+  let suffix = ",\"clock_contract_cid\":\"" + c + "\"}"
+  assert_true(
+    seal_publication_contract(
+      "result_retention_policy",
+      prefix + suffix,
+      4096,
+      32,
+      4,
+    )
+    is Err(MissingField("metadata_delete_by")),
+  )
+  let first = seal_publication_contract(
+    "result_retention_policy",
+    prefix + ",\"metadata_delete_by\":\"2026-09-19T00:00:00.000Z\"" + suffix,
+    4096,
+    32,
+    4,
+  ).unwrap()
+  let second = seal_publication_contract(
+    "result_retention_policy",
+    prefix + ",\"metadata_delete_by\":\"2026-09-20T00:00:00.000Z\"" + suffix,
+    4096,
+    32,
+    4,
+  ).unwrap()
+  assert_not_eq(
+    publication_contract_identity(first),
+    publication_contract_identity(second),
+  )
+}
+
+///|
 test "finite publication registry admits every non-Result contract" {
   let c = contract_cid("1")
   let digest = "1".repeat(64)
@@ -576,6 +621,8 @@ test "finite publication registry admits every non-Result contract" {
       time +
       "\",\"metadata_retention_policy_cid\":\"" +
       c +
+      "\",\"metadata_delete_by\":\"" +
+      time +
       "\",\"clock_contract_cid\":\"" +
       c +
       "\"}",

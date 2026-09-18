@@ -109,6 +109,7 @@ test "read grant and attempt bind an exact committed Result" {
     "\"extension_ceiling_at\":\"2026-09-18T04:00:00.000Z\"," +
     "\"metadata_retention_policy_cid\":\"" +
     delivery_test_cid("c") +
+    "\",\"metadata_delete_by\":\"2026-09-18T05:00:00.000Z" +
     "\",\"clock_contract_cid\":\"" +
     delivery_test_cid("d") +
     "\"}",
@@ -198,6 +199,7 @@ test "Result availability separates guarantee expiry and deletion deadline" {
     "\"extension_ceiling_at\":\"2026-09-18T04:00:00.000Z\"," +
     "\"metadata_retention_policy_cid\":\"" +
     delivery_test_cid("c") +
+    "\",\"metadata_delete_by\":\"2026-09-18T05:00:00.000Z" +
     "\",\"clock_contract_cid\":\"" +
     delivery_test_cid("d") +
     "\"}",

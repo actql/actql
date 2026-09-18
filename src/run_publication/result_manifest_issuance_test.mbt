@@ -50,6 +50,7 @@ fn manifest_test_retention(policy : String) -> PublicationContract {
     "\"extension_ceiling_at\":\"2026-09-18T03:00:00.000Z\"," +
     "\"metadata_retention_policy_cid\":\"" +
     ordering_test_cid("6") +
+    "\",\"metadata_delete_by\":\"2026-09-18T04:00:00.000Z" +
     "\",\"clock_contract_cid\":\"" +
     ordering_test_cid("7") +
     "\"}",

@@ -130,6 +130,7 @@
         "delete_by",
         "extension_ceiling_at",
         "metadata_retention_policy_cid",
+        "metadata_delete_by",
         "clock_contract_cid",
         "effective_retention_policy_cid"
       ],
@@ -160,6 +161,10 @@
         "metadata_retention_policy_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metadata_delete_by": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
         },
         "clock_contract_cid": {
           "type": "string",
@@ -965,7 +970,7 @@
     "compiled_plan": "sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39",
     "result_definition": "sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973",
     "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
-    "result_retention_policy": "sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb",
+    "result_retention_policy": "sha256:61bc287aae5c6b626bf7bea99ff8d40dd932e4fdf00495cedc3868f633f831c4",
     "durable_result_binding": "sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4",
     "publication_request": "sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82",
     "publication_attempt": "sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5",

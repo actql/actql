@@ -1141,6 +1141,7 @@ test('Result retention extensions are append-only CAS records across restart',
       delete_by: '2026-09-18T03:00:00.000Z',
       extension_ceiling_at: '2026-09-18T02:30:00.000Z',
       metadata_retention_policy_cid: digest('metadata-retention'),
+      metadata_delete_by: '2026-09-18T04:00:00.000Z',
       clock_contract_cid: digest('clock-contract'),
     });
     const first = seal('result_retention_policy', {

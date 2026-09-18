@@ -189,6 +189,7 @@ function standardPublicationPlan(
       delete_by: '2026-09-18T02:00:00.000Z',
       extension_ceiling_at: '2026-09-18T03:00:00.000Z',
       metadata_retention_policy_cid: hash('metadata-retention'),
+      metadata_delete_by: '2026-09-18T04:00:00.000Z',
       clock_contract_cid: hash('clock-contract'),
     }),
     contractLimits,
@@ -753,6 +754,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   delete_by: '2026-09-18T02:00:00.000Z',
                   extension_ceiling_at: '2026-09-18T03:00:00.000Z',
                   metadata_retention_policy_cid: hash('metadata-retention'),
+                  metadata_delete_by: '2026-09-18T04:00:00.000Z',
                   clock_contract_cid: hash('clock-contract'),
                 }),
                 contractLimits,
@@ -937,6 +939,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   extension_ceiling_at: '2026-09-18T03:00:00.000Z',
                   metadata_retention_policy_cid:
                     hash('metadata-retention'),
+                  metadata_delete_by: '2026-09-18T04:00:00.000Z',
                   clock_contract_cid: hash('clock-contract'),
                 }),
                 contractLimits,
@@ -1065,6 +1068,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                         '2026-09-18T03:00:00.000Z',
                       metadata_retention_policy_cid:
                         hash('metadata-retention'),
+                      metadata_delete_by:
+                        '2026-09-18T04:00:00.000Z',
                       clock_contract_cid: hash('clock-contract'),
                     }),
                     contractLimits,

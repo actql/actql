@@ -527,6 +527,7 @@ test('publication preflight rejects immutable or physical incompatibility',
         delete_by: '2026-09-18T02:00:00.000Z',
         extension_ceiling_at: '2026-09-18T03:00:00.000Z',
         metadata_retention_policy_cid: cid('c'),
+        metadata_delete_by: '2026-09-18T04:00:00.000Z',
         clock_contract_cid: cid('d'),
       }),
       limits,
@@ -678,6 +679,7 @@ test('portable control validates the exact Run Result publication chain', () => 
     delete_by: '2026-09-18T02:00:00.000Z',
     extension_ceiling_at: '2026-09-18T03:00:00.000Z',
     metadata_retention_policy_cid: cid('c'),
+    metadata_delete_by: '2026-09-18T04:00:00.000Z',
     clock_contract_cid: cid('d'),
   }), limits);
   const resultSchema = Object.freeze({
@@ -831,6 +833,7 @@ test('portable control validates Receipt and Captured Run references',
     delete_by: '2026-09-18T02:00:00.000Z',
     extension_ceiling_at: '2026-09-18T03:00:00.000Z',
     metadata_retention_policy_cid: cid('c'),
+    metadata_delete_by: '2026-09-18T04:00:00.000Z',
     clock_contract_cid: cid('d'),
   }), limits);
   const resultSchema = Object.freeze({

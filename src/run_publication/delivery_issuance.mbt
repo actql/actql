@@ -250,7 +250,7 @@ fn retention_extension_valid(
   for
     field in [
       "retention_contract_cid", "effective_data_policy_cid", "delete_by", "extension_ceiling_at",
-      "metadata_retention_policy_cid", "clock_contract_cid",
+      "metadata_retention_policy_cid", "metadata_delete_by", "clock_contract_cid",
     ] {
     if contract_string(base, field) != contract_string(extension, field) {
       return false
@@ -290,6 +290,7 @@ pub fn issue_result_retention_extension(
     contract_string(base, "effective_data_policy_cid") is Some(data_policy) &&
     contract_string(base, "metadata_retention_policy_cid")
     is Some(metadata_policy) &&
+    contract_string(base, "metadata_delete_by") is Some(metadata_delete_by) &&
     contract_string(base, "clock_contract_cid") is Some(clock_contract) &&
     valid_timestamp(base_until) &&
     valid_timestamp(available_until) &&
@@ -320,6 +321,8 @@ pub fn issue_result_retention_extension(
     @encode.string_value(writer, ceiling)
     @encode.key(writer, "metadata_retention_policy_cid")
     @encode.string_value(writer, metadata_policy)
+    @encode.key(writer, "metadata_delete_by")
+    @encode.string_value(writer, metadata_delete_by)
     @encode.key(writer, "retention_contract_cid")
     @encode.string_value(writer, contract_cid)
     @encode.key(writer, "version")

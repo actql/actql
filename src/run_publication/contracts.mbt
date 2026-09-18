@@ -220,6 +220,7 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("delete_by", Timestamp),
           required("extension_ceiling_at", Timestamp),
           required("metadata_retention_policy_cid", Cid),
+          required("metadata_delete_by", Timestamp),
           required("clock_contract_cid", Cid),
         ],
       })
