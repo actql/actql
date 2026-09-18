@@ -13,7 +13,8 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/run_publication" @publication,
   "actql/actql/execution_site" @site,
-  "actql/actql/connectors/duckdb/driver" @binding9,
-  "actql/actql/connectors/local/driver" @binding10,
-  "actql/actql/connectors/reference_compute/driver" @binding11,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/connectors/duckdb/driver" @binding10,
+  "actql/actql/connectors/local/driver" @binding11,
+  "actql/actql/connectors/reference_compute/driver" @binding12,
 }

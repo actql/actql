@@ -8,6 +8,7 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
+  RemoteDispatch(@remote.DispatchIssue)
 }
 
 ///|
@@ -2475,4 +2476,199 @@ pub fn strategy_site_revoke(site : @site.ExecutionSite) -> Unit {
 #export_name("strategySiteStatus")
 pub fn strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
   @site.site_status(site)
+}
+
+///|
+#export_name("strategyRemoteDispatchPrepare")
+pub fn strategy_remote_dispatch_prepare(
+  coordinator_authority : String,
+  run_definition_cid : String,
+  task_key : String,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  input_binding_cid : String,
+  obligations_cid : String,
+  budget_cid : String,
+  grant_cid : String,
+) -> @remote.DispatchRequest raise NodeHostFailure {
+  match @remote.prepare_dispatch_request(
+    coordinator_authority,
+    run_definition_cid,
+    task_key,
+    task_attempt,
+    dispatch_id,
+    site_key,
+    site_generation,
+    runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    input_binding_cid,
+    obligations_cid,
+    budget_cid,
+    grant_cid,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchAdmit")
+pub fn strategy_remote_dispatch_admit(
+  coordinator_authority : String,
+  run_definition_cid : String,
+  task_key : String,
+  task_attempt : Int,
+  dispatch_id : String,
+  claimed_request_cid : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  input_binding_cid : String,
+  obligations_cid : String,
+  budget_cid : String,
+  grant_cid : String,
+) -> @remote.DispatchRequest raise NodeHostFailure {
+  match @remote.admit_dispatch_request(
+    coordinator_authority,
+    run_definition_cid,
+    task_key,
+    task_attempt,
+    dispatch_id,
+    claimed_request_cid,
+    site_key,
+    site_generation,
+    runtime_bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    input_binding_cid,
+    obligations_cid,
+    budget_cid,
+    grant_cid,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchIdentity")
+pub fn strategy_remote_dispatch_identity(
+  request : @remote.DispatchRequest,
+) -> String {
+  @remote.dispatch_request_identity(request)
+}
+
+///|
+#export_name("strategyRemoteDispatchJson")
+pub fn strategy_remote_dispatch_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_request_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchJournalKey")
+pub fn strategy_remote_dispatch_journal_key(
+  request : @remote.DispatchRequest,
+) -> Array[String] {
+  @remote.dispatch_request_journal_key(request)
+}
+
+///|
+#export_name("strategyRemoteJournalCreate")
+pub fn strategy_remote_journal_create(
+  site : @site.ExecutionSite,
+) -> @remote.SiteDispatchJournal raise NodeHostFailure {
+  match @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionPrepare")
+pub fn strategy_remote_admission_prepare(
+  journal : @remote.SiteDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> @remote.DispatchAdmission raise NodeHostFailure {
+  match @remote.prepare_dispatch_acceptance(journal, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionIsNew")
+pub fn strategy_remote_admission_is_new(
+  admission : @remote.DispatchAdmission,
+) -> Bool {
+  @remote.dispatch_admission_kind(admission) == @remote.NewDispatch
+}
+
+///|
+#export_name("strategyRemoteAdmissionJson")
+pub fn strategy_remote_admission_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_admission_request_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionCommit")
+pub fn strategy_remote_admission_commit(
+  admission : @remote.DispatchAdmission,
+  durable : Bool,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.commit_dispatch_acceptance(admission, durable) {
+    Ok((_, record)) => record
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBeginProvisioning")
+pub fn strategy_remote_begin_provisioning(
+  record : @remote.DispatchRecord,
+) -> Unit raise NodeHostFailure {
+  match @remote.begin_provisioning(record) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBeginExecution")
+pub fn strategy_remote_begin_execution(
+  record : @remote.DispatchRecord,
+) -> Unit raise NodeHostFailure {
+  match @remote.begin_remote_execution(record) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRecordStatus")
+pub fn strategy_remote_record_status(
+  record : @remote.DispatchRecord,
+) -> Array[Int] {
+  @remote.dispatch_record_state_codes(record)
 }

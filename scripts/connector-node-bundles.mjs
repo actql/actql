@@ -61,6 +61,7 @@ const dependencies = new Map([
   ['actql/actql/encode_core', 'encode'],
   ['actql/actql/run_publication', 'publication'],
   ['actql/actql/execution_site', 'site'],
+  ['actql/actql/remote_site_protocol', 'remote'],
 ]);
 const type = value => {
   if (!dependencies.has(value.package)) dependencies.set(value.package, `binding${dependencies.size}`);

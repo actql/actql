@@ -10,6 +10,7 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
+  RemoteDispatch(@remote.DispatchIssue)
 }
 
 ///|
@@ -2360,11 +2361,184 @@ pub fn strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
 }
 
 ///|
+#export_name("strategyRemoteDispatchPrepare")
+pub fn strategy_remote_dispatch_prepare(
+  coordinator_authority : String,
+  run_definition_cid : String,
+  task_key : String,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  input_binding_cid : String,
+  obligations_cid : String,
+  budget_cid : String,
+  grant_cid : String,
+) -> @remote.DispatchRequest raise NodeHostFailure {
+  match
+    @remote.prepare_dispatch_request(
+      coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      strategy_revision, input_binding_cid, obligations_cid, budget_cid, grant_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchAdmit")
+pub fn strategy_remote_dispatch_admit(
+  coordinator_authority : String,
+  run_definition_cid : String,
+  task_key : String,
+  task_attempt : Int,
+  dispatch_id : String,
+  claimed_request_cid : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  input_binding_cid : String,
+  obligations_cid : String,
+  budget_cid : String,
+  grant_cid : String,
+) -> @remote.DispatchRequest raise NodeHostFailure {
+  match
+    @remote.admit_dispatch_request(
+      coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
+      claimed_request_cid, site_key, site_generation, runtime_bundle_cid, connector_registration,
+      connector_revision, strategy_revision, input_binding_cid, obligations_cid,
+      budget_cid, grant_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchIdentity")
+pub fn strategy_remote_dispatch_identity(
+  request : @remote.DispatchRequest,
+) -> String {
+  @remote.dispatch_request_identity(request)
+}
+
+///|
+#export_name("strategyRemoteDispatchJson")
+pub fn strategy_remote_dispatch_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_request_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchJournalKey")
+pub fn strategy_remote_dispatch_journal_key(
+  request : @remote.DispatchRequest,
+) -> Array[String] {
+  @remote.dispatch_request_journal_key(request)
+}
+
+///|
+#export_name("strategyRemoteJournalCreate")
+pub fn strategy_remote_journal_create(
+  site : @site.ExecutionSite,
+) -> @remote.SiteDispatchJournal raise NodeHostFailure {
+  match @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionPrepare")
+pub fn strategy_remote_admission_prepare(
+  journal : @remote.SiteDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> @remote.DispatchAdmission raise NodeHostFailure {
+  match @remote.prepare_dispatch_acceptance(journal, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionIsNew")
+pub fn strategy_remote_admission_is_new(
+  admission : @remote.DispatchAdmission,
+) -> Bool {
+  @remote.dispatch_admission_kind(admission) == @remote.NewDispatch
+}
+
+///|
+#export_name("strategyRemoteAdmissionJson")
+pub fn strategy_remote_admission_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_admission_request_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionCommit")
+pub fn strategy_remote_admission_commit(
+  admission : @remote.DispatchAdmission,
+  durable : Bool,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.commit_dispatch_acceptance(admission, durable) {
+    Ok((_, record)) => record
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBeginProvisioning")
+pub fn strategy_remote_begin_provisioning(
+  record : @remote.DispatchRecord,
+) -> Unit raise NodeHostFailure {
+  match @remote.begin_provisioning(record) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBeginExecution")
+pub fn strategy_remote_begin_execution(
+  record : @remote.DispatchRecord,
+) -> Unit raise NodeHostFailure {
+  match @remote.begin_remote_execution(record) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRecordStatus")
+pub fn strategy_remote_record_status(
+  record : @remote.DispatchRecord,
+) -> Array[Int] {
+  @remote.dispatch_record_state_codes(record)
+}
+
+///|
 #export_name("strategyModule_duckdb_Registration")
 pub fn duckdb_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding9.duckdb_dispatch_registration(
+  @binding10.duckdb_dispatch_registration(
     @builtin.configured_duckdb_module(@builtin.configured_host_modules(setup)).unwrap(),
   )
 }
@@ -2374,7 +2548,7 @@ pub fn duckdb_registration(
 pub fn duckdb_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> @binding9.StrategyComputeHostConfiguration raise NodeHostFailure {
+) -> @binding10.StrategyComputeHostConfiguration raise NodeHostFailure {
   match
     @builtin.dispatch_duckdb(
       @builtin.configured_host_modules(setup),
@@ -2395,7 +2569,7 @@ pub fn duckdb_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding9.ManagedStrategyComputeHostConfiguration[Int]? raise NodeHostFailure {
+) -> @binding10.ManagedStrategyComputeHostConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -2422,17 +2596,17 @@ pub fn duckdb_managed_dispatch(
 ///|
 #export_name("strategyModule_duckdb_ManagedDuration")
 pub fn duckdb_managed_duration(
-  setup : @binding9.ManagedStrategyComputeHostConfiguration[Int],
+  setup : @binding10.ManagedStrategyComputeHostConfiguration[Int],
 ) -> Int64? {
-  @binding9.configured_managed_strategy_duration(setup)
+  @binding10.configured_managed_strategy_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_duckdb_ManagedCapacity")
 pub fn duckdb_managed_capacity(
-  setup : @binding9.ManagedStrategyComputeHostConfiguration[Int],
+  setup : @binding10.ManagedStrategyComputeHostConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding9.configured_managed_strategy_site_capacity(setup)
+  @binding10.configured_managed_strategy_site_capacity(setup)
 }
 
 ///|
@@ -2440,7 +2614,7 @@ pub fn duckdb_managed_capacity(
 pub fn local_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding10.local_dispatch_registration(
+  @binding11.local_dispatch_registration(
     @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
   )
 }
@@ -2450,7 +2624,7 @@ pub fn local_registration(
 pub fn local_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> @binding10.LocalDispatchOperations raise NodeHostFailure {
+) -> @binding11.LocalDispatchOperations raise NodeHostFailure {
   match
     @builtin.dispatch_local(
       @builtin.configured_host_modules(setup),
@@ -2471,7 +2645,7 @@ pub fn local_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding10.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding11.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -2498,25 +2672,25 @@ pub fn local_managed_dispatch(
 ///|
 #export_name("strategyModule_local_ManagedDuration")
 pub fn local_managed_duration(
-  setup : @binding10.LocalManagedDispatchConfiguration[Int],
+  setup : @binding11.LocalManagedDispatchConfiguration[Int],
 ) -> Int64? {
-  @binding10.local_managed_dispatch_duration(setup)
+  @binding11.local_managed_dispatch_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedCapacity")
 pub fn local_managed_capacity(
-  setup : @binding10.LocalManagedDispatchConfiguration[Int],
+  setup : @binding11.LocalManagedDispatchConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding10.local_managed_dispatch_site_capacity(setup)
+  @binding11.local_managed_dispatch_site_capacity(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedStart")
 pub fn local_managed_start(
-  setup : @binding10.LocalManagedDispatchConfiguration[Int],
-) -> @binding10.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
-  match @binding10.start_local_managed_dispatch_node(setup) {
+  setup : @binding11.LocalManagedDispatchConfiguration[Int],
+) -> @binding11.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding11.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -2527,7 +2701,7 @@ pub fn local_managed_start(
 pub fn reference_compute_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding11.numeric_contribution_registration(
+  @binding12.numeric_contribution_registration(
     @builtin.configured_reference_compute_module(
       @builtin.configured_host_modules(setup),
     ).unwrap(),
@@ -2562,7 +2736,7 @@ pub fn reference_compute_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding11.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding12.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -2589,25 +2763,25 @@ pub fn reference_compute_managed_dispatch(
 ///|
 #export_name("strategyModule_reference_compute_ManagedDuration")
 pub fn reference_compute_managed_duration(
-  setup : @binding11.NumericManagedDispatchConfiguration[Int],
+  setup : @binding12.NumericManagedDispatchConfiguration[Int],
 ) -> Int64? {
-  @binding11.numeric_managed_dispatch_duration(setup)
+  @binding12.numeric_managed_dispatch_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_reference_compute_ManagedCapacity")
 pub fn reference_compute_managed_capacity(
-  setup : @binding11.NumericManagedDispatchConfiguration[Int],
+  setup : @binding12.NumericManagedDispatchConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding11.numeric_managed_dispatch_site_capacity(setup)
+  @binding12.numeric_managed_dispatch_site_capacity(setup)
 }
 
 ///|
 #export_name("strategyModule_reference_compute_ManagedStart")
 pub fn reference_compute_managed_start(
-  setup : @binding11.NumericManagedDispatchConfiguration[Int],
-) -> @binding11.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
-  match @binding11.start_numeric_managed_dispatch_node(setup) {
+  setup : @binding12.NumericManagedDispatchConfiguration[Int],
+) -> @binding12.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding12.start_numeric_managed_dispatch_node(setup) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }

@@ -9,6 +9,7 @@ import {
   "actql/actql/execution_site",
   "actql/actql/physical_host",
   "actql/actql/physical_strategy",
+  "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
 }
 
@@ -267,6 +268,32 @@ pub fn strategy_publication_record_transition(@run_publication.PublicationContra
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
+
+pub fn strategy_remote_admission_json(@remote_site_protocol.DispatchAdmission) -> String raise NodeHostFailure
+
+pub fn strategy_remote_admission_prepare(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchAdmission raise NodeHostFailure
+
+pub fn strategy_remote_begin_execution(@remote_site_protocol.DispatchRecord) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_begin_provisioning(@remote_site_protocol.DispatchRecord) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_identity(@remote_site_protocol.DispatchRequest) -> String
+
+pub fn strategy_remote_dispatch_journal_key(@remote_site_protocol.DispatchRequest) -> Array[String]
+
+pub fn strategy_remote_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_journal_create(@execution_site.ExecutionSite) -> @remote_site_protocol.SiteDispatchJournal raise NodeHostFailure
+
+pub fn strategy_remote_record_status(@remote_site_protocol.DispatchRecord) -> Array[Int]
+
 pub fn strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
 pub fn strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
@@ -355,6 +382,7 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
+  RemoteDispatch(@remote_site_protocol.DispatchIssue)
 }
 
 // Types and methods

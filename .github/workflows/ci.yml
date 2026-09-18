@@ -54,6 +54,8 @@ jobs:
         run: node --test benchmarks/retained-results/*.test.mjs
       - name: Test control-side process admission without DuckDB
         run: npm run check:process-capacity
+      - name: Test durable Remote Site dispatch admission
+        run: npm run check:remote-site-runtime
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies

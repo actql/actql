@@ -33,7 +33,11 @@ pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, Disp
 
 pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
 
+pub fn dispatch_record_state_codes(DispatchRecord) -> Array[Int]
+
 pub fn dispatch_request_identity(DispatchRequest) -> String
+
+pub fn dispatch_request_journal_key(DispatchRequest) -> Array[String]
 
 pub fn dispatch_request_json(DispatchRequest) -> Result[String, DispatchIssue]
 

@@ -701,6 +701,49 @@ pub fn dispatch_record_state(
 }
 
 ///|
+/// Stable adapter projection. Codes are local API values, not wire identity.
+pub fn dispatch_record_state_codes(record : DispatchRecord) -> Array[Int] {
+  let execution = match record.execution {
+    Accepted => 0
+    Provisioning => 1
+    Running => 2
+    NativeSettled => 3
+    ExecutionFailed => 4
+    ExecutionCancelled => 5
+    ExecutionUnknown => 6
+  }
+  let evidence = match record.evidence {
+    NoEvidence => 0
+    OutputRetained(_, _) => 1
+    EvidenceDurable(_, _, _) => 2
+    EvidenceRejected => 3
+  }
+  let cleanup = match record.cleanup {
+    CleanupActive => 0
+    CleanupReleasing => 1
+    CleanupReleased => 2
+    CleanupUnknown => 3
+    CleanupForceLost => 4
+    CleanupRecoveredAfterLoss => 5
+  }
+  [
+    execution,
+    evidence,
+    cleanup,
+    if record.material_available {
+      1
+    } else {
+      0
+    },
+    if record.quarantined_capacity {
+      1
+    } else {
+      0
+    },
+  ]
+}
+
+///|
 pub fn site_dispatch_generation(journal : SiteDispatchJournal) -> Int {
   @site.site_generation(journal.site)
 }
@@ -713,4 +756,19 @@ pub fn site_dispatch_protocol_version(journal : SiteDispatchJournal) -> String {
 ///|
 pub fn dispatch_request_identity(request : DispatchRequest) -> String {
   request.dispatch_request_cid
+}
+
+///|
+/// Exact durable-index columns. The canonical request remains authoritative;
+/// this projection only lets a physical journal enforce uniqueness.
+pub fn dispatch_request_journal_key(request : DispatchRequest) -> Array[String] {
+  [
+    request.coordinator_authority,
+    request.site_key,
+    request.site_generation.to_string(),
+    request.dispatch_id,
+    request.run_definition_cid,
+    request.task_key,
+    request.task_attempt.to_string(),
+  ]
 }

@@ -12,6 +12,7 @@ const tuplePair = value => Array.isArray(value)
     ? [value._0, value._1]
     : undefined;
 const siteControls = new WeakMap();
+const remoteSiteControls = new WeakMap();
 const publicationControls = new WeakMap();
 
 function siteControl(moon) {
@@ -49,6 +50,67 @@ function siteControl(moon) {
     status: moon.strategySiteStatus,
   });
   siteControls.set(moon, control);
+  return control;
+}
+
+function remoteSiteControl(moon) {
+  let control = remoteSiteControls.get(moon);
+  if (control !== undefined) return control;
+  const fields = request => [
+    request.coordinatorAuthority,
+    request.runDefinitionCid,
+    request.taskKey,
+    request.taskAttempt,
+    request.dispatchId,
+    request.siteKey,
+    request.siteGeneration,
+    request.runtimeBundleCid,
+    request.connectorRegistration,
+    request.connectorRevision,
+    request.strategyRevision,
+    request.inputBindingCid,
+    request.obligationsCid,
+    request.budgetCid,
+    request.grantCid,
+  ];
+  control = Object.freeze({
+    prepare(request) {
+      if (request === null || typeof request !== 'object') {
+        throw new TypeError('Invalid remote dispatch request');
+      }
+      return checked(moon.strategyRemoteDispatchPrepare(...fields(request)));
+    },
+    admit(request) {
+      if (request === null || typeof request !== 'object') {
+        throw new TypeError('Invalid remote dispatch request');
+      }
+      const values = fields(request);
+      values.splice(5, 0, request.dispatchRequestCid);
+      return checked(moon.strategyRemoteDispatchAdmit(...values));
+    },
+    identity: moon.strategyRemoteDispatchIdentity,
+    requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
+    journalKey: moon.strategyRemoteDispatchJournalKey,
+    createJournal: value => checked(moon.strategyRemoteJournalCreate(value)),
+    prepareAdmission: (journal, request) => checked(
+      moon.strategyRemoteAdmissionPrepare(journal, request),
+    ),
+    admissionIsNew: moon.strategyRemoteAdmissionIsNew,
+    admissionJson: value => checked(
+      moon.strategyRemoteAdmissionJson(value),
+    ),
+    commitAdmission: (value, durable) => checked(
+      moon.strategyRemoteAdmissionCommit(value, durable),
+    ),
+    beginProvisioning: value => checked(
+      moon.strategyRemoteBeginProvisioning(value),
+    ),
+    beginExecution: value => checked(
+      moon.strategyRemoteBeginExecution(value),
+    ),
+    status: moon.strategyRemoteRecordStatus,
+  });
+  remoteSiteControls.set(moon, control);
   return control;
 }
 
@@ -1003,6 +1065,7 @@ export function runtimeCore(moon) {
   const publications = publicationControl(moon);
   return Object.freeze({
     siteControl: siteControl(moon),
+    remoteSiteControl: remoteSiteControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,

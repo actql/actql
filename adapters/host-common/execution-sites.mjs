@@ -225,6 +225,17 @@ export function executionSiteTransferProvider(installation) {
     fail('ForeignExecutionSiteInstallation')).policy.transferProvider;
 }
 
+// The physical adapter receives only the opaque MoonBit Site authority. Site
+// generation, revocation, and capacity remain owned by the portable control.
+export function createExecutionSiteRemoteJournal(site, remoteControl) {
+  const state = controlled(siteState(site));
+  if (remoteControl === null || typeof remoteControl !== 'object' ||
+      typeof remoteControl.createJournal !== 'function') {
+    fail('MissingRemoteSiteControl');
+  }
+  return remoteControl.createJournal(state.handle);
+}
+
 export function executionSiteCandidate({
   installation,
   contribution,
