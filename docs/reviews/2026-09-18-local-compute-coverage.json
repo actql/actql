@@ -205,9 +205,9 @@
       "canonical_operations": ["REL.unnest"],
       "machine_registry": "registered",
       "variant_scope": ["outer and non-outer", "with and without index", "NULL and empty collections", "max_items", "nested value types"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and bounded expansion execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/unnest_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/unnest_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Outer and non-outer expansion, explicit and absent indices, NULL and empty arrays, max_items admission, and exact/one-short budgets execute through Local. Broader nested-value conformance, a native layout expansion writer, and performance evidence remain."]
     },
     {
       "operation": "join",

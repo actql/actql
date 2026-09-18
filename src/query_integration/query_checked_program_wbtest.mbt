@@ -207,7 +207,17 @@ fn local_ordered_set_program(kind : String) -> String {
 }
 
 ///|
+fn local_unnest_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"items":{"type":"array","nullable":true,"items":{"type":"number","nullable":true},"max_items":2}},"rows":[{"id":1,"items":[2,null]},{"id":2,"items":[]},{"id":3,"items":null}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","items"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"unnest":{"column":"items","as":"item","with_index":"position","outer":true},"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","item","items","position"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","item","items","position"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","item","items","position"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 fn local_values_unary_program(kind : String) -> String {
+  if kind == "unnest" {
+    return local_unnest_program()
+  }
   if kind == "json_pick" {
     return local_json_pick_program()
   }
