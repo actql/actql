@@ -233,11 +233,12 @@ export async function openLocalPublicationStore(
   const stagingDirectory = resolve(root, 'staging');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
+  const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, attemptsDirectory, deliveriesDirectory,
-    indexesDirectory, clocksDirectory]) {
+    manifestReadsDirectory, indexesDirectory, clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
@@ -295,6 +296,27 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(deliveriesDirectory);
+  for (const name of await readdir(manifestReadsDirectory)) {
+    const path = resolve(manifestReadsDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await rm(path, {recursive: true, force: false});
+      continue;
+    }
+    if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
+      fail('InvalidManifestReadStore');
+    }
+    for (const useName of await readdir(path)) {
+      if (useName.startsWith('.staging-')) {
+        await rm(resolve(path, useName), {force: false});
+        continue;
+      }
+      if (!/^[0-9a-f]{64}\.json$/u.test(useName) ||
+          !(await lstat(resolve(path, useName))).isFile()) {
+        fail('InvalidManifestReadStore');
+      }
+    }
+  }
+  await syncDirectory(manifestReadsDirectory);
   for (const name of await readdir(clocksDirectory)) {
     const path = resolve(clocksDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -315,6 +337,7 @@ export async function openLocalPublicationStore(
   const durablyConfirmedIndexes = new Map();
   const durablyConfirmedClocks = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
+  let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
@@ -323,6 +346,8 @@ export async function openLocalPublicationStore(
     resolve(attemptsDirectory, cidHex(cid));
   const deliveryAttemptPath = cid =>
     resolve(deliveriesDirectory, cidHex(cid));
+  const manifestReadGrantPath = cid =>
+    resolve(manifestReadsDirectory, cidHex(cid));
   const clockObservationPath = cid =>
     resolve(clocksDirectory, `${cidHex(cid)}.json`);
   const active = () => {
@@ -1106,6 +1131,66 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
+  const consumeManifestReadGrant = (suppliedWire, attemptId) => {
+    active();
+    if (typeof attemptId !== 'string' || attemptId.length === 0 ||
+        attemptId.length > 256) {
+      fail('InvalidManifestReadAttempt');
+    }
+    const operation = manifestReadAdmissionBusy.then(async () => {
+      const admitted = admitContract('manifest_read_grant', suppliedWire);
+      const grant = parseContract(admitted);
+      await putPublicationContract('manifest_read_grant', admitted.wire);
+      const directory = manifestReadGrantPath(admitted.identity);
+      let createdDirectory = false;
+      try {
+        await mkdir(directory, {mode: 0o700});
+        createdDirectory = true;
+      } catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        if (!(await lstat(directory)).isDirectory()) {
+          fail('InvalidManifestReadStore');
+        }
+      }
+      if (createdDirectory) await syncDirectory(manifestReadsDirectory);
+      const attemptDigest = createHash('sha256')
+        .update(attemptId, 'utf8').digest('hex');
+      const target = resolve(directory, `${attemptDigest}.json`);
+      const value = Object.freeze({
+        manifestReadGrantCid: admitted.identity,
+        attemptId,
+      });
+      const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+      try {
+        const existing = await readBounded(
+          target, configuration.maxObjectBytes,
+        );
+        if (!existing.equals(bytes)) fail('ManifestReadAttemptConflict');
+        return Object.freeze({grant, created: false, idempotent: true});
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+      const uses = (await readdir(directory)).filter(name =>
+        /^[0-9a-f]{64}\.json$/u.test(name)).length;
+      if (uses >= grant.max_uses) fail('ManifestReadGrantUseLimit');
+      const staging = resolve(directory, `.staging-${randomUUID()}`);
+      try {
+        await writeExclusive(staging, bytes);
+        await rename(staging, target);
+        await syncDirectory(directory);
+      } catch (error) {
+        try { await unlink(staging); }
+        catch (cleanupError) {
+          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
+        }
+        throw error;
+      }
+      return Object.freeze({grant, created: true, idempotent: false});
+    });
+    manifestReadAdmissionBusy = operation.catch(() => {});
+    return operation;
+  };
+
   const latestDeliveryRecordContract = async attemptCid => {
     active();
     const directory = deliveryAttemptPath(attemptCid);
@@ -1626,6 +1711,7 @@ export async function openLocalPublicationStore(
     latestRecord,
     latestRecordContract,
     appendRecord,
+    consumeManifestReadGrant,
     createDeliveryAttempt,
     latestDeliveryRecord,
     latestDeliveryRecordContract,

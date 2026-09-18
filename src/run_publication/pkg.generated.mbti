@@ -74,6 +74,10 @@ pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvai
 
 pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
+pub fn manifest_read_grant_allows_bytes(PublicationContract, Int) -> Bool
+
+pub fn manifest_read_grant_valid_at(PublicationContract, String) -> Bool
+
 pub fn manifest_result_names(PublicationContract) -> Result[Array[String], DeliveryIssuanceIssue]
 
 pub fn manifest_result_names_json(PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]

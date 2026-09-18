@@ -654,6 +654,31 @@ pub fn result_read_grant_allows_bytes(
 }
 
 ///|
+pub fn manifest_read_grant_allows_bytes(
+  grant : PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  if grant.name != "manifest_read_grant" || byte_count < 0 {
+    return false
+  }
+  contract_count(grant, "max_bytes")
+  .map(max_bytes => byte_count.to_int64() <= max_bytes)
+  .unwrap_or(false)
+}
+
+///|
+pub fn manifest_read_grant_valid_at(
+  grant : PublicationContract,
+  observed_at : String,
+) -> Bool {
+  grant.name == "manifest_read_grant" &&
+  valid_timestamp(observed_at) &&
+  contract_string(grant, "expires_at")
+  .map(expires_at => observed_at <= expires_at)
+  .unwrap_or(false)
+}
+
+///|
 pub fn result_read_grant_valid_at(
   grant : PublicationContract,
   observed_at : String,

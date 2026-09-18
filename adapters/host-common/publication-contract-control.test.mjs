@@ -21,6 +21,11 @@ import {
   installRunStateAuthority,
   installRunStateService,
 } from './run-state-access.mjs';
+import {
+  installManifestAccessAuthority,
+  installManifestAccessService,
+  readAuthorizedManifest,
+} from './manifest-access.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -1110,6 +1115,25 @@ test('portable control validates Receipt and Captured Run references',
     now: () => accessTime,
     limits,
   });
+  let manifestAccessAllowed = true;
+  const manifestAuthority = installManifestAccessAuthority({
+    authorizeManifestRead: () => manifestAccessAllowed,
+    admitManifestRead: () => ({
+      authorizationContextCid: cid('2'),
+      clockContractCid: cid('d'),
+      dataCeilingCid: cid('1'),
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      maxBytes: limits.maxWireBytes,
+      maxUses: 1,
+    }),
+  });
+  const manifestService = installManifestAccessService({
+    store: deliveryStore,
+    control,
+    authority: manifestAuthority,
+    now: () => accessTime,
+    limits,
+  });
   const stateRequest = {
     indexKey: {
       tenantId: 'tenant-a',
@@ -1177,6 +1201,32 @@ test('portable control validates Receipt and Captured Run references',
     {code: 'RunStateAccessDenied'},
   );
   stateAccessAllowed = true;
+  const manifestRequest = {
+    indexKey: stateRequest.indexKey,
+    principalId: 'principal-a',
+    purpose: 'inspect',
+    attemptId: 'manifest-read-a',
+  };
+  const manifestResponse = await readAuthorizedManifest(
+    manifestService, manifestRequest,
+  );
+  assert.equal(manifestResponse.manifestCid, manifest.identity);
+  assert.equal(manifestResponse.manifest.results.answer.result_artifact_cid,
+    artifact.identity);
+  assert.equal(manifestResponse.idempotent, false);
+  assert.equal((await readAuthorizedManifest(
+    manifestService, manifestRequest,
+  )).idempotent, true);
+  await assert.rejects(readAuthorizedManifest(manifestService, {
+    ...manifestRequest,
+    attemptId: 'manifest-read-b',
+  }), {code: 'ManifestReadGrantUseLimit'});
+  manifestAccessAllowed = false;
+  await assert.rejects(
+    readAuthorizedManifest(manifestService, manifestRequest),
+    {code: 'ManifestAccessDenied'},
+  );
+  manifestAccessAllowed = true;
   const authorizedChunks = [];
   const authorizedDelivery = await deliverAuthorizedResult(
     accessService,

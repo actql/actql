@@ -1231,6 +1231,24 @@ pub fn strategy_result_read_grant_allows_bytes(
 }
 
 ///|
+#export_name("strategyManifestReadGrantAllowsBytes")
+pub fn strategy_manifest_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.manifest_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("strategyManifestReadGrantValidAt")
+pub fn strategy_manifest_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.manifest_read_grant_valid_at(grant, observed_at)
+}
+
+///|
 #export_name("strategyResultReadGrantValidAt")
 pub fn strategy_result_read_grant_valid_at(
   grant : @publication.PublicationContract,

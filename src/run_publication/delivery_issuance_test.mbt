@@ -399,7 +399,27 @@ test "delivery receipt and records preserve attempt occurrence" {
 
 ///|
 test "foreign index and manifest cannot issue read authority" {
-  let (index, _, artifact) = delivery_test_root()
+  let (index, manifest, artifact) = delivery_test_root()
+  let grant = issue_manifest_read_grant(
+    index,
+    manifest,
+    "principal",
+    "inspect",
+    delivery_test_cid("a"),
+    4096,
+    1,
+    "2026-09-19T00:00:00.000Z",
+    delivery_test_cid("b"),
+    32768,
+    256,
+    16,
+  )
+  assert_true(grant is Ok(_))
+  guard grant is Ok(grant) else { fail("expected Manifest grant") }
+  assert_true(manifest_read_grant_allows_bytes(grant, 4096))
+  assert_false(manifest_read_grant_allows_bytes(grant, 4097))
+  assert_true(manifest_read_grant_valid_at(grant, "2026-09-19T00:00:00.000Z"))
+  assert_false(manifest_read_grant_valid_at(grant, "2026-09-19T00:00:00.001Z"))
   let foreign = delivery_test_contract(
     "result_manifest",
     "{\"version\":\"actql-result-manifest/0.1\"," +

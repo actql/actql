@@ -691,6 +691,18 @@ function publicationControl(moon) {
         token(grant), byteCount,
       );
     },
+    manifestReadGrantAllowsBytes(grant, byteCount) {
+      if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;
+      return moon.strategyManifestReadGrantAllowsBytes(
+        token(grant), byteCount,
+      );
+    },
+    manifestReadGrantValidAt(grant, observedAt) {
+      if (typeof observedAt !== 'string') return false;
+      return moon.strategyManifestReadGrantValidAt(
+        token(grant), observedAt,
+      );
+    },
     resultReadGrantValidAt(grant, observedAt) {
       if (typeof observedAt !== 'string') return false;
       return moon.strategyResultReadGrantValidAt(

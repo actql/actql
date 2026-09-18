@@ -235,6 +235,10 @@ pub fn strategy_issue_run_invocation(@run_publication.RunEvidenceValue, @run_pub
 
 pub fn strategy_issue_succeeded_run_state(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> String raise NodeHostFailure
 
+pub fn strategy_manifest_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
+
+pub fn strategy_manifest_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
+
 pub fn strategy_manifest_result_names(@run_publication.PublicationContract, Int, Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure

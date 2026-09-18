@@ -162,6 +162,23 @@ function deliveryFixture(maxUses = 2) {
   return {artifactCid, manifestCid, grant};
 }
 
+function manifestReadGrant(maxUses = 2) {
+  return seal('manifest_read_grant', {
+    version: 'actql-manifest-read-grant/0.1',
+    tenant_id: 'tenant-a',
+    authority_scope_cid: cids.scope,
+    principal_id: 'principal-a',
+    run_definition_cid: cids.run,
+    result_manifest_cid: cids.manifest,
+    purpose: 'inspect',
+    data_ceiling_cid: cids.policy,
+    max_bytes: 4096,
+    max_uses: maxUses,
+    expires_at: '2026-09-19T00:00:00.000Z',
+    authorization_context_cid: cids.scope,
+  });
+}
+
 function deliveryAttempt(root, attemptId) {
   return seal('delivery_attempt', {
     version: 'actql-delivery-attempt/0.1',
@@ -647,6 +664,36 @@ test('delivery grant use limit is durable and concurrent attempts are CAS',
       wire(deliveryAttempt(root, 'delivery-c')),
       wire(root.grant),
     ), code('DeliveryGrantUseLimit'));
+  });
+
+test('Manifest grant use is durable idempotent and bounded across restart',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const grant = manifestReadGrant(1);
+    assert.deepEqual(
+      await store.consumeManifestReadGrant(wire(grant), 'manifest-read-a'),
+      {grant, created: true, idempotent: false},
+    );
+    assert.deepEqual(
+      await store.consumeManifestReadGrant(wire(grant), 'manifest-read-a'),
+      {grant, created: false, idempotent: true},
+    );
+    await assert.rejects(
+      store.consumeManifestReadGrant(wire(grant), 'manifest-read-b'),
+      code('ManifestReadGrantUseLimit'),
+    );
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal((await reopened.consumeManifestReadGrant(
+      wire(grant), 'manifest-read-a',
+    )).idempotent, true);
+    await assert.rejects(
+      reopened.consumeManifestReadGrant(wire(grant), 'manifest-read-c'),
+      code('ManifestReadGrantUseLimit'),
+    );
   });
 
 test('unknown publication cannot become failed without confirmed non-commit',
