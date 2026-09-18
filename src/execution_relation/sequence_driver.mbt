@@ -431,6 +431,16 @@ fn run_sequence_invocation(
       )
     },
     store => RowStore(store),
+    evaluate_window=Some((window, input) => {
+      evaluate_window_rows(
+        window,
+        input,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+      )
+    }),
     evaluate_join=Some((kernel, left, right) => {
       evaluate_join_rows(
         kernel,
@@ -488,6 +498,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
   import_values : (CapturedRows) -> Result[T, RowIssue],
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   wrap : (TableStore[T]) -> CompletedStore,
+  evaluate_window? : ((@lower.PreparedWindow, T) -> Result[T, RowIssue])? = None,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
@@ -500,6 +511,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     invocation,
     import_values,
     evaluate,
+    evaluate_window~,
     evaluate_join~,
     evaluate_cross_join~,
     evaluate_append~,
@@ -527,6 +539,7 @@ fn[T : RelationRows] run_sequence_with_backend(
   invocation : SequenceInvocation[T],
   import_values : (CapturedRows) -> Result[T, RowIssue],
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
+  evaluate_window? : ((@lower.PreparedWindow, T) -> Result[T, RowIssue])? = None,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
     T,
@@ -583,6 +596,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         Err(e) => return Err(Rows(i, e))
       }
     },
+    evaluate_window=evaluate_window.map(evaluate => {
+      fn(i, window, input) {
+        evaluate(window, input).map_err(issue => Rows(i, issue))
+      }
+    }),
     evaluate_join=evaluate_join.map(evaluate => {
       fn(i, kernel, left, right) {
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
@@ -625,6 +643,10 @@ fn[T : RelationRows] run_sequence_steps(
   control : ControlBudget,
   import_values : (Int) -> Result[T, SequenceRunIssue],
   evaluate : (Int, @lower.PreparedKernel, T) -> Result[T, SequenceRunIssue],
+  evaluate_window? : ((Int, @lower.PreparedWindow, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
   evaluate_join? : ((Int, @lower.PreparedJoinKernel, T, T) -> Result[
     T,
     SequenceRunIssue,
@@ -652,7 +674,15 @@ fn[T : RelationRows] run_sequence_steps(
   for i = 0; i < @lower.sequence_count(sequence); i = i + 1 {
     let result = match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => import_values(i)
-      @lower.WindowStep(_) => return Err(InputSet)
+      @lower.WindowStep(window) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 1 &&
+          evaluate_window is Some(evaluate) &&
+          store.tables[route[0]] is Some(input) else {
+          return Err(InputSet)
+        }
+        evaluate(i, window, input.table)
+      }
       @lower.JoinStep(kernel) => {
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&

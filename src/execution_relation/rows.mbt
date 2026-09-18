@@ -27,6 +27,8 @@ pub(all) enum RowIssue {
   AssertionDuplicate(Int, Int)
   JoinNullKey(Bool, Int, Int)
   JoinDuplicateKey(Bool, Int, Int)
+  WindowTime(Int)
+  WindowArithmetic(Int)
 }
 
 ///|

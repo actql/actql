@@ -103,6 +103,16 @@ fn evaluate_physical_sequence(
       )
     },
     store => PhysicalStore(store),
+    evaluate_window=Some((window, input) => {
+      evaluate_window_rows(
+        window,
+        input,
+        limits.max_rows,
+        control,
+        invocation.output_budget,
+        { limit: limits.operation_entries, live: 0, peak: 0, },
+      ).map(table => RowTable(table))
+    }),
     evaluate_join=Some((kernel, left, right) => {
       evaluate_join_rows(
         kernel,
