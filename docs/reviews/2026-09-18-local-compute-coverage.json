@@ -1340,22 +1340,88 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
+        "lowering": "partial",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
         "performance": "missing"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
+        "source_connection": [
+          {
+            "operation": "window_group",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/window_group_test.mbt",
+            "fixtures": [
+              "window group lowering keeps boundary keys out of authored AoA params",
+              "window group lowering preserves empty authored grouping"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "window_group",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_window_group_wbtest.mbt",
+            "fixtures": [
+              "Local managed fixed window groups feed two downstream Computes",
+              "Local managed sliding window groups feed two downstream Computes",
+              "Local managed window Decimal sums feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "window_group",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_window_group_wbtest.mbt",
+            "fixtures": [
+              "Local managed fixed window groups feed two downstream Computes",
+              "Local managed sliding window groups feed two downstream Computes",
+              "Local managed window Decimal sums feed two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "window_group",
+            "layer": "conformance",
+            "path": "src/execution_relation/window_group_rows_wbtest.mbt",
+            "fixtures": [
+              "fixed window groups order boundaries before nullable authored keys",
+              "sliding window groups aggregate each assigned occurrence",
+              "empty window input creates no synthetic window group"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
         "performance": []
       },
       "gaps": [
-        "Common lowering and aggregate execution are missing."
+        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, and Decimal sum now reach managed Local execution with two independently released consumers on three targets. Expression and filtered aggregate bindings, the remaining aggregate and type matrix, Standard Host evidence, exact capacity boundaries, and fixed scaling evidence remain."
       ]
     },
     {
