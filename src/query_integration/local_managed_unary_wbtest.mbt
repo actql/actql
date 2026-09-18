@@ -54,14 +54,22 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"id\":1,\"item\":2,\"items\":[2,null],\"position\":0}", "{\"id\":1,\"item\":null,\"items\":[2,null],\"position\":1}",
         "{\"id\":2,\"item\":null,\"items\":[],\"position\":null}", "{\"id\":3,\"item\":null,\"items\":null,\"position\":null}",
       ]
+    "unnest_inner" =>
+      [
+        "{\"id\":1,\"item\":2,\"items\":[2,null]}", "{\"id\":1,\"item\":null,\"items\":[2,null]}",
+      ]
     "unpivot" =>
       [
         "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":1,\"jan\":10,\"metric\":\"feb\"}",
         "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":2,\"jan\":null,\"metric\":\"jan\"}",
         "{\"amount\":20,\"id\":2,\"jan\":null,\"metric\":\"feb\"}", "{\"amount\":null,\"id\":2,\"jan\":null,\"metric\":\"jan\"}",
       ]
+    "unpivot_empty" => []
     "pivot" =>
       ["{\"id\":1,\"open\":0,\"won\":1}", "{\"id\":2,\"open\":2,\"won\":0}"]
+    "pivot_min_fill" =>
+      ["{\"id\":1,\"open\":0,\"won\":10}", "{\"id\":2,\"open\":20,\"won\":0}"]
+    "pivot_empty_axis" => ["{\"id\":2}", "{\"id\":1}"]
     "pivot_decimal_sum" =>
       [
         "{\"id\":1,\"open\":\"1.00\",\"won\":null}", "{\"id\":2,\"open\":\"2.00\",\"won\":\"3.00\"}",
@@ -85,13 +93,17 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
 
 ///|
 fn local_managed_unary_input_expected(kind : String) -> Array[String] {
-  if kind == "unnest" {
+  if kind == "unnest" || kind == "unnest_inner" {
     [
       "{\"id\":1,\"items\":[2,null]}", "{\"id\":2,\"items\":[]}", "{\"id\":3,\"items\":null}",
     ]
   } else if kind == "unpivot" {
     ["{\"feb\":null,\"id\":1,\"jan\":10}", "{\"feb\":20,\"id\":2,\"jan\":null}"]
-  } else if kind == "pivot" {
+  } else if kind == "unpivot_empty" {
+    []
+  } else if kind == "pivot" ||
+    kind == "pivot_min_fill" ||
+    kind == "pivot_empty_axis" {
     [
       "{\"amount\":20,\"id\":2,\"status\":\"open\"}", "{\"amount\":10,\"id\":1,\"status\":\"won\"}",
       "{\"amount\":30,\"id\":2,\"status\":\"open\"}", "{\"amount\":null,\"id\":1,\"status\":\"open\"}",
@@ -306,7 +318,8 @@ test "Local managed unary source forms feed two downstream Computes" {
       "sort", "sort_compound", "take", "take_parameter", "distinct", "top_k", "top_k_parameter",
       "top_k_compound", "top_k_by", "top_k_by_parameter", "top_k_by_nullable", "dedupe_rows",
       "distinct_keyed_nullable", "dedupe_compound_nullable", "unnest", "unpivot",
-      "pivot", "pivot_decimal_sum",
+      "unnest_inner", "unpivot_empty", "pivot", "pivot_min_fill", "pivot_empty_axis",
+      "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
