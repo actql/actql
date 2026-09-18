@@ -159,7 +159,7 @@ function publicationControl(moon) {
   return control;
 }
 
-function outputExportControl(moon) {
+function outputExportControl(moon, publications) {
   const fields = [
     'maxRows',
     'maxValueNodes',
@@ -193,6 +193,22 @@ function outputExportControl(moon) {
       [...expected].sort().join('\0') &&
     expected.every(name => Number.isSafeInteger(limits[name]) &&
       limits[name] >= 0);
+  const evidenceFields = [
+    'computationContractCid',
+    'inputRelationCids',
+    'scopeCid',
+    'effectiveDataPolicyCid',
+    'authorityScopeCid',
+  ];
+  const cidPattern = /^sha256:[0-9a-f]{64}$/u;
+  const validEvidenceContext = value =>
+    value !== null && typeof value === 'object' &&
+    Object.keys(value).sort().join('\0') ===
+      [...evidenceFields].sort().join('\0') &&
+    ['computationContractCid', 'scopeCid', 'effectiveDataPolicyCid',
+      'authorityScopeCid'].every(name => cidPattern.test(value[name])) &&
+    Array.isArray(value.inputRelationCids) &&
+    value.inputRelationCids.every(cid => cidPattern.test(cid));
   return Object.freeze({
     begin(output, limits) {
       if (!validLimits(limits, fields)) {
@@ -275,6 +291,35 @@ function outputExportControl(moon) {
         ),
       });
     },
+    issueResultEvidence(value, context, limits) {
+      if (!validEvidenceContext(context) ||
+          !validLimits(limits, ['maxWireBytes', 'maxNodes', 'maxDepth'])) {
+        throw new TypeError('Invalid Result evidence issuance request');
+      }
+      checked(moon.strategyHostOutputExportIssueResultEvidence(
+        value,
+        context.computationContractCid,
+        context.inputRelationCids,
+        context.scopeCid,
+        context.effectiveDataPolicyCid,
+        context.authorityScopeCid,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      ));
+      return Object.freeze({
+        derivation: publications.admit(
+          'derivation_evidence',
+          checked(moon.strategyHostOutputExportDerivationEvidenceJson(value)),
+          limits,
+        ),
+        ordering: publications.admit(
+          'ordering_evidence',
+          checked(moon.strategyHostOutputExportOrderingEvidenceJson(value)),
+          limits,
+        ),
+      });
+    },
     cancel: moon.strategyHostOutputExportCancel,
   });
 }
@@ -282,10 +327,11 @@ function outputExportControl(moon) {
 // Trusted assembly only. Standard entries bind this to their generated runtime;
 // execution requests cannot supply a verifier, SQL or replacement runtime.
 export function runtimeCore(moon) {
+  const publications = publicationControl(moon);
   return Object.freeze({
     siteControl: siteControl(moon),
-    publicationControl: publicationControl(moon),
-    outputExportControl: outputExportControl(moon),
+    publicationControl: publications,
+    outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     resultInventory(value) {

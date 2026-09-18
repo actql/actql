@@ -6,6 +6,7 @@ pub(all) suberror NodeHostFailure {
   InvalidCommand
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
+  PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
 }
 
 ///|
@@ -14,7 +15,9 @@ pub(all) suberror NodeHostFailure {
 /// interpretation, canonical ordering, admission, and the content receipt.
 struct StrategyHostOutputExport {
   stream : @execution.CompletedOutputExport
+  definition : @publication.PublicationContract?
   mut receipt : @execution.CompletedRelationExportReceipt?
+  mut evidence : @publication.ResultOrderingEvidence?
 }
 
 ///|
@@ -725,7 +728,12 @@ pub fn strategy_host_output_export_begin(
       },
       max_batch_bytes,
     ) {
-    Ok(stream) => { stream, receipt: None, }
+    Ok(stream) => {
+      stream,
+      definition: None,
+      receipt: None,
+      evidence: None,
+    }
     Err(issue) => raise OutputExport(issue)
   }
 }
@@ -770,6 +778,16 @@ pub fn strategy_host_result_output_export_begin(
   }
   guard @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
     raise InvalidCommand
+  }
+  guard @strategy.graph_result_name(graph, result) is Some(result_name) else {
+    raise InvalidCommand
+  }
+  let definition = match
+    @publication.prepare_result_definition(
+      @strategy.graph_program_definition_cid(graph), result_name,
+    ) {
+    Ok(value) => @publication.result_definition_contract(value)
+    Err(_) => raise InvalidCommand
   }
   guard @strategy.captured_task_target(run, task) is Some(target) else {
     raise InvalidCommand
@@ -816,7 +834,12 @@ pub fn strategy_host_result_output_export_begin(
       },
       max_batch_bytes,
     ) {
-    Ok(stream) => { stream, receipt: None, }
+    Ok(stream) => {
+      stream,
+      definition: Some(definition),
+      receipt: None,
+      evidence: None,
+    }
     Err(issue) => raise OutputExport(issue)
   }
 }
@@ -921,6 +944,79 @@ pub fn strategy_host_output_export_result_schema_cid(
 }
 
 ///|
+/// Issue occurrence-order evidence from the same finished export that
+/// established the logical Relation and schema identities. Only a Named
+/// Result export carries a checked Result Definition.
+#export_name("strategyHostOutputExportIssueResultEvidence")
+pub fn strategy_host_output_export_issue_result_evidence(
+  value : StrategyHostOutputExport,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Unit raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  if value.evidence is Some(_) {
+    raise InvalidCommand
+  }
+  value.evidence = Some(
+    match
+      @publication.issue_result_occurrence_evidence(
+        definition,
+        @execution.logical_relation_cid(
+          @execution.completed_relation_export_identity(receipt),
+        ),
+        @execution.relation_schema_cid(
+          @execution.completed_relation_export_schema_identity(receipt),
+        ),
+        computation_contract_cid,
+        input_relation_cids,
+        scope_cid,
+        effective_data_policy_cid,
+        "actql-common-host",
+        authority_scope_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(evidence) => evidence
+      Err(issue) => raise PublicationEvidence(issue)
+    },
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportDerivationEvidenceJson")
+pub fn strategy_host_output_export_derivation_evidence_json(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_derivation_contract(evidence),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportOrderingEvidenceJson")
+pub fn strategy_host_output_export_ordering_evidence_json(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_evidence_contract(evidence),
+  )
+}
+
+///|
 #export_name("strategyHostOutputExportSchemaBytes")
 pub fn strategy_host_output_export_schema_bytes(
   value : StrategyHostOutputExport,
@@ -962,6 +1058,7 @@ pub fn strategy_host_output_export_cancel(
     Some(receipt) => {
       @execution.cancel_completed_relation_export_receipt(receipt)
       value.receipt = None
+      value.evidence = None
     }
     None => @execution.cancel_completed_output_export(value.stream)
   }

@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   storeCompletedOutputPayload,
   storeCompletedResultPayload,
+  storeCompletedResultPublicationPayload,
 } from './durable-result-payload.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
@@ -114,6 +115,75 @@ test('exact Result occurrence streams through the same bounded Store path',
     );
     assert.equal(stored.physical.cid, digest(text));
     assert.equal(stored.orderedRows.orderedRowsCid, digest(text));
+  });
+
+test('Result evidence is issued before its durable payload becomes visible',
+  async t => {
+    const store = await fixture(t);
+    const host = {};
+    const text = '[{"answer":1}]';
+    const resultLimits = Object.freeze({
+      maxResultFields: 10,
+      maxResultMappingWork: 100,
+      maxResultOrderWork: 100,
+      maxResultWorkspaceEntries: 10,
+      ...limits,
+    });
+    const evidenceContext = Object.freeze({context: true});
+    const evidenceLimits = Object.freeze({
+      maxWireBytes: 4096, maxNodes: 100, maxDepth: 10,
+    });
+    const events = [];
+    const evidence = Object.freeze({derivation: {}, ordering: {}});
+    const control = {
+      ...exportFixture([text], text, {
+        cancelled: () => events.push('cancel'),
+      }),
+      beginResult(actualHost, result, supplied) {
+        assert.equal(actualHost, host);
+        assert.equal(result, 0);
+        assert.equal(supplied, resultLimits);
+        return {};
+      },
+      issueResultEvidence(handle, context, supplied) {
+        assert.deepEqual(handle, {});
+        assert.equal(context, evidenceContext);
+        assert.equal(supplied, evidenceLimits);
+        events.push('evidence');
+        return evidence;
+      },
+    };
+    const stored = await storeCompletedResultPublicationPayload(
+      store,
+      control,
+      host,
+      0,
+      resultLimits,
+      evidenceContext,
+      evidenceLimits,
+    );
+    assert.equal(stored.evidence, evidence);
+    assert.deepEqual(events, ['evidence', 'cancel']);
+
+    const failing = {
+      ...control,
+      issueResultEvidence() { throw new Error('evidence rejected'); },
+    };
+    await assert.rejects(
+      storeCompletedResultPublicationPayload(
+        store,
+        failing,
+        host,
+        0,
+        resultLimits,
+        evidenceContext,
+        evidenceLimits,
+      ),
+      /evidence rejected/u,
+    );
+    assert.equal(store.status().objectCount, 1);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().reservedObjects, 0);
   });
 
 test('canonical batches stream to one durable object without whole-array input',

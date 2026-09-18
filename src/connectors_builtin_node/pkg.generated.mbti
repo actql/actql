@@ -91,13 +91,19 @@ pub fn strategy_host_output_export_cancel(StrategyHostOutputExport) -> Unit
 
 pub fn strategy_host_output_export_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
+pub fn strategy_host_output_export_derivation_evidence_json(StrategyHostOutputExport) -> String raise NodeHostFailure
+
 pub fn strategy_host_output_export_finish(StrategyHostOutputExport) -> String raise NodeHostFailure
+
+pub fn strategy_host_output_export_issue_result_evidence(StrategyHostOutputExport, String, Array[String], String, String, String, Int, Int, Int) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_output_export_logical_relation_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_next(StrategyHostOutputExport) -> String? raise NodeHostFailure
 
 pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_ordering_evidence_json(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
@@ -243,6 +249,7 @@ pub(all) suberror NodeHostFailure {
   InvalidCommand
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
+  PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
 }
 
 // Types and methods

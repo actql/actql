@@ -102,8 +102,38 @@ export async function storeCompletedResultPayload(
   );
 }
 
+/// Store and issue evidence for one exact Named Result export. Evidence is
+/// issued before the physical object is sealed, so a failed issuance cannot
+/// strand an otherwise unreferenced durable payload.
+export async function storeCompletedResultPublicationPayload(
+  store,
+  control,
+  host,
+  result,
+  limits,
+  evidenceContext,
+  evidenceLimits,
+  signal,
+) {
+  if (!validStore(store) || !validResultControl(control) ||
+      typeof control.issueResultEvidence !== 'function' ||
+      !Number.isSafeInteger(result) || result < 0) {
+    fail('InvalidDurableResultPayloadAdapter');
+  }
+  return storeCompletedPayload(
+    store,
+    control,
+    () => control.beginResult(host, result, limits),
+    limits,
+    signal,
+    handle => control.issueResultEvidence(
+      handle, evidenceContext, evidenceLimits,
+    ),
+  );
+}
+
 async function storeCompletedPayload(
-  store, control, beginExport, limits, signal,
+  store, control, beginExport, limits, signal, issueEvidence,
 ) {
   signal?.throwIfAborted();
   let exportHandle;
@@ -129,6 +159,7 @@ async function storeCompletedPayload(
     if (!validIdentity(orderedRows)) {
       fail('InvalidDurableResultPayloadIdentity');
     }
+    const evidence = issueEvidence?.(exportHandle);
     const physical = await writer.seal(orderedRows.orderedRowsCid);
     sealed = true;
     if (physical.bytes !== orderedRows.bytes ||
@@ -140,6 +171,7 @@ async function storeCompletedPayload(
     return Object.freeze({
       physical: Object.freeze({...physical}),
       orderedRows: Object.freeze({...orderedRows}),
+      ...(evidence === undefined ? {} : {evidence}),
     });
   } catch (reason) {
     const cleanupErrors = [];

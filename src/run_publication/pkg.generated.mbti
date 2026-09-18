@@ -22,6 +22,8 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
+pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
+
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
@@ -180,6 +182,16 @@ pub(all) enum ResultDefinitionIssue {
   ResultNameLimit
   Contract(PublicationContractIssue)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultEvidenceIssuanceIssue {
+  IssuanceWrongDefinition
+  IssuanceInvalidIdentity
+  IssuanceEmptyIssuer
+  IssuanceDuplicateInput
+  IssuanceEncoding
+  IssuanceContract(PublicationContractIssue)
+  IssuanceEvidence(ResultOrderingEvidenceIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResultEvidenceSetIssue {

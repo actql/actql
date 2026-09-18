@@ -536,6 +536,29 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 /^sha256:[0-9a-f]{64}$/u);
               assert.match(identity.resultSchemaCid,
                 /^sha256:[0-9a-f]{64}$/u);
+              const issued = exportControl.issueResultEvidence(
+                resultExport,
+                {
+                  computationContractCid: hash('checked-computation'),
+                  inputRelationCids: [],
+                  scopeCid: hash('result-scope'),
+                  effectiveDataPolicyCid: hash('effective-policy'),
+                  authorityScopeCid: hash('authority-scope'),
+                },
+                {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64},
+              );
+              const derivation = JSON.parse(issued.derivation.wire);
+              const ordering = JSON.parse(issued.ordering.wire);
+              assert.equal(derivation.producer_contract_cid,
+                execution.publicationInventory.occurrences[0]
+                  .definition.result_definition_cid);
+              assert.equal(derivation.logical_value_cid,
+                identity.logicalRelationCid);
+              assert.equal(derivation.relation_schema_cid,
+                identity.resultSchemaCid);
+              assert.deepEqual(ordering.witness_evidence, [{
+                kind: 'derivation', cid: issued.derivation.identity,
+              }]);
             } finally {
               exportControl.cancel(resultExport);
             }
