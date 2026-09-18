@@ -248,3 +248,72 @@ test "join intermediate output guard cannot be hidden by a one row count result"
   assert_eq(completed_row_count(output), 1)
   assert_true(completed_cell(output, 0, 0) is Some(Number(4)))
 }
+
+///|
+test "compound nullable join keys match only complete equal tuples" {
+  let schema = "{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true},\"v\":{\"type\":\"number\",\"nullable\":false}}"
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"a\":1,\"b\":\"x\",\"v\":10},{\"a\":1,\"b\":null,\"v\":11},{\"a\":null,\"b\":\"x\",\"v\":12},{\"a\":2,\"b\":\"y\",\"v\":13}]},\"as\":\"l\"},{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[{\"a\":1,\"b\":\"x\",\"v\":20},{\"a\":1,\"b\":null,\"v\":21},{\"a\":null,\"b\":\"x\",\"v\":22},{\"a\":3,\"b\":\"z\",\"v\":23}]},\"as\":\"r\"},{\"from\":\"l\",\"join\":{\"with\":\"r\",\"kind\":\"left\",\"on\":[{\"left\":\"a\",\"right\":\"a\"},{\"left\":\"b\",\"right\":\"b\"}],\"select\":{\"a\":\"left.a\",\"b\":\"left.b\",\"l\":\"left.v\",\"r\":\"right.v\"}}}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["join_2"],
+    100000,
+    10000,
+  ).unwrap()
+  let completed = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(2)).unwrap())
+  assert_eq(table.names, ["a", "b", "l", "r"])
+  assert_eq(table.rows.length(), 4)
+  assert_true(table.rows[0][0] is Number(1))
+  assert_true(table.rows[0][1] is Text("x"))
+  assert_true(table.rows[0][2] is Number(10))
+  assert_true(table.rows[0][3] is Number(20))
+  assert_true(table.rows[1][1] is Null)
+  assert_true(table.rows[1][3] is Null)
+  assert_true(table.rows[2][0] is Null)
+  assert_true(table.rows[2][3] is Null)
+  assert_true(table.rows[3][0] is Number(2))
+  assert_true(table.rows[3][3] is Null)
+}
+
+///|
+test "self join retains both checked operand occurrences" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"v\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"v\":10},{\"id\":1,\"v\":11},{\"id\":2,\"v\":20}]},\"as\":\"rows\"},{\"from\":\"rows\",\"join\":{\"with\":\"rows\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"l\":\"left.v\",\"r\":\"right.v\"}}}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["join_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let completed = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+  assert_eq(table.names, ["id", "l", "r"])
+  assert_true(
+    join_numeric_rows_equal(table.rows, [
+      [Number(1), Number(10), Number(10)],
+      [Number(1), Number(10), Number(11)],
+      [Number(1), Number(11), Number(10)],
+      [Number(1), Number(11), Number(11)],
+      [Number(2), Number(20), Number(20)],
+    ]),
+  )
+}
