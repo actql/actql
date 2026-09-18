@@ -142,6 +142,8 @@ function indexEntry(request, attempt, invocationValue, values = {}) {
     result_manifest_cid: invocationValue.invocation_cid,
     run_receipt_cid: invocationValue.invocation_cid,
     captured_run_cid: invocationValue.invocation_cid,
+    durable_result_binding_cids: values.durable_result_binding_cids ??
+      [invocationValue.invocation_cid],
     publication_request_cid: request.publication_request_cid,
     publication_attempt_cid: attempt.publication_attempt_cid,
     committed_at: '2026-09-18T00:00:09.000Z',
@@ -161,7 +163,7 @@ const indexKeyFor = request => Object.freeze({
   runDefinitionCid: request.run_definition_cid,
 });
 
-function physicalCommitEvidence(invocationValue) {
+function physicalCommitEvidence(invocationValue, binding) {
   // This suite isolates filesystem durability and CAS behavior with the
   // independent contract-control fixture. The product integration suite uses
   // distinct real contracts and the MoonBit commit-chain verdict.
@@ -176,6 +178,7 @@ function physicalCommitEvidence(invocationValue) {
     derivations: Object.freeze([contract]),
     orderings: Object.freeze([contract]),
     retentions: Object.freeze([contract]),
+    durableBindings: Object.freeze([binding]),
     manifest: contract,
     receipt: contract,
     capturedRun: contract,
@@ -186,7 +189,31 @@ async function prepareCommit(store, request, attempt, invocationValue) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
   );
-  const evidence = physicalCommitEvidence(invocationValue);
+  const payload = Buffer.from('fixture durable Result payload', 'utf8');
+  const physical = await store.putBytes(payload);
+  const bindingValue = seal('durable_result_binding', {
+    version: 'actql-durable-result-binding/0.1',
+    run_definition_cid: request.run_definition_cid,
+    result_definition_cid: request.inventory[0].result_definition_cid,
+    invocation_cid: invocationValue.invocation_cid,
+    logical_result_cid: cids.result,
+    result_schema_cid: cids.manifest,
+    ordering_evidence_cid: cids.receipt,
+    codec_contract_cid: cids.captured,
+    material_generation_cid: physical.cid,
+    store_authority_cid: store.storeAuthorityCid,
+    effective_retention_policy_cid: cids.policy,
+    row_count: 1,
+    byte_count: physical.bytes,
+    physical_sha256: physical.cid.slice('sha256:'.length),
+  });
+  const binding = contractControl.admit(
+    'durable_result_binding', wire(bindingValue), limits,
+  );
+  await store.putPublicationContract(
+    'durable_result_binding', wire(bindingValue),
+  );
+  const evidence = physicalCommitEvidence(invocationValue, binding);
   await store.putPublicationContract('publication_request', wire(request));
   await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
@@ -199,9 +226,11 @@ async function prepareCommit(store, request, attempt, invocationValue) {
     evidence,
     required: [...new Set([
       invocationValue.invocation_cid,
+      binding.identity,
       request.publication_request_cid,
       attempt.publication_attempt_cid,
     ])],
+    binding,
   };
 }
 
@@ -434,7 +463,9 @@ test('public index is invisible before commit and survives a lost response',
     assert.equal(await store.inspectCommittedIndex(
       indexKeyFor(request),
     ), undefined);
-    const entry = indexEntry(request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
     const committed = await store.commitIndex(
       wire(entry), prepared.required, prepared.evidence,
     );
@@ -449,6 +480,28 @@ test('public index is invisible before commit and survives a lost response',
     assert.deepEqual(await reopened.inspectCommittedIndex(
       indexKeyFor(request),
     ), entry);
+    const chunks = [];
+    let authorizationChecks = 0;
+    const consumed = await reopened.consumeCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      authorization => {
+        authorizationChecks++;
+        return authorization.resultDefinitionCid ===
+          request.inventory[0].result_definition_cid;
+      },
+      chunk => chunks.push(Buffer.from(chunk)),
+    );
+    assert.equal(authorizationChecks, 2);
+    assert.equal(Buffer.concat(chunks).toString('utf8'),
+      'fixture durable Result payload');
+    assert.deepEqual(consumed, {
+      durableResultBindingCid: prepared.binding.identity,
+      logicalResultCid: cids.result,
+      resultSchemaCid: cids.manifest,
+      rowCount: 1,
+      bytes: Buffer.byteLength('fixture durable Result payload', 'utf8'),
+    });
     const succeeded = publicationRecord(attempt, 2, 'succeeded',
       prepared.committing, {public_index_entry_cid: entry.public_index_entry_cid});
     await reopened.appendRecord(
@@ -457,6 +510,45 @@ test('public index is invisible before commit and survives a lost response',
     assert.equal((await reopened.latestRecord(
       attempt.publication_attempt_cid,
     )).state, 'succeeded');
+  });
+
+test('commit verifies durable binding against the stored physical generation',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const mismatchedValue = JSON.parse(prepared.binding.wire);
+    delete mismatchedValue.durable_result_binding_cid;
+    mismatchedValue.byte_count++;
+    const mismatched = seal('durable_result_binding', mismatchedValue);
+    const mismatchedContract = contractControl.admit(
+      'durable_result_binding', wire(mismatched), limits,
+    );
+    await store.putPublicationContract(
+      'durable_result_binding', wire(mismatched),
+    );
+    const evidence = Object.freeze({
+      ...prepared.evidence,
+      durableBindings: Object.freeze([mismatchedContract]),
+    });
+    const required = prepared.required
+      .filter(cid => cid !== prepared.binding.identity)
+      .concat(mismatchedContract.identity);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [mismatchedContract.identity],
+    });
+    await assert.rejects(
+      store.commitIndex(wire(entry), required, evidence),
+      code('PublicationDurableBindingMismatch'),
+    );
+    assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),
+      undefined);
   });
 
 test('same intent is idempotent while conflicting commit is rejected',
@@ -470,7 +562,9 @@ test('same intent is idempotent while conflicting commit is rejected',
     const prepared = await prepareCommit(
       store, request, attempt, invocationValue,
     );
-    const entry = indexEntry(request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
     await store.commitIndex(
       wire(entry), prepared.required, prepared.evidence,
     );
@@ -480,6 +574,7 @@ test('same intent is idempotent while conflicting commit is rejected',
       store, request, retryAttempt, invocationValue,
     );
     const retryEntry = indexEntry(request, retryAttempt, invocationValue, {
+      durable_result_binding_cids: [retry.binding.identity],
       committed_at: '2026-09-18T00:01:00.000Z',
     });
     const idempotent = await store.commitIndex(
@@ -499,7 +594,9 @@ test('same intent is idempotent while conflicting commit is rejected',
       store, conflictingRequest, conflictAttempt, invocationValue,
     );
     const conflictingEntry = indexEntry(
-      conflictingRequest, conflictAttempt, invocationValue,
+      conflictingRequest, conflictAttempt, invocationValue, {
+        durable_result_binding_cids: [conflict.binding.identity],
+      },
     );
     await assert.rejects(store.commitIndex(
       wire(conflictingEntry), conflict.required, conflict.evidence,
@@ -518,6 +615,12 @@ test('lookup hides absence and verifies current authorization', async t => {
     return !Object.hasOwn(value, 'entry');
   }), code('PublicationLookupDenied'));
   assert.equal(calls, 1);
+  await assert.rejects(store.consumeCommittedResult(
+    indexKey,
+    resultDefinition().result_definition_cid,
+    () => false,
+    () => assert.fail('an unauthorized payload was exposed'),
+  ), code('PublicationLookupDenied'));
 });
 
 test('physical mutation is rejected after restart', async t => {

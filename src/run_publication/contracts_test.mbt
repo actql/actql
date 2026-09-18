@@ -732,7 +732,9 @@ test "finite publication registry admits every non-Result contract" {
       c +
       "\",\"captured_run_cid\":\"" +
       c +
-      "\",\"publication_request_cid\":\"" +
+      "\",\"durable_result_binding_cids\":[\"" +
+      c +
+      "\"],\"publication_request_cid\":\"" +
       c +
       "\",\"publication_attempt_cid\":\"" +
       c +

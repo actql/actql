@@ -52,18 +52,20 @@ function validateLimits(limits) {
 
 function validateEvidence(evidence) {
   const keys = ['runDefinition', 'invocation', 'definitions', 'artifacts',
-    'derivations', 'orderings', 'retentions', 'manifest', 'receipt',
-    'capturedRun'];
+    'derivations', 'orderings', 'retentions', 'durableBindings', 'manifest',
+    'receipt', 'capturedRun'];
   if (!exactKeys(evidence, keys) ||
-      !['definitions', 'artifacts', 'derivations', 'orderings', 'retentions']
+      !['definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
+        'durableBindings']
         .every(name => Array.isArray(evidence[name])) ||
       evidence.definitions.length === 0 || evidence.artifacts.length === 0) {
     fail('InvalidRunPublicationEvidence');
   }
   const contracts = [evidence.runDefinition, evidence.invocation,
     ...evidence.definitions, ...evidence.artifacts, ...evidence.derivations,
-    ...evidence.orderings, ...evidence.retentions, evidence.manifest,
-    evidence.receipt, evidence.capturedRun];
+    ...evidence.orderings, ...evidence.retentions,
+    ...evidence.durableBindings, evidence.manifest, evidence.receipt,
+    evidence.capturedRun];
   if (!contracts.every(contractShape)) fail('InvalidRunPublicationEvidence');
   return contracts;
 }
@@ -113,6 +115,7 @@ function commitEvidence(evidence) {
     derivations: Object.freeze([...evidence.derivations]),
     orderings: Object.freeze([...evidence.orderings]),
     retentions: Object.freeze([...evidence.retentions]),
+    durableBindings: Object.freeze([...evidence.durableBindings]),
     manifest: evidence.manifest,
     receipt: evidence.receipt,
     capturedRun: evidence.capturedRun,
@@ -176,6 +179,7 @@ async function validateExistingCommit(
         evidence.derivations,
         evidence.orderings,
         evidence.retentions,
+        evidence.durableBindings,
         evidence.manifest,
         evidence.receipt,
         evidence.capturedRun,
@@ -343,6 +347,7 @@ export async function publishEffectFreeRun(options) {
     manifest: evidence.manifest,
     receipt: evidence.receipt,
     capturedRun: evidence.capturedRun,
+    durableBindings: evidence.durableBindings,
     request: publicationRequest,
     attempt: publicationAttempt,
   }, now(), limits);

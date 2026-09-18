@@ -840,6 +840,48 @@ pub fn strategy_issue_result_manifest(
 }
 
 ///|
+#export_name("strategyIssueDurableResultBinding")
+pub fn strategy_issue_durable_result_binding(
+  run_definition : @publication.PublicationContract,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  codec_contract_cid : String,
+  material_generation_cid : String,
+  store_authority_cid : String,
+  row_count : Int,
+  byte_count : Int,
+  physical_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_durable_result_binding(
+      run_definition,
+      definition,
+      invocation,
+      artifact,
+      ordering,
+      retention,
+      codec_contract_cid,
+      material_generation_cid,
+      store_authority_cid,
+      row_count,
+      byte_count,
+      physical_sha256,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyIssuePublicationRequest")
 pub fn strategy_issue_publication_request(
   run_definition : @publication.PublicationContract,
@@ -909,6 +951,7 @@ pub fn strategy_issue_public_index_entry(
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
+  durable_bindings : Array[@publication.PublicationContract],
   request : @publication.PublicationContract,
   attempt : @publication.PublicationContract,
   committed_at : String,
@@ -923,6 +966,7 @@ pub fn strategy_issue_public_index_entry(
       manifest,
       receipt,
       captured_run,
+      durable_bindings,
       request,
       attempt,
       committed_at,
@@ -1007,6 +1051,7 @@ pub fn strategy_effect_free_publication_commit_valid(
   derivations : Array[@publication.PublicationContract],
   orderings : Array[@publication.PublicationContract],
   retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
@@ -1025,6 +1070,7 @@ pub fn strategy_effect_free_publication_commit_valid(
     derivations,
     orderings,
     retentions,
+    durable_bindings,
     manifest,
     receipt,
     captured_run,

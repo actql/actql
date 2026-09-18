@@ -127,9 +127,10 @@ durable commit wins a concurrent cancellation request.
 <!-- requirement-block: result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition -->
 A committed Run MUST have one public-index entry for its tenant and authority
 scoped exact Run Definition. The first atomic durable commit fixes its
-Invocation and Manifest. The same publication intent returns that commit;
-conflicting Invocation, Manifest, or intent is rejected. Prepared objects are
-not visible through ordinary Result lookup before this commit.
+Invocation, Manifest, and the durable binding for every declared Result. The
+same publication intent returns that commit; conflicting Invocation, Manifest,
+binding inventory, or intent is rejected. Prepared objects are not visible
+through ordinary Result lookup before this commit.
 
 <!-- requirement-block: result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest -->
 Manifest and Result read grants MUST be separate and bind an exact committed
@@ -889,9 +890,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
 ../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
-../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:02b9bdcfad98727743c300aac47dad642d9e2a4220375b1054ff59cd9302de4a
-../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:bc570f812a154f195cb9681449d618b47d77717736fd8e1a302deb935e4592d3
-../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:c75bbb4cb84122e6bec5344faf9241e671951fac51201d538197a4f15d4c44a5
+../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:17cc4f2a763d52bee4a75bc8e6b934f62225fac9cb9fd42b93776824bac75e71
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:12bb213201492c20dbd28dc66363d75b0b7015f7025bf20cd333ed97a6ef4b04
 ../../../spec/contracts/actql-run-publication.json#/laws sha256:9d6de1a60e727f7ef6b594aa59b9b7a39d7045fa8950d48851574585f8aa6474
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_source sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_barrier sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd

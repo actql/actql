@@ -55,13 +55,21 @@ pub fn port_input(ResultPort) -> @pipeline_typing.ProducedInput
 
 pub fn port_order(ResultPort) -> PublicationOrder
 
+pub fn port_order_term_at(ResultPort, Int) -> PublicationTerm?
+
+pub fn port_order_term_count(ResultPort) -> Int
+
 pub fn port_orders(ResultPort) -> CheckedOrders
+
+pub fn port_projection_input_at(ResultPort, Int) -> @relation_schema.FieldName?
 
 pub fn port_publication(ResultPort) -> @pipeline_typing.ResultPublication
 
 pub fn port_result(ResultPort) -> ResultDefinition
 
 pub fn port_schema(ResultPort) -> @relation_schema.Schema
+
+pub fn port_target(ResultPort) -> @pipeline_typing.Target
 
 pub fn ports_orders(ResultPorts) -> CheckedOrders
 

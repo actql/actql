@@ -885,6 +885,7 @@
         "result_manifest_cid",
         "run_receipt_cid",
         "captured_run_cid",
+        "durable_result_binding_cids",
         "publication_request_cid",
         "publication_attempt_cid",
         "committed_at",
@@ -922,6 +923,15 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
+        "durable_result_binding_cids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
         "publication_request_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
@@ -954,7 +964,7 @@
     "result_read_grant": "sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215",
     "delivery_attempt": "sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf",
     "delivery_record": "sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4",
-    "public_index_entry": "sha256:02b9bdcfad98727743c300aac47dad642d9e2a4220375b1054ff59cd9302de4a"
+    "public_index_entry": "sha256:2e809c8c0fd41f544551bfa7053014b884167a8b51b843969e78206c2e7e5202"
   },
   "reference_roles": {
     "compiled_plan": {
@@ -1045,6 +1055,7 @@
       "result_manifest_cid": "external:result-manifest",
       "run_receipt_cid": "external:run-receipt",
       "captured_run_cid": "external:captured-run",
+      "durable_result_binding_cids/*": "durable_result_binding",
       "publication_request_cid": "publication_request",
       "publication_attempt_cid": "publication_attempt"
     }
@@ -1426,6 +1437,12 @@
       "source": "public_index_entry",
       "slot": "captured_run_cid",
       "target": "external:captured-run",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "durable_result_binding_cids/*",
+      "target": "durable_result_binding",
       "role": "semantic"
     },
     {

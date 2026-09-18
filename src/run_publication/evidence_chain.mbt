@@ -32,6 +32,96 @@ fn evidence_object(
 }
 
 ///|
+fn validate_durable_result_bindings(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  bindings : Array[PublicationContract],
+  index_entry : PublicationContract,
+) -> Result[Unit, PublicationCommitIssue] {
+  if bindings.length() != definitions.length() || bindings.is_empty() {
+    return Err(CommitInventoryMismatch)
+  }
+  let identities : Array[String] = []
+  let definition_cids : Array[String] = []
+  for binding in bindings {
+    if binding.name != "durable_result_binding" {
+      return Err(CommitWrongContract("durable_result_binding"))
+    }
+    if identities.contains(binding.identity) {
+      return Err(CommitInventoryMismatch)
+    }
+    identities.push(binding.identity)
+    guard contract_string(binding, "result_definition_cid")
+      is Some(definition_cid) else {
+      return Err(CommitReferenceMismatch("binding.result_definition_cid"))
+    }
+    if definition_cids.contains(definition_cid) {
+      return Err(CommitInventoryMismatch)
+    }
+    definition_cids.push(definition_cid)
+    if !definitions.any(definition => definition.identity == definition_cid) {
+      return Err(CommitInventoryMismatch)
+    }
+    let matching_artifacts = artifacts.filter(artifact => {
+      contract_string(artifact, "result_definition_cid") == Some(definition_cid)
+    })
+    if matching_artifacts.length() != 1 {
+      return Err(CommitInventoryMismatch)
+    }
+    let artifact = matching_artifacts[0]
+    guard contract_string(artifact, "ordering_evidence_cid")
+      is Some(ordering_cid) &&
+      orderings.any(ordering => ordering.identity == ordering_cid) else {
+      return Err(CommitReferenceMismatch("binding.ordering_evidence_cid"))
+    }
+    guard contract_string(artifact, "effective_retention_policy_cid")
+      is Some(retention_cid) &&
+      retentions.any(retention => retention.identity == retention_cid) else {
+      return Err(
+        CommitReferenceMismatch("binding.effective_retention_policy_cid"),
+      )
+    }
+    guard contract_string(artifact, "logical_result_cid")
+      is Some(logical_result_cid) &&
+      contract_string(artifact, "result_schema_cid") is Some(result_schema_cid) else {
+      return Err(CommitReferenceMismatch("artifact.identity"))
+    }
+    for
+      (field, expected) in [
+        ("run_definition_cid", run_definition.identity),
+        ("invocation_cid", invocation.identity),
+        ("logical_result_cid", logical_result_cid),
+        ("result_schema_cid", result_schema_cid),
+        ("ordering_evidence_cid", ordering_cid),
+        ("effective_retention_policy_cid", retention_cid),
+      ] {
+      if contract_string(binding, field) != Some(expected) {
+        return Err(CommitReferenceMismatch("binding." + field))
+      }
+    }
+    if contract_count(binding, "row_count") !=
+      contract_count(artifact, "actual_row_count") {
+      return Err(CommitReferenceMismatch("binding.row_count"))
+    }
+  }
+  identities.sort_by(@canonical.compare_utf16)
+  guard @json.object_field(index_entry.value, "durable_result_binding_cids")
+    is Some(index_bindings) &&
+    evidence_string_array(index_bindings) is Some(index_identities) else {
+    return Err(CommitReferenceMismatch("index.durable_result_binding_cids"))
+  }
+  index_identities.sort_by(@canonical.compare_utf16)
+  if index_identities != identities {
+    return Err(CommitInventoryMismatch)
+  }
+  Ok(())
+}
+
+///|
 /// Validate a publication commit together with every Result dependency that
 /// the 12-field Artifact references. The older root-chain validator remains a
 /// bounded structural primitive; product commit paths must use this complete
@@ -44,6 +134,7 @@ pub fn validate_effect_free_publication_commit_with_result_evidence(
   derivations : Array[PublicationContract],
   orderings : Array[PublicationContract],
   retentions : Array[PublicationContract],
+  bindings : Array[PublicationContract],
   manifest : PublicationContract,
   receipt : PublicationContract,
   captured_run : PublicationContract,
@@ -60,6 +151,14 @@ pub fn validate_effect_free_publication_commit_with_result_evidence(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(CommitResultEvidence(issue))
+  }
+  match
+    validate_durable_result_bindings(
+      run_definition, invocation, definitions, artifacts, orderings, retentions,
+      bindings, index_entry,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   validate_effect_free_publication_commit(
     run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,

@@ -482,6 +482,25 @@ test('portable control validates Receipt and Captured Run references',
     authoringContext,
     modelEvidence: [],
   }, limits);
+  const payloadWire = JSON.stringify(resultRows);
+  const payloadBytes = Buffer.byteLength(payloadWire, 'utf8');
+  const physicalCid = `sha256:${createHash('sha256')
+    .update(payloadWire).digest('hex')}`;
+  const binding = control.issueDurableResultBinding({
+    runDefinition: run,
+    definition,
+    invocation: invoked,
+    artifact,
+    ordering,
+    retention,
+  }, {
+    codecContractCid: cid('b'),
+    materialGenerationCid: physicalCid,
+    storeAuthorityCid: cid('a'),
+    rowCount: 1,
+    byteCount: payloadBytes,
+    physicalSha256: physicalCid.slice(7),
+  }, limits);
   const request = control.issuePublicationRequest(run, [definition], {
     tenantId: 'tenant-a',
     authorityScopeCid: cid('d'),
@@ -500,6 +519,7 @@ test('portable control validates Receipt and Captured Run references',
     manifest,
     receipt,
     capturedRun: captured,
+    durableBindings: [binding],
     request,
     attempt,
   }, '2026-09-18T00:00:02.000Z', limits);
@@ -521,6 +541,7 @@ test('portable control validates Receipt and Captured Run references',
     [derivation],
     [ordering],
     [retention],
+    [binding],
     manifest,
     receipt,
     captured,
@@ -602,6 +623,7 @@ test('portable control validates Receipt and Captured Run references',
     [derivation],
     [ordering],
     [retention],
+    [binding],
     manifest,
     receipt,
     captured,
@@ -632,6 +654,7 @@ test('portable control validates Receipt and Captured Run references',
     derivation,
     ordering,
     retention,
+    binding,
     manifest,
     receipt,
     captured,
@@ -640,6 +663,7 @@ test('portable control validates Receipt and Captured Run references',
   ]) {
     await store.putPublicationContract(contract.name, contract.wire);
   }
+  await store.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   await store.createAttempt(attempt.wire);
   const preparing = control.issuePublicationRecord(attempt, undefined, {
     state: 'preparing',
@@ -667,6 +691,7 @@ test('portable control validates Receipt and Captured Run references',
     derivations: Object.freeze([derivation]),
     orderings: Object.freeze([ordering]),
     retentions: Object.freeze([retention]),
+    durableBindings: Object.freeze([binding]),
     manifest,
     receipt,
     capturedRun: captured,
@@ -679,6 +704,7 @@ test('portable control validates Receipt and Captured Run references',
     derivation.identity,
     ordering.identity,
     retention.identity,
+    binding.identity,
     manifest.identity,
     receipt.identity,
     captured.identity,
@@ -747,6 +773,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await lostBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await lostBase.close(); });
   let loseCommitResponse = true;
   const lostStore = Object.freeze({
@@ -787,6 +814,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await unknownBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await unknownBase.close(); });
   let indexInspections = 0;
   const unknownStore = Object.freeze({
@@ -836,6 +864,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  await cancelledBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   t.after(async () => { await cancelledBase.close(); });
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({

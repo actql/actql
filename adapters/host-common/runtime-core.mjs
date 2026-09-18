@@ -347,6 +347,30 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    issueDurableResultBinding(chain, physical, limits) {
+      issuanceLimits(limits, 'durable Result binding');
+      if (chain === null || typeof chain !== 'object' ||
+          physical === null || typeof physical !== 'object') {
+        throw new TypeError('Invalid durable Result binding request');
+      }
+      return inspect(checked(moon.strategyIssueDurableResultBinding(
+        token(chain.runDefinition),
+        token(chain.definition),
+        token(chain.invocation),
+        token(chain.artifact),
+        token(chain.ordering),
+        token(chain.retention),
+        physical.codecContractCid,
+        physical.materialGenerationCid,
+        physical.storeAuthorityCid,
+        physical.rowCount,
+        physical.byteCount,
+        physical.physicalSha256,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
     issuePublicationRequest(runDefinition, definitions, intent, limits) {
       issuanceLimits(limits, 'Publication Request');
       if (intent === null || typeof intent !== 'object') {
@@ -384,7 +408,8 @@ function publicationControl(moon) {
     },
     issuePublicIndexEntry(chain, committedAt, limits) {
       issuanceLimits(limits, 'Public Index Entry');
-      if (chain === null || typeof chain !== 'object') {
+      if (chain === null || typeof chain !== 'object' ||
+          !Array.isArray(chain.durableBindings)) {
         throw new TypeError('Invalid publication chain');
       }
       return inspect(checked(moon.strategyIssuePublicIndexEntry(
@@ -393,6 +418,7 @@ function publicationControl(moon) {
         token(chain.manifest),
         token(chain.receipt),
         token(chain.capturedRun),
+        chain.durableBindings.map(token),
         token(chain.request),
         token(chain.attempt),
         committedAt,
@@ -437,8 +463,8 @@ function publicationControl(moon) {
       );
     },
     effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
-      derivations, orderings, retentions, manifest, receipt, capturedRun,
-      request, attempt, indexEntry, limits) {
+      derivations, orderings, retentions, durableBindings, manifest, receipt,
+      capturedRun, request, attempt, indexEntry, limits) {
       return moon.strategyEffectFreePublicationCommitValid(
         token(runDefinition),
         token(invocation),
@@ -447,6 +473,7 @@ function publicationControl(moon) {
         derivations.map(token),
         orderings.map(token),
         retentions.map(token),
+        durableBindings.map(token),
         token(manifest),
         token(receipt),
         token(capturedRun),

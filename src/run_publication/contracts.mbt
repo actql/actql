@@ -417,6 +417,7 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("result_manifest_cid", Cid),
           required("run_receipt_cid", Cid),
           required("captured_run_cid", Cid),
+          required("durable_result_binding_cids", CidList),
           required("publication_request_cid", Cid),
           required("publication_attempt_cid", Cid),
           required("committed_at", Timestamp),

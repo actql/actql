@@ -653,6 +653,22 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
   const readJsonObject = async (cid, contractName) =>
     (await readContract(cid, contractName)).value;
 
+  const verifyDurableResultBinding = async contract => {
+    if (contract.name !== 'durable_result_binding') {
+      fail('InvalidPublicationCommitEvidence');
+    }
+    const binding = parseContract(contract);
+    if (binding.store_authority_cid !== configuration.storeAuthorityCid ||
+        binding.physical_sha256 !== cidHex(binding.material_generation_cid)) {
+      fail('PublicationDurableBindingMismatch');
+    }
+    const physical = await verifyObject(binding.material_generation_cid);
+    if (physical.bytes !== binding.byte_count) {
+      fail('PublicationDurableBindingMismatch');
+    }
+    return Object.freeze({binding, physical});
+  };
+
   const createAttempt = async suppliedWire => {
     active();
     const admitted = admitContract('publication_attempt', suppliedWire);
@@ -801,6 +817,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       entry.result_manifest_cid,
       entry.run_receipt_cid,
       entry.captured_run_cid,
+      ...entry.durable_result_binding_cids,
       entry.publication_request_cid,
       entry.publication_attempt_cid,
     ]) {
@@ -814,6 +831,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       'derivations',
       'orderings',
       'retentions',
+      'durableBindings',
       'manifest',
       'receipt',
       'capturedRun',
@@ -823,7 +841,9 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         suppliedEvidence.artifacts.length === 0 ||
         !Array.isArray(suppliedEvidence.derivations) ||
         !Array.isArray(suppliedEvidence.orderings) ||
-        !Array.isArray(suppliedEvidence.retentions)) {
+        !Array.isArray(suppliedEvidence.retentions) ||
+        !Array.isArray(suppliedEvidence.durableBindings) ||
+        suppliedEvidence.durableBindings.length === 0) {
       fail('InvalidPublicationCommitEvidence');
     }
     const evidenceContracts = [
@@ -834,6 +854,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       ...suppliedEvidence.derivations,
       ...suppliedEvidence.orderings,
       ...suppliedEvidence.retentions,
+      ...suppliedEvidence.durableBindings,
       suppliedEvidence.manifest,
       suppliedEvidence.receipt,
       suppliedEvidence.capturedRun,
@@ -851,6 +872,9 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
+    }
+    for (const contract of suppliedEvidence.durableBindings) {
+      await verifyDurableResultBinding(contract);
     }
     for (const cid of required) await readSemanticBytes(cid);
     const attemptStored = await readContract(
@@ -874,6 +898,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         suppliedEvidence.derivations,
         suppliedEvidence.orderings,
         suppliedEvidence.retentions,
+        suppliedEvidence.durableBindings,
         suppliedEvidence.manifest,
         suppliedEvidence.receipt,
         suppliedEvidence.capturedRun,
@@ -918,6 +943,84 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     }
   };
 
+  const consumeObject = async (cid, accept) => {
+    active();
+    if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
+    const path = objectPath(cid);
+    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const hash = createHash('sha256');
+    let bytes = 0;
+    try {
+      const before = await handle.stat();
+      if (!before.isFile() || before.size > configuration.maxObjectBytes) {
+        fail('InvalidPublicationStoreObject');
+      }
+      const stream = handle.createReadStream({autoClose: false});
+      for await (const chunk of stream) {
+        hash.update(chunk);
+        await accept(chunk);
+        bytes += chunk.byteLength;
+      }
+      const after = await handle.stat();
+      if (!after.isFile() || before.dev !== after.dev ||
+          before.ino !== after.ino || before.size !== after.size ||
+          before.mtimeMs !== after.mtimeMs || bytes !== after.size ||
+          hash.digest('hex') !== cidHex(cid)) {
+        fail('PublicationObjectCorrupt');
+      }
+      return Object.freeze({cid, bytes});
+    } finally {
+      await handle.close();
+    }
+  };
+
+  const consumeCommittedResult = async (
+    key,
+    resultDefinitionCid,
+    authorize,
+    accept,
+  ) => {
+    active();
+    cidHex(resultDefinitionCid);
+    if (typeof authorize !== 'function' || typeof accept !== 'function') {
+      fail('InvalidPublicationObjectConsumer');
+    }
+    const request = Object.freeze({...key, resultDefinitionCid});
+    if (authorize(request) !== true) fail('PublicationLookupDenied');
+    const entry = await inspectCommittedIndex(key);
+    if (entry === undefined) fail('PublicationLookupDenied');
+    const matches = [];
+    for (const bindingCid of entry.durable_result_binding_cids) {
+      const contract = (await readContract(
+        bindingCid, 'durable_result_binding',
+      )).contract;
+      const value = parseContract(contract);
+      if (value.result_definition_cid === resultDefinitionCid) {
+        matches.push({contract, value});
+      }
+    }
+    if (matches.length !== 1) fail('PublicationLookupDenied');
+    const selected = matches[0];
+    const authorization = Object.freeze({
+      ...request,
+      durableResultBindingCid: selected.contract.identity,
+      logicalResultCid: selected.value.logical_result_cid,
+      resultSchemaCid: selected.value.result_schema_cid,
+    });
+    if (authorize(authorization) !== true) fail('PublicationLookupDenied');
+    const verified = await verifyDurableResultBinding(selected.contract);
+    const consumed = await consumeObject(
+      verified.binding.material_generation_cid, accept,
+    );
+    return Object.freeze({
+      durableResultBindingCid: selected.contract.identity,
+      logicalResultCid: verified.binding.logical_result_cid,
+      resultSchemaCid: verified.binding.result_schema_cid,
+      rowCount: verified.binding.row_count,
+      bytes: consumed.bytes,
+    });
+  };
+
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
     createObjectWriter,
@@ -926,36 +1029,8 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     putPublicationContract,
     verifyObject,
     readSemanticBytes,
-    async consumeObject(cid, accept) {
-      active();
-      if (typeof accept !== 'function') fail('InvalidPublicationObjectConsumer');
-      const path = objectPath(cid);
-      const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-      const hash = createHash('sha256');
-      let bytes = 0;
-      try {
-        const before = await handle.stat();
-        if (!before.isFile() || before.size > configuration.maxObjectBytes) {
-          fail('InvalidPublicationStoreObject');
-        }
-        const stream = handle.createReadStream({autoClose: false});
-        for await (const chunk of stream) {
-          hash.update(chunk);
-          await accept(chunk);
-          bytes += chunk.byteLength;
-        }
-        const after = await handle.stat();
-        if (!after.isFile() || before.dev !== after.dev ||
-            before.ino !== after.ino || before.size !== after.size ||
-            before.mtimeMs !== after.mtimeMs || bytes !== after.size ||
-            hash.digest('hex') !== cidHex(cid)) {
-          fail('PublicationObjectCorrupt');
-        }
-        return Object.freeze({cid, bytes});
-      } finally {
-        await handle.close();
-      }
-    },
+    consumeObject,
+    consumeCommittedResult,
     readJsonObject,
     async readPublicationContract(cid, name) {
       active();

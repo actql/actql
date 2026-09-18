@@ -187,6 +187,7 @@ pub fn issue_public_index_entry(
   manifest : PublicationContract,
   receipt : PublicationContract,
   captured_run : PublicationContract,
+  durable_bindings : Array[PublicationContract],
   request : PublicationContract,
   attempt : PublicationContract,
   committed_at : String,
@@ -244,6 +245,25 @@ pub fn issue_public_index_entry(
     contract_string(request, "authority_scope_cid") is Some(authority_scope_cid) else {
     return Err(CommitIssuanceReferenceMismatch("request.authority"))
   }
+  if durable_bindings.is_empty() {
+    return Err(CommitIssuanceEmptyInventory)
+  }
+  let binding_cids : Array[String] = []
+  for binding in durable_bindings {
+    if binding.name != "durable_result_binding" {
+      return Err(CommitIssuanceWrongContract)
+    }
+    if contract_string(binding, "run_definition_cid") !=
+      Some(run_definition.identity) ||
+      contract_string(binding, "invocation_cid") != Some(invocation.identity) {
+      return Err(CommitIssuanceReferenceMismatch("durable_result_binding"))
+    }
+    if binding_cids.contains(binding.identity) {
+      return Err(CommitIssuanceInventoryMismatch)
+    }
+    binding_cids.push(binding.identity)
+  }
+  binding_cids.sort_by(@canonical.compare_utf16)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
@@ -255,6 +275,12 @@ pub fn issue_public_index_entry(
     @encode.string_value(writer, captured_run.identity)
     @encode.key(writer, "committed_at")
     @encode.string_value(writer, committed_at)
+    @encode.key(writer, "durable_result_binding_cids")
+    @encode.begin_array(writer)
+    for identity in binding_cids {
+      @encode.string_value(writer, identity)
+    }
+    @encode.end_array(writer)
     @encode.key(writer, "invocation_cid")
     @encode.string_value(writer, invocation.identity)
     @encode.key(writer, "publication_attempt_cid")
