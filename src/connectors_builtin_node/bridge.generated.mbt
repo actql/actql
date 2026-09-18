@@ -1136,6 +1136,59 @@ pub fn strategy_issue_delivery_record(
 }
 
 ///|
+#export_name("strategyPrepareResultDeliverySerializer")
+pub fn strategy_prepare_result_delivery_serializer(
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.ResultDeliverySerializer raise NodeHostFailure {
+  match
+    @publication.prepare_result_delivery_serializer(
+      format, schema_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyBeginResultDelivery")
+pub fn strategy_begin_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.begin_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyNextResultDeliveryRow")
+pub fn strategy_next_result_delivery_row(
+  serializer : @publication.ResultDeliverySerializer,
+  row_wire : String,
+) -> String raise NodeHostFailure {
+  match @publication.next_result_delivery_row(serializer, row_wire) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyFinishResultDelivery")
+pub fn strategy_finish_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.finish_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],

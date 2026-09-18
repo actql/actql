@@ -617,6 +617,32 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
+      issuanceLimits(limits, 'Result delivery serializer');
+      if (typeof schemaWire !== 'string' || !Array.isArray(fields)) {
+        throw new TypeError('Invalid Result delivery serializer');
+      }
+      return checked(moon.strategyPrepareResultDeliverySerializer(
+        format,
+        schemaWire,
+        fields,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      ));
+    },
+    beginResultDelivery(serializer) {
+      return checked(moon.strategyBeginResultDelivery(serializer));
+    },
+    nextResultDeliveryRow(serializer, rowWire) {
+      if (typeof rowWire !== 'string') {
+        throw new TypeError('Invalid Result delivery row');
+      }
+      return checked(moon.strategyNextResultDeliveryRow(serializer, rowWire));
+    },
+    finishResultDelivery(serializer) {
+      return checked(moon.strategyFinishResultDelivery(serializer));
+    },
   });
   publicationControls.set(moon, control);
   return control;

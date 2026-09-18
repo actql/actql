@@ -168,6 +168,55 @@ test('portable delivery owner binds grants attempts and receipts', () => {
   );
 });
 
+test('portable delivery serializer owns the three canonical formats', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const schema = JSON.stringify({
+    amount: {nullable: false, precision: 4, scale: 2, type: 'decimal'},
+    enabled: {nullable: false, type: 'boolean'},
+    meta: {
+      additional_properties: false,
+      fields: {k: {nullable: false, type: 'string'}},
+      nullable: false,
+      type: 'object',
+    },
+    missing: {nullable: true, type: 'number'},
+    name: {nullable: false, type: 'string'},
+    score: {nullable: false, type: 'number'},
+  });
+  const fields = ['name', 'score', 'amount', 'enabled', 'missing', 'meta'];
+  const row = JSON.stringify({
+    amount: '2.30',
+    enabled: false,
+    meta: {k: 'é'},
+    missing: null,
+    name: 'x,"y',
+    score: 1.5,
+  });
+  const expected =
+    '{"name":"x,\\"y","score":1.5,"amount":"2.30",' +
+    '"enabled":false,"missing":null,"meta":{"k":"é"}}';
+
+  const serialize = format => {
+    const serializer = control.prepareResultDeliverySerializer(
+      format,
+      schema,
+      fields,
+      limits,
+    );
+    return control.beginResultDelivery(serializer) +
+      control.nextResultDeliveryRow(serializer, row) +
+      control.finishResultDelivery(serializer);
+  };
+
+  assert.equal(serialize('json'), `[${expected}]`);
+  assert.equal(serialize('jsonl'), `${expected}\n`);
+  assert.equal(
+    serialize('csv'),
+    '"name","score","amount","enabled","missing","meta"\n' +
+      '"x,""y",1.5,2.30,false,\\N,"{""k"":""é""}"\n',
+  );
+});
+
 test('portable evidence owner issues Invocation after exact capture', () => {
   const control = runtimeCore(moon).publicationControl;
   const template = control.sealRunEvidence(

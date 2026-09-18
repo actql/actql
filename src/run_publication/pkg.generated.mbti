@@ -18,6 +18,8 @@ pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvid
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
+pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
+
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
@@ -29,6 +31,8 @@ pub fn checked_publication_inventory_name(CheckedPublicationInventory, Int) -> R
 pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) -> String
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
+
+pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
@@ -64,9 +68,13 @@ pub fn issue_run_definition(RunPublicationAdmission, String, String, String, Str
 
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
+pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
+
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
+
+pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
 
 pub fn publication_contract_identity(PublicationContract) -> String
 
@@ -162,6 +170,18 @@ pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceEncoding
   DeliveryIssuanceContract(PublicationContractIssue)
   DeliveryIssuanceTransition(DeliveryTransitionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeliverySerializationIssue {
+  DeliverySerializationUnsupportedFormat(String)
+  DeliverySerializationInvalidLimits
+  DeliverySerializationInvalidSchema
+  DeliverySerializationInvalidFields
+  DeliverySerializationInvalidRow
+  DeliverySerializationTypeMismatch(String)
+  DeliverySerializationNul
+  DeliverySerializationOutputLimit
+  DeliverySerializationClosed
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DeliveryTransitionIssue {
@@ -293,6 +313,8 @@ pub(all) enum ResultDefinitionIssue {
   Contract(PublicationContractIssue)
   Encoding
 } derive(Eq, @debug.Debug)
+
+type ResultDeliverySerializer
 
 pub(all) enum ResultEvidenceIssuanceIssue {
   IssuanceWrongDefinition

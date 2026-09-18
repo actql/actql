@@ -51,11 +51,15 @@ pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContr
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
+pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
+
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
 pub fn strategy_host_close_outputs(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
@@ -116,6 +120,8 @@ pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise 
 pub fn strategy_host_output_export_ordering_evidence_json(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
+
+pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -220,6 +226,10 @@ pub fn strategy_issue_result_read_grant(@run_publication.PublicationContract, @r
 pub fn strategy_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_run_invocation(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure
+
+pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
