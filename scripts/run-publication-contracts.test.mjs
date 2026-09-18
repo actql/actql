@@ -1,0 +1,109 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {
+  correctedContracts,
+  resultArtifactSchema,
+  runStateSchema,
+} from './run-publication-contracts.mjs';
+import {machineCid} from './actql-spec-family.mjs';
+
+const read = path => JSON.parse(readFileSync(path, 'utf8'));
+
+test('every Run-bound Result Artifact embedding uses the normative 12 fields', () => {
+  const artifact = resultArtifactSchema();
+  assert.deepEqual(artifact.required, [
+    'version',
+    'result_definition_cid',
+    'invocation_cid',
+    'logical_result_cid',
+    'result_schema_cid',
+    'ordering_evidence_cid',
+    'actual_row_count',
+    'actual_completeness',
+    'effective_data_policy_cid',
+    'effective_retention_policy_cid',
+    'provenance_evidence_cids',
+    'result_artifact_cid',
+  ]);
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const visit = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.properties?.version?.const === 'actql-result-artifact/0.1') {
+      assert.deepEqual(value, artifact);
+    }
+    for (const child of Object.values(value)) visit(child);
+  };
+  visit(registry.artifact_schemas);
+});
+
+test('Run Receipt versions are mandatory in every embedded receipt', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  let receipts = 0;
+  const visit = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.properties?.version?.const === 'actql-run-receipt/0.1') {
+      receipts++;
+      assert.ok(value.required.includes('compiler_version'));
+      assert.ok(value.required.includes('aoa_ir_version'));
+    }
+    for (const child of Object.values(value)) visit(child);
+  };
+  visit(registry.artifact_schemas);
+  assert.ok(receipts >= 2);
+});
+
+test('Run state separates terminal outcome from per-Result availability', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const state = registry.artifact_schemas.run_state;
+  assert.deepEqual(state, runStateSchema(state));
+  assert.ok(state.required.includes('result_availability'));
+  const succeeded = state.allOf.find(
+    rule => rule.if?.properties?.status?.const === 'succeeded',
+  );
+  assert.deepEqual(succeeded.then, {not: {required: ['checkpoint']}});
+  const actions = state.properties.next_action.oneOf.map(
+    action => action.properties.kind.const,
+  );
+  assert.deepEqual(actions, [
+    'resolve_checkpoint',
+    'reconcile',
+    'read_result',
+    'refresh_availability',
+    'none',
+  ]);
+});
+
+test('correction is idempotent and updates the CLI embedding', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const cli = read('spec/contracts/actql-cli-run-response.schema.json');
+  const next = correctedContracts(registry, cli);
+  assert.deepEqual(next.registry, registry);
+  assert.deepEqual(next.cli, cli);
+  assert.deepEqual(cli.properties.run, registry.artifact_schemas.run_state);
+});
+
+test('corrected schemas have independently fixed canonical identities', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  assert.equal(
+    machineCid(resultArtifactSchema()),
+    'sha256:ec1397e639fed3270a6ba4ada02f87ba3a3e07aafee3a5ba16a056ec9a35c4ac',
+  );
+  assert.deepEqual(
+    Object.fromEntries(
+      ['result_manifest', 'run_receipt', 'run_state', 'captured_run'].map(
+        name => [name, registry.artifact_schema_cids[name]],
+      ),
+    ),
+    {
+      result_manifest:
+        'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa',
+      run_receipt:
+        'sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0',
+      run_state:
+        'sha256:0bc3a4a564218c0a2398f187b2f3cbc98900e0788cdedf1b0fded82acc256d19',
+      captured_run:
+        'sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993',
+    },
+  );
+});

@@ -341,7 +341,8 @@ than replacing the computation's ObservationSet.
 Receipt dependencies are acyclic:
 
 ```text
-computation receipt → Captured Run → Effect Preview
+Effect-free Run: final Run receipt → Captured Run → durable publication index
+Effectful Run: computation receipt → Captured Run → Effect Preview
   → approval/apply/reconciliation receipts → final Run receipt
 ```
 
@@ -351,6 +352,14 @@ apply CID. A final Run receipt is a new artifact referencing the earlier
 evidence, not a mutation of that captured receipt. The receipt schema may be
 shared, but its pre-effect and final instances have distinct CIDs. An artifact
 MUST NOT require a future artifact's CID in its own hash preimage.
+
+<!-- requirement-block: capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt -->
+An Effect-free Run MUST use its single Run Receipt as the final receipt; it does
+not create a second content-equivalent final copy. That Receipt references its
+Manifest and Result Artifacts, the Captured Run references the Receipt, and the
+durable publication index references the admitted complete chain. Creating or
+storing the Receipt alone is not publication commit and does not establish the
+public `succeeded` outcome.
 
 <!-- requirement-block: capture-and-replay.given-the-same-canonical-plan-captured-observations-and-semantic-contracts capture-and-replay.delivery-bytes-must-also-be-stable-when-the-result-artifact -->
 For the content-addressed capture/replay contract, given the same canonical
@@ -379,6 +388,13 @@ The Run Receipt MUST identify:
 - normalization journal identity or embedded journal;
 - task contract, acquisition evidence, raw-response Artifact, and
   capture-bundle identities for every acquisition or Artifact barrier.
+
+<!-- requirement-block: capture-and-replay.compiler-and-aoa-ir-versions-must-match-admitted-plan-provenance capture-and-replay.a-later-publisher-must-not-replace-admitted-version-provenance -->
+The mandatory `compiler_version` and `aoa_ir_version` values use the bounded
+version-token syntax registered by the Run Receipt machine schema. They come
+from the provenance of the admitted compiled plan and AoA IR and MUST match the
+referenced plan and IR evidence. A later publisher MUST NOT replace them with
+the version of the currently running binary.
 
 <!-- requirement-block: capture-and-replay.they-must-not-embed-result-row-payloads -->
 The Result Manifest and its Result Artifacts carry each Result's exact logical
@@ -1300,11 +1316,26 @@ can complete its Run while its provider operation remains pending ([Outcomes and
 
 <!-- requirement-block: run-states.run-creation-and-lifecycle-operations-must-expose-the-closed-actql-run-state-0-2 -->
 Run creation and lifecycle operations MUST expose the closed
-`actql-run-state/0.1` projection: Run identity, current state, update time,
-optional Checkpoint identity, result availability, and one state-consistent
-next action. Result Manifests, Result payloads, and restricted Review
-Projections are retrieved separately under their respective authority and
-policy checks.
+`actql-run-state/0.1` projection: Run identity, immutable outcome state, update
+time, optional Checkpoint identity, per-Result availability observations, their
+all-Results aggregate, and one state-consistent next action. Each availability
+entry distinguishes `available`, `unavailable`, and `unknown`, records the
+observation time and bounded reason, and may cite a cause. A failed Store query
+is `unknown`, not evidence that data is absent. `result_available` is true only
+when every declared Result is confirmed available. A confirmed available
+subset remains individually retrievable when the aggregate is false.
+
+<!-- requirement-block: run-states.run-state-lookup-must-not-reveal-publication-existence-to-an-unauthorized-caller -->
+Availability does not grant access. `read_result` identifies Results for which
+the caller may request a separately authorized read; it is not read authority.
+Expired or deleted Results are not offered for reading. When freshness rather
+than absence is unresolved, `refresh_availability` identifies the Results whose
+Store state may be checked. Run-state lookup itself is authorized and MUST NOT
+reveal publication existence to an unauthorized caller. Result Manifests,
+Result payloads, and restricted Review Projections are retrieved separately
+under their respective authority and policy checks. Expiry, deletion, policy
+loss, or Store uncertainty changes current availability but never rewrites a
+previously committed Run outcome.
 
 <a id="checkpoints"></a>
 

@@ -256,6 +256,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt",
+      "statement_sha256": "7f54a31785b2c6b1677698479a6ff3116109a2d2bff7ab77759d2294ac1a7da9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/capture-and-replay.given-the-same-canonical-plan-captured-observations-and-semantic-contracts",
       "statement_sha256": "74aefcb0e835c4270ff5b7dec65db6b87e419f00688b743d17a514aec82cbdbc",
       "status": "pending",
@@ -291,6 +302,28 @@
     {
       "requirement_id": "actql.execution/capture-and-replay.the-run-receipt-must-identify",
       "statement_sha256": "deaf513a0e3156af719f43ae93dd49d1eab6887741b63574d33873a56e25f908",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/capture-and-replay.compiler-and-aoa-ir-versions-must-match-admitted-plan-provenance",
+      "statement_sha256": "37347e3938d6927531c2e6f459c3b775ab0fe4c3586568c68b967f6015035de0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/capture-and-replay.a-later-publisher-must-not-replace-admitted-version-provenance",
+      "statement_sha256": "fb2abeed79b1dccea7261ca035f497cc8c649c91e0e66cfded24a89492b1c463",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -1104,7 +1137,18 @@
     },
     {
       "requirement_id": "actql.execution/run-states.run-creation-and-lifecycle-operations-must-expose-the-closed-actql-run-state-0-2",
-      "statement_sha256": "c30cbeeb869c9ab15865a3b92b4df06affd37ebd1fa3469af5731fee00814f01",
+      "statement_sha256": "d8d5dcba14fade305b163a7f8f0f0a99c30643106138f382df23caf6da99ac39",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-states",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/run-states.run-state-lookup-must-not-reveal-publication-existence-to-an-unauthorized-caller",
+      "statement_sha256": "c4a1efea63f5f387beda09ca9c37c6deeeecaa3e0ddb067f541cb08fedd1e691",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
