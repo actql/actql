@@ -239,6 +239,11 @@ pub fn publication_preflight_valid(
   }
   let result_names : Array[String] = []
   let authority_scope_cid = contract_string(request, "authority_scope_cid")
+  let metadata_policy_cid = contract_string(
+    retentions[0],
+    "metadata_retention_policy_cid",
+  )
+  let metadata_delete_by = contract_string(retentions[0], "metadata_delete_by")
   for index, definition in definitions {
     if definition.name != "result_definition" {
       return false
@@ -261,6 +266,10 @@ pub fn publication_preflight_valid(
       !valid_contract_cid(authority_scope_cids[index]) ||
       contract_string(retentions[index], "effective_data_policy_cid") !=
       Some(effective_data_policy_cids[index]) ||
+      contract_string(retentions[index], "metadata_retention_policy_cid") !=
+      metadata_policy_cid ||
+      contract_string(retentions[index], "metadata_delete_by") !=
+      metadata_delete_by ||
       authority_scope_cid != Some(authority_scope_cids[index]) {
       return false
     }

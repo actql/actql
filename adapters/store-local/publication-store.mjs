@@ -240,12 +240,15 @@ export async function openLocalPublicationStore(
   const deliveriesDirectory = resolve(root, 'deliveries');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
+  const metadataInventoriesDirectory = resolve(root, 'metadata-inventories');
+  const metadataDeletionsDirectory = resolve(root, 'metadata-deletions');
   const retentionExtensionsDirectory = resolve(root, 'retention-extensions');
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, custodyDirectory, attemptsDirectory, deliveriesDirectory,
     manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
+    metadataInventoriesDirectory, metadataDeletionsDirectory,
     deletionsDirectory,
     clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
@@ -344,6 +347,20 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
+  for (const name of await readdir(metadataInventoriesDirectory)) {
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(resolve(metadataInventoriesDirectory, name))).isFile()) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+  }
+  await syncDirectory(metadataInventoriesDirectory);
+  for (const name of await readdir(metadataDeletionsDirectory)) {
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(resolve(metadataDeletionsDirectory, name))).isFile()) {
+      fail('InvalidPublicationMetadataDeletionStore');
+    }
+  }
+  await syncDirectory(metadataDeletionsDirectory);
   for (const keyHash of await readdir(retentionExtensionsDirectory)) {
     const directory = resolve(retentionExtensionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
@@ -405,8 +422,10 @@ export async function openLocalPublicationStore(
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
   let resultRetentionBusy = Promise.resolve();
+  let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
   const pendingResultDeletions = new Map();
+  const pendingMetadataDeletions = new Map();
   const reclaimingMaterialCids = new Set();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
@@ -420,6 +439,10 @@ export async function openLocalPublicationStore(
     resolve(manifestReadsDirectory, cidHex(cid));
   const clockObservationPath = cid =>
     resolve(clocksDirectory, `${cidHex(cid)}.json`);
+  const metadataInventoryPath = publicIndexEntryCid =>
+    resolve(metadataInventoriesDirectory, `${cidHex(publicIndexEntryCid)}.json`);
+  const metadataDeletionPath = keyHash =>
+    resolve(metadataDeletionsDirectory, `${keyHash}.json`);
   const retentionExtensionDirectory = keyHash =>
     resolve(retentionExtensionsDirectory, keyHash);
   const retentionExtensionResultDirectory = (
@@ -439,6 +462,156 @@ export async function openLocalPublicationStore(
     );
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
+  };
+
+  const parseMetadataInventory = bytes => {
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) {
+      fail('InvalidPublicationMetadataInventoryStore', error);
+    }
+    if (!exactKeys(value, [
+      'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+      'public_index_entry_cid', 'semantic_cids',
+    ]) ||
+        value.version !== 'actql-local-publication-metadata-inventory/0.1' ||
+        typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
+        !cidPattern.test(value.authority_scope_cid) ||
+        !cidPattern.test(value.run_definition_cid) ||
+        !cidPattern.test(value.public_index_entry_cid) ||
+        !Array.isArray(value.semantic_cids) ||
+        value.semantic_cids.length === 0 ||
+        value.semantic_cids.some(cid => !cidPattern.test(cid)) ||
+        new Set(value.semantic_cids).size !== value.semantic_cids.length ||
+        [...value.semantic_cids].sort().join('\0') !==
+          value.semantic_cids.join('\0') ||
+        !value.semantic_cids.includes(value.public_index_entry_cid)) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return Object.freeze({
+      ...value,
+      semantic_cids: Object.freeze([...value.semantic_cids]),
+    });
+  };
+
+  const readMetadataInventory = async publicIndexEntryCid => {
+    let bytes;
+    try {
+      bytes = await readBounded(
+        metadataInventoryPath(publicIndexEntryCid),
+        configuration.maxObjectBytes,
+      );
+    } catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    return parseMetadataInventory(bytes);
+  };
+
+  const ensureMetadataInventory = async value => {
+    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+    if (bytes.byteLength > configuration.maxObjectBytes) {
+      fail('PublicationObjectLimit');
+    }
+    try {
+      await writeExclusive(
+        metadataInventoryPath(value.public_index_entry_cid), bytes,
+      );
+    }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readBounded(
+        metadataInventoryPath(value.public_index_entry_cid),
+        configuration.maxObjectBytes,
+      );
+      if (!existing.equals(bytes)) {
+        fail('PublicationMetadataInventoryConflict');
+      }
+    }
+    await syncDirectory(metadataInventoriesDirectory);
+    return parseMetadataInventory(bytes);
+  };
+
+  const readMetadataDeletion = async keyHash => {
+    let bytes;
+    try {
+      bytes = await readBounded(
+        metadataDeletionPath(keyHash), configuration.maxObjectBytes,
+      );
+    } catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) {
+      fail('InvalidPublicationMetadataDeletionStore', error);
+    }
+    if (!exactKeys(value, [
+      'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
+      'public_index_entry_cid', 'results', 'contract_objects', 'requested_at',
+    ]) ||
+        value.version !== 'actql-local-publication-metadata-deletion/0.1' ||
+        typeof value.tenant_id !== 'string' || value.tenant_id.length === 0 ||
+        !cidPattern.test(value.authority_scope_cid) ||
+        !cidPattern.test(value.run_definition_cid) ||
+        !cidPattern.test(value.public_index_entry_cid) ||
+        !Array.isArray(value.results) || value.results.length === 0 ||
+        value.results.some(result => !exactKeys(result, [
+          'result_definition_cid', 'material_generation_cid', 'byte_count',
+        ]) || !cidPattern.test(result.result_definition_cid) ||
+          !cidPattern.test(result.material_generation_cid) ||
+          !quantity(result.byte_count)) ||
+        new Set(value.results.map(result => result.result_definition_cid))
+          .size !== value.results.length ||
+        !Array.isArray(value.contract_objects) ||
+        value.contract_objects.length === 0 ||
+        value.contract_objects.some(object => !exactKeys(object, [
+          'semantic_cid', 'physical_cid', 'byte_count',
+        ]) || !cidPattern.test(object.semantic_cid) ||
+          !cidPattern.test(object.physical_cid) ||
+          !quantity(object.byte_count)) ||
+        new Set(value.contract_objects.map(object => object.semantic_cid))
+          .size !== value.contract_objects.length ||
+        [...value.contract_objects]
+          .sort((left, right) =>
+            left.semantic_cid.localeCompare(right.semantic_cid))
+          .map(object => object.semantic_cid).join('\0') !==
+          value.contract_objects.map(object => object.semantic_cid).join('\0') ||
+        !timestampPattern.test(value.requested_at)) {
+      fail('InvalidPublicationMetadataDeletionStore');
+    }
+    return Object.freeze(value);
+  };
+
+  const ensureMetadataDeletion = async (keyHash, value) => {
+    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+    if (bytes.byteLength > configuration.maxObjectBytes) {
+      fail('PublicationObjectLimit');
+    }
+    try { await writeExclusive(metadataDeletionPath(keyHash), bytes); }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      const existing = await readBounded(
+        metadataDeletionPath(keyHash), configuration.maxObjectBytes,
+      );
+      if (!existing.equals(bytes)) {
+        fail('PublicationMetadataDeletionConflict');
+      }
+    }
+    await syncDirectory(metadataDeletionsDirectory);
+    return readMetadataDeletion(keyHash);
+  };
+
+  const runMetadataDeletionStarted = async runDefinitionCid => {
+    for (const name of await readdir(metadataDeletionsDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationMetadataDeletionStore');
+      }
+      const value = await readMetadataDeletion(name.slice(0, -5));
+      if (value.run_definition_cid === runDefinitionCid) return true;
+    }
+    return false;
   };
 
   const parseCustodyRecord = bytes => {
@@ -1320,6 +1493,9 @@ export async function openLocalPublicationStore(
     active();
     const admitted = admitContract('publication_attempt', suppliedWire);
     const attempt = parseContract(admitted);
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+      fail('PublicationMetadataDeleted');
+    }
     const stored = await putPublicationContract(
       'publication_attempt', admitted.wire,
     );
@@ -1390,6 +1566,9 @@ export async function openLocalPublicationStore(
     const attempt = (await readContract(
       record.publication_attempt_cid, 'publication_attempt',
     )).value;
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+      fail('PublicationMetadataDeleted');
+    }
     const previous = await latestRecordContract(
       record.publication_attempt_cid,
     );
@@ -1435,6 +1614,9 @@ export async function openLocalPublicationStore(
         'result_read_grant', suppliedGrantWire,
       );
       const grant = parseContract(grantContract);
+      if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+        fail('PublicationMetadataDeleted');
+      }
       if (attempt.result_read_grant_cid !== grantContract.identity) {
         fail('DeliveryGrantMismatch');
       }
@@ -1509,6 +1691,9 @@ export async function openLocalPublicationStore(
     const operation = manifestReadAdmissionBusy.then(async () => {
       const admitted = admitContract('manifest_read_grant', suppliedWire);
       const grant = parseContract(admitted);
+      if (await runMetadataDeletionStarted(grant.run_definition_cid)) {
+        fail('PublicationMetadataDeleted');
+      }
       await putPublicationContract('manifest_read_grant', admitted.wire);
       const directory = manifestReadGrantPath(admitted.identity);
       let createdDirectory = false;
@@ -1600,6 +1785,9 @@ export async function openLocalPublicationStore(
     const attempt = parseContract(await readDeliveryAttemptContract(
       record.delivery_attempt_cid,
     ));
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+      fail('PublicationMetadataDeleted');
+    }
     const previous = await latestDeliveryRecordContract(
       record.delivery_attempt_cid,
     );
@@ -1634,7 +1822,7 @@ export async function openLocalPublicationStore(
     return record;
   };
 
-  const inspectCommittedIndex = async key => {
+  const inspectCommittedIndexRaw = async key => {
     active();
     const path = resolve(indexesDirectory, `${indexKey(key)}.json`);
     let bytes;
@@ -1654,6 +1842,12 @@ export async function openLocalPublicationStore(
     }
     await readJsonObject(entry.public_index_entry_cid, 'public_index_entry');
     return entry;
+  };
+
+  const inspectCommittedIndex = async key => {
+    const keyHash = indexKey(key);
+    if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
+    return inspectCommittedIndexRaw(key);
   };
 
   const confirmCommittedIndex = async key => {
@@ -1954,6 +2148,15 @@ export async function openLocalPublicationStore(
     active();
     const admitted = admitContract('public_index_entry', suppliedWire);
     const entry = parseContract(admitted);
+    const key = {
+      tenantId: entry.tenant_id,
+      authorityScopeCid: entry.authority_scope_cid,
+      runDefinitionCid: entry.run_definition_cid,
+    };
+    const keyHash = indexKey(key);
+    if (await readMetadataDeletion(keyHash) !== undefined) {
+      fail('PublicationMetadataDeleted');
+    }
     if (!Array.isArray(requiredObjectCids) ||
         new Set(requiredObjectCids).size !== requiredObjectCids.length ||
         requiredObjectCids.some(cid => !cidPattern.test(cid))) {
@@ -1975,18 +2178,69 @@ export async function openLocalPublicationStore(
     const boundPhysicalCids = await verifyCommitEvidence(
       admitted, entry, suppliedEvidence, required,
     );
+    const inventorySemanticCids = Object.freeze([...new Set([
+      ...requiredObjectCids,
+      admitted.identity,
+      ...suppliedEvidence.durableBindings.map(contract =>
+        parseContract(contract).result_schema_cid),
+    ])].sort());
     const previous = await latestRecordContract(entry.publication_attempt_cid);
     if (previous === undefined ||
         contractControl.recordAllowsCommit(previous) !== true) {
       fail('PublicationAttemptNotCommitting');
     }
+    const existingCommit = await confirmCommittedIndex(key);
+    if (existingCommit !== undefined) {
+      if (existingCommit.invocation_cid !== entry.invocation_cid ||
+          existingCommit.result_manifest_cid !== entry.result_manifest_cid ||
+          existingCommit.publication_request_cid !==
+            entry.publication_request_cid) {
+        fail('PublicationCommitConflict');
+      }
+      const inventory = await readMetadataInventory(
+        existingCommit.public_index_entry_cid,
+      );
+      const directlyRequired = [
+        existingCommit.public_index_entry_cid,
+        existingCommit.invocation_cid,
+        existingCommit.result_manifest_cid,
+        existingCommit.run_receipt_cid,
+        existingCommit.captured_run_cid,
+        ...existingCommit.durable_result_binding_cids,
+        existingCommit.publication_request_cid,
+        existingCommit.publication_attempt_cid,
+      ];
+      for (const bindingCid of
+        existingCommit.durable_result_binding_cids) {
+        const binding = (await readContract(
+          bindingCid, 'durable_result_binding',
+        )).value;
+        directlyRequired.push(binding.result_schema_cid);
+      }
+      if (inventory === undefined ||
+          inventory.public_index_entry_cid !==
+            existingCommit.public_index_entry_cid ||
+          directlyRequired.some(cid =>
+            !inventory.semantic_cids.includes(cid))) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      await adoptPreparedObjects(boundPhysicalCids);
+      return Object.freeze({
+        entry: existingCommit,
+        committed: false,
+        idempotent: true,
+      });
+    }
     await putPublicationContract('public_index_entry', admitted.wire);
-    const key = {
-      tenantId: entry.tenant_id,
-      authorityScopeCid: entry.authority_scope_cid,
-      runDefinitionCid: entry.run_definition_cid,
-    };
-    const target = resolve(indexesDirectory, `${indexKey(key)}.json`);
+    await ensureMetadataInventory(Object.freeze({
+      version: 'actql-local-publication-metadata-inventory/0.1',
+      tenant_id: entry.tenant_id,
+      authority_scope_cid: entry.authority_scope_cid,
+      run_definition_cid: entry.run_definition_cid,
+      public_index_entry_cid: admitted.identity,
+      semantic_cids: inventorySemanticCids,
+    }));
+    const target = resolve(indexesDirectory, `${keyHash}.json`);
     const custody = beginPreparedCommit(
       boundPhysicalCids, key, entry.public_index_entry_cid,
     );
@@ -1996,7 +2250,7 @@ export async function openLocalPublicationStore(
       installed = true;
       await syncDirectory(indexesDirectory);
       durablyConfirmedIndexes.set(
-        indexKey(key), entry.public_index_entry_cid,
+        keyHash, entry.public_index_entry_cid,
       );
       await adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({entry, committed: true, idempotent: false});
@@ -2019,6 +2273,17 @@ export async function openLocalPublicationStore(
       try { await adoptPreparedObjects(boundPhysicalCids); }
       catch (reconciliation) {
         throw commitCustodyFailure(error, custody, reconciliation);
+      }
+      if (existing.public_index_entry_cid !==
+          entry.public_index_entry_cid) {
+        try {
+          await unlink(metadataInventoryPath(entry.public_index_entry_cid));
+          await syncDirectory(metadataInventoriesDirectory);
+        } catch (cleanupError) {
+          if (cleanupError?.code !== 'ENOENT') {
+            throw commitCustodyFailure(error, custody, cleanupError);
+          }
+        }
       }
       return Object.freeze({
         entry: existing,
@@ -2328,6 +2593,273 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
+  const collectRunMetadataContracts = async (
+    runDefinitionCid,
+    keyHash,
+    initial,
+  ) => {
+    const collected = new Set(initial);
+    for (const name of await readdir(attemptsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidPublicationAttemptStore');
+      }
+      const attemptCid = `sha256:${name}`;
+      const attempt = await readContract(attemptCid, 'publication_attempt');
+      if (attempt.value.run_definition_cid !== runDefinitionCid) continue;
+      collected.add(attemptCid);
+      collected.add(attempt.value.publication_request_cid);
+      const directory = publicationAttemptPath(attemptCid);
+      for (const recordName of await readdir(directory)) {
+        if (recordName === 'attempt.json') continue;
+        if (!recordNamePattern.test(recordName)) {
+          fail('InvalidPublicationRecord');
+        }
+        const record = admitContract(
+          'publication_record',
+          (await readBounded(
+            resolve(directory, recordName), configuration.maxObjectBytes,
+          )).toString('utf8'),
+        );
+        collected.add(record.identity);
+      }
+    }
+    for (const name of await readdir(deliveriesDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidDeliveryAttemptStore');
+      }
+      const attemptCid = `sha256:${name}`;
+      const attempt = await readDeliveryAttemptContract(attemptCid);
+      const value = parseContract(attempt);
+      if (value.run_definition_cid !== runDefinitionCid) continue;
+      collected.add(attemptCid);
+      collected.add(value.result_read_grant_cid);
+      const directory = deliveryAttemptPath(attemptCid);
+      for (const recordName of await readdir(directory)) {
+        if (recordName === 'attempt.json') continue;
+        if (!recordNamePattern.test(recordName)) {
+          fail('InvalidDeliveryRecord');
+        }
+        const record = admitContract(
+          'delivery_record',
+          (await readBounded(
+            resolve(directory, recordName), configuration.maxObjectBytes,
+          )).toString('utf8'),
+        );
+        const recordValue = parseContract(record);
+        collected.add(record.identity);
+        if (recordValue.result_delivery_receipt_cid !== undefined) {
+          collected.add(recordValue.result_delivery_receipt_cid);
+        }
+      }
+    }
+    for (const name of await readdir(manifestReadsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidManifestReadStore');
+      }
+      const grantCid = `sha256:${name}`;
+      const grant = await readContract(grantCid, 'manifest_read_grant');
+      if (grant.value.run_definition_cid === runDefinitionCid) {
+        collected.add(grantCid);
+      }
+    }
+    const extensionRoot = retentionExtensionDirectory(keyHash);
+    let resultDirectories = [];
+    try { resultDirectories = await readdir(extensionRoot); }
+    catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+    for (const resultName of resultDirectories) {
+      if (!/^[0-9a-f]{64}$/u.test(resultName)) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      const directory = resolve(extensionRoot, resultName);
+      for (const recordName of await readdir(directory)) {
+        if (!recordNamePattern.test(recordName)) {
+          fail('InvalidPublicationRetentionExtensionStore');
+        }
+        let record;
+        try {
+          record = JSON.parse((await readBounded(
+            resolve(directory, recordName), configuration.maxObjectBytes,
+          )).toString('utf8'));
+        } catch (error) {
+          fail('InvalidPublicationRetentionExtensionStore', error);
+        }
+        if (!cidPattern.test(record?.extension_retention_policy_cid)) {
+          fail('InvalidPublicationRetentionExtensionStore');
+        }
+        collected.add(record.extension_retention_policy_cid);
+      }
+    }
+    return Object.freeze([...collected].sort());
+  };
+
+  const bindMetadataContractObjects = async contractCids => {
+    const objects = [];
+    for (const semanticCid of contractCids) {
+      const bytes = await readSemanticBytes(semanticCid);
+      const physicalCid = `sha256:${createHash('sha256')
+        .update(bytes).digest('hex')}`;
+      const physical = await verifyObject(physicalCid);
+      if (physical.bytes !== bytes.byteLength) {
+        fail('PublicationContractCorrupt');
+      }
+      objects.push(Object.freeze({
+        semantic_cid: semanticCid,
+        physical_cid: physicalCid,
+        byte_count: physical.bytes,
+      }));
+    }
+    return Object.freeze(objects);
+  };
+
+  const metadataResultBindings = async entry => {
+    const results = [];
+    for (const bindingCid of entry.durable_result_binding_cids) {
+      const binding = parseContract((await readContract(
+        bindingCid, 'durable_result_binding',
+      )).contract);
+      if (!quantity(binding.byte_count)) {
+        fail('InvalidPublicationDurableBinding');
+      }
+      results.push(Object.freeze({
+        result_definition_cid: binding.result_definition_cid,
+        material_generation_cid: binding.material_generation_cid,
+        byte_count: binding.byte_count,
+      }));
+    }
+    return Object.freeze(results.sort((left, right) =>
+      left.result_definition_cid.localeCompare(right.result_definition_cid)));
+  };
+
+  const removeRunMetadataDirectories = async (
+    runDefinitionCid,
+    keyHash,
+  ) => {
+    for (const name of await readdir(attemptsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidPublicationAttemptStore');
+      }
+      const attempt = await readContract(
+        `sha256:${name}`, 'publication_attempt',
+      );
+      if (attempt.value.run_definition_cid === runDefinitionCid) {
+        await rm(resolve(attemptsDirectory, name), {
+          recursive: true, force: false,
+        });
+      }
+    }
+    await syncDirectory(attemptsDirectory);
+    for (const name of await readdir(deliveriesDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidDeliveryAttemptStore');
+      }
+      const attempt = await readDeliveryAttemptContract(`sha256:${name}`);
+      if (parseContract(attempt).run_definition_cid === runDefinitionCid) {
+        await rm(resolve(deliveriesDirectory, name), {
+          recursive: true, force: false,
+        });
+      }
+    }
+    await syncDirectory(deliveriesDirectory);
+    for (const name of await readdir(manifestReadsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(name)) {
+        fail('InvalidManifestReadStore');
+      }
+      const grant = await readContract(
+        `sha256:${name}`, 'manifest_read_grant',
+      );
+      if (grant.value.run_definition_cid === runDefinitionCid) {
+        await rm(resolve(manifestReadsDirectory, name), {
+          recursive: true, force: false,
+        });
+      }
+    }
+    await syncDirectory(manifestReadsDirectory);
+    try {
+      await rm(retentionExtensionDirectory(keyHash), {
+        recursive: true, force: false,
+      });
+      await syncDirectory(retentionExtensionsDirectory);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  };
+
+  const metadataContractHasLiveReference = async (
+    semanticCid,
+    excludedKeyHash,
+  ) => {
+    for (const name of await readdir(metadataInventoriesDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      const inventory = await readMetadataInventory(
+        `sha256:${name.slice(0, -5)}`,
+      );
+      const keyHash = indexKey({
+        tenantId: inventory.tenant_id,
+        authorityScopeCid: inventory.authority_scope_cid,
+        runDefinitionCid: inventory.run_definition_cid,
+      });
+      if (keyHash === excludedKeyHash ||
+          await readMetadataDeletion(keyHash) !== undefined) continue;
+      if (inventory.semantic_cids.includes(semanticCid)) return true;
+    }
+    return false;
+  };
+
+  const reclaimMetadataContract = async (
+    keyHash,
+    object,
+    unconfirmedObjects,
+  ) => {
+    if (await metadataContractHasLiveReference(
+      object.semantic_cid, keyHash,
+    )) return;
+    const semanticPath = contractPath(object.semantic_cid);
+    let semanticState;
+    try { semanticState = await lstat(semanticPath); }
+    catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+    if (semanticState !== undefined) {
+      if (!semanticState.isFile() ||
+          semanticState.size !== object.byte_count) {
+        fail('InvalidPublicationContractObject');
+      }
+      const physicalState = await lstat(objectPath(object.physical_cid));
+      if (!physicalState.isFile() ||
+          physicalState.dev !== semanticState.dev ||
+          physicalState.ino !== semanticState.ino ||
+          physicalState.size !== object.byte_count) {
+        fail('PublicationContractCorrupt');
+      }
+      // Another Store directory still needs the canonical contract lookup.
+      if (semanticState.nlink > 2) return;
+      await unlink(semanticPath);
+      await syncDirectory(contractsDirectory);
+    }
+    let physicalState;
+    try { physicalState = await lstat(objectPath(object.physical_cid)); }
+    catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+    if (physicalState === undefined) return;
+    if (!physicalState.isFile() ||
+        physicalState.size !== object.byte_count) {
+      fail('InvalidPublicationStoreObject');
+    }
+    if (physicalState.nlink > 1) return;
+    await unlink(objectPath(object.physical_cid));
+    unconfirmedObjects.set(object.physical_cid, object.byte_count);
+    await syncDirectory(objectsDirectory);
+    if (unconfirmedObjects.delete(object.physical_cid)) {
+      storedBytes -= object.byte_count;
+      objectCount--;
+    }
+  };
+
   const materialHasLiveReference = async materialCid => {
     for (const name of await readdir(indexesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
@@ -2541,10 +3073,17 @@ export async function openLocalPublicationStore(
       if (!/^[0-9a-f]{64}$/u.test(keyHash)) {
         fail('InvalidPublicationDeletionStore');
       }
-      const indexBytes = await readBounded(
-        resolve(indexesDirectory, `${keyHash}.json`),
-        configuration.maxObjectBytes,
-      );
+      let indexBytes;
+      try {
+        indexBytes = await readBounded(
+          resolve(indexesDirectory, `${keyHash}.json`),
+          configuration.maxObjectBytes,
+        );
+      } catch (error) {
+        if (error?.code === 'ENOENT' &&
+            await readMetadataDeletion(keyHash) !== undefined) continue;
+        throw error;
+      }
       const indexContract = admitContract(
         'public_index_entry', indexBytes.toString('utf8'),
       );
@@ -2586,15 +3125,211 @@ export async function openLocalPublicationStore(
     return Object.freeze(recovered);
   };
 
+  const createMetadataDeletionCleanup = async (keyHash, marker) => {
+    const existing = pendingMetadataDeletions.get(keyHash);
+    if (existing !== undefined) {
+      return Object.freeze({marker, cleanup: existing, deleted: false});
+    }
+    let pending = true;
+    const errors = [];
+    const unconfirmedObjects = new Map();
+    const status = () => Object.freeze({
+      pending,
+      errors: Object.freeze([...errors]),
+    });
+    const cleanup = Object.freeze({
+      status,
+      async retry() {
+        if (!pending) return status();
+        const operation = metadataRetentionBusy.then(async () => {
+          if (unconfirmedObjects.size !== 0) {
+            await syncDirectory(objectsDirectory);
+            for (const bytes of unconfirmedObjects.values()) {
+              storedBytes -= bytes;
+              objectCount--;
+            }
+            unconfirmedObjects.clear();
+          }
+          for (const result of marker.results) {
+            const retired = await createResultDeletionCleanup(
+              keyHash,
+              result.result_definition_cid,
+              Object.freeze({
+                version: 'actql-local-result-deletion/0.1',
+                public_index_entry_cid: marker.public_index_entry_cid,
+                result_definition_cid: result.result_definition_cid,
+                material_generation_cid: result.material_generation_cid,
+              }),
+              result.byte_count,
+            );
+            if (retired.cleanup.status().pending) {
+              await retired.cleanup.retry();
+            }
+            if (retired.cleanup.status().pending) return;
+          }
+          await removeRunMetadataDirectories(
+            marker.run_definition_cid, keyHash,
+          );
+          const indexPath = resolve(indexesDirectory, `${keyHash}.json`);
+          let indexBytes;
+          try {
+            indexBytes = await readBounded(
+              indexPath, configuration.maxObjectBytes,
+            );
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+          if (indexBytes !== undefined) {
+            const index = admitContract(
+              'public_index_entry', indexBytes.toString('utf8'),
+            );
+            if (index.identity !== marker.public_index_entry_cid) {
+              fail('InvalidPublicationMetadataDeletionStore');
+            }
+            await unlink(indexPath);
+            await syncDirectory(indexesDirectory);
+          }
+          durablyConfirmedIndexes.delete(keyHash);
+          for (const object of marker.contract_objects) {
+            await reclaimMetadataContract(
+              keyHash, object, unconfirmedObjects,
+            );
+          }
+          if (unconfirmedObjects.size !== 0) {
+            await syncDirectory(objectsDirectory);
+            for (const bytes of unconfirmedObjects.values()) {
+              storedBytes -= bytes;
+              objectCount--;
+            }
+            unconfirmedObjects.clear();
+          }
+          try {
+            await rm(resultDeletionDirectory(keyHash), {
+              recursive: true, force: false,
+            });
+            await syncDirectory(deletionsDirectory);
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+          try {
+            await unlink(metadataInventoryPath(marker.public_index_entry_cid));
+            await syncDirectory(metadataInventoriesDirectory);
+          } catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+          }
+          pending = false;
+          pendingMetadataDeletions.delete(keyHash);
+        });
+        metadataRetentionBusy = operation.catch(() => {});
+        try { await operation; }
+        catch (error) {
+          errors.push(error);
+          throw error;
+        }
+        return status();
+      },
+    });
+    pendingMetadataDeletions.set(keyHash, cleanup);
+    try { await cleanup.retry(); }
+    catch {}
+    return Object.freeze({
+      marker,
+      cleanup,
+      deleted: cleanup.status().pending === false,
+    });
+  };
+
+  const retireCommittedPublicationMetadata = async (key, requestedAt) => {
+    active();
+    if (!timestampPattern.test(requestedAt)) {
+      fail('InvalidPublicationMetadataDeletion');
+    }
+    const keyHash = indexKey(key);
+    let marker = await readMetadataDeletion(keyHash);
+    if (marker === undefined) {
+      const entry = await inspectCommittedIndexRaw(key);
+      if (entry === undefined) fail('PublicationLookupDenied');
+      const inventory = await readMetadataInventory(
+        entry.public_index_entry_cid,
+      );
+      if (inventory === undefined ||
+          inventory.public_index_entry_cid !==
+            entry.public_index_entry_cid) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      const contractCids = await collectRunMetadataContracts(
+        entry.run_definition_cid, keyHash, inventory.semantic_cids,
+      );
+      marker = await ensureMetadataDeletion(keyHash, Object.freeze({
+        version: 'actql-local-publication-metadata-deletion/0.1',
+        tenant_id: entry.tenant_id,
+        authority_scope_cid: entry.authority_scope_cid,
+        run_definition_cid: entry.run_definition_cid,
+        public_index_entry_cid: entry.public_index_entry_cid,
+        results: await metadataResultBindings(entry),
+        contract_objects: await bindMetadataContractObjects(contractCids),
+        requested_at: requestedAt,
+      }));
+    }
+    if (marker.tenant_id !== key.tenantId ||
+        marker.authority_scope_cid !== key.authorityScopeCid ||
+        marker.run_definition_cid !== key.runDefinitionCid) {
+      fail('InvalidPublicationMetadataDeletionStore');
+    }
+    return createMetadataDeletionCleanup(keyHash, marker);
+  };
+
+  const recoverRetiredMetadata = async () => {
+    active();
+    const recovered = [];
+    for (const name of await readdir(metadataDeletionsDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationMetadataDeletionStore');
+      }
+      const keyHash = name.slice(0, -5);
+      recovered.push(await createMetadataDeletionCleanup(
+        keyHash, await readMetadataDeletion(keyHash),
+      ));
+    }
+    return Object.freeze(recovered);
+  };
+
+  const validateCommittedMetadataInventories = async () => {
+    for (const name of await readdir(indexesDirectory)) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+        fail('InvalidPublicationStoreIndex');
+      }
+      const keyHash = name.slice(0, -5);
+      const index = admitContract(
+        'public_index_entry',
+        (await readBounded(
+          resolve(indexesDirectory, name), configuration.maxObjectBytes,
+        )).toString('utf8'),
+      );
+      const inventory = await readMetadataInventory(index.identity);
+      if (inventory === undefined ||
+          inventory.public_index_entry_cid !== index.identity) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+    }
+  };
+
   // Recover process-crash custody before accepting new Store work. A
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.
   await recoverPreparedCustodies();
 
+  await validateCommittedMetadataInventories();
+
   // Reconcile durable deletion markers before accepting new Store work. A
   // failed physical cleanup remains owned by the returned Store and can be
   // retried without making the deleted Result visible again.
   await recoverRetiredResults();
+
+  // Metadata deletion markers hide the public index before physical cleanup.
+  // Restart resumes every exact contract and payload responsibility recorded
+  // by the marker rather than treating an absent index as successful cleanup.
+  await recoverRetiredMetadata();
 
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
@@ -2614,8 +3349,10 @@ export async function openLocalPublicationStore(
     readCommittedResultRetentionExtension,
     putCommittedResultRetentionExtension,
     retireCommittedResult,
+    retireCommittedPublicationMetadata,
     recoverPreparedCustodies,
     recoverRetiredResults,
+    recoverRetiredMetadata,
     readJsonObject,
     async readPublicationContract(cid, name) {
       active();
@@ -2668,6 +3405,7 @@ export async function openLocalPublicationStore(
       if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
+          pendingMetadataDeletions.size !== 0 ||
           activeResultReaders.size !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',

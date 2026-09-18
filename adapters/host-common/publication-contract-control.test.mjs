@@ -30,11 +30,14 @@ import {
 } from './manifest-access.mjs';
 import {
   extendResultRetention,
+  installMetadataRetentionAuthority,
+  installMetadataRetentionService,
   installResultRetentionAuthority,
   installResultRetentionExtensionAuthority,
   installResultRetentionExtensionService,
   installResultRetentionService,
   retireExpiredResult,
+  retireExpiredPublicationMetadata,
 } from './result-retention.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
@@ -2035,6 +2038,42 @@ test('portable control validates Receipt and Captured Run references',
     deletedState.result_availability.answer.reason,
     'deleted',
   );
+  const metadataAuthority = installMetadataRetentionAuthority({
+    authorizeMetadataDeletion: () => true,
+  });
+  const earlyMetadataService = installMetadataRetentionService({
+    store: deliveryStore,
+    control,
+    authority: metadataAuthority,
+    now: () => '2026-09-18T03:59:59.999Z',
+    limits,
+  });
+  await assert.rejects(retireExpiredPublicationMetadata(
+    earlyMetadataService,
+    {indexKey: stateRequest.indexKey, reason: 'metadata_deadline'},
+  ), {code: 'MetadataDeletionNotDue'});
+  const metadataStages = [];
+  const metadataService = installMetadataRetentionService({
+    store: deliveryStore,
+    control,
+    authority: installMetadataRetentionAuthority({
+      authorizeMetadataDeletion(facts) {
+        metadataStages.push(facts.stage);
+        return true;
+      },
+    }),
+    now: () => '2026-09-18T04:00:00.000Z',
+    limits,
+  });
+  const retiredMetadata = await retireExpiredPublicationMetadata(
+    metadataService,
+    {indexKey: stateRequest.indexKey, reason: 'metadata_deadline'},
+  );
+  assert.equal(retiredMetadata.cleanupPending, false);
+  assert.deepEqual(metadataStages, ['request', 'delete']);
+  assert.equal(await deliveryStore.confirmCommittedIndex(
+    stateRequest.indexKey,
+  ), undefined);
 
   const lostDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-lost-response-',

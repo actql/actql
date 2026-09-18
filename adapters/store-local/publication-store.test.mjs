@@ -1130,6 +1130,236 @@ test('durable Result retirement blocks new reads and waits for active readers',
     ), code('PublicationObjectMissing'));
   });
 
+test('metadata retirement hides the Run and reclaims its durable chain',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    const retiredResult = await store.retireCommittedResult(
+      indexKeyFor(request), request.inventory[0].result_definition_cid,
+    );
+    assert.equal(retiredResult.cleanup.status().pending, false);
+    const retiredMetadata = await store.retireCommittedPublicationMetadata(
+      indexKeyFor(request), '2026-09-18T04:00:00.000Z',
+    );
+    assert.equal(retiredMetadata.cleanup.status().pending, false);
+    assert.equal(await store.inspectCommittedIndex(
+      indexKeyFor(request),
+    ), undefined);
+    await assert.rejects(store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry',
+    ), code('PublicationContractMissing'));
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal(await reopened.confirmCommittedIndex(
+      indexKeyFor(request),
+    ), undefined);
+    await assert.rejects(reopened.createAttempt(wire(
+      publicationAttempt(request, 'after-metadata-deletion'),
+    )), code('PublicationMetadataDeleted'));
+  });
+
+test('metadata retirement retains capacity until durability retry', async t => {
+  const directory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-metadata-retry-',
+  ));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const objects = join(directory, 'objects');
+  let objectSyncFailures = 0;
+  const durability = Object.freeze({
+    async syncDirectory(path) {
+      if (path === objects && objectSyncFailures > 0) {
+        objectSyncFailures--;
+        const error = new Error('injected object directory sync failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  const configuration = {
+    directory,
+    storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  };
+  const store = await openLocalPublicationStore(
+    configuration, contractControl, durability,
+  );
+  t.after(async () => { await store.close(); });
+  const invocationValue = invocation();
+  const request = publicationRequest(
+    resultDefinition(), invocationValue.invocation_cid,
+  );
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(
+    store, request, attempt, invocationValue,
+  );
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.commitIndex(
+    wire(entry), prepared.required, prepared.evidence,
+  );
+  const chargedBefore = store.status().storedBytes;
+  objectSyncFailures = 2;
+  const retired = await store.retireCommittedPublicationMetadata(
+    indexKeyFor(request), '2026-09-18T04:00:00.000Z',
+  );
+  assert.equal(retired.cleanup.status().pending, true);
+  assert.equal(retired.cleanup.status().errors[0].code, 'EIO');
+  assert.equal(store.status().storedBytes, chargedBefore);
+  assert.equal(await store.inspectCommittedIndex(
+    indexKeyFor(request),
+  ), undefined);
+  await assert.rejects(
+    store.close(), code('PublicationStoreCleanupPending'),
+  );
+  const retried = await retired.cleanup.retry();
+  assert.equal(retried.pending, false);
+  assert.equal(retried.errors.length, 1);
+  assert.equal(store.status().storedBytes, 0);
+  assert.equal(store.status().objectCount, 0);
+  assert.equal(await store.close(), true);
+});
+
+test('restart resumes metadata retirement after an interrupted unlink',
+  async t => {
+    const {store, configuration, directory} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    await store.close();
+
+    const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+    const controlUrl = new URL(
+      '../host-common/publication-contract-control.fixture.mjs',
+      import.meta.url,
+    ).href;
+    const child = await runStoreChild(`
+      import {open} from 'node:fs/promises';
+      import {join} from 'node:path';
+      import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+      import {createPublicationContractControlFixture} from
+        ${JSON.stringify(controlUrl)};
+      const directory = ${JSON.stringify(directory)};
+      let armed = false;
+      const durability = Object.freeze({async syncDirectory(path) {
+        const handle = await open(path, 'r');
+        try { await handle.sync(); } finally { await handle.close(); }
+        if (armed && path === join(directory, 'objects')) process.exit(73);
+      }});
+      const store = await openLocalPublicationStore(
+        ${JSON.stringify(configuration)},
+        createPublicationContractControlFixture(),
+        durability,
+      );
+      armed = true;
+      await store.retireCommittedPublicationMetadata(
+        ${JSON.stringify(indexKeyFor(request))},
+        '2026-09-18T04:00:00.000Z',
+      );
+    `);
+    assert.equal(child.exitCode, 73, child.stderr);
+    assert.equal(child.signal, null);
+
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal(await reopened.confirmCommittedIndex(
+      indexKeyFor(request),
+    ), undefined);
+    await assert.rejects(reopened.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry',
+    ), code('PublicationContractMissing'));
+    assert.equal(reopened.status().storedBytes, 0);
+    assert.equal(reopened.status().objectCount, 0);
+  });
+
+test('metadata retirement preserves allocations shared by another Run',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const firstRequest = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const secondRequest = publicationRequest(
+      resultDefinition(), digest('second Run'),
+    );
+    const firstAttempt = publicationAttempt(firstRequest, 'first-attempt');
+    const secondAttempt = publicationAttempt(secondRequest, 'second-attempt');
+    const first = await prepareCommit(
+      store, firstRequest, firstAttempt, invocationValue,
+    );
+    const second = await prepareCommit(
+      store, secondRequest, secondAttempt, invocationValue,
+    );
+    const firstEntry = indexEntry(
+      firstRequest, firstAttempt, invocationValue,
+      {durable_result_binding_cids: [first.binding.identity]},
+    );
+    const secondEntry = indexEntry(
+      secondRequest, secondAttempt, invocationValue,
+      {durable_result_binding_cids: [second.binding.identity]},
+    );
+    await store.commitIndex(
+      wire(firstEntry), first.required, first.evidence,
+    );
+    await store.commitIndex(
+      wire(secondEntry), second.required, second.evidence,
+    );
+    const retired = await store.retireCommittedPublicationMetadata(
+      indexKeyFor(firstRequest), '2026-09-18T04:00:00.000Z',
+    );
+    assert.equal(retired.cleanup.status().pending, false);
+    assert.equal((await store.readPublicationContract(
+      invocationValue.invocation_cid, 'run_invocation',
+    )).identity, invocationValue.invocation_cid);
+    const chunks = [];
+    await store.consumeCommittedResult(
+      indexKeyFor(secondRequest),
+      secondRequest.inventory[0].result_definition_cid,
+      () => true,
+      chunk => chunks.push(Buffer.from(chunk)),
+    );
+    assert.equal(
+      Buffer.concat(chunks).toString('utf8'),
+      'fixture durable Result payload',
+    );
+  });
+
 test('Result retention extensions are append-only CAS records across restart',
   async t => {
     const {store, configuration} = await fixture(t);

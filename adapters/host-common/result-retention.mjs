@@ -6,6 +6,8 @@ const authorities = new WeakMap();
 const services = new WeakMap();
 const extensionAuthorities = new WeakMap();
 const extensionServices = new WeakMap();
+const metadataAuthorities = new WeakMap();
+const metadataServices = new WeakMap();
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
@@ -42,6 +44,18 @@ export function installResultRetentionExtensionAuthority(configuration) {
   const authority = Object.freeze({});
   extensionAuthorities.set(authority, Object.freeze({
     authorizeResultExtension: configuration.authorizeResultExtension,
+  }));
+  return authority;
+}
+
+export function installMetadataRetentionAuthority(configuration) {
+  if (!exactKeys(configuration, ['authorizeMetadataDeletion']) ||
+      typeof configuration.authorizeMetadataDeletion !== 'function') {
+    fail('InvalidMetadataRetentionAuthority');
+  }
+  const authority = Object.freeze({});
+  metadataAuthorities.set(authority, Object.freeze({
+    authorizeMetadataDeletion: configuration.authorizeMetadataDeletion,
   }));
   return authority;
 }
@@ -116,6 +130,43 @@ export function installResultRetentionExtensionService(configuration) {
     store: configuration.store,
     control: configuration.control,
     authority: extensionAuthorities.get(configuration.authority),
+    now: configuration.now,
+    limits: Object.freeze({...configuration.limits}),
+  }));
+  return service;
+}
+
+export function installMetadataRetentionService(configuration) {
+  if (!exactKeys(configuration, [
+    'store', 'control', 'authority', 'now', 'limits',
+  ]) || configuration.store === null ||
+      typeof configuration.store !== 'object' ||
+      typeof configuration.store.confirmCommittedIndex !== 'function' ||
+      typeof configuration.store.readPublicationContract !== 'function' ||
+      typeof configuration.store.observeTrustedClock !== 'function' ||
+      typeof configuration.store.retireCommittedPublicationMetadata !==
+        'function' ||
+      configuration.control === null ||
+      typeof configuration.control !== 'object' ||
+      typeof configuration.control.manifestResultNames !== 'function' ||
+      typeof configuration.control.resultReadRetentionPolicyCid !==
+        'function' ||
+      typeof configuration.control.resultMetadataRetentionState !==
+        'function' ||
+      typeof configuration.control.resultRetentionClockContractCid !==
+        'function' ||
+      !metadataAuthorities.has(configuration.authority) ||
+      typeof configuration.now !== 'function' ||
+      !exactKeys(configuration.limits, [
+        'maxWireBytes', 'maxNodes', 'maxDepth',
+      ]) || !Object.values(configuration.limits).every(positive)) {
+    fail('InvalidMetadataRetentionService');
+  }
+  const service = Object.freeze({});
+  metadataServices.set(service, Object.freeze({
+    store: configuration.store,
+    control: configuration.control,
+    authority: metadataAuthorities.get(configuration.authority),
     now: configuration.now,
     limits: Object.freeze({...configuration.limits}),
   }));
@@ -205,6 +256,85 @@ export async function retireExpiredResult(service, request) {
     resultName: request.resultName,
     resultDefinitionCid,
     observedAt: requestedAt,
+    cleanupPending: retired.cleanup.status().pending,
+    cleanupHandle: retired.cleanup,
+  });
+}
+
+function validateMetadataRequest(request) {
+  if (!exactKeys(request, ['indexKey', 'reason']) ||
+      !exactKeys(request.indexKey, [
+        'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+      ]) || typeof request.indexKey.tenantId !== 'string' ||
+      request.indexKey.tenantId.length === 0 ||
+      !cidPattern.test(request.indexKey.authorityScopeCid) ||
+      !cidPattern.test(request.indexKey.runDefinitionCid) ||
+      typeof request.reason !== 'string' || request.reason.length === 0) {
+    fail('InvalidMetadataRetentionRequest');
+  }
+}
+
+export async function retireExpiredPublicationMetadata(service, request) {
+  const installed = metadataServices.get(service) ??
+    fail('ForeignMetadataRetentionService');
+  validateMetadataRequest(request);
+  const indexKey = Object.freeze({...request.indexKey});
+  const observed = observedAt(installed.now);
+  const requestFacts = Object.freeze({
+    stage: 'request',
+    indexKey,
+    reason: request.reason,
+    observedAt: observed,
+  });
+  if (await installed.authority.authorizeMetadataDeletion(requestFacts) !==
+      true) {
+    fail('MetadataRetentionDenied');
+  }
+  const entry = await installed.store.confirmCommittedIndex(indexKey);
+  if (entry === undefined) fail('MetadataRetentionDenied');
+  const manifest = await installed.store.readPublicationContract(
+    entry.result_manifest_cid, 'result_manifest',
+  );
+  const names = installed.control.manifestResultNames(
+    manifest, installed.limits,
+  );
+  if (!Array.isArray(names) || names.length === 0) {
+    fail('InvalidMetadataRetentionInventory');
+  }
+  const retentions = [];
+  for (const resultName of names) {
+    const retentionCid = installed.control.resultReadRetentionPolicyCid(
+      manifest, resultName,
+    );
+    const retention = await installed.store.readPublicationContract(
+      retentionCid, 'result_retention_policy',
+    );
+    const clockCid = installed.control.resultRetentionClockContractCid(
+      retention,
+    );
+    await installed.store.observeTrustedClock(clockCid, observed);
+    if (installed.control.resultMetadataRetentionState(
+      retention, observed,
+    ) !== 'delete_due') {
+      fail('MetadataDeletionNotDue');
+    }
+    retentions.push(retention);
+  }
+  if (await installed.authority.authorizeMetadataDeletion(Object.freeze({
+    ...requestFacts,
+    stage: 'delete',
+    entry,
+    manifest,
+    resultNames: Object.freeze([...names]),
+    retentions: Object.freeze(retentions),
+  })) !== true) {
+    fail('MetadataRetentionDenied');
+  }
+  const retired = await installed.store.retireCommittedPublicationMetadata(
+    indexKey, observed,
+  );
+  return Object.freeze({
+    observedAt: observed,
     cleanupPending: retired.cleanup.status().pending,
     cleanupHandle: retired.cleanup,
   });
