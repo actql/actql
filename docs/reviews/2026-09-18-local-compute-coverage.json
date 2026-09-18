@@ -1995,7 +1995,10 @@
               "Local managed fixed window groups feed two downstream Computes",
               "Local managed sliding window groups feed two downstream Computes",
               "Local managed window Decimal sums feed two downstream Computes",
-              "Local managed window filters gate aggregate expression demand"
+              "Local managed window filters gate aggregate expression demand",
+              "Local managed window direct aggregates feed two downstream Computes",
+              "Local managed window collections feed two downstream Computes",
+              "Local managed window statistics feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2014,7 +2017,10 @@
               "Local managed fixed window groups feed two downstream Computes",
               "Local managed sliding window groups feed two downstream Computes",
               "Local managed window Decimal sums feed two downstream Computes",
-              "Local managed window filters gate aggregate expression demand"
+              "Local managed window filters gate aggregate expression demand",
+              "Local managed window direct aggregates feed two downstream Computes",
+              "Local managed window collections feed two downstream Computes",
+              "Local managed window statistics feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2053,6 +2059,24 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "window_group",
+            "layer": "conformance",
+            "path": "src/execution_relation/window_group_domains_wbtest.mbt",
+            "fixtures": [
+              "window group compares every key domain including owned references",
+              "window group min max and percentile cover every ordered domain",
+              "window group first and last preserve every relation value domain",
+              "window group array aggregate covers every constructible value domain",
+              "window group string and statistical aggregates retain closed laws"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
           }
         ],
         "performance": [
@@ -2074,7 +2098,7 @@
         ]
       },
       "gaps": [
-        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets and through the standard Host. Exact work, storage, and output-row boundaries plus indexed scaling are fixed. The remaining aggregate and type matrix remains."
+        "Every key, order, selected-value, constructible collection, direct exact, ordered, collection, percentile, variance, and standard-deviation domain is covered by independent window-group fixtures. Major aggregate families reach two independently released managed consumers on three targets, and representative filtered aggregation reaches the standard Host. Exact work, storage, output-row boundaries, and indexed scaling are fixed. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
       ]
     },
     {

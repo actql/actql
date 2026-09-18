@@ -29,15 +29,95 @@ fn local_values_window_group_program(variant : String) -> String {
         "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"lowest\":{\"fn\":\"min\",\"expr\":\"100 / amount\",\"filter\":\"amount > 0\"}}}",
         "[\"lowest\",\"window_end\",\"window_start\"]", "[\"window_start\",\"lowest\",\"window_end\"]",
       )
+    "direct_aggregates" =>
+      (
+        "{\"amount\":{\"type\":\"decimal\",\"precision\":38," +
+        "\"scale\":2,\"nullable\":true},\"at\":{\"type\":\"number\"," +
+        "\"nullable\":false},\"flag\":{\"type\":\"boolean\"," +
+        "\"nullable\":true},\"id\":{\"type\":\"number\"," +
+        "\"nullable\":false},\"label\":{\"type\":\"string\"," +
+        "\"nullable\":true}}",
+        "[{\"amount\":\"1.25\",\"at\":1,\"flag\":true,\"id\":1," +
+        "\"label\":\"b\"},{\"amount\":\"2.00\",\"at\":2," +
+        "\"flag\":null,\"id\":2,\"label\":null},{\"amount\":null," +
+        "\"at\":3,\"flag\":false,\"id\":3,\"label\":\"a\"}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"distinct_labels\":{\"fn\":\"count\"," +
+        "\"field\":\"label\",\"distinct\":true}," +
+        "\"first\":{\"fn\":\"first\",\"field\":\"label\"," +
+        "\"order_by\":[{\"id\":\"asc\"}]},\"highest\":{\"fn\":\"max\"," +
+        "\"field\":\"label\"},\"hits\":{\"fn\":\"count_if\"," +
+        "\"field\":\"flag\"},\"last\":{\"fn\":\"last\",\"field\":\"label\"," +
+        "\"order_by\":[{" +
+        "\"id\":\"asc\"}]},\"lowest\":{\"fn\":\"min\"," +
+        "\"field\":\"label\"},\"total\":{\"fn\":\"sum\"," +
+        "\"field\":\"amount\"}}}",
+        "[\"distinct_labels\",\"first\",\"highest\",\"hits\",\"last\"," +
+        "\"lowest\",\"total\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"total\",\"lowest\",\"last\",\"hits\"," +
+        "\"highest\",\"first\",\"distinct_labels\",\"window_end\"]",
+      )
+    "collection_aggregates" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"label\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"at\":1,\"id\":1,\"label\":\"b\"},{\"at\":2," +
+        "\"id\":2,\"label\":null},{\"at\":3,\"id\":3," +
+        "\"label\":\"a\"},{\"at\":4,\"id\":4,\"label\":\"b\"}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\"," +
+        "\"field\":\"label\",\"distinct\":true,\"order_by\":[{" +
+        "\"id\":\"asc\"}],\"max_items\":3},\"text\":{\"fn\":\"string_agg\"," +
+        "\"field\":\"label\"," +
+        "\"distinct\":true,\"order_by\":[{\"id\":\"desc\"}]," +
+        "\"delimiter\":\"|\",\"max_bytes\":10}}}",
+        "[\"items\",\"text\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"text\",\"items\",\"window_end\"]",
+      )
+    "statistical_aggregates" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"at\":1,\"n\":1},{\"at\":2,\"n\":2},{\"at\":3," +
+        "\"n\":3},{\"at\":4,\"n\":null}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\",\"field\":\"n\"," +
+        "\"fraction\":0.5},\"population\":{\"fn\":\"var_pop\"," +
+        "\"field\":\"n\"},\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"n\"},\"sample\":{\"fn\":\"var_samp\",\"field\":\"n\"}," +
+        "\"sample_deviation\":{\"fn\":\"stddev_samp\",\"field\":\"n\"}}}",
+        "[\"continuous\",\"discrete\",\"population\"," +
+        "\"population_deviation\",\"sample\",\"sample_deviation\"," +
+        "\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"sample_deviation\",\"sample\"," +
+        "\"population_deviation\",\"population\",\"discrete\"," +
+        "\"continuous\",\"window_end\"]",
+      )
     _ => abort("unknown Local window group fixture")
   }
+  let ordered = variant == "direct_aggregates" ||
+    variant == "collection_aggregates"
+  let order_evidence = if ordered {
+    ",{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+    "\"as\":\"unique\"}"
+  } else {
+    ""
+  }
+  let window_input = if ordered { "unique" } else { "seed" }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
   "{\"id\":\"windowed\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
   schema +
   ",\"rows\":" +
   rows +
-  "},\"as\":\"seed\"},{\"from\":\"seed\",\"row_window\":" +
+  "},\"as\":\"seed\"}" +
+  order_evidence +
+  ",{\"from\":\"" +
+  window_input +
+  "\",\"row_window\":" +
   window +
   ",\"as\":\"windowed\"},{\"from\":\"windowed\",\"window_group\":" +
   group +
@@ -67,7 +147,7 @@ fn run_local_managed_window_group_case(
     local_values_window_group_variant=variant,
   )
   let registry = search_registry()
-  let limits = dispatch_test_limits()
+  let limits = { ..dispatch_test_limits(), candidate_work: 1000, }
   let installed = @local_driver.prepare_local_dispatch_module(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -87,7 +167,7 @@ fn run_local_managed_window_group_case(
         max_bytes: 2000,
         max_nodes: 200,
         max_depth: 10,
-        max_columns: 4,
+        max_columns: 12,
       },
       row: {
         max_bytes: 2000,
@@ -211,6 +291,57 @@ test "Local managed window filters gate aggregate expression demand" {
     ],
     [
       "{\"window_start\":0,\"lowest\":10,\"window_end\":10}", "{\"window_start\":10,\"lowest\":5,\"window_end\":20}",
+    ],
+  )
+}
+
+///|
+test "Local managed window direct aggregates feed two downstream Computes" {
+  run_local_managed_window_group_case(
+    "direct_aggregates",
+    [
+      "{\"distinct_labels\":2,\"first\":\"b\",\"highest\":\"b\"," +
+      "\"hits\":1,\"last\":\"a\",\"lowest\":\"a\",\"total\":\"3.25\"," +
+      "\"window_end\":10,\"window_start\":0}",
+    ],
+    [
+      "{\"window_start\":0,\"total\":\"3.25\",\"lowest\":\"a\"," +
+      "\"last\":\"a\",\"hits\":1,\"highest\":\"b\",\"first\":\"b\"," +
+      "\"distinct_labels\":2,\"window_end\":10}",
+    ],
+  )
+}
+
+///|
+test "Local managed window collections feed two downstream Computes" {
+  run_local_managed_window_group_case(
+    "collection_aggregates",
+    [
+      "{\"items\":[\"b\",\"a\"],\"text\":\"b|a\",\"window_end\":10," +
+      "\"window_start\":0}",
+    ],
+    [
+      "{\"window_start\":0,\"text\":\"b|a\",\"items\":[\"b\",\"a\"]," +
+      "\"window_end\":10}",
+    ],
+  )
+}
+
+///|
+test "Local managed window statistics feed two downstream Computes" {
+  run_local_managed_window_group_case(
+    "statistical_aggregates",
+    [
+      "{\"continuous\":2,\"discrete\":2,\"population\":" +
+      "0.6666666666666666,\"population_deviation\":0.816496580927726," +
+      "\"sample\":1,\"sample_deviation\":1,\"window_end\":10," +
+      "\"window_start\":0}",
+    ],
+    [
+      "{\"window_start\":0,\"sample_deviation\":1,\"sample\":1," +
+      "\"population_deviation\":0.816496580927726," +
+      "\"population\":0.6666666666666666,\"discrete\":2," +
+      "\"continuous\":2,\"window_end\":10}",
     ],
   )
 }
