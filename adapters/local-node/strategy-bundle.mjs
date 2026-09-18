@@ -69,6 +69,13 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     },
     async runPrepared(prepared, signal) {
       signal?.throwIfAborted();
+      const plannedMaterials = prepared.inputs.map(input =>
+        input.siteMaterial ?? input.material);
+      const preparedRowPlan = prepared.rowPlan ??
+        planManagedInputRows(plannedMaterials);
+      if (preparedRowPlan === undefined) {
+        throw new Error('UnsupportedManagedRowRepresentation');
+      }
       const operations = checked(
         moon.strategyModule_local_ManagedStart(prepared.configuration),
       );
@@ -89,13 +96,11 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               input.siteMaterial ?? input.material)),
             records: Object.freeze([]),
           });
-        const plannedMaterials = prepared.inputs.map(input =>
-          input.siteMaterial ?? input.material);
         const resolvedRowPlan = resolved.materials.length ===
             plannedMaterials.length && resolved.materials.every(
           (material, index) => material === plannedMaterials[index],
         )
-          ? prepared.rowPlan
+          ? preparedRowPlan
           : planManagedInputRows(resolved.materials);
         if (resolvedRowPlan === undefined) {
           throw new Error('UnsupportedManagedRowRepresentation');
