@@ -167,6 +167,12 @@
     ],
     "output": "relation"
   },
+  "REL.analytic": {
+    "inputs": [
+      "relation"
+    ],
+    "output": "relation"
+  },
   "SGA.normalize": {
     "inputs": [
       "graph"

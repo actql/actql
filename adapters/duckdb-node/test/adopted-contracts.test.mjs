@@ -13,7 +13,7 @@ const cid = value => `sha256:${createHash('sha256').update(canonical(value)).dig
 test('example ships exact adopted contract bodies, not test-generated execution expectations', async () => {
   const bundle = JSON.parse(await readFile(new URL('../contracts/adopted-relation.json', import.meta.url), 'utf8'));
   const expected = {
-    registry: 'sha256:604f29b5b36a5b9e66fdd8b866978a65f529d56a41c9c571052a59364196943a',
+    registry: 'sha256:6ec08692f3ccb05427f999dca6fb7f7990dca425a480ee464a9f8bc2c4c7e496',
     values: 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44',
     fragment: 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60',
   };

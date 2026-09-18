@@ -3829,7 +3829,7 @@
       "canonical_operations": [
         "REL.analytic"
       ],
-      "machine_registry": "missing",
+      "machine_registry": "registered",
       "variant_scope": [
         "partition keys",
         "ordered frame",

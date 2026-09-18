@@ -64,6 +64,17 @@ test('selected registration resolves the complete execution contract and checked
   assert.equal(entry.execution_contract.cid,'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44');
 });
 
+test('analytic resolves as a unary relation operation', () => {
+  assert.deepEqual(registry['REL.analytic'], {
+    inputs: ['relation'],
+    output: 'relation',
+  });
+  assert.deepEqual(
+    aoa.target_registry_requirements['REL.analytic'],
+    registry['REL.analytic'],
+  );
+});
+
 test('old selected registry cannot resolve values and a new body cannot reuse the old CID', () => {
   assert.throws(() => resolveValues(base,oldCid),/MissingRegistration/);
   assert.throws(() => resolveValues(base),/RegistryCidMismatch/);
