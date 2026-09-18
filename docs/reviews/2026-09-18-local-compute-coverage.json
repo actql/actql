@@ -2022,6 +2022,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "window_group",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -2045,7 +2058,7 @@
         "performance": []
       },
       "gaps": [
-        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets. The remaining aggregate and type matrix, Standard Host evidence, exact capacity boundaries, and fixed scaling evidence remain."
+        "Fixed and sliding count groups, nullable keys, empty inputs, canonical window ordering, Decimal sum, and filtered expression aggregates now reach managed Local execution with two independently released consumers on three targets and through the standard Host. The remaining aggregate and type matrix, exact capacity boundaries, and fixed scaling evidence remain."
       ]
     },
     {
@@ -5673,6 +5686,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "analytic",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -5716,7 +5742,7 @@
         ]
       },
       "gaps": [
-        "Ranking, navigation, direct and collection frame aggregates, including filtered expression arguments, now lower and run through managed Local execution with exact expression contexts, exact envelopes, two downstream consumers, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
+        "Ranking, navigation, direct and collection frame aggregates, including filtered expression arguments, now lower and run through managed Local execution with exact expression contexts, exact envelopes, two downstream consumers, standard-Host evidence, three-target conformance, and indexed scaling evidence. Binary64 numeric-observation aggregates, the complete formal variant and type matrix, and the remaining failure and lifetime cases remain."
       ]
     }
   ],

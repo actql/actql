@@ -52,6 +52,7 @@ import {
   installNodeResultAccessService,
   installResultAccessAuthority,
 } from '../../host-node/result-access.mjs';
+import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -425,6 +426,25 @@ test('standard native and broad Node Hosts own verification through real capture
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8')];
+  const analyticEnvironment = JSON.parse(args[0]);
+  Object.assign(analyticEnvironment.host_policy_profile.capacity, {
+    max_analytic_frame_memberships: 10000,
+    max_analytic_input_wire_bytes: 10000,
+    max_analytic_output_wire_bytes: 10000,
+    max_analytic_partition_wire_bytes: 10000,
+  });
+  const {
+    evidence_bundle_cid: ignoredEnvironmentCid,
+    ...analyticEnvironmentBody
+  } = analyticEnvironment;
+  void ignoredEnvironmentCid;
+  analyticEnvironment.evidence_bundle_cid =
+    canonicalHash(analyticEnvironmentBody);
+  const analyticArgs = [
+    canonical(analyticEnvironment),
+    analyticEnvironment.evidence_bundle_cid,
+    ...args.slice(2),
+  ];
   const base = join(root, '_build/duckdb-fixtures');
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'standard-host-'));
@@ -643,12 +663,26 @@ test('standard native and broad Node Hosts own verification through real capture
           configure(limited), limits), { code: 'MoonBitHostFailure' });
         close(limited);
       }
-      if (kind === 'valid') await exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits);
+      if (kind === 'valid') await exerciseStrategyGraph(
+        fixture,
+        args,
+        analyticArgs,
+        path,
+        grant,
+        suppliedLimits,
+      );
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
-async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits) {
+async function exerciseStrategyGraph(
+  fixture,
+  args,
+  analyticArgs,
+  path,
+  grant,
+  suppliedLimits,
+) {
   const hostRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const stage = (id, producer, filter) => ({ id, inputs: { x: { result: { stage: producer, result: 'r' } } },
     steps: [{ filter }, { select: ['id'], as: 'out' }],
@@ -1867,6 +1901,50 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   };
   const fixedRowWindowProgram = rowWindowProgram('fixed');
   const slidingRowWindowProgram = rowWindowProgram('sliding');
+  const windowGroupProgram = structuredClone(zeroInputProgram);
+  const windowGroupFields = ['lowest', 'window_end', 'window_start'];
+  windowGroupProgram.stages.splice(1, 3, {
+    id: 'window_grouped',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        amount: {type: 'number', nullable: false},
+        at: {type: 'number', nullable: false},
+      },
+      rows: [
+        {amount: 0, at: 1},
+        {amount: 10, at: 2},
+        {amount: 20, at: 11},
+      ],
+    }, as: 'seed'}, {
+      from: 'seed',
+      row_window: {kind: 'fixed', time: 'at', size: 10},
+      as: 'windowed',
+    }, {
+      from: 'windowed',
+      window_group: {by: [], aggregates: {
+        lowest: {
+          fn: 'min',
+          expr: '100 / amount',
+          filter: 'amount > 0',
+        },
+      }},
+      as: 'out',
+    }],
+    results: {r: {from: 'out', fields: windowGroupFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `window_group_consumer_${id}`,
+    inputs: {x: {result: {stage: 'window_grouped', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? windowGroupFields
+      : [...windowGroupFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out',
+      fields: id === 'a'
+        ? windowGroupFields
+        : [...windowGroupFields].reverse(),
+    }},
+  })));
   const lagProgram = structuredClone(zeroInputProgram);
   const lagFields = ['amount', 'group', 'id', 'previous'];
   lagProgram.stages.splice(1, 3, {
@@ -1902,6 +1980,52 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       as: 'out'}],
     results: {r: {
       from: 'out', fields: id === 'a' ? lagFields : [...lagFields].reverse(),
+    }},
+  })));
+  const analyticProgram = structuredClone(zeroInputProgram);
+  const analyticFields = ['amount', 'group', 'id', 'lowest'];
+  analyticProgram.stages.splice(1, 3, {
+    id: 'analytic_rows',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        amount: {type: 'number', nullable: true},
+        group: {type: 'string', nullable: true},
+        id: {type: 'number', nullable: false},
+      },
+      rows: [
+        {amount: 30, group: 'a', id: 3},
+        {amount: 20, group: null, id: 2},
+        {amount: 10, group: 'a', id: 1},
+        {amount: 0, group: null, id: 4},
+        {amount: 30, group: 'a', id: 5},
+      ],
+    }, as: 'seed'}, {
+      from: 'seed',
+      analytic: {
+        partition_by: ['group'],
+        order_by: [{id: 'asc'}],
+        frame: {start: 'unbounded_preceding', end: 'current_row'},
+        functions: {lowest: {
+          fn: 'min',
+          expr: 'amount + 1',
+          filter: 'amount > 0',
+        }},
+      },
+      as: 'out',
+    }],
+    results: {r: {from: 'out', fields: analyticFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `analytic_consumer_${id}`,
+    inputs: {x: {result: {stage: 'analytic_rows', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? analyticFields
+      : [...analyticFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out',
+      fields: id === 'a'
+        ? analyticFields
+        : [...analyticFields].reverse(),
     }},
   })));
   const unpivotProgram = structuredClone(zeroInputProgram);
@@ -2176,7 +2300,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
+    ['window group', windowGroupProgram, [1, 2, 3]],
     ['parameter lag', lagProgram, [1, 2, 3]],
+    ['analytic', analyticProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
     ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
@@ -2185,12 +2311,16 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
+    const fixtureArgs = name === 'analytic' ? analyticArgs : args;
     let zeroInputFixture;
     try {
       zeroInputFixture = fixture.strategyFixtureCreate(
-        ...args, JSON.stringify(program));
+        ...fixtureArgs, JSON.stringify(program));
     } catch (error) {
-      throw new Error(`${name}: fixture preparation failed`, {cause: error});
+      throw new Error(
+        `${name}: fixture preparation failed: ${String(error)}`,
+        {cause: error},
+      );
     }
     const zeroInputCapture = await runNativeHostQuery(
       grant, fixture.strategyFixtureAcquisition(zeroInputFixture), suppliedLimits);
@@ -2198,8 +2328,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     try {
       assert.equal(fixture.strategyFixtureOpen(
         zeroInputFixture, zeroInputCapture.source()), true);
+      let setup;
+      try {
+        setup = fixture.strategyFixtureModuleSubset(zeroInputFixture, 0);
+      } catch (error) {
+        throw new Error(`${name}: strategy setup failed`, {cause: error});
+      }
       zeroInputExecution = await runCapturedInternalStrategy(
-        fixture.strategyFixtureModuleSubset(zeroInputFixture, 0),
+        setup,
         {duckdb: new Proxy({}, {
           get() { assert.fail('unused DuckDB settings accessed'); },
         })},
@@ -2233,6 +2369,20 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         );
       }
       if (name === 'parameter lag') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [5, 5, 5],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'window group') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'analytic') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [5, 5, 5],

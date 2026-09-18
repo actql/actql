@@ -42,7 +42,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | top_k | C | C | C | C | Complete: compound NULL order, stable completion, literal and parameter counts, all payload and orderable domains, exact large budgets, standard Host, two consumers, and indexed scaling |
 | top_k_by | C | C | C | C | Complete: repeated and nullable partitions, all payload, key, and orderable domains, literal and parameter counts, exact large budgets, standard Host, two consumers, and indexed scaling |
 | row_window | C | C | C | C | Complete: fixed/sliding number and timestamp windows, literal and Parameter bounds, exact signed grids, arithmetic failures, budgets, Standard Host execution, two consumers, and emitted-membership scaling |
-| window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, Decimal sum, and filtered expression aggregates reach two managed consumers on three targets; remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
+| window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, Decimal sum, and filtered expression aggregates reach two managed consumers on three targets and the standard Host; remaining aggregates and types, exact capacity boundaries, and scaling evidence remain |
 | lag | C | C | C | C | Complete: literal, default, and Parameter offsets; full value, key, and orderable type matrices; stable ties and NULL boundaries; exact budgets; Standard Host execution; two consumers; cancellation; and indexed scaling |
 | watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/max/first, literal and Parameter fill, every AuthorOrderable min/max domain, empty axes, and Decimal sum are managed; count uses the standard Host, while binary64 observation and native observation-aware aggregation remain |
@@ -60,7 +60,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
 | cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
-| analytic | C | C | P | P | Ranking, navigation, direct, collection, and filtered expression frame aggregates, exact runtime envelopes, indexed scaling, and two managed consumers are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
+| analytic | C | C | P | P | Ranking, navigation, direct, collection, and filtered expression frame aggregates, exact runtime envelopes, indexed scaling, two managed consumers, and the standard Host are covered; numeric observations, the full variant/type matrix, and remaining failure/lifetime evidence remain |
 
 ## Shared-boundary notifications
 
