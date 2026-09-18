@@ -95,7 +95,24 @@ fn local_managed_sequence_requires_numeric(
     match step {
       @lower.RowStep(kernel) =>
         match @lower.kernel_group(kernel) {
-          None => ()
+          None => {
+            match @lower.kernel_analytic(kernel) {
+              Some(analytic) =>
+                if !@execution.analytic_execution_supported(analytic) &&
+                  @execution.analytic_execution_supported_with_numeric(analytic) {
+                  required = true
+                }
+              None => ()
+            }
+            match @lower.kernel_pivot(kernel) {
+              Some(pivot) =>
+                if !@execution.pivot_execution_supported(pivot) &&
+                  @execution.pivot_execution_supported_with_numeric(pivot) {
+                  required = true
+                }
+              None => ()
+            }
+          }
           Some(group) =>
             for index in 0..<@lower.group_aggregate_count(group) {
               if @lower.group_aggregate_requires_numeric_observation(
@@ -146,18 +163,9 @@ pub fn local_managed_sequence_supported(
           Groups(group) =>
             @execution.group_execution_supported_with_numeric(group)
           AnalyticRows(analytic) =>
-            @execution.analytic_execution_supported(analytic)
+            @execution.analytic_execution_supported_with_numeric(analytic)
           Pivot(pivot) =>
-            match @lower.pivot_function(pivot) {
-              @relation.Count
-              | @relation.Min
-              | @relation.Max
-              | @relation.First => true
-              @relation.Sum =>
-                @lower.pivot_result_contract(pivot).shape
-                is @contract.Decimal(precision=38, ..)
-              _ => false
-            }
+            @execution.pivot_execution_supported_with_numeric(pivot)
         }
       @lower.AppendStep(_) => true
       @lower.SetStep(_) => true

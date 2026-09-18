@@ -358,3 +358,12 @@ test "Local managed window statistics feed two downstream Computes" {
     ],
   )
 }
+
+///|
+test "Local managed window numeric reductions feed two downstream Computes" {
+  run_local_managed_window_group_case(
+    "numeric",
+    ["{\"mean\":0,\"total\":0,\"window_end\":10,\"window_start\":0}"],
+    ["{\"window_start\":0,\"total\":0,\"mean\":0,\"window_end\":10}"],
+  )
+}

@@ -376,3 +376,20 @@ test "Local managed analytic statistics feed two downstream Computes" {
     ],
   )
 }
+
+///|
+test "Local managed analytic numeric reductions feed two downstream Computes" {
+  run_local_managed_analytic_case(
+    "numeric",
+    [
+      "{\"amount\":10000000000000000,\"group\":\"a\",\"id\":1,\"mean\":10000000000000000,\"total\":10000000000000000}",
+      "{\"amount\":1,\"group\":\"a\",\"id\":2,\"mean\":5000000000000000,\"total\":10000000000000000}",
+      "{\"amount\":-10000000000000000,\"group\":\"a\",\"id\":3,\"mean\":0,\"total\":0}",
+    ],
+    [
+      "{\"total\":10000000000000000,\"mean\":10000000000000000,\"id\":1,\"group\":\"a\",\"amount\":10000000000000000}",
+      "{\"total\":10000000000000000,\"mean\":5000000000000000,\"id\":2,\"group\":\"a\",\"amount\":1}",
+      "{\"total\":0,\"mean\":0,\"id\":3,\"group\":\"a\",\"amount\":-10000000000000000}",
+    ],
+  )
+}
