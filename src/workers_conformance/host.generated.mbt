@@ -7,6 +7,21 @@ pub(all) suberror NodeHostFailure {
   Execution(@strategy.RunIssue)
   InvalidCommand
   Encoding(@encode.EncodeFailure)
+  OutputExport(@execution.CompletedExportIssue)
+  PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  CapturedRun(@publication.CapturedRunIssuanceIssue)
+}
+
+///|
+/// Opaque bridge state for one bounded canonical export of a completed output.
+/// Node may drive batches and persist bytes, but only MoonBit owns typed value
+/// interpretation, canonical ordering, admission, and the content receipt.
+struct StrategyHostOutputExport {
+  stream : @execution.CompletedOutputExport
+  definition : @publication.PublicationContract?
+  mut receipt : @execution.CompletedRelationExportReceipt?
+  mut evidence : @publication.ResultOrderingEvidence?
+  mut artifact : @publication.PublicationContract?
 }
 
 ///|
@@ -276,6 +291,1078 @@ pub fn strategy_host_count(
 }
 
 ///|
+#export_name("strategyHostProgramDefinitionCid")
+pub fn strategy_host_program_definition_cid(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> String {
+  @strategy.graph_program_definition_cid(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
+#export_name("strategyHostResultNames")
+pub fn strategy_host_result_names(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index => {
+    @strategy.graph_result_name(graph, index).unwrap()
+  })
+}
+
+///|
+#export_name("strategyHostResultTasks")
+pub fn strategy_host_result_tasks(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index => {
+    @strategy.graph_result_task(graph, index).unwrap()
+  })
+}
+
+///|
+/// Complete Result Definition bodies sealed by the portable MoonBit contract
+/// implementation from the exact checked graph inventory.
+#export_name("strategyHostResultDefinitions")
+pub fn strategy_host_result_definitions(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] raise NodeHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  let program = @strategy.graph_program_definition_cid(graph)
+  let definitions : Array[String] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    let name = @strategy.graph_result_name(graph, index).unwrap()
+    let definition = match
+      @publication.prepare_result_definition(program, name) {
+      Ok(value) => value
+      Err(_) => raise InvalidCommand
+    }
+    definitions.push(
+      match @publication.result_definition_json(definition) {
+        Ok(value) => value
+        Err(_) => raise InvalidCommand
+      },
+    )
+  }
+  definitions
+}
+
+///|
+/// Complete publication inventory owned by the portable core. JavaScript may
+/// project this opaque value for coordination but cannot supply or alter its
+/// Result occurrences.
+#export_name("strategyHostPublicationInventory")
+pub fn strategy_host_publication_inventory(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @publication.CheckedPublicationInventory raise NodeHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  let names : Array[String] = []
+  let tasks : Array[Int] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    names.push(@strategy.graph_result_name(graph, index).unwrap())
+    tasks.push(@strategy.graph_result_task(graph, index).unwrap())
+  }
+  match
+    @publication.prepare_checked_publication_inventory(
+      @strategy.graph_program_definition_cid(graph),
+      names,
+      tasks,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryProgramCid")
+pub fn strategy_host_publication_inventory_program_cid(
+  inventory : @publication.CheckedPublicationInventory,
+) -> String {
+  @publication.checked_publication_inventory_program_cid(inventory)
+}
+
+///|
+#export_name("strategyHostPublicationInventoryCount")
+pub fn strategy_host_publication_inventory_count(
+  inventory : @publication.CheckedPublicationInventory,
+) -> Int {
+  @publication.checked_publication_inventory_count(inventory)
+}
+
+///|
+#export_name("strategyHostPublicationInventoryName")
+pub fn strategy_host_publication_inventory_name(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match @publication.checked_publication_inventory_name(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryTask")
+pub fn strategy_host_publication_inventory_task(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> Int raise NodeHostFailure {
+  match @publication.checked_publication_inventory_task(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryDefinitionCid")
+pub fn strategy_host_publication_inventory_definition_cid(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_cid(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyHostPublicationInventoryDefinitionJson")
+pub fn strategy_host_publication_inventory_definition_json(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_json(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// Admit and seal a bounded publication body in the portable contract owner.
+/// The Node adapter supplies bytes and budgets; it does not define canonical
+/// identity or contract validity.
+#export_name("strategyPublicationSeal")
+pub fn strategy_publication_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.seal_publication_contract(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPublicationAdmit")
+pub fn strategy_publication_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.admit_publication_contract(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunEvidenceSeal")
+pub fn strategy_run_evidence_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise NodeHostFailure {
+  match
+    @publication.seal_run_evidence_value(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunEvidenceAdmit")
+pub fn strategy_run_evidence_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise NodeHostFailure {
+  match
+    @publication.admit_run_evidence_value(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunEvidenceName")
+pub fn strategy_run_evidence_name(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_name(value)
+}
+
+///|
+#export_name("strategyRunEvidenceIdentity")
+pub fn strategy_run_evidence_identity(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_identity(value)
+}
+
+///|
+#export_name("strategyRunEvidenceJson")
+pub fn strategy_run_evidence_json(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_json(value)
+}
+
+///|
+#export_name("strategyIssueRunInvocation")
+pub fn strategy_issue_run_invocation(
+  template : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_run_invocation(
+      template, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunPublicationAdmit")
+pub fn strategy_run_publication_admit(
+  template : @publication.RunEvidenceValue,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  compiled_plan : @publication.PublicationContract,
+) -> @publication.RunPublicationAdmission raise NodeHostFailure {
+  match
+    @publication.admit_run_publication(
+      template, prepared, authorization, compiled_plan,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueRunDefinition")
+pub fn strategy_issue_run_definition(
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_run_definition(
+      admission, scope_id, run_id, input_artifact_set_cid, created_at, valid_until,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectFreeRunReceipt")
+pub fn strategy_issue_effect_free_run_receipt(
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  normalization_journal : @publication.RunEvidenceValue,
+  binding_names : Array[String],
+  binding_digests : Array[String],
+  source_evidence : Array[@publication.RunEvidenceValue],
+  model_evidence : Array[@publication.RunEvidenceValue],
+  barrier_attempt_receipt_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_free_run_receipt(
+      admission, run_definition, invocation, observation, definitions, artifacts,
+      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
+      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitCapturedResultSnapshot")
+pub fn strategy_admit_captured_result_snapshot(
+  definition : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitPendingSourceStateAdvance")
+pub fn strategy_admit_pending_source_state_advance(
+  complete_wire : String,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PendingSourceStateAdvance raise NodeHostFailure {
+  match
+    @publication.admit_pending_source_state_advance(
+      complete_wire, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectFreeCapturedRun")
+pub fn strategy_issue_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_free_captured_run(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPublicationContractName")
+pub fn strategy_publication_contract_name(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_name(contract)
+}
+
+///|
+#export_name("strategyPublicationContractIdentityField")
+pub fn strategy_publication_contract_identity_field(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity_field(contract)
+}
+
+///|
+#export_name("strategyPublicationContractIdentity")
+pub fn strategy_publication_contract_identity(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity(contract)
+}
+
+///|
+#export_name("strategyPublicationContractJson")
+pub fn strategy_publication_contract_json(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_json(contract)
+}
+
+///|
+#export_name("strategyPublicationRecordTransition")
+pub fn strategy_publication_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+  uncommitted_confirmed : Bool,
+) -> Bool {
+  @publication.validate_publication_record_transition(
+    previous, next, uncommitted_confirmed,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyPublicationRecordAllowsCommit")
+pub fn strategy_publication_record_allows_commit(
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.publication_record_allows_commit(record)
+}
+
+///|
+#export_name("strategyRunPublicationChainValid")
+pub fn strategy_run_publication_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_run_publication_chain(
+    run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+/// Construct the complete name-sorted Manifest from admitted Run contracts.
+/// The environment adapter cannot omit or rename a declared Result.
+#export_name("strategyIssueResultManifest")
+pub fn strategy_issue_result_manifest(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_manifest(
+      run_definition, invocation, definitions, artifacts, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueDurableResultBinding")
+pub fn strategy_issue_durable_result_binding(
+  run_definition : @publication.PublicationContract,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
+  material_generation_cid : String,
+  store_authority_cid : String,
+  row_count : Int,
+  byte_count : Int,
+  physical_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_durable_result_binding(
+      run_definition, definition, invocation, artifact, ordering, retention, codec_contract_cid,
+      result_fields, result_schema_wire, material_generation_cid, store_authority_cid,
+      row_count, byte_count, physical_sha256, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicationRequest")
+pub fn strategy_issue_publication_request(
+  run_definition : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  tenant_id : String,
+  authority_scope_cid : String,
+  publication_policy_cid : String,
+  publication_target_cid : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_request(
+      run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+      publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicationAttempt")
+pub fn strategy_issue_publication_attempt(
+  request : @publication.PublicationContract,
+  run_definition : @publication.PublicationContract,
+  attempt_id : String,
+  fence_cid : String,
+  external_idempotency_key : String?,
+  started_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_attempt(
+      request, run_definition, attempt_id, fence_cid, external_idempotency_key, started_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicIndexEntry")
+pub fn strategy_issue_public_index_entry(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  durable_bindings : Array[@publication.PublicationContract],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  committed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_public_index_entry(
+      run_definition, invocation, manifest, receipt, captured_run, durable_bindings,
+      request, attempt, committed_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicationRecord")
+pub fn strategy_issue_publication_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  observed_at : String,
+  public_index_entry : @publication.PublicationContract?,
+  failure_cid : String?,
+  cleanup_owner_cids : Array[String],
+  uncommitted_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_record(
+      attempt, previous, state, observed_at, public_index_entry, failure_cid, cleanup_owner_cids,
+      uncommitted_confirmed, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectFreeRunEvidenceChainValid")
+pub fn strategy_effect_free_run_evidence_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effect_free_run_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyEffectFreePublicationCommitValid")
+pub fn strategy_effect_free_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effect_free_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyDeliveryRecordTransition")
+pub fn strategy_delivery_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_record_transition(previous, next) is Ok(_)
+}
+
+///|
+#export_name("strategyDeliverySuccessValid")
+pub fn strategy_delivery_success_valid(
+  attempt : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_success_evidence(attempt, receipt, record)
+  is Ok(_)
+}
+
+///|
+#export_name("strategyResultSerializationContractCid")
+pub fn strategy_result_serialization_contract_cid(
+  format : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.result_serialization_contract_cid(
+      format, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueManifestReadGrant")
+pub fn strategy_issue_manifest_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_manifest_read_grant(
+      index, manifest, principal_id, purpose, data_ceiling_cid, max_bytes, max_uses,
+      expires_at, authorization_context_cid, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueResultReadGrant")
+pub fn strategy_issue_result_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_names : Array[String],
+  formats : Array[String],
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  egress_admission_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_read_grant(
+      index, manifest, result_names, formats, principal_id, purpose, data_ceiling_cid,
+      max_bytes, max_uses, expires_at, authorization_context_cid, egress_admission_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueDeliveryAttempt")
+pub fn strategy_issue_delivery_attempt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_delivery_attempt(
+      index, manifest, grant, result_name, format, attempt_id, requested_at, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyDeliveryResultDefinitionCid")
+pub fn strategy_delivery_result_definition_cid(
+  manifest : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.delivery_result_definition_cid(manifest, attempt) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadRetentionPolicyCid")
+pub fn strategy_result_read_retention_policy_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise NodeHostFailure {
+  match @publication.result_read_retention_policy_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyManifestResultNames")
+pub fn strategy_manifest_result_names(
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.manifest_result_names_json(
+      manifest, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadDefinitionCid")
+pub fn strategy_result_read_definition_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise NodeHostFailure {
+  match @publication.result_read_definition_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyRunDefinitionRunId")
+pub fn strategy_run_definition_run_id(
+  run_definition : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.run_definition_run_id(run_definition) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadAvailability")
+pub fn strategy_result_read_availability(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  retention : @publication.PublicationContract,
+  observed_at : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.result_read_availability(
+      manifest, result_name, retention, observed_at,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultRetentionClockContractCid")
+pub fn strategy_result_retention_clock_contract_cid(
+  retention : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.result_retention_clock_contract_cid(retention) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyTrustedClockNotBefore")
+pub fn strategy_trusted_clock_not_before(
+  previous : String?,
+  observed_at : String,
+) -> Bool {
+  @publication.trusted_clock_not_before(previous, observed_at)
+}
+
+///|
+#export_name("strategyIssueSucceededRunState")
+pub fn strategy_issue_succeeded_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  observed_at : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.issue_succeeded_run_state_wire(
+      run_id, updated_at, declared_results, names, states, reasons, observed_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadGrantAllowsBytes")
+pub fn strategy_result_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.result_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("strategyManifestReadGrantAllowsBytes")
+pub fn strategy_manifest_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.manifest_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("strategyManifestReadGrantValidAt")
+pub fn strategy_manifest_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.manifest_read_grant_valid_at(grant, observed_at)
+}
+
+///|
+#export_name("strategyResultReadGrantValidAt")
+pub fn strategy_result_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.result_read_grant_valid_at(grant, observed_at)
+}
+
+///|
+#export_name("strategyIssueResultDeliveryReceipt")
+pub fn strategy_issue_result_delivery_receipt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  delivered_byte_count : Int,
+  delivered_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_delivery_receipt(
+      index, manifest, grant, attempt, delivered_byte_count, delivered_sha256, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueDeliveryRecord")
+pub fn strategy_issue_delivery_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  confirmed_byte_count : Int,
+  exposure : String,
+  possible_unconfirmed_max_bytes : Int?,
+  delivered_sha256 : String?,
+  receipt : @publication.PublicationContract?,
+  failure_cid : String?,
+  observed_at : String,
+  cleanup_owner_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_delivery_record(
+      attempt, previous, state, confirmed_byte_count, exposure, possible_unconfirmed_max_bytes,
+      delivered_sha256, receipt, failure_cid, observed_at, cleanup_owner_cids, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPrepareResultDeliverySerializer")
+pub fn strategy_prepare_result_delivery_serializer(
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.ResultDeliverySerializer raise NodeHostFailure {
+  match
+    @publication.prepare_result_delivery_serializer(
+      format, schema_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyBeginResultDelivery")
+pub fn strategy_begin_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.begin_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyNextResultDeliveryRow")
+pub fn strategy_next_result_delivery_row(
+  serializer : @publication.ResultDeliverySerializer,
+  row_wire : String,
+) -> String raise NodeHostFailure {
+  match @publication.next_result_delivery_row(serializer, row_wire) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyFinishResultDelivery")
+pub fn strategy_finish_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.finish_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -324,6 +1411,503 @@ pub fn strategy_host_output(
   @strategy.captured_task_target(run, task).bind(target => {
     @strategy.captured_task_output(run, task, target)
   })
+}
+
+///|
+/// Begin a bounded canonical typed-row export from the exact completed output.
+/// The output remains owned by the common execution graph; this handle only
+/// owns the export traversal and receipt.
+#export_name("strategyHostOutputExportBegin")
+pub fn strategy_host_output_export_begin(
+  output : @execution.CompletedOutput,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  match
+    @execution.prepare_completed_relation_export(
+      output,
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) =>
+      {
+        stream,
+        definition: None,
+        receipt: None,
+        evidence: None,
+        artifact: None,
+      }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+/// Begin an export for one exact checked Named Result occurrence. The common
+/// graph supplies both the completed producer and its opaque ResultPort; the
+/// adapter cannot replace either with a task number or an authored name.
+#export_name("strategyHostResultOutputExportBegin")
+pub fn strategy_host_result_output_export_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_result_task(graph, result) is Some(task) else {
+    raise InvalidCommand
+  }
+  guard @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    raise InvalidCommand
+  }
+  guard @strategy.graph_result_name(graph, result) is Some(result_name) else {
+    raise InvalidCommand
+  }
+  let definition = match
+    @publication.prepare_result_definition(
+      @strategy.graph_program_definition_cid(graph),
+      result_name,
+    ) {
+    Ok(value) => @publication.result_definition_contract(value)
+    Err(_) => raise InvalidCommand
+  }
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    raise InvalidCommand
+  }
+  guard @strategy.captured_task_output(run, task, target) is Some(output) else {
+    raise InvalidCommand
+  }
+  match
+    @execution.prepare_completed_result_relation_export(
+      output,
+      occurrence,
+      {
+        max_fields: max_result_fields,
+        max_mapping_work: max_result_mapping_work,
+        max_order_work: max_result_order_work,
+        max_workspace_entries: max_result_workspace_entries,
+      },
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) =>
+      {
+        stream,
+        definition: Some(definition),
+        receipt: None,
+        evidence: None,
+        artifact: None,
+      }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportNext")
+pub fn strategy_host_output_export_next(
+  value : StrategyHostOutputExport,
+) -> String? raise NodeHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.next_completed_output_export(value.stream) {
+    Ok(part) => part
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+/// Finish the canonical stream. The returned tail still has to be accepted by
+/// storage before the receipt can describe a durable representation.
+#export_name("strategyHostOutputExportFinish")
+pub fn strategy_host_output_export_finish(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.finish_completed_relation_export(value.stream) {
+    Ok((receipt, tail)) => {
+      value.receipt = Some(receipt)
+      tail
+    }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportCid")
+pub fn strategy_host_output_export_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).0
+}
+
+///|
+#export_name("strategyHostOutputExportBytes")
+pub fn strategy_host_output_export_bytes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).1
+}
+
+///|
+#export_name("strategyHostOutputExportNodes")
+pub fn strategy_host_output_export_nodes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).2
+}
+
+///|
+#export_name("strategyHostOutputExportRows")
+pub fn strategy_host_output_export_rows(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).3
+}
+
+///|
+#export_name("strategyHostOutputExportLogicalRelationCid")
+pub fn strategy_host_output_export_logical_relation_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportResultSchemaCid")
+pub fn strategy_host_output_export_result_schema_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportResultSchemaWire")
+pub fn strategy_host_output_export_result_schema_wire(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportResultFields")
+pub fn strategy_host_output_export_result_fields(
+  value : StrategyHostOutputExport,
+) -> Array[String] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.completed_relation_export_field_names(receipt)
+}
+
+///|
+/// Physical payload batches use the registered canonical ordered-row codec.
+/// This is the codec contract identity, not the payload content identity.
+#export_name("strategyHostOutputExportCodecContractCid")
+pub fn strategy_host_output_export_codec_contract_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) else { raise InvalidCommand }
+  @execution.ordered_rows_canonical_contract_cid()
+}
+
+///|
+/// Issue occurrence-order evidence from the same finished export that
+/// established the logical Relation and schema identities. Only a Named
+/// Result export carries a checked Result Definition.
+#export_name("strategyHostOutputExportIssueResultEvidence")
+pub fn strategy_host_output_export_issue_result_evidence(
+  value : StrategyHostOutputExport,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Unit raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  if value.evidence is Some(_) {
+    raise InvalidCommand
+  }
+  value.evidence = Some(
+    match
+      @publication.issue_result_occurrence_evidence(
+        definition,
+        @execution.logical_relation_cid(
+          @execution.completed_relation_export_identity(receipt),
+        ),
+        @execution.relation_schema_cid(
+          @execution.completed_relation_export_schema_identity(receipt),
+        ),
+        computation_contract_cid,
+        input_relation_cids,
+        scope_cid,
+        effective_data_policy_cid,
+        "actql-common-host",
+        authority_scope_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(evidence) => evidence
+      Err(issue) => raise PublicationEvidence(issue)
+    },
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportDerivationEvidenceJson")
+pub fn strategy_host_output_export_derivation_evidence_json(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_derivation_contract(evidence),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportOrderingEvidenceJson")
+pub fn strategy_host_output_export_ordering_evidence_json(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_evidence_contract(evidence),
+  )
+}
+
+///|
+/// Issue the complete Artifact from this Result export and already admitted
+/// Run-bound references. The adapter does not assemble Artifact fields.
+#export_name("strategyHostOutputExportIssueResultArtifact")
+pub fn strategy_host_output_export_issue_result_artifact(
+  value : StrategyHostOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.evidence is Some(evidence) else { raise InvalidCommand }
+  if value.artifact is Some(_) {
+    raise InvalidCommand
+  }
+  let rows = @execution.output_stream_identity(
+      @execution.completed_relation_export_content(receipt),
+    ).3
+  let artifact = match
+    @publication.issue_complete_result_artifact(
+      definition, invocation, evidence, retention, rows, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  value.artifact = Some(artifact)
+  artifact
+}
+
+///|
+/// Bind Captured Run rows to the same finished Result export and Artifact.
+/// The environment receives only an opaque snapshot handle, never row cells.
+#export_name("strategyHostOutputExportAdmitCapturedResultSnapshot")
+pub fn strategy_host_output_export_admit_captured_result_snapshot(
+  value : StrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.artifact is Some(artifact) else { raise InvalidCommand }
+  let (rows_wire, fields) = match
+    @execution.completed_relation_export_snapshot(
+      value.stream,
+      receipt,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise OutputExport(issue)
+  }
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise CapturedRun(issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaBytes")
+pub fn strategy_host_output_export_schema_bytes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).0
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaNodes")
+pub fn strategy_host_output_export_schema_nodes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).1
+}
+
+///|
+#export_name("strategyHostOutputExportSchemaFields")
+pub fn strategy_host_output_export_schema_fields(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).2
+}
+
+///|
+#export_name("strategyHostOutputExportCancel")
+pub fn strategy_host_output_export_cancel(
+  value : StrategyHostOutputExport,
+) -> Unit {
+  match value.receipt {
+    Some(receipt) => {
+      @execution.cancel_completed_relation_export_receipt(receipt)
+      value.receipt = None
+      value.evidence = None
+      value.artifact = None
+    }
+    None => @execution.cancel_completed_output_export(value.stream)
+  }
 }
 
 ///|
@@ -518,6 +2102,179 @@ pub fn strategy_host_transfer_receipt(
 }
 
 ///|
+#export_name("strategySiteCreate")
+pub fn strategy_site_create(
+  key : String,
+  generation : Int,
+  runtime_revision : String,
+  max_concurrent_operations : Int,
+  max_concurrent_transfers : Int,
+  max_retained_bytes : Int64,
+  max_execution_bytes : Int64,
+) -> @site.ExecutionSite? {
+  @site.create_site(
+    key, generation, runtime_revision, max_concurrent_operations, max_concurrent_transfers,
+    max_retained_bytes, max_execution_bytes,
+  )
+}
+
+///|
+#export_name("strategySiteAvailable")
+pub fn strategy_site_available(site : @site.ExecutionSite) -> Bool {
+  @site.site_available(site)
+}
+
+///|
+#export_name("strategySiteRevoked")
+pub fn strategy_site_revoked(site : @site.ExecutionSite) -> Bool {
+  @site.site_revoked(site)
+}
+
+///|
+#export_name("strategySiteCapacitySupports")
+pub fn strategy_site_capacity_supports(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @site.site_capacity_supports(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("strategySiteBindingCurrent")
+pub fn strategy_site_binding_current(
+  site : @site.ExecutionSite,
+  generation : Int,
+  runtime_revision : String,
+) -> Bool {
+  @site.site_binding_current(site, generation, runtime_revision)
+}
+
+///|
+#export_name("strategySiteStartOperation")
+pub fn strategy_site_start_operation(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteOperation? {
+  @site.start_site_operation(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("strategySiteOperationAvailable")
+pub fn strategy_site_operation_available(
+  operation : @site.SiteOperation,
+) -> Bool {
+  @site.site_operation_available(operation)
+}
+
+///|
+#export_name("strategySiteSettleOperation")
+pub fn strategy_site_settle_operation(operation : @site.SiteOperation) -> Bool {
+  @site.settle_site_operation(operation)
+}
+
+///|
+#export_name("strategySiteRetainOperationHolding")
+pub fn strategy_site_retain_operation_holding(
+  operation : @site.SiteOperation,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_operation_holding(operation, bytes)
+}
+
+///|
+#export_name("strategySiteStartTransfer")
+pub fn strategy_site_start_transfer(
+  source : @site.ExecutionSite,
+  destination : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteTransfer? {
+  @site.start_site_transfer(
+    source, destination, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+#export_name("strategySiteTransferAvailable")
+pub fn strategy_site_transfer_available(transfer : @site.SiteTransfer) -> Bool {
+  @site.site_transfer_available(transfer)
+}
+
+///|
+#export_name("strategySiteSettleTransferSource")
+pub fn strategy_site_settle_transfer_source(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_source(transfer)
+}
+
+///|
+#export_name("strategySiteSettleTransferDestination")
+pub fn strategy_site_settle_transfer_destination(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_destination(transfer)
+}
+
+///|
+#export_name("strategySiteRetainTransferHolding")
+pub fn strategy_site_retain_transfer_holding(
+  transfer : @site.SiteTransfer,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_transfer_holding(transfer, bytes)
+}
+
+///|
+#export_name("strategySiteRetainHolding")
+pub fn strategy_site_retain_holding(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_holding(site, bytes)
+}
+
+///|
+#export_name("strategySiteReleaseHolding")
+pub fn strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
+  @site.release_site_holding(holding)
+}
+
+///|
+#export_name("strategySiteRetainCleanup")
+pub fn strategy_site_retain_cleanup(
+  site : @site.ExecutionSite,
+) -> @site.SiteCleanup {
+  @site.retain_site_cleanup(site)
+}
+
+///|
+#export_name("strategySiteReleaseCleanup")
+pub fn strategy_site_release_cleanup(cleanup : @site.SiteCleanup) -> Bool {
+  @site.release_site_cleanup(cleanup)
+}
+
+///|
+#export_name("strategySiteBeginTeardown")
+pub fn strategy_site_begin_teardown(site : @site.ExecutionSite) -> Unit {
+  @site.begin_site_teardown(site)
+}
+
+///|
+#export_name("strategySiteRevoke")
+pub fn strategy_site_revoke(site : @site.ExecutionSite) -> Unit {
+  @site.revoke_site(site)
+}
+
+///|
+#export_name("strategySiteStatus")
+pub fn strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
+  @site.site_status(site)
+}
+
+///|
 #export_name("strategyModule_local_Registration")
 pub fn local_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -613,6 +2370,21 @@ pub(all) suberror AsyncHostFailure {
   Execution(@strategy.RunIssue)
   InvalidCommand
   Encoding(@encode.EncodeFailure)
+  OutputExport(@execution.CompletedExportIssue)
+  PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  CapturedRun(@publication.CapturedRunIssuanceIssue)
+}
+
+///|
+/// Opaque bridge state for one bounded canonical export of a completed output.
+/// Node may drive batches and persist bytes, but only MoonBit owns typed value
+/// interpretation, canonical ordering, admission, and the content receipt.
+struct AsyncStrategyHostOutputExport {
+  stream : @execution.CompletedOutputExport
+  definition : @publication.PublicationContract?
+  mut receipt : @execution.CompletedRelationExportReceipt?
+  mut evidence : @publication.ResultOrderingEvidence?
+  mut artifact : @publication.PublicationContract?
 }
 
 ///|
@@ -884,6 +2656,1078 @@ pub fn async_strategy_host_count(
 }
 
 ///|
+#export_name("asyncStrategyHostProgramDefinitionCid")
+pub fn async_strategy_host_program_definition_cid(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> String {
+  @strategy.graph_program_definition_cid(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostResultNames")
+pub fn async_strategy_host_result_names(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index => {
+    @strategy.graph_result_name(graph, index).unwrap()
+  })
+}
+
+///|
+#export_name("asyncStrategyHostResultTasks")
+pub fn async_strategy_host_result_tasks(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index => {
+    @strategy.graph_result_task(graph, index).unwrap()
+  })
+}
+
+///|
+/// Complete Result Definition bodies sealed by the portable MoonBit contract
+/// implementation from the exact checked graph inventory.
+#export_name("asyncStrategyHostResultDefinitions")
+pub fn async_strategy_host_result_definitions(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] raise AsyncHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+  let program = @strategy.graph_program_definition_cid(graph)
+  let definitions : Array[String] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    let name = @strategy.graph_result_name(graph, index).unwrap()
+    let definition = match
+      @publication.prepare_result_definition(program, name) {
+      Ok(value) => value
+      Err(_) => raise InvalidCommand
+    }
+    definitions.push(
+      match @publication.result_definition_json(definition) {
+        Ok(value) => value
+        Err(_) => raise InvalidCommand
+      },
+    )
+  }
+  definitions
+}
+
+///|
+/// Complete publication inventory owned by the portable core. JavaScript may
+/// project this opaque value for coordination but cannot supply or alter its
+/// Result occurrences.
+#export_name("asyncStrategyHostPublicationInventory")
+pub fn async_strategy_host_publication_inventory(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> @publication.CheckedPublicationInventory raise AsyncHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+  )
+  let names : Array[String] = []
+  let tasks : Array[Int] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    names.push(@strategy.graph_result_name(graph, index).unwrap())
+    tasks.push(@strategy.graph_result_task(graph, index).unwrap())
+  }
+  match
+    @publication.prepare_checked_publication_inventory(
+      @strategy.graph_program_definition_cid(graph),
+      names,
+      tasks,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryProgramCid")
+pub fn async_strategy_host_publication_inventory_program_cid(
+  inventory : @publication.CheckedPublicationInventory,
+) -> String {
+  @publication.checked_publication_inventory_program_cid(inventory)
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryCount")
+pub fn async_strategy_host_publication_inventory_count(
+  inventory : @publication.CheckedPublicationInventory,
+) -> Int {
+  @publication.checked_publication_inventory_count(inventory)
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryName")
+pub fn async_strategy_host_publication_inventory_name(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise AsyncHostFailure {
+  match @publication.checked_publication_inventory_name(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryTask")
+pub fn async_strategy_host_publication_inventory_task(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> Int raise AsyncHostFailure {
+  match @publication.checked_publication_inventory_task(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryDefinitionCid")
+pub fn async_strategy_host_publication_inventory_definition_cid(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_cid(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyHostPublicationInventoryDefinitionJson")
+pub fn async_strategy_host_publication_inventory_definition_json(
+  inventory : @publication.CheckedPublicationInventory,
+  index : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.checked_publication_inventory_definition_json(inventory, index) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+/// Admit and seal a bounded publication body in the portable contract owner.
+/// The Node adapter supplies bytes and budgets; it does not define canonical
+/// identity or contract validity.
+#export_name("asyncStrategyPublicationSeal")
+pub fn async_strategy_publication_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.seal_publication_contract(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyPublicationAdmit")
+pub fn async_strategy_publication_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.admit_publication_contract(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRunEvidenceSeal")
+pub fn async_strategy_run_evidence_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise AsyncHostFailure {
+  match
+    @publication.seal_run_evidence_value(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRunEvidenceAdmit")
+pub fn async_strategy_run_evidence_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.RunEvidenceValue raise AsyncHostFailure {
+  match
+    @publication.admit_run_evidence_value(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRunEvidenceName")
+pub fn async_strategy_run_evidence_name(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_name(value)
+}
+
+///|
+#export_name("asyncStrategyRunEvidenceIdentity")
+pub fn async_strategy_run_evidence_identity(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_identity(value)
+}
+
+///|
+#export_name("asyncStrategyRunEvidenceJson")
+pub fn async_strategy_run_evidence_json(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_json(value)
+}
+
+///|
+#export_name("asyncStrategyIssueRunInvocation")
+pub fn async_strategy_issue_run_invocation(
+  template : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_run_invocation(
+      template, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRunPublicationAdmit")
+pub fn async_strategy_run_publication_admit(
+  template : @publication.RunEvidenceValue,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  compiled_plan : @publication.PublicationContract,
+) -> @publication.RunPublicationAdmission raise AsyncHostFailure {
+  match
+    @publication.admit_run_publication(
+      template, prepared, authorization, compiled_plan,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueRunDefinition")
+pub fn async_strategy_issue_run_definition(
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_run_definition(
+      admission, scope_id, run_id, input_artifact_set_cid, created_at, valid_until,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectFreeRunReceipt")
+pub fn async_strategy_issue_effect_free_run_receipt(
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  normalization_journal : @publication.RunEvidenceValue,
+  binding_names : Array[String],
+  binding_digests : Array[String],
+  source_evidence : Array[@publication.RunEvidenceValue],
+  model_evidence : Array[@publication.RunEvidenceValue],
+  barrier_attempt_receipt_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_effect_free_run_receipt(
+      admission, run_definition, invocation, observation, definitions, artifacts,
+      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
+      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitCapturedResultSnapshot")
+pub fn async_strategy_admit_captured_result_snapshot(
+  definition : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise AsyncHostFailure {
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyAdmitPendingSourceStateAdvance")
+pub fn async_strategy_admit_pending_source_state_advance(
+  complete_wire : String,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PendingSourceStateAdvance raise AsyncHostFailure {
+  match
+    @publication.admit_pending_source_state_advance(
+      complete_wire, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectFreeCapturedRun")
+pub fn async_strategy_issue_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_effect_free_captured_run(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyPublicationContractName")
+pub fn async_strategy_publication_contract_name(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_name(contract)
+}
+
+///|
+#export_name("asyncStrategyPublicationContractIdentityField")
+pub fn async_strategy_publication_contract_identity_field(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity_field(contract)
+}
+
+///|
+#export_name("asyncStrategyPublicationContractIdentity")
+pub fn async_strategy_publication_contract_identity(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity(contract)
+}
+
+///|
+#export_name("asyncStrategyPublicationContractJson")
+pub fn async_strategy_publication_contract_json(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_json(contract)
+}
+
+///|
+#export_name("asyncStrategyPublicationRecordTransition")
+pub fn async_strategy_publication_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+  uncommitted_confirmed : Bool,
+) -> Bool {
+  @publication.validate_publication_record_transition(
+    previous, next, uncommitted_confirmed,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyPublicationRecordAllowsCommit")
+pub fn async_strategy_publication_record_allows_commit(
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.publication_record_allows_commit(record)
+}
+
+///|
+#export_name("asyncStrategyRunPublicationChainValid")
+pub fn async_strategy_run_publication_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_run_publication_chain(
+    run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+/// Construct the complete name-sorted Manifest from admitted Run contracts.
+/// The environment adapter cannot omit or rename a declared Result.
+#export_name("asyncStrategyIssueResultManifest")
+pub fn async_strategy_issue_result_manifest(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_result_manifest(
+      run_definition, invocation, definitions, artifacts, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueDurableResultBinding")
+pub fn async_strategy_issue_durable_result_binding(
+  run_definition : @publication.PublicationContract,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
+  material_generation_cid : String,
+  store_authority_cid : String,
+  row_count : Int,
+  byte_count : Int,
+  physical_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_durable_result_binding(
+      run_definition, definition, invocation, artifact, ordering, retention, codec_contract_cid,
+      result_fields, result_schema_wire, material_generation_cid, store_authority_cid,
+      row_count, byte_count, physical_sha256, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssuePublicationRequest")
+pub fn async_strategy_issue_publication_request(
+  run_definition : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  tenant_id : String,
+  authority_scope_cid : String,
+  publication_policy_cid : String,
+  publication_target_cid : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_publication_request(
+      run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+      publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssuePublicationAttempt")
+pub fn async_strategy_issue_publication_attempt(
+  request : @publication.PublicationContract,
+  run_definition : @publication.PublicationContract,
+  attempt_id : String,
+  fence_cid : String,
+  external_idempotency_key : String?,
+  started_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_publication_attempt(
+      request, run_definition, attempt_id, fence_cid, external_idempotency_key, started_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssuePublicIndexEntry")
+pub fn async_strategy_issue_public_index_entry(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  durable_bindings : Array[@publication.PublicationContract],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  committed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_public_index_entry(
+      run_definition, invocation, manifest, receipt, captured_run, durable_bindings,
+      request, attempt, committed_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssuePublicationRecord")
+pub fn async_strategy_issue_publication_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  observed_at : String,
+  public_index_entry : @publication.PublicationContract?,
+  failure_cid : String?,
+  cleanup_owner_cids : Array[String],
+  uncommitted_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_publication_record(
+      attempt, previous, state, observed_at, public_index_entry, failure_cid, cleanup_owner_cids,
+      uncommitted_confirmed, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyEffectFreeRunEvidenceChainValid")
+pub fn async_strategy_effect_free_run_evidence_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effect_free_run_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyEffectFreePublicationCommitValid")
+pub fn async_strategy_effect_free_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effect_free_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyDeliveryRecordTransition")
+pub fn async_strategy_delivery_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_record_transition(previous, next) is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyDeliverySuccessValid")
+pub fn async_strategy_delivery_success_valid(
+  attempt : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_success_evidence(attempt, receipt, record)
+  is Ok(_)
+}
+
+///|
+#export_name("asyncStrategyResultSerializationContractCid")
+pub fn async_strategy_result_serialization_contract_cid(
+  format : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.result_serialization_contract_cid(
+      format, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueManifestReadGrant")
+pub fn async_strategy_issue_manifest_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_manifest_read_grant(
+      index, manifest, principal_id, purpose, data_ceiling_cid, max_bytes, max_uses,
+      expires_at, authorization_context_cid, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueResultReadGrant")
+pub fn async_strategy_issue_result_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_names : Array[String],
+  formats : Array[String],
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  egress_admission_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_result_read_grant(
+      index, manifest, result_names, formats, principal_id, purpose, data_ceiling_cid,
+      max_bytes, max_uses, expires_at, authorization_context_cid, egress_admission_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueDeliveryAttempt")
+pub fn async_strategy_issue_delivery_attempt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_delivery_attempt(
+      index, manifest, grant, result_name, format, attempt_id, requested_at, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyDeliveryResultDefinitionCid")
+pub fn async_strategy_delivery_result_definition_cid(
+  manifest : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+) -> String raise AsyncHostFailure {
+  match @publication.delivery_result_definition_cid(manifest, attempt) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyResultReadRetentionPolicyCid")
+pub fn async_strategy_result_read_retention_policy_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise AsyncHostFailure {
+  match @publication.result_read_retention_policy_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyManifestResultNames")
+pub fn async_strategy_manifest_result_names(
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.manifest_result_names_json(
+      manifest, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyResultReadDefinitionCid")
+pub fn async_strategy_result_read_definition_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise AsyncHostFailure {
+  match @publication.result_read_definition_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyRunDefinitionRunId")
+pub fn async_strategy_run_definition_run_id(
+  run_definition : @publication.PublicationContract,
+) -> String raise AsyncHostFailure {
+  match @publication.run_definition_run_id(run_definition) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyResultReadAvailability")
+pub fn async_strategy_result_read_availability(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  retention : @publication.PublicationContract,
+  observed_at : String,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.result_read_availability(
+      manifest, result_name, retention, observed_at,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyResultRetentionClockContractCid")
+pub fn async_strategy_result_retention_clock_contract_cid(
+  retention : @publication.PublicationContract,
+) -> String raise AsyncHostFailure {
+  match @publication.result_retention_clock_contract_cid(retention) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyTrustedClockNotBefore")
+pub fn async_strategy_trusted_clock_not_before(
+  previous : String?,
+  observed_at : String,
+) -> Bool {
+  @publication.trusted_clock_not_before(previous, observed_at)
+}
+
+///|
+#export_name("asyncStrategyIssueSucceededRunState")
+pub fn async_strategy_issue_succeeded_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  observed_at : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.issue_succeeded_run_state_wire(
+      run_id, updated_at, declared_results, names, states, reasons, observed_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyResultReadGrantAllowsBytes")
+pub fn async_strategy_result_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.result_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("asyncStrategyManifestReadGrantAllowsBytes")
+pub fn async_strategy_manifest_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.manifest_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("asyncStrategyManifestReadGrantValidAt")
+pub fn async_strategy_manifest_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.manifest_read_grant_valid_at(grant, observed_at)
+}
+
+///|
+#export_name("asyncStrategyResultReadGrantValidAt")
+pub fn async_strategy_result_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.result_read_grant_valid_at(grant, observed_at)
+}
+
+///|
+#export_name("asyncStrategyIssueResultDeliveryReceipt")
+pub fn async_strategy_issue_result_delivery_receipt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  delivered_byte_count : Int,
+  delivered_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_result_delivery_receipt(
+      index, manifest, grant, attempt, delivered_byte_count, delivered_sha256, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueDeliveryRecord")
+pub fn async_strategy_issue_delivery_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  confirmed_byte_count : Int,
+  exposure : String,
+  possible_unconfirmed_max_bytes : Int?,
+  delivered_sha256 : String?,
+  receipt : @publication.PublicationContract?,
+  failure_cid : String?,
+  observed_at : String,
+  cleanup_owner_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match
+    @publication.issue_delivery_record(
+      attempt, previous, state, confirmed_byte_count, exposure, possible_unconfirmed_max_bytes,
+      delivered_sha256, receipt, failure_cid, observed_at, cleanup_owner_cids, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyPrepareResultDeliverySerializer")
+pub fn async_strategy_prepare_result_delivery_serializer(
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.ResultDeliverySerializer raise AsyncHostFailure {
+  match
+    @publication.prepare_result_delivery_serializer(
+      format, schema_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyBeginResultDelivery")
+pub fn async_strategy_begin_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise AsyncHostFailure {
+  match @publication.begin_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyNextResultDeliveryRow")
+pub fn async_strategy_next_result_delivery_row(
+  serializer : @publication.ResultDeliverySerializer,
+  row_wire : String,
+) -> String raise AsyncHostFailure {
+  match @publication.next_result_delivery_row(serializer, row_wire) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyFinishResultDelivery")
+pub fn async_strategy_finish_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise AsyncHostFailure {
+  match @publication.finish_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("asyncStrategyHostFinished")
 pub fn async_strategy_host_finished(
   host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
@@ -932,6 +3776,503 @@ pub fn async_strategy_host_output(
   @strategy.captured_task_target(run, task).bind(target => {
     @strategy.captured_task_output(run, task, target)
   })
+}
+
+///|
+/// Begin a bounded canonical typed-row export from the exact completed output.
+/// The output remains owned by the common execution graph; this handle only
+/// owns the export traversal and receipt.
+#export_name("asyncStrategyHostOutputExportBegin")
+pub fn async_strategy_host_output_export_begin(
+  output : @execution.CompletedOutput,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> AsyncStrategyHostOutputExport raise AsyncHostFailure {
+  match
+    @execution.prepare_completed_relation_export(
+      output,
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) =>
+      {
+        stream,
+        definition: None,
+        receipt: None,
+        evidence: None,
+        artifact: None,
+      }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+/// Begin an export for one exact checked Named Result occurrence. The common
+/// graph supplies both the completed producer and its opaque ResultPort; the
+/// adapter cannot replace either with a task number or an authored name.
+#export_name("asyncStrategyHostResultOutputExportBegin")
+pub fn async_strategy_host_result_output_export_begin(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> AsyncStrategyHostOutputExport raise AsyncHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @probe.configured_host_driver(host),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_result_task(graph, result) is Some(task) else {
+    raise InvalidCommand
+  }
+  guard @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    raise InvalidCommand
+  }
+  guard @strategy.graph_result_name(graph, result) is Some(result_name) else {
+    raise InvalidCommand
+  }
+  let definition = match
+    @publication.prepare_result_definition(
+      @strategy.graph_program_definition_cid(graph),
+      result_name,
+    ) {
+    Ok(value) => @publication.result_definition_contract(value)
+    Err(_) => raise InvalidCommand
+  }
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    raise InvalidCommand
+  }
+  guard @strategy.captured_task_output(run, task, target) is Some(output) else {
+    raise InvalidCommand
+  }
+  match
+    @execution.prepare_completed_result_relation_export(
+      output,
+      occurrence,
+      {
+        max_fields: max_result_fields,
+        max_mapping_work: max_result_mapping_work,
+        max_order_work: max_result_order_work,
+        max_workspace_entries: max_result_workspace_entries,
+      },
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) =>
+      {
+        stream,
+        definition: Some(definition),
+        receipt: None,
+        evidence: None,
+        artifact: None,
+      }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportNext")
+pub fn async_strategy_host_output_export_next(
+  value : AsyncStrategyHostOutputExport,
+) -> String? raise AsyncHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.next_completed_output_export(value.stream) {
+    Ok(part) => part
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+/// Finish the canonical stream. The returned tail still has to be accepted by
+/// storage before the receipt can describe a durable representation.
+#export_name("asyncStrategyHostOutputExportFinish")
+pub fn async_strategy_host_output_export_finish(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.finish_completed_relation_export(value.stream) {
+    Ok((receipt, tail)) => {
+      value.receipt = Some(receipt)
+      tail
+    }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportCid")
+pub fn async_strategy_host_output_export_cid(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).0
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportBytes")
+pub fn async_strategy_host_output_export_bytes(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).1
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportNodes")
+pub fn async_strategy_host_output_export_nodes(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).2
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportRows")
+pub fn async_strategy_host_output_export_rows(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).3
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportLogicalRelationCid")
+pub fn async_strategy_host_output_export_logical_relation_cid(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportResultSchemaCid")
+pub fn async_strategy_host_output_export_result_schema_cid(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportResultSchemaWire")
+pub fn async_strategy_host_output_export_result_schema_wire(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportResultFields")
+pub fn async_strategy_host_output_export_result_fields(
+  value : AsyncStrategyHostOutputExport,
+) -> Array[String] raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.completed_relation_export_field_names(receipt)
+}
+
+///|
+/// Physical payload batches use the registered canonical ordered-row codec.
+/// This is the codec contract identity, not the payload content identity.
+#export_name("asyncStrategyHostOutputExportCodecContractCid")
+pub fn async_strategy_host_output_export_codec_contract_cid(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(_) else { raise InvalidCommand }
+  @execution.ordered_rows_canonical_contract_cid()
+}
+
+///|
+/// Issue occurrence-order evidence from the same finished export that
+/// established the logical Relation and schema identities. Only a Named
+/// Result export carries a checked Result Definition.
+#export_name("asyncStrategyHostOutputExportIssueResultEvidence")
+pub fn async_strategy_host_output_export_issue_result_evidence(
+  value : AsyncStrategyHostOutputExport,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Unit raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  if value.evidence is Some(_) {
+    raise InvalidCommand
+  }
+  value.evidence = Some(
+    match
+      @publication.issue_result_occurrence_evidence(
+        definition,
+        @execution.logical_relation_cid(
+          @execution.completed_relation_export_identity(receipt),
+        ),
+        @execution.relation_schema_cid(
+          @execution.completed_relation_export_schema_identity(receipt),
+        ),
+        computation_contract_cid,
+        input_relation_cids,
+        scope_cid,
+        effective_data_policy_cid,
+        "actql-common-host",
+        authority_scope_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(evidence) => evidence
+      Err(issue) => raise PublicationEvidence(issue)
+    },
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportDerivationEvidenceJson")
+pub fn async_strategy_host_output_export_derivation_evidence_json(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_derivation_contract(evidence),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportOrderingEvidenceJson")
+pub fn async_strategy_host_output_export_ordering_evidence_json(
+  value : AsyncStrategyHostOutputExport,
+) -> String raise AsyncHostFailure {
+  guard value.receipt is Some(_) && value.evidence is Some(evidence) else {
+    raise InvalidCommand
+  }
+  @publication.publication_contract_json(
+    @publication.result_ordering_evidence_contract(evidence),
+  )
+}
+
+///|
+/// Issue the complete Artifact from this Result export and already admitted
+/// Run-bound references. The adapter does not assemble Artifact fields.
+#export_name("asyncStrategyHostOutputExportIssueResultArtifact")
+pub fn async_strategy_host_output_export_issue_result_artifact(
+  value : AsyncStrategyHostOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.evidence is Some(evidence) else { raise InvalidCommand }
+  if value.artifact is Some(_) {
+    raise InvalidCommand
+  }
+  let rows = @execution.output_stream_identity(
+      @execution.completed_relation_export_content(receipt),
+    ).3
+  let artifact = match
+    @publication.issue_complete_result_artifact(
+      definition, invocation, evidence, retention, rows, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  value.artifact = Some(artifact)
+  artifact
+}
+
+///|
+/// Bind Captured Run rows to the same finished Result export and Artifact.
+/// The environment receives only an opaque snapshot handle, never row cells.
+#export_name("asyncStrategyHostOutputExportAdmitCapturedResultSnapshot")
+pub fn async_strategy_host_output_export_admit_captured_result_snapshot(
+  value : AsyncStrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.artifact is Some(artifact) else { raise InvalidCommand }
+  let (rows_wire, fields) = match
+    @execution.completed_relation_export_snapshot(
+      value.stream,
+      receipt,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise OutputExport(issue)
+  }
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise CapturedRun(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportSchemaBytes")
+pub fn async_strategy_host_output_export_schema_bytes(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).0
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportSchemaNodes")
+pub fn async_strategy_host_output_export_schema_nodes(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).1
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportSchemaFields")
+pub fn async_strategy_host_output_export_schema_fields(
+  value : AsyncStrategyHostOutputExport,
+) -> Int raise AsyncHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  ).2
+}
+
+///|
+#export_name("asyncStrategyHostOutputExportCancel")
+pub fn async_strategy_host_output_export_cancel(
+  value : AsyncStrategyHostOutputExport,
+) -> Unit {
+  match value.receipt {
+    Some(receipt) => {
+      @execution.cancel_completed_relation_export_receipt(receipt)
+      value.receipt = None
+      value.evidence = None
+      value.artifact = None
+    }
+    None => @execution.cancel_completed_output_export(value.stream)
+  }
 }
 
 ///|
@@ -1123,6 +4464,183 @@ pub fn async_strategy_host_transfer_receipt(
       0L
     },
   ]
+}
+
+///|
+#export_name("asyncStrategySiteCreate")
+pub fn async_strategy_site_create(
+  key : String,
+  generation : Int,
+  runtime_revision : String,
+  max_concurrent_operations : Int,
+  max_concurrent_transfers : Int,
+  max_retained_bytes : Int64,
+  max_execution_bytes : Int64,
+) -> @site.ExecutionSite? {
+  @site.create_site(
+    key, generation, runtime_revision, max_concurrent_operations, max_concurrent_transfers,
+    max_retained_bytes, max_execution_bytes,
+  )
+}
+
+///|
+#export_name("asyncStrategySiteAvailable")
+pub fn async_strategy_site_available(site : @site.ExecutionSite) -> Bool {
+  @site.site_available(site)
+}
+
+///|
+#export_name("asyncStrategySiteRevoked")
+pub fn async_strategy_site_revoked(site : @site.ExecutionSite) -> Bool {
+  @site.site_revoked(site)
+}
+
+///|
+#export_name("asyncStrategySiteCapacitySupports")
+pub fn async_strategy_site_capacity_supports(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
+  @site.site_capacity_supports(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("asyncStrategySiteBindingCurrent")
+pub fn async_strategy_site_binding_current(
+  site : @site.ExecutionSite,
+  generation : Int,
+  runtime_revision : String,
+) -> Bool {
+  @site.site_binding_current(site, generation, runtime_revision)
+}
+
+///|
+#export_name("asyncStrategySiteStartOperation")
+pub fn async_strategy_site_start_operation(
+  site : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteOperation? {
+  @site.start_site_operation(site, retained_bytes, execution_bytes)
+}
+
+///|
+#export_name("asyncStrategySiteOperationAvailable")
+pub fn async_strategy_site_operation_available(
+  operation : @site.SiteOperation,
+) -> Bool {
+  @site.site_operation_available(operation)
+}
+
+///|
+#export_name("asyncStrategySiteSettleOperation")
+pub fn async_strategy_site_settle_operation(
+  operation : @site.SiteOperation,
+) -> Bool {
+  @site.settle_site_operation(operation)
+}
+
+///|
+#export_name("asyncStrategySiteRetainOperationHolding")
+pub fn async_strategy_site_retain_operation_holding(
+  operation : @site.SiteOperation,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_operation_holding(operation, bytes)
+}
+
+///|
+#export_name("asyncStrategySiteStartTransfer")
+pub fn async_strategy_site_start_transfer(
+  source : @site.ExecutionSite,
+  destination : @site.ExecutionSite,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> @site.SiteTransfer? {
+  @site.start_site_transfer(
+    source, destination, retained_bytes, execution_bytes,
+  )
+}
+
+///|
+#export_name("asyncStrategySiteTransferAvailable")
+pub fn async_strategy_site_transfer_available(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.site_transfer_available(transfer)
+}
+
+///|
+#export_name("asyncStrategySiteSettleTransferSource")
+pub fn async_strategy_site_settle_transfer_source(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_source(transfer)
+}
+
+///|
+#export_name("asyncStrategySiteSettleTransferDestination")
+pub fn async_strategy_site_settle_transfer_destination(
+  transfer : @site.SiteTransfer,
+) -> Bool {
+  @site.settle_site_transfer_destination(transfer)
+}
+
+///|
+#export_name("asyncStrategySiteRetainTransferHolding")
+pub fn async_strategy_site_retain_transfer_holding(
+  transfer : @site.SiteTransfer,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_transfer_holding(transfer, bytes)
+}
+
+///|
+#export_name("asyncStrategySiteRetainHolding")
+pub fn async_strategy_site_retain_holding(
+  site : @site.ExecutionSite,
+  bytes : Int64,
+) -> @site.SiteHolding? {
+  @site.retain_site_holding(site, bytes)
+}
+
+///|
+#export_name("asyncStrategySiteReleaseHolding")
+pub fn async_strategy_site_release_holding(holding : @site.SiteHolding) -> Bool {
+  @site.release_site_holding(holding)
+}
+
+///|
+#export_name("asyncStrategySiteRetainCleanup")
+pub fn async_strategy_site_retain_cleanup(
+  site : @site.ExecutionSite,
+) -> @site.SiteCleanup {
+  @site.retain_site_cleanup(site)
+}
+
+///|
+#export_name("asyncStrategySiteReleaseCleanup")
+pub fn async_strategy_site_release_cleanup(cleanup : @site.SiteCleanup) -> Bool {
+  @site.release_site_cleanup(cleanup)
+}
+
+///|
+#export_name("asyncStrategySiteBeginTeardown")
+pub fn async_strategy_site_begin_teardown(site : @site.ExecutionSite) -> Unit {
+  @site.begin_site_teardown(site)
+}
+
+///|
+#export_name("asyncStrategySiteRevoke")
+pub fn async_strategy_site_revoke(site : @site.ExecutionSite) -> Unit {
+  @site.revoke_site(site)
+}
+
+///|
+#export_name("asyncStrategySiteStatus")
+pub fn async_strategy_site_status(site : @site.ExecutionSite) -> Array[Int64] {
+  @site.site_status(site)
 }
 
 ///|

@@ -11,5 +11,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/encode_core" @encode,
-  "actql/actql/connectors/local/driver" @binding7,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/execution_site" @site,
+  "actql/actql/connectors/local/driver" @binding9,
 }

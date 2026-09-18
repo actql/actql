@@ -31,6 +31,8 @@ import {
   "actql/actql/connectors_workers" @builtin,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/connector_sdk" @connector,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/execution_site" @site,
   "actql/actql/connectors_workers_async" @probe,
   "actql/actql/connectors/reference_compute/driver" @numeric_driver,
   "actql/actql/connectors/local/driver" @local_driver,
