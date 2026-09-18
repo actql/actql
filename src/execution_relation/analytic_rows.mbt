@@ -5,6 +5,12 @@ priv struct AnalyticPartitionRange {
 }
 
 ///|
+priv enum AnalyticCountIndex {
+  CountRows
+  CountPrefix(Array[Int])
+}
+
+///|
 fn[T : IndexedRows] measure_analytic_row_array(
   rows : T,
   names : Array[String],
@@ -406,6 +412,59 @@ fn[T : RelationRows] evaluate_analytic_into(
       @lower.AggregateExpression(_) => return Err(InvalidRows)
     }
   }
+  let count_indices : Array[AnalyticCountIndex?] = Array::make(call_count, None)
+  if !reserve_slots(workspace, call_count) {
+    return Err(RowLimit)
+  }
+  for call_index in 0..<call_count {
+    guard @lower.analytic_call_function(
+        @lower.analytic_call_at(analytic, call_index).unwrap(),
+      )
+      is PreparedFrameAggregate(aggregate) else {
+      continue
+    }
+    if @lower.group_aggregate_distinct(aggregate) == Some(true) {
+      continue
+    }
+    let function = @lower.group_aggregate_function(aggregate)
+    if function is @relation.Count && aggregate_arguments[call_index] is None {
+      count_indices[call_index] = Some(CountRows)
+      continue
+    }
+    if !(function is @relation.Count || function is @relation.CountIf) {
+      continue
+    }
+    guard aggregate_arguments[call_index] is Some(column) else {
+      return Err(InvalidRows)
+    }
+    let prefix = Array::make(count + 1, 0)
+    if !reserve_slots(workspace, count + 1) {
+      return Err(RowLimit)
+    }
+    for range in ranges {
+      for position in range.start..<range.end {
+        if !spend_control(control, 1) {
+          return Err(RowLimit)
+        }
+        let value = IndexedRows::read_cell(input, sorted[position], column)
+        let increment = if function is @relation.Count {
+          if value is Null {
+            0
+          } else {
+            1
+          }
+        } else {
+          match value {
+            Boolean(true) => 1
+            Boolean(false) | Null => 0
+            _ => return Err(InvalidRows)
+          }
+        }
+        prefix[position + 1] = prefix[position] + increment
+      }
+    }
+    count_indices[call_index] = Some(CountPrefix(prefix))
+  }
   let position_by_row = Array::make(count, -1)
   let partition_start = Array::make(count, -1)
   let partition_by_row = Array::make(count, -1)
@@ -605,24 +664,32 @@ fn[T : RelationRows] evaluate_analytic_into(
               )
             None => (ranges[range_index].start, ranges[range_index].start)
           }
-          let baseline = workspace.live
-          let value = match
-            evaluate_direct_aggregate(
-              aggregate,
-              input,
-              sorted,
-              { representative: Some(source), start: first, end, },
-              aggregate_arguments[call_index],
-              complete,
-              control,
-              workspace,
-              aggregate_outputs,
-              identity_limits,
-            ) {
-            Ok(value) => value
-            Err(issue) => return Err(issue)
+          let value = match count_indices[call_index] {
+            Some(CountRows) => Number((end - first).to_double())
+            Some(CountPrefix(prefix)) =>
+              Number((prefix[end] - prefix[first]).to_double())
+            None => {
+              let baseline = workspace.live
+              let value = match
+                evaluate_direct_aggregate(
+                  aggregate,
+                  input,
+                  sorted,
+                  { representative: Some(source), start: first, end, },
+                  aggregate_arguments[call_index],
+                  complete,
+                  control,
+                  workspace,
+                  aggregate_outputs,
+                  identity_limits,
+                ) {
+                Ok(value) => value
+                Err(issue) => return Err(issue)
+              }
+              release_slots(workspace, workspace.live - baseline)
+              value
+            }
           }
-          release_slots(workspace, workspace.live - baseline)
           evaluated[call_index][source] = Some(value)
           continue
         }

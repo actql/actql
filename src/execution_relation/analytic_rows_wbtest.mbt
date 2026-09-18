@@ -499,6 +499,36 @@ test "analytic direct aggregates preserve empty frame laws" {
 }
 
 ///|
+test "analytic count indices preserve partitions and clipped frames" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":{" +
+    "\"preceding\":1},\"end\":{\"following\":1}},\"functions\":{" +
+    "\"all\":{\"fn\":\"count\"},\"present\":{" +
+    "\"fn\":\"count\",\"field\":\"amount\"}}}",
+  )
+  let table = evaluate_rows(
+    row_kernel(owner, 0),
+    analytic_execution_input(owner),
+    5,
+    { remaining: 100000, max_frames: 100, },
+    row_output(),
+  ).unwrap()
+  assert_eq(table.names, ["all", "amount", "group", "id", "present"])
+  for
+    (row, all, present) in [
+      (0, 3.0, 3.0),
+      (1, 2.0, 1.0),
+      (2, 2.0, 2.0),
+      (3, 2.0, 1.0),
+      (4, 2.0, 2.0),
+    ] {
+    assert_true(table.rows[row][0] is Number(value) && value == all)
+    assert_true(table.rows[row][4] is Number(value) && value == present)
+  }
+}
+
+///|
 test "analytic authored collection ceilings fail atomically" {
   let owner = analytic_execution_owner(
     "\"analytic\":{\"partition_by\":[\"group\"]," +
