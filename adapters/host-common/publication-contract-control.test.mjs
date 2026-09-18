@@ -331,28 +331,76 @@ test('portable control validates the exact Run Result publication chain', () => 
 test('portable control validates Receipt and Captured Run references',
   async t => {
   const control = runtimeCore(moon).publicationControl;
-  const observation = sealEmbedded(minimumValue(
-    protocolSchemas.run_receipt.properties.observation_set,
-  ));
-  observation.invocation_template_cid = cid('1');
-  delete observation.observation_set_cid;
-  observation.observation_set_cid = canonicalCid(observation);
-  const run = control.seal('run_definition', JSON.stringify({
-    version: 'actql-run-definition/0.1',
-    scope_id: 'scope',
-    run_id: 'run',
-    compiled_plan_cid: cid('3'),
-    invocation_template_cid: cid('1'),
-    authorization_context_cid: cid('4'),
-    input_artifact_set_cid: cid('5'),
-    created_at: '2026-09-18T00:00:00.000Z',
-    valid_until: '2026-09-18T01:00:00.000Z',
-  }), limits);
-  const invoked = control.seal('run_invocation', JSON.stringify({
-    version: 'actql-run-invocation/0.1',
-    invocation_template_cid: cid('1'),
-    observation_set_cid: observation.observation_set_cid,
-  }), limits);
+  const template = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      version: 'actql-bound-invocation-template/0.1',
+      program_definition_cid: cid('6'),
+      parameter_values_cid: cid('1'),
+      invocation_bindings_cid: cid('2'),
+      check_environment_cid: cid('4'),
+      grammar_manifest_cid: cid('5'),
+      required_profile_contracts: [],
+      barrier_contract_manifest_cid: cid('7'),
+      source_evidence: 'unbound',
+    }),
+    limits,
+  );
+  const prepared = control.sealRunEvidence(
+    'prepared_invocation',
+    JSON.stringify({
+      version: 'actql-prepared-invocation/0.1',
+      invocation_template_cid: template.identity,
+      compiled_plan_cid: cid('3'),
+      execution_context_cid: cid('4'),
+      host_policy_cid: cid('5'),
+      policy_decision: 'allow',
+      expires_at: '2026-09-18T03:00:00.000Z',
+    }),
+    limits,
+  );
+  const authorization = control.sealRunEvidence(
+    'run_authorization',
+    JSON.stringify({
+      version: 'actql-run-authorization/0.1',
+      prepared_invocation_cid: prepared.identity,
+      execution_context_cid: cid('4'),
+      host_policy_cid: cid('5'),
+      decision: 'allowed',
+    }),
+    limits,
+  );
+  const admission = control.admitRunPublication(
+    template,
+    prepared,
+    authorization,
+  );
+  const run = control.issueRunDefinition(admission, {
+    scopeId: 'scope',
+    runId: 'run',
+    inputArtifactSetCid: cid('5'),
+    createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T01:00:00.000Z',
+  }, limits);
+  const observation = control.sealRunEvidence(
+    'observation_set',
+    JSON.stringify({
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: template.identity,
+      source_evidence_cids: [],
+      captured_input_artifact_cids: [],
+      consistency: 'no_external_sources',
+      capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {
+        materialized: false,
+        availability_evidence_cids: [],
+      },
+      data_policy_cid: cid('a'),
+    }),
+    limits,
+  );
+  const invoked = control.issueRunInvocation(template, observation, limits);
   const definition = control.seal('result_definition', JSON.stringify({
     version: 'actql-result-definition/0.1',
     program_definition_cid: cid('6'),
@@ -405,33 +453,33 @@ test('portable control validates Receipt and Captured Run references',
   const manifest = control.issueResultManifest(
     run, invoked, [definition], [artifact], limits,
   );
-  const receiptValue = minimumValue(protocolSchemas.run_receipt);
-  const prepared = receiptValue.prepared_invocation;
-  prepared.invocation_template_cid = cid('1');
-  prepared.compiled_plan_cid = cid('3');
-  receiptValue.prepared_invocation = sealEmbedded(prepared);
-  const authorization = receiptValue.run_authorization;
-  authorization.prepared_invocation_cid =
-    receiptValue.prepared_invocation.prepared_invocation_cid;
-  authorization.execution_context_cid =
-    receiptValue.prepared_invocation.execution_context_cid;
-  authorization.host_policy_cid =
-    receiptValue.prepared_invocation.host_policy_cid;
-  receiptValue.run_authorization = sealEmbedded(authorization);
-  receiptValue.program_definition_cid = cid('6');
-  receiptValue.invocation_cid = invoked.identity;
-  receiptValue.compiled_plan_cid = cid('3');
-  receiptValue.observation_set = observation;
-  receiptValue.observation_set_cid = observation.observation_set_cid;
-  receiptValue.result_manifest = JSON.parse(manifest.wire);
-  receiptValue.result_manifest_cid = manifest.identity;
-  receiptValue.result_artifacts = {answer: artifactValue};
-  receiptValue.source_evidence = [];
-  receiptValue.source_evidence_cids = [];
-  delete receiptValue.receipt_identity_cid;
-  const receipt = control.seal(
-    'run_receipt', JSON.stringify(receiptValue), limits,
+  const normalizationJournal = control.sealRunEvidence(
+    'normalization_journal',
+    JSON.stringify({
+      version: 'actql-normalization-journal/0.1',
+      rule_catalog_cid: cid('c'),
+      entries: [],
+    }),
+    limits,
   );
+  const receipt = control.issueEffectFreeRunReceipt({
+    admission,
+    runDefinition: run,
+    invocation: invoked,
+    observation,
+    definitions: [definition],
+    artifacts: [artifact],
+    manifest,
+  }, {
+    normalizationJournal,
+    compilerVersion: 'compiler-0.1',
+    aoaIrVersion: 'aoa-ir-0.1',
+    programSemanticsCid: cid('e'),
+    aoaLogicalCid: cid('f'),
+    bindings: [],
+    sourceEvidence: [],
+    barrierAttemptReceiptCids: [],
+  }, limits);
   const capturedValue = minimumValue(protocolSchemas.captured_run);
   capturedValue.receipt = JSON.parse(receipt.wire);
   const effect = capturedValue.effect_context;

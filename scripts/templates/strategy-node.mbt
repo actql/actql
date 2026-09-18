@@ -600,6 +600,56 @@ pub fn strategy_issue_run_definition(
 }
 
 ///|
+#export_name("strategyIssueEffectFreeRunReceipt")
+pub fn strategy_issue_effect_free_run_receipt(
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  normalization_journal : @publication.RunEvidenceValue,
+  compiler_version : String,
+  aoa_ir_version : String,
+  program_semantics_cid : String,
+  aoa_logical_cid : String,
+  binding_names : Array[String],
+  binding_digests : Array[String],
+  source_evidence : Array[@publication.RunEvidenceValue],
+  barrier_attempt_receipt_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_free_run_receipt(
+      admission,
+      run_definition,
+      invocation,
+      observation,
+      definitions,
+      artifacts,
+      manifest,
+      normalization_journal,
+      compiler_version,
+      aoa_ir_version,
+      program_semantics_cid,
+      aoa_logical_cid,
+      binding_names,
+      binding_digests,
+      source_evidence,
+      barrier_attempt_receipt_cids,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,

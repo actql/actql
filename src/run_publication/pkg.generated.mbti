@@ -28,6 +28,8 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
 pub fn issue_publication_attempt(PublicationContract, PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
@@ -352,6 +354,17 @@ pub(all) enum RunPublicationChainIssue {
   ChainResultDefinitionMismatch(String)
   ChainArtifactMismatch(String)
   ChainEncoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunReceiptIssuanceIssue {
+  ReceiptIssuanceWrongContract(String)
+  ReceiptIssuanceReferenceMismatch(String)
+  ReceiptIssuanceInventoryMismatch(String)
+  ReceiptIssuanceDuplicateBinding(String)
+  ReceiptIssuanceInvalidBinding(String)
+  ReceiptIssuanceEncoding
+  ReceiptIssuanceContract(PublicationContractIssue)
+  ReceiptIssuanceChain(RunPublicationChainIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunStateIssue {

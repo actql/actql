@@ -181,6 +181,39 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    issueEffectFreeRunReceipt(chain, provenance, limits) {
+      issuanceLimits(limits, 'Run Receipt');
+      if (chain === null || typeof chain !== 'object' ||
+          provenance === null || typeof provenance !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          !Array.isArray(provenance.bindings) ||
+          !Array.isArray(provenance.sourceEvidence) ||
+          !Array.isArray(provenance.barrierAttemptReceiptCids)) {
+        throw new TypeError('Invalid Run Receipt request');
+      }
+      return inspect(checked(moon.strategyIssueEffectFreeRunReceipt(
+        admissionToken(chain.admission),
+        token(chain.runDefinition),
+        token(chain.invocation),
+        evidenceToken(chain.observation),
+        chain.definitions.map(token),
+        chain.artifacts.map(token),
+        token(chain.manifest),
+        evidenceToken(provenance.normalizationJournal),
+        provenance.compilerVersion,
+        provenance.aoaIrVersion,
+        provenance.programSemanticsCid,
+        provenance.aoaLogicalCid,
+        provenance.bindings.map(binding => binding.name),
+        provenance.bindings.map(binding => binding.sha256),
+        provenance.sourceEvidence.map(evidenceToken),
+        provenance.barrierAttemptReceiptCids,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
         previous === undefined ? undefined : token(previous),
