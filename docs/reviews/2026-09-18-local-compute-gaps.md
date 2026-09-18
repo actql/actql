@@ -35,7 +35,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | top_k_by | C | C | C | C | Complete: repeated and nullable partitions, all payload, key, and orderable domains, literal and parameter counts, exact large budgets, standard Host, two consumers, and indexed scaling |
 | row_window | C | C | C | C | Complete: fixed/sliding number and timestamp windows, literal and Parameter bounds, exact signed grids, arithmetic failures, budgets, Standard Host execution, two consumers, and emitted-membership scaling |
 | window_group | C | P | P | P | Fixed/sliding count, nullable keys, empty input, canonical ordering, and Decimal sum reach two managed consumers on three targets; expression/filter aggregates, remaining aggregates and types, Standard-Host evidence, exact capacity boundaries, and scaling evidence remain |
-| lag | C | C | P | P | Full value/key/orderable type matrix, Standard Host evidence, and cancellation |
+| lag | C | C | C | C | Complete: literal, default, and Parameter offsets; full value, key, and orderable type matrices; stable ties and NULL boundaries; exact budgets; Standard Host execution; two consumers; cancellation; and indexed scaling |
 | watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
 | unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |

@@ -2064,11 +2064,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
+        "kernel": "complete",
+        "managed": "complete",
         "source_connection": "complete",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -2087,7 +2087,23 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter offset",
+                "default value",
+                "partition and order"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "demand",
+                "parameter_binding",
+                "schema",
+                "stable_ties"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -2097,14 +2113,68 @@
             "path": "src/query_integration/local_managed_lag_wbtest.mbt",
             "fixtures": [
               "Local managed literal lag feeds two downstream Computes",
-              "Local managed parameter lag feeds two downstream Computes"
+              "Local managed parameter lag feeds two downstream Computes",
+              "Local managed lag cancellation publishes nothing and reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter offset",
+                "partition and order",
+                "NULL values",
+                "boundary rows"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "ownership",
+                "parameter_binding"
+              ]
+            }
+          },
+          {
+            "operation": "lag",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true,
+            "covers": {
+              "variants": [
+                "literal and parameter offset",
+                "partition and order",
+                "NULL values",
+                "boundary rows"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "ownership",
+                "parameter_binding",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           }
         ],
         "conformance": [
@@ -2121,7 +2191,64 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter offset",
+                "partition and order",
+                "NULL values",
+                "boundary rows"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "capacity",
+                "demand",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "parameter_binding",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "lag",
+            "layer": "conformance",
+            "path": "src/execution_relation/lag_domains_wbtest.mbt",
+            "fixtures": [
+              "lag preserves every result domain and owned-reference lifetime",
+              "lag partitions across every key-comparable domain",
+              "lag orders across every author-orderable domain"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "partition and order",
+                "NULL values",
+                "boundary rows"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable"
+              ],
+              "obligations": [
+                "logical_order",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           }
         ],
         "performance": [
@@ -2141,9 +2268,7 @@
           }
         ]
       },
-      "gaps": [
-        "Literal, default, and Parameter offsets now lower through the common typed kernel. Nullable partitions, completed ties, original occurrence order, exact execution budgets, two independently released managed consumers, final reclamation, and indexed scaling pass on three targets. The complete value, key, and orderable type matrix, Standard Host evidence, and cancellation coverage remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "watermark_rows",

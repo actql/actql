@@ -163,3 +163,72 @@ test "Local managed literal lag feeds two downstream Computes" {
 test "Local managed parameter lag feeds two downstream Computes" {
   run_local_managed_lag_case("parameter")
 }
+
+///|
+test "Local managed lag cancellation publishes nothing and reclaims" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_lag_chain=true,
+    local_values_lag_variant="literal",
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 2000,
+        max_nodes: 200,
+        max_depth: 10,
+        max_columns: 4,
+      },
+      row: {
+        max_bytes: 2000,
+        max_nodes: 200,
+        max_depth: 10,
+        max_text_bytes: 2000,
+      },
+      max_batch_bytes: 2000,
+    },
+    None,
+  ).unwrap()
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let setup = @local_driver.prepare_local_managed_dispatch(
+      installed,
+      [],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  (operations.close)()
+  assert_true((operations.execute)() is Err(_))
+  assert_true(
+    (operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  (operations.cleanup_refresh)() |> ignore
+  assert_false(@strategy.captured_task_completed(run, 1))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}

@@ -1867,6 +1867,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   };
   const fixedRowWindowProgram = rowWindowProgram('fixed');
   const slidingRowWindowProgram = rowWindowProgram('sliding');
+  const lagProgram = structuredClone(zeroInputProgram);
+  const lagFields = ['amount', 'group', 'id', 'previous'];
+  lagProgram.stages.splice(1, 3, {
+    id: 'lagged',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        amount: {type: 'number', nullable: true},
+        group: {type: 'string', nullable: true},
+        id: {type: 'number', nullable: false},
+      },
+      rows: [
+        {amount: 30, group: 'a', id: 3},
+        {amount: 20, group: null, id: 2},
+        {amount: 10, group: 'a', id: 1},
+        {amount: null, group: null, id: 4},
+        {amount: 30, group: 'a', id: 5},
+      ],
+    }, as: 'seed'},
+    {from: 'seed', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', lag: {
+      partition_by: ['group', 'group'],
+      order_by: [{amount: 'desc'}],
+      field: 'amount',
+      output: 'previous',
+      offset: {$param: 'minimum'},
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: lagFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `lag_consumer_${id}`,
+    inputs: {x: {result: {stage: 'lagged', result: 'r'}}},
+    steps: [{select: id === 'a' ? lagFields : [...lagFields].reverse(),
+      as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a' ? lagFields : [...lagFields].reverse(),
+    }},
+  })));
   const crossJoinProgram = singleton => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'tag'];
@@ -1920,6 +1957,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
+    ['parameter lag', lagProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
@@ -1967,6 +2005,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'parameter lag') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [5, 5, 5],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
