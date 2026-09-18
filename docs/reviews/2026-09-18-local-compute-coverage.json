@@ -1238,12 +1238,12 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
-        "performance": "missing"
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1261,24 +1261,65 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "fixed",
+                "sliding",
+                "literal and parameter size and step",
+                "boundary labels"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "ownership",
+                "parameter_binding",
+                "schema"
+              ]
+            }
           },
           {
             "operation": "row_window",
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_window_wbtest.mbt",
-            "fixtures": [
+          "fixtures": [
           "Local managed fixed row windows feed two downstream Computes",
           "Local managed sliding row windows feed two downstream Computes",
           "Local managed timestamp row windows use epoch milliseconds",
-          "Local managed row windows retain exact large-offset membership"
+          "Local managed row windows retain exact large-offset membership",
+          "Local managed row windows bind size and step Parameters"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "fixed",
+                "sliding",
+                "literal and parameter size and step",
+                "boundary labels",
+                "capacity multiplication"
+              ],
+              "types": [
+                "relation_value",
+                "temporal",
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "ownership",
+                "parameter_binding",
+                "schema",
+                "value_validation"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -1286,11 +1327,12 @@
             "operation": "row_window",
             "layer": "two_consumer_e2e",
             "path": "src/query_integration/local_managed_window_wbtest.mbt",
-            "fixtures": [
+          "fixtures": [
           "Local managed fixed row windows feed two downstream Computes",
           "Local managed sliding row windows feed two downstream Computes",
           "Local managed timestamp row windows use epoch milliseconds",
-          "Local managed row windows retain exact large-offset membership"
+          "Local managed row windows retain exact large-offset membership",
+          "Local managed row windows bind size and step Parameters"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -1298,6 +1340,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "row_window",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -1313,7 +1368,45 @@
           "fixed row windows retain exact grids across large signed offsets",
           "row windows preserve exact boundaries for fractional times",
           "sliding row windows use exact large-offset overlap boundaries",
-          "row windows reject unrepresentable exact boundaries as arithmetic"
+          "row windows reject unrepresentable exact boundaries as arithmetic",
+          "row windows enforce the exact shared execution work boundary"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "fixed",
+                "sliding",
+                "boundary labels",
+                "capacity multiplication"
+              ],
+              "types": [
+                "relation_value",
+                "temporal"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
+          }
+        ],
+        "performance": [
+          {
+            "operation": "row_window",
+            "layer": "performance",
+            "path": "src/execution_relation/row_window_scale_wbtest.mbt",
+            "fixtures": [
+              "row windows scale with input rows and emitted memberships"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -1322,12 +1415,9 @@
               "native"
             ]
           }
-        ],
-        "performance": []
+        ]
       },
-      "gaps": [
-      "Fixed and sliding numeric and timestamp windows now lower from checked source forms and run through managed Local execution with two independently released consumers on three targets. Exact signed-offset grids, fractional boundaries, and explicit arithmetic failure are covered. Standard Host evidence, parameter-bound managed execution, exact runtime budget boundaries, and fixed scaling evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "window_group",

@@ -22,6 +22,11 @@ fn local_values_window_program(variant : String) -> String {
         "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
         "[{\"at\":2,\"id\":1}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":-9007199254740991}",
       )
+    "parameter" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":-1,\"id\":1},{\"at\":2,\"id\":2},{\"at\":12,\"id\":3}]", "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":{\"$param\":\"minimum\"},\"step\":{\"$param\":\"minimum\"}}",
+      )
     _ => abort("unknown Local window fixture")
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
@@ -198,5 +203,20 @@ test "Local managed row windows retain exact large-offset membership" {
     "large_offset",
     ["{\"at\":2,\"id\":1,\"window_end\":5,\"window_start\":2}"],
     ["{\"window_start\":2,\"id\":1,\"window_end\":5,\"at\":2}"],
+  )
+}
+
+///|
+test "Local managed row windows bind size and step Parameters" {
+  run_local_managed_window_case(
+    "parameter",
+    [
+      "{\"at\":-1,\"id\":1,\"window_end\":0,\"window_start\":-1}", "{\"at\":2,\"id\":2,\"window_end\":3,\"window_start\":2}",
+      "{\"at\":12,\"id\":3,\"window_end\":13,\"window_start\":12}",
+    ],
+    [
+      "{\"window_start\":-1,\"id\":1,\"window_end\":0,\"at\":-1}", "{\"window_start\":2,\"id\":2,\"window_end\":3,\"at\":2}",
+      "{\"window_start\":12,\"id\":3,\"window_end\":13,\"at\":12}",
+    ],
   )
 }

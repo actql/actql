@@ -1668,6 +1668,44 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     {max_skew: {$param: 'minimum'}},
     'drop',
   );
+  const rowWindowProgram = kind => {
+    const variant = structuredClone(zeroInputProgram);
+    const fields = ['at', 'id', 'window_start', 'window_end'];
+    const window = {
+      kind,
+      time: 'at',
+      size: {$param: 'minimum'},
+    };
+    if (kind === 'sliding') window.step = {$param: 'minimum'};
+    variant.stages.splice(1, 3, {
+      id: 'window_values',
+      inputs: {},
+      steps: [{values: {
+        schema: {
+          at: {type: 'number', nullable: false},
+          id: {type: 'number', nullable: false},
+        },
+        rows: [{at: -1, id: 1}, {at: 2, id: 2}, {at: 12, id: 3}],
+      }, as: 'out'}],
+      results: {r: {from: 'out', fields: ['at', 'id']}},
+    }, {
+      id: 'windowed',
+      inputs: {x: {result: {stage: 'window_values', result: 'r'}}},
+      steps: [{row_window: window, as: 'out'}],
+      results: {r: {from: 'out', fields}},
+    }, ...['a', 'b'].map(id => ({
+      id: `row_window_consumer_${id}`,
+      inputs: {x: {result: {stage: 'windowed', result: 'r'}}},
+      steps: [{select: id === 'a' ? fields : [...fields].reverse(), as: 'out'}],
+      results: {r: {
+        from: 'out',
+        fields: id === 'a' ? fields : [...fields].reverse(),
+      }},
+    })));
+    return variant;
+  };
+  const fixedRowWindowProgram = rowWindowProgram('fixed');
+  const slidingRowWindowProgram = rowWindowProgram('sliding');
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
@@ -1677,6 +1715,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
+    ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
+    ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
   ]) {
     const zeroInputFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(program));

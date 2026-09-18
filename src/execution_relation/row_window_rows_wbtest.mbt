@@ -172,3 +172,43 @@ test "row windows reject unrepresentable exact boundaries as arithmetic" {
     is Err(Rows(1, WindowArithmetic(0))),
   )
 }
+
+///|
+test "row windows enforce the exact shared execution work boundary" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\"," +
+    "\"nullable\":false}},\"rows\":[{\"at\":5},{\"at\":7}]}," +
+    "\"as\":\"seed\"},{\"row_window\":{\"kind\":\"sliding\"," +
+    "\"time\":\"at\",\"size\":10,\"step\":6,\"offset\":2}}]",
+  )
+  let sequence = prepared_sequence(owner)
+  let maximum = 100000
+  let control = { remaining: maximum, max_frames: 100, }
+  assert_true(
+    evaluate_sequence_components(
+      registered_relation_contracts(),
+      sequence,
+      [],
+      ["window_1"],
+      { ..run_limits(), max_rows: 4, },
+      control,
+    )
+    is Ok(_),
+  )
+  let used = maximum - control.remaining
+  for (budget, succeeds) in [(used, true), (used - 1, false)] {
+    let bounded = { remaining: budget, max_frames: 100, }
+    assert_eq(
+      evaluate_sequence_components(
+        registered_relation_contracts(),
+        sequence,
+        [],
+        ["window_1"],
+        { ..run_limits(), max_rows: 4, },
+        bounded,
+      )
+      is Ok(_),
+      succeeds,
+    )
+  }
+}
