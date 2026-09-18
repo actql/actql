@@ -3898,11 +3898,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3919,7 +3919,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3936,6 +3941,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "except",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -3948,14 +3966,37 @@
               "row set lowering emits registered operation and checked duplicate mode",
               "row set output ceiling fails atomically",
               "row set variants preserve their empty-side laws",
-              "row set execution accepts every pair of retained input layouts"
+              "row set execution accepts every pair of retained input layouts",
+              "row set operations preserve every relation value domain and NULL",
+              "row set operations reject foreign inputs and tight budgets atomically"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "row equality",
+                "NULL equality",
+                "duplicate treatment",
+                "left order",
+                "empty sides"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "two_input_binding",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "except",
@@ -3989,9 +4030,7 @@
           }
         ]
       },
-      "gaps": [
-        "All/distinct scalar rows with NULL, left order, empty sides, every retained input-layout pairing, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Full relation_value types including references and detailed failure evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "intersect",
@@ -4011,11 +4050,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -4032,7 +4071,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -4049,6 +4093,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "intersect",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -4061,14 +4118,37 @@
               "row set lowering emits registered operation and checked duplicate mode",
               "row set output ceiling fails atomically",
               "row set variants preserve their empty-side laws",
-              "row set execution accepts every pair of retained input layouts"
+              "row set execution accepts every pair of retained input layouts",
+              "row set operations preserve every relation value domain and NULL",
+              "row set operations reject foreign inputs and tight budgets atomically"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "row equality",
+                "NULL equality",
+                "duplicate treatment",
+                "left order",
+                "empty sides"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "two_input_binding",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "intersect",
@@ -4102,9 +4182,7 @@
           }
         ]
       },
-      "gaps": [
-        "All/distinct scalar rows with NULL, left order, empty sides, every retained input-layout pairing, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Full relation_value types including references and detailed failure evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "cross_join",
