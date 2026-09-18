@@ -32,6 +32,13 @@ struct FrozenArray[T] {
 }
 
 ///|
+/// Build an immutable array from values that have already been admitted.
+/// The detached backing prevents later mutation of the caller's collection.
+pub fn array_value(values : Array[Value]) -> Value {
+  Array({ values: values.copy(), })
+}
+
+///|
 pub fn[T] elements(value : FrozenArray[T]) -> Array[T] {
   value.values.copy()
 }

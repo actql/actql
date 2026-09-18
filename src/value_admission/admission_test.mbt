@@ -460,6 +460,24 @@ test "empty objects and arrays remain constrained" {
 }
 
 ///|
+test "composed arrays detach their immutable backing" {
+  let number = contract("{\"type\":\"number\",\"nullable\":false}")
+  let source = [accept(number, "1").value]
+  guard @value_admission.array_value(source) is @value_admission.Array(items) else {
+    fail("array expected")
+  }
+  source[0] = accept(number, "2").value
+  assert_true(
+    @value_admission.element_at(items, 0) is Some(@value_admission.Number(1.0)),
+  )
+  let detached = @value_admission.elements(items)
+  detached[0] = accept(number, "3").value
+  assert_true(
+    @value_admission.element_at(items, 0) is Some(@value_admission.Number(1.0)),
+  )
+}
+
+///|
 test "vector shape admission preserves binary64 rather than scoring quantization" {
   let c = contract("{\"type\":\"vector\",\"nullable\":false,\"dimensions\":3}")
   match accept(c, "[0.1,1e300,-1e-300]").value {

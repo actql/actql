@@ -15,6 +15,10 @@ pub fn admit(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[Ch
 
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn array_value(Array[Value]) -> Value
+
+pub fn decimal_from_coefficient(String, Int, Int) -> Value?
+
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] element_count(FrozenArray[T]) -> Int
