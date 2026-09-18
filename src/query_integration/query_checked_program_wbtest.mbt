@@ -20,6 +20,8 @@ fn query_checked_program_fixture(
   local_values_window_group_variant? : String = "fixed_keyed",
   local_values_lag_chain? : Bool = false,
   local_values_lag_variant? : String = "literal",
+  local_values_watermark_chain? : Bool = false,
+  local_values_watermark_variant? : String = "fixed_mark",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -62,6 +64,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_lag_chain {
     local_values_lag_program(local_values_lag_variant)
+  } else {
+    text
+  }
+  let text = if local_values_watermark_chain {
+    local_values_watermark_program(local_values_watermark_variant)
   } else {
     text
   }
