@@ -11,6 +11,8 @@ import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
 import {storeCompletedResultPublicationPayload} from
   './durable-result-payload.mjs';
+import {publishCompletedEffectFreeRun} from
+  './completed-run-publication.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -621,7 +623,8 @@ export async function runInstalledStrategy(
     }
     active.delete(setup);
   }
-  return Object.freeze({
+  let execution;
+  execution = Object.freeze({
     // Internal task records only, not Program/Run publication or partial success.
     status: failed ? 'host-tasks-failed' : 'host-tasks-completed',
     failure,
@@ -631,6 +634,25 @@ export async function runInstalledStrategy(
     programDefinitionCid,
     resultInventory: checkedResultInventory,
     publicationInventory,
+    async publishEffectFreeRun(store, publication, signal) {
+      if (closed) throw new StrategyHostError('ReleasedStrategy');
+      if (failed || !core.finished(setup)) {
+        throw new StrategyHostError('StrategyNotComplete');
+      }
+      if (publication === null || typeof publication !== 'object' ||
+          Array.isArray(publication) ||
+          ['execution', 'store', 'control', 'signal']
+            .some(name => Object.hasOwn(publication, name))) {
+        throw new StrategyHostError('InvalidRunPublicationRequest');
+      }
+      return publishCompletedEffectFreeRun({
+        ...publication,
+        execution,
+        store,
+        control: core.publicationControl,
+        signal,
+      });
+    },
     async storePublicationResult(result, store, publication, signal) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (!Number.isSafeInteger(result) || result < 0 ||
@@ -768,4 +790,5 @@ export async function runInstalledStrategy(
       return closeResult;
     },
   });
+  return execution;
 }

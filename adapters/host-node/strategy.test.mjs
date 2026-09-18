@@ -141,6 +141,46 @@ test('installed Host snapshots the checked Program and Result inventory', async 
   result.close();
 });
 
+test('standard Host owns publication control and exact execution binding', async () => {
+  const registration = {}, f = fixture([registration]);
+  const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
+  f.core.programDefinitionCid = () => programDefinitionCid;
+  f.core.resultInventory = () => [{
+    name: 'answer',
+    task: 1,
+    definition: {
+      program_definition_cid: programDefinitionCid,
+      result_definition_cid:
+        'sha256:33cc81bf0c5e877d80d3dacf71d80fb8ef5472d6e224c83efac057853e67d966',
+      result_name: 'answer',
+      version: 'actql-result-definition/0.1',
+    },
+    definitionContract: Object.freeze({
+      name: 'result_definition',
+      identity:
+        'sha256:33cc81bf0c5e877d80d3dacf71d80fb8ef5472d6e224c83efac057853e67d966',
+      wire: '{}',
+    }),
+  }];
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run() { f.complete.add(1); },
+  }]);
+  await assert.rejects(
+    result.publishEffectFreeRun({}, {control: {}}, undefined),
+    {code: 'InvalidRunPublicationRequest'},
+  );
+  await assert.rejects(
+    result.publishEffectFreeRun({}, {}, undefined),
+    {code: 'InvalidCompletedRunPublicationOptions'},
+  );
+  result.close();
+  await assert.rejects(
+    result.publishEffectFreeRun({}, {}, undefined),
+    {code: 'ReleasedStrategy'},
+  );
+});
+
 test('checked Results cannot lose their Program Definition identity', async () => {
   const registration = {}, f = fixture([registration]);
   f.core.resultInventory = () => [{name: 'r', task: 1, definition: {}}];
