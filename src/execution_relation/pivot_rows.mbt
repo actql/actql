@@ -139,7 +139,8 @@ fn pivot_fill_value(pivot : @lower.PreparedPivot) -> Value {
 ///|
 /// Deterministic pivot lane. Binary64 sum/avg are deliberately excluded here:
 /// their checked numeric slots require attempt-bound durable observations, not
-/// a local fold hidden inside this row materializer.
+/// a local fold hidden inside this row materializer. Exact Decimal sum remains
+/// in this lane and checks its precision-38 public result after accumulation.
 fn[T : RelationRows] evaluate_pivot_rows(
   kernel : @lower.PreparedKernel,
   input : T,
@@ -153,7 +154,20 @@ fn[T : RelationRows] evaluate_pivot_rows(
     return Err(InvalidRows)
   }
   let function = @lower.pivot_function(pivot)
-  if function is @relation.Sum || function is @relation.Avg {
+  let decimal_sum_scale = match function {
+    @relation.Sum =>
+      match @relation.pivot(@lower.pivot_checked(pivot)) {
+        Some(checked) =>
+          match @relation.pivot_result(checked).shape {
+            @contract.Decimal(precision=38, scale~) => Some(scale)
+            _ => None
+          }
+        None => None
+      }
+    _ => None
+  }
+  if function is @relation.Avg ||
+    (function is @relation.Sum && decimal_sum_scale is None) {
     return Err(InvalidRows)
   }
   if max_rows < 0 ||
@@ -282,11 +296,13 @@ fn[T : RelationRows] evaluate_pivot_rows(
       !spend_control(control, 1) ||
       !reserve_slots(workspace, axis_count) ||
       !reserve_slots(workspace, axis_count) ||
+      (function is @relation.Sum && !reserve_slots(workspace, axis_count)) ||
       !reserve_slots(workspace, output_width) {
       return Err(RowLimit)
     }
     let counts = Array::make(axis_count, 0)
     let selected : Array[Value?] = Array::make(axis_count, None)
+    let sums : Array[String?] = Array::make(axis_count, None)
     for position = group.start; position < group.end; position = position + 1 {
       if !spend_control(control, 1) {
         return Err(RowLimit)
@@ -326,7 +342,25 @@ fn[T : RelationRows] evaluate_pivot_rows(
                   }
                 }
               }
-            @relation.Sum | @relation.Avg => return Err(InvalidRows)
+            @relation.Sum => {
+              guard value is Captured(@admitted.Decimal(decimal)) &&
+                decimal_sum_scale is Some(scale) &&
+                decimal.scale == scale else {
+                return Err(InvalidRows)
+              }
+              let previous = sums[axis].unwrap_or("0")
+              sums[axis] = match
+                add_decimal_coefficients(
+                  previous,
+                  decimal.coefficient,
+                  control,
+                  workspace,
+                ) {
+                Ok(value) => Some(value)
+                Err(issue) => return Err(issue)
+              }
+            }
+            @relation.Avg => return Err(InvalidRows)
             _ => return Err(InvalidRows)
           }
         }
@@ -336,10 +370,23 @@ fn[T : RelationRows] evaluate_pivot_rows(
     for (aggregate, index) in projection {
       if aggregate {
         row.push(
-          if function is @relation.Count {
-            Number(counts[index].to_double())
-          } else {
-            selected[index].unwrap_or(fill)
+          match function {
+            @relation.Count => Number(counts[index].to_double())
+            @relation.Sum =>
+              match sums[index] {
+                None => fill
+                Some(coefficient) => {
+                  guard decimal_sum_scale is Some(scale) else {
+                    return Err(InvalidRows)
+                  }
+                  match
+                    @admitted.decimal_from_coefficient(coefficient, 38, scale) {
+                    Some(value) => Captured(value)
+                    None => return Err(Aggregation(ArithmeticFailure))
+                  }
+                }
+              }
+            _ => selected[index].unwrap_or(fill)
           },
         )
       } else {

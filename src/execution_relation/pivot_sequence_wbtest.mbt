@@ -38,6 +38,33 @@ fn pivot_generated(owner : @lower.BoundPrepared) -> GeneratedSequence raise {
 }
 
 ///|
+fn pivot_decimal_owner(body : String) -> @lower.BoundPrepared {
+  let row = @schema.from_fields(
+    [
+      (
+        @schema.Unqualified("id"),
+        @contract.primitive(NumberType, nullable=false),
+      ),
+      (
+        @schema.Unqualified("status"),
+        @contract.primitive(StringType, nullable=true),
+      ),
+      (
+        @schema.Unqualified("amount"),
+        @contract.decimal_contract(38, 2, nullable=true).unwrap(),
+      ),
+    ],
+    max_fields=3,
+    max_name_bytes=14,
+  ).unwrap()
+  let carrier = @carrier.relation(@carrier.typed_rows(row))
+  sort_input_owner(
+    @pipeline.CarrierInput(carrier),
+    "[{\"pivot\":" + body + "}]",
+  )
+}
+
+///|
 test "pivot count uses canonical groups and generated-column order" {
   let owner = pivot_sequence_owner(
     "{\"index\":[\"id\",\"id\"],\"column\":\"status\",\"values\":[\"won\",\"open\"],\"value\":\"amount\",\"aggregate\":\"count\"}",
@@ -151,6 +178,73 @@ test "pivot max and first preserve their distinct aggregate laws" {
   assert_true(first_table.rows[0][1] is Number(30))
   assert_true(first_table.rows[1][0] is Number(2))
   assert_true(first_table.rows[1][1] is Number(20))
+}
+
+///|
+test "pivot decimal sum is exact and checks only the final precision-38 result" {
+  let owner = pivot_decimal_owner(
+    "{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\",\"won\"],\"value\":\"amount\",\"aggregate\":\"sum\"}",
+  )
+  let maximum = "999999999999999999999999999999999999.99"
+  let input = capture_input(
+    owner,
+    0,
+    [
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":\"1.23\"}"),
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":\"-0.23\"}"),
+      input_cursor("{\"id\":1,\"status\":\"won\",\"amount\":null}"),
+      input_cursor(
+        "{\"id\":2,\"status\":\"open\",\"amount\":\"" + maximum + "\"}",
+      ),
+      input_cursor("{\"id\":2,\"status\":\"open\",\"amount\":\"0.01\"}"),
+      input_cursor("{\"id\":2,\"status\":\"open\",\"amount\":\"-0.01\"}"),
+    ],
+    max_rows=6,
+    run_limits().input_values,
+  ).unwrap()
+  let completed = execute_generated_sequence(pivot_generated(owner), [input], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(0)).unwrap())
+  assert_eq(table.names, ["id", "open", "won"])
+  guard table.rows[0][1] is Captured(@admitted.Decimal(one)) else {
+    fail("decimal sum expected")
+  }
+  assert_eq((one.coefficient, one.precision, one.scale), ("100", 38, 2))
+  assert_true(table.rows[0][2] is Null)
+  guard table.rows[1][1] is Captured(@admitted.Decimal(retained)) else {
+    fail("decimal cancellation expected")
+  }
+  assert_eq(retained.coefficient, "99999999999999999999999999999999999999")
+}
+
+///|
+test "pivot decimal sum rejects a final coefficient wider than precision 38" {
+  let owner = pivot_decimal_owner(
+    "{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"sum\"}",
+  )
+  let input = capture_input(
+    owner,
+    0,
+    [
+      input_cursor(
+        "{\"id\":1,\"status\":\"open\",\"amount\":\"999999999999999999999999999999999999.99\"}",
+      ),
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":\"0.01\"}"),
+    ],
+    max_rows=2,
+    run_limits().input_values,
+  ).unwrap()
+  assert_true(
+    execute_generated_sequence(pivot_generated(owner), [input], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    })
+    is Err(Rows(0, Aggregation(ArithmeticFailure))),
+  )
 }
 
 ///|
