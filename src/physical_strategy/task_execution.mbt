@@ -14,6 +14,70 @@ struct TaskExecution {
   mut failed_holding : @resources.Holding?
   mut resident : ResidentExecution?
   attempt : @execution.ManagedExecutionAttempt
+  numeric : Array[TaskNumericReduction]
+}
+
+///|
+/// One selected static numeric slot. The checked slot owns the profile and
+/// operation; the chosen candidate supplies exactly one pinned member.
+priv struct TaskNumericReduction {
+  observation : TaskNumericObservation
+  reduction : @numeric.Reduction
+}
+
+///|
+fn select_declared_numeric_member(
+  profile : @numeric.Profile,
+  declarations : Array[@connector.NumericReductionSupport],
+) -> @numeric.Reduction? {
+  let profile_cid = @numeric.cid(profile)
+  let mut selected_member = None
+  for support in declarations {
+    if @connector.numeric_reduction_support_profile_cid(support) == profile_cid {
+      if selected_member is Some(_) {
+        return None
+      }
+      selected_member = Some(
+        @connector.numeric_reduction_support_member_cid(support),
+      )
+    }
+  }
+  selected_member.bind(member_cid => {
+    match @numeric.select(profile, member_cid) {
+      Ok(reduction) => Some(reduction)
+      Err(_) => None
+    }
+  })
+}
+
+///|
+fn[I] select_task_numeric_reductions(
+  run : CapturedDAG,
+  task : Int,
+  candidate : @connector.ManagedFixedComputeCandidate[I],
+) -> Array[TaskNumericReduction]? {
+  guard run.graph.numeric.get(task) is Some(observations) else { return None }
+  let declarations = []
+  let declaration_count = @connector.managed_fixed_compute_candidate_numeric_reduction_count(
+    candidate,
+  )
+  for index in 0..<declaration_count {
+    declarations.push(
+      @connector.managed_fixed_compute_candidate_numeric_reduction_at(
+        candidate, index,
+      ).unwrap(),
+    )
+  }
+  let selected = []
+  for observation in observations {
+    let profile = observation.profile
+    guard select_declared_numeric_member(profile, declarations)
+      is Some(reduction) else {
+      return None
+    }
+    selected.push({ observation, reduction, })
+  }
+  Some(selected)
 }
 
 ///|
@@ -122,6 +186,9 @@ pub fn[I, T] start_captured_managed_execution(
   if !@connector.prepared_managed_execution_available(prepared) {
     return Err(Compute(NotSelected))
   }
+  guard select_task_numeric_reductions(run, task, candidate) is Some(numeric) else {
+    return Err(ForeignCandidate)
+  }
   for (step, required) in run.join_limits[task] {
     guard @connector.prepared_managed_execution_join_output_ceiling(
         prepared, step,
@@ -205,6 +272,7 @@ pub fn[I, T] start_captured_managed_execution(
         failed_holding: None,
         resident: None,
         attempt: @execution.issue_managed_execution_attempt(),
+        numeric,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -348,6 +416,7 @@ fn[T] start_task_execution(
         failed_holding: None,
         resident,
         attempt: @execution.issue_managed_execution_attempt(),
+        numeric: [],
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -368,6 +437,72 @@ pub fn task_execution_managed_attempt(
   } else {
     None
   }
+}
+
+///|
+/// Count the exact static numeric slots selected for this managed attempt.
+/// Foreign or already-replaced execution handles expose no selection.
+pub fn task_execution_numeric_reduction_count(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Int? {
+  if task_execution_matches(run, execution) {
+    Some(execution.numeric.length())
+  } else {
+    None
+  }
+}
+
+///|
+/// Execute one selected reduction through the attempt-owned common boundary.
+/// Connectors cannot substitute another member or operation at execution time.
+pub fn execute_task_numeric_reduction(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  index : Int,
+  contributors : Array[Double],
+  expected_count : Int,
+  max_work : Int,
+) -> Result[@numeric.Outcome, @numeric.ReductionIssue]? {
+  if !task_execution_matches(run, execution) || execution.disposed {
+    return None
+  }
+  guard execution.numeric.get(index) is Some(selected) else { return None }
+  Some(
+    @numeric.execute(
+      selected.reduction,
+      selected.observation.operation,
+      contributors,
+      expected_count,
+      max_work,
+    ),
+  )
+}
+
+///|
+pub fn task_execution_numeric_reduction_slot_cid(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  index : Int,
+) -> String? {
+  if !task_execution_matches(run, execution) {
+    return None
+  }
+  execution.numeric.get(index).map(selected => selected.observation.slot_cid)
+}
+
+///|
+pub fn task_execution_numeric_reduction_member_cid(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  index : Int,
+) -> String? {
+  if !task_execution_matches(run, execution) {
+    return None
+  }
+  execution.numeric
+  .get(index)
+  .map(selected => @numeric.reduction_cid(selected.reduction))
 }
 
 ///|

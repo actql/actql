@@ -131,6 +131,8 @@ pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIss
 
 pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 
+pub fn execute_task_numeric_reduction(CapturedDAG, TaskExecution, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?
+
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
@@ -276,6 +278,12 @@ pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsag
 pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
 pub fn task_execution_managed_attempt(CapturedDAG, TaskExecution) -> @execution_relation.ManagedExecutionAttempt?
+
+pub fn task_execution_numeric_reduction_count(CapturedDAG, TaskExecution) -> Int?
+
+pub fn task_execution_numeric_reduction_member_cid(CapturedDAG, TaskExecution, Int) -> String?
+
+pub fn task_execution_numeric_reduction_slot_cid(CapturedDAG, TaskExecution, Int) -> String?
 
 pub fn task_numeric_observation_family(TaskNumericObservation) -> NumericObservationFamily
 
