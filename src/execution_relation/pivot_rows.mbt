@@ -323,10 +323,14 @@ fn[T : RelationRows] evaluate_pivot_rows(
               match selected[axis] {
                 None => selected[axis] = Some(value)
                 Some(previous) => {
-                  if !spend_control(control, 1) ||
-                    !charge_comparison_operand(control, previous) ||
-                    !charge_comparison_operand(control, value) {
+                  if !spend_control(control, 1) {
                     return Err(RowLimit)
+                  }
+                  match charge_comparison_pair(control, previous, value) {
+                    Ok(_) => ()
+                    Err(ComparisonChargeLimit) => return Err(RowLimit)
+                    Err(ComparisonChargeInvalidOperand) =>
+                      return Err(Comparison(InvalidOperand))
                   }
                   let comparison = match compare(value, previous) {
                     Ok(value) => value

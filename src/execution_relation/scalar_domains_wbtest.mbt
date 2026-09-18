@@ -51,13 +51,14 @@ test "decimal comparison is exact across scales signs zeros and precision 38" {
       _ => abort("decimal fixture")
     }
     let exact = { remaining: coefficient_bytes, max_frames: 0, }
-    assert_true(charge_comparison_operand(exact, left))
+    assert_true(charge_comparison_operand(exact, left) is Ok(_))
     assert_eq(exact.remaining, 0)
-    assert_false(
+    assert_true(
       charge_comparison_operand(
         { remaining: coefficient_bytes - 1, max_frames: 0, },
         left,
-      ),
+      )
+      is Err(ComparisonChargeLimit),
     )
     guard binary(@lower.Equal, left, right).unwrap() is Boolean(equal) else {
       fail("boolean comparison")
@@ -82,9 +83,11 @@ test "admitted temporal comparison is chronological and does not compare across 
     assert_true(compare(left, Text(a)) is Err(ComparisonDomainNotImplemented))
     assert_true(binary(@lower.NullIf, left, left).unwrap() is Null)
     let budget = { remaining: a.length(), max_frames: 0, }
-    assert_true(charge_comparison_operand(budget, left))
+    assert_true(charge_comparison_operand(budget, left) is Ok(_))
     assert_eq(budget.remaining, 0)
-    assert_false(charge_comparison_operand(budget, right))
+    assert_true(
+      charge_comparison_operand(budget, right) is Err(ComparisonChargeLimit),
+    )
   }
 }
 

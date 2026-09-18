@@ -71,6 +71,13 @@ test "owned references preserve identity equality and current authorization" {
   assert_eq(ordering, 0)
   live.val = false
   assert_true(
+    charge_comparison_operand(
+      { remaining: 10000, max_frames: 10, },
+      capture(first.value),
+    )
+    is Err(ComparisonChargeInvalidOperand),
+  )
+  assert_true(
     binary(Equal, capture(first.value), capture(same.value))
     is Err(InvalidOperand),
   )

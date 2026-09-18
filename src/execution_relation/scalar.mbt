@@ -17,6 +17,12 @@ pub(all) enum ScalarIssue {
 } derive(Eq, Debug)
 
 ///|
+priv enum ComparisonChargeIssue {
+  ComparisonChargeLimit
+  ComparisonChargeInvalidOperand
+}
+
+///|
 pub fn capture(value : @admitted.Value) -> Value {
   match value {
     @admitted.Null => Null
@@ -146,16 +152,53 @@ fn compare_decimal(
 ///|
 /// Caller-owned control budget must cover variable-size scalar comparison work.
 /// Shared by expression evaluation and Relation ordering/equality kernels.
-fn charge_comparison_operand(budget : ControlBudget, value : Value) -> Bool {
+fn charge_comparison_operand(
+  budget : ControlBudget,
+  value : Value,
+) -> Result[Unit, ComparisonChargeIssue] {
   match value {
-    Text(s) => spend_control_text(budget, s)
+    Text(s) =>
+      if spend_control_text(budget, s) {
+        Ok(())
+      } else {
+        Err(ComparisonChargeLimit)
+      }
     Captured(@admitted.Date(s)) | Captured(@admitted.Timestamp(s)) =>
-      spend_control_text(budget, s)
-    Captured(@admitted.Decimal(d)) => spend_control_text(budget, d.coefficient)
+      if spend_control_text(budget, s) {
+        Ok(())
+      } else {
+        Err(ComparisonChargeLimit)
+      }
+    Captured(@admitted.Decimal(d)) =>
+      if spend_control_text(budget, d.coefficient) {
+        Ok(())
+      } else {
+        Err(ComparisonChargeLimit)
+      }
     Captured(@admitted.Reference(reference)) =>
-      @admitted.reference_available(reference) &&
-      spend_control_text(budget, @admitted.reference_identity_cid(reference))
-    Null | Number(_) | Boolean(_) | Captured(_) => true
+      if !@admitted.reference_available(reference) {
+        Err(ComparisonChargeInvalidOperand)
+      } else if spend_control_text(
+          budget,
+          @admitted.reference_identity_cid(reference),
+        ) {
+        Ok(())
+      } else {
+        Err(ComparisonChargeLimit)
+      }
+    Null | Number(_) | Boolean(_) | Captured(_) => Ok(())
+  }
+}
+
+///|
+fn charge_comparison_pair(
+  budget : ControlBudget,
+  left : Value,
+  right : Value,
+) -> Result[Unit, ComparisonChargeIssue] {
+  match charge_comparison_operand(budget, left) {
+    Ok(_) => charge_comparison_operand(budget, right)
+    Err(issue) => Err(issue)
   }
 }
 

@@ -28,9 +28,10 @@ fn compare_complete_scalar(
   right : Value,
   control : ControlBudget,
 ) -> Result[Int, OrderingIssue] {
-  if !charge_comparison_operand(control, left) ||
-    !charge_comparison_operand(control, right) {
-    return Err(Limit)
+  match charge_comparison_pair(control, left, right) {
+    Ok(_) => ()
+    Err(ComparisonChargeLimit) => return Err(Limit)
+    Err(ComparisonChargeInvalidOperand) => return Err(Scalar(InvalidOperand))
   }
   match compare(left, right) {
     Ok(value) => Ok(value)

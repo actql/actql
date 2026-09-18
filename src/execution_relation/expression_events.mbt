@@ -97,9 +97,12 @@ fn expression_event_binary(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !charge_comparison_operand(control, left) ||
-    !charge_comparison_operand(control, right) {
-    return Err({ kind: ControlLimit, expression: expr, })
+  match charge_comparison_pair(control, left, right) {
+    Ok(_) => ()
+    Err(ComparisonChargeLimit) =>
+      return Err({ kind: ControlLimit, expression: expr, })
+    Err(ComparisonChargeInvalidOperand) =>
+      return Err({ kind: Scalar(InvalidOperand), expression: expr, })
   }
   let value = match binary(op, left, right) {
     Err(issue) => return Err({ kind: Scalar(issue), expression: expr, })

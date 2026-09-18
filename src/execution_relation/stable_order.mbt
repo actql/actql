@@ -27,9 +27,11 @@ fn[T : IndexedRows] compare_row_indices(
     }
     let left = table.read_cell(a, term.column)
     let right = table.read_cell(b, term.column)
-    if !charge_comparison_operand(control, left) ||
-      !charge_comparison_operand(control, right) {
-      return Err(Limit)
+    match charge_comparison_pair(control, left, right) {
+      Ok(_) => ()
+      Err(ComparisonChargeLimit) => return Err(Limit)
+      Err(ComparisonChargeInvalidOperand) =>
+        return Err(Scalar(InvalidOperand))
     }
     let comparison = match (left, right) {
       (Null, Null) => 0

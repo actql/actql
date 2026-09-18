@@ -18,11 +18,16 @@ fn[T : IndexedRows] dedupe_key_identity(
     let writer = @encode.hashing_writer(control.remaining, control.remaining, 4)
     @encode.begin_array(writer)
     for key in by {
-      if !spend_control(control, 1) ||
-        !charge_comparison_operand(control, table.read_cell(row, key.column)) {
+      if !spend_control(control, 1) {
         return Err(Ordering(Limit))
       }
       let value = table.read_cell(row, key.column)
+      match charge_comparison_operand(control, value) {
+        Ok(_) => ()
+        Err(ComparisonChargeLimit) => return Err(Ordering(Limit))
+        Err(ComparisonChargeInvalidOperand) =>
+          return Err(Ordering(Scalar(InvalidOperand)))
+      }
       match value {
         Null | Number(_) | Boolean(_) | Text(_) =>
           emit_runtime_value(value, writer)

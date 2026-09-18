@@ -98,9 +98,11 @@ fn[L : IndexedRows, R : IndexedRows] compare_join_indices(
     }
     let l = left.read_cell(lrow, lc)
     let r = right.read_cell(rrow, rc)
-    if !charge_comparison_operand(control, l) ||
-      !charge_comparison_operand(control, r) {
-      return Err(Limit)
+    match charge_comparison_pair(control, l, r) {
+      Ok(_) => ()
+      Err(ComparisonChargeLimit) => return Err(Limit)
+      Err(ComparisonChargeInvalidOperand) =>
+        return Err(Scalar(InvalidOperand))
     }
     let c = match (l, r) {
       (Null, Null) => 0
