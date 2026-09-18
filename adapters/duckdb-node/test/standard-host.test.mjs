@@ -1598,6 +1598,39 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       from: 'out', fields: id === 'a' ? ['total', 'id'] : ['id', 'total'],
     }},
   })));
+  const snapshotDeriveProgram = structuredClone(zeroInputProgram);
+  const deriveFields = ['id', 'amount', 'saved', 'next'];
+  snapshotDeriveProgram.stages.splice(1, 3, {
+    id: 'derive_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: true},
+      },
+      rows: [{id: 1, amount: 10}, {id: 2, amount: null}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount']}},
+  }, {
+    id: 'derived',
+    inputs: {x: {result: {stage: 'derive_values', result: 'r'}}},
+    steps: [{derive: {
+      saved: 'id',
+      next: 'id + $minimum',
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: deriveFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `derive_consumer_${id}`,
+    inputs: {x: {result: {stage: 'derived', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? deriveFields
+      : [...deriveFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a'
+        ? deriveFields
+        : [...deriveFields].reverse(),
+    }},
+  })));
   const sortProgram = structuredClone(zeroInputProgram);
   sortProgram.stages.splice(1, 3, {
     id: 'sort_values',
@@ -1876,6 +1909,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
+    ['snapshot derive', snapshotDeriveProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
     ['global top k', globalTopKProgram, [1, 2, 3, 4]],
@@ -1927,6 +1961,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'snapshot derive') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2, 2],
+          `${name} and both consumers publish complete retained outputs`,
         );
       }
       if (name === 'dedupe rows') {

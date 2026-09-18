@@ -842,10 +842,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -863,7 +863,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "snapshot map",
+                "ordered bindings",
+                "parameters",
+                "demanded expressions",
+                "overwrite and append fields"
+              ],
+              "obligations": [
+                "demand",
+                "failure_atomicity",
+                "ownership",
+                "parameter_binding"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -880,6 +895,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "derive",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -896,7 +924,13 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "capacity",
+                "failure_atomicity"
+              ]
+            }
           },
           {
             "operation": "derive",
@@ -910,7 +944,41 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership",
+                "parameter_binding"
+              ]
+            }
+          },
+          {
+            "operation": "derive",
+            "layer": "conformance",
+            "path": "src/execution_relation/derive_conformance_wbtest.mbt",
+            "fixtures": [
+              "derive preserves every result domain across snapshot and ordered forms"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable",
+                "numeric"
+              ],
+              "obligations": [
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           }
         ],
         "performance": [
@@ -930,9 +998,7 @@
           }
         ]
       },
-      "gaps": [
-        "Snapshot-map, empty, ordered parameter, and demanded-failure derives reach the managed path on three targets, with linear work evidence. Standard Host evidence, the full result-type and overwrite matrix, and the shared owned-reference runtime boundary remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "sort",
