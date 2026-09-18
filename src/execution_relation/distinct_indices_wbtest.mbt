@@ -127,3 +127,35 @@ test "distinct work is subquadratic for all equal and all different rows" {
     }
   }
 }
+
+///|
+test "distinct work and workspace bounds are exact at scale" {
+  let count = 1000
+  let input = order_table(Array::makei(count, i => Number(i.to_double())))
+  let maximum = 1000000
+  let control = { remaining: maximum, max_frames: 100, }
+  let workspace = { limit: maximum, live: 0, peak: 0, }
+  assert_eq(
+    distinct_indices(input, [0], control, workspace).unwrap().length(),
+    count,
+  )
+  let used = maximum - control.remaining
+  let peak = workspace.peak
+  for (work, space, success) in [
+    (used, peak, true),
+    (used - 1, peak, false),
+    (used, peak - 1, false),
+  ] {
+    let result = distinct_indices(
+      input,
+      [0],
+      { remaining: work, max_frames: 100, },
+      { limit: space, live: 0, peak: 0, },
+    )
+    if success {
+      assert_eq(result.unwrap().length(), count)
+    } else {
+      assert_true(result is Err(Limit))
+    }
+  }
+}

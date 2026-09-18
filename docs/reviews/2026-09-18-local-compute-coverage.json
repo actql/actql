@@ -2999,10 +2999,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3033,7 +3033,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3050,6 +3055,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "distinct",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -3060,14 +3078,37 @@
             "fixtures": [
               "whole-row distinct preserves first occurrence and feeds take in the same driver",
               "distinct comparison readiness depends on selected schema not row count",
-              "empty-schema distinct collapses identical empty tuples but preserves empty input"
+              "empty-schema distinct collapses identical empty tuples but preserves empty input",
+              "whole-row distinct compares every key domain including owned references",
+              "keyed distinct accepts every relation value payload domain"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "whole row",
+                "selected compound key",
+                "NULL equality",
+                "representative order",
+                "keyed projection"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "distinct",
@@ -3105,7 +3146,8 @@
             "layer": "performance",
             "path": "src/execution_relation/distinct_indices_wbtest.mbt",
             "fixtures": [
-              "distinct work is subquadratic for all equal and all different rows"
+              "distinct work is subquadratic for all equal and all different rows",
+              "distinct work and workspace bounds are exact at scale"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3116,9 +3158,7 @@
           }
         ]
       },
-      "gaps": [
-        "Whole-row and keyed nullable first-occurrence distinct, authored projection order, two managed consumers, exact small-case budgets, and indexed subquadratic work are covered on three targets. Standard Host evidence, the broader whole-row domain matrix, shared owned-reference comparison, and large-scale exact/one-short budgets remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "dedupe_rows",
