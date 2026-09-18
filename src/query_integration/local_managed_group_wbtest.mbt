@@ -229,7 +229,9 @@ fn run_local_managed_group_case(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  let expanded = variant == "direct" || variant == "ordered"
+  let expanded = variant == "direct" ||
+    variant == "ordered" ||
+    variant == "collections"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -447,5 +449,18 @@ test "Local managed ordered aggregates reach two independent consumers" {
       "{\"last_desc\":\"low\",\"last_asc\":\"high\",\"k\":1,\"first_desc\":\"high\",\"first_asc\":\"low\"}",
       "{\"last_desc\":null,\"last_asc\":null,\"k\":2,\"first_desc\":null,\"first_asc\":null}",
     ],
+  )
+}
+
+///|
+test "Local managed collection aggregates reach two independent consumers" {
+  run_local_managed_group_case(
+    "collections",
+    [
+      "{\"id\":1,\"k\":1,\"label\":\"a\"}", "{\"id\":2,\"k\":1,\"label\":null}",
+      "{\"id\":3,\"k\":1,\"label\":\"b\"}",
+    ],
+    ["{\"items\":[\"a\",\"b\"],\"k\":1,\"n\":3,\"text\":\"b|a\"}"],
+    ["{\"text\":\"b|a\",\"n\":3,\"k\":1,\"items\":[\"a\",\"b\"]}"],
   )
 }

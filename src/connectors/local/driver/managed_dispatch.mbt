@@ -12,6 +12,7 @@ struct LocalManagedDispatchConfiguration[T] {
   imports : @local.LocalImportLimits
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
+  aggregate_output_ceilings : Array[@connector.AggregateOutputCeiling]
 }
 
 ///|
@@ -159,6 +160,22 @@ pub fn[T] prepare_local_managed_dispatch(
     }
     join_output_ceilings.push(ceiling)
   }
+  let aggregate_output_ceilings = []
+  guard @strategy.captured_task_aggregate_output_count(installed.run, task)
+    is Some(aggregate_count) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  for index in 0..<aggregate_count {
+    guard @strategy.captured_task_aggregate_output_at(
+        installed.run,
+        task,
+        index,
+      )
+      is Some(ceiling) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    aggregate_output_ceilings.push(ceiling)
+  }
   Ok(
     Some({
       run: installed.run,
@@ -180,6 +197,7 @@ pub fn[T] prepare_local_managed_dispatch(
         execution_bytes: base.execution_bytes + base.retained_bytes + imported,
       },
       join_output_ceilings,
+      aggregate_output_ceilings,
     }),
   )
 }
@@ -282,6 +300,7 @@ pub fn[T] start_local_managed_dispatch(
         }
         Ok(((), operations))
       },
+      aggregate_output_ceilings=setup.aggregate_output_ceilings,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
@@ -352,6 +371,7 @@ pub fn[T] start_local_managed_dispatch(
           setup.execution,
           setup.measurement,
           join_output_ceiling=setup.join_output_ceilings.get(0),
+          aggregate_output_ceilings=setup.aggregate_output_ceilings,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Configuration(issue))

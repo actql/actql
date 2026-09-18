@@ -2149,7 +2149,8 @@
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
-              "Local managed ordered aggregates reach two independent consumers"
+              "Local managed ordered aggregates reach two independent consumers",
+              "Local managed collection aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2171,7 +2172,8 @@
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
-              "Local managed ordered aggregates reach two independent consumers"
+              "Local managed ordered aggregates reach two independent consumers",
+              "Local managed collection aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2221,6 +2223,25 @@
           {
             "operation": "group",
             "layer": "conformance",
+            "path": "src/execution_relation/group_collection_wbtest.mbt",
+            "fixtures": [
+              "collection aggregates preserve independent order and first distinct occurrence",
+              "empty collection aggregates retain array and string empty laws",
+              "selected collection limits fail atomically at one short",
+              "string aggregate measures raw UTF-8 output including delimiters",
+              "array aggregate retains admitted structured items and nested nullability",
+              "aggregate output constraints reject foreign or ambiguous occurrences"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_group_wbtest.mbt",
             "fixtures": [
               "Local managed group count orders nullable keys for two consumers",
@@ -2229,7 +2250,8 @@
               "Local managed global group emits zero for empty input",
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
-              "Local managed ordered aggregates reach two independent consumers"
+              "Local managed ordered aggregates reach two independent consumers",
+              "Local managed collection aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2271,7 +2293,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, and direct first/last cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, percentile/statistical aggregates, array/string aggregates, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, and direct-field array/string aggregates cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, exact collection limits, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, percentile/statistical aggregates, and remaining formal key domains remain."
       ]
     },
     {

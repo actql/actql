@@ -802,8 +802,8 @@ fn local_values_group_program(variant : String) -> String {
       (
         "{\"k\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}}",
         "[{\"k\":1,\"id\":1,\"label\":\"a\"},{\"k\":1,\"id\":2,\"label\":null},{\"k\":1,\"id\":3,\"label\":\"b\"}]",
-        "[]", "{\"items\":{\"fn\":\"array_agg\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":5},\"n\":{\"fn\":\"count\"},\"text\":{\"fn\":\"string_agg\",\"field\":\"label\",\"delimiter\":\"|\",\"order_by\":[{\"id\":\"desc\"}],\"max_bytes\":17}}",
-        "[\"id\",\"k\",\"label\"]", "[\"n\"]", "[\"n\"]",
+        "[\"k\"]", "{\"items\":{\"fn\":\"array_agg\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":5},\"n\":{\"fn\":\"count\"},\"text\":{\"fn\":\"string_agg\",\"field\":\"label\",\"delimiter\":\"|\",\"order_by\":[{\"id\":\"desc\"}],\"max_bytes\":17}}",
+        "[\"id\",\"k\",\"label\"]", "[\"items\",\"k\",\"n\",\"text\"]", "[\"text\",\"n\",\"k\",\"items\"]",
       )
     _ => abort("unknown Local group fixture")
   }
@@ -818,17 +818,13 @@ fn local_values_group_program(variant : String) -> String {
     selected +
     "}}}"
   }
-  let group_alias = if variant == "collections" { "grouped" } else { "out" }
+  let group_alias = "out"
   let group_open = if variant == "collections" {
     "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"group\":{\"by\":"
   } else {
     "{\"group\":{\"by\":"
   }
-  let group_tail = if variant == "collections" {
-    ",{\"from\":\"grouped\",\"select\":[\"n\"],\"as\":\"out\"}"
-  } else {
-    ""
-  }
+  let group_tail = ""
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   remote +
   "," +

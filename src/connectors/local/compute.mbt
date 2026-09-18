@@ -130,6 +130,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
+  aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
 ) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
   guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
@@ -160,6 +161,24 @@ pub fn[T] execute_local_managed_fixed_compute(
         Ok(value) => value
         Err(issue) => return Err(Execution(issue))
       }
+  }
+  let mut constrained = constrained
+  for ceiling in aggregate_output_ceilings {
+    let unit = match @connector.aggregate_output_ceiling_unit(ceiling) {
+      @connector.ArrayItems => @execution.array_items_output_unit()
+      @connector.StringBytes => @execution.string_bytes_output_unit()
+    }
+    constrained = match
+      @execution.constrain_generated_aggregate_output(
+        constrained,
+        @connector.aggregate_output_ceiling_step(ceiling),
+        @connector.aggregate_output_ceiling_name(ceiling),
+        unit,
+        @connector.aggregate_output_ceiling_maximum(ceiling),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
   }
   guard @lower.preparation_output_target(
       @lower.bound_preparation(

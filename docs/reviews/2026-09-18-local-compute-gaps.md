@@ -44,7 +44,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unnest | C | C | P | P | Inner/outer managed paths and linear scaling are covered; nested-value matrix and native layout writer remain |
 | join | C | P | P | P | Equality kinds, compound nullable keys, self joins, cardinality, and indexed scaling are covered; cross-stage full identity transfer, broader types, and diagnostics remain |
 | nest | C | - | - | - | Canonical common contract is missing |
-| group | C | P | P | P | Count is managed for empty, nullable, and compound keys with two consumers, result limits, and subquadratic work; non-count aggregates and remaining key domains remain |
+| group | C | P | P | P | Count, direct aggregates, and ordered array/string collections are managed with exact selected limits and two consumers; expression/filter, numeric observation, statistical aggregates, and remaining key domains remain |
 | distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
 | dedupe_rows | C | C | C | P | Standard-Host evidence, the broader key/orderable domain matrix, and shared owned-reference comparison; compound nullable keys, tie failure, two consumers, and indexed scaling are covered |
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
