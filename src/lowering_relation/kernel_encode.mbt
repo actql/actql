@@ -5,7 +5,12 @@ pub fn emit_kernel_node(
   kernel : PreparedKernel,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  if kernel.body is CountGroups(group) {
+  let group_keys = match kernel.body {
+    CountGroups(group) => Some(group.keys)
+    Groups(group) => Some(group.keys)
+    _ => None
+  }
+  if group_keys is Some(keys) {
     let node = kernel.owner.prepared.nodes[kernel.step_index]
     guard node.aggregation_id is Some(input) else {
       raise @encode.InvalidStructure
@@ -23,7 +28,7 @@ pub fn emit_kernel_node(
     @encode.begin_object(out)
     @encode.key(out, "by")
     @encode.begin_array(out)
-    for field in group.keys {
+    for field in keys {
       @encode.begin_object(out)
       @encode.key(out, "dir")
       @encode.string_value(out, "asc")
@@ -74,13 +79,14 @@ pub fn emit_kernel_node(
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
       CountGroups(_) => "REL.groupBy"
+      Groups(_) => "REL.groupBy"
       OrderedBindings(_) => raise @encode.InvalidStructure
     },
   )
   @encode.key(out, "params")
   @encode.begin_object(out)
   match kernel.body {
-    CountGroups(_) => raise @encode.InvalidStructure
+    CountGroups(_) | Groups(_) => raise @encode.InvalidStructure
     DistinctRows => ()
     StableSort(_) => {
       @encode.key(out, "by")
@@ -317,6 +323,24 @@ fn emit_kernel_prefix(
     @encode.string_value(out, "REL.groupBy")
     @encode.key(out, "params")
     emit_count_group_params(group, out)
+    @encode.end_object(out)
+    return
+  }
+  if kernel.body is Groups(group) {
+    guard node.aggregation_id is Some(id) else {
+      raise @encode.InvalidStructure
+    }
+    @encode.begin_object(out)
+    @encode.key(out, "id")
+    @encode.string_value(out, id)
+    @encode.key(out, "in")
+    @encode.begin_array(out)
+    @encode.string_value(out, kernel.input_id)
+    @encode.end_array(out)
+    @encode.key(out, "op")
+    @encode.string_value(out, "REL.groupBy")
+    @encode.key(out, "params")
+    emit_group_params(group, out)
     @encode.end_object(out)
     return
   }

@@ -108,7 +108,8 @@ fn emit_fragment_pipeline(
         | DistinctRows
         | DedupeRows
         | StableSort(_)
-        | CountGroups(_) => raise @encode.InvalidStructure
+        | CountGroups(_)
+        | Groups(_) => raise @encode.InvalidStructure
       },
     )
     @encode.key(out, "params")
@@ -156,7 +157,8 @@ fn emit_fragment_pipeline(
       | DistinctRows
       | DedupeRows
       | StableSort(_)
-      | CountGroups(_) => raise @encode.InvalidStructure
+      | CountGroups(_)
+      | Groups(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

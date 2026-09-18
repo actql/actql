@@ -96,6 +96,7 @@ pub fn local_managed_sequence_supported(
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
+          Groups(_) => false
           Pivot(pivot) =>
             match @lower.pivot_function(pivot) {
               @relation.Count

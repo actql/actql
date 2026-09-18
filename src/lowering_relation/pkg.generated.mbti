@@ -181,6 +181,8 @@ pub fn group_aggregate_order_at(PreparedAggregate, Int) -> @relation_typing.Orde
 
 pub fn group_aggregate_order_count(PreparedAggregate) -> Int
 
+pub fn group_aggregate_order_term_at(PreparedAggregate, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
 pub fn group_aggregate_requires_numeric_observation(PreparedAggregate) -> Bool
 
 pub fn group_aggregate_result(PreparedAggregate) -> @value_contract.Contract
@@ -248,6 +250,8 @@ pub fn kernel_dedupe_order_at(PreparedKernel, Int) -> (@relation_schema.FieldNam
 pub fn kernel_dedupe_order_count(PreparedKernel) -> Int
 
 pub fn kernel_distinct_projection(PreparedKernel) -> PreparedProjection?
+
+pub fn kernel_group(PreparedKernel) -> PreparedGroup?
 
 pub fn kernel_input(PreparedKernel) -> String
 
@@ -701,6 +705,7 @@ pub enum KernelBody {
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
   CountGroups(PreparedCountGroup)
+  Groups(PreparedGroup)
 }
 
 pub(all) enum KernelIssue {
@@ -716,6 +721,7 @@ pub(all) enum KernelIssue {
   PendingSortOrder
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
+  GroupFailure(GroupIssue)
 }
 
 pub(all) struct Limits {

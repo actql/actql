@@ -499,6 +499,16 @@ pub fn group_aggregate_order_at(
 }
 
 ///|
+pub fn group_aggregate_order_term_at(
+  value : PreparedAggregate,
+  index : Int,
+) -> (@schema.FieldName, Bool, Bool)? {
+  value.order
+  .get(index)
+  .map(term => (term.field, term.direction is Desc, term.nulls is First))
+}
+
+///|
 pub fn group_aggregate_item_limit(value : PreparedAggregate) -> Int64? {
   value.item_limit
 }
@@ -523,6 +533,119 @@ pub fn group_aggregate_requires_numeric_observation(
   value : PreparedAggregate,
 ) -> Bool {
   value.numeric_observation
+}
+
+///|
+fn group_aggregate_function_name(
+  function : @relation.AggregateFunction,
+) -> String {
+  match function {
+    Count => "count"
+    CountIf => "count_if"
+    Sum => "sum"
+    Avg => "avg"
+    Min => "min"
+    Max => "max"
+    ArrayAgg => "array_agg"
+    StringAgg => "string_agg"
+    First => "first"
+    Last => "last"
+    PercentileDisc => "percentile_disc"
+    PercentileCont => "percentile_cont"
+    VarPop => "var_pop"
+    VarSamp => "var_samp"
+    StddevPop => "stddev_pop"
+    StddevSamp => "stddev_samp"
+  }
+}
+
+///|
+fn emit_group_params(
+  group : PreparedGroup,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  @encode.key(out, "aggs")
+  @encode.begin_object(out)
+  for aggregate in group.aggregates {
+    @encode.key(out, aggregate.name)
+    @encode.begin_object(out)
+    if aggregate.delimiter is Some(delimiter) {
+      @encode.key(out, "delimiter")
+      @encode.string_value(out, delimiter)
+    }
+    if aggregate.distinct is Some(distinct) {
+      @encode.key(out, "distinct")
+      @encode.bool_value(out, distinct)
+    }
+    match aggregate.argument {
+      AggregateRows => ()
+      AggregateField(field) => {
+        @encode.key(out, "field")
+        @encode.string_value(out, @schema.reference_name(field))
+      }
+      AggregateExpression(expression) => {
+        @encode.key(out, "expr")
+        emit_expression_source(expression, out)
+      }
+    }
+    if aggregate.filter is Some(filter) {
+      @encode.key(out, "filter")
+      emit_expression_source(filter, out)
+    }
+    @encode.key(out, "fn")
+    @encode.string_value(out, group_aggregate_function_name(aggregate.function))
+    if aggregate.fraction is Some(fraction) {
+      @encode.key(out, "fraction")
+      @encode.number_value(out, fraction)
+    }
+    if aggregate.byte_limit is Some(limit) {
+      @encode.key(out, "max_bytes")
+      @encode.number_value(out, limit.to_double())
+    }
+    if aggregate.item_limit is Some(limit) {
+      @encode.key(out, "max_items")
+      @encode.number_value(out, limit.to_double())
+    }
+    if !aggregate.order.is_empty() {
+      @encode.key(out, "order_by")
+      @encode.begin_array(out)
+      for term in aggregate.order {
+        @encode.begin_object(out)
+        @encode.key(out, "dir")
+        @encode.string_value(
+          out,
+          if term.direction is Desc {
+            "desc"
+          } else {
+            "asc"
+          },
+        )
+        @encode.key(out, "field")
+        @encode.string_value(out, @schema.reference_name(term.field))
+        @encode.key(out, "nulls")
+        @encode.string_value(
+          out,
+          if term.nulls is First {
+            "first"
+          } else {
+            "last"
+          },
+        )
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+    }
+    @encode.end_object(out)
+  }
+  @encode.end_object(out)
+  @encode.key(out, "by")
+  @encode.begin_array(out)
+  for field in group.keys {
+    @encode.string_value(out, @schema.reference_name(field))
+  }
+  @encode.end_array(out)
+  @encode.end_object(out)
 }
 
 ///|

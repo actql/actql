@@ -102,6 +102,8 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
     "[]",
     "{\"n\":{\"fn\":\"sum\",\"field\":\"k\"}}",
   )
+  // General group lowering accepts sum. This count-only DuckDB adapter still
+  // rejects that prepared kernel before execution.
   assert_true(
     @duckdb.compile_fixed_count_group(
       unsupported,
@@ -109,7 +111,7 @@ test "global count SQL has no accidental keyed grouping or empty order clause" {
       "fixed",
       native_compile_limits(),
     )
-    is Err(Lowering(CountGroupFailure(UnsupportedAggregate(0)))),
+    is Err(UnsupportedShape),
   )
 }
 

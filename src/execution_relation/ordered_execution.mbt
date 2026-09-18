@@ -75,7 +75,7 @@ fn prepare_ordered_budgets(
         }
         let body = @lower.kernel_body(kernel)
         match body {
-          @lower.OrderedBindings(_) =>
+          @lower.OrderedBindings(_) | @lower.Groups(_) =>
             if !budgets.contains(i) {
               return Err(Rows(i, MissingOrderedResourceContext))
             }

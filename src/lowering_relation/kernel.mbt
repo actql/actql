@@ -28,6 +28,7 @@ pub enum KernelBody {
   DedupeRows
   StableSort(@pipeline.SortOrder?)
   CountGroups(PreparedCountGroup)
+  Groups(PreparedGroup)
 }
 
 ///|
@@ -44,6 +45,7 @@ pub(all) enum KernelIssue {
   PendingSortOrder
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
+  GroupFailure(GroupIssue)
 }
 
 ///|
@@ -71,6 +73,15 @@ pub fn kernel_checked(kernel : PreparedKernel) -> @relation.CheckedOperation {
 pub fn kernel_count_group(kernel : PreparedKernel) -> PreparedCountGroup? {
   match kernel.body {
     CountGroups(group) => Some(group)
+    _ => None
+  }
+}
+
+///|
+/// Allocation-free complete group view bound to this checked kernel.
+pub fn kernel_group(kernel : PreparedKernel) -> PreparedGroup? {
+  match kernel.body {
+    Groups(group) => Some(group)
     _ => None
   }
 }
@@ -104,7 +115,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | DistinctRows
     | DedupeRows
     | StableSort(_)
-    | CountGroups(_) => None
+    | CountGroups(_)
+    | Groups(_) => None
   }
 }
 
@@ -131,7 +143,8 @@ pub fn ordered_binding_at(
     | DistinctRows
     | DedupeRows
     | StableSort(_)
-    | CountGroups(_) => None
+    | CountGroups(_)
+    | Groups(_) => None
   }
 }
 
@@ -157,6 +170,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
     CountGroups(group) => CountGroups(group)
+    Groups(group) => Groups(group)
   }
 }
 
@@ -179,7 +193,8 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | DistinctRows
     | DedupeRows
     | StableSort(_)
-    | CountGroups(_) => 0
+    | CountGroups(_)
+    | Groups(_) => 0
   }
 }
 
@@ -669,23 +684,51 @@ fn prepare_kernel_measured(
       Pivot(pivot)
     }
     Aggregation => {
-      let group = match
+      let count_group = match
         prepare_count_group(
           checked,
           Int::min(max_bindings, remaining.max_work),
           names_remaining,
         ) {
-        Ok(group) => group
+        Ok(group) => Some(group)
+        Err(UnsupportedAggregate(_)) => None
         Err(e) => return Err(CountGroupFailure(e))
       }
-      names_remaining -= group.name_bytes
-      remaining = {
-        ..remaining,
-        max_work: remaining.max_work -
-        group.keys.length() -
-        group.counts.length(),
+      match count_group {
+        Some(group) => {
+          names_remaining -= group.name_bytes
+          remaining = {
+            ..remaining,
+            max_work: remaining.max_work -
+            group.keys.length() -
+            group.counts.length(),
+          }
+          CountGroups(group)
+        }
+        None => {
+          let (group, after_expressions) = match
+            prepare_group(
+              owner,
+              step_index,
+              Int::min(max_bindings, remaining.max_work),
+              names_remaining,
+              remaining,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(GroupFailure(issue))
+          }
+          let entries = group_entry_count(group)
+          if entries > after_expressions.max_work {
+            return Err(KernelBudgetExceeded)
+          }
+          names_remaining -= group_name_bytes(group)
+          remaining = {
+            ..after_expressions,
+            max_work: after_expressions.max_work - entries,
+          }
+          Groups(group)
+        }
       }
-      CountGroups(group)
     }
     Reshape if @relation.operation(checked) == @relation.JsonPick => {
       guard @relation.json_pick_source(checked) is Some((column, output)) else {
@@ -723,6 +766,7 @@ fn prepare_kernel_measured(
   }
   let binding_count = match body {
     CountGroups(group) => group.keys.length() + group.counts.length()
+    Groups(group) => group_entry_count(group)
     Pivot(value) => pivot_index_count(value) + pivot_axis_count(value) + 2
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) | AssertAll(_) => 1

@@ -99,7 +99,8 @@ pub fn emit_fragment_request(
     | DistinctRows
     | DedupeRows
     | StableSort(_)
-    | CountGroups(_) => raise @encode.InvalidStructure
+    | CountGroups(_)
+    | Groups(_) => raise @encode.InvalidStructure
   }
   if has_null {
     @encode.key(out, "null_contexts")
@@ -128,7 +129,8 @@ pub fn emit_fragment_request(
       | DistinctRows
       | DedupeRows
       | StableSort(_)
-      | CountGroups(_) => raise @encode.InvalidStructure
+      | CountGroups(_)
+      | Groups(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)
     @encode.end_object(out)

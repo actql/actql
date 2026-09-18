@@ -242,3 +242,85 @@ test "group profile retains exact decimal sum outside numeric observation" {
     is @contract.Decimal(precision=38, scale=2),
   )
 }
+
+///|
+test "general group connects typed kernel roots and canonical AoA params" {
+  let owner = expression_pipeline(
+    ",{\"group\":{\"by\":[\"id\"],\"aggregates\":{" +
+    "\"items\":{\"fn\":\"array_agg\",\"expr\":\"id + 1\"," +
+    "\"filter\":\"id > 0\",\"distinct\":true,\"max_items\":3," +
+    "\"order_by\":[{\"field\":\"id\",\"dir\":\"desc\"," +
+    "\"nulls\":\"first\"}]}}}}",
+  )
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("group kernel")
+  }
+  let group = @lowering_relation.kernel_group(kernel).unwrap()
+  assert_true(@lowering_relation.kernel_count_group(kernel) is None)
+  assert_true(
+    physical_equal(
+      @lowering_relation.group_checked(group),
+      @lowering_relation.kernel_checked(kernel),
+    ),
+  )
+  let roots = @lowering_relation.prepare_kernel_roots(
+    sequence,
+    1,
+    root_limits(),
+  ).unwrap()
+  assert_eq(@lowering_relation.root_count(roots), 2)
+  let expression = @lowering_relation.root_at(roots, 0).unwrap()
+  let filter = @lowering_relation.root_at(roots, 1).unwrap()
+  assert_eq(expression.parameter_pointer, "/aggs/items/expr")
+  assert_eq(filter.parameter_pointer, "/aggs/items/filter")
+  guard @lowering_relation.group_aggregate_at(group, 0) is Some(aggregate) else {
+    fail("group aggregate")
+  }
+  guard @lowering_relation.group_aggregate_argument(aggregate)
+    is @lowering_relation.AggregateExpression(argument) else {
+    fail("group expression")
+  }
+  assert_true(physical_equal(expression.expression, argument))
+  assert_true(
+    physical_equal(
+      filter.expression,
+      @lowering_relation.group_aggregate_filter(aggregate).unwrap(),
+    ),
+  )
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"values_0\",\"in\":[],\"op\":\"REL.values\"," +
+    "\"params\":{\"rows\":[{\"id\":1}],\"schema\":{\"id\":{" +
+    "\"nullable\":false,\"type\":\"number\"}}}},{\"id\":" +
+    "\"aggregate_1\",\"in\":[\"values_0\"],\"op\":\"REL.groupBy\"," +
+    "\"params\":{\"aggs\":{\"items\":{\"distinct\":true," +
+    "\"expr\":{\"add\":[{\"field\":\"id\"},{\"literal\":1}]}," +
+    "\"filter\":{\"gt\":[{\"field\":\"id\"},{\"literal\":0}]},\"fn\":" +
+    "\"array_agg\",\"max_items\":3,\"order_by\":[{\"dir\":" +
+    "\"desc\",\"field\":\"id\",\"nulls\":\"first\"}]}},\"by\":" +
+    "[\"id\"]}},{\"id\":\"group_1\",\"in\":[\"aggregate_1\"]," +
+    "\"op\":\"REL.orderByStable\",\"params\":{\"by\":[{\"dir\":" +
+    "\"asc\",\"field\":\"id\",\"nulls\":\"first\"}]}}]",
+  )
+}
+
+///|
+test "count-only group keeps the narrow kernel path" {
+  let sequence = @lowering_relation.prepare_sequence(
+    expression_pipeline(
+      ",{\"group\":{\"by\":[\"id\"],\"aggregates\":{" +
+      "\"n\":{\"fn\":\"count\"}}}}",
+    ),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.RowStep(kernel)) else {
+    fail("count group kernel")
+  }
+  assert_true(@lowering_relation.kernel_count_group(kernel) is Some(_))
+  assert_true(@lowering_relation.kernel_group(kernel) is None)
+}

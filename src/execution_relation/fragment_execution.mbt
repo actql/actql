@@ -153,6 +153,50 @@ fn attach_fragment_budgets(
               }
             }
           }
+          @lower.Groups(group) => {
+            let schema = @lower.group_input_schema(group)
+            for j = 0; j < @lower.group_key_count(group); j = j + 1 {
+              let name = @lower.group_key_at(group, j).unwrap()
+              if !spend_control(control, 1) ||
+                !spend_control_text(control, @schema.reference_name(name)) {
+                return Err(InputLimit)
+              }
+              guard @schema.lookup(schema, name) is Some(contract) else {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
+              if !supported_comparison(contract, contract) {
+                return Err(UnsupportedRowComparison(i, name))
+              }
+            }
+            for j = 0; j < @lower.group_aggregate_count(group); j = j + 1 {
+              let aggregate = @lower.group_aggregate_at(group, j).unwrap()
+              if (
+                  @lower.group_aggregate_filter(aggregate) is Some(_) ||
+                  @lower.group_aggregate_argument(aggregate)
+                  is @lower.AggregateExpression(_)
+                ) &&
+                !budgets.contains(i) {
+                return Err(MissingFragmentContext(i))
+              }
+              for k = 0
+                  k < @lower.group_aggregate_order_count(aggregate)
+                  k = k + 1 {
+                let (name, _, _) = @lower.group_aggregate_order_term_at(
+                  aggregate, k,
+                ).unwrap()
+                if !spend_control(control, 1) ||
+                  !spend_control_text(control, @schema.reference_name(name)) {
+                  return Err(InputLimit)
+                }
+                guard @schema.lookup(schema, name) is Some(contract) else {
+                  return Err(FragmentContext(i, KernelMismatch))
+                }
+                if !supported_comparison(contract, contract) {
+                  return Err(UnsupportedRowComparison(i, name))
+                }
+              }
+            }
+          }
           @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => {
             let schema = @lower.kernel_input_schema(kernel)
             let partitions = @lower.kernel_top_k_partition_count(kernel)
