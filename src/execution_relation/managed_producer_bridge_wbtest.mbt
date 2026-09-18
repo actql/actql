@@ -35,6 +35,83 @@ test "managed provider bridge yields a scoped ordinary reader for Local" {
 }
 
 ///|
+test "managed bridge accepts a reference-free summary-backed view" {
+  let owner = capture_fixture()
+  let live = Ref(true)
+  let source = managed_read_fixture(owner, live, index_cells=4)
+  let selected_owner = typed_receiver(
+    owner, "[{\"take\":1},{\"select\":[\"n\",\"s\"]}]",
+  )
+  let selected_input = prepare_managed_producer_read(
+    selected_owner, 0, owner, source, 1000, 10000,
+  ).unwrap()
+  let plan = prepare_managed_view_plan(
+    selected_input,
+    [row_kernel(selected_owner, 0), row_kernel(selected_owner, 1)],
+    1000,
+    10000,
+    100,
+  ).unwrap()
+  let selection = prepare_managed_view_selection(plan, [0], 2, 100).unwrap()
+  let stream = prepare_managed_output_values(
+    selected_owner,
+    Step(1),
+    1,
+    stream_value_limits(),
+    100,
+    managed_test_measure_limits(),
+  ).unwrap()
+  let retention = prepare_managed_output_retention_port(stream, (
+    receipt : ManagedOutputValueReceipt,
+  ) => Some((receipt, 8, 5L, fn() { true }))).unwrap()
+  let token = Ref(())
+  let port = prepare_managed_selected_view_output_port(selection, stream, (
+    proof : Ref[Unit],
+  ) => physical_equal(proof, token)).unwrap()
+  let receipt = finish_managed_view_output(port, token).unwrap()
+  assert_eq(receipt.rows, 1)
+  assert_eq(receipt.reference_rows.length(), 0)
+  let material = retain_managed_output(retention, receipt).unwrap()
+  let generated = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(selected_owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let completion = prepare_managed_completion_port(
+    managed_test_profile(),
+    generated,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+    managed_inputs=[selected_input],
+  ).unwrap()
+  let selected = complete_managed_output(completion, ()).unwrap()
+  let consumer = typed_receiver(selected_owner, "[{\"select\":[\"s\"]}]")
+  let input = prepare_managed_producer_read(
+    consumer, 0, selected_owner, selected, 1000, 10000,
+  ).unwrap()
+  let bridge = prepare_managed_producer_bridge(
+    input,
+    1,
+    stream_value_limits(),
+    1000,
+    10000,
+  ).unwrap()
+  append_managed_producer_bridge_wire(
+    bridge,
+    "{\"n\":1,\"s\":\"é\"}",
+    retained_row_test_limits(),
+  ).unwrap()
+  let read = finish_managed_producer_bridge(bridge, 1000, 10000).unwrap()
+  assert_true(producer_read_cell(read, 0, 1) is Some(Text("é")))
+  close_managed_producer_bridge(bridge)
+  assert_false(producer_read_available(read))
+}
+
+///|
 fn managed_reference_owner() -> @lower.BoundPrepared {
   let contract = select_checked_contract(
     "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
@@ -390,5 +467,31 @@ test "managed bridge rejects a reference absent from the producer receipt" {
       max_text_bytes: 8192,
     })
     is Err(Wire(Value(0, @admitted.ValueIssue(@admitted.InvalidReference, ..)))),
+  )
+}
+
+///|
+test "managed bridge rejects missing authority for reference-bearing rows" {
+  let producer = managed_reference_owner()
+  let output = managed_reference_output(producer, Ref(true))
+  output.material.receipt.reference_rows.clear()
+  let receiver = projected_consumer(
+    producer,
+    "[\"r\"]",
+    "[{\"select\":[\"r\"]}]",
+    target=Step(0),
+  )
+  let input = prepare_managed_producer_read(
+    receiver, 0, producer, output, 1000, 10000,
+  ).unwrap()
+  assert_true(
+    prepare_managed_producer_bridge(
+      input,
+      1,
+      { max_nodes: 100, max_text_bytes: 10000, max_depth: 10, max_work: 10000, },
+      1000,
+      10000,
+    )
+    is Err(Wire(InvalidShape)),
   )
 }

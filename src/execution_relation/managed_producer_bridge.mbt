@@ -4,12 +4,19 @@
 /// this type never interprets a path, backend name, or provider payload.
 struct ManagedProducerBridge[T] {
   input : ManagedProducerRead[T]
+  references : ManagedProducerReferences
   admitted : AdmittedOutput
   rows : Ref[AdmittedOutputRows?]
   port : TrustedOutputPort[Unit]
   live : Ref[Bool]
   mut imported_rows : Int
   mut finished : Bool
+}
+
+///|
+priv enum ManagedProducerReferences {
+  ExactRows
+  ReferenceFree
 }
 
 ///|
@@ -21,6 +28,40 @@ pub(all) enum ManagedProducerBridgeIssue {
   Binding(ProducerBindingIssue)
   View(ProducerReadIssue)
   Closed
+}
+
+///|
+/// A summary-backed managed view can omit a row-sized reference table only
+/// when its complete schema cannot contain opaque reference values.
+fn managed_schema_reference_free(
+  schema : @schema.Schema,
+  max_nodes : Int,
+) -> Bool? {
+  if max_nodes < 0 {
+    return None
+  }
+  let pending = []
+  for index in 0..<@schema.field_count(schema) {
+    pending.push(@schema.field_at(schema, index).unwrap().contract)
+  }
+  let mut remaining = max_nodes
+  while pending.pop() is Some(contract) {
+    if remaining == 0 {
+      return None
+    }
+    remaining -= 1
+    match contract.shape {
+      @contract.ResourceRef(..) | @contract.ArtifactRef(..) =>
+        return Some(false)
+      @contract.Array(item, ..) => pending.push(item)
+      @contract.Object(fields) =>
+        for index in 0..<@contract.field_count(fields) {
+          pending.push(@contract.field_at(fields, index).unwrap().contract)
+        }
+      _ => ()
+    }
+  }
+  Some(true)
 }
 
 ///|
@@ -38,6 +79,15 @@ pub fn[T] prepare_managed_producer_bridge(
     return Err(Unavailable)
   }
   let source = input.output
+  let receipt = source.material.receipt
+  let references = if receipt.reference_rows.length() == receipt.rows {
+    ExactRows
+  } else if receipt.reference_rows.length() == 0 &&
+    managed_schema_reference_free(receipt.schema, max_entries) == Some(true) {
+    ReferenceFree
+  } else {
+    return Err(Wire(InvalidShape))
+  }
   let admitted = match
     prepare_admitted_output(
       completion_preparation_owner(source.preparation),
@@ -70,7 +120,16 @@ pub fn[T] prepare_managed_producer_bridge(
       return Err(Completion(issue))
     }
   }
-  Ok({ input, admitted, rows, port, live, imported_rows: 0, finished: false, })
+  Ok({
+    input,
+    references,
+    admitted,
+    rows,
+    port,
+    live,
+    imported_rows: 0,
+    finished: false,
+  })
 }
 
 ///|
@@ -89,15 +148,25 @@ pub fn[T] append_managed_producer_bridge_wire(
     return Err(Unavailable)
   }
   let schema = bridge.input.output.material.receipt.schema
-  guard bridge.input.output.material.receipt.reference_rows.get(
-      bridge.imported_rows,
-    )
-    is Some(source_references) else {
-    close_managed_producer_bridge(bridge)
-    return Err(Wire(InvalidShape))
+  let decoded = match bridge.references {
+    ReferenceFree => decode_retained_row(schema, text, limits)
+    ExactRows => {
+      guard bridge.input.output.material.receipt.reference_rows.get(
+          bridge.imported_rows,
+        )
+        is Some(source_references) else {
+        close_managed_producer_bridge(bridge)
+        return Err(Wire(InvalidShape))
+      }
+      decode_retained_row(
+        schema,
+        text,
+        limits,
+        reference_cells=source_references,
+      )
+    }
   }
-  let values = match
-    decode_retained_row(schema, text, limits, reference_cells=source_references) {
+  let values = match decoded {
     Ok(values) => values
     Err(issue) => {
       close_managed_producer_bridge(bridge)
