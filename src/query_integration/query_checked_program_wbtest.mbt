@@ -464,8 +464,16 @@ fn local_ordered_set_program(kind : String) -> String {
       "{\"take\":{\"count\":{\"$param\":\"minimum\"},\"offset\":1},\"as\":\"out\"}"
     "top_k" =>
       "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":2,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_parameter" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":{\"$param\":\"minimum\"},\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_compound" =>
+      "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":3,\"by\":[{\"field\":\"amount\",\"dir\":\"desc\",\"nulls\":\"first\"},{\"id\":\"asc\"}]},\"as\":\"out\"}"
     "top_k_by" =>
       "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"id\",\"id\"],\"k\":1,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_by_parameter" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"id\",\"id\"],\"k\":{\"$param\":\"minimum\"},\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_by_nullable" =>
+      "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"group\",\"group\"],\"k\":1,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
     "distinct" => "{\"distinct\":true,\"as\":\"out\"}"
     "dedupe_rows" =>
       "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
@@ -483,18 +491,46 @@ fn local_ordered_set_program(kind : String) -> String {
       old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
       new="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":null},{\"id\":1,\"amount\":30},{\"id\":2,\"amount\":null}",
     )
+  } else if kind == "top_k_compound" {
+    prefix
+    .replace(
+      old="\"amount\":{\"type\":\"number\",\"nullable\":false}",
+      new="\"amount\":{\"type\":\"number\",\"nullable\":true}",
+    )
+    .replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":4,\"amount\":20},{\"id\":1,\"amount\":null},{\"id\":3,\"amount\":30},{\"id\":2,\"amount\":null}",
+    )
+  } else if kind == "top_k_by_nullable" {
+    prefix
+    .replace(
+      old="\"amount\":{\"type\":\"number\",\"nullable\":false}",
+      new="\"amount\":{\"type\":\"number\",\"nullable\":false},\"group\":{\"type\":\"string\",\"nullable\":true}",
+    )
+    .replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":1,\"amount\":20,\"group\":null},{\"id\":2,\"amount\":10,\"group\":\"a\"},{\"id\":3,\"amount\":30,\"group\":null},{\"id\":4,\"amount\":40,\"group\":\"a\"}",
+    )
   } else {
     prefix
   }
   let consumer =
     #|,"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}}
-  prefix +
-  operation +
-  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"amount\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
-  consumer +
-  ",{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
-  consumer +
-  "],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+  let text = prefix +
+    operation +
+    "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"amount\"]}}},{\"id\":\"compute_c\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+    consumer +
+    ",{\"id\":\"compute_d\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"amount\"]" +
+    consumer +
+    "],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+  if kind == "top_k_by_nullable" {
+    text.replace_all(
+      old="[\"id\",\"amount\"]",
+      new="[\"id\",\"amount\",\"group\"]",
+    )
+  } else {
+    text
+  }
 }
 
 ///|
@@ -547,7 +583,11 @@ fn local_values_unary_program(kind : String) -> String {
     kind == "take" ||
     kind == "take_parameter" ||
     kind == "top_k" ||
+    kind == "top_k_parameter" ||
+    kind == "top_k_compound" ||
     kind == "top_k_by" ||
+    kind == "top_k_by_parameter" ||
+    kind == "top_k_by_nullable" ||
     kind == "distinct" ||
     kind == "dedupe_rows" {
     return local_ordered_set_program(kind)

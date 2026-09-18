@@ -37,7 +37,18 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
     "take" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
     "take_parameter" => ["{\"id\":1,\"amount\":10}"]
     "top_k" => ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
+    "top_k_parameter" => ["{\"id\":2,\"amount\":30}"]
+    "top_k_compound" =>
+      [
+        "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":3,\"amount\":30}",
+      ]
     "top_k_by" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
+    "top_k_by_parameter" =>
+      ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
+    "top_k_by_nullable" =>
+      [
+        "{\"id\":3,\"amount\":30,\"group\":null}", "{\"id\":4,\"amount\":40,\"group\":\"a\"}",
+      ]
     "unnest" =>
       [
         "{\"id\":1,\"item\":2,\"items\":[2,null],\"position\":0}", "{\"id\":1,\"item\":null,\"items\":[2,null],\"position\":1}",
@@ -93,11 +104,23 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
       "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":30,\"id\":1}",
       "{\"amount\":null,\"id\":2}",
     ]
+  } else if kind == "top_k_compound" {
+    [
+      "{\"amount\":20,\"id\":4}", "{\"amount\":null,\"id\":1}", "{\"amount\":30,\"id\":3}",
+      "{\"amount\":null,\"id\":2}",
+    ]
+  } else if kind == "top_k_by_nullable" {
+    [
+      "{\"amount\":20,\"group\":null,\"id\":1}", "{\"amount\":10,\"group\":\"a\",\"id\":2}",
+      "{\"amount\":30,\"group\":null,\"id\":3}", "{\"amount\":40,\"group\":\"a\",\"id\":4}",
+    ]
   } else if kind == "sort" ||
     kind == "take" ||
     kind == "take_parameter" ||
     kind == "top_k" ||
+    kind == "top_k_parameter" ||
     kind == "top_k_by" ||
+    kind == "top_k_by_parameter" ||
     kind == "distinct" ||
     kind == "dedupe_rows" {
     [
@@ -119,6 +142,10 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     kind == "rename_empty" ||
     kind == "drop_empty" {
     ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
+  } else if kind == "top_k_by_nullable" {
+    [
+      "{\"id\":3,\"amount\":30,\"group\":null}", "{\"id\":4,\"amount\":40,\"group\":\"a\"}",
+    ]
   } else {
     local_managed_unary_expected(kind)
   }
@@ -245,8 +272,9 @@ test "Local managed unary source forms feed two downstream Computes" {
       "select", "filter_text", "filter_structured", "filter_null", "derive_map",
       "derive_empty", "derive_ordered", "rename", "rename_swap", "rename_empty",
       "drop", "drop_empty", "drop_repeated", "json_pick", "assert_where", "assert_unique",
-      "sort", "sort_compound", "take", "take_parameter", "distinct", "top_k", "top_k_by",
-      "dedupe_rows", "unnest", "unpivot", "pivot", "pivot_decimal_sum",
+      "sort", "sort_compound", "take", "take_parameter", "distinct", "top_k", "top_k_parameter",
+      "top_k_compound", "top_k_by", "top_k_by_parameter", "top_k_by_nullable", "dedupe_rows",
+      "unnest", "unpivot", "pivot", "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
