@@ -76,3 +76,89 @@ test "analytic ranking navigation and count retain indexed scaling" {
     }
   }
 }
+
+///|
+fn analytic_numeric_scale_sample(count : Int) -> (Int, Int) raise {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}]," +
+    "\"frame\":{\"start\":\"current_row\"," +
+    "\"end\":\"current_row\"},\"functions\":{" +
+    "\"mean\":{\"fn\":\"avg\",\"field\":\"amount\"}," +
+    "\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}}",
+  )
+  let template = analytic_execution_input(owner)
+  let input : Table = {
+    ..template,
+    rows: Array::makei(count, index => {
+      template.names.map(name => {
+        match name {
+          "amount" | "id" => Number(index.to_double())
+          "group" => Text("g")
+          _ => abort("unexpected numeric analytic scale field")
+        }
+      })
+    }),
+  }
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let numeric = numeric_aggregate_execution((
+    _step,
+    name,
+    _occurrence,
+    contributors,
+    expected_count,
+    max_work,
+  ) => {
+    Some(
+      @numeric.execute(
+        reduction,
+        if name == "mean" {
+          @numeric.Average
+        } else {
+          @numeric.Sum
+        },
+        contributors,
+        expected_count,
+        max_work,
+      ),
+    )
+  })
+  let maximum = 100000000
+  let control = { remaining: maximum, max_frames: 100, }
+  let workspace = { limit: count * 100 + 1000, live: 0, peak: 0, }
+  let result = evaluate_rows_with_workspace(
+    row_kernel(owner, 0),
+    input,
+    count,
+    control,
+    value_budget({
+      max_nodes: maximum,
+      max_text_bytes: maximum,
+      max_depth: 100,
+      max_work: maximum,
+    }).unwrap(),
+    workspace,
+    numeric=Some(numeric),
+  ).unwrap()
+  assert_eq(result.rows.length(), count)
+  (maximum - control.remaining, workspace.peak)
+}
+
+///|
+test "analytic numeric frames retain indexed scaling" {
+  for count in [128, 512, 2048] {
+    let mut levels = 0
+    let mut width = 1
+    while width < count {
+      width *= 2
+      levels += 1
+    }
+    let (work, peak) = analytic_numeric_scale_sample(count)
+    assert_true(work < count * (levels * 30 + 400))
+    assert_true(peak < count * 100 + 1000)
+  }
+}
