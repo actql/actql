@@ -184,6 +184,11 @@ fn evaluate_rows_with_workspace(
           kernel, input, id, max_rows, control, output, workspace,
         )
       },
+      pivot: fn(kernel, input, id) {
+        evaluate_pivot_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
       body: fn(body, input, id, logical) {
         evaluate_row_body(
           body,
@@ -212,6 +217,7 @@ priv struct RowBackend[T] {
   top_k : (@lower.PreparedKernel, T, String, Int64) -> Result[T, RowIssue]
   unnest : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   unpivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
+  pivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
 }
 
@@ -265,6 +271,9 @@ fn[T : RelationRows] evaluate_rows_dispatch(
   }
   if @lower.kernel_unpivot_outputs(kernel) is Some(_) {
     return (backend.unpivot)(kernel, input, @lower.node_id(node))
+  }
+  if @lower.kernel_pivot(kernel) is Some(_) {
+    return (backend.pivot)(kernel, input, @lower.node_id(node))
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {

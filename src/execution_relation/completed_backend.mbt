@@ -268,6 +268,11 @@ fn evaluate_completed_rows(
           kernel, input, id, max_rows, control, output, workspace,
         ).map(table => RowTable(table))
       },
+      pivot: fn(kernel, input, id) {
+        evaluate_pivot_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        ).map(table => RowTable(table))
+      },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
           body, input, id, max_rows, control, output, workspace, logical,

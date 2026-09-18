@@ -94,6 +94,7 @@ fn evaluate_layout_kernel(
       // backend; this experimental layout adapter has no expansion writer.
       unnest: fn(_kernel, _input, _id) { Err(InvalidRows) },
       unpivot: fn(_kernel, _input, _id) { Err(InvalidRows) },
+      pivot: fn(_kernel, _input, _id) { Err(InvalidRows) },
       body: fn(body, input, id, logical) {
         evaluate_layout_body(
           kernel,
