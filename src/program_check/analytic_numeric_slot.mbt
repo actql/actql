@@ -31,6 +31,22 @@ pub fn analytic_numeric_slot_cid(v : AnalyticNumericSlot) -> String {
 }
 
 ///|
+pub fn analytic_numeric_slot_name(v : AnalyticNumericSlot) -> String {
+  v.slot.frame_call.name
+}
+
+///|
+pub fn analytic_numeric_slot_reduction(
+  v : AnalyticNumericSlot,
+) -> @numeric.Operation? {
+  match @relation.aggregate_function(v.slot.call) {
+    @relation.Sum => Some(@numeric.Sum)
+    @relation.Avg => Some(@numeric.Average)
+    _ => None
+  }
+}
+
+///|
 pub fn emit_analytic_numeric_slot(
   v : AnalyticNumericSlot,
   w : @encode.Writer,

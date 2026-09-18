@@ -85,6 +85,16 @@ test "formal pivot numeric slots preserve producer identity across imports and e
           )
           let name = if column == 0 { "a" } else { "z" }
           assert_eq(pivot_numeric_slot_name(slot), name)
+          assert_eq(
+            pivot_numeric_slot_reduction(slot),
+            Some(
+              if reduction == "sum" {
+                @numeric.Sum
+              } else {
+                @numeric.Average
+              },
+            ),
+          )
           assert_eq(pivot_numeric_slot_operation(slot).source_ordinal, 2)
           let expected = "{\"output_name\":\"" +
             name +

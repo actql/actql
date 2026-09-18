@@ -39,6 +39,12 @@ test "formal numeric groups bind persistent slots without future observations" {
         let slot = unit_group_numeric_slot_at(program, 1, 0).unwrap()
         let location = group_numeric_slot_operation(slot)
         let demand = group_numeric_slot_demand(slot)
+        assert_eq(group_numeric_slot_name(slot), "value")
+        assert_eq(
+          group_numeric_slot_reduction(slot),
+          Some(if function == "sum" { @numeric.Sum } else { @numeric.Average }),
+        )
+        assert_eq(group_numeric_slot_is_window_group(slot), window)
         assert_eq(location.unit_definition_cid, program.units[1].definition_cid)
         assert_eq(location.source_ordinal, ordinal)
         assert_true(

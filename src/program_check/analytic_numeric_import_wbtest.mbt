@@ -27,6 +27,8 @@ test "imported analytic numeric aggregate retains its producer Unit and capture 
   assert_eq(unit_analytic_numeric_slot_count(program, 0), Some(1))
   assert_eq(unit_analytic_numeric_slot_count(program, 1), Some(0))
   let slot = unit_analytic_numeric_slot_at(program, 0, 0).unwrap()
+  assert_eq(analytic_numeric_slot_name(slot), "total")
+  assert_eq(analytic_numeric_slot_reduction(slot), Some(@numeric.Sum))
   assert_eq(unit_group_numeric_slot_count(program, 0), Some(0))
   assert_eq(unit_group_numeric_slot_count(program, 1), Some(1))
   let expected = "{\"output_name\":\"total\",\"reduction_profile_cid\":\"" +

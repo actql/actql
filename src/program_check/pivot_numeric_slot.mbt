@@ -46,6 +46,17 @@ pub fn pivot_numeric_slot_cid(v : PivotNumericSlot) -> String {
 }
 
 ///|
+pub fn pivot_numeric_slot_reduction(
+  v : PivotNumericSlot,
+) -> @numeric.Operation? {
+  match @relation.pivot_function(v.demand.pivot) {
+    @relation.Sum => Some(@numeric.Sum)
+    @relation.Avg => Some(@numeric.Average)
+    _ => None
+  }
+}
+
+///|
 pub fn emit_pivot_numeric_slot(
   v : PivotNumericSlot,
   w : @encode.Writer,

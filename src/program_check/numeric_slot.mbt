@@ -29,6 +29,27 @@ pub fn group_numeric_slot_cid(v : GroupNumericSlot) -> String {
 }
 
 ///|
+pub fn group_numeric_slot_name(v : GroupNumericSlot) -> String {
+  @relation.aggregate_name(v.slot.call)
+}
+
+///|
+pub fn group_numeric_slot_reduction(
+  v : GroupNumericSlot,
+) -> @numeric.Operation? {
+  match @relation.aggregate_function(v.slot.call) {
+    @relation.Sum => Some(@numeric.Sum)
+    @relation.Avg => Some(@numeric.Average)
+    _ => None
+  }
+}
+
+///|
+pub fn group_numeric_slot_is_window_group(v : GroupNumericSlot) -> Bool {
+  v.slot.step.operation is @pipeline.WindowGroup(_)
+}
+
+///|
 pub fn emit_group_numeric_slot(
   v : GroupNumericSlot,
   w : @encode.Writer,

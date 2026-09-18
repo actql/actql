@@ -53,7 +53,11 @@ pub fn analytic_numeric_slot_demand(AnalyticNumericSlot) -> @pipeline_check_cont
 
 pub fn analytic_numeric_slot_for_requirement(CheckedProgram, Int) -> AnalyticNumericSlot?
 
+pub fn analytic_numeric_slot_name(AnalyticNumericSlot) -> String
+
 pub fn analytic_numeric_slot_operation(AnalyticNumericSlot) -> UnitOperationSource
+
+pub fn analytic_numeric_slot_reduction(AnalyticNumericSlot) -> @numeric_reduction.Operation?
 
 pub fn analytic_string_limit_claim(AnalyticStringLimit) -> @capacity_witness.LimitClaim
 
@@ -181,7 +185,13 @@ pub fn group_numeric_slot_cid(GroupNumericSlot) -> String
 
 pub fn group_numeric_slot_demand(GroupNumericSlot) -> @pipeline_check_context.NumericSlot
 
+pub fn group_numeric_slot_is_window_group(GroupNumericSlot) -> Bool
+
+pub fn group_numeric_slot_name(GroupNumericSlot) -> String
+
 pub fn group_numeric_slot_operation(GroupNumericSlot) -> UnitOperationSource
+
+pub fn group_numeric_slot_reduction(GroupNumericSlot) -> @numeric_reduction.Operation?
 
 pub fn group_string_limit_claim(GroupStringLimit) -> @capacity_witness.LimitClaim
 
@@ -254,6 +264,8 @@ pub fn pivot_numeric_slot_demand(PivotNumericSlot) -> @pipeline_check_context.Pi
 pub fn pivot_numeric_slot_name(PivotNumericSlot) -> String
 
 pub fn pivot_numeric_slot_operation(PivotNumericSlot) -> UnitOperationSource
+
+pub fn pivot_numeric_slot_reduction(PivotNumericSlot) -> @numeric_reduction.Operation?
 
 pub fn pivot_numeric_slots_demand(PivotNumericSlots) -> @pipeline_check_context.PivotNumericDemand
 
