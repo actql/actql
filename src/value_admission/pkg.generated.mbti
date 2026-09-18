@@ -17,6 +17,8 @@ pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Res
 
 pub fn array_value(Array[Value]) -> Value
 
+pub fn boolean_value(Bool) -> Value
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
@@ -26,6 +28,10 @@ pub fn[T] element_count(FrozenArray[T]) -> Int
 pub fn[T] elements(FrozenArray[T]) -> Array[T]
 
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn number_value(Double) -> Value?
+
+pub fn text_value(String, Int) -> Value?
 
 // Errors
 

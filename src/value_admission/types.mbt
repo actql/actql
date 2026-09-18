@@ -39,6 +39,35 @@ pub fn array_value(values : Array[Value]) -> Value {
 }
 
 ///|
+/// Build an admitted Boolean from an already typed execution value.
+pub fn boolean_value(value : Bool) -> Value {
+  Boolean(value)
+}
+
+///|
+/// Reject non-finite and negative-zero values at the construction boundary.
+pub fn number_value(value : Double) -> Value? {
+  if value.is_nan() || value.is_inf() || (value == 0.0 && 1.0 / value < 0.0) {
+    None
+  } else {
+    Some(Number(value))
+  }
+}
+
+///|
+/// Recheck Unicode, byte and canonical-text invariants before construction.
+pub fn text_value(value : String, max_utf8_bytes : Int) -> Value? {
+  if max_utf8_bytes < 0 ||
+    @scalar.admit_utf8_length(value, max_utf8_bytes) is Err(_) {
+    return None
+  }
+  match @canonical.normalize_nfc_lf(value) {
+    Ok(normalized) => if normalized == value { Some(Text(value)) } else { None }
+    Err(_) => None
+  }
+}
+
+///|
 pub fn[T] elements(value : FrozenArray[T]) -> Array[T] {
   value.values.copy()
 }
