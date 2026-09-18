@@ -2,6 +2,7 @@
 // providers install their own grouped reader; memory-only consumers never load
 // Node filesystem or crypto modules.
 const representations = new WeakMap();
+const rowPlans = new WeakSet();
 const issue = code => Object.assign(new Error(code), {code});
 const member = (value, name) => {
   try {
@@ -187,6 +188,49 @@ export function managedInputSupportsRows(material) {
   return typeof representations.get(material)?.rowProvider?.read === 'function';
 }
 
+// Pure full-set compatibility planning. A plan fixes the exact representation
+// owners and the scopes that must overlap, but acquires no generation and
+// starts no provider work. Different physical providers compose by nesting
+// their scoped uses; publication remains outside every final provider check.
+export function planManagedInputRows(materials) {
+  if (!Array.isArray(materials)) return undefined;
+  const held = materials.map(material => representations.get(material));
+  if (held.some(value =>
+      typeof value?.rowProvider?.read !== 'function')) return undefined;
+  const grouped = new Map();
+  const memory = [];
+  for (let index = 0; index < held.length; index++) {
+    const value = held[index];
+    if (value.memory === true) {
+      memory.push(index);
+      continue;
+    }
+    if (typeof value.rowUse !== 'function') return undefined;
+    const indices = grouped.get(value.rowUse) ?? [];
+    indices.push(index);
+    grouped.set(value.rowUse, indices);
+  }
+  if (grouped.size > 1) return undefined;
+  const groups = [];
+  if (memory.length > 0) {
+    groups.push(Object.freeze({kind: 'memory', indices: Object.freeze(memory)}));
+  }
+  for (const [rowUse, indices] of grouped) {
+    groups.push(Object.freeze({
+      kind: 'provider',
+      rowUse,
+      indices: Object.freeze(indices),
+    }));
+  }
+  const plan = Object.freeze({
+    materials: Object.freeze([...materials]),
+    owners: Object.freeze([...held]),
+    groups: Object.freeze(groups),
+  });
+  rowPlans.add(plan);
+  return plan;
+}
+
 // Managed in-memory representation registration. Its physical lifetime stays
 // with the installed implementation; this registry only acquires a scoped
 // use count and never turns the opaque material into a portable handle.
@@ -313,33 +357,9 @@ export function registerManagedMemoryInput(
   });
 }
 
-// Representation-neutral managed row use. Memory generations are pinned in
-// this portable module. Installed physical providers retain their own grouped
-// read operation so importing the Local connector does not import Node I/O.
-export async function withManagedInputRows(
-  occurrences, authorize, append, use, signal, beforeRead, commit,
+async function withManagedMemoryRows(
+  occurrences, held, providers, authorize, append, use, signal, commit,
 ) {
-  if (!Array.isArray(occurrences) ||
-      typeof authorize !== 'function' || typeof append !== 'function' ||
-      typeof use !== 'function' ||
-      (commit !== undefined && typeof commit !== 'function')) {
-    throw issue('InvalidManagedInputUse');
-  }
-  if (occurrences.length === 0) {
-    signal?.throwIfAborted();
-    const provisional = await use();
-    signal?.throwIfAborted();
-    return typeof commit === 'function'
-      ? await commit(provisional)
-      : provisional;
-  }
-  const held = occurrences.map(occurrence =>
-    representations.get(occurrence?.material));
-  const providers = held.map(value => value?.rowProvider);
-  if (providers.some(provider => typeof provider?.read !== 'function')) {
-    throw issue('UnsupportedManagedRowRepresentation');
-  }
-  if (held.every(value => value.memory === true)) {
     const admit = (index, acquired = false) => {
       signal?.throwIfAborted();
       const occurrence = occurrences[index];
@@ -375,11 +395,14 @@ export async function withManagedInputRows(
       for (let index = 0; index < occurrences.length; index++) {
         admit(index, true);
       }
-      const provisional = await use();
-      for (let index = 0; index < occurrences.length; index++) {
-        admit(index, true);
-      }
-      signal?.throwIfAborted();
+      const recheck = () => {
+        for (let index = 0; index < occurrences.length; index++) {
+          admit(index, true);
+        }
+        signal?.throwIfAborted();
+      };
+      const provisional = await use(recheck);
+      recheck();
       return typeof commit === 'function'
         ? await commit(provisional)
         : provisional;
@@ -395,13 +418,86 @@ export async function withManagedInputRows(
     } finally {
       if (!failed) releaseMemoryUses(acquired);
     }
+}
+
+// Representation-neutral managed row use. Memory generations are pinned in
+// this portable module. Installed physical providers retain their own grouped
+// read operation so importing the Local connector does not import Node I/O.
+export async function withManagedInputRows(
+  occurrences, authorize, append, use, signal, beforeRead, commit, planned,
+) {
+  if (!Array.isArray(occurrences) ||
+      typeof authorize !== 'function' || typeof append !== 'function' ||
+      typeof use !== 'function' ||
+      (commit !== undefined && typeof commit !== 'function')) {
+    throw issue('InvalidManagedInputUse');
   }
-  if (held.some(value => value.memory === true) ||
-      held.some(value => value.rowUse !== held[0].rowUse) ||
-      typeof held[0].rowUse !== 'function') {
+  const materials = occurrences.map(occurrence => occurrence?.material);
+  const plan = planned ?? planManagedInputRows(materials);
+  if (!plan || !rowPlans.has(plan) ||
+      plan.materials.length !== materials.length ||
+      plan.materials.some((material, index) => material !== materials[index]) ||
+      plan.owners.some((owner, index) =>
+        owner !== representations.get(materials[index]))) {
     throw issue('UnsupportedManagedRowRepresentation');
   }
-  return held[0].rowUse(
-    occurrences, authorize, append, use, signal, beforeRead, commit,
+  const groupArguments = group => {
+    const subset = group.indices.map(index => occurrences[index]);
+    const held = group.indices.map(index => plan.owners[index]);
+    const providers = held.map(value => value.rowProvider);
+    const authorizeSubset = (input, index) =>
+      authorize(input, group.indices[index]);
+    const appendSubset = (index, row) =>
+      append(group.indices[index], row);
+    return {subset, held, providers, authorizeSubset, appendSubset};
+  };
+  if (plan.groups.length === 0) {
+    signal?.throwIfAborted();
+    const provisional = await use();
+    signal?.throwIfAborted();
+    return typeof commit === 'function'
+      ? await commit(provisional)
+      : provisional;
+  }
+  if (plan.groups.length === 1) {
+    const group = plan.groups[0];
+    const args = groupArguments(group);
+    if (group.kind === 'memory') {
+      return withManagedMemoryRows(
+        args.subset, args.held, args.providers, args.authorizeSubset,
+        args.appendSubset, () => use(), signal, commit,
+      );
+    }
+    return group.rowUse(
+      args.subset, args.authorizeSubset, args.appendSubset, use, signal,
+      beforeRead, commit,
+    );
+  }
+  const memory = plan.groups[0];
+  const provider = plan.groups[1];
+  const memoryArgs = groupArguments(memory);
+  const providerArgs = groupArguments(provider);
+  return withManagedMemoryRows(
+    memoryArgs.subset,
+    memoryArgs.held,
+    memoryArgs.providers,
+    memoryArgs.authorizeSubset,
+    memoryArgs.appendSubset,
+    recheckMemory => provider.rowUse(
+      providerArgs.subset,
+      providerArgs.authorizeSubset,
+      providerArgs.appendSubset,
+      use,
+      signal,
+      beforeRead,
+      typeof commit === 'function'
+        ? provisional => {
+          recheckMemory();
+          return commit(provisional);
+        }
+        : undefined,
+    ),
+    signal,
+    undefined,
   );
 }

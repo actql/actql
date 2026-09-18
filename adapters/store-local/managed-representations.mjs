@@ -8,6 +8,7 @@ import {installManagedRepresentation, managedRepresentation} from
   './managed-memory-representations.mjs';
 export {managedInputCodecContractCid, managedInputPhysicalManifestCid,
   managedInputSupportsRows, managedInputTransferEstimate,
+  planManagedInputRows,
   registerManagedMemoryInput,
   withManagedInputRows} from './managed-memory-representations.mjs';
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);

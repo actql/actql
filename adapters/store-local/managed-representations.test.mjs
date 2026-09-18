@@ -9,6 +9,7 @@ import {managedPhysicalRepresentation} from
 import {
   registerManagedMemoryInput,
   managedInputPhysicalManifestCid,
+  planManagedInputRows,
   registerManagedInput,
   withManagedInputFiles,
   withManagedInputRows,
@@ -171,6 +172,136 @@ test('managed file cancellation before final commit publishes nothing', async t 
   assert.equal(committed, false);
   assert.equal(store.status().activeReaders, 0);
 });
+
+test('managed row plans compose memory and file scopes in either order',
+  async t => {
+    for (const memoryFirst of [true, false]) {
+      const {store, body} = await fixture(t);
+      const fileMaterial = {}, fileInput = {};
+      const representation = managedPhysicalRepresentation(
+        body, 1, codec, fields, [0],
+      );
+      registerManagedInput(
+        fileMaterial, value => value === fileInput, store, body, codec,
+        representation.manifest,
+        Object.freeze({
+          async read(file, emit) {
+            assert.equal(typeof file?.path, 'string');
+            await emit('{"source":"file"}');
+          },
+        }),
+      );
+      const memoryMaterial = {}, memoryInput = {};
+      const memory = registerManagedMemoryInput(
+        memoryMaterial,
+        value => value === memoryInput,
+        () => true,
+        Object.freeze({
+          async read(_file, emit) {
+            await emit('{"source":"memory"}');
+          },
+        }),
+        () => {},
+      );
+      const occurrences = memoryFirst
+        ? [
+          {material: memoryMaterial, input: memoryInput},
+          {material: fileMaterial, input: fileInput},
+        ]
+        : [
+          {material: fileMaterial, input: fileInput},
+          {material: memoryMaterial, input: memoryInput},
+        ];
+      const plan = planManagedInputRows(occurrences.map(value => value.material));
+      assert(plan, 'the complete mixed input set is compatible');
+      assert.equal(memory.status().readers, 0,
+        'pure planning does not acquire the memory generation');
+      assert.equal(store.status().activeReaders, 0,
+        'pure planning does not pin the file generation');
+      const rows = [[], []];
+      const completed = await withManagedInputRows(
+        occurrences,
+        (input, index) => input === occurrences[index].input,
+        (index, row) => rows[index].push(row),
+        () => 'provisional',
+        undefined,
+        undefined,
+        value => {
+          assert.equal(value, 'provisional');
+          assert.equal(memory.status().readers, 1);
+          assert.equal(store.status().activeReaders, 1);
+          return 'completed';
+        },
+        plan,
+      );
+      assert.equal(completed, 'completed');
+      assert.deepEqual(rows, memoryFirst
+        ? [['{"source":"memory"}'], ['{"source":"file"}']]
+        : [['{"source":"file"}'], ['{"source":"memory"}']]);
+      assert.equal(memory.status().readers, 0);
+      assert.equal(store.status().activeReaders, 0);
+      await memory.close();
+    }
+  });
+
+test('mixed row scopes never commit after final corruption or cancellation',
+  async t => {
+    for (const cancelled of [false, true]) {
+      const {store, body} = await fixture(t);
+      const fileMaterial = {}, fileInput = {};
+      const representation = managedPhysicalRepresentation(
+        body, 1, codec, fields, [0],
+      );
+      let filePath;
+      registerManagedInput(
+        fileMaterial, value => value === fileInput, store, body, codec,
+        representation.manifest,
+        Object.freeze({
+          async read(file, emit) {
+            filePath = file.path;
+            await emit('{"source":"file"}');
+          },
+        }),
+      );
+      const memoryMaterial = {}, memoryInput = {};
+      const memory = registerManagedMemoryInput(
+        memoryMaterial, value => value === memoryInput, () => true,
+        Object.freeze({
+          async read(_file, emit) {
+            await emit('{"source":"memory"}');
+          },
+        }),
+        () => {},
+      );
+      const occurrences = [
+        {material: memoryMaterial, input: memoryInput},
+        {material: fileMaterial, input: fileInput},
+      ];
+      const plan = planManagedInputRows(occurrences.map(value => value.material));
+      const controller = new AbortController();
+      let committed = false;
+      await assert.rejects(withManagedInputRows(
+        occurrences,
+        () => true,
+        () => {},
+        async () => {
+          if (cancelled) controller.abort();
+          else await writeFile(filePath, 'changed row');
+          return 'provisional';
+        },
+        controller.signal,
+        undefined,
+        () => { committed = true; },
+        plan,
+      ), error => cancelled
+        ? error?.name === 'AbortError'
+        : ['RetainedBodyChanged', 'RetainedBodyTruncated'].includes(error?.code));
+      assert.equal(committed, false);
+      assert.equal(memory.status().readers, 0);
+      assert.equal(store.status().activeReaders, 0);
+      await memory.close();
+    }
+  });
 
 test('pending native stop retains duplicate input pins until cleanup settles', async t => {
   const {store, body} = await fixture(t);

@@ -10,6 +10,8 @@ import {numericStrategyContribution} from
   '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
+import {installManagedRepresentation} from
+  '../store-local/managed-memory-representations.mjs';
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
   revokeExecutionSite} from '../host-common/execution-sites.mjs';
@@ -314,3 +316,146 @@ test('Local preparation delegates checked zero-input applicability to MoonBit', 
   assert.deepEqual(prepared.inputs, []);
   assert.deepEqual(seen, [[]]);
 });
+
+test('standard Host runs Local with mixed memory and provider inputs',
+  async () => {
+    for (const memoryFirst of [true, false]) {
+      const setup = {};
+      const registrations = {memory: {}, file: {}, local: {}};
+      const complete = new Set();
+      const inputByMaterial = new Map();
+      const rowsByMaterial = new Map();
+      const outputs = new Map();
+      const memoryMaterial = {}, fileMaterial = {};
+      for (const [material, row] of [
+        [memoryMaterial, '{"side":"memory"}'],
+        [fileMaterial, '{"side":"file"}'],
+      ]) {
+        inputByMaterial.set(material, {});
+        rowsByMaterial.set(material, row);
+      }
+      const memory = registerManagedMemoryInput(
+        memoryMaterial,
+        input => input === inputByMaterial.get(memoryMaterial),
+        () => true,
+        Object.freeze({
+          async read(_file, emit) {
+            await emit(rowsByMaterial.get(memoryMaterial));
+          },
+        }),
+        () => {},
+      );
+      let providerUses = 0;
+      const providerUse = async (
+        occurrences, authorize, append, use, signal, _beforeRead, commit,
+      ) => {
+        providerUses++;
+        signal?.throwIfAborted();
+        assert.equal(occurrences.length, 1);
+        assert.equal(authorize(occurrences[0].input, 0), true);
+        await append(0, rowsByMaterial.get(fileMaterial));
+        const provisional = await use();
+        assert.equal(authorize(occurrences[0].input, 0), true);
+        return typeof commit === 'function'
+          ? commit(provisional)
+          : provisional;
+      };
+      installManagedRepresentation(fileMaterial, {
+        readable: input => input === inputByMaterial.get(fileMaterial),
+        rowProvider: Object.freeze({async read() {}}),
+        rowUse: providerUse,
+      });
+      const orderedMaterials = memoryFirst
+        ? [memoryMaterial, fileMaterial]
+        : [fileMaterial, memoryMaterial];
+      const sourceEntries = orderedMaterials.map((material, offset) => {
+        const task = offset + 1;
+        const registration = offset === 0
+          ? registrations.memory : registrations.file;
+        return {
+          registration,
+          managedSelectionKey: `source-${task}`,
+          run() { assert.fail('managed source used the legacy path'); },
+          prepareNext() {
+            return complete.has(task) || [...complete].some(value => value > task)
+              ? undefined
+              : task === (complete.has(1) ? 2 : 1)
+                ? {task, inputs: [], durationMilliseconds: 0n}
+                : undefined;
+          },
+          runPrepared() {
+            complete.add(task);
+            const result = {
+              completed: {task},
+              material,
+              close: material === memoryMaterial
+                ? () => memory.close()
+                : () => {},
+            };
+            outputs.set(task, result);
+            return result;
+          },
+        };
+      });
+      const appended = [[], []];
+      const outputMaterial = {};
+      const outputCompleted = {};
+      const operations = {
+        inputs: orderedMaterials.map((material, index) => ({
+          input: inputByMaterial.get(material),
+          append: row => { appended[index].push(row); return ok(); },
+          finish: () => ok(),
+        })),
+        execute: () => ok(),
+        settle: () => ok(),
+        complete: () => { complete.add(3); return ok(outputCompleted); },
+        material: () => outputMaterial,
+        output_rows: () => 1,
+        output_row: () => ok('{"joined":true}'),
+        storage_bytes: 16,
+        close() {},
+      };
+      const local = localStrategyContribution({
+        strategyModule_local_Registration: () => registrations.local,
+        strategyHostRegistrationSelectionKey: () => 'local',
+        strategyHostNextTask: () => complete.has(3) ? -1 : 3,
+        strategyHostManagedProducers: () => complete.has(2) ? [1, 2] : [],
+        strategyHostManagedInputCount: () => 2,
+        strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+        strategyHostReleasableManagedProducers: () => [1, 2],
+        strategyModule_local_ManagedDispatch: () => ok({}),
+        strategyModule_local_ManagedDuration: () => 0n,
+        strategyModule_local_ManagedCapacity: () => [16n, 16n],
+        strategyModule_local_ManagedStart: () => ok(operations),
+        strategyHostManagedInputMatchesMaterial: (input, material) =>
+          inputByMaterial.get(material) === input,
+      }, setup, checked);
+      const current = () => complete.has(1)
+        ? complete.has(2) ? complete.has(3) ? -1 : 3 : 2
+        : 1;
+      const core = {
+        count: () => 4,
+        next: () => assert.fail('managed fixture used the legacy path'),
+        nextTask: current,
+        managedProducers: () => current() === 3 ? [1, 2] : [],
+        selectManaged: () => true,
+        managedMatches: () => true,
+        taskCapacity: () => [0n, 0n],
+        completed: (_owner, task) => complete.has(task),
+        finished: () => complete.has(3),
+        stop() {},
+        closeOutputs() {},
+        output: () => undefined,
+        usage: () => ({}),
+        explain: () => ({}),
+      };
+      const result = await runInstalledStrategy(
+        setup, core, [...sourceEntries, local],
+      );
+      assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
+      assert.equal(providerUses, 1);
+      assert.deepEqual(appended, orderedMaterials.map(material =>
+        [rowsByMaterial.get(material)]));
+      await result.close();
+    }
+  });

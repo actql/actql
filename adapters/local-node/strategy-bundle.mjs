@@ -3,7 +3,7 @@
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localRetainedStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
-import {managedInputSupportsRows, registerManagedMemoryInput,
+import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows} from '../store-local/managed-memory-representations.mjs';
 import {settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
@@ -32,10 +32,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return undefined;
       }
       const inputs = producers.map(producer => outputs.get(producer));
-      if (inputs.some(input => input == null ||
-          !managedInputSupportsRows(input.siteMaterial ?? input.material))) {
-        return undefined;
-      }
+      if (inputs.some(input => input == null)) return undefined;
+      const rowPlan = planManagedInputRows(inputs.map(input =>
+        input.siteMaterial ?? input.material));
+      if (rowPlan === undefined) return undefined;
       const managedConfiguration = checked(
         moon.strategyModule_local_ManagedDispatch(
           setup,
@@ -64,6 +64,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         releasableProducers: Object.freeze(
           moon.strategyHostReleasableManagedProducers(setup)),
         configuration: managedConfiguration,
+        rowPlan,
       });
     },
     async runPrepared(prepared, signal) {
@@ -88,6 +89,17 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               input.siteMaterial ?? input.material)),
             records: Object.freeze([]),
           });
+        const plannedMaterials = prepared.inputs.map(input =>
+          input.siteMaterial ?? input.material);
+        const resolvedRowPlan = resolved.materials.length ===
+            plannedMaterials.length && resolved.materials.every(
+          (material, index) => material === plannedMaterials[index],
+        )
+          ? prepared.rowPlan
+          : planManagedInputRows(resolved.materials);
+        if (resolvedRowPlan === undefined) {
+          throw new Error('UnsupportedManagedRowRepresentation');
+        }
         let completed;
         await withManagedInputRows(
           prepared.inputs.map((input, index) => ({
@@ -120,6 +132,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               () => available,
             ));
           },
+          resolvedRowPlan,
         );
         const material = operations.material();
         if (completed == null || material == null) {
