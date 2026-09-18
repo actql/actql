@@ -25,7 +25,7 @@
   "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:305199a0bf988940ade2440b7e9a802b785acd570b46410f00c2dab4448f3a02",
+  "pipeline_registry_cid": "sha256:604f29b5b36a5b9e66fdd8b866978a65f529d56a41c9c571052a59364196943a",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "target_registry_requirements": {
     "REL.values": {

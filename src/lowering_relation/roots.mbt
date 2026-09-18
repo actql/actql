@@ -114,8 +114,11 @@ pub fn prepare_kernel_roots(
     None => return Err(InvalidStep)
   }
   match step {
-    ValuesStep(_) | JoinStep(_) | AppendStep(_) | SetStep(_) =>
-      return Err(NotExpressionKernel)
+    ValuesStep(_)
+    | JoinStep(_)
+    | CrossJoinStep(_)
+    | AppendStep(_)
+    | SetStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -158,7 +161,11 @@ fn prepare_root_range(
     }
     work -= 1
     let bindings = match sequence.steps[step_index] {
-      ValuesStep(_) | JoinStep(_) | AppendStep(_) | SetStep(_) => continue
+      ValuesStep(_)
+      | JoinStep(_)
+      | CrossJoinStep(_)
+      | AppendStep(_)
+      | SetStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
           Select(_)

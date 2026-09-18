@@ -394,6 +394,7 @@ fn lower_expression_measured(
       | CountGroup(_)
       | JsonPick(_)
       | InnerJoin(_)
+      | CrossJoinRows(_)
       | AppendRows(_)
       | SetRows(_) => expression_fail(step.source, MissingCheckedBinding)
     }

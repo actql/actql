@@ -236,7 +236,7 @@ fn prepare_kernel_measured(
     | CountGroup(op)
     | AssertRows(op) => op
     JsonPick(op) => op
-    Values(_) | InnerJoin(_) | AppendRows(_) | SetRows(_) =>
+    Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {

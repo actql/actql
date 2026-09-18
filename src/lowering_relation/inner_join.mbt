@@ -62,7 +62,7 @@ pub fn prepare_inner_join(
   // The checked projection's width was bounded before requesting its copy.
   // Omitted projection retains both qualified namespaces; aliases stay distinct.
   let authored = @join.projection(checked)
-  let projection = []
+  let projection : Array[InnerJoinField] = []
   for index in 0..<width {
     let output = @schema.field_at(schema, index).unwrap().name
     let input = match authored {

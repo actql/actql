@@ -11,6 +11,7 @@ pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
 }
@@ -32,6 +33,7 @@ pub(all) enum SequenceIssue {
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
 }
@@ -92,6 +94,20 @@ pub fn prepare_sequence(
           names -= @utf8.encode(name).length()
         }
         JoinStep(kernel)
+      }
+      CrossJoinRows(_) => {
+        let kernel = match
+          prepare_cross_join_kernel(owner, i, bindings, names) {
+          Ok(value) => value
+          Err(issue) => return Err(CrossJoinFailure(i, issue))
+        }
+        bindings -= cross_join_field_count(kernel.profile)
+        names -= kernel.profile.name_bytes
+        if @join.cross_output_guard(kernel.profile.checked)
+          is Some(Parameter(name)) {
+          names -= @utf8.encode(name).length()
+        }
+        CrossJoinStep(kernel)
       }
       AppendRows(_) => {
         let kernel = match prepare_append_kernel(owner, i, bindings, names) {
@@ -172,6 +188,7 @@ pub fn emit_sequence_steps(
     match step {
       ValuesStep(v) => emit_values_node(v, out)
       JoinStep(v) => emit_join_kernel(v, out)
+      CrossJoinStep(v) => emit_cross_join_kernel(v, out)
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)
       RowStep(v) => {

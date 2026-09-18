@@ -99,8 +99,8 @@ pub fn constrain_generated_join_output(
   if ceiling < 0L {
     return Err(InvalidLimits)
   }
-  guard @lower.sequence_step(generated.sequence, step)
-    is Some(@lower.JoinStep(_)) else {
+  guard @lower.sequence_step(generated.sequence, step) is Some(value) &&
+    (value is @lower.JoinStep(_) || value is @lower.CrossJoinStep(_)) else {
     return Err(InputSet)
   }
   let ceiling = match generated.join_ceiling {
@@ -153,6 +153,7 @@ pub fn generated_sequence_all_row_kernels(
       @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))
       @lower.ValuesStep(_)
       | @lower.JoinStep(_)
+      | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_) => false
     }

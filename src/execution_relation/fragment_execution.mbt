@@ -67,6 +67,7 @@ fn attach_fragment_budgets(
           }
         }
       }
+      @lower.CrossJoinStep(_) => ()
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {

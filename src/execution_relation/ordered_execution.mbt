@@ -65,6 +65,7 @@ fn prepare_ordered_budgets(
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_)
       | @lower.JoinStep(_)
+      | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)
       | @lower.SetStep(_) => ()
       @lower.RowStep(kernel) => {

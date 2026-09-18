@@ -43,6 +43,7 @@ pub enum Payload {
   AssertRows(@relation.CheckedOperation)
   JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
+  CrossJoinRows(@join.CheckedCrossJoin)
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
 }
@@ -159,6 +160,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     JsonPick(_) => "REL.json.pick"
     InnerJoin(_) => "REL.join"
+    CrossJoinRows(_) => "REL.cross_join"
     AppendRows(_) => "REL.unionAll"
     SetRows(checked) =>
       match @set.operation(checked) {
@@ -192,10 +194,10 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Analytic | Lag | WatermarkRows => None
       }
     Join(checked~, ..) => Some(InnerJoin(checked))
+    CrossJoin(checked~, ..) => Some(CrossJoinRows(checked))
     Append(checked~, ..) => Some(AppendRows(checked))
     Set(checked~, ..) => Some(SetRows(checked))
     Nest(..)
-    | CrossJoin(..)
     | IntervalJoin(..)
     | AsOfJoin(..)
     | Sequence(_)
@@ -300,6 +302,7 @@ pub fn prepare(
       AssertRows(_) => ("assert", 1)
       JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
+      CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       SetRows(checked) =>
         (
@@ -378,6 +381,7 @@ pub fn prepare(
       JsonPick(_) => None
       AppendRows(_) => None
       SetRows(_) => None
+      CrossJoinRows(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

@@ -18,7 +18,7 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:305199a0bf988940ade2440b7e9a802b785acd570b46410f00c2dab4448f3a02');
+    'sha256:604f29b5b36a5b9e66fdd8b866978a65f529d56a41c9c571052a59364196943a');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -33,6 +33,7 @@ test('current registry and historical preimages keep distinct identities', () =>
   delete primitive['REL.derive'].execution_extensions;
   delete primitive['REL.except_rows'];
   delete primitive['REL.intersect_rows'];
+  delete primitive['REL.cross_join'];
   primitive['REL.values'] = valuesRegistry['REL.values'];
   assert.deepEqual(primitive, valuesRegistry);
   assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');
@@ -66,7 +67,11 @@ test('preparation handlers use pinned relation signatures', () => {
     assert.ok(source.includes(`${variant}(_) => ("${name}", ${arity})`));
     assert.ok(source.includes(`${variant}(_) => "${op}"`));
   }
-  for (const op of ['REL.except_rows', 'REL.intersect_rows']) {
+  for (const op of [
+    'REL.except_rows',
+    'REL.intersect_rows',
+    'REL.cross_join',
+  ]) {
     const signature = registry[op];
     assert.deepEqual(
       {inputs: signature.inputs, output: signature.output},

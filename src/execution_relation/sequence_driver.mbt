@@ -435,6 +435,18 @@ fn run_sequence_invocation(
         selected_ceiling=join_ceiling,
       )
     }),
+    evaluate_cross_join=Some((kernel, left, right) => {
+      evaluate_cross_join_rows(
+        kernel,
+        left,
+        right,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+        selected_ceiling=join_ceiling,
+      )
+    }),
     evaluate_append=Some((kernel, left, right) => {
       evaluate_append_rows(
         kernel,
@@ -469,6 +481,10 @@ fn[T : RelationRows] run_completed_sequence_backend(
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   wrap : (TableStore[T]) -> CompletedStore,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
@@ -477,6 +493,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     import_values,
     evaluate,
     evaluate_join~,
+    evaluate_cross_join~,
     evaluate_append~,
     evaluate_set~,
   )
@@ -503,6 +520,10 @@ fn[T : RelationRows] run_sequence_with_backend(
   import_values : (CapturedRows) -> Result[T, RowIssue],
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_cross_join? : ((@lower.PreparedCrossJoinKernel, T, T) -> Result[
+    T,
+    RowIssue,
+  ])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
@@ -559,6 +580,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_cross_join=evaluate_cross_join.map(evaluate => {
+      fn(i, kernel, left, right) {
+        evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
+      }
+    }),
     evaluate_append=evaluate_append.map(evaluate => {
       fn(i, kernel, left, right) {
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
@@ -595,6 +621,10 @@ fn[T : RelationRows] run_sequence_steps(
     T,
     SequenceRunIssue,
   ])? = None,
+  evaluate_cross_join? : ((Int, @lower.PreparedCrossJoinKernel, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
   evaluate_append? : ((Int, @lower.PreparedAppendKernel, T, T) -> Result[
     T,
     SequenceRunIssue,
@@ -618,6 +648,16 @@ fn[T : RelationRows] run_sequence_steps(
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&
           evaluate_join is Some(evaluate) &&
+          store.tables[route[0]] is Some(left) &&
+          store.tables[route[1]] is Some(right) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, left.table, right.table)
+      }
+      @lower.CrossJoinStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_cross_join is Some(evaluate) &&
           store.tables[route[0]] is Some(left) &&
           store.tables[route[1]] is Some(right) else {
           return Err(InputSet)
