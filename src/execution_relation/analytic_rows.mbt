@@ -390,7 +390,10 @@ fn[T : RelationRows] evaluate_analytic_into(
     }
   }
   let call_count = @lower.analytic_call_count(analytic)
-  let aggregate_arguments : Array[Int?] = Array::make(call_count, None)
+  let aggregate_arguments : Array[AggregateInput?] = Array::make(
+    call_count,
+    None,
+  )
   if !reserve_slots(workspace, call_count) {
     return Err(RowLimit)
   }
@@ -401,16 +404,18 @@ fn[T : RelationRows] evaluate_analytic_into(
       is PreparedFrameAggregate(aggregate) else {
       continue
     }
-    aggregate_arguments[call_index] = match
-      @lower.group_aggregate_argument(aggregate) {
-      @lower.AggregateRows => None
-      @lower.AggregateField(field) =>
-        match resolve(field) {
-          Ok(column) => Some(column)
-          Err(issue) => return Err(issue)
-        }
-      @lower.AggregateExpression(_) => return Err(InvalidRows)
-    }
+    aggregate_arguments[call_index] = Some(
+      match @lower.group_aggregate_argument(aggregate) {
+        @lower.AggregateRows => AggregateInputRows
+        @lower.AggregateField(field) =>
+          match resolve(field) {
+            Ok(column) => AggregateInputField(column)
+            Err(issue) => return Err(issue)
+          }
+        @lower.AggregateExpression(expression) =>
+          AggregateInputExpression(expression)
+      },
+    )
   }
   let count_indices : Array[AnalyticCountIndex?] = Array::make(call_count, None)
   if !reserve_slots(workspace, call_count) {
@@ -423,19 +428,21 @@ fn[T : RelationRows] evaluate_analytic_into(
       is PreparedFrameAggregate(aggregate) else {
       continue
     }
-    if @lower.group_aggregate_distinct(aggregate) == Some(true) {
+    if @lower.group_aggregate_distinct(aggregate) == Some(true) ||
+      @lower.group_aggregate_filter(aggregate) is Some(_) {
       continue
     }
     let function = @lower.group_aggregate_function(aggregate)
-    if function is @relation.Count && aggregate_arguments[call_index] is None {
+    if function is @relation.Count &&
+      aggregate_arguments[call_index] is Some(AggregateInputRows) {
       count_indices[call_index] = Some(CountRows)
       continue
     }
     if !(function is @relation.Count || function is @relation.CountIf) {
       continue
     }
-    guard aggregate_arguments[call_index] is Some(column) else {
-      return Err(InvalidRows)
+    guard aggregate_arguments[call_index] is Some(AggregateInputField(column)) else {
+      continue
     }
     let prefix = Array::make(count + 1, 0)
     if !reserve_slots(workspace, count + 1) {
@@ -670,19 +677,46 @@ fn[T : RelationRows] evaluate_analytic_into(
               Number((prefix[end] - prefix[first]).to_double())
             None => {
               let baseline = workspace.live
-              let value = match
+              guard aggregate_arguments[call_index] is Some(argument) else {
+                return Err(InvalidRows)
+              }
+              let dynamic = @lower.group_aggregate_filter(aggregate) is Some(_) ||
+                argument is AggregateInputExpression(_)
+              let computed = if dynamic {
+                evaluate_dynamic_aggregate(
+                  aggregate,
+                  input,
+                  names,
+                  sorted,
+                  { representative: Some(source), start: first, end, },
+                  argument,
+                  complete,
+                  call_index,
+                  control,
+                  workspace,
+                  aggregate_outputs,
+                  identity_limits,
+                  scope,
+                )
+              } else {
                 evaluate_direct_aggregate(
                   aggregate,
                   input,
                   sorted,
                   { representative: Some(source), start: first, end, },
-                  aggregate_arguments[call_index],
+                  match argument {
+                    AggregateInputRows => None
+                    AggregateInputField(column) => Some(column)
+                    AggregateInputExpression(_) => None
+                  },
                   complete,
                   control,
                   workspace,
                   aggregate_outputs,
                   identity_limits,
-                ) {
+                )
+              }
+              let value = match computed {
                 Ok(value) => value
                 Err(issue) => return Err(issue)
               }

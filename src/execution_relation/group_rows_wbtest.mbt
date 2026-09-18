@@ -298,11 +298,10 @@ test "direct decimal sum checks only its final public precision" {
 }
 
 ///|
-test "direct group capability rejects work owned by other contracts" {
+test "direct group capability separates numeric observations from expressions" {
   for
     aggregate in [
       "{\"n\":{\"fn\":\"sum\",\"field\":\"amount\"}}", "{\"n\":{\"fn\":\"avg\",\"field\":\"amount\"}}",
-      "{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", "{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}",
     ] {
     let owner = bound_pipeline(
       "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":[]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":" +
@@ -312,6 +311,54 @@ test "direct group capability rejects work owned by other contracts" {
     let group = @lower.kernel_group(row_kernel(owner, 1)).unwrap()
     assert_false(group_execution_supported(group))
   }
+  for
+    aggregate in [
+      "{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", "{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}",
+    ] {
+    let owner = bound_pipeline(
+      "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":[]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":" +
+      aggregate +
+      "}}]",
+    )
+    let group = @lower.kernel_group(row_kernel(owner, 1)).unwrap()
+    assert_true(group_execution_supported(group))
+  }
+}
+
+///|
+test "aggregate filters gate expression demand before ordered distinct folds" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":0},{\"id\":1},{\"id\":2},{\"id\":2}]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"expr\":\"10 / id\",\"filter\":\"id > 0\",\"distinct\":true,\"order_by\":[{\"id\":\"desc\"}],\"max_items\":4}}}}]",
+  )
+  let sequence = prepared_sequence(owner)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [sequence_fragment_context(sequence, 1, 4L)],
+    ["group_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let constrained = constrain_generated_aggregate_output(
+    generated,
+    1,
+    "items",
+    ArrayItems,
+    2L,
+  ).unwrap()
+  let completed = execute_generated_sequence(constrained, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+  assert_eq(table.names, ["items"])
+  guard table.rows[0][0] is Captured(@admitted.Array(items)) else {
+    fail("array aggregate expected")
+  }
+  assert_eq(@admitted.element_count(items), 2)
+  assert_true(@admitted.element_at(items, 0) is Some(@admitted.Number(5.0)))
+  assert_true(@admitted.element_at(items, 1) is Some(@admitted.Number(10.0)))
 }
 
 ///|

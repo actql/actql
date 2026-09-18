@@ -479,7 +479,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   }
   if body is PreparedBody(kernel) && @lower.kernel_group(kernel) is Some(group) {
     return evaluate_group_into(
-      group, input, max_rows, control, output, workspace, accept_row, aggregate_outputs,
+      group, input, max_rows, control, output, workspace, scope, accept_row, aggregate_outputs,
       identity_limits,
     )
   }

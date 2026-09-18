@@ -401,7 +401,7 @@ test "analytic aggregates requiring numeric observation stay unsupported" {
 }
 
 ///|
-test "analytic aggregate capability rejects unresolved demand variants" {
+test "analytic aggregate capability accepts lowered filter and expression demand" {
   for
     functions in [
       "{\"v\":{\"fn\":\"min\",\"expr\":\"amount\"}}",
@@ -417,8 +417,36 @@ test "analytic aggregate capability rejects unresolved demand variants" {
       "}",
     )
     let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
-    assert_false(analytic_execution_supported(analytic))
+    assert_true(analytic_execution_supported(analytic))
   }
+}
+
+///|
+test "analytic aggregate filters gate frame expression demand" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"group\":{\"type\":\"string\",\"nullable\":true},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"amount\":30,\"group\":\"a\",\"id\":3},{\"amount\":20,\"group\":null,\"id\":2},{\"amount\":10,\"group\":\"a\",\"id\":1},{\"amount\":null,\"group\":null,\"id\":4},{\"amount\":30,\"group\":\"a\",\"id\":5}]},\"as\":\"seed\"},{\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":{\"lowest\":{\"fn\":\"min\",\"expr\":\"amount + 1\",\"filter\":\"amount >= 20\"}}}}]",
+  )
+  let sequence = prepared_sequence(owner)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [sequence_fragment_context(sequence, 1, 5L)],
+    ["analytic_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let completed = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let table = test_row_output(completed_output(completed, Step(1)).unwrap())
+  assert_eq(table.names, ["amount", "group", "id", "lowest"])
+  assert_true(table.rows[0][3] is Number(31))
+  assert_true(table.rows[1][3] is Number(21))
+  assert_true(table.rows[2][3] is Null)
+  assert_true(table.rows[3][3] is Number(21))
+  assert_true(table.rows[4][3] is Number(31))
 }
 
 ///|

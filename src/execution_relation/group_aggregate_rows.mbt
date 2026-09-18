@@ -16,6 +16,81 @@ priv struct AggregateRangeRows[T] {
 }
 
 ///|
+priv enum AggregateInput {
+  AggregateInputRows
+  AggregateInputField(Int)
+  AggregateInputExpression(@lower.Expression)
+}
+
+///|
+/// Evaluated contributors retain their source rows so an aggregate-local
+/// order can sort the values without evaluating a filtered argument again.
+priv struct AggregateContributorRows[T] {
+  input : T
+  sources : Array[Int]
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn row_count(
+  self,
+) {
+  self.sources.length()
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn column_count(
+  self,
+) {
+  self.input.column_count()
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn row_width(
+  self,
+  row,
+) {
+  self.input.row_width(self.sources[row])
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn read_cell(
+  self,
+  row,
+  column,
+) {
+  self.input.read_cell(self.sources[row], column)
+}
+
+///|
+priv struct DynamicAggregateRows {
+  values : Array[Value]
+}
+
+///|
+impl IndexedRows for DynamicAggregateRows with fn row_count(self) {
+  self.values.length()
+}
+
+///|
+impl IndexedRows for DynamicAggregateRows with fn column_count(_self) {
+  2
+}
+
+///|
+impl IndexedRows for DynamicAggregateRows with fn row_width(_self, _row) {
+  2
+}
+
+///|
+impl IndexedRows for DynamicAggregateRows with fn read_cell(self, row, column) {
+  if column == 0 {
+    self.values[row]
+  } else {
+    Number(row.to_double())
+  }
+}
+
+///|
 impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn row_count(
   self,
 ) {
@@ -53,53 +128,58 @@ fn direct_aggregate_execution_supported(
   aggregate : @lower.PreparedAggregate,
   ordered : Bool,
 ) -> Bool {
-  if @lower.group_aggregate_filter(aggregate) is Some(_) ||
-    @lower.group_aggregate_argument(aggregate) is @lower.AggregateExpression(_) ||
-    @lower.group_aggregate_requires_numeric_observation(aggregate) {
+  if @lower.group_aggregate_requires_numeric_observation(aggregate) {
     return false
   }
-  match
-    (
-      @lower.group_aggregate_function(aggregate),
-      @lower.group_aggregate_argument(aggregate),
-    ) {
+  let argument = @lower.group_aggregate_argument(aggregate)
+  let has_argument = !(argument is @lower.AggregateRows)
+  match (@lower.group_aggregate_function(aggregate), argument) {
     (@relation.Count, @lower.AggregateRows)
     | (@relation.Count, @lower.AggregateField(_))
-    | (@relation.CountIf, @lower.AggregateField(_)) => ()
-    (@relation.Min, @lower.AggregateField(_))
-    | (@relation.Max, @lower.AggregateField(_)) => {
+    | (@relation.Count, @lower.AggregateExpression(_)) => ()
+    (@relation.CountIf, _) => if !has_argument { return false }
+    (@relation.Min, _) | (@relation.Max, _) => {
+      if !has_argument {
+        return false
+      }
       let result = @lower.group_aggregate_result(aggregate)
       if !supported_comparison(result, result) {
         return false
       }
     }
-    (@relation.Sum, @lower.AggregateField(_)) =>
-      if !(@lower.group_aggregate_result(aggregate).shape
+    (@relation.Sum, _) =>
+      if !has_argument ||
+        !(@lower.group_aggregate_result(aggregate).shape
         is @contract.Decimal(precision=38, ..)) {
         return false
       }
-    (@relation.First, @lower.AggregateField(_))
-    | (@relation.Last, @lower.AggregateField(_)) => if !ordered { return false }
-    (@relation.ArrayAgg, @lower.AggregateField(_)) =>
-      if !ordered {
+    (@relation.First, _) | (@relation.Last, _) =>
+      if !has_argument || !ordered {
         return false
       }
-    (@relation.StringAgg, @lower.AggregateField(_)) =>
-      if !ordered || @lower.group_aggregate_delimiter(aggregate) is None {
+    (@relation.ArrayAgg, _) => if !has_argument || !ordered { return false }
+    (@relation.StringAgg, _) =>
+      if !has_argument ||
+        !ordered ||
+        @lower.group_aggregate_delimiter(aggregate) is None {
         return false
       }
-    (@relation.PercentileDisc, @lower.AggregateField(_)) => {
+    (@relation.PercentileDisc, _) => {
+      if !has_argument {
+        return false
+      }
       let result = @lower.group_aggregate_result(aggregate)
       if !supported_comparison(result, result) {
         return false
       }
     }
-    (@relation.PercentileCont, @lower.AggregateField(_))
-    | (@relation.VarPop, @lower.AggregateField(_))
-    | (@relation.VarSamp, @lower.AggregateField(_))
-    | (@relation.StddevPop, @lower.AggregateField(_))
-    | (@relation.StddevSamp, @lower.AggregateField(_)) =>
-      if !(@lower.group_aggregate_result(aggregate).shape is @contract.Number) {
+    (@relation.PercentileCont, _)
+    | (@relation.VarPop, _)
+    | (@relation.VarSamp, _)
+    | (@relation.StddevPop, _)
+    | (@relation.StddevSamp, _) =>
+      if !has_argument ||
+        !(@lower.group_aggregate_result(aggregate).shape is @contract.Number) {
         return false
       }
     _ => return false
@@ -650,6 +730,174 @@ fn[T : IndexedRows] aggregate_group_ranges(
 }
 
 ///|
+fn[T : IndexedRows] aggregate_expression_value(
+  expression : @lower.Expression,
+  input : T,
+  names : Array[String],
+  row : Int,
+  aggregate : Int,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots?,
+) -> Result[Value, RowIssue] {
+  let baseline = workspace.live
+  let snapshot : Map[String, Value] = Map([])
+  for column in 0..<names.length() {
+    if !spend_control(control, 1) ||
+      !spend_control_text(control, names[column]) ||
+      !reserve_slots(workspace, 1) {
+      release_slots(workspace, workspace.live - baseline)
+      return Err(RowLimit)
+    }
+    snapshot[names[column]] = IndexedRows::read_cell(input, row, column)
+  }
+  guard scope is Some(value) else {
+    release_slots(workspace, workspace.live - baseline)
+    return Err(MissingOrderedResourceContext)
+  }
+  match charge_logical_work(value.budget, 1L) {
+    Ok(_) => ()
+    Err(issue) => {
+      release_slots(workspace, workspace.live - baseline)
+      return Err(LogicalRows(issue))
+    }
+  }
+  let result = match
+    evaluate_expression_with_workspace(
+      expression,
+      snapshot,
+      [],
+      control,
+      workspace,
+      logical_work=Some(value.budget),
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Evaluation(row, aggregate, issue))
+  }
+  release_slots(workspace, workspace.live - baseline)
+  result
+}
+
+///|
+fn[T : IndexedRows] evaluate_dynamic_aggregate(
+  aggregate : @lower.PreparedAggregate,
+  input : T,
+  names : Array[String],
+  indices : Array[Int],
+  range : AggregateGroupRange,
+  argument : AggregateInput,
+  order : Array[ColumnOrder],
+  aggregate_index : Int,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  selected : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
+  scope : ExpressionRoots?,
+) -> Result[Value, RowIssue] {
+  let sources : Array[Int] = []
+  let values : Array[Value] = []
+  for position = range.start; position < range.end; position = position + 1 {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    let source = indices[position]
+    if @lower.group_aggregate_filter(aggregate) is Some(filter) {
+      let accepted = match
+        aggregate_expression_value(
+          filter, input, names, source, aggregate_index, control, workspace, scope,
+        ) {
+        Ok(Boolean(true)) => true
+        Ok(Boolean(false) | Null) => false
+        Ok(_) => return Err(InvalidRows)
+        Err(issue) => return Err(issue)
+      }
+      if !accepted {
+        continue
+      }
+    }
+    let value = match argument {
+      AggregateInputRows => Null
+      AggregateInputField(column) =>
+        IndexedRows::read_cell(input, source, column)
+      AggregateInputExpression(expression) =>
+        match
+          aggregate_expression_value(
+            expression, input, names, source, aggregate_index, control, workspace,
+            scope,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+    }
+    if !reserve_slots(workspace, 2) {
+      return Err(RowLimit)
+    }
+    sources.push(source)
+    values.push(value)
+  }
+  let contributors : AggregateContributorRows[T] = { input, sources, }
+  let ordered = if order.is_empty() {
+    if !reserve_slots(workspace, values.length()) ||
+      !spend_control(control, values.length()) {
+      return Err(RowLimit)
+    }
+    Array::makei(values.length(), i => i)
+  } else {
+    match stable_order_indices(contributors, order, control, workspace) {
+      Ok(value) => value
+      Err(InvalidInput) => return Err(InvalidRows)
+      Err(Limit) => return Err(RowLimit)
+      Err(Scalar(issue)) => return Err(Comparison(issue))
+    }
+  }
+  if !reserve_slots(workspace, values.length()) {
+    return Err(RowLimit)
+  }
+  let sorted = ordered.map(index => values[index])
+  let rows : DynamicAggregateRows = { values: sorted, }
+  let local_indices = Array::makei(rows.values.length(), i => i)
+  if !reserve_slots(workspace, local_indices.length()) ||
+    !spend_control(control, local_indices.length()) {
+    return Err(RowLimit)
+  }
+  let ordered_function = match @lower.group_aggregate_function(aggregate) {
+    @relation.First
+    | @relation.Last
+    | @relation.ArrayAgg
+    | @relation.StringAgg => true
+    _ => false
+  }
+  evaluate_direct_aggregate(
+    aggregate,
+    rows,
+    local_indices,
+    {
+      representative: if local_indices.is_empty() {
+        None
+      } else {
+        Some(0)
+      },
+      start: 0,
+      end: local_indices.length(),
+    },
+    if argument is AggregateInputRows {
+      None
+    } else {
+      Some(0)
+    },
+    if ordered_function {
+      [{ column: 1, descending: false, nulls_first: true, }]
+    } else {
+      []
+    },
+    control,
+    workspace,
+    selected,
+    identity_limits,
+  )
+}
+
+///|
 fn[T : IndexedRows] evaluate_direct_aggregate(
   aggregate : @lower.PreparedAggregate,
   input : T,
@@ -852,6 +1100,7 @@ fn[T : RelationRows] evaluate_group_into(
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
+  scope : ExpressionRoots?,
   accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
     Unit,
     RowIssue,
@@ -908,7 +1157,7 @@ fn[T : RelationRows] evaluate_group_into(
     }
   }
   let aggregate_by_name : Map[String, Int] = Map([])
-  let arguments : Array[Int?] = []
+  let arguments : Array[AggregateInput] = []
   let aggregate_orders : Array[Array[ColumnOrder]] = []
   for i in 0..<aggregate_count {
     let aggregate = @lower.group_aggregate_at(group, i).unwrap()
@@ -919,13 +1168,14 @@ fn[T : RelationRows] evaluate_group_into(
     aggregate_by_name[name] = i
     arguments.push(
       match @lower.group_aggregate_argument(aggregate) {
-        @lower.AggregateRows => None
+        @lower.AggregateRows => AggregateInputRows
         @lower.AggregateField(field) =>
           match resolve(field) {
-            Ok(column) => Some(column)
+            Ok(column) => AggregateInputField(column)
             Err(issue) => return Err(issue)
           }
-        @lower.AggregateExpression(_) => return Err(InvalidRows)
+        @lower.AggregateExpression(expression) =>
+          AggregateInputExpression(expression)
       },
     )
     let term_count = @lower.group_aggregate_order_count(aggregate)
@@ -988,19 +1238,44 @@ fn[T : RelationRows] evaluate_group_into(
     let aggregate_values : Array[Value] = []
     for i in 0..<aggregate_count {
       let baseline = workspace.live
-      let value = match
-        evaluate_direct_aggregate(
-          @lower.group_aggregate_at(group, i).unwrap(),
+      let aggregate = @lower.group_aggregate_at(group, i).unwrap()
+      let dynamic = @lower.group_aggregate_filter(aggregate) is Some(_) ||
+        arguments[i] is AggregateInputExpression(_)
+      let evaluated = if dynamic {
+        evaluate_dynamic_aggregate(
+          aggregate,
           input,
+          names,
           indices,
           range,
           arguments[i],
+          aggregate_orders[i],
+          i,
+          control,
+          workspace,
+          aggregate_outputs,
+          identity_limits,
+          scope,
+        )
+      } else {
+        evaluate_direct_aggregate(
+          aggregate,
+          input,
+          indices,
+          range,
+          match arguments[i] {
+            AggregateInputRows => None
+            AggregateInputField(column) => Some(column)
+            AggregateInputExpression(_) => None
+          },
           aggregate_orders[i],
           control,
           workspace,
           aggregate_outputs,
           identity_limits,
-        ) {
+        )
+      }
+      let value = match evaluated {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
