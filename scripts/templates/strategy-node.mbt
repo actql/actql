@@ -556,6 +556,50 @@ pub fn strategy_issue_run_invocation(
 }
 
 ///|
+#export_name("strategyRunPublicationAdmit")
+pub fn strategy_run_publication_admit(
+  template : @publication.RunEvidenceValue,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+) -> @publication.RunPublicationAdmission raise NodeHostFailure {
+  match
+    @publication.admit_run_publication(template, prepared, authorization) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueRunDefinition")
+pub fn strategy_issue_run_definition(
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_run_definition(
+      admission,
+      scope_id,
+      run_id,
+      input_artifact_set_cid,
+      created_at,
+      valid_until,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,

@@ -174,6 +174,87 @@ test('portable evidence owner issues Invocation after exact capture', () => {
   );
 });
 
+test('portable admission issues Run Definition from exact authority', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const template = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      version: 'actql-bound-invocation-template/0.1',
+      program_definition_cid: cid('1'),
+      parameter_values_cid: cid('2'),
+      invocation_bindings_cid: cid('3'),
+      check_environment_cid: cid('4'),
+      grammar_manifest_cid: cid('5'),
+      required_profile_contracts: [],
+      barrier_contract_manifest_cid: cid('6'),
+      source_evidence: 'unbound',
+    }),
+    limits,
+  );
+  const prepared = control.sealRunEvidence(
+    'prepared_invocation',
+    JSON.stringify({
+      version: 'actql-prepared-invocation/0.1',
+      invocation_template_cid: template.identity,
+      compiled_plan_cid: cid('7'),
+      execution_context_cid: cid('8'),
+      host_policy_cid: cid('9'),
+      policy_decision: 'allow',
+      expires_at: '2026-09-18T03:00:00.000Z',
+    }),
+    limits,
+  );
+  const authorization = control.sealRunEvidence(
+    'run_authorization',
+    JSON.stringify({
+      version: 'actql-run-authorization/0.1',
+      prepared_invocation_cid: prepared.identity,
+      execution_context_cid: cid('8'),
+      host_policy_cid: cid('9'),
+      decision: 'allowed',
+    }),
+    limits,
+  );
+  const admission = control.admitRunPublication(
+    template,
+    prepared,
+    authorization,
+  );
+  const definition = control.issueRunDefinition(admission, {
+    scopeId: 'scope',
+    runId: 'run',
+    inputArtifactSetCid: cid('a'),
+    createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T02:00:00.000Z',
+  }, limits);
+  assert.deepEqual(JSON.parse(definition.wire), {
+    authorization_context_cid: cid('8'),
+    compiled_plan_cid: cid('7'),
+    created_at: '2026-09-18T00:00:00.000Z',
+    input_artifact_set_cid: cid('a'),
+    invocation_template_cid: template.identity,
+    run_definition_cid: definition.identity,
+    run_id: 'run',
+    scope_id: 'scope',
+    valid_until: '2026-09-18T02:00:00.000Z',
+    version: 'actql-run-definition/0.1',
+  });
+  assert.throws(
+    () => control.issueRunDefinition(
+      Object.freeze({kind: 'run-publication-admission'}),
+      {
+        scopeId: 'scope',
+        runId: 'run',
+        inputArtifactSetCid: cid('a'),
+        createdAt: '2026-09-18T00:00:00.000Z',
+        validUntil: '2026-09-18T02:00:00.000Z',
+      },
+      limits,
+    ),
+    /Foreign Run publication admission/u,
+  );
+});
+
 test('portable control validates the exact Run Result publication chain', () => {
   const control = runtimeCore(moon).publicationControl;
   const run = control.seal('run_definition', JSON.stringify({

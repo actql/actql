@@ -53,6 +53,7 @@ function publicationControl(moon) {
   if (control !== undefined) return control;
   const tokens = new WeakMap();
   const evidenceTokens = new WeakMap();
+  const admissionTokens = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -82,6 +83,18 @@ function publicationControl(moon) {
   const evidenceToken = value => {
     const result = evidenceTokens.get(value);
     if (result === undefined) throw new TypeError('Foreign Run evidence');
+    return result;
+  };
+  const inspectAdmission = admission => {
+    const value = Object.freeze({kind: 'run-publication-admission'});
+    admissionTokens.set(value, admission);
+    return value;
+  };
+  const admissionToken = value => {
+    const result = admissionTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign Run publication admission');
+    }
     return result;
   };
   const issuanceLimits = (limits, label) => {
@@ -139,6 +152,30 @@ function publicationControl(moon) {
       return inspect(checked(moon.strategyIssueRunInvocation(
         evidenceToken(template),
         evidenceToken(observation),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    admitRunPublication(template, prepared, authorization) {
+      return inspectAdmission(checked(moon.strategyRunPublicationAdmit(
+        evidenceToken(template),
+        evidenceToken(prepared),
+        evidenceToken(authorization),
+      )));
+    },
+    issueRunDefinition(admission, definition, limits) {
+      issuanceLimits(limits, 'Run Definition');
+      if (definition === null || typeof definition !== 'object') {
+        throw new TypeError('Invalid Run Definition request');
+      }
+      return inspect(checked(moon.strategyIssueRunDefinition(
+        admissionToken(admission),
+        definition.scopeId,
+        definition.runId,
+        definition.inputArtifactSetCid,
+        definition.createdAt,
+        definition.validUntil,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,

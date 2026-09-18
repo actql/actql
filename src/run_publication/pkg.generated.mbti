@@ -12,6 +12,8 @@ pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition
 
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
+pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
 pub fn checked_publication_inventory_definition_cid(CheckedPublicationInventory, Int) -> Result[String, PublicationInventoryIssue]
@@ -37,6 +39,8 @@ pub fn issue_publication_request(PublicationContract, Array[PublicationContract]
 pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
+
+pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]
 
 pub fn issue_run_invocation(RunEvidenceValue, RunEvidenceValue, Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
@@ -77,6 +81,10 @@ pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 pub fn run_evidence_value_json(RunEvidenceValue) -> String
 
 pub fn run_evidence_value_name(RunEvidenceValue) -> String
+
+pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValue
+
+pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
@@ -316,6 +324,20 @@ pub(all) enum RunOutcomeStatus {
   Succeeded
   Failed
   Cancelled
+} derive(Eq, @debug.Debug)
+
+type RunPublicationAdmission
+
+pub(all) enum RunPublicationAdmissionIssue {
+  RunAdmissionWrongEvidence
+  RunAdmissionTemplateMismatch
+  RunAdmissionPreparedMismatch
+  RunAdmissionExecutionContextMismatch
+  RunAdmissionHostPolicyMismatch
+  RunAdmissionDecisionMismatch
+  RunAdmissionInvalidLifetime
+  RunAdmissionEncoding
+  RunAdmissionContract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunPublicationChainIssue {
