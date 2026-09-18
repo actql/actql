@@ -90,8 +90,10 @@ test('cancel during Local storage seal waits for the started work and never publ
   assert.equal(f.events.includes('complete'), false);
   assert.equal(f.events.includes('bind'), false);
   assert.equal(f.released(), false);
+  assert.equal(f.events.includes('settle'), false);
   await failure.cleanupHandle.retry();
   assert.equal(f.released(), true);
+  assert.equal(f.events.includes('settle'), true);
 });
 
 test('reasonless Store rejection remains failed and copied Local wiring is not accepted', async () => {

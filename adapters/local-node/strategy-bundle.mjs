@@ -229,29 +229,16 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             }
           } : () => operations.close()};
       } catch (error) {
-        output?.close();
-        operations.close();
-        // All awaited reader work has returned; no asynchronous Local operation
-        // remains. This does not acknowledge cleanup of the source Store.
-        if (!settled) checked(operations.settle());
-        if (output) {
-          const prior = error?.cleanupHandle;
-          const failure = error instanceof Error ? error : new Error('LocalOutputFailed', {cause: error});
-          const combined = Object.freeze({
-            status: () => ({pending: output.cleanupHandle.status().pending || !!prior?.status().pending}),
-            async retry() {
-              const failures = [];
-              for (const handle of [prior, output.cleanupHandle]) {
-                try { await handle?.retry(); } catch (error) { failures.push(error); }
-              }
-              if (failures.length) throw new AggregateError(failures, 'LocalOutputCleanupFailed');
-              return combined.status();
-            },
-          });
-          failure.cleanupHandle = combined;
-          throw failure;
-        }
-        throw error;
+        throw settleFailedManagedOperations(
+          operations,
+          checked,
+          error,
+          settled,
+          output == null ? [] : [{
+            close: () => output.close(),
+            cleanupHandle: output.cleanupHandle,
+          }],
+        );
       }
     },
   });

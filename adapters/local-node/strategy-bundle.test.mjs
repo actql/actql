@@ -19,7 +19,7 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
 const siteControl = createExecutionSiteControlFixture();
 const ok = value => ({$tag: 1, _0: value});
 const failed = value => ({$tag: 0, _0: value});
-function installed(consume, completionFailure) {
+function installed(consume, completionFailure, options = {}) {
   const events = [], material = {}, input = {}, task = {}, setup = {};
   registerRetainedInput(material, value => value === input, {consume},
     {maxFrameBytes: 32, wire: {max_bytes: 32}});
@@ -38,7 +38,10 @@ function installed(consume, completionFailure) {
       if (completionFailure) return {$tag: 0, _0: completionFailure};
       return ok();
     },
-    close: () => { events.push('close'); },
+    close: () => {
+      events.push('close');
+      options.close?.();
+    },
   };
   const entry = localStrategyContribution({
     strategyModule_local_Registration: () => ({}),
@@ -163,6 +166,65 @@ test('reader rejection retains its cleanup handle and completion failure does no
   assert.equal(f.events.filter(value => value === 'settle').length, 1);
   assert.equal(f.events.at(-1), 'close');
 });
+
+test('legacy Local defers settlement until provider cleanup is confirmed',
+  async () => {
+    let pending = true, retries = 0;
+    const cleanupHandle = Object.freeze({
+      status: () => ({pending}),
+      async retry() {
+        retries++;
+        pending = false;
+        return cleanupHandle.status();
+      },
+    });
+    const primary = Object.assign(new Error('provider-read'), {
+      cleanupPending: true,
+      cleanupHandle,
+    });
+    const f = installed(async () => { throw primary; });
+    let failure;
+    try { await f.entry.run(f.task); }
+    catch (error) { failure = error; }
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.deepEqual(f.events, ['reserved', 'begin', 'close']);
+
+    const status = await failure.cleanupHandle.retry();
+    assert.equal(retries, 1);
+    assert.equal(status.pending, false);
+    assert.deepEqual(f.events, ['reserved', 'begin', 'close', 'settle']);
+  });
+
+test('legacy Local preserves its primary failure when operation close fails',
+  async () => {
+    const primary = new Error('provider-read');
+    const closeFailure = new Error('operation-close');
+    let closeAttempts = 0;
+    const f = installed(async () => { throw primary; }, undefined, {
+      close() {
+        closeAttempts++;
+        if (closeAttempts === 1) throw closeFailure;
+      },
+    });
+    let failure;
+    try { await f.entry.run(f.task); }
+    catch (error) { failure = error; }
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal(failure.cleanupHandle.status().errors.includes(closeFailure),
+      true);
+    assert.deepEqual(f.events,
+      ['reserved', 'begin', 'close', 'settle']);
+
+    const status = await failure.cleanupHandle.retry();
+    assert.equal(status.pending, false);
+    assert.equal(closeAttempts, 2);
+    assert.deepEqual(f.events,
+      ['reserved', 'begin', 'close', 'settle', 'close']);
+  });
 
 test('an inapplicable managed connector does not hide a capable alternative', async () => {
   for (const [localSupported, reverse] of [[false, false], [false, true],
