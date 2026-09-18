@@ -957,8 +957,16 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       }
     },
     readJsonObject,
+    async readPublicationContract(cid, name) {
+      active();
+      if (typeof name !== 'string' || name.length === 0) {
+        fail('InvalidPublicationContractName');
+      }
+      return (await readContract(cid, name)).contract;
+    },
     createAttempt,
     latestRecord,
+    latestRecordContract,
     appendRecord,
     commitIndex,
     inspectCommittedIndex,

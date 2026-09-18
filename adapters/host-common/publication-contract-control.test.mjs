@@ -7,6 +7,7 @@ import {join} from 'node:path';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
+import {publishEffectFreeRun} from './run-publication.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -675,15 +676,174 @@ test('portable control validates Receipt and Captured Run references',
     [...new Set([...required, foreignDefinition.identity])],
     foreignEvidence,
   ), error => error?.code === 'InvalidPublicationCommitChain');
-  const committed = await store.commitIndex(
-    indexEntry.wire, required, evidence,
-  );
+  const times = [
+    '2026-09-18T00:00:05.000Z',
+    '2026-09-18T00:00:06.000Z',
+  ];
+  const publicationOptions = {
+    store,
+    control,
+    evidence,
+    request: {
+      tenantId: 'tenant-a',
+      authorityScopeCid: cid('d'),
+      publicationPolicyCid: cid('e'),
+      publicationTargetCid: cid('f'),
+      requestedAt: '2026-09-18T00:00:00.000Z',
+    },
+    attempt: {
+      attemptId: 'attempt-1',
+      fenceCid: cid('0'),
+      externalIdempotencyKey: undefined,
+      startedAt: '2026-09-18T00:00:01.000Z',
+    },
+    limits,
+    now: () => times.shift() ?? '2026-09-18T00:00:07.000Z',
+    signal: undefined,
+  };
+  const committed = await publishEffectFreeRun(publicationOptions);
+  assert.equal(committed.state, 'succeeded');
   assert.equal(committed.committed, true);
+  assert.equal(committed.idempotent, false);
   assert.deepEqual(await store.inspectCommittedIndex({
     tenantId: 'tenant-a',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
-  }), JSON.parse(indexEntry.wire));
+  }), JSON.parse(committed.index.wire));
+  const retried = await publishEffectFreeRun(publicationOptions);
+  assert.equal(retried.state, 'succeeded');
+  assert.equal(retried.committed, false);
+  assert.equal(retried.idempotent, true);
+  assert.equal(retried.index.identity, committed.index.identity);
+
+  const lostDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-lost-response-',
+  ));
+  t.after(() => rm(lostDirectory, {recursive: true, force: true}));
+  const lostBase = await openLocalPublicationStore({
+    directory: lostDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  t.after(async () => { await lostBase.close(); });
+  let loseCommitResponse = true;
+  const lostStore = Object.freeze({
+    ...lostBase,
+    async commitIndex(...arguments_) {
+      const value = await lostBase.commitIndex(...arguments_);
+      if (loseCommitResponse) {
+        loseCommitResponse = false;
+        throw new Error('simulated lost commit response');
+      }
+      return value;
+    },
+  });
+  const lost = await publishEffectFreeRun({
+    ...publicationOptions,
+    store: lostStore,
+    attempt: {
+      ...publicationOptions.attempt,
+      attemptId: 'lost-response-attempt',
+    },
+  });
+  assert.equal(lost.state, 'succeeded');
+  assert.equal(lost.committed, false);
+  assert.equal(lost.idempotent, true);
+  assert.equal((await lostBase.latestRecord(lost.attempt.identity)).state,
+    'succeeded');
+
+  const unknownDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-unknown-',
+  ));
+  t.after(() => rm(unknownDirectory, {recursive: true, force: true}));
+  const unknownBase = await openLocalPublicationStore({
+    directory: unknownDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  t.after(async () => { await unknownBase.close(); });
+  let indexInspections = 0;
+  const unknownStore = Object.freeze({
+    ...unknownBase,
+    async inspectCommittedIndex(...arguments_) {
+      indexInspections++;
+      if (indexInspections > 1) throw new Error('index unavailable');
+      return unknownBase.inspectCommittedIndex(...arguments_);
+    },
+    async commitIndex() { throw new Error('commit outcome unavailable'); },
+  });
+  const unknownAttempt = {
+    ...publicationOptions.attempt,
+    attemptId: 'unknown-attempt',
+  };
+  await assert.rejects(publishEffectFreeRun({
+    ...publicationOptions,
+    store: unknownStore,
+    attempt: unknownAttempt,
+  }), error => error?.code === 'RunPublicationUnknown' &&
+    error.publicationState === 'publication_unknown');
+  const unknownContract = control.issuePublicationAttempt(
+    request, run, unknownAttempt, limits,
+  );
+  assert.equal((await unknownBase.latestRecord(unknownContract.identity)).state,
+    'publication_unknown');
+  const reconciled = await publishEffectFreeRun({
+    ...publicationOptions,
+    store: unknownBase,
+    attempt: {
+      ...publicationOptions.attempt,
+      attemptId: 'reconciled-attempt',
+    },
+  });
+  assert.equal(reconciled.state, 'succeeded');
+
+  const cancelledDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-cancelled-',
+  ));
+  t.after(() => rm(cancelledDirectory, {recursive: true, force: true}));
+  const cancelledBase = await openLocalPublicationStore({
+    directory: cancelledDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  t.after(async () => { await cancelledBase.close(); });
+  const cancellation = new AbortController();
+  const cancelledStore = Object.freeze({
+    ...cancelledBase,
+    async appendRecord(wire, options) {
+      const value = await cancelledBase.appendRecord(wire, options);
+      if (value.state === 'preparing') cancellation.abort();
+      return value;
+    },
+  });
+  const cancelledAttempt = {
+    ...publicationOptions.attempt,
+    attemptId: 'cancelled-attempt',
+  };
+  await assert.rejects(publishEffectFreeRun({
+    ...publicationOptions,
+    store: cancelledStore,
+    attempt: cancelledAttempt,
+    signal: cancellation.signal,
+  }), {name: 'AbortError'});
+  const cancelledContract = control.issuePublicationAttempt(
+    request, run, cancelledAttempt, limits,
+  );
+  assert.equal((await cancelledBase.latestRecord(
+    cancelledContract.identity,
+  )).state, 'cancelled');
 });
 
 test('local durable Store accepts only MoonBit-admitted contract wire',
