@@ -7,6 +7,16 @@ pub(all) suberror NodeHostFailure {
   Execution(@strategy.RunIssue)
   InvalidCommand
   Encoding(@encode.EncodeFailure)
+  OutputExport(@execution.CompletedExportIssue)
+}
+
+///|
+/// Opaque bridge state for one bounded canonical export of a completed output.
+/// Node may drive batches and persist bytes, but only MoonBit owns typed value
+/// interpretation, canonical ordering, admission, and the content receipt.
+struct StrategyHostOutputExport {
+  stream : @execution.CompletedOutputExport
+  mut receipt : @execution.CompletedOutputExportReceipt?
 }
 
 ///|
@@ -650,6 +660,140 @@ pub fn strategy_host_output(
   @strategy.captured_task_target(run, task).bind(target => {
     @strategy.captured_task_output(run, task, target)
   })
+}
+
+///|
+/// Begin a bounded canonical typed-row export from the exact completed output.
+/// The output remains owned by the common execution graph; this handle only
+/// owns the export traversal and receipt.
+#export_name("strategyHostOutputExportBegin")
+pub fn strategy_host_output_export_begin(
+  output : @execution.CompletedOutput,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_batch_bytes : Int,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  match
+    @execution.prepare_completed_output_export(
+      output,
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) => { stream, receipt: None, }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportNext")
+pub fn strategy_host_output_export_next(
+  value : StrategyHostOutputExport,
+) -> String? raise NodeHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.next_completed_output_export(value.stream) {
+    Ok(part) => part
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+/// Finish the canonical stream. The returned tail still has to be accepted by
+/// storage before the receipt can describe a durable representation.
+#export_name("strategyHostOutputExportFinish")
+pub fn strategy_host_output_export_finish(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  if value.receipt is Some(_) {
+    raise InvalidCommand
+  }
+  match @execution.finish_completed_output_export(value.stream) {
+    Ok((receipt, tail)) => {
+      value.receipt = Some(receipt)
+      tail
+    }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportCid")
+pub fn strategy_host_output_export_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_export_content(receipt),
+  ).0
+}
+
+///|
+#export_name("strategyHostOutputExportBytes")
+pub fn strategy_host_output_export_bytes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_export_content(receipt),
+  ).1
+}
+
+///|
+#export_name("strategyHostOutputExportNodes")
+pub fn strategy_host_output_export_nodes(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_export_content(receipt),
+  ).2
+}
+
+///|
+#export_name("strategyHostOutputExportRows")
+pub fn strategy_host_output_export_rows(
+  value : StrategyHostOutputExport,
+) -> Int raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.output_stream_identity(
+    @execution.completed_export_content(receipt),
+  ).3
+}
+
+///|
+#export_name("strategyHostOutputExportCancel")
+pub fn strategy_host_output_export_cancel(
+  value : StrategyHostOutputExport,
+) -> Unit {
+  match value.receipt {
+    Some(receipt) => {
+      @execution.cancel_completed_export_receipt(receipt)
+      value.receipt = None
+    }
+    None => @execution.cancel_completed_output_export(value.stream)
+  }
 }
 
 ///|

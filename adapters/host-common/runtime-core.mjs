@@ -155,12 +155,65 @@ function publicationControl(moon) {
   return control;
 }
 
+function outputExportControl(moon) {
+  const fields = [
+    'maxRows',
+    'maxValueNodes',
+    'maxValueTextBytes',
+    'maxValueDepth',
+    'maxValueWork',
+    'maxWireBytes',
+    'maxWireNodes',
+    'maxWireDepth',
+    'maxColumns',
+    'maxOrderWork',
+    'maxBatchBytes',
+  ];
+  return Object.freeze({
+    begin(output, limits) {
+      if (limits === null || typeof limits !== 'object' ||
+          Object.keys(limits).sort().join('\0') !==
+            [...fields].sort().join('\0') ||
+          fields.some(name => !Number.isSafeInteger(limits[name]) ||
+            limits[name] < 0)) {
+        throw new TypeError('Invalid output export limits');
+      }
+      return checked(moon.strategyHostOutputExportBegin(
+        output,
+        limits.maxRows,
+        limits.maxValueNodes,
+        limits.maxValueTextBytes,
+        limits.maxValueDepth,
+        limits.maxValueWork,
+        limits.maxWireBytes,
+        limits.maxWireNodes,
+        limits.maxWireDepth,
+        limits.maxColumns,
+        limits.maxOrderWork,
+        limits.maxBatchBytes,
+      ));
+    },
+    next: value => checked(moon.strategyHostOutputExportNext(value)),
+    finish: value => checked(moon.strategyHostOutputExportFinish(value)),
+    identity(value) {
+      return Object.freeze({
+        orderedRowsCid: moon.strategyHostOutputExportCid(value),
+        bytes: moon.strategyHostOutputExportBytes(value),
+        nodes: moon.strategyHostOutputExportNodes(value),
+        rows: moon.strategyHostOutputExportRows(value),
+      });
+    },
+    cancel: moon.strategyHostOutputExportCancel,
+  });
+}
+
 // Trusted assembly only. Standard entries bind this to their generated runtime;
 // execution requests cannot supply a verifier, SQL or replacement runtime.
 export function runtimeCore(moon) {
   return Object.freeze({
     siteControl: siteControl(moon),
     publicationControl: publicationControl(moon),
+    outputExportControl: outputExportControl(moon),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     resultInventory(value) {
