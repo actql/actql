@@ -326,8 +326,10 @@ The Review 20 fixes are applied in this dependency order:
 2. `9edb5a65` and `d8f1ef95` add the shared and Local cross-join path.
 3. `36abcfb8` changes the common managed reader to plan the complete input
    set before starting execution.
-4. `bdc08d62` changes DuckDB tests to resolve pinned fixtures by name.
-5. `1c067fc8` regenerates and formats the portable Host projections.
+4. `2fb3f307` applies that plan to direct managed dispatch fixtures.
+5. `bdc08d62` changes DuckDB tests to resolve pinned fixtures by name.
+6. `1c067fc8` regenerates and formats the portable Host projections.
+7. `bc01d7ba` aligns the example's adopted bundle with the generated pins.
 
 The complete-input reader change is the only shared execution boundary change
 in this sequence. Public-branch owners can take `36abcfb8` after the UTF-8
