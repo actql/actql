@@ -45,6 +45,11 @@ import {createManagedMemoryTransferProvider} from
   '../../store-local/managed-memory-transfer.mjs';
 import {openLocalPublicationStore} from
   '../../store-local/publication-store.mjs';
+import {
+  deliverAuthorizedResult,
+  installNodeResultAccessService,
+  installResultAccessAuthority,
+} from '../../host-node/result-access.mjs';
 
 const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -517,7 +522,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
           if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
           else assert.equal(execution.usage().transferredBytes, 0n);
-          if (mode === 0) {
+          if (mode === 0 || mode === 3) {
             const runtime = runtimeCore(hostRuntime);
             const publicationDirectory = await mkdtemp(join(
               root, '_build/duckdb-fixtures/publication-payload-',
@@ -843,8 +848,77 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   authorityScopeCid: hash('authority-scope'),
                   runDefinitionCid: publishedRun.identity,
                 }, occurrence.definitionContract.identity,
-                () => true, chunk => received.push(Buffer.from(chunk)));
+                  () => true, chunk => received.push(Buffer.from(chunk)));
                 assert.ok(received.length > 0);
+              }
+              const accessAuthority = installResultAccessAuthority({
+                admitResultRead: () => ({
+                  authorizationContextCid: hash('authorization-context'),
+                  dataCeilingCid: hash('data-ceiling'),
+                  egressAdmissionCid: hash('egress-admission'),
+                  expiresAt: '2026-09-18T01:00:00.000Z',
+                  maxBytes: 100000,
+                  maxUses: 1,
+                }),
+                authorizeResultRead: () => true,
+              });
+              const accessService = installNodeResultAccessService({
+                store: publicationStore,
+                control: runtime.publicationControl,
+                authority: accessAuthority,
+                now: () => '2026-09-18T00:30:00.000Z',
+                limits: contractLimits,
+                frameLimits: {
+                  maxRowBytes: 4096,
+                  maxDepth: 32,
+                  maxFrameBytes: 4096,
+                },
+              });
+              const expectedDelivery = {
+                b: {
+                  json: '[{"id":3},{"id":2},{"id":3}]',
+                  jsonl: '{"id":3}\n{"id":2}\n{"id":3}\n',
+                  csv: '"id"\n3\n2\n3\n',
+                },
+                c: {
+                  json: '[{"id":3},{"id":3}]',
+                  jsonl: '{"id":3}\n{"id":3}\n',
+                  csv: '"id"\n3\n3\n',
+                },
+              };
+              for (const occurrence of
+                execution.publicationInventory.occurrences) {
+                for (const format of ['json', 'jsonl', 'csv']) {
+                  const delivered = [];
+                  const result = await deliverAuthorizedResult(
+                    accessService,
+                    {
+                      indexKey: {
+                        tenantId: 'tenant-a',
+                        authorityScopeCid: hash('authority-scope'),
+                        runDefinitionCid: publishedRun.identity,
+                      },
+                      principalId: 'principal-a',
+                      purpose: 'download',
+                      resultName: occurrence.name,
+                      format,
+                      attemptId:
+                        `standard-host-${mode}-${occurrence.name}-${format}`,
+                    },
+                    {
+                      async write(bytes) {
+                        delivered.push(Buffer.from(bytes));
+                        return {confirmedBytes: bytes.byteLength};
+                      },
+                    },
+                    controller.signal,
+                  );
+                  assert.equal(result.idempotent, false);
+                  assert.equal(
+                    Buffer.concat(delivered).toString('utf8'),
+                    expectedDelivery[occurrence.name][format],
+                  );
+                }
               }
             } finally {
               await publicationStore.close();
