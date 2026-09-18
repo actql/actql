@@ -382,10 +382,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -402,7 +402,43 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "single and multiple renames",
+                "order preservation"
+              ],
+              "obligations": [
+                "logical_order",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "rename",
+            "layer": "source_connection",
+            "path": "src/relation_typing/typing_test.mbt",
+            "fixtures": [
+              "rename and drop expand without sequential rename effects",
+              "empty rename and drop retain both nonempty and empty input schemas"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "single and multiple renames",
+                "name collision rejection",
+                "order preservation"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "schema"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -419,6 +455,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "rename",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -441,14 +490,22 @@
             "layer": "conformance",
             "path": "src/execution_relation/projection_operations_wbtest.mbt",
             "fixtures": [
-              "rename and drop preserve every directly admitted value domain and NULL"
+              "rename and drop preserve every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "rename",
@@ -464,7 +521,13 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "capacity",
+                "logical_order"
+              ]
+            }
           }
         ],
         "performance": [
@@ -484,9 +547,7 @@
           }
         ]
       },
-      "gaps": [
-        "Single, simultaneous swap, and empty renames reach the managed and formal sequence paths; directly admitted value domains, NULL, branch ownership, and linear work are covered. The standard Host evidence, collision matrix, and shared owned-reference runtime boundary remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "drop",
@@ -505,10 +566,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -525,7 +586,39 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "single and multiple drops",
+                "empty result schema rules",
+                "order preservation"
+              ],
+              "obligations": [
+                "logical_order",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "drop",
+            "layer": "source_connection",
+            "path": "src/relation_typing/typing_test.mbt",
+            "fixtures": [
+              "rename and drop expand without sequential rename effects",
+              "empty rename and drop retain both nonempty and empty input schemas"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "obligations": [
+                "failure_atomicity",
+                "schema"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -542,6 +635,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "drop",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -564,14 +670,22 @@
             "layer": "conformance",
             "path": "src/execution_relation/projection_operations_wbtest.mbt",
             "fixtures": [
-              "rename and drop preserve every directly admitted value domain and NULL"
+              "rename and drop preserve every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "drop",
@@ -587,7 +701,36 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "capacity",
+                "logical_order"
+              ]
+            }
+          },
+          {
+            "operation": "drop",
+            "layer": "conformance",
+            "path": "src/execution_relation/layout_zero_columns_wbtest.mbt",
+            "fixtures": [
+              "all-column drop is rejected before any layout backend is selected"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "empty result schema rules"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "schema"
+              ]
+            }
           }
         ],
         "performance": [
@@ -607,9 +750,7 @@
           }
         ]
       },
-      "gaps": [
-        "Single, repeated, and empty drops reach the managed and formal sequence paths; directly admitted value domains, NULL, branch ownership, and linear work are covered. The standard Host evidence, all-column rejection connection, and shared owned-reference runtime boundary remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "derive",
