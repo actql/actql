@@ -506,6 +506,11 @@ function publicationControl(moon) {
         token(next),
       );
     },
+    deliverySuccessValid(attempt, receipt, record) {
+      return moon.strategyDeliverySuccessValid(
+        token(attempt), token(receipt), token(record),
+      );
+    },
     resultSerializationContractCid(format, limits) {
       issuanceLimits(limits, 'Result serialization');
       return checked(moon.strategyResultSerializationContractCid(
@@ -577,6 +582,24 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
       )));
+    },
+    deliveryResultDefinitionCid(manifest, attempt) {
+      return checked(moon.strategyDeliveryResultDefinitionCid(
+        token(manifest),
+        token(attempt),
+      ));
+    },
+    resultReadGrantAllowsBytes(grant, byteCount) {
+      if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;
+      return moon.strategyResultReadGrantAllowsBytes(
+        token(grant), byteCount,
+      );
+    },
+    resultReadGrantValidAt(grant, observedAt) {
+      if (typeof observedAt !== 'string') return false;
+      return moon.strategyResultReadGrantValidAt(
+        token(grant), observedAt,
+      );
     },
     issueResultDeliveryReceipt(index, manifest, grant, attempt, delivered,
       limits) {

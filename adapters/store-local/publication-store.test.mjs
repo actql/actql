@@ -136,6 +136,63 @@ function publicationRecord(attempt, sequence, state, prior, extra = {}) {
   });
 }
 
+function deliveryFixture(maxUses = 2) {
+  const artifactCid = digest('delivery artifact');
+  const manifestCid = digest('delivery manifest');
+  const grant = seal('result_read_grant', {
+    version: 'actql-result-read-grant/0.1',
+    tenant_id: 'tenant-a',
+    authority_scope_cid: cids.scope,
+    principal_id: 'principal-a',
+    run_definition_cid: cids.run,
+    result_manifest_cid: manifestCid,
+    purpose: 'download',
+    data_ceiling_cid: cids.policy,
+    max_bytes: 4096,
+    max_uses: maxUses,
+    expires_at: '2026-09-19T00:00:00.000Z',
+    authorization_context_cid: cids.scope,
+    results: [{
+      result_name: 'answer',
+      result_artifact_cid: artifactCid,
+    }],
+    formats: ['json', 'jsonl', 'csv'],
+    egress_admission_cid: cids.target,
+  });
+  return {artifactCid, manifestCid, grant};
+}
+
+function deliveryAttempt(root, attemptId) {
+  return seal('delivery_attempt', {
+    version: 'actql-delivery-attempt/0.1',
+    attempt_id: attemptId,
+    result_read_grant_cid: root.grant.result_read_grant_cid,
+    run_definition_cid: cids.run,
+    result_manifest_cid: root.manifestCid,
+    result_name: 'answer',
+    result_artifact_cid: root.artifactCid,
+    serialization_contract_cid: cids.captured,
+    requested_at: '2026-09-18T01:00:00.000Z',
+  });
+}
+
+function deliveryRecord(attempt, sequence, state, prior, extra = {}) {
+  return seal('delivery_record', {
+    version: 'actql-delivery-record/0.1',
+    delivery_attempt_cid: attempt.delivery_attempt_cid,
+    ...(prior === undefined ? {} : {
+      prior_record_cid: prior.delivery_record_cid,
+    }),
+    sequence,
+    state,
+    confirmed_byte_count: extra.confirmed_byte_count ?? 0,
+    exposure: extra.exposure ?? 'exact',
+    observed_at: `2026-09-18T01:00:0${sequence}.000Z`,
+    cleanup_owner_cids: [],
+    ...extra,
+  });
+}
+
 function indexEntry(request, attempt, invocationValue, values = {}) {
   return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
@@ -486,6 +543,79 @@ test('publication records are append-only and sequence creation is CAS',
     const latest = await store.latestRecord(attempt.publication_attempt_cid);
     assert.equal(latest.sequence, 1);
     assert.ok(['committing', 'cancelled'].includes(latest.state));
+  });
+
+test('delivery attempts and records remain append-only after restart',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const root = deliveryFixture();
+    const attempt = deliveryAttempt(root, 'delivery-1');
+    assert.deepEqual(
+      await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+      {attempt, created: true},
+    );
+    assert.deepEqual(
+      await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+      {attempt, created: false},
+    );
+    const streaming = deliveryRecord(attempt, 0, 'streaming');
+    await store.appendDeliveryRecord(wire(streaming));
+    const failed = deliveryRecord(attempt, 1, 'failed', streaming, {
+      confirmed_byte_count: 7,
+      failure_cid: digest('delivery failure'),
+    });
+    await store.appendDeliveryRecord(wire(failed));
+    await store.close();
+
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(
+      await reopened.latestDeliveryRecord(attempt.delivery_attempt_cid),
+      failed,
+    );
+    await assert.rejects(
+      reopened.appendDeliveryRecord(wire(failed)),
+      code('InvalidDeliveryRecordTransition'),
+    );
+  });
+
+test('delivery grant use limit is durable and concurrent attempts are CAS',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const root = deliveryFixture(1);
+    const attempts = [
+      deliveryAttempt(root, 'delivery-a'),
+      deliveryAttempt(root, 'delivery-b'),
+    ];
+    const outcomes = await Promise.allSettled(attempts.map(attempt =>
+      store.createDeliveryAttempt(wire(attempt), wire(root.grant))));
+    assert.equal(
+      outcomes.filter(outcome => outcome.status === 'fulfilled').length,
+      1,
+    );
+    assert.equal(
+      outcomes.filter(outcome => outcome.status === 'rejected' &&
+        outcome.reason?.code === 'DeliveryGrantUseLimit').length,
+      1,
+    );
+    const accepted = attempts[outcomes.findIndex(
+      outcome => outcome.status === 'fulfilled',
+    )];
+    assert.equal((await store.createDeliveryAttempt(
+      wire(accepted), wire(root.grant),
+    )).created, false);
+    await store.close();
+
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    await assert.rejects(reopened.createDeliveryAttempt(
+      wire(deliveryAttempt(root, 'delivery-c')),
+      wire(root.grant),
+    ), code('DeliveryGrantUseLimit'));
   });
 
 test('unknown publication cannot become failed without confirmed non-commit',

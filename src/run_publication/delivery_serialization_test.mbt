@@ -149,3 +149,21 @@ test "serializer validates exact schema coverage and output bounds" {
     is Err(DeliverySerializationOutputLimit),
   )
 }
+
+///|
+test "CSV delivery preserves admitted safe integers" {
+  let integer = prepare_result_delivery_serializer(
+    "csv",
+    "{\"value\":{\"nullable\":false,\"type\":\"integer\"}}",
+    ["value"],
+    4096,
+    32,
+    8,
+  ).unwrap()
+  assert_eq(begin_result_delivery(integer), Ok("\"value\"\n"))
+  assert_eq(next_result_delivery_row(integer, "{\"value\":7}"), Ok("7\n"))
+  assert_true(
+    next_result_delivery_row(integer, "{\"value\":1.5}")
+    is Err(DeliverySerializationTypeMismatch("integer")),
+  )
+}

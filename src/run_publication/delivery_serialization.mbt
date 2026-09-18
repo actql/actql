@@ -125,6 +125,18 @@ fn csv_delivery_value(
           canonical_delivery_value(value, max_wire_bytes, max_nodes, max_depth)
         _ => Err(DeliverySerializationTypeMismatch(kind))
       }
+    "integer" =>
+      match value {
+        @json.Number(number) =>
+          match @scalar.read_safe_integer(number) {
+            Some(_) =>
+              canonical_delivery_value(
+                value, max_wire_bytes, max_nodes, max_depth,
+              )
+            None => Err(DeliverySerializationTypeMismatch(kind))
+          }
+        _ => Err(DeliverySerializationTypeMismatch(kind))
+      }
     "decimal" =>
       match value {
         @json.String(text) =>

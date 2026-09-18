@@ -127,6 +127,14 @@ test "read grant and attempt bind an exact committed Result" {
     index, manifest, grant, "answer", "json", "attempt-1", "2026-09-18T01:00:00.000Z",
     32768, 256, 16,
   ).unwrap()
+  assert_eq(
+    delivery_result_definition_cid(manifest, attempt),
+    Ok(delivery_test_cid("a")),
+  )
+  assert_true(result_read_grant_allows_bytes(grant, 4096))
+  assert_false(result_read_grant_allows_bytes(grant, 4097))
+  assert_true(result_read_grant_valid_at(grant, "2026-09-19T00:00:00.000Z"))
+  assert_false(result_read_grant_valid_at(grant, "2026-09-19T00:00:00.001Z"))
   assert_true(
     publication_contract_json(attempt).contains(
       "\"serialization_contract_cid\":\"" +
@@ -140,6 +148,13 @@ test "read grant and attempt bind an exact committed Result" {
       32768, 256, 16,
     )
     is Err(DeliveryIssuanceUnsupportedFormat("jsonl")),
+  )
+  assert_true(
+    issue_delivery_attempt(
+      index, manifest, grant, "answer", "json", "attempt-expired", "2026-09-19T00:00:00.001Z",
+      32768, 256, 16,
+    )
+    is Err(DeliveryIssuanceExpiredGrant),
   )
 }
 
@@ -194,6 +209,36 @@ test "delivery receipt and records preserve attempt occurrence" {
     256,
     16,
   ).unwrap()
+  let wrong_receipt = issue_result_delivery_receipt(
+    index,
+    manifest,
+    grant,
+    attempt,
+    13,
+    "e".repeat(64),
+    32768,
+    256,
+    16,
+  ).unwrap()
+  assert_true(
+    issue_delivery_record(
+      attempt,
+      Some(streaming),
+      "succeeded",
+      12,
+      "exact",
+      None,
+      Some("d".repeat(64)),
+      Some(wrong_receipt),
+      None,
+      "2026-09-18T01:00:01.000Z",
+      [],
+      32768,
+      256,
+      16,
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("delivery_receipt")),
+  )
   let succeeded = issue_delivery_record(
     attempt,
     Some(streaming),

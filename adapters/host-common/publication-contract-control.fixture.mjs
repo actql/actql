@@ -326,5 +326,20 @@ export function createPublicationContractControlFixture() {
         prior.state === 'streaming' &&
         current.confirmed_byte_count >= prior.confirmed_byte_count;
     },
+    deliverySuccessValid(attempt, receipt, record) {
+      const attemptValue = token(attempt);
+      const receiptValue = token(receipt);
+      const recordValue = token(record);
+      return record.name === 'delivery_record' &&
+        receipt.name === 'result_delivery_receipt' &&
+        recordValue.state === 'succeeded' &&
+        recordValue.delivery_attempt_cid ===
+          attemptValue.delivery_attempt_cid &&
+        recordValue.result_delivery_receipt_cid ===
+          receiptValue.result_delivery_receipt_cid &&
+        recordValue.confirmed_byte_count ===
+          receiptValue.delivered_byte_count &&
+        recordValue.delivered_sha256 === receiptValue.delivered_sha256;
+    },
   });
 }

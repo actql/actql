@@ -40,6 +40,8 @@ const limits = Object.freeze({
 const unusedContractControl = Object.freeze({
   admit() { throw new Error('unexpected semantic admission'); },
   recordTransition() { throw new Error('unexpected record transition'); },
+  deliveryTransition() { throw new Error('unexpected delivery transition'); },
+  deliverySuccessValid() { throw new Error('unexpected delivery success'); },
   recordAllowsCommit() { throw new Error('unexpected commit check'); },
   effectFreeCommitValid() { throw new Error('unexpected chain check'); },
 });

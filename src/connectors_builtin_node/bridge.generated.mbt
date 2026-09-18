@@ -989,6 +989,17 @@ pub fn strategy_delivery_record_transition(
 }
 
 ///|
+#export_name("strategyDeliverySuccessValid")
+pub fn strategy_delivery_success_valid(
+  attempt : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_success_evidence(attempt, receipt, record)
+  is Ok(_)
+}
+
+///|
 #export_name("strategyResultSerializationContractCid")
 pub fn strategy_result_serialization_contract_cid(
   format : String,
@@ -1083,6 +1094,36 @@ pub fn strategy_issue_delivery_attempt(
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
+}
+
+///|
+#export_name("strategyDeliveryResultDefinitionCid")
+pub fn strategy_delivery_result_definition_cid(
+  manifest : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.delivery_result_definition_cid(manifest, attempt) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadGrantAllowsBytes")
+pub fn strategy_result_read_grant_allows_bytes(
+  grant : @publication.PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  @publication.result_read_grant_allows_bytes(grant, byte_count)
+}
+
+///|
+#export_name("strategyResultReadGrantValidAt")
+pub fn strategy_result_read_grant_valid_at(
+  grant : @publication.PublicationContract,
+  observed_at : String,
+) -> Bool {
+  @publication.result_read_grant_valid_at(grant, observed_at)
 }
 
 ///|

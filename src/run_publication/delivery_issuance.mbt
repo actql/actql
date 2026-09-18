@@ -7,6 +7,7 @@ pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceUnsupportedFormat(String)
   DeliveryIssuanceInvalidLimit
   DeliveryIssuanceInvalidOutcome
+  DeliveryIssuanceExpiredGrant
   DeliveryIssuanceEncoding
   DeliveryIssuanceContract(PublicationContractIssue)
   DeliveryIssuanceTransition(DeliveryTransitionIssue)
@@ -409,6 +410,12 @@ pub fn issue_delivery_attempt(
   if !grant_has_format(grant, format) {
     return Err(DeliveryIssuanceUnsupportedFormat(format))
   }
+  guard contract_string(grant, "expires_at") is Some(expires_at) else {
+    return Err(DeliveryIssuanceReferenceMismatch("grant.expires_at"))
+  }
+  if !valid_timestamp(requested_at) || requested_at > expires_at {
+    return Err(DeliveryIssuanceExpiredGrant)
+  }
   let serialization_cid = match
     result_serialization_contract_cid(
       format, max_wire_bytes, max_nodes, max_depth,
@@ -449,6 +456,59 @@ pub fn issue_delivery_attempt(
   finish_delivery_body(
     "delivery_attempt", writer, max_wire_bytes, max_nodes, max_depth,
   )
+}
+
+///|
+pub fn delivery_result_definition_cid(
+  manifest : PublicationContract,
+  attempt : PublicationContract,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if manifest.name != "result_manifest" {
+    return Err(DeliveryIssuanceWrongContract("result_manifest"))
+  }
+  if attempt.name != "delivery_attempt" {
+    return Err(DeliveryIssuanceWrongContract("delivery_attempt"))
+  }
+  if contract_string(attempt, "result_manifest_cid") != Some(manifest.identity) {
+    return Err(DeliveryIssuanceReferenceMismatch("result_manifest_cid"))
+  }
+  guard contract_string(attempt, "result_name") is Some(result_name) else {
+    return Err(DeliveryIssuanceReferenceMismatch("result_name"))
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results) &&
+    @json.object_field(results, result_name) is Some(artifact) &&
+    optional_string(@json.object_field(artifact, "result_artifact_cid")) ==
+    contract_string(attempt, "result_artifact_cid") &&
+    optional_string(@json.object_field(artifact, "result_definition_cid"))
+    is Some(result_definition_cid) else {
+    return Err(DeliveryIssuanceReferenceMismatch("result_artifact_cid"))
+  }
+  Ok(result_definition_cid)
+}
+
+///|
+pub fn result_read_grant_allows_bytes(
+  grant : PublicationContract,
+  byte_count : Int,
+) -> Bool {
+  if grant.name != "result_read_grant" || byte_count < 0 {
+    return false
+  }
+  contract_count(grant, "max_bytes")
+  .map(max_bytes => byte_count.to_int64() <= max_bytes)
+  .unwrap_or(false)
+}
+
+///|
+pub fn result_read_grant_valid_at(
+  grant : PublicationContract,
+  observed_at : String,
+) -> Bool {
+  grant.name == "result_read_grant" &&
+  valid_timestamp(observed_at) &&
+  contract_string(grant, "expires_at")
+  .map(expires_at => observed_at <= expires_at)
+  .unwrap_or(false)
 }
 
 ///|
@@ -534,6 +594,62 @@ pub fn issue_result_delivery_receipt(
 }
 
 ///|
+fn validate_delivery_receipt_binding(
+  attempt : PublicationContract,
+  receipt : PublicationContract,
+  confirmed_byte_count : Int64,
+  delivered_sha256 : String,
+) -> Result[Unit, DeliveryIssuanceIssue] {
+  if receipt.name != "result_delivery_receipt" {
+    return Err(DeliveryIssuanceWrongContract("result_delivery_receipt"))
+  }
+  for
+    (receipt_field, attempt_field) in [
+      ("run_definition_cid", "run_definition_cid"),
+      ("result_manifest_cid", "result_manifest_cid"),
+      ("result_name", "result_name"),
+      ("result_artifact_cid", "result_artifact_cid"),
+      ("serialization_contract_cid", "serialization_contract_cid"),
+    ] {
+    if contract_string(receipt, receipt_field) !=
+      contract_string(attempt, attempt_field) {
+      return Err(DeliveryIssuanceReferenceMismatch("delivery_receipt"))
+    }
+  }
+  if contract_count(receipt, "delivered_byte_count") !=
+    Some(confirmed_byte_count) ||
+    contract_string(receipt, "delivered_sha256") != Some(delivered_sha256) {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_receipt"))
+  }
+  Ok(())
+}
+
+///|
+pub fn validate_delivery_success_evidence(
+  attempt : PublicationContract,
+  receipt : PublicationContract,
+  record : PublicationContract,
+) -> Result[Unit, DeliveryIssuanceIssue] {
+  if attempt.name != "delivery_attempt" {
+    return Err(DeliveryIssuanceWrongContract("delivery_attempt"))
+  }
+  if record.name != "delivery_record" ||
+    contract_string(record, "state") != Some("succeeded") ||
+    contract_string(record, "delivery_attempt_cid") != Some(attempt.identity) ||
+    contract_string(record, "result_delivery_receipt_cid") !=
+    Some(receipt.identity) {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_record"))
+  }
+  guard contract_count(record, "confirmed_byte_count") is Some(byte_count) &&
+    contract_string(record, "delivered_sha256") is Some(delivered_sha256) else {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_record"))
+  }
+  validate_delivery_receipt_binding(
+    attempt, receipt, byte_count, delivered_sha256,
+  )
+}
+
+///|
 pub fn issue_delivery_record(
   attempt : PublicationContract,
   previous : PublicationContract?,
@@ -571,11 +687,18 @@ pub fn issue_delivery_record(
   }
   match receipt {
     Some(value) => {
-      if value.name != "result_delivery_receipt" {
-        return Err(DeliveryIssuanceWrongContract("result_delivery_receipt"))
-      }
       if state != "succeeded" || delivered_sha256 is None {
         return Err(DeliveryIssuanceInvalidOutcome)
+      }
+      match
+        validate_delivery_receipt_binding(
+          attempt,
+          value,
+          confirmed_byte_count.to_int64(),
+          delivered_sha256.unwrap(),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
     }
     None =>

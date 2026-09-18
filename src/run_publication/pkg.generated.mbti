@@ -32,6 +32,8 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
+pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
@@ -104,6 +106,10 @@ pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
 
 pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
 
+pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
+
+pub fn result_read_grant_valid_at(PublicationContract, String) -> Bool
+
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
@@ -121,6 +127,8 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
+
+pub fn validate_delivery_success_evidence(PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, DeliveryIssuanceIssue]
 
 pub fn validate_effect_free_publication_commit(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, PublicationCommitIssue]
 
@@ -167,6 +175,7 @@ pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceUnsupportedFormat(String)
   DeliveryIssuanceInvalidLimit
   DeliveryIssuanceInvalidOutcome
+  DeliveryIssuanceExpiredGrant
   DeliveryIssuanceEncoding
   DeliveryIssuanceContract(PublicationContractIssue)
   DeliveryIssuanceTransition(DeliveryTransitionIssue)

@@ -10,6 +10,7 @@ import {runtimeCore} from './runtime-core.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
+import {deliverPublishedResult} from './result-delivery.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -1005,6 +1006,218 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(retried.committed, false);
   assert.equal(retried.idempotent, true);
   assert.equal(retried.index.identity, committed.index.identity);
+
+  await store.close();
+  const deliveryStore = await openLocalPublicationStore({
+    directory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  t.after(async () => { await deliveryStore.close(); });
+  const deliveryIndexValue = await deliveryStore.confirmCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  });
+  const deliveryIndex = await deliveryStore.readPublicationContract(
+    deliveryIndexValue.public_index_entry_cid,
+    'public_index_entry',
+  );
+  const deliveryManifest = await deliveryStore.readPublicationContract(
+    deliveryIndexValue.result_manifest_cid,
+    'result_manifest',
+  );
+  const deliveryGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json', 'jsonl', 'csv'],
+      principalId: 'principal-a',
+      purpose: 'download',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 4,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  const createDigest = () => {
+    const hash = createHash('sha256');
+    return Object.freeze({
+      update: bytes => hash.update(bytes),
+      finish: () => hash.digest('hex'),
+    });
+  };
+  const deliveryBase = {
+    store: deliveryStore,
+    control,
+    indexKey: {
+      tenantId: 'tenant-a',
+      authorityScopeCid: cid('d'),
+      runDefinitionCid: run.identity,
+    },
+    grant: deliveryGrant,
+    resultName: 'answer',
+    limits,
+    frameLimits: {
+      maxRowBytes: 4096,
+      maxDepth: 32,
+      maxFrameBytes: 4096,
+    },
+    now: () => '2026-09-18T01:00:00.000Z',
+    createDigest,
+    signal: undefined,
+  };
+  const expectedDelivery = Object.freeze({
+    json: '[{"value":7}]',
+    jsonl: '{"value":7}\n',
+    csv: '"value"\n7\n',
+  });
+  for (const format of ['json', 'jsonl', 'csv']) {
+    const chunks = [];
+    const delivered = await deliverPublishedResult({
+      ...deliveryBase,
+      format,
+      attemptId: `delivery-${format}`,
+      sink: {
+        async write(bytes) {
+          chunks.push(Buffer.from(bytes));
+          return {confirmedBytes: bytes.byteLength};
+        },
+      },
+    });
+    const deliveryBytes = Buffer.concat(chunks);
+    assert.equal(deliveryBytes.toString('utf8'), expectedDelivery[format]);
+    assert.equal(delivered.byteCount, deliveryBytes.byteLength);
+    assert.equal(
+      delivered.sha256,
+      createHash('sha256').update(deliveryBytes).digest('hex'),
+    );
+  }
+  const idempotentDelivery = await deliverPublishedResult({
+    ...deliveryBase,
+    format: 'json',
+    attemptId: 'delivery-json',
+    sink: {write: () => assert.fail('idempotent delivery wrote bytes')},
+  });
+  assert.equal(idempotentDelivery.idempotent, true);
+
+  let sinkWrites = 0;
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    format: 'json',
+    attemptId: 'delivery-partial',
+    sink: {
+      async write(bytes) {
+        sinkWrites++;
+        if (sinkWrites === 1) {
+          return {confirmedBytes: bytes.byteLength};
+        }
+        const failure = new Error('partial sink failure');
+        failure.deliveryProgress = {
+          confirmedBytes: 1,
+          exposure: 'unknown_additional',
+          possibleUnconfirmedMaxBytes: bytes.byteLength - 1,
+        };
+        throw failure;
+      },
+    },
+  }), /ResultDeliverySinkWriteFailed/u);
+  const partialAttempt = control.issueDeliveryAttempt(
+    deliveryIndex,
+    deliveryManifest,
+    deliveryGrant,
+    {
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'delivery-partial',
+      requestedAt: '2026-09-18T01:00:00.000Z',
+    },
+    limits,
+  );
+  const partialRecord = await deliveryStore.latestDeliveryRecord(
+    partialAttempt.identity,
+  );
+  assert.equal(partialRecord.state, 'failed');
+  assert.equal(partialRecord.exposure, 'unknown_additional');
+  assert.ok(partialRecord.confirmed_byte_count > 1);
+  await assert.rejects(deliverPublishedResult({
+    ...deliveryBase,
+    format: 'json',
+    attemptId: 'delivery-over-limit',
+    sink: {write: () => assert.fail('exhausted grant wrote bytes')},
+  }), {code: 'DeliveryGrantUseLimit'});
+
+  const recoveryGrant = control.issueResultReadGrant(
+    deliveryIndex,
+    deliveryManifest,
+    {
+      resultNames: ['answer'],
+      formats: ['json'],
+      principalId: 'principal-a',
+      purpose: 'cleanup-recovery',
+      dataCeilingCid: cid('1'),
+      maxBytes: 1024,
+      maxUses: 1,
+      expiresAt: '2026-09-19T00:00:00.000Z',
+      authorizationContextCid: cid('2'),
+      egressAdmissionCid: cid('3'),
+    },
+    limits,
+  );
+  let failTerminalRecord = true;
+  const recoveryStore = Object.freeze({
+    ...deliveryStore,
+    async appendDeliveryRecord(recordWire) {
+      if (failTerminalRecord &&
+          JSON.parse(recordWire).state === 'failed') {
+        failTerminalRecord = false;
+        const error = new Error('injected terminal record failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      return deliveryStore.appendDeliveryRecord(recordWire);
+    },
+  });
+  let recoveryFailure;
+  try {
+    await deliverPublishedResult({
+      ...deliveryBase,
+      store: recoveryStore,
+      grant: recoveryGrant,
+      format: 'json',
+      attemptId: 'delivery-cleanup-retry',
+      sink: {write: () => Promise.reject(new Error('sink unavailable'))},
+    });
+    assert.fail('delivery unexpectedly succeeded');
+  } catch (error) {
+    recoveryFailure = error;
+  }
+  assert.equal(recoveryFailure.code, 'ResultDeliveryFailed');
+  assert.equal(recoveryFailure.cleanupPending, true);
+  assert.equal((await recoveryFailure.cleanupHandle.retry()).pending, false);
+  const recoveryAttempt = control.issueDeliveryAttempt(
+    deliveryIndex,
+    deliveryManifest,
+    recoveryGrant,
+    {
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'delivery-cleanup-retry',
+      requestedAt: '2026-09-18T01:00:00.000Z',
+    },
+    limits,
+  );
+  assert.equal((await deliveryStore.latestDeliveryRecord(
+    recoveryAttempt.identity,
+  )).state, 'failed');
 
   const lostDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-lost-response-',

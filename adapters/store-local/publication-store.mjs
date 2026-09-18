@@ -19,6 +19,7 @@ import {
 } from 'node:fs/promises';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
+import {createRetainedRowFrames} from './row-frames.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
@@ -178,6 +179,8 @@ function validateContractControl(value) {
   if (value === null || typeof value !== 'object' ||
       typeof value.admit !== 'function' ||
       typeof value.recordTransition !== 'function' ||
+      typeof value.deliveryTransition !== 'function' ||
+      typeof value.deliverySuccessValid !== 'function' ||
       typeof value.recordAllowsCommit !== 'function' ||
       typeof value.effectFreeCommitValid !== 'function') {
     fail('InvalidPublicationContractControl');
@@ -228,9 +231,11 @@ export async function openLocalPublicationStore(
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
   const attemptsDirectory = resolve(root, 'attempts');
+  const deliveriesDirectory = resolve(root, 'deliveries');
   const indexesDirectory = resolve(root, 'indexes');
   for (const directory of [root, objectsDirectory, contractsDirectory,
-    stagingDirectory, attemptsDirectory, indexesDirectory]) {
+    stagingDirectory, attemptsDirectory, deliveriesDirectory,
+    indexesDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
@@ -277,15 +282,31 @@ export async function openLocalPublicationStore(
   // independent counters for the same physical allocation scope.
   const ownership = await acquireStoreOwnership(root);
 
+  for (const name of await readdir(deliveriesDirectory)) {
+    const path = resolve(deliveriesDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await rm(path, {recursive: true, force: false});
+      continue;
+    }
+    if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
+      fail('InvalidDeliveryAttemptStore');
+    }
+  }
+  await syncDirectory(deliveriesDirectory);
+
   let reservedBytes = 0;
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
   const durablyConfirmedIndexes = new Map();
+  let deliveryAdmissionBusy = Promise.resolve();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
-  const attemptPath = cid => resolve(attemptsDirectory, cidHex(cid));
+  const publicationAttemptPath = cid =>
+    resolve(attemptsDirectory, cidHex(cid));
+  const deliveryAttemptPath = cid =>
+    resolve(deliveriesDirectory, cidHex(cid));
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
   };
@@ -809,7 +830,9 @@ export async function openLocalPublicationStore(
     const stored = await putPublicationContract(
       'publication_attempt', admitted.wire,
     );
-    const directory = attemptPath(attempt.publication_attempt_cid);
+    const directory = publicationAttemptPath(
+      attempt.publication_attempt_cid,
+    );
     await mkdir(directory, {recursive: true, mode: 0o700});
     try {
       await link(contractPath(stored.semanticCid), resolve(directory, 'attempt.json'));
@@ -830,7 +853,7 @@ export async function openLocalPublicationStore(
 
   const latestRecordContract = async attemptCid => {
     active();
-    const directory = attemptPath(attemptCid);
+    const directory = publicationAttemptPath(attemptCid);
     const entries = await readdir(directory);
     if (entries.some(name => name !== 'attempt.json' &&
         !recordNamePattern.test(name))) {
@@ -868,7 +891,9 @@ export async function openLocalPublicationStore(
     }
     const contract = admitContract('publication_record', suppliedWire);
     const record = parseContract(contract);
-    const directory = attemptPath(record.publication_attempt_cid);
+    const directory = publicationAttemptPath(
+      record.publication_attempt_cid,
+    );
     const attempt = (await readContract(
       record.publication_attempt_cid, 'publication_attempt',
     )).value;
@@ -890,6 +915,166 @@ export async function openLocalPublicationStore(
     try { await link(contractPath(record.publication_record_cid), target); }
     catch (error) {
       if (error?.code === 'EEXIST') fail('PublicationRecordConflict');
+      throw error;
+    }
+    await syncDirectory(directory);
+    return record;
+  };
+
+  const readDeliveryAttemptContract = async attemptCid => {
+    const bytes = await readBounded(
+      resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
+      configuration.maxObjectBytes,
+    );
+    try {
+      return admitContract('delivery_attempt', bytes.toString('utf8'));
+    } catch (error) {
+      fail('InvalidDeliveryAttempt', error);
+    }
+  };
+
+  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => {
+    active();
+    const operation = deliveryAdmissionBusy.then(async () => {
+      const admitted = admitContract('delivery_attempt', suppliedWire);
+      const attempt = parseContract(admitted);
+      const grantContract = admitContract(
+        'result_read_grant', suppliedGrantWire,
+      );
+      const grant = parseContract(grantContract);
+      if (attempt.result_read_grant_cid !== grantContract.identity) {
+        fail('DeliveryGrantMismatch');
+      }
+      const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
+      try {
+        const existing = await readDeliveryAttemptContract(
+          attempt.delivery_attempt_cid,
+        );
+        if (existing.wire !== admitted.wire) {
+          fail('DeliveryAttemptConflict');
+        }
+        return Object.freeze({attempt, created: false});
+      } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+
+      let uses = 0;
+      for (const name of await readdir(deliveriesDirectory)) {
+        if (!/^[0-9a-f]{64}$/u.test(name)) continue;
+        const existing = await readDeliveryAttemptContract(
+          `sha256:${name}`,
+        );
+        if (parseContract(existing).result_read_grant_cid ===
+            grantContract.identity) {
+          uses++;
+        }
+      }
+      if (uses >= grant.max_uses) fail('DeliveryGrantUseLimit');
+
+      await putPublicationContract(
+        'result_read_grant', grantContract.wire,
+      );
+      await putPublicationContract('delivery_attempt', admitted.wire);
+      const staging = resolve(
+        deliveriesDirectory, `.staging-${randomUUID()}`,
+      );
+      await mkdir(staging, {mode: 0o700});
+      try {
+        await link(
+          contractPath(admitted.identity),
+          resolve(staging, 'attempt.json'),
+        );
+        await syncDirectory(staging);
+        await rename(staging, target);
+        await syncDirectory(deliveriesDirectory);
+      } catch (error) {
+        try { await rm(staging, {recursive: true, force: false}); }
+        catch (cleanupError) {
+          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
+        }
+        if (error?.code !== 'EEXIST') throw error;
+        const existing = await readDeliveryAttemptContract(
+          attempt.delivery_attempt_cid,
+        );
+        if (existing.wire !== admitted.wire) {
+          fail('DeliveryAttemptConflict');
+        }
+        return Object.freeze({attempt, created: false});
+      }
+      return Object.freeze({attempt, created: true});
+    });
+    deliveryAdmissionBusy = operation.catch(() => {});
+    return operation;
+  };
+
+  const latestDeliveryRecordContract = async attemptCid => {
+    active();
+    const directory = deliveryAttemptPath(attemptCid);
+    const entries = await readdir(directory);
+    if (entries.some(name => name !== 'attempt.json' &&
+        !recordNamePattern.test(name))) {
+      fail('InvalidDeliveryRecord');
+    }
+    const names = entries
+      .filter(name => recordNamePattern.test(name))
+      .map(name => ({name, sequence: Number(name.slice(0, -5))}))
+      .filter(value => Number.isSafeInteger(value.sequence))
+      .sort((left, right) => left.sequence - right.sequence);
+    if (names.length === 0) return undefined;
+    for (let index = 0; index < names.length; index++) {
+      if (names[index].sequence !== index) fail('DeliveryRecordGap');
+    }
+    const bytes = await readBounded(
+      resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
+    );
+    try {
+      return admitContract('delivery_record', bytes.toString('utf8'));
+    } catch (error) {
+      fail('InvalidDeliveryRecord', error);
+    }
+  };
+
+  const latestDeliveryRecord = async attemptCid => {
+    const contract = await latestDeliveryRecordContract(attemptCid);
+    return contract === undefined ? undefined : parseContract(contract);
+  };
+
+  const appendDeliveryRecord = async suppliedWire => {
+    active();
+    const contract = admitContract('delivery_record', suppliedWire);
+    const record = parseContract(contract);
+    const directory = deliveryAttemptPath(record.delivery_attempt_cid);
+    const attempt = parseContract(await readDeliveryAttemptContract(
+      record.delivery_attempt_cid,
+    ));
+    const previous = await latestDeliveryRecordContract(
+      record.delivery_attempt_cid,
+    );
+    if (contractControl.deliveryTransition(previous, contract) !== true) {
+      fail('InvalidDeliveryRecordTransition');
+    }
+    if (attempt.delivery_attempt_cid !== record.delivery_attempt_cid) {
+      fail('DeliveryAttemptMismatch');
+    }
+    if (record.state === 'succeeded') {
+      const receipt = (await readContract(
+        record.result_delivery_receipt_cid,
+        'result_delivery_receipt',
+      )).contract;
+      const attemptContract = await readDeliveryAttemptContract(
+        record.delivery_attempt_cid,
+      );
+      if (contractControl.deliverySuccessValid(
+        attemptContract, receipt, contract,
+      ) !== true) {
+        fail('InvalidDeliverySuccessEvidence');
+      }
+    }
+    await putPublicationContract('delivery_record', contract.wire);
+    const target = resolve(directory, `${record.sequence}.json`);
+    try { await link(contractPath(record.delivery_record_cid), target); }
+    catch (error) {
+      if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
       throw error;
     }
     await syncDirectory(directory);
@@ -1182,15 +1367,15 @@ export async function openLocalPublicationStore(
     }
   };
 
-  const consumeCommittedResult = async (
+  const withCommittedResult = async (
     key,
     resultDefinitionCid,
     authorize,
-    accept,
+    use,
   ) => {
     active();
     cidHex(resultDefinitionCid);
-    if (typeof authorize !== 'function' || typeof accept !== 'function') {
+    if (typeof authorize !== 'function' || typeof use !== 'function') {
       fail('InvalidPublicationObjectConsumer');
     }
     const request = Object.freeze({...key, resultDefinitionCid});
@@ -1217,18 +1402,102 @@ export async function openLocalPublicationStore(
     });
     if (authorize(authorization) !== true) fail('PublicationLookupDenied');
     const verified = await verifyDurableResultBinding(selected.contract);
-    const consumed = await consumeObject(
-      verified.binding.material_generation_cid, accept,
-    );
-    return Object.freeze({
+    const metadata = Object.freeze({
       durableResultBindingCid: selected.contract.identity,
       logicalResultCid: verified.binding.logical_result_cid,
       resultSchemaCid: verified.binding.result_schema_cid,
       resultSchemaWire: verified.schema.wire,
       resultFields: Object.freeze([...verified.binding.result_fields]),
       rowCount: verified.binding.row_count,
-      bytes: consumed.bytes,
+      payloadBytes: verified.physical.bytes,
     });
+    let scopeOpen = true;
+    let consumed = false;
+    const consume = async accept => {
+      if (!scopeOpen || consumed || typeof accept !== 'function') {
+        fail('InvalidPublicationObjectConsumer');
+      }
+      consumed = true;
+      return consumeObject(
+        verified.binding.material_generation_cid, accept,
+      );
+    };
+    try { return await use(metadata, consume); }
+    finally { scopeOpen = false; }
+  };
+
+  const consumeCommittedResult = async (
+    key,
+    resultDefinitionCid,
+    authorize,
+    accept,
+  ) => withCommittedResult(
+    key,
+    resultDefinitionCid,
+    authorize,
+    async (metadata, consume) => {
+      const consumed = await consume(accept);
+      return Object.freeze({
+        durableResultBindingCid: metadata.durableResultBindingCid,
+        logicalResultCid: metadata.logicalResultCid,
+        resultSchemaCid: metadata.resultSchemaCid,
+        resultSchemaWire: metadata.resultSchemaWire,
+        resultFields: metadata.resultFields,
+        rowCount: metadata.rowCount,
+        bytes: consumed.bytes,
+      });
+    },
+  );
+
+  const withCommittedResultRows = async (
+    key,
+    resultDefinitionCid,
+    authorize,
+    frameLimits,
+    use,
+  ) => {
+    if (!exactKeys(frameLimits, [
+      'maxRowBytes', 'maxDepth', 'maxFrameBytes',
+    ]) || !Object.values(frameLimits).every(quantity) ||
+        typeof use !== 'function') {
+      fail('InvalidPublicationRowConsumer');
+    }
+    return withCommittedResult(
+      key,
+      resultDefinitionCid,
+      authorize,
+      async (metadata, consume) => {
+        let scopeOpen = true;
+        let rowsConsumed = false;
+        const readRows = async accept => {
+          if (!scopeOpen || rowsConsumed || typeof accept !== 'function') {
+            fail('InvalidPublicationRowConsumer');
+          }
+          rowsConsumed = true;
+          const frames = createRetainedRowFrames({
+            maxBytes: metadata.payloadBytes,
+            maxRows: metadata.rowCount,
+            maxRowBytes: frameLimits.maxRowBytes,
+            maxDepth: frameLimits.maxDepth,
+            maxFrameBytes: frameLimits.maxFrameBytes,
+          }, accept);
+          try {
+            const physical = await consume(chunk => frames.feed(chunk));
+            const summary = frames.finish();
+            if (summary.rows !== metadata.rowCount ||
+                summary.bytes !== physical.bytes) {
+              fail('PublicationDurableBindingMismatch');
+            }
+            return summary;
+          } catch (error) {
+            frames.cancel();
+            throw error;
+          }
+        };
+        try { return await use(metadata, readRows); }
+        finally { scopeOpen = false; }
+      },
+    );
   };
 
   return Object.freeze({
@@ -1241,6 +1510,8 @@ export async function openLocalPublicationStore(
     verifyObject,
     readSemanticBytes,
     consumeObject,
+    withCommittedResult,
+    withCommittedResultRows,
     consumeCommittedResult,
     readJsonObject,
     async readPublicationContract(cid, name) {
@@ -1254,6 +1525,10 @@ export async function openLocalPublicationStore(
     latestRecord,
     latestRecordContract,
     appendRecord,
+    createDeliveryAttempt,
+    latestDeliveryRecord,
+    latestDeliveryRecordContract,
+    appendDeliveryRecord,
     commitIndex,
     validateCommittedEvidence,
     inspectCommittedIndex,

@@ -55,6 +55,10 @@ pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer)
 
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
+pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContract, @run_publication.PublicationContract) -> String raise NodeHostFailure
+
+pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
+
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
@@ -248,6 +252,10 @@ pub fn strategy_publication_record_allows_commit(@run_publication.PublicationCon
 pub fn strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_result_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
+
+pub fn strategy_result_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
 
 pub fn strategy_result_serialization_contract_cid(String, Int, Int, Int) -> String raise NodeHostFailure
 
