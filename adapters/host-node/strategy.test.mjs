@@ -241,7 +241,7 @@ test('standard Host owns publication control and exact execution binding', async
   );
   await assert.rejects(
     result.publishEffectFreeRun({}, {}, undefined),
-    {code: 'InvalidCompletedRunPublicationOptions'},
+    {code: 'InvalidRunPublicationPreflight'},
   );
   result.close();
   await assert.rejects(

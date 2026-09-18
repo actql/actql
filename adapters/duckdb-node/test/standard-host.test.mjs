@@ -708,7 +708,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
             const publicationStore = await openLocalPublicationStore({
               directory: publicationDirectory,
               storeAuthorityCid: hash('publication-store'),
-              capacityBytes: 2 * 1024 * 1024,
+              capacityBytes: 4 * 1024 * 1024,
               maxObjectBytes: publicationResultExportLimits.maxWireBytes,
               maxObjects: 100,
               maxContractNodes: 10000,
@@ -961,56 +961,91 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   }),
                   contractLimits,
                 );
+              const publicationPlan = {
+                admission,
+                runDefinition: publishedRun,
+                invocation: publishedInvocation,
+                observation: publishedObservation,
+                normalizationJournal,
+                authoringContext,
+                results: execution.publicationInventory.occurrences.map(
+                  (occurrence, resultIndex) => ({
+                    retention: publishedRetention,
+                    evidenceContext: {
+                      computationContractCid: hash(
+                        `checked-computation-${resultIndex}`,
+                      ),
+                      inputRelationCids: [],
+                      scopeCid: hash(`result-scope-${resultIndex}`),
+                      effectiveDataPolicyCid,
+                      authorityScopeCid: hash('authority-scope'),
+                    },
+                  }),
+                ),
+                receiptEvidence: {
+                  bindings: [],
+                  sourceEvidence: [],
+                  modelEvidence: [],
+                  barrierAttemptReceiptCids: [],
+                },
+                captureEvidence: {
+                  pendingSourceStateAdvances: [],
+                  modelEvidence: [],
+                },
+                request: {
+                  tenantId: 'tenant-a',
+                  authorityScopeCid: hash('authority-scope'),
+                  publicationPolicyCid: hash('publication-policy'),
+                  publicationTargetCid: hash('publication-target'),
+                  requestedAt: '2026-09-18T00:00:00.000Z',
+                },
+                attempt: {
+                  attemptId: 'standard-host-attempt',
+                  fenceCid: hash('publication-fence'),
+                  externalIdempotencyKey: undefined,
+                  startedAt: '2026-09-18T00:00:01.000Z',
+                },
+                outputLimits: publicationResultExportLimits,
+                contractLimits,
+                now: () => '2026-09-18T00:00:02.000Z',
+              };
+              const lateRejectionDirectory = await mkdtemp(join(
+                root,
+                '_build/duckdb-fixtures/rejected-late-publication-',
+              ));
+              let lateRejectionStore;
+              try {
+                lateRejectionStore = await openLocalPublicationStore({
+                  directory: lateRejectionDirectory,
+                  storeAuthorityCid: hash('rejected-late-publication-store'),
+                  capacityBytes: 1024,
+                  maxObjectBytes:
+                    publicationResultExportLimits.maxWireBytes,
+                  maxObjects: 100,
+                  maxContractNodes: 10000,
+                  maxContractDepth: 64,
+                }, runtime.publicationControl);
+                const attempts = execution.usage().attempts;
+                await assert.rejects(execution.publishEffectFreeRun(
+                  lateRejectionStore,
+                  publicationPlan,
+                  controller.signal,
+                ), {code: 'RunPublicationCapacityUnsupported'});
+                assert.equal(execution.usage().attempts, attempts);
+                assert.equal(lateRejectionStore.status().storedBytes, 0);
+                assert.equal(lateRejectionStore.status().reservedBytes, 0);
+                assert.equal(lateRejectionStore.status().objectCount, 0);
+                assert.equal(lateRejectionStore.status().reservedObjects, 0);
+              } finally {
+                await lateRejectionStore?.close();
+                await rm(lateRejectionDirectory, {
+                  recursive: true,
+                  force: true,
+                });
+              }
               const published = await execution.publishEffectFreeRun(
                 publicationStore,
-                {
-                  admission,
-                  runDefinition: publishedRun,
-                  invocation: publishedInvocation,
-                  observation: publishedObservation,
-                  normalizationJournal,
-                  authoringContext,
-                  results: execution.publicationInventory.occurrences.map(
-                    (occurrence, resultIndex) => ({
-                      retention: publishedRetention,
-                      evidenceContext: {
-                        computationContractCid: hash(
-                          `checked-computation-${resultIndex}`,
-                        ),
-                        inputRelationCids: [],
-                        scopeCid: hash(`result-scope-${resultIndex}`),
-                        effectiveDataPolicyCid,
-                        authorityScopeCid: hash('authority-scope'),
-                      },
-                    }),
-                  ),
-                  receiptEvidence: {
-                    bindings: [],
-                    sourceEvidence: [],
-                    modelEvidence: [],
-                    barrierAttemptReceiptCids: [],
-                  },
-                  captureEvidence: {
-                    pendingSourceStateAdvances: [],
-                    modelEvidence: [],
-                  },
-                  request: {
-                    tenantId: 'tenant-a',
-                    authorityScopeCid: hash('authority-scope'),
-                    publicationPolicyCid: hash('publication-policy'),
-                    publicationTargetCid: hash('publication-target'),
-                    requestedAt: '2026-09-18T00:00:00.000Z',
-                  },
-                  attempt: {
-                    attemptId: 'standard-host-attempt',
-                    fenceCid: hash('publication-fence'),
-                    externalIdempotencyKey: undefined,
-                    startedAt: '2026-09-18T00:00:01.000Z',
-                  },
-                  outputLimits: publicationResultExportLimits,
-                  contractLimits,
-                  now: () => '2026-09-18T00:00:02.000Z',
-                },
+                publicationPlan,
                 controller.signal,
               );
               assert.equal(published.publication.state, 'succeeded');

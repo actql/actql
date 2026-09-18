@@ -13,6 +13,8 @@ import {storeCompletedResultPublicationPayload} from
   './durable-result-payload.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
+import {prepareCompletedEffectFreeRunPublication} from
+  './run-publication-preflight.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -690,8 +692,14 @@ export async function runInstalledStrategy(
             .some(name => Object.hasOwn(publication, name))) {
         throw new StrategyHostError('InvalidRunPublicationRequest');
       }
+      const admitted = prepareCompletedEffectFreeRunPublication({
+        store,
+        control: core.publicationControl,
+        publicationInventory,
+        plan: publication,
+      });
       return publishCompletedEffectFreeRun({
-        ...publication,
+        ...admitted.plan,
         execution,
         store,
         control: core.publicationControl,
