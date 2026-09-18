@@ -4202,11 +4202,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -4217,14 +4217,20 @@
             "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
-              "Local managed singleton cross join validates before two consumers"
+              "Local managed singleton cross join validates before two consumers",
+              "Local managed cross join cancellation publishes nothing and reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -4234,7 +4240,8 @@
             "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
             "fixtures": [
               "Local managed cross join reaches two consumers in left-major order",
-              "Local managed singleton cross join validates before two consumers"
+              "Local managed singleton cross join validates before two consumers",
+              "Local managed cross join cancellation publishes nothing and reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4242,6 +4249,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "cross_join",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -4253,14 +4273,36 @@
               "cross join emits the left-major product and empty-side results",
               "cross join validates singleton and output ceilings atomically",
               "cross join releases unpublished workspace after a bounded failure",
-              "cross join accepts every pair of retained input layouts"
+              "cross join accepts every pair of retained input layouts",
+              "cross join preserves every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "unrestricted",
+                "right_rows one",
+                "empty sides",
+                "left-major output order",
+                "output capacity overflow"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "schema",
+                "two_input_binding",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "cross_join",
@@ -4296,9 +4338,7 @@
           }
         ]
       },
-      "gaps": [
-        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, every retained input-layout pairing, bounded unpublished-workspace cleanup, and fixed work and retention proportional to the emitted product. The full relation_value type matrix and cancellation lifecycle remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "analytic",
