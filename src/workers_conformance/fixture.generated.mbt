@@ -14,6 +14,14 @@ fn captured_graph_fixture(
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
+  local_values_window_chain? : Bool = false,
+  local_values_window_variant? : String = "fixed",
+  local_values_window_group_chain? : Bool = false,
+  local_values_window_group_variant? : String = "fixed_keyed",
+  local_values_lag_chain? : Bool = false,
+  local_values_lag_variant? : String = "literal",
+  local_values_watermark_chain? : Bool = false,
+  local_values_watermark_variant? : String = "fixed_mark",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -45,6 +53,14 @@ fn captured_graph_fixture(
     local_values_managed_variant~,
     local_values_group_chain~,
     local_values_group_variant~,
+    local_values_window_chain~,
+    local_values_window_variant~,
+    local_values_window_group_chain~,
+    local_values_window_group_variant~,
+    local_values_lag_chain~,
+    local_values_lag_variant~,
+    local_values_watermark_chain~,
+    local_values_watermark_variant~,
     local_values_append_chain~,
     local_values_append_variant~,
     local_values_cross_chain~,
@@ -613,6 +629,53 @@ fn local_values_group_program(variant : String) -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_lag_wbtest.mbt
+fn local_values_lag_program(variant : String) -> String {
+  let offset = match variant {
+    "literal" => "1"
+    "parameter" => "{\"$param\":\"minimum\"}"
+    _ => abort("unknown Local lag fixture")
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[" +
+  "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":" +
+  "\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":" +
+  "\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"]," +
+  "\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":" +
+  "\"captured\",\"fields\":[\"id\"]}}}," +
+  "{\"id\":\"lagged\",\"inputs\":{},\"steps\":[{\"values\":" +
+  "{\"schema\":{\"group\":{\"type\":\"string\",\"nullable\":true}," +
+  "\"id\":{\"type\":\"number\",\"nullable\":false},\"amount\":" +
+  "{\"type\":\"number\",\"nullable\":true}},\"rows\":[" +
+  "{\"group\":\"a\",\"id\":3,\"amount\":30}," +
+  "{\"group\":null,\"id\":2,\"amount\":20}," +
+  "{\"group\":\"a\",\"id\":1,\"amount\":10}," +
+  "{\"group\":null,\"id\":4,\"amount\":null}," +
+  "{\"group\":\"a\",\"id\":5,\"amount\":30}]},\"as\":\"seed\"}," +
+  "{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+  "\"as\":\"unique\"},{\"from\":\"unique\",\"lag\":" +
+  "{\"partition_by\":[\"group\",\"group\"],\"order_by\":[" +
+  "{\"amount\":\"desc\"}],\"field\":\"amount\",\"output\":" +
+  "\"previous\",\"offset\":" +
+  offset +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"amount\",\"group\",\"id\",\"previous\"]}}}," +
+  "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":" +
+  "{\"stage\":\"lagged\",\"result\":\"r\"}}},\"steps\":[" +
+  "{\"select\":[\"amount\",\"group\",\"id\",\"previous\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"amount\",\"group\",\"id\",\"previous\"]}}}," +
+  "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":" +
+  "{\"stage\":\"lagged\",\"result\":\"r\"}}},\"steps\":[" +
+  "{\"select\":[\"previous\",\"id\",\"group\",\"amount\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"previous\",\"id\",\"group\",\"amount\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_unary_program(kind : String) -> String {
   if kind == "unnest" {
@@ -715,6 +778,152 @@ fn local_values_unary_program(kind : String) -> String {
   consumer +
   fields +
   "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_watermark_wbtest.mbt
+fn local_values_watermark_program(variant : String) -> String {
+  let (threshold, policy) = match variant {
+    "fixed_mark" => ("\"watermark_ms\":90", "mark")
+    "prefix_drop" => ("\"max_skew\":10", "drop")
+    _ => abort("unknown Local watermark fixture")
+  }
+  let fields = "[\"id\",\"time\",\"watermark_ms\"," +
+    "\"watermark_late\",\"watermark_decision\"]"
+  let reversed = "[\"watermark_decision\",\"watermark_late\"," +
+    "\"watermark_ms\",\"time\",\"id\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
+  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[" +
+  "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":" +
+  "\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":" +
+  "\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"]," +
+  "\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":" +
+  "\"captured\",\"fields\":[\"id\"]}}}," +
+  "{\"id\":\"watermarked\",\"inputs\":{},\"steps\":[{\"values\":" +
+  "{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+  "\"time\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
+  "{\"id\":1,\"time\":100},{\"id\":2,\"time\":80}," +
+  "{\"id\":3,\"time\":95}]},\"as\":\"seed\"},{\"from\":\"seed\"," +
+  "\"watermark_rows\":{\"time\":\"time\",\"late_policy\":\"" +
+  policy +
+  "\"," +
+  threshold +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":" +
+  "{\"stage\":\"watermarked\",\"result\":\"r\"}}},\"steps\":[" +
+  "{\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":" +
+  "{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":" +
+  "{\"stage\":\"watermarked\",\"result\":\"r\"}}},\"steps\":[" +
+  "{\"select\":" +
+  reversed +
+  ",\"as\":\"out\"}],\"results\":{\"r\":" +
+  "{\"from\":\"out\",\"fields\":" +
+  reversed +
+  "}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_window_group_wbtest.mbt
+fn local_values_window_group_program(variant : String) -> String {
+  let (schema, rows, window, group, fields, reordered) = match variant {
+    "fixed_keyed" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"k\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"at\":1,\"k\":null},{\"at\":2,\"k\":null},{\"at\":11,\"k\":1}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[\"k\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}", "[\"k\",\"n\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"window_end\",\"n\",\"k\"]",
+      )
+    "sliding_global" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}}", "[{\"at\":5},{\"at\":7}]",
+        "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":6,\"offset\":2}",
+        "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}", "[\"n\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"n\",\"window_end\"]",
+      )
+    "decimal_sum" =>
+      (
+        "{\"amount\":{\"type\":\"decimal\",\"precision\":38,\"scale\":2,\"nullable\":true},\"at\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":\"1.25\",\"at\":1},{\"amount\":\"2.00\",\"at\":2},{\"amount\":null,\"at\":11}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}}",
+        "[\"total\",\"window_end\",\"window_start\"]", "[\"window_start\",\"total\",\"window_end\"]",
+      )
+    _ => abort("unknown Local window group fixture")
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+  "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
+  "{\"id\":\"windowed\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"seed\"},{\"from\":\"seed\",\"row_window\":" +
+  window +
+  ",\"as\":\"windowed\"},{\"from\":\"windowed\",\"window_group\":" +
+  group +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"windowed\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"windowed\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  reordered +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  reordered +
+  "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_window_wbtest.mbt
+fn local_values_window_program(variant : String) -> String {
+  let (schema, rows, window) = match variant {
+    "fixed" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":-1,\"id\":1},{\"at\":2,\"id\":2},{\"at\":12,\"id\":3}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10,\"step\":3,\"offset\":2}",
+      )
+    "sliding" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":5,\"id\":1},{\"at\":7,\"id\":2}]", "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":6,\"offset\":2}",
+      )
+    "timestamp" =>
+      (
+        "{\"at\":{\"type\":\"timestamp\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":\"1969-12-31T23:59:59.999Z\",\"id\":1},{\"at\":\"1970-01-01T00:00:00.250Z\",\"id\":2}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1000,\"offset\":250}",
+      )
+    "large_offset" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":2,\"id\":1}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":-9007199254740991}",
+      )
+    _ => abort("unknown Local window fixture")
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+  "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
+  "{\"id\":\"windowed\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"seed\"},{\"from\":\"seed\",\"row_window\":" +
+  window +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"at\",\"id\",\"window_start\",\"window_end\"]}}}," +
+  "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"windowed\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"at\",\"id\",\"window_end\",\"window_start\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"at\",\"id\",\"window_end\",\"window_start\"]}}}," +
+  "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"windowed\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"window_start\",\"id\",\"window_end\",\"at\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"window_start\",\"id\",\"window_end\",\"at\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -950,6 +1159,14 @@ fn query_checked_program_fixture(
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
+  local_values_window_chain? : Bool = false,
+  local_values_window_variant? : String = "fixed",
+  local_values_window_group_chain? : Bool = false,
+  local_values_window_group_variant? : String = "fixed_keyed",
+  local_values_lag_chain? : Bool = false,
+  local_values_lag_variant? : String = "literal",
+  local_values_watermark_chain? : Bool = false,
+  local_values_watermark_variant? : String = "fixed_mark",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -977,6 +1194,26 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_group_chain {
     local_values_group_program(local_values_group_variant)
+  } else {
+    text
+  }
+  let text = if local_values_window_chain {
+    local_values_window_program(local_values_window_variant)
+  } else {
+    text
+  }
+  let text = if local_values_window_group_chain {
+    local_values_window_group_program(local_values_window_group_variant)
+  } else {
+    text
+  }
+  let text = if local_values_lag_chain {
+    local_values_lag_program(local_values_lag_variant)
+  } else {
+    text
+  }
+  let text = if local_values_watermark_chain {
+    local_values_watermark_program(local_values_watermark_variant)
   } else {
     text
   }
