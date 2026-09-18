@@ -1598,6 +1598,40 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       from: 'out', fields: id === 'a' ? ['total', 'id'] : ['id', 'total'],
     }},
   })));
+  const sortProgram = structuredClone(zeroInputProgram);
+  sortProgram.stages.splice(1, 3, {
+    id: 'sort_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: true},
+      },
+      rows: [
+        {id: 2, amount: 20},
+        {id: 1, amount: null},
+        {id: 1, amount: 30},
+        {id: 2, amount: null},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount']}},
+  }, {
+    id: 'sorted',
+    inputs: {x: {result: {stage: 'sort_values', result: 'r'}}},
+    steps: [{sort: [
+      {field: 'amount', dir: 'desc', nulls: 'first'},
+      {id: 'asc'},
+    ], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `sort_consumer_${id}`,
+    inputs: {x: {result: {stage: 'sorted', result: 'r'}}},
+    steps: [{select: id === 'a' ? ['id', 'amount'] : ['amount', 'id'],
+      as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a' ? ['id', 'amount'] : ['amount', 'id'],
+    }},
+  })));
   const groupProgram = structuredClone(zeroInputProgram);
   groupProgram.stages.splice(1, 3, {
     id: 'group_values',
@@ -1748,6 +1782,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
+    ['sort', sortProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
@@ -1790,6 +1825,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         tasks,
         `${name} downstream computations complete instead of only opening handles`,
       );
+      if (name === 'sort') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 4, 4, 4],
+          'sort and both consumers publish complete retained outputs',
+        );
+      }
     } finally {
       await zeroInputExecution?.close();
       zeroInputCapture.close();

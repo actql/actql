@@ -29,7 +29,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | rename | C | C | C | P | Standard-Host evidence, collision matrix, and shared owned-reference runtime boundary; swap/empty variants, direct value domains, NULL, branches, and linear work are covered |
 | drop | C | C | C | P | Standard-Host evidence, all-column rejection connection, and shared owned-reference runtime boundary; repeated/empty variants, direct value domains, NULL, branches, and linear work are covered |
 | derive | C | C | C | P | Standard-Host evidence, full result-type and overwrite matrix, and shared owned-reference runtime boundary; empty/ordered/parameter/failure variants and linear work are covered |
-| sort | C | C | C | P | Standard-Host evidence, parameter-derived ordering requirements, exact budget boundaries at scale, and the shared owned-reference comparison boundary; stable direction, NULL placement, compound terms, scalar domains, two consumers, and indexed scaling floors are covered |
+| sort | C | C | C | C | Complete: stable direction, NULL placement, compound and parameter terms, scalar and reference domains, exact budget boundaries, indexed scaling, Standard Host execution, and two consumers |
 | take | C | C | C | P | Standard-Host evidence, the full admitted value-domain retention matrix, and large-scale exact/one-short budgets; literal and parameter counts, offsets, inherited order, boundary rejection, whole-input validation, branches, two consumers, and linear scaling are covered |
 | top_k | C | C | P | P | Standard-Host evidence, the broader orderable type matrix, and large-scale exact budget boundaries; literal/parameter counts, compound NULL order, stable completion, two consumers, and indexed scaling are covered |
 | top_k_by | C | C | P | P | Standard-Host evidence, the broader key/orderable type matrix, and large-scale exact budget boundaries; repeated/nullable partitions, literal/parameter counts, two consumers, and indexed scaling are covered |
@@ -75,10 +75,10 @@ notification happens before editing it.
 
 ## Completion evidence
 
-`values` and `watermark_rows` have all newly agreed evidence. `select` and
-`append` now have complete source, managed two-consumer, and performance
+`sort`, `values`, and `watermark_rows` have all newly agreed evidence. `select`
+and `append` now have complete source, managed two-consumer, and performance
 evidence; their remaining gap is the shared owned-reference runtime boundary.
-The remaining 28 operations still need one or more of:
+The remaining incomplete operations still need one or more of:
 
 - every formal source variant connected to common lowering;
 - every allowed operation/type combination checked on JS, Wasm, and native;

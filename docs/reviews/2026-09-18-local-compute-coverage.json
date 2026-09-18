@@ -884,7 +884,7 @@
         "kernel": "complete",
         "managed": "complete",
         "source_connection": "complete",
-        "two_consumer_e2e": "partial",
+        "two_consumer_e2e": "complete",
         "three_target_conformance": "complete",
         "performance": "complete"
       },
@@ -938,6 +938,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "sort",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -1032,9 +1045,7 @@
           }
         ]
       },
-      "gaps": [
-        "The standard Host cross-Site path still loses producer availability before Local finishes importing the transferred generation. Sort conformance, managed source connection, two managed consumers, exact scale boundaries, and three-target semantics are otherwise covered."
-      ]
+      "gaps": []
     },
     {
       "operation": "take",
