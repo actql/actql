@@ -516,6 +516,76 @@ test('prepared cleanup resumes directory sync after its exact unlink',
     assert.equal(await store.close(), true);
   });
 
+test('seal failure removes its staging alias before reclaiming custody',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-seal-custody-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const objects = join(directory, 'objects');
+    let remainingObjectSyncFailures = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === objects && remainingObjectSyncFailures > 0) {
+          remainingObjectSyncFailures--;
+          const error = new Error('injected object directory sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore({
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+      maxObjects: 10,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    }, contractControl, durability);
+
+    const recoveredWriter = store.createPreparedObjectWriter(7);
+    await recoveredWriter.append('payload');
+    remainingObjectSyncFailures = 1;
+    await assert.rejects(
+      recoveredWriter.seal(digest('payload')),
+      code('EIO'),
+    );
+    assert.equal(recoveredWriter.status().custodyPending, false);
+    assert.equal(recoveredWriter.status().reservationHeld, false);
+    assert.equal(store.status().storedBytes, 0);
+    assert.deepEqual(await readdir(join(directory, 'staging')), []);
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+    assert.deepEqual(await readdir(objects), []);
+
+    const retriedWriter = store.createPreparedObjectWriter(7);
+    await retriedWriter.append('payload');
+    remainingObjectSyncFailures = 2;
+    await assert.rejects(
+      retriedWriter.seal(digest('payload')),
+      code('EIO'),
+    );
+    assert.equal(retriedWriter.status().custodyPending, true);
+    assert.equal(retriedWriter.status().cleanupPending, true);
+    assert.equal(retriedWriter.status().reservationHeld, false);
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal((await readdir(join(
+      directory, 'prepared-custody',
+    ))).length, 1);
+    assert.deepEqual(await readdir(objects), []);
+    assert.equal(await retriedWriter.cancel(), true);
+    assert.equal(retriedWriter.status().custodyPending, false);
+    assert.equal(retriedWriter.status().cleanupPending, false);
+    assert.equal(store.status().storedBytes, 0);
+    assert.deepEqual(await readdir(join(
+      directory, 'prepared-custody',
+    )), []);
+    assert.equal(await store.close(), true);
+  });
+
 test('writer retains capacity and cleanup identity until unlink succeeds',
   async t => {
     const {store, directory} = await fixture(t, {

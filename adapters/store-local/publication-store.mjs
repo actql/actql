@@ -689,7 +689,14 @@ export async function openLocalPublicationStore(
     const path = custodyPath(token);
     await writeExclusive(path, Buffer.from(JSON.stringify(record), 'utf8'));
     await syncDirectory(custodyDirectory);
-    const custody = {token, path, record, busy: Promise.resolve()};
+    const custody = {
+      token,
+      path,
+      record,
+      accounted: false,
+      pendingUnlink: false,
+      busy: Promise.resolve(),
+    };
     reclaimableCustodies.set(token, custody);
     return custody;
   };
@@ -705,10 +712,25 @@ export async function openLocalPublicationStore(
     const operation = custody.busy.then(async () => {
       if (!reclaimableCustodies.has(custody.token)) return false;
       const cid = custody.record.material_generation_cid;
+      const confirmUnlink = async () => {
+        await syncDirectory(objectsDirectory);
+        if (custody.accounted) {
+          storedBytes -= custody.record.byte_count;
+          objectCount--;
+          custody.accounted = false;
+        }
+        custody.pendingUnlink = false;
+      };
+      if (custody.pendingUnlink) {
+        await confirmUnlink();
+        await removeCustodyRecord(custody);
+        return true;
+      }
       let state;
       try { state = await lstat(objectPath(cid)); }
       catch (error) {
         if (error?.code !== 'ENOENT') throw error;
+        if (custody.accounted) await confirmUnlink();
         await removeCustodyRecord(custody);
         return true;
       }
@@ -717,13 +739,17 @@ export async function openLocalPublicationStore(
       }
       const ownsAllocation = String(state.dev) === custody.record.device &&
         String(state.ino) === custody.record.inode;
-      if (ownsAllocation && state.nlink === 1 &&
-          !(await materialHasLiveReference(cid))) {
-        await verifyObject(cid);
-        await unlink(objectPath(cid));
-        await syncDirectory(objectsDirectory);
-        storedBytes -= state.size;
-        objectCount--;
+      if (ownsAllocation) {
+        const hasLiveReference = await materialHasLiveReference(cid);
+        if (!hasLiveReference) {
+          // A second link is not proof that another owner accepted custody.
+          // The prepared writer may still own its staging alias.
+          if (state.nlink !== 1) return false;
+          await verifyObject(cid);
+          await unlink(objectPath(cid));
+          custody.pendingUnlink = true;
+          await confirmUnlink();
+        }
       }
       await removeCustodyRecord(custody);
       return true;
@@ -966,6 +992,8 @@ export async function openLocalPublicationStore(
           finished = true;
           let installed = false;
           let result;
+          let failed = false;
+          let primaryFailure;
           try {
             await handle.sync();
             const state = await handle.stat();
@@ -990,6 +1018,7 @@ export async function openLocalPublicationStore(
               installed = true;
               storedBytes += bytes;
               objectCount++;
+              if (custody !== undefined) custody.accounted = true;
               await syncDirectory(objectsDirectory);
             } catch (error) {
               if (error?.code !== 'EEXIST') throw error;
@@ -1002,16 +1031,21 @@ export async function openLocalPublicationStore(
               ? Object.freeze({cid, bytes, created: installed})
               : Object.freeze({cid, bytes, created: installed, custody});
           } catch (error) {
-            if (custody !== undefined) {
+            failed = true;
+            primaryFailure = error;
+          }
+          if (failed) {
+            try { await cleanupAndRelease(); }
+            catch { cleanupPending = true; }
+            if (!reservationHeld && custody !== undefined) {
               try {
-                await reclaimCustody(custody);
-                custody = undefined;
-              } catch {
-                cleanupPending = true;
-              }
+                if (await reclaimCustody(custody)) custody = undefined;
+                else cleanupPending = true;
+              } catch { cleanupPending = true; }
             }
-            throw error;
-          } finally { await cleanupAndRelease(); }
+            throw primaryFailure;
+          }
+          await cleanupAndRelease();
           custody = undefined;
           return result;
         });
@@ -1029,8 +1063,13 @@ export async function openLocalPublicationStore(
           finished = true;
           if (reservationHeld) await cleanupAndRelease();
           if (custody !== undefined) {
-            await reclaimCustody(custody);
-            custody = undefined;
+            if (await reclaimCustody(custody)) {
+              custody = undefined;
+              cleanupPending = false;
+            } else {
+              cleanupPending = true;
+              fail('PublicationPreparedCustodyPending');
+            }
           }
           return true;
         });
@@ -2985,7 +3024,23 @@ export async function openLocalPublicationStore(
       const record = parseCustodyRecord(await readBounded(
         path, configuration.maxObjectBytes,
       ));
-      const custody = {token, path, record, busy: Promise.resolve()};
+      let state;
+      try { state = await lstat(objectPath(record.material_generation_cid)); }
+      catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+      const accounted = state !== undefined && state.isFile() &&
+        state.size === record.byte_count &&
+        String(state.dev) === record.device &&
+        String(state.ino) === record.inode;
+      const custody = {
+        token,
+        path,
+        record,
+        accounted,
+        pendingUnlink: false,
+        busy: Promise.resolve(),
+      };
       reclaimableCustodies.set(token, custody);
       await reclaimCustody(custody);
       recovered.push(record.material_generation_cid);
