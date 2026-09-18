@@ -169,6 +169,11 @@ fn evaluate_rows_with_workspace(
           input, id, count, offset, max_rows, control, output, workspace,
         )
       },
+      top_k: fn(kernel, input, id, count) {
+        evaluate_top_k_rows(
+          kernel, input, id, count, max_rows, control, output, workspace,
+        )
+      },
       body: fn(body, input, id, logical) {
         evaluate_row_body(
           body,
@@ -194,6 +199,7 @@ priv struct RowBackend[T] {
   dedupe : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   distinct : (T, String) -> Result[T, RowIssue]
   take : (T, String, Int64, Int64) -> Result[T, RowIssue]
+  top_k : (@lower.PreparedKernel, T, String, Int64) -> Result[T, RowIssue]
   body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
 }
 
@@ -238,6 +244,9 @@ fn[T : RelationRows] evaluate_rows_dispatch(
       (backend.release)(selected)
     }
     return result
+  }
+  if @lower.kernel_top_k_count(kernel) is Some(count) {
+    return (backend.top_k)(kernel, input, @lower.node_id(node), count)
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
@@ -401,6 +410,8 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.JsonPick(column, path, output) => JsonPick(column, path, output)
         @lower.Select(fields) => Select(fields)
         @lower.Limit(_, _, _) => return Err(InvalidRows)
+        @lower.TopK(_, _) => return Err(InvalidRows)
+        @lower.PartitionedTopK(_, _) => return Err(InvalidRows)
         @lower.DistinctRows => return Err(InvalidRows)
         @lower.DedupeRows => return Err(InvalidRows)
         @lower.StableSort(_) => return Err(InvalidRows)

@@ -248,6 +248,16 @@ fn evaluate_completed_rows(
           }
         }
       },
+      top_k: fn(kernel, input, id, count) {
+        match
+          evaluate_top_k_selection(
+            kernel, input, count, max_rows, control, output, workspace,
+          ) {
+          Err(issue) => Err(issue)
+          Ok(indices) =>
+            completed_selection(input, id, indices, control, workspace)
+        }
+      },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
           body, input, id, max_rows, control, output, workspace, logical,

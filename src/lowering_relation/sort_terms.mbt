@@ -7,6 +7,12 @@ pub fn kernel_sort_term_count(kernel : PreparedKernel) -> Int {
       .map(@evidence.key_field_count)
       .unwrap_or(0)
   }
+  if top_k_order(kernel) is Some(order) {
+    return @relation.ranking_term_count(kernel.checked) +
+      @pipeline.order_sort_completion(order)
+      .map(@pipeline.sort_completion_count)
+      .unwrap_or(0)
+  }
   guard kernel.body is StableSort(resolution) else { return 0 }
   @relation.sort_term_count(kernel.checked) +
   resolution
@@ -33,6 +39,21 @@ pub fn kernel_sort_term_at(
       },
     )
   }
+  if top_k_order(kernel) is Some(order) {
+    if index < 0 {
+      return None
+    }
+    let authored = @relation.ranking_term_count(kernel.checked)
+    if index < authored {
+      let term = @relation.ranking_term_at(kernel.checked, index).unwrap()
+      return Some((term.field, term.direction is Desc, term.nulls is First))
+    }
+    return @pipeline.order_sort_completion(order).bind(completion => {
+      @pipeline.sort_completion_field(completion, index - authored).map(field => {
+        (field, false, false)
+      })
+    })
+  }
   guard kernel.body is StableSort(resolution) else { return None }
   if index < 0 {
     return None
@@ -51,4 +72,34 @@ pub fn kernel_sort_term_at(
       ExistingTotal(_) => None
     }
   })
+}
+
+///|
+fn top_k_order(kernel : PreparedKernel) -> @pipeline.LogicalOrder? {
+  match kernel.body {
+    TopK(_, order) | PartitionedTopK(_, order) => Some(order)
+    _ => None
+  }
+}
+
+///|
+/// Authored partition occurrences are retained exactly, including repetition.
+pub fn kernel_top_k_partition_count(kernel : PreparedKernel) -> Int {
+  if kernel.body is PartitionedTopK(_, _) {
+    @relation.top_k_partition_count(kernel.checked)
+  } else {
+    0
+  }
+}
+
+///|
+pub fn kernel_top_k_partition_at(
+  kernel : PreparedKernel,
+  index : Int,
+) -> @schema.FieldName? {
+  if kernel.body is PartitionedTopK(_, _) {
+    @relation.top_k_partition_at(kernel.checked, index).map(field => field.field)
+  } else {
+    None
+  }
 }

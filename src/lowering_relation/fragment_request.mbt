@@ -91,6 +91,8 @@ pub fn emit_fragment_request(
     | AssertUnique(_)
     | JsonPick(_, _, _)
     | Limit(_, _, _)
+    | TopK(_, _)
+    | PartitionedTopK(_, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -115,6 +117,8 @@ pub fn emit_fragment_request(
       | JsonPick(_, _, _)
       | Select(_)
       | Limit(_, _, _)
+      | TopK(_, _)
+      | PartitionedTopK(_, _)
       | DistinctRows
       | DedupeRows
       | StableSort(_)

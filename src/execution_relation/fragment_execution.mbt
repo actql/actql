@@ -114,6 +114,43 @@ fn attach_fragment_budgets(
               }
             }
           }
+          @lower.TopK(_, _) | @lower.PartitionedTopK(_, _) => {
+            let schema = @lower.kernel_input_schema(kernel)
+            let partitions = @lower.kernel_top_k_partition_count(kernel)
+            let terms = @lower.kernel_sort_term_count(kernel)
+            if partitions > control.remaining ||
+              terms > control.remaining - partitions {
+              return Err(InputLimit)
+            }
+            for j = 0; j < partitions + terms; j = j + 1 {
+              if !spend_control(control, 1) {
+                return Err(InputLimit)
+              }
+              let name = if j < partitions {
+                @lower.kernel_top_k_partition_at(kernel, j).unwrap()
+              } else {
+                @lower.kernel_sort_term_at(kernel, j - partitions).unwrap().0
+              }
+              let spelling = @schema.reference_name(name)
+              let mut width = @schema.field_count(schema)
+              while width > 0 {
+                if !spend_control(control, 1) ||
+                  !spend_control_text(control, spelling) {
+                  return Err(InputLimit)
+                }
+                width = width / 2
+              }
+              if !spend_control_text(control, spelling) {
+                return Err(InputLimit)
+              }
+              guard @schema.lookup(schema, name) is Some(contract) else {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
+              if !supported_comparison(contract, contract) {
+                return Err(UnsupportedRowComparison(i, name))
+              }
+            }
+          }
           @lower.DedupeRows | @lower.StableSort(_) | @lower.Limit(_, _, _) => {
             let schema = @lower.kernel_input_schema(kernel)
             let sorting = !(body is @lower.DedupeRows)

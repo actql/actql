@@ -74,6 +74,20 @@ pub fn kernel_is_distinct(kernel : PreparedKernel) -> Bool {
 }
 
 ///|
+/// Allocation-free count view for both global and partitioned top-k kernels.
+pub fn kernel_top_k_count(kernel : PreparedKernel) -> Int64? {
+  match kernel.body {
+    TopK(count, _) | PartitionedTopK(count, _) => Some(count)
+    _ => None
+  }
+}
+
+///|
+pub fn kernel_is_partitioned_top_k(kernel : PreparedKernel) -> Bool {
+  kernel.body is PartitionedTopK(_, _)
+}
+
+///|
 pub fn kernel_is_projection(kernel : PreparedKernel) -> Bool {
   kernel.body is Select(_)
 }

@@ -87,6 +87,8 @@ pub fn local_managed_sequence_supported(
           | JsonPick(_, _, _)
           | Select(_)
           | Limit(_, _, _)
+          | TopK(_, _)
+          | PartitionedTopK(_, _)
           | StableSort(_)
           | DistinctRows
           | DedupeRows

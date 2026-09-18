@@ -81,6 +81,15 @@ fn evaluate_layout_kernel(
           Err(issue) => Err(issue)
         }
       },
+      top_k: fn(kernel, input, id, count) {
+        match
+          evaluate_top_k_selection(
+            kernel, input, count, max_rows, control, output, workspace,
+          ) {
+          Ok(indices) => adopt_layout_selection(input, id, indices, physical)
+          Err(issue) => Err(issue)
+        }
+      },
       body: fn(body, input, id, logical) {
         evaluate_layout_body(
           kernel,

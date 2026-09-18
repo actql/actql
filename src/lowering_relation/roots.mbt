@@ -122,6 +122,8 @@ pub fn prepare_kernel_roots(
         | AssertUnique(_)
         | JsonPick(_, _, _)
         | Limit(_, _, _)
+        | TopK(_, _)
+        | PartitionedTopK(_, _)
         | DistinctRows
         | DedupeRows
         | StableSort(_)
@@ -160,6 +162,8 @@ fn prepare_root_range(
           | AssertUnique(_)
           | JsonPick(_, _, _)
           | Limit(_, _, _)
+          | TopK(_, _)
+          | PartitionedTopK(_, _)
           | DistinctRows
           | DedupeRows
           | StableSort(_)

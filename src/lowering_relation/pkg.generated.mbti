@@ -180,6 +180,8 @@ pub fn kernel_is_dedupe(PreparedKernel) -> Bool
 
 pub fn kernel_is_distinct(PreparedKernel) -> Bool
 
+pub fn kernel_is_partitioned_top_k(PreparedKernel) -> Bool
+
 pub fn kernel_is_projection(PreparedKernel) -> Bool
 
 pub fn kernel_is_sort(PreparedKernel) -> Bool
@@ -195,6 +197,12 @@ pub fn kernel_sort_term_count(PreparedKernel) -> Int
 pub fn kernel_step(PreparedKernel) -> Int
 
 pub fn kernel_take(PreparedKernel) -> (Int64, Int64)?
+
+pub fn kernel_top_k_count(PreparedKernel) -> Int64?
+
+pub fn kernel_top_k_partition_at(PreparedKernel, Int) -> @relation_schema.FieldName?
+
+pub fn kernel_top_k_partition_count(PreparedKernel) -> Int
 
 pub fn kernel_view_entries(PreparedKernel) -> Int
 
@@ -521,6 +529,8 @@ pub enum KernelBody {
   JsonPick(@relation_schema.FieldName, Array[String], String)
   Select(Array[@relation_typing.ProjectionField])
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
+  TopK(Int64, @pipeline_typing.LogicalOrder)
+  PartitionedTopK(Int64, @pipeline_typing.LogicalOrder)
   DistinctRows
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
@@ -534,7 +544,9 @@ pub(all) enum KernelIssue {
   InvalidKernelLimits
   ExpressionFailure(ExpressionIssue)
   InvalidTakeCount
+  InvalidTopKCount
   PendingTakeOrder
+  PendingTopKOrder
   PendingSortOrder
   CountGroupFailure(CountGroupIssue)
 }
@@ -578,6 +590,8 @@ pub enum Payload {
   Where(@relation_typing.CheckedOperation)
   Select(@relation_typing.CheckedOperation)
   Limit(@relation_typing.CheckedOperation)
+  TopK(@relation_typing.CheckedOperation)
+  TopKBy(@relation_typing.CheckedOperation)
   Distinct(@relation_typing.CheckedOperation)
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)

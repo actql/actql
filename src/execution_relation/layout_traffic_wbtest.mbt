@@ -261,6 +261,22 @@ fn run_traffic_rows(
               traffic,
             )
           },
+          top_k: fn(kernel, table, id, count) {
+            traffic_row_result(
+              evaluate_top_k_rows(
+                kernel,
+                table,
+                id,
+                count,
+                limits.max_rows,
+                control,
+                output,
+                workspace,
+              ),
+              false,
+              traffic,
+            )
+          },
           body: fn(body, table, id, logical) {
             traffic_row_result(
               evaluate_row_body(

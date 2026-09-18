@@ -82,6 +82,8 @@ fn prepare_ordered_budgets(
           | @lower.JsonPick(_, _, _)
           | @lower.Select(_)
           | @lower.Limit(_, _, _)
+          | @lower.TopK(_, _)
+          | @lower.PartitionedTopK(_, _)
           | @lower.DistinctRows
           | @lower.DedupeRows
           | @lower.StableSort(_)

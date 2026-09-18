@@ -181,7 +181,8 @@ pub fn[T] prepare_managed_view_plan(
           output[name] = origin
         }
       }
-      Filter(_) | Limit(_, _, _) => rows = SelectedRows
+      Filter(_) | Limit(_, _, _) | TopK(_, _) | PartitionedTopK(_, _) =>
+        rows = SelectedRows
       StableSort(order) =>
         if order is Some(_) && rows == AllRows {
           rows = PermutedRows

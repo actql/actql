@@ -19,6 +19,8 @@ pub enum KernelBody {
   JsonPick(@schema.FieldName, Array[String], String)
   Select(Array[@relation.ProjectionField])
   Limit(Int64, Int64, @pipeline.LogicalOrder)
+  TopK(Int64, @pipeline.LogicalOrder)
+  PartitionedTopK(Int64, @pipeline.LogicalOrder)
   DistinctRows
   DedupeRows
   StableSort(@pipeline.SortOrder?)
@@ -33,7 +35,9 @@ pub(all) enum KernelIssue {
   InvalidKernelLimits
   ExpressionFailure(ExpressionIssue)
   InvalidTakeCount
+  InvalidTopKCount
   PendingTakeOrder
+  PendingTopKOrder
   PendingSortOrder
   CountGroupFailure(CountGroupIssue)
 }
@@ -79,6 +83,8 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | AssertUnique(_)
     | JsonPick(_, _, _)
     | Select(_)
+    | TopK(_, _)
+    | PartitionedTopK(_, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -101,6 +107,8 @@ pub fn ordered_binding_at(
     | JsonPick(_, _, _)
     | Select(_)
     | Limit(_, _, _)
+    | TopK(_, _)
+    | PartitionedTopK(_, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -119,6 +127,8 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     JsonPick(column, path, output) => JsonPick(column, path.copy(), output)
     Select(fields) => Select(fields.copy())
     Limit(count, offset, order) => Limit(count, offset, order)
+    TopK(count, order) => TopK(count, order)
+    PartitionedTopK(count, order) => PartitionedTopK(count, order)
     DistinctRows => DistinctRows
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
@@ -137,6 +147,8 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     Filter(_)
     | AssertAll(_)
     | Limit(_, _, _)
+    | TopK(_, _)
+    | PartitionedTopK(_, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -186,6 +198,8 @@ fn prepare_kernel_measured(
     | Where(op)
     | Select(op)
     | Limit(op)
+    | TopK(op)
+    | TopKBy(op)
     | Distinct(op)
     | Dedupe(op)
     | Sort(op)
@@ -377,6 +391,71 @@ fn prepare_kernel_measured(
       }
       StableSort(resolution)
     }
+    RowOperation if @relation.operation(checked) == @relation.TopK ||
+      @relation.operation(checked) == @relation.TopKBy => {
+      guard @pipeline.logical_order(owner.prepared.owner, Step(step_index))
+        is Some(order) &&
+        @pipeline.order_sort_completion(order) is Some(completion) else {
+        return Err(PendingTopKOrder)
+      }
+      let partitions = @relation.top_k_partition_count(checked)
+      let authored = @relation.ranking_term_count(checked)
+      let appended = @pipeline.sort_completion_count(completion)
+      if partitions > max_bindings ||
+        authored > max_bindings - partitions ||
+        appended > max_bindings - partitions - authored ||
+        partitions > remaining.max_work ||
+        authored > remaining.max_work - partitions ||
+        appended > remaining.max_work - partitions - authored {
+        return Err(KernelBudgetExceeded)
+      }
+      remaining = {
+        ..remaining,
+        max_work: remaining.max_work - partitions - authored - appended,
+      }
+      for i = 0; i < partitions + authored + appended; i = i + 1 {
+        let field = if i < partitions {
+          @relation.top_k_partition_at(checked, i).unwrap().field
+        } else if i < partitions + authored {
+          @relation.ranking_term_at(checked, i - partitions).unwrap().field
+        } else {
+          @pipeline.sort_completion_field(completion, i - partitions - authored).unwrap()
+        }
+        let name = @schema.reference_name(field)
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+      }
+      guard @relation.top_k_count(checked) is Some(value) else {
+        return Err(InvalidKernelWiring)
+      }
+      let count = match value {
+        Literal(n) => n
+        Parameter(name) => {
+          let size = @utf8.encode(name).length()
+          if size > names_remaining {
+            return Err(KernelBudgetExceeded)
+          }
+          names_remaining -= size
+          guard owner.by_name.get(name) is Some(bound) &&
+            bound.value is @value.Number(n) &&
+            @scalar.read_safe_integer(n) is Some(n) else {
+            return Err(InvalidTopKCount)
+          }
+          n
+        }
+      }
+      if count < 1L || count > 9007199254740991L {
+        return Err(InvalidTopKCount)
+      }
+      if @relation.operation(checked) == @relation.TopK {
+        TopK(count, order)
+      } else {
+        PartitionedTopK(count, order)
+      }
+    }
     RowOperation if @relation.operation(checked) == @relation.DedupeRows => {
       let keys = @relation.dedupe_key_count(checked)
       let terms = @relation.dedupe_order_count(checked)
@@ -540,6 +619,12 @@ fn prepare_kernel_measured(
     Limit(_, _, _) =>
       take_completion(owner.prepared.owner, step_index)
       .map(@evidence.key_field_count)
+      .unwrap_or(0)
+    TopK(_, order) | PartitionedTopK(_, order) =>
+      @relation.top_k_partition_count(checked) +
+      @relation.ranking_term_count(checked) +
+      @pipeline.order_sort_completion(order)
+      .map(@pipeline.sort_completion_count)
       .unwrap_or(0)
     StableSort(resolution) =>
       @relation.sort_term_count(checked) +
