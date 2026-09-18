@@ -70,7 +70,15 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
       ]
+    "distinct_keyed_nullable" =>
+      [
+        "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":3}",
+      ]
     "dedupe_rows" => ["{\"id\":2,\"amount\":30}", "{\"id\":1,\"amount\":10}"]
+    "dedupe_compound_nullable" =>
+      [
+        "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}", "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}",
+      ]
     _ => abort("unknown Local unary expectation")
   }
 }
@@ -114,6 +122,21 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
       "{\"amount\":20,\"group\":null,\"id\":1}", "{\"amount\":10,\"group\":\"a\",\"id\":2}",
       "{\"amount\":30,\"group\":null,\"id\":3}", "{\"amount\":40,\"group\":\"a\",\"id\":4}",
     ]
+  } else if kind == "distinct_keyed_nullable" {
+    [
+      "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":20,\"id\":2}",
+      "{\"amount\":null,\"id\":3}",
+    ]
+  } else if kind == "dedupe_compound_nullable" {
+    [
+      "{\"amount\":10,\"bucket\":1,\"group\":null,\"id\":1}", "{\"amount\":30,\"bucket\":1,\"group\":null,\"id\":2}",
+      "{\"amount\":20,\"bucket\":2,\"group\":\"a\",\"id\":3}", "{\"amount\":40,\"bucket\":2,\"group\":\"a\",\"id\":4}",
+    ]
+  } else if kind == "dedupe_tie_failure" {
+    [
+      "{\"amount\":20,\"id\":2}", "{\"amount\":10,\"id\":1}", "{\"amount\":20,\"id\":2}",
+      "{\"amount\":5,\"id\":1}",
+    ]
   } else if kind == "sort" ||
     kind == "take" ||
     kind == "take_parameter" ||
@@ -145,6 +168,14 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
   } else if kind == "top_k_by_nullable" {
     [
       "{\"id\":3,\"amount\":30,\"group\":null}", "{\"id\":4,\"amount\":40,\"group\":\"a\"}",
+    ]
+  } else if kind == "distinct_keyed_nullable" {
+    [
+      "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":null}", "{\"id\":3,\"amount\":null}",
+    ]
+  } else if kind == "dedupe_compound_nullable" {
+    [
+      "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}", "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}",
     ]
   } else {
     local_managed_unary_expected(kind)
@@ -274,7 +305,8 @@ test "Local managed unary source forms feed two downstream Computes" {
       "drop", "drop_empty", "drop_repeated", "json_pick", "assert_where", "assert_unique",
       "sort", "sort_compound", "take", "take_parameter", "distinct", "top_k", "top_k_parameter",
       "top_k_compound", "top_k_by", "top_k_by_parameter", "top_k_by_nullable", "dedupe_rows",
-      "unnest", "unpivot", "pivot", "pivot_decimal_sum",
+      "distinct_keyed_nullable", "dedupe_compound_nullable", "unnest", "unpivot",
+      "pivot", "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
@@ -374,6 +406,17 @@ fn run_local_managed_unary_failure_case(kind : String) -> Unit raise {
           )
         ),
       )
+    "dedupe_tie_failure" =>
+      assert_true(
+        result
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(_, @execution.DedupeTopTie(0, 2))
+            )
+          )
+        ),
+      )
     _ => abort("unknown Local unary failure fixture")
   }
   assert_false(@strategy.captured_task_completed(run, 2))
@@ -403,7 +446,7 @@ test "Local managed demanded failures publish nothing and release their use" {
   for
     kind in [
       "filter_failure", "derive_failure", "assert_where_failure", "assert_where_eval_failure",
-      "assert_unique_null_failure",
+      "assert_unique_null_failure", "dedupe_tie_failure",
     ] {
     run_local_managed_unary_failure_case(kind)
   }

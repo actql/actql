@@ -475,7 +475,13 @@ fn local_ordered_set_program(kind : String) -> String {
     "top_k_by_nullable" =>
       "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"group\",\"group\"],\"k\":1,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
     "distinct" => "{\"distinct\":true,\"as\":\"out\"}"
+    "distinct_keyed_nullable" =>
+      "{\"distinct\":[\"amount\",\"id\"],\"as\":\"out\"}"
     "dedupe_rows" =>
+      "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "dedupe_compound_nullable" =>
+      "{\"dedupe_rows\":{\"by\":[\"group\",\"bucket\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "dedupe_tie_failure" =>
       "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
     _ => abort("unknown Local ordered/set fixture")
   }
@@ -511,6 +517,31 @@ fn local_ordered_set_program(kind : String) -> String {
       old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
       new="{\"id\":1,\"amount\":20,\"group\":null},{\"id\":2,\"amount\":10,\"group\":\"a\"},{\"id\":3,\"amount\":30,\"group\":null},{\"id\":4,\"amount\":40,\"group\":\"a\"}",
     )
+  } else if kind == "distinct_keyed_nullable" {
+    prefix
+    .replace(
+      old="\"amount\":{\"type\":\"number\",\"nullable\":false}",
+      new="\"amount\":{\"type\":\"number\",\"nullable\":true}",
+    )
+    .replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":null},{\"id\":2,\"amount\":20},{\"id\":3,\"amount\":null}",
+    )
+  } else if kind == "dedupe_compound_nullable" {
+    prefix
+    .replace(
+      old="\"amount\":{\"type\":\"number\",\"nullable\":false}",
+      new="\"amount\":{\"type\":\"number\",\"nullable\":false},\"group\":{\"type\":\"string\",\"nullable\":true},\"bucket\":{\"type\":\"number\",\"nullable\":false}",
+    )
+    .replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":1,\"amount\":10,\"group\":null,\"bucket\":1},{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1},{\"id\":3,\"amount\":20,\"group\":\"a\",\"bucket\":2},{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}",
+    )
+  } else if kind == "dedupe_tie_failure" {
+    prefix.replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":5}",
+    )
   } else {
     prefix
   }
@@ -527,6 +558,11 @@ fn local_ordered_set_program(kind : String) -> String {
     text.replace_all(
       old="[\"id\",\"amount\"]",
       new="[\"id\",\"amount\",\"group\"]",
+    )
+  } else if kind == "dedupe_compound_nullable" {
+    text.replace_all(
+      old="[\"id\",\"amount\"]",
+      new="[\"id\",\"amount\",\"group\",\"bucket\"]",
     )
   } else {
     text
@@ -589,7 +625,10 @@ fn local_values_unary_program(kind : String) -> String {
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable" ||
     kind == "distinct" ||
-    kind == "dedupe_rows" {
+    kind == "distinct_keyed_nullable" ||
+    kind == "dedupe_rows" ||
+    kind == "dedupe_compound_nullable" ||
+    kind == "dedupe_tie_failure" {
     return local_ordered_set_program(kind)
   }
   let operation = match kind {
