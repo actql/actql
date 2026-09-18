@@ -1904,6 +1904,42 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       from: 'out', fields: id === 'a' ? lagFields : [...lagFields].reverse(),
     }},
   })));
+  const unpivotProgram = structuredClone(zeroInputProgram);
+  const unpivotFields = ['id', 'metric', 'value'];
+  unpivotProgram.stages.splice(1, 3, {
+    id: 'unpivot_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        a: {type: 'number', nullable: true},
+        b: {type: 'number', nullable: true},
+        id: {type: 'number', nullable: false},
+      },
+      rows: [{a: 10, b: null, id: 1}, {a: null, b: 20, id: 2}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['a', 'b', 'id']}},
+  }, {
+    id: 'unpivoted',
+    inputs: {x: {result: {stage: 'unpivot_values', result: 'r'}}},
+    steps: [{unpivot: {
+      columns: ['a', 'b', 'a'],
+      keep: ['id'],
+      name_column: 'metric',
+      value_column: 'value',
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: unpivotFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `unpivot_consumer_${id}`,
+    inputs: {x: {result: {stage: 'unpivoted', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? unpivotFields
+      : [...unpivotFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a'
+        ? unpivotFields
+        : [...unpivotFields].reverse(),
+    }},
+  })));
   const crossJoinProgram = singleton => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'tag'];
@@ -1958,6 +1994,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
     ['parameter lag', lagProgram, [1, 2, 3]],
+    ['unpivot', unpivotProgram, [1, 2, 3, 4]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
   ]) {
@@ -2012,6 +2049,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [5, 5, 5],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'unpivot') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 6, 6, 6],
           `${name} and both consumers publish complete retained outputs`,
         );
       }

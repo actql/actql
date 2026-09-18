@@ -299,9 +299,15 @@ fn evaluate_completed_rows(
         ).map(table => RowTable(table))
       },
       unpivot: fn(kernel, input, id) {
-        evaluate_unpivot_rows(
-          kernel, input, id, max_rows, control, output, workspace,
-        ).map(table => RowTable(table))
+        if input is RowTable(_) {
+          evaluate_unpivot_rows(
+            kernel, input, id, max_rows, control, output, workspace,
+          ).map(table => RowTable(table))
+        } else {
+          evaluate_unpivot_columns(
+            kernel, input, id, max_rows, control, output, workspace,
+          )
+        }
       },
       pivot: fn(kernel, input, id) {
         evaluate_pivot_rows(

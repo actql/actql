@@ -2573,11 +2573,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -2594,7 +2594,17 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "selected fields",
+                "name and value outputs"
+              ],
+              "obligations": [
+                "ownership",
+                "schema"
+              ]
+            }
           },
           {
             "operation": "unpivot",
@@ -2608,7 +2618,17 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "selected fields",
+                "name and value outputs"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -2624,7 +2644,33 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "selected fields",
+                "name and value outputs"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "unpivot",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -2642,7 +2688,21 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "NULL values",
+                "row expansion bounds"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "ownership"
+              ]
+            }
           },
           {
             "operation": "unpivot",
@@ -2656,7 +2716,76 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "selected fields",
+                "name and value outputs",
+                "NULL values"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "unpivot",
+            "layer": "conformance",
+            "path": "src/execution_relation/unpivot_domains_wbtest.mbt",
+            "fixtures": [
+              "unpivot expands every relation value domain into sealed columns"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "selected fields",
+                "name and value outputs",
+                "NULL values"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "unpivot",
+            "layer": "conformance",
+            "path": "src/relation_typing/unpivot_test.mbt",
+            "fixtures": [
+              "unpivot checks recursive equality without narrowing values"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "heterogeneous rejection"
+              ],
+              "obligations": [
+                "capacity",
+                "schema",
+                "value_validation"
+              ]
+            }
           }
         ],
         "performance": [
@@ -2672,13 +2801,21 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "row expansion bounds"
+              ],
+              "obligations": [
+                "capacity",
+                "logical_order",
+                "measurement"
+              ]
+            }
           }
         ]
       },
-      "gaps": [
-        "Repeated authored columns, ordered keep fields, NULL values, and empty input reach two managed consumers on three targets. Bounded expansion, exact/one-short work, and a fixed linear work and workspace floor are covered. Heterogeneous rejection evidence, broader value-type conformance, and a native layout expansion writer remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "json_pick",

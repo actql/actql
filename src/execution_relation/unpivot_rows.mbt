@@ -2,15 +2,15 @@
 /// Expand authored unpivot column occurrences in input-row then column order.
 /// Repeated columns remain repeated rows and nested values are retained without
 /// coercion or serialization.
-fn[T : RelationRows] evaluate_unpivot_rows(
+fn[T : RelationRows] evaluate_unpivot_into(
   kernel : @lower.PreparedKernel,
   input : T,
-  output_id : String,
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
   workspace : RowWorkspace,
-) -> Result[Table, RowIssue] {
+  emit : (Array[Value]) -> Result[Unit, RowIssue],
+) -> Result[Array[String], RowIssue] {
   guard @lower.kernel_unpivot_outputs(kernel)
     is Some((name_column, value_column)) else {
     return Err(InvalidRows)
@@ -92,7 +92,7 @@ fn[T : RelationRows] evaluate_unpivot_rows(
     !reserve_slots(workspace, output_names.length()) {
     return Err(RowLimit)
   }
-  let result : Array[Array[Value]] = []
+  let mut emitted = 0
   for source = 0; source < rows; source = source + 1 {
     if IndexedRows::row_width(input, source) != width {
       return Err(InvalidRows)
@@ -101,7 +101,7 @@ fn[T : RelationRows] evaluate_unpivot_rows(
       return Err(RowLimit)
     }
     for occurrence = 0; occurrence < columns; occurrence = occurrence + 1 {
-      if result.length() >= max_rows ||
+      if emitted >= max_rows ||
         !reserve_slots(workspace, output_names.length()) ||
         !spend_control(control, 1) {
         return Err(RowLimit)
@@ -118,13 +118,92 @@ fn[T : RelationRows] evaluate_unpivot_rows(
       if !retain_row(row, output_names, output) {
         return Err(RowLimit)
       }
-      result.push(row)
+      match emit(row) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      emitted += 1
     }
+  }
+  Ok(output_names)
+}
+
+///|
+fn[T : RelationRows] evaluate_unpivot_rows(
+  kernel : @lower.PreparedKernel,
+  input : T,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[Table, RowIssue] {
+  let result : Array[Array[Value]] = []
+  let names = match
+    evaluate_unpivot_into(kernel, input, max_rows, control, output, workspace, row => {
+      result.push(row)
+      Ok(())
+    }) {
+    Ok(names) => names
+    Err(issue) => return Err(issue)
   }
   Ok({
     owner: RelationRows::checked_owner(input),
     id: output_id,
-    names: output_names,
+    names,
     rows: result,
   })
+}
+
+///|
+// Build mixed-domain output directly in sealed columns. This path is selected
+// before execution for an existing physical completion and never retries after
+// a semantic or capacity failure.
+fn evaluate_unpivot_columns(
+  kernel : @lower.PreparedKernel,
+  input : CompletedTable,
+  output_id : String,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+) -> Result[CompletedTable, RowIssue] {
+  let columns : Array[Array[Value]] = []
+  let names = match
+    evaluate_unpivot_into(kernel, input, max_rows, control, output, workspace, row => {
+      if columns.is_empty() {
+        for _value in row {
+          columns.push([])
+        }
+      }
+      if row.length() != columns.length() {
+        return Err(InvalidRows)
+      }
+      for i, value in row {
+        columns[i].push(value)
+      }
+      Ok(())
+    }) {
+    Ok(names) => names
+    Err(issue) => return Err(issue)
+  }
+  if columns.is_empty() {
+    for _name in names {
+      columns.push([])
+    }
+  }
+  Ok(
+    ColumnTable({
+      owner: RelationRows::checked_owner(input),
+      id: output_id,
+      names,
+      columns,
+      count: if columns.is_empty() {
+        0
+      } else {
+        columns[0].length()
+      },
+      selection: None,
+    }),
+  )
 }

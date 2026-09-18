@@ -38,7 +38,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | lag | C | C | C | C | Complete: literal, default, and Parameter offsets; full value, key, and orderable type matrices; stable ties and NULL boundaries; exact budgets; Standard Host execution; two consumers; cancellation; and indexed scaling |
 | watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
-| unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |
+| unpivot | C | C | C | C | Complete: repeated selected fields, exact names, heterogeneous rejection, every relation value domain, NULLs, bounded ordered expansion, sealed column output, Standard Host execution, two consumers, and linear scaling |
 | json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
 | unnest | C | C | P | P | Inner/outer managed paths and linear scaling are covered; nested-value matrix and native layout writer remain |
 | join | C | P | P | P | Equality kinds, compound nullable keys, self joins, cardinality, and indexed scaling are covered; cross-stage full identity transfer, broader types, and diagnostics remain |
