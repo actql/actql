@@ -12,7 +12,17 @@ export function checkInterfaces(root) {
     throw new Error(`Common-core interfaces differ across targets.\n${report}`);
   }
   const paths = ['src/**/pkg.generated.mbti', 'src/pkg.generated.mbti'];
-  execFileSync('git', ['diff', '--exit-code', '--', ...paths], { cwd: root, stdio: 'pipe' });
+  try {
+    execFileSync('git', ['diff', '--exit-code', '--', ...paths], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    const stdout = error.stdout?.toString?.() ?? '';
+    const stderr = error.stderr?.toString?.() ?? '';
+    throw new Error(
+      `Generated public interfaces differ from tracked files.\n${stdout}${stderr}`,
+    );
+  }
   const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '--', ...paths], {
     cwd: root, encoding: 'utf8',
   }).trim();
