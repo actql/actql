@@ -24,6 +24,14 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
+
+pub fn issue_publication_attempt(PublicationContract, PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
+
+pub fn issue_publication_record(PublicationContract, PublicationContract?, String, String, PublicationContract?, String?, Array[String], Bool, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
+
+pub fn issue_publication_request(PublicationContract, Array[PublicationContract], String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
+
 pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
@@ -94,6 +102,16 @@ pub(all) enum DeliveryTransitionIssue {
   DeliveryPriorRecordMismatch
   DeliveryStateMismatch
   ConfirmedBytesDecreased
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationCommitIssuanceIssue {
+  CommitIssuanceWrongContract
+  CommitIssuanceEmptyInventory
+  CommitIssuanceInventoryMismatch
+  CommitIssuanceDuplicateResult(String)
+  CommitIssuanceReferenceMismatch(String)
+  CommitIssuanceEncoding
+  CommitIssuanceContract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationCommitIssue {

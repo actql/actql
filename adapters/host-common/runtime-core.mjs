@@ -69,6 +69,17 @@ function publicationControl(moon) {
     }
     return result;
   };
+  const issuanceLimits = (limits, label) => {
+    if (limits === null || typeof limits !== 'object' ||
+        !Number.isSafeInteger(limits.maxWireBytes) ||
+        !Number.isSafeInteger(limits.maxNodes) ||
+        !Number.isSafeInteger(limits.maxDepth) ||
+        limits.maxWireBytes < 0 || limits.maxNodes < 0 ||
+        limits.maxDepth < 0) {
+      throw new TypeError(`Invalid ${label} issuance limits`);
+    }
+    return limits;
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -113,19 +124,86 @@ function publicationControl(moon) {
     },
     issueResultManifest(runDefinition, invocation, definitions, artifacts,
       limits) {
-      if (limits === null || typeof limits !== 'object' ||
-          !Number.isSafeInteger(limits.maxWireBytes) ||
-          !Number.isSafeInteger(limits.maxNodes) ||
-          !Number.isSafeInteger(limits.maxDepth) ||
-          limits.maxWireBytes < 0 || limits.maxNodes < 0 ||
-          limits.maxDepth < 0) {
-        throw new TypeError('Invalid Result Manifest issuance limits');
-      }
+      issuanceLimits(limits, 'Result Manifest');
       return inspect(checked(moon.strategyIssueResultManifest(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
         artifacts.map(token),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issuePublicationRequest(runDefinition, definitions, intent, limits) {
+      issuanceLimits(limits, 'Publication Request');
+      if (intent === null || typeof intent !== 'object') {
+        throw new TypeError('Invalid Publication Request intent');
+      }
+      return inspect(checked(moon.strategyIssuePublicationRequest(
+        token(runDefinition),
+        definitions.map(token),
+        intent.tenantId,
+        intent.authorityScopeCid,
+        intent.publicationPolicyCid,
+        intent.publicationTargetCid,
+        intent.requestedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issuePublicationAttempt(request, runDefinition, attempt, limits) {
+      issuanceLimits(limits, 'Publication Attempt');
+      if (attempt === null || typeof attempt !== 'object') {
+        throw new TypeError('Invalid Publication Attempt');
+      }
+      return inspect(checked(moon.strategyIssuePublicationAttempt(
+        token(request),
+        token(runDefinition),
+        attempt.attemptId,
+        attempt.fenceCid,
+        attempt.externalIdempotencyKey,
+        attempt.startedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issuePublicIndexEntry(chain, committedAt, limits) {
+      issuanceLimits(limits, 'Public Index Entry');
+      if (chain === null || typeof chain !== 'object') {
+        throw new TypeError('Invalid publication chain');
+      }
+      return inspect(checked(moon.strategyIssuePublicIndexEntry(
+        token(chain.runDefinition),
+        token(chain.invocation),
+        token(chain.manifest),
+        token(chain.receipt),
+        token(chain.capturedRun),
+        token(chain.request),
+        token(chain.attempt),
+        committedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issuePublicationRecord(attempt, previous, update, limits) {
+      issuanceLimits(limits, 'Publication Record');
+      if (update === null || typeof update !== 'object') {
+        throw new TypeError('Invalid Publication Record update');
+      }
+      return inspect(checked(moon.strategyIssuePublicationRecord(
+        token(attempt),
+        previous === undefined ? undefined : token(previous),
+        update.state,
+        update.observedAt,
+        update.publicIndexEntry === undefined
+          ? undefined : token(update.publicIndexEntry),
+        update.failureCid,
+        update.cleanupOwnerCids,
+        update.uncommittedConfirmed,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
@@ -169,14 +247,7 @@ function publicationControl(moon) {
       );
     },
     issueResultArtifact(exportHandle, invocation, retention, limits) {
-      if (limits === null || typeof limits !== 'object' ||
-          !Number.isSafeInteger(limits.maxWireBytes) ||
-          !Number.isSafeInteger(limits.maxNodes) ||
-          !Number.isSafeInteger(limits.maxDepth) ||
-          limits.maxWireBytes < 0 || limits.maxNodes < 0 ||
-          limits.maxDepth < 0) {
-        throw new TypeError('Invalid Result Artifact issuance limits');
-      }
+      issuanceLimits(limits, 'Result Artifact');
       return inspect(checked(
         moon.strategyHostOutputExportIssueResultArtifact(
           exportHandle,

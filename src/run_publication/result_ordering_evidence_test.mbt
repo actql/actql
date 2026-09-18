@@ -154,7 +154,10 @@ test "Result ordering requires its exact admitted derivation witness" {
     prepare_result_definition(ordering_test_cid("1"), "second").unwrap(),
   )
   let second_derivation = ordering_test_derivation(
-    second_definition, ordering_test_cid("c"), schema, policy,
+    second_definition,
+    ordering_test_cid("c"),
+    schema,
+    policy,
   )
   let second_ordering = ordering_test_ordering(
     second_definition, second_derivation,

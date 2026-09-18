@@ -183,6 +183,14 @@ pub fn strategy_host_transfer_settle(@connectors_builtin.ConfiguredComputeHost[@
 
 pub fn strategy_host_usage(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
 
+pub fn strategy_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_publication_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String?, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_publication_record(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, String, @run_publication.PublicationContract?, String?, Array[String], Bool, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_publication_request(@run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, String, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure

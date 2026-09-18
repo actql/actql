@@ -585,6 +585,103 @@ pub fn strategy_issue_result_manifest(
 }
 
 ///|
+#export_name("strategyIssuePublicationRequest")
+pub fn strategy_issue_publication_request(
+  run_definition : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  tenant_id : String,
+  authority_scope_cid : String,
+  publication_policy_cid : String,
+  publication_target_cid : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_request(
+      run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+      publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicationAttempt")
+pub fn strategy_issue_publication_attempt(
+  request : @publication.PublicationContract,
+  run_definition : @publication.PublicationContract,
+  attempt_id : String,
+  fence_cid : String,
+  external_idempotency_key : String?,
+  started_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_attempt(
+      request, run_definition, attempt_id, fence_cid, external_idempotency_key, started_at,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicIndexEntry")
+pub fn strategy_issue_public_index_entry(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  committed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_public_index_entry(
+      run_definition, invocation, manifest, receipt, captured_run, request, attempt,
+      committed_at, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssuePublicationRecord")
+pub fn strategy_issue_publication_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  observed_at : String,
+  public_index_entry : @publication.PublicationContract?,
+  failure_cid : String?,
+  cleanup_owner_cids : Array[String],
+  uncommitted_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_publication_record(
+      attempt, previous, state, observed_at, public_index_entry, failure_cid, cleanup_owner_cids,
+      uncommitted_confirmed, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyEffectFreeRunEvidenceChainValid")
 pub fn strategy_effect_free_run_evidence_chain_valid(
   run_definition : @publication.PublicationContract,

@@ -98,10 +98,18 @@ test "Result Manifest issuer fixes every declared Result in name order" {
   let policy = ordering_test_cid("e")
   let retention = manifest_test_retention(policy)
   let (zeta_definition, zeta_evidence, zeta_artifact) = manifest_test_result(
-    "zeta", ordering_test_cid("f"), invocation, retention, policy,
+    "zeta",
+    ordering_test_cid("f"),
+    invocation,
+    retention,
+    policy,
   )
   let (answer_definition, answer_evidence, answer_artifact) = manifest_test_result(
-    "answer", ordering_test_cid("0"), invocation, retention, policy,
+    "answer",
+    ordering_test_cid("0"),
+    invocation,
+    retention,
+    policy,
   )
   let manifest = issue_result_manifest(
     run,
@@ -150,10 +158,18 @@ test "Result Manifest issuer rejects incomplete or foreign inventories" {
   let policy = ordering_test_cid("e")
   let retention = manifest_test_retention(policy)
   let (first_definition, _, first_artifact) = manifest_test_result(
-    "first", ordering_test_cid("f"), invocation, retention, policy,
+    "first",
+    ordering_test_cid("f"),
+    invocation,
+    retention,
+    policy,
   )
   let (second_definition, _, second_artifact) = manifest_test_result(
-    "second", ordering_test_cid("0"), invocation, retention, policy,
+    "second",
+    ordering_test_cid("0"),
+    invocation,
+    retention,
+    policy,
   )
   assert_true(
     issue_result_manifest(

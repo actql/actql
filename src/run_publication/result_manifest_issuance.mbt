@@ -20,10 +20,10 @@ fn manifest_artifact_for_definition(
   artifacts : Array[PublicationContract],
   definition : PublicationContract,
 ) -> PublicationContract? {
-  let matches = artifacts.filter(artifact =>
+  let matches = artifacts.filter(artifact => {
     contract_string(artifact, "result_definition_cid") ==
     Some(definition.identity)
-  )
+  })
   if matches.length() == 1 {
     Some(matches[0])
   } else {
@@ -100,14 +100,17 @@ pub fn issue_result_manifest(
     }
     entries.push({ name, artifact, })
   }
-  entries.sort_by((left, right) =>
+  entries.sort_by((left, right) => {
     @canonical.compare_utf16(left.name, right.name)
-  )
+  })
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(ManifestIssuanceEncoding)
   }
   emit_result_manifest_body(
-    run_definition.identity, invocation.identity, entries, writer,
+    run_definition.identity,
+    invocation.identity,
+    entries,
+    writer,
   ) catch {
     _ => return Err(ManifestIssuanceEncoding)
   }
@@ -123,14 +126,8 @@ pub fn issue_result_manifest(
   }
   match
     validate_run_publication_chain(
-      run_definition,
-      invocation,
-      definitions,
-      artifacts,
-      manifest,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+      max_nodes, max_depth,
     ) {
     Ok(_) => Ok(manifest)
     Err(issue) => Err(ManifestIssuanceChain(issue))
