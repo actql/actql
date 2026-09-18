@@ -504,6 +504,119 @@ function publicationControl(moon) {
         token(next),
       );
     },
+    resultSerializationContractCid(format, limits) {
+      issuanceLimits(limits, 'Result serialization');
+      return checked(moon.strategyResultSerializationContractCid(
+        format,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      ));
+    },
+    issueManifestReadGrant(index, manifest, grant, limits) {
+      issuanceLimits(limits, 'Manifest read grant');
+      if (grant === null || typeof grant !== 'object') {
+        throw new TypeError('Invalid Manifest read grant');
+      }
+      return inspect(checked(moon.strategyIssueManifestReadGrant(
+        token(index),
+        token(manifest),
+        grant.principalId,
+        grant.purpose,
+        grant.dataCeilingCid,
+        grant.maxBytes,
+        grant.maxUses,
+        grant.expiresAt,
+        grant.authorizationContextCid,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueResultReadGrant(index, manifest, grant, limits) {
+      issuanceLimits(limits, 'Result read grant');
+      if (grant === null || typeof grant !== 'object' ||
+          !Array.isArray(grant.resultNames) ||
+          !Array.isArray(grant.formats)) {
+        throw new TypeError('Invalid Result read grant');
+      }
+      return inspect(checked(moon.strategyIssueResultReadGrant(
+        token(index),
+        token(manifest),
+        grant.resultNames,
+        grant.formats,
+        grant.principalId,
+        grant.purpose,
+        grant.dataCeilingCid,
+        grant.maxBytes,
+        grant.maxUses,
+        grant.expiresAt,
+        grant.authorizationContextCid,
+        grant.egressAdmissionCid,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
+      issuanceLimits(limits, 'Delivery Attempt');
+      if (attempt === null || typeof attempt !== 'object') {
+        throw new TypeError('Invalid Delivery Attempt');
+      }
+      return inspect(checked(moon.strategyIssueDeliveryAttempt(
+        token(index),
+        token(manifest),
+        token(grant),
+        attempt.resultName,
+        attempt.format,
+        attempt.attemptId,
+        attempt.requestedAt,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueResultDeliveryReceipt(index, manifest, grant, attempt, delivered,
+      limits) {
+      issuanceLimits(limits, 'Result delivery receipt');
+      if (delivered === null || typeof delivered !== 'object') {
+        throw new TypeError('Invalid Result delivery receipt');
+      }
+      return inspect(checked(moon.strategyIssueResultDeliveryReceipt(
+        token(index),
+        token(manifest),
+        token(grant),
+        token(attempt),
+        delivered.byteCount,
+        delivered.sha256,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    issueDeliveryRecord(attempt, previous, update, limits) {
+      issuanceLimits(limits, 'Delivery Record');
+      if (update === null || typeof update !== 'object' ||
+          !Array.isArray(update.cleanupOwnerCids)) {
+        throw new TypeError('Invalid Delivery Record');
+      }
+      return inspect(checked(moon.strategyIssueDeliveryRecord(
+        token(attempt),
+        previous === undefined ? undefined : token(previous),
+        update.state,
+        update.confirmedByteCount,
+        update.exposure,
+        update.possibleUnconfirmedMaxBytes,
+        update.deliveredSha256,
+        update.receipt === undefined ? undefined : token(update.receipt),
+        update.failureCid,
+        update.observedAt,
+        update.cleanupOwnerCids,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
   });
   publicationControls.set(moon, control);
   return control;

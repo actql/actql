@@ -32,11 +32,17 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
+pub fn issue_delivery_attempt(PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
+pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+
+pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
@@ -46,9 +52,13 @@ pub fn issue_publication_record(PublicationContract, PublicationContract?, Strin
 
 pub fn issue_publication_request(PublicationContract, Array[PublicationContract], String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
+pub fn issue_result_delivery_receipt(PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
 pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
+
+pub fn issue_result_read_grant(PublicationContract, PublicationContract, Array[String], Array[String], String, String, String, Int, Int, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_run_definition(RunPublicationAdmission, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, RunPublicationAdmissionIssue]
 
@@ -85,6 +95,8 @@ pub fn result_ordering_derivation_contract(ResultOrderingEvidence) -> Publicatio
 pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
 
 pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
+
+pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 
@@ -138,6 +150,19 @@ pub(all) enum CapturedRunIssuanceIssue {
 } derive(Eq, @debug.Debug)
 
 type CheckedPublicationInventory
+
+pub(all) enum DeliveryIssuanceIssue {
+  DeliveryIssuanceWrongContract(String)
+  DeliveryIssuanceReferenceMismatch(String)
+  DeliveryIssuanceUnknownResult(String)
+  DeliveryIssuanceDuplicateResult(String)
+  DeliveryIssuanceUnsupportedFormat(String)
+  DeliveryIssuanceInvalidLimit
+  DeliveryIssuanceInvalidOutcome
+  DeliveryIssuanceEncoding
+  DeliveryIssuanceContract(PublicationContractIssue)
+  DeliveryIssuanceTransition(DeliveryTransitionIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum DeliveryTransitionIssue {
   DeliveryWrongContract

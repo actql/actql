@@ -36,6 +36,43 @@ function invocation(control) {
   }), limits);
 }
 
+function deliveryRoot(control) {
+  const artifact = control.seal('result_artifact', JSON.stringify({
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: cid('1'),
+    invocation_cid: cid('2'),
+    logical_result_cid: cid('3'),
+    result_schema_cid: cid('4'),
+    ordering_evidence_cid: cid('5'),
+    actual_row_count: 1,
+    actual_completeness: 'complete',
+    effective_data_policy_cid: cid('6'),
+    effective_retention_policy_cid: cid('7'),
+    provenance_evidence_cids: [cid('8')],
+  }), limits);
+  const manifest = control.seal('result_manifest', JSON.stringify({
+    version: 'actql-result-manifest/0.1',
+    run_definition_cid: cid('9'),
+    invocation_cid: cid('2'),
+    results: {answer: JSON.parse(artifact.wire)},
+  }), limits);
+  const index = control.seal('public_index_entry', JSON.stringify({
+    version: 'actql-public-index-entry/0.1',
+    tenant_id: 'tenant',
+    authority_scope_cid: cid('a'),
+    run_definition_cid: cid('9'),
+    invocation_cid: cid('2'),
+    result_manifest_cid: manifest.identity,
+    run_receipt_cid: cid('b'),
+    captured_run_cid: cid('c'),
+    durable_result_binding_cids: [cid('d')],
+    publication_request_cid: cid('e'),
+    publication_attempt_cid: cid('f'),
+    committed_at: '2026-09-18T00:00:00.000Z',
+  }), limits);
+  return {artifact, manifest, index};
+}
+
 test('installed publication control uses the portable contract owner', () => {
   const control = runtimeCore(moon).publicationControl;
   const sealed = invocation(control);
@@ -57,6 +94,77 @@ test('installed publication control uses the portable contract owner', () => {
   assert.throws(
     () => control.recordAllowsCommit(Object.freeze({...sealed})),
     /Foreign publication contract/u,
+  );
+});
+
+test('portable delivery owner binds grants attempts and receipts', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const {artifact, manifest, index} = deliveryRoot(control);
+  assert.equal(
+    control.resultSerializationContractCid('json', limits),
+    'sha256:f8a9922a194323d7b0f33733eb29753a6b68b48becee913cedb30a23a97cedf8',
+  );
+  const grant = control.issueResultReadGrant(index, manifest, {
+    resultNames: ['answer'],
+    formats: ['json', 'jsonl', 'csv'],
+    principalId: 'principal',
+    purpose: 'download',
+    dataCeilingCid: cid('1'),
+    maxBytes: 4096,
+    maxUses: 2,
+    expiresAt: '2026-09-19T00:00:00.000Z',
+    authorizationContextCid: cid('2'),
+    egressAdmissionCid: cid('3'),
+  }, limits);
+  assert.deepEqual(JSON.parse(grant.wire).results, [{
+    result_artifact_cid: artifact.identity,
+    result_name: 'answer',
+  }]);
+  const attempt = control.issueDeliveryAttempt(
+    index,
+    manifest,
+    grant,
+    {
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'attempt-1',
+      requestedAt: '2026-09-18T01:00:00.000Z',
+    },
+    limits,
+  );
+  const streaming = control.issueDeliveryRecord(attempt, undefined, {
+    state: 'streaming',
+    confirmedByteCount: 0,
+    exposure: 'exact',
+    possibleUnconfirmedMaxBytes: undefined,
+    deliveredSha256: undefined,
+    receipt: undefined,
+    failureCid: undefined,
+    observedAt: '2026-09-18T01:00:00.000Z',
+    cleanupOwnerCids: [],
+  }, limits);
+  const receipt = control.issueResultDeliveryReceipt(
+    index,
+    manifest,
+    grant,
+    attempt,
+    {byteCount: 2, sha256: '0'.repeat(64)},
+    limits,
+  );
+  const succeeded = control.issueDeliveryRecord(attempt, streaming, {
+    state: 'succeeded',
+    confirmedByteCount: 2,
+    exposure: 'exact',
+    possibleUnconfirmedMaxBytes: undefined,
+    deliveredSha256: '0'.repeat(64),
+    receipt,
+    failureCid: undefined,
+    observedAt: '2026-09-18T01:00:01.000Z',
+    cleanupOwnerCids: [],
+  }, limits);
+  assert.equal(
+    JSON.parse(succeeded.wire).result_delivery_receipt_cid,
+    receipt.identity,
   );
 });
 
