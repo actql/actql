@@ -60,11 +60,15 @@ pub fn validate_delivery_record_transition(PublicationContract?, PublicationCont
 
 pub fn validate_effect_free_publication_commit(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, PublicationCommitIssue]
 
+pub fn validate_effect_free_publication_commit_with_result_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, PublicationCommitIssue]
+
 pub fn validate_effect_free_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
 pub fn validate_result_artifact_evidence(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
+
+pub fn validate_result_evidence_set(Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract]) -> Result[Unit, ResultEvidenceSetIssue]
 
 pub fn validate_result_occurrence_ordering_evidence(PublicationContract, PublicationContract, PublicationContract, String, String, String) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue]
 
@@ -88,6 +92,7 @@ pub(all) enum DeliveryTransitionIssue {
 
 pub(all) enum PublicationCommitIssue {
   CommitEvidence(RunEvidenceChainIssue)
+  CommitResultEvidence(ResultEvidenceSetIssue)
   CommitWrongContract(String)
   CommitReferenceMismatch(String)
   CommitInventoryMismatch
@@ -175,6 +180,17 @@ pub(all) enum ResultDefinitionIssue {
   ResultNameLimit
   Contract(PublicationContractIssue)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultEvidenceSetIssue {
+  ResultEvidenceCount
+  ResultEvidenceMissingDefinition
+  ResultEvidenceMissingDerivation
+  ResultEvidenceMissingOrdering
+  ResultEvidenceMissingRetention
+  ResultEvidenceDuplicate
+  ResultEvidenceArtifact(ResultArtifactEvidenceIssue)
+  ResultEvidenceOrdering(ResultOrderingEvidenceIssue)
 } derive(Eq, @debug.Debug)
 
 type ResultOrderingEvidence

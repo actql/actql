@@ -811,13 +811,19 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       'invocation',
       'definitions',
       'artifacts',
+      'derivations',
+      'orderings',
+      'retentions',
       'manifest',
       'receipt',
       'capturedRun',
     ]) || !Array.isArray(suppliedEvidence.definitions) ||
         suppliedEvidence.definitions.length === 0 ||
         !Array.isArray(suppliedEvidence.artifacts) ||
-        suppliedEvidence.artifacts.length === 0) {
+        suppliedEvidence.artifacts.length === 0 ||
+        !Array.isArray(suppliedEvidence.derivations) ||
+        !Array.isArray(suppliedEvidence.orderings) ||
+        !Array.isArray(suppliedEvidence.retentions)) {
       fail('InvalidPublicationCommitEvidence');
     }
     const evidenceContracts = [
@@ -825,6 +831,9 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       suppliedEvidence.invocation,
       ...suppliedEvidence.definitions,
       ...suppliedEvidence.artifacts,
+      ...suppliedEvidence.derivations,
+      ...suppliedEvidence.orderings,
+      ...suppliedEvidence.retentions,
       suppliedEvidence.manifest,
       suppliedEvidence.receipt,
       suppliedEvidence.capturedRun,
@@ -862,6 +871,9 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         suppliedEvidence.invocation,
         suppliedEvidence.definitions,
         suppliedEvidence.artifacts,
+        suppliedEvidence.derivations,
+        suppliedEvidence.orderings,
+        suppliedEvidence.retentions,
         suppliedEvidence.manifest,
         suppliedEvidence.receipt,
         suppliedEvidence.capturedRun,

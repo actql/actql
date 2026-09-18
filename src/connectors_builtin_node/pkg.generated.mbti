@@ -49,7 +49,7 @@ pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[
 
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
-pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 

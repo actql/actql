@@ -13,6 +13,7 @@ pub(all) enum RunEvidenceChainIssue {
 ///|
 pub(all) enum PublicationCommitIssue {
   CommitEvidence(RunEvidenceChainIssue)
+  CommitResultEvidence(ResultEvidenceSetIssue)
   CommitWrongContract(String)
   CommitReferenceMismatch(String)
   CommitInventoryMismatch
@@ -28,6 +29,42 @@ fn evidence_object(
     Some(child) if object_fields(child) is Ok(_) => Ok(child)
     _ => Err(EvidenceMissingField(field))
   }
+}
+
+///|
+/// Validate a publication commit together with every Result dependency that
+/// the 12-field Artifact references. The older root-chain validator remains a
+/// bounded structural primitive; product commit paths must use this complete
+/// variant so evidence CIDs cannot be dangling placeholders.
+pub fn validate_effect_free_publication_commit_with_result_evidence(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationCommitIssue] {
+  match
+    validate_result_evidence_set(
+      definitions, artifacts, derivations, orderings, retentions,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(CommitResultEvidence(issue))
+  }
+  validate_effect_free_publication_commit(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    request, attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
+  )
 }
 
 ///|

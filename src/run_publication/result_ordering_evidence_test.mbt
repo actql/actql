@@ -140,6 +140,26 @@ test "Result ordering requires its exact admitted derivation witness" {
     validate_result_artifact_evidence(definition, artifact, evidence, retention),
     Ok(()),
   )
+  assert_eq(
+    validate_result_evidence_set(
+      [definition],
+      [artifact],
+      [result_ordering_derivation_contract(evidence)],
+      [result_ordering_evidence_contract(evidence)],
+      [retention],
+    ),
+    Ok(()),
+  )
+  assert_true(
+    validate_result_evidence_set(
+      [definition],
+      [artifact],
+      [],
+      [result_ordering_evidence_contract(evidence)],
+      [retention],
+    )
+    is Err(ResultEvidenceCount),
+  )
 }
 
 ///|

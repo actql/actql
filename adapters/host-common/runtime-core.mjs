@@ -127,12 +127,16 @@ function publicationControl(moon) {
       );
     },
     effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
-      manifest, receipt, capturedRun, request, attempt, indexEntry, limits) {
+      derivations, orderings, retentions, manifest, receipt, capturedRun,
+      request, attempt, indexEntry, limits) {
       return moon.strategyEffectFreePublicationCommitValid(
         token(runDefinition),
         token(invocation),
         definitions.map(token),
         artifacts.map(token),
+        derivations.map(token),
+        orderings.map(token),
+        retentions.map(token),
         token(manifest),
         token(receipt),
         token(capturedRun),

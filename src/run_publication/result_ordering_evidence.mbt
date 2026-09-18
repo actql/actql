@@ -35,6 +35,18 @@ pub(all) enum ResultArtifactEvidenceIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum ResultEvidenceSetIssue {
+  ResultEvidenceCount
+  ResultEvidenceMissingDefinition
+  ResultEvidenceMissingDerivation
+  ResultEvidenceMissingOrdering
+  ResultEvidenceMissingRetention
+  ResultEvidenceDuplicate
+  ResultEvidenceArtifact(ResultArtifactEvidenceIssue)
+  ResultEvidenceOrdering(ResultOrderingEvidenceIssue)
+} derive(Eq, Debug)
+
+///|
 fn exact_occurrence_order(value : @json.CanonicalValue) -> Bool {
   guard object_fields(value) is Ok(fields) else { return false }
   guard field_value(fields, "terms") is Some(@json.Array(values)) else {
@@ -212,6 +224,117 @@ pub fn validate_result_artifact_evidence(
       evidence.derivation.identity,
     ) {
     return Err(ArtifactMissingDerivation)
+  }
+  Ok(())
+}
+
+///|
+fn unique_contract_by_identity(
+  contracts : Array[PublicationContract],
+  identity : String,
+) -> PublicationContract? {
+  let matches = contracts.filter(contract => contract.identity == identity)
+  if matches.length() == 1 {
+    Some(matches[0])
+  } else {
+    None
+  }
+}
+
+///|
+fn ordering_derivation_cid(ordering : PublicationContract) -> String? {
+  guard @json.object_field(ordering.value, "witness_evidence")
+    is Some(@json.Array(values)) else {
+    return None
+  }
+  let witnesses = @json.array_values(values)
+  if witnesses.length() != 1 {
+    return None
+  }
+  guard object_fields(witnesses[0]) is Ok(fields) else { return None }
+  if optional_string(field_value(fields, "kind")) != Some("derivation") {
+    return None
+  }
+  optional_string(field_value(fields, "cid"))
+}
+
+///|
+/// Resolve every Artifact dependency from the exact supplied evidence set.
+/// Equal content may share physical bytes, but dependency contracts remain
+/// one-to-one with the declared Result occurrence and no unreferenced evidence
+/// is accepted into the publication commit inventory.
+pub fn validate_result_evidence_set(
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+) -> Result[Unit, ResultEvidenceSetIssue] {
+  if definitions.length() != artifacts.length() ||
+    artifacts.length() != derivations.length() ||
+    artifacts.length() != orderings.length() ||
+    artifacts.length() != retentions.length() {
+    return Err(ResultEvidenceCount)
+  }
+  let used_derivations : Array[String] = []
+  let used_orderings : Array[String] = []
+  let used_retentions : Array[String] = []
+  for artifact in artifacts {
+    guard contract_string(artifact, "result_definition_cid")
+      is Some(definition_cid) else {
+      return Err(ResultEvidenceMissingDefinition)
+    }
+    guard unique_contract_by_identity(definitions, definition_cid)
+      is Some(definition) else {
+      return Err(ResultEvidenceMissingDefinition)
+    }
+    guard contract_string(artifact, "ordering_evidence_cid")
+      is Some(ordering_cid) else {
+      return Err(ResultEvidenceMissingOrdering)
+    }
+    guard unique_contract_by_identity(orderings, ordering_cid) is Some(ordering) else {
+      return Err(ResultEvidenceMissingOrdering)
+    }
+    guard ordering_derivation_cid(ordering) is Some(derivation_cid) else {
+      return Err(ResultEvidenceMissingDerivation)
+    }
+    guard unique_contract_by_identity(derivations, derivation_cid)
+      is Some(derivation) else {
+      return Err(ResultEvidenceMissingDerivation)
+    }
+    guard contract_string(artifact, "effective_retention_policy_cid")
+      is Some(retention_cid) else {
+      return Err(ResultEvidenceMissingRetention)
+    }
+    guard unique_contract_by_identity(retentions, retention_cid)
+      is Some(retention) else {
+      return Err(ResultEvidenceMissingRetention)
+    }
+    if used_derivations.contains(derivation_cid) ||
+      used_orderings.contains(ordering_cid) ||
+      used_retentions.contains(retention_cid) {
+      return Err(ResultEvidenceDuplicate)
+    }
+    used_derivations.push(derivation_cid)
+    used_orderings.push(ordering_cid)
+    used_retentions.push(retention_cid)
+    let logical = contract_string(artifact, "logical_result_cid").unwrap()
+    let schema = contract_string(artifact, "result_schema_cid").unwrap()
+    let policy = contract_string(artifact, "effective_data_policy_cid").unwrap()
+    let evidence = match
+      validate_result_occurrence_ordering_evidence(
+        definition, derivation, ordering, logical, schema, policy,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(ResultEvidenceOrdering(issue))
+    }
+    match
+      validate_result_artifact_evidence(
+        definition, artifact, evidence, retention,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(ResultEvidenceArtifact(issue))
+    }
   }
   Ok(())
 }
