@@ -36,7 +36,8 @@ function validateStore(store) {
   if (store === null || typeof store !== 'object' ||
       !['putPublicationContract', 'createAttempt', 'latestRecord',
         'latestRecordContract', 'appendRecord', 'commitIndex',
-        'inspectCommittedIndex', 'readPublicationContract']
+        'inspectCommittedIndex', 'readPublicationContract',
+        'validateCommittedEvidence']
         .every(name => typeof store[name] === 'function')) {
     fail('InvalidRunPublicationStore');
   }
@@ -295,6 +296,7 @@ export async function publishEffectFreeRun(options) {
     store, control, evidence, publicationRequest, key, limits,
   );
   if (existing !== undefined) {
+    await store.validateCommittedEvidence(existing.index, evidence);
     if (existing.attempt.identity === publicationAttempt.identity) {
       await finishCommittedAttempt(
         store, control, existing.attempt, existing.index, now, limits,

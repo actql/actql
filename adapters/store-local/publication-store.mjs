@@ -269,6 +269,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
   let reservedBytes = 0;
   let reservedObjects = 0;
   let closed = false;
+  const preparedObjects = new Map();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
@@ -479,6 +480,102 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         reservationHeld,
       }),
     });
+  };
+
+  const createPreparedObjectWriter = maxBytes => {
+    const writer = createObjectWriter(maxBytes);
+    return Object.freeze({
+      append: frame => writer.append(frame),
+      cancel: () => writer.cancel(),
+      status: () => writer.status(),
+      async seal(expectedCid) {
+        const physical = await writer.seal(expectedCid);
+        let group = preparedObjects.get(physical.cid);
+        if (group === undefined) {
+          group = {
+            holders: new Set(),
+            removable: physical.created,
+            committed: false,
+            busy: Promise.resolve(),
+          };
+          preparedObjects.set(physical.cid, group);
+        } else if (physical.created) {
+          group.removable = true;
+        }
+        const errors = [];
+        const holder = {active: true, releasing: undefined};
+        group.holders.add(holder);
+        const state = () => Object.freeze({
+          pending: holder.active,
+          errors: Object.freeze([...errors]),
+        });
+        const release = () => {
+          if (!holder.active) return Promise.resolve(false);
+          if (holder.releasing !== undefined) return holder.releasing;
+          const operation = group.busy.then(async () => {
+            if (!holder.active) return false;
+            if (group.committed || group.holders.size > 1 ||
+                !group.removable) {
+              group.holders.delete(holder);
+              holder.active = false;
+              if (group.holders.size === 0) {
+                preparedObjects.delete(physical.cid);
+              }
+              return true;
+            }
+            const path = objectPath(physical.cid);
+            const before = await lstat(path);
+            if (!before.isFile() || before.size !== physical.bytes) {
+              fail('InvalidPublicationStoreObject');
+            }
+            // Semantic contracts and public index entries are hard links to
+            // their physical object. Never reclaim an allocation with another
+            // filesystem owner, even if the prepared holder is the creator.
+            if (before.nlink !== 1) {
+              group.holders.delete(holder);
+              holder.active = false;
+              preparedObjects.delete(physical.cid);
+              return true;
+            }
+            await unlink(path);
+            await syncDirectory(objectsDirectory);
+            storedBytes -= before.size;
+            objectCount--;
+            group.holders.delete(holder);
+            holder.active = false;
+            preparedObjects.delete(physical.cid);
+            return true;
+          });
+          group.busy = operation.catch(() => {});
+          holder.releasing = operation.catch(error => {
+            errors.push(error);
+            throw error;
+          }).finally(() => { holder.releasing = undefined; });
+          return holder.releasing;
+        };
+        const prepared = Object.freeze({
+          cid: physical.cid,
+          status: state,
+          release,
+          async retry() {
+            if (holder.active) await release();
+            return state();
+          },
+        });
+        return Object.freeze({...physical, prepared});
+      },
+    });
+  };
+
+  const adoptPreparedObjects = cids => {
+    for (const cid of cids) {
+      const group = preparedObjects.get(cid);
+      if (group === undefined) continue;
+      group.committed = true;
+      for (const holder of group.holders) holder.active = false;
+      group.holders.clear();
+      preparedObjects.delete(cid);
+    }
   };
 
   const putBytes = async (value, expectedCid) => {
@@ -798,31 +895,12 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     return entry;
   };
 
-  const commitIndex = async (
-    suppliedWire,
-    requiredObjectCids,
+  const verifyCommitEvidence = async (
+    admitted,
+    entry,
     suppliedEvidence,
+    required,
   ) => {
-    active();
-    const admitted = admitContract('public_index_entry', suppliedWire);
-    const entry = parseContract(admitted);
-    if (!Array.isArray(requiredObjectCids) ||
-        new Set(requiredObjectCids).size !== requiredObjectCids.length ||
-        requiredObjectCids.some(cid => !cidPattern.test(cid))) {
-      fail('InvalidPublicationCommitInventory');
-    }
-    const required = new Set(requiredObjectCids);
-    for (const cid of [
-      entry.invocation_cid,
-      entry.result_manifest_cid,
-      entry.run_receipt_cid,
-      entry.captured_run_cid,
-      ...entry.durable_result_binding_cids,
-      entry.publication_request_cid,
-      entry.publication_attempt_cid,
-    ]) {
-      if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
-    }
     if (!exactKeys(suppliedEvidence, [
       'runDefinition',
       'invocation',
@@ -865,7 +943,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
           typeof contract.identityField !== 'string' ||
           !cidPattern.test(contract.identity) ||
           typeof contract.wire !== 'string' ||
-          !required.has(contract.identity)) {
+          required !== undefined && !required.has(contract.identity)) {
         fail('InvalidPublicationCommitEvidence');
       }
       const persisted = await readSemanticBytes(contract.identity);
@@ -873,10 +951,11 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
         fail('PublicationCommitEvidenceMismatch');
       }
     }
+    const boundPhysicalCids = [];
     for (const contract of suppliedEvidence.durableBindings) {
-      await verifyDurableResultBinding(contract);
+      const verified = await verifyDurableResultBinding(contract);
+      boundPhysicalCids.push(verified.binding.material_generation_cid);
     }
-    for (const cid of required) await readSemanticBytes(cid);
     const attemptStored = await readContract(
       entry.publication_attempt_cid, 'publication_attempt',
     );
@@ -911,6 +990,69 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       fail('InvalidPublicationCommitChain', error);
     }
     if (chainValid !== true) fail('InvalidPublicationCommitChain');
+    return boundPhysicalCids;
+  };
+
+  const validateCommittedEvidence = async (
+    suppliedIndex,
+    suppliedEvidence,
+  ) => {
+    active();
+    if (!exactKeys(suppliedIndex, [
+      'name', 'identityField', 'identity', 'wire',
+    ]) || suppliedIndex.name !== 'public_index_entry') {
+      fail('InvalidCommittedPublicationIndex');
+    }
+    const admitted = admitContract('public_index_entry', suppliedIndex.wire);
+    if (admitted.identity !== suppliedIndex.identity) {
+      fail('InvalidCommittedPublicationIndex');
+    }
+    const entry = parseContract(admitted);
+    const key = {
+      tenantId: entry.tenant_id,
+      authorityScopeCid: entry.authority_scope_cid,
+      runDefinitionCid: entry.run_definition_cid,
+    };
+    const committed = await inspectCommittedIndex(key);
+    if (committed?.public_index_entry_cid !== admitted.identity) {
+      fail('InvalidCommittedPublicationIndex');
+    }
+    const boundPhysicalCids = await verifyCommitEvidence(
+      admitted, entry, suppliedEvidence, undefined,
+    );
+    adoptPreparedObjects(boundPhysicalCids);
+    return true;
+  };
+
+  const commitIndex = async (
+    suppliedWire,
+    requiredObjectCids,
+    suppliedEvidence,
+  ) => {
+    active();
+    const admitted = admitContract('public_index_entry', suppliedWire);
+    const entry = parseContract(admitted);
+    if (!Array.isArray(requiredObjectCids) ||
+        new Set(requiredObjectCids).size !== requiredObjectCids.length ||
+        requiredObjectCids.some(cid => !cidPattern.test(cid))) {
+      fail('InvalidPublicationCommitInventory');
+    }
+    const required = new Set(requiredObjectCids);
+    for (const cid of [
+      entry.invocation_cid,
+      entry.result_manifest_cid,
+      entry.run_receipt_cid,
+      entry.captured_run_cid,
+      ...entry.durable_result_binding_cids,
+      entry.publication_request_cid,
+      entry.publication_attempt_cid,
+    ]) {
+      if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
+    }
+    for (const cid of required) await readSemanticBytes(cid);
+    const boundPhysicalCids = await verifyCommitEvidence(
+      admitted, entry, suppliedEvidence, required,
+    );
     const previous = await latestRecordContract(entry.publication_attempt_cid);
     if (previous === undefined ||
         contractControl.recordAllowsCommit(previous) !== true) {
@@ -926,6 +1068,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     try {
       await link(contractPath(entry.public_index_entry_cid), target);
       await syncDirectory(indexesDirectory);
+      adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({entry, committed: true, idempotent: false});
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
@@ -935,6 +1078,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
           existing.publication_request_cid !== entry.publication_request_cid) {
         fail('PublicationCommitConflict');
       }
+      adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({
         entry: existing,
         committed: false,
@@ -1024,6 +1168,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
   return Object.freeze({
     storeAuthorityCid: configuration.storeAuthorityCid,
     createObjectWriter,
+    createPreparedObjectWriter,
     putBytes,
     putSemantic,
     putPublicationContract,
@@ -1044,6 +1189,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     latestRecordContract,
     appendRecord,
     commitIndex,
+    validateCommittedEvidence,
     inspectCommittedIndex,
     lookupCommittedIndex,
     status() {
@@ -1058,7 +1204,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     },
     close() {
       closed = true;
-      if (reservedObjects !== 0) {
+      if (reservedObjects !== 0 || preparedObjects.size !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));

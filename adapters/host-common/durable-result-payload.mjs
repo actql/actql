@@ -41,16 +41,18 @@ function validIdentity(value) {
       Number.isSafeInteger(value[name]) && value[name] >= 0);
 }
 
-function payloadFailure(reason, cleanupErrors, writer) {
+function payloadFailure(reason, cleanupErrors, writer, prepared) {
   const failure = reason instanceof Error
     ? reason
     : new DurableResultPayloadError('DurableResultPayloadFailed', reason);
   if (cleanupErrors.length !== 0) {
     failure.cleanupErrors = Object.freeze([...cleanupErrors]);
   }
-  if (writer?.status().reservationHeld === true) {
+  if (writer?.status().reservationHeld === true ||
+      prepared?.status().pending === true) {
     const status = () => Object.freeze({
-      pending: writer.status().reservationHeld === true,
+      pending: writer?.status().reservationHeld === true ||
+        prepared?.status().pending === true,
       errors: Object.freeze([...cleanupErrors]),
     });
     failure.cleanupPending = true;
@@ -59,6 +61,10 @@ function payloadFailure(reason, cleanupErrors, writer) {
       async retry() {
         if (writer.status().reservationHeld === true) {
           try { await writer.cancel(); }
+          catch (error) { cleanupErrors.push(error); }
+        }
+        if (prepared?.status().pending === true) {
+          try { await prepared.retry(); }
           catch (error) { cleanupErrors.push(error); }
         }
         failure.cleanupPending = status().pending;
@@ -115,7 +121,9 @@ export async function storeCompletedResultPublicationPayload(
   publication,
   signal,
 ) {
-  if (!validStore(store) || !validResultControl(control) ||
+  if (!validStore(store) ||
+      typeof store.createPreparedObjectWriter !== 'function' ||
+      !validResultControl(control) ||
       typeof control.issueResultEvidence !== 'function' ||
       publication === null || typeof publication !== 'object' ||
       typeof publication.control?.issueResultArtifact !== 'function' ||
@@ -163,6 +171,7 @@ export async function storeCompletedResultPublicationPayload(
         byteCount: physical.bytes,
         physicalSha256: physical.cid.slice('sha256:'.length),
       }, publication.limits),
+    true,
   );
 }
 
@@ -174,15 +183,19 @@ async function storeCompletedPayload(
   signal,
   issueEvidence,
   issuePhysicalEvidence,
+  preparePhysical = false,
 ) {
   signal?.throwIfAborted();
   let exportHandle;
   let writer;
+  let prepared;
   let sealed = false;
   let exportReleased = false;
   try {
     exportHandle = beginExport();
-    writer = store.createObjectWriter(limits.maxWireBytes);
+    writer = preparePhysical
+      ? store.createPreparedObjectWriter(limits.maxWireBytes)
+      : store.createObjectWriter(limits.maxWireBytes);
     for (;;) {
       signal?.throwIfAborted();
       const part = control.next(exportHandle);
@@ -200,7 +213,13 @@ async function storeCompletedPayload(
       fail('InvalidDurableResultPayloadIdentity');
     }
     const publication = issueEvidence?.(exportHandle);
-    const physical = await writer.seal(orderedRows.orderedRowsCid);
+    const sealedPhysical = await writer.seal(orderedRows.orderedRowsCid);
+    prepared = sealedPhysical.prepared;
+    const physical = Object.freeze({
+      cid: sealedPhysical.cid,
+      bytes: sealedPhysical.bytes,
+      created: sealedPhysical.created,
+    });
     sealed = true;
     if (physical.bytes !== orderedRows.bytes ||
         physical.cid !== orderedRows.orderedRowsCid) {
@@ -216,6 +235,7 @@ async function storeCompletedPayload(
       orderedRows: Object.freeze({...orderedRows}),
       ...(publication === undefined ? {} : {
         publication: Object.freeze({...publication, durableBinding}),
+        prepared,
       }),
     });
   } catch (reason) {
@@ -224,10 +244,14 @@ async function storeCompletedPayload(
       try { await writer.cancel(); }
       catch (error) { cleanupErrors.push(error); }
     }
+    if (prepared?.status().pending === true) {
+      try { await prepared.release(); }
+      catch (error) { cleanupErrors.push(error); }
+    }
     if (exportHandle !== undefined && !exportReleased) {
       try { control.cancel(exportHandle); }
       catch (error) { cleanupErrors.push(error); }
     }
-    throw payloadFailure(reason, cleanupErrors, writer);
+    throw payloadFailure(reason, cleanupErrors, writer, prepared);
   }
 }

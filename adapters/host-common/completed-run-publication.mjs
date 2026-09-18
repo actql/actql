@@ -79,6 +79,45 @@ function validateOptions(options) {
   }
 }
 
+async function releasePreparedResults(exported, primary) {
+  const handles = exported
+    .map(value => value?.prepared)
+    .filter(value => value !== undefined && value?.status().pending === true);
+  const errors = [];
+  for (let index = handles.length - 1; index >= 0; index--) {
+    try { await handles[index].release(); }
+    catch (error) { errors.push(error); }
+  }
+  const pending = handles.filter(value => value.status().pending === true);
+  if (pending.length === 0) throw primary;
+  const failure = new CompletedRunPublicationError(
+    typeof primary?.code === 'string'
+      ? primary.code : 'CompletedRunPublicationFailed',
+    primary,
+  );
+  const status = () => Object.freeze({
+    pending: pending.some(value => value.status().pending === true),
+    errors: Object.freeze([...errors]),
+  });
+  failure.primaryFailure = primary;
+  failure.cleanupPending = true;
+  failure.cleanupErrors = status().errors;
+  failure.cleanupHandle = Object.freeze({
+    status,
+    async retry() {
+      for (const handle of pending) {
+        if (handle.status().pending !== true) continue;
+        try { await handle.retry(); }
+        catch (error) { errors.push(error); }
+      }
+      failure.cleanupPending = status().pending;
+      failure.cleanupErrors = status().errors;
+      return status();
+    },
+  });
+  throw failure;
+}
+
 export async function publishCompletedEffectFreeRun(options) {
   validateOptions(options);
   const {
@@ -102,96 +141,104 @@ export async function publishCompletedEffectFreeRun(options) {
     signal,
   } = options;
   const exported = [];
-  for (let index = 0; index < results.length; index++) {
+  try {
+    for (let index = 0; index < results.length; index++) {
+      signal?.throwIfAborted();
+      const stored = await execution.storePublicationResult(index, store, {
+        outputLimits,
+        contractLimits,
+        runDefinition,
+        invocation,
+        retention: results[index].retention,
+        evidenceContext: results[index].evidenceContext,
+      }, signal);
+      const expected = execution.publicationInventory.occurrences[index];
+      if (stored?.occurrence?.name !== expected.name ||
+          stored?.occurrence?.task !== expected.task ||
+          stored?.occurrence?.definition?.identity !==
+            expected.definitionContract.identity ||
+          !contract(stored?.publication?.artifact) ||
+          !contract(stored?.publication?.derivation) ||
+          !contract(stored?.publication?.ordering) ||
+          !contract(stored?.publication?.durableBinding) ||
+          stored?.publication?.snapshot === undefined) {
+        if (stored?.prepared !== undefined) exported.push(stored);
+        fail('InvalidCompletedRunPublicationExport');
+      }
+      exported.push(stored);
+    }
     signal?.throwIfAborted();
-    const stored = await execution.storePublicationResult(index, store, {
-      outputLimits,
-      contractLimits,
+    const definitions = execution.publicationInventory.occurrences
+      .map(value => value.definitionContract);
+    const artifacts = exported.map(value => value.publication.artifact);
+    const manifest = control.issueResultManifest(
+      runDefinition, invocation, definitions, artifacts, contractLimits,
+    );
+    const receipt = control.issueEffectFreeRunReceipt({
+      admission,
       runDefinition,
       invocation,
-      retention: results[index].retention,
-      evidenceContext: results[index].evidenceContext,
-    }, signal);
-    const expected = execution.publicationInventory.occurrences[index];
-    if (stored?.occurrence?.name !== expected.name ||
-        stored?.occurrence?.task !== expected.task ||
-        stored?.occurrence?.definition?.identity !==
-          expected.definitionContract.identity ||
-        !contract(stored?.publication?.artifact) ||
-        !contract(stored?.publication?.derivation) ||
-        !contract(stored?.publication?.ordering) ||
-        !contract(stored?.publication?.durableBinding) ||
-        stored?.publication?.snapshot === undefined) {
-      fail('InvalidCompletedRunPublicationExport');
+      observation,
+      definitions,
+      artifacts,
+      manifest,
+    }, {
+      normalizationJournal,
+      ...receiptEvidence,
+    }, contractLimits);
+    const capturedRun = control.issueEffectFreeCapturedRun({
+      runDefinition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+    }, {
+      snapshots: exported.map(value => value.publication.snapshot),
+      pendingSourceStateAdvances:
+        captureEvidence.pendingSourceStateAdvances,
+      authoringContext,
+      modelEvidence: captureEvidence.modelEvidence,
+    }, contractLimits);
+    const evidence = Object.freeze({
+      runDefinition,
+      invocation,
+      definitions: Object.freeze(definitions),
+      artifacts: Object.freeze(artifacts),
+      derivations: Object.freeze(exported.map(
+        value => value.publication.derivation,
+      )),
+      orderings: Object.freeze(exported.map(
+        value => value.publication.ordering,
+      )),
+      retentions: Object.freeze(results.map(value => value.retention)),
+      durableBindings: Object.freeze(exported.map(
+        value => value.publication.durableBinding,
+      )),
+      manifest,
+      receipt,
+      capturedRun,
+    });
+    signal?.throwIfAborted();
+    const publication = await publishEffectFreeRun({
+      store,
+      control,
+      evidence,
+      request,
+      attempt,
+      limits: contractLimits,
+      now,
+      signal,
+    });
+    if (publication.idempotent) {
+      for (const value of exported) await value.prepared?.release();
     }
-    exported.push(stored);
+    return Object.freeze({
+      publication,
+      evidence,
+      results: Object.freeze(exported),
+    });
+  } catch (error) {
+    await releasePreparedResults(exported, error);
   }
-  signal?.throwIfAborted();
-  const definitions = execution.publicationInventory.occurrences
-    .map(value => value.definitionContract);
-  const artifacts = exported.map(value => value.publication.artifact);
-  const manifest = control.issueResultManifest(
-    runDefinition, invocation, definitions, artifacts, contractLimits,
-  );
-  const receipt = control.issueEffectFreeRunReceipt({
-    admission,
-    runDefinition,
-    invocation,
-    observation,
-    definitions,
-    artifacts,
-    manifest,
-  }, {
-    normalizationJournal,
-    ...receiptEvidence,
-  }, contractLimits);
-  const capturedRun = control.issueEffectFreeCapturedRun({
-    runDefinition,
-    invocation,
-    definitions,
-    artifacts,
-    manifest,
-    receipt,
-  }, {
-    snapshots: exported.map(value => value.publication.snapshot),
-    pendingSourceStateAdvances:
-      captureEvidence.pendingSourceStateAdvances,
-    authoringContext,
-    modelEvidence: captureEvidence.modelEvidence,
-  }, contractLimits);
-  const evidence = Object.freeze({
-    runDefinition,
-    invocation,
-    definitions: Object.freeze(definitions),
-    artifacts: Object.freeze(artifacts),
-    derivations: Object.freeze(exported.map(
-      value => value.publication.derivation,
-    )),
-    orderings: Object.freeze(exported.map(
-      value => value.publication.ordering,
-    )),
-    retentions: Object.freeze(results.map(value => value.retention)),
-    durableBindings: Object.freeze(exported.map(
-      value => value.publication.durableBinding,
-    )),
-    manifest,
-    receipt,
-    capturedRun,
-  });
-  signal?.throwIfAborted();
-  const publication = await publishEffectFreeRun({
-    store,
-    control,
-    evidence,
-    request,
-    attempt,
-    limits: contractLimits,
-    now,
-    signal,
-  });
-  return Object.freeze({
-    publication,
-    evidence,
-    results: Object.freeze(exported),
-  });
 }

@@ -190,7 +190,9 @@ async function prepareCommit(store, request, attempt, invocationValue) {
     'run_invocation', wire(invocationValue),
   );
   const payload = Buffer.from('fixture durable Result payload', 'utf8');
-  const physical = await store.putBytes(payload);
+  const writer = store.createPreparedObjectWriter(payload.byteLength);
+  await writer.append(payload);
+  const physical = await writer.seal(digest(payload));
   const bindingValue = seal('durable_result_binding', {
     version: 'actql-durable-result-binding/0.1',
     run_definition_cid: request.run_definition_cid,
@@ -231,6 +233,7 @@ async function prepareCommit(store, request, attempt, invocationValue) {
       attempt.publication_attempt_cid,
     ])],
     binding,
+    prepared: physical.prepared,
   };
 }
 
@@ -258,6 +261,31 @@ test('bounded object writes are durable, streamed, and physically addressed',
       cid: stored.cid, bytes: 6,
     });
     assert.equal(reopened.status().storedBytes, 6);
+  });
+
+test('prepared payload holdings reclaim only the final uncommitted owner',
+  async t => {
+    const {store} = await fixture(t);
+    const firstWriter = store.createPreparedObjectWriter(7);
+    await firstWriter.append('payload');
+    const first = await firstWriter.seal(digest('payload'));
+    const secondWriter = store.createPreparedObjectWriter(7);
+    await secondWriter.append('payload');
+    const second = await secondWriter.seal(digest('payload'));
+    assert.equal(first.created, true);
+    assert.equal(second.created, false);
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal(await first.prepared.release(), true);
+    assert.equal(first.prepared.status().pending, false);
+    assert.equal(second.prepared.status().pending, true);
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal(await second.prepared.release(), true);
+    assert.equal(second.prepared.status().pending, false);
+    assert.equal(store.status().storedBytes, 0);
+    await assert.rejects(
+      store.verifyObject(digest('payload')),
+      code('PublicationObjectMissing'),
+    );
   });
 
 test('writer retains capacity and cleanup identity until unlink succeeds',
@@ -470,6 +498,7 @@ test('public index is invisible before commit and survives a lost response',
       wire(entry), prepared.required, prepared.evidence,
     );
     assert.equal(committed.committed, true);
+    assert.equal(prepared.prepared.status().pending, false);
     // Simulate losing the response after the durable commit by closing without
     // appending the terminal attempt record, then reconcile after restart.
     await store.close();
@@ -549,6 +578,7 @@ test('commit verifies durable binding against the stored physical generation',
     );
     assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),
       undefined);
+    assert.equal(await prepared.prepared.release(), true);
   });
 
 test('same intent is idempotent while conflicting commit is rejected',
@@ -583,6 +613,7 @@ test('same intent is idempotent while conflicting commit is rejected',
     assert.equal(idempotent.committed, false);
     assert.equal(idempotent.idempotent, true);
     assert.deepEqual(idempotent.entry, entry);
+    assert.equal(retry.prepared.status().pending, false);
 
     const conflictingRequest = publicationRequest(
       resultDefinition('other'), invocationValue.invocation_cid,
@@ -601,6 +632,7 @@ test('same intent is idempotent while conflicting commit is rejected',
     await assert.rejects(store.commitIndex(
       wire(conflictingEntry), conflict.required, conflict.evidence,
     ), code('PublicationCommitConflict'));
+    assert.equal(await conflict.prepared.release(), true);
   });
 
 test('lookup hides absence and verifies current authorization', async t => {

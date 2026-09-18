@@ -216,6 +216,7 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(stored.publication.durableBinding, durableBinding);
     assert.deepEqual(events,
       ['evidence', 'artifact', 'snapshot', 'binding', 'cancel']);
+    assert.equal(stored.prepared.status().pending, true);
 
     const failing = {
       ...control,
@@ -235,6 +236,9 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(store.status().objectCount, 1);
     assert.equal(store.status().reservedBytes, 0);
     assert.equal(store.status().reservedObjects, 0);
+    assert.equal(await stored.prepared.release(), true);
+    assert.equal(stored.prepared.status().pending, false);
+    assert.equal(store.status().objectCount, 0);
   });
 
 test('canonical batches stream to one durable object without whole-array input',

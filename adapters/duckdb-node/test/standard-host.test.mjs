@@ -646,6 +646,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               assert.equal(bindingValue.store_authority_cid,
                 publicationStore.storeAuthorityCid);
               assert.equal(bindingValue.byte_count, stored.physical.bytes);
+              assert.equal(await stored.prepared.release(), true);
             } finally {
               await publicationStore.close();
               await rm(publicationDirectory, {recursive: true, force: true});

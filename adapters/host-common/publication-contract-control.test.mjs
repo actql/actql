@@ -996,3 +996,91 @@ test('local durable Store accepts only MoonBit-admitted contract wire',
       JSON.parse(sealed.wire),
     );
   });
+
+test('complete publication reclaims prepared payloads after a later export fails',
+  async () => {
+    const definition = Object.freeze({
+      name: 'result_definition', identity: cid('1'), wire: '{}',
+    });
+    const runDefinition = Object.freeze({
+      name: 'run_definition', identity: cid('2'), wire: '{}',
+    });
+    const invoked = Object.freeze({
+      name: 'run_invocation', identity: cid('3'), wire: '{}',
+    });
+    const retention = Object.freeze({
+      name: 'result_retention_policy', identity: cid('4'), wire: '{}',
+    });
+    let pending = true;
+    let releases = 0;
+    const prepared = Object.freeze({
+      status: () => Object.freeze({pending, errors: Object.freeze([])}),
+      async release() { releases++; pending = false; return true; },
+      async retry() { pending = false; return this.status(); },
+    });
+    const publication = Object.freeze({
+      artifact: definition,
+      derivation: definition,
+      ordering: definition,
+      durableBinding: definition,
+      snapshot: Object.freeze({}),
+    });
+    const occurrences = Object.freeze([0, 1].map((_, index) =>
+      Object.freeze({
+        name: `result-${index}`,
+        task: index + 1,
+        definitionContract: definition,
+      })));
+    const execution = Object.freeze({
+      status: 'host-tasks-completed',
+      resultInventory: occurrences,
+      publicationInventory: Object.freeze({occurrences}),
+      async storePublicationResult(index) {
+        if (index === 1) throw new Error('second export failed');
+        return Object.freeze({
+          occurrence: Object.freeze({
+            name: 'result-0', task: 1, definition,
+          }),
+          publication,
+          prepared,
+        });
+      },
+    });
+    const control = Object.freeze({
+      issueResultManifest() { assert.fail('Manifest must not be issued'); },
+      issueEffectFreeRunReceipt() { assert.fail('Receipt must not be issued'); },
+      issueEffectFreeCapturedRun() {
+        assert.fail('Captured Run must not be issued');
+      },
+    });
+    await assert.rejects(publishCompletedEffectFreeRun({
+      execution,
+      store: Object.freeze({}),
+      control,
+      admission: Object.freeze({}),
+      runDefinition,
+      invocation: invoked,
+      observation: Object.freeze({}),
+      normalizationJournal: Object.freeze({}),
+      authoringContext: Object.freeze({}),
+      results: [0, 1].map(() => ({
+        retention,
+        evidenceContext: Object.freeze({}),
+      })),
+      receiptEvidence: {
+        bindings: [], sourceEvidence: [], modelEvidence: [],
+        barrierAttemptReceiptCids: [],
+      },
+      captureEvidence: {
+        pendingSourceStateAdvances: [], modelEvidence: [],
+      },
+      request: Object.freeze({}),
+      attempt: Object.freeze({}),
+      outputLimits: Object.freeze({}),
+      contractLimits: Object.freeze({}),
+      now: () => '2026-09-18T00:00:00.000Z',
+      signal: undefined,
+    }), /second export failed/u);
+    assert.equal(releases, 1);
+    assert.equal(pending, false);
+  });
