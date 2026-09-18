@@ -30,6 +30,34 @@ test "normalization and ordering precede canonical emission" {
 }
 
 ///|
+test "strict source trees use the same canonical owner and object projection" {
+  let node = @source.parse_json(
+    "{\"z\":2,\"e\\u0301\":\"x\\r\\n\",\"identity\":\"old\"}",
+    { max_input_bytes: 100, max_nodes: 4, max_depth: 1, },
+  ).unwrap()
+  let value = @canonical_json.from_source(node, 4, 1, 20)
+  assert_eq(
+    @canonical_json.stringify_value(value, 100, 4, 1),
+    "{\"identity\":\"old\",\"z\":2,\"é\":\"x\\n\"}",
+  )
+  guard @canonical_json.object_without_field(value, "identity")
+    is Some(preimage) else {
+    fail("missing preimage")
+  }
+  guard @canonical_json.object_with_string_field(preimage, "identity", "new")
+    is Some(complete) else {
+    fail("missing sealed body")
+  }
+  assert_eq(
+    @canonical_json.stringify_value(complete, 100, 4, 1),
+    "{\"identity\":\"new\",\"z\":2,\"é\":\"x\\n\"}",
+  )
+  assert_true(
+    @canonical_json.object_with_string_field(value, "identity", "new") is None,
+  )
+}
+
+///|
 test "normalized key collisions include NFC and newline folding" {
   for
     text in [

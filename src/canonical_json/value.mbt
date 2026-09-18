@@ -158,3 +158,150 @@ pub fn from_json(
   }
   result
 }
+
+///|
+fn from_source_visit(
+  node : @source.Node,
+  budget : InputBudget,
+  depth : Int,
+) -> CanonicalValue raise CanonicalFailure {
+  if budget.nodes == 0 {
+    raise InputLimit
+  }
+  budget.nodes -= 1
+  match node.value {
+    Null => Null
+    Bool(value) => Bool(value)
+    Number(value) => {
+      if value.is_nan() ||
+        value.is_inf() ||
+        value.reinterpret_as_uint64() == 0x8000000000000000UL {
+        raise InvalidNumber
+      }
+      Number(value)
+    }
+    String(value) => String(normalize(value, budget))
+    Array(items) => {
+      if depth >= budget.depth || items.length() > budget.nodes {
+        raise InputLimit
+      }
+      let values = items.map(item => from_source_visit(item, budget, depth + 1))
+      Array({ values, })
+    }
+    Object(fields) => {
+      if depth >= budget.depth || fields.length() > budget.nodes {
+        raise InputLimit
+      }
+      let seen : Map[String, Unit] = Map([])
+      let values = fields.map(field => {
+        if budget.nodes == 0 {
+          raise InputLimit
+        }
+        let key = normalize(field.key, budget)
+        if seen.contains(key) {
+          raise DuplicateKey(key)
+        }
+        seen[key] = ()
+        (key, from_source_visit(field.value, budget, depth + 1))
+      })
+      values.sort_by((left, right) => @value.compare_utf16(left.0, right.0))
+      Object({ values, })
+    }
+  }
+}
+
+///|
+/// Convert an already bounded strict source tree into the common canonical
+/// tree. The parser and this admission retain separate budgets so a caller
+/// cannot turn a large mutable syntax tree into an unbounded identity value.
+pub fn from_source(
+  node : @source.Node,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> CanonicalValue raise CanonicalFailure {
+  if max_nodes < 1 || max_depth < 0 || max_utf16_units < 0 {
+    raise InputLimit
+  }
+  from_source_visit(
+    node,
+    { nodes: max_nodes, units: max_utf16_units, depth: max_depth, },
+    0,
+  )
+}
+
+///|
+/// Return detached sorted fields for a canonical object.
+pub fn object_fields(
+  value : CanonicalValue,
+) -> Array[(String, CanonicalValue)]? {
+  match value {
+    Object(fields) => Some(fields.values.copy())
+    _ => None
+  }
+}
+
+///|
+pub fn object_field(value : CanonicalValue, name : String) -> CanonicalValue? {
+  match value {
+    Object(fields) => {
+      for (key, item) in fields.values {
+        if key == name {
+          return Some(item)
+        }
+      }
+      None
+    }
+    _ => None
+  }
+}
+
+///|
+/// Copy an object while removing one exact member. None distinguishes a
+/// non-object or absent member from a successfully projected preimage.
+pub fn object_without_field(
+  value : CanonicalValue,
+  name : String,
+) -> CanonicalValue? {
+  match value {
+    Object(fields) => {
+      let output : Array[(String, CanonicalValue)] = []
+      let mut removed = false
+      for entry in fields.values {
+        if entry.0 == name {
+          removed = true
+        } else {
+          output.push(entry)
+        }
+      }
+      if removed {
+        Some(Object({ values: output, }))
+      } else {
+        None
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+/// Copy an object while inserting one canonical string member. Existing keys
+/// are rejected so self-identity can never overwrite caller input silently.
+pub fn object_with_string_field(
+  value : CanonicalValue,
+  name : String,
+  item : String,
+) -> CanonicalValue? {
+  match value {
+    Object(fields) => {
+      let output = fields.values.copy()
+      if output.any(entry => entry.0 == name) {
+        return None
+      }
+      output.push((name, String(item)))
+      output.sort_by((left, right) => @value.compare_utf16(left.0, right.0))
+      Some(Object({ values: output, }))
+    }
+    _ => None
+  }
+}
