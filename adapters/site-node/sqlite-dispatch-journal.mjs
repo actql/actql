@@ -8,6 +8,8 @@ import {
   realpathSync,
 } from 'node:fs';
 import {join} from 'node:path';
+import {admitRemoteDispatchJson} from
+  '../host-common/remote-dispatch-wire.mjs';
 
 const fail = (code, cause) => {
   const error = Object.assign(new Error(code, {cause}), {code});
@@ -261,35 +263,16 @@ export function openSqliteDispatchJournal(root, {
     ]);
   };
   const requestFromRow = (row, control) => {
-    let body;
-    try { body = JSON.parse(row.request_json); }
-    catch (error) { fail('InvalidRemoteJournalRequest', error); }
-    if (body === null || typeof body !== 'object' || Array.isArray(body) ||
-        body.version !== 'actql-remote-dispatch-request/0.1') {
-      fail('InvalidRemoteJournalRequest');
+    try {
+      return admitRemoteDispatchJson(
+        control,
+        row.request_json,
+        row.dispatch_request_cid,
+        maxRequestBytes,
+      );
+    } catch (error) {
+      fail('InvalidRemoteJournalRequest', error);
     }
-    const request = control.admit(Object.freeze({
-      coordinatorAuthority: body.coordinator_authority,
-      runDefinitionCid: body.run_definition_cid,
-      taskKey: body.task_key,
-      taskAttempt: body.task_attempt,
-      dispatchId: body.dispatch_id,
-      dispatchRequestCid: row.dispatch_request_cid,
-      siteKey: body.site_key,
-      siteGeneration: body.site_generation,
-      runtimeBundleCid: body.runtime_bundle_cid,
-      connectorRegistration: body.connector_registration,
-      connectorRevision: body.connector_revision,
-      strategyRevision: body.strategy_revision,
-      inputBindingCid: body.input_binding_cid,
-      obligationsCid: body.obligations_cid,
-      budgetCid: body.budget_cid,
-      grantCid: body.grant_cid,
-    }));
-    if (control.requestJson(request) !== row.request_json) {
-      fail('InvalidRemoteJournalRequest');
-    }
-    return request;
   };
   const parseProjection = value => {
     if (!Array.isArray(value) || value.length !== 18 ||
