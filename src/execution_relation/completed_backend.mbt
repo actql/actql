@@ -322,7 +322,15 @@ fn evaluate_completed_rows(
       },
       pivot: fn(kernel, input, id) {
         evaluate_pivot_rows(
-          kernel, input, id, max_rows, control, output, workspace,
+          kernel,
+          input,
+          id,
+          max_rows,
+          control,
+          output,
+          workspace,
+          numeric~,
+          step=@lower.kernel_step(kernel),
         ).map(table => RowTable(table))
       },
       lag: fn(kernel, input, id) {

@@ -398,6 +398,7 @@ test "analytic aggregates requiring numeric observation stay unsupported" {
   )
   let analytic = @lower.kernel_analytic(row_kernel(owner, 0)).unwrap()
   assert_false(analytic_execution_supported(analytic))
+  assert_true(analytic_execution_supported_with_numeric(analytic))
 }
 
 ///|

@@ -83,6 +83,24 @@ fn emit_analytic_output_row(
 
 ///|
 pub fn analytic_execution_supported(analytic : @lower.PreparedAnalytic) -> Bool {
+  analytic_execution_supported_with_profile(analytic, false)
+}
+
+///|
+/// Numeric capability changes only frame aggregates with checked observation
+/// slots. Ranking, navigation, ordering, and every other aggregate retain the
+/// same closed support predicate.
+pub fn analytic_execution_supported_with_numeric(
+  analytic : @lower.PreparedAnalytic,
+) -> Bool {
+  analytic_execution_supported_with_profile(analytic, true)
+}
+
+///|
+fn analytic_execution_supported_with_profile(
+  analytic : @lower.PreparedAnalytic,
+  numeric : Bool,
+) -> Bool {
   let schema = @lower.analytic_input_schema(analytic)
   for i in 0..<@lower.analytic_partition_count(analytic) {
     guard @schema.lookup(
@@ -118,6 +136,7 @@ pub fn analytic_execution_supported(analytic : @lower.PreparedAnalytic) -> Bool 
           !direct_aggregate_execution_supported(
             aggregate,
             @lower.analytic_position_term_count(analytic) > 0,
+            numeric~,
           ) {
           return false
         }
@@ -218,12 +237,14 @@ fn[T : RelationRows] evaluate_analytic_into(
   aggregate_outputs : Array[SelectedAggregateOutput],
   envelope : SelectedAnalyticEnvelope?,
   identity_limits : ValueLimits,
+  numeric : NumericAggregateExecution?,
+  step~ : Int,
   accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
     Unit,
     RowIssue,
   ],
 ) -> Result[Array[String], RowIssue] {
-  if !analytic_execution_supported(analytic) {
+  if !analytic_execution_supported_with_profile(analytic, numeric is Some(_)) {
     return Err(InvalidRows)
   }
   let names = input.field_names()
@@ -697,6 +718,9 @@ fn[T : RelationRows] evaluate_analytic_into(
                   aggregate_outputs,
                   identity_limits,
                   scope,
+                  numeric~,
+                  numeric_step=step,
+                  numeric_occurrence=source,
                 )
               } else {
                 evaluate_direct_aggregate(
@@ -714,6 +738,9 @@ fn[T : RelationRows] evaluate_analytic_into(
                   workspace,
                   aggregate_outputs,
                   identity_limits,
+                  numeric~,
+                  numeric_step=step,
+                  numeric_occurrence=source,
                 )
               }
               let value = match computed {

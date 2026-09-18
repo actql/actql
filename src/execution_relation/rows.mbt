@@ -204,7 +204,15 @@ fn evaluate_rows_with_workspace(
       },
       pivot: fn(kernel, input, id) {
         evaluate_pivot_rows(
-          kernel, input, id, max_rows, control, output, workspace,
+          kernel,
+          input,
+          id,
+          max_rows,
+          control,
+          output,
+          workspace,
+          numeric~,
+          step=@lower.kernel_step(kernel),
         )
       },
       lag: fn(kernel, input, id) {
@@ -503,8 +511,19 @@ fn[T : RelationRows] evaluate_row_body_impl(
   if body is PreparedBody(kernel) &&
     @lower.kernel_analytic(kernel) is Some(analytic) {
     return evaluate_analytic_into(
-      analytic, input, max_rows, control, output, workspace, scope, aggregate_outputs,
-      analytic_envelope, identity_limits, accept_row,
+      analytic,
+      input,
+      max_rows,
+      control,
+      output,
+      workspace,
+      scope,
+      aggregate_outputs,
+      analytic_envelope,
+      identity_limits,
+      numeric,
+      step=@lower.kernel_step(kernel),
+      accept_row,
     )
   }
   let view_entries = match body {
