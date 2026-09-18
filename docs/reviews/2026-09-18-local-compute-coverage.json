@@ -202,7 +202,7 @@
         "managed": "complete",
         "source_connection": "complete",
         "two_consumer_e2e": "complete",
-        "three_target_conformance": "partial",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -219,7 +219,18 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "ordered nonempty projection",
+                "qualified and unqualified fields",
+                "deterministic aliasing"
+              ],
+              "obligations": [
+                "logical_order",
+                "schema"
+              ]
+            }
           },
           {
             "operation": "select",
@@ -234,7 +245,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -273,7 +289,7 @@
             "layer": "conformance",
             "path": "src/execution_relation/select_conformance_wbtest.mbt",
             "fixtures": [
-              "select preserves every directly admitted value domain and NULL",
+              "select preserves every relation value domain and NULL",
               "select resolves qualified fields and keeps authored projection order",
               "select work and retained slots scale with rows and projected width"
             ],
@@ -282,7 +298,38 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "logical_order",
+                "measurement",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "select",
+            "layer": "conformance",
+            "path": "src/execution_relation/completed_budget_wbtest.mbt",
+            "fixtures": [
+              "typed producer projection sort enforce cumulative value and retained ceilings"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "obligations": [
+                "capacity",
+                "failure_atomicity"
+              ]
+            }
           }
         ],
         "performance": [
@@ -316,9 +363,7 @@
           }
         ]
       },
-      "gaps": [
-        "Owned resource_ref and artifact_ref values lack a Local runtime representation and trusted import boundary; all directly admitted scalar and structured domains are covered."
-      ]
+      "gaps": []
     },
     {
       "operation": "rename",
@@ -3184,7 +3229,7 @@
         "managed": "complete",
         "source_connection": "complete",
         "two_consumer_e2e": "complete",
-        "three_target_conformance": "partial",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3197,14 +3242,31 @@
               "checked append aligns columns and preserves left then right order",
               "append enforces the cumulative output row ceiling",
               "append lowers every normative relation value contract",
-              "append preserves every directly admitted value domain and NULL"
+              "append preserves every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "schema alignment",
+                "left then right order"
+              ],
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "append",
@@ -3224,7 +3286,18 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and referenced right input",
+                "empty sides",
+                "shared and distinct producers"
+              ],
+              "obligations": [
+                "ownership",
+                "two_input_binding"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3271,7 +3344,7 @@
               "checked append aligns columns and preserves left then right order",
               "append enforces the cumulative output row ceiling",
               "append lowers every normative relation value contract",
-              "append preserves every directly admitted value domain and NULL"
+              "append preserves every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -3332,9 +3405,7 @@
           }
         ]
       },
-      "gaps": [
-        "All source variants, two-consumer lifetimes, schema alignment, directly admitted values, and linear work are covered; resource_ref and artifact_ref still need the shared owned-reference runtime boundary."
-      ]
+      "gaps": []
     },
     {
       "operation": "values",

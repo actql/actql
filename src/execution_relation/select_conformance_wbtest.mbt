@@ -23,45 +23,67 @@ fn select_projection(
 }
 
 ///|
-test "select preserves every directly admitted value domain and NULL" {
+test "select preserves every relation value domain and NULL" {
   let owner = capture_fixture()
   let cases = [
-    ("{\"type\":\"string\",\"nullable\":true}", "\"é\""),
-    ("{\"type\":\"number\",\"nullable\":true}", "1"),
+    ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
+    ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
     (
       "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
     ),
-    ("{\"type\":\"boolean\",\"nullable\":true}", "true"),
+    ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
     (
       "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
     ),
-    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\""),
-    ("{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}"),
+    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
+    (
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+    ),
     (
       "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
-      "{\"x\":\"v\"}",
+      "{\"x\":\"v\"}", "ordinary",
     ),
     (
       "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
-      "[1,null]",
+      "[1,null]", "ordinary",
     ),
     (
       "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
-      "[1,2]",
+      "[1,2]", "ordinary",
+    ),
+    (
+      "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}",
+      "", "resource",
+    ),
+    (
+      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "", "artifact",
     ),
   ]
-  for (contract_body, wire) in cases {
+  for (contract_body, wire, kind) in cases {
     let contract = select_checked_contract(contract_body)
     let schema = @schema.from_fields(
       [(@schema.Unqualified("input"), contract)],
       max_fields=1,
       max_name_bytes=100,
     ).unwrap()
-    let value = @admitted.admit(contract, input_cursor(wire), {
-        max_nodes: 100,
-        max_depth: 10,
-        max_text_bytes: 1000,
-      }).unwrap().value
+    let live = Ref(true)
+    let value = match kind {
+      "resource" =>
+        issued_resource_value(
+          contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          live,
+        ).value
+      "artifact" => issued_artifact_value(contract, live).value
+      _ =>
+        @admitted.admit(contract, input_cursor(wire), {
+          max_nodes: 100,
+          max_depth: 10,
+          max_text_bytes: 1000,
+        }).unwrap().value
+    }
     let null = @admitted.admit(contract, input_cursor("null"), {
         max_nodes: 1,
         max_depth: 0,
@@ -96,6 +118,7 @@ test "select preserves every directly admitted value domain and NULL" {
     assert_true(physical_equal(projected.rows[0][0], value))
     assert_true(projected.rows[1][0] is @admitted.Null)
     assert_true(physical_equal(projected.owner, owner))
+    live.val = false
   }
 }
 
