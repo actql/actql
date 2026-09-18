@@ -34,6 +34,8 @@ pub fn admitted_output_target(AdmittedOutputRows) -> @pipeline_typing.Target
 
 pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
 
+pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
+
 pub fn append_admitted_input(AdmittedInput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
 
 pub fn append_admitted_output(AdmittedOutput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
