@@ -61,7 +61,20 @@ test('Run state separates terminal outcome from per-Result availability', () => 
   const succeeded = state.allOf.find(
     rule => rule.if?.properties?.status?.const === 'succeeded',
   );
-  assert.deepEqual(succeeded.then, {not: {required: ['checkpoint']}});
+  assert.deepEqual(succeeded.then, {
+    not: {required: ['checkpoint']},
+    properties: {
+      next_action: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: {
+            enum: ['read_result', 'refresh_availability', 'none'],
+          },
+        },
+      },
+    },
+  });
   const actions = state.properties.next_action.oneOf.map(
     action => action.properties.kind.const,
   );
@@ -101,7 +114,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_receipt:
         'sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0',
       run_state:
-        'sha256:0bc3a4a564218c0a2398f187b2f3cbc98900e0788cdedf1b0fded82acc256d19',
+        'sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c',
       captured_run:
         'sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993',
     },

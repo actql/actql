@@ -166,7 +166,20 @@ export function runStateSchema(previous) {
   const succeeded = state.allOf.find(
     rule => rule.if?.properties?.status?.const === 'succeeded',
   );
-  succeeded.then = {not: {required: ['checkpoint']}};
+  succeeded.then = {
+    not: {required: ['checkpoint']},
+    properties: {
+      next_action: {
+        type: 'object',
+        required: ['kind'],
+        properties: {
+          kind: {
+            enum: ['read_result', 'refresh_availability', 'none'],
+          },
+        },
+      },
+    },
+  };
   return state;
 }
 

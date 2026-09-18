@@ -59,10 +59,17 @@ function invocation() {
 }
 
 function resultDefinition(name = 'answer') {
-  return sealPublicationContract('result_definition', {
+  const identities = Object.freeze({
+    answer:
+      'sha256:74499be8f8edb305751bf9d6e4416221358fdf4ebfaf0622fcd6b42a5f7ecfea',
+    other:
+      'sha256:754a2835ca0889f487152547a046ef480a1adc94d5370f6836acc9f9e98d91da',
+  });
+  return Object.freeze({
     version: 'actql-result-definition/0.1',
     program_definition_cid: cids.run,
     result_name: name,
+    result_definition_cid: identities[name],
   });
 }
 
@@ -185,18 +192,26 @@ test('bounded object writes are durable, streamed, and physically addressed',
 test('semantic contract identity remains distinct from physical body digest',
   async t => {
     const {store} = await fixture(t);
-    const value = resultDefinition();
+    const value = invocation();
     const stored = await store.putPublicationContract(
-      'result_definition', value,
+      'run_invocation', value,
     );
-    assert.equal(stored.semanticCid, value.result_definition_cid);
+    assert.equal(stored.semanticCid, value.invocation_cid);
     assert.notEqual(stored.physical.cid, stored.semanticCid);
     assert.deepEqual(await store.readJsonObject(
-      value.result_definition_cid, 'result_definition',
+      value.invocation_cid, 'run_invocation',
     ), value);
     await assert.rejects(store.putSemantic(
-      {...value, result_name: 'different'}, value.result_definition_cid,
+      {...value, observation_set_cid: cids.result}, value.invocation_cid,
     ), code('PublicationSemanticIdentityConflict'));
+  });
+
+test('Store cannot re-admit MoonBit-owned Result Definition semantics',
+  async t => {
+    const {store} = await fixture(t);
+    await assert.rejects(store.putPublicationContract(
+      'result_definition', resultDefinition(),
+    ), code('PublicationContractOwnedByMoonBit'));
   });
 
 test('publication records are append-only and sequence creation is CAS',

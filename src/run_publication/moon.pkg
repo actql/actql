@@ -1,0 +1,6 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/encode_core" @encode,
+}

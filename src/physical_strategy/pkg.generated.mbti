@@ -130,6 +130,14 @@ pub fn graph_data_count(CheckedDAG) -> Int
 
 pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
 
+pub fn graph_program_definition_cid(CheckedDAG) -> String
+
+pub fn graph_result_count(CheckedDAG) -> Int
+
+pub fn graph_result_name(CheckedDAG, Int) -> String?
+
+pub fn graph_result_task(CheckedDAG, Int) -> Int?
+
 pub fn graph_task_count(CheckedDAG) -> Int
 
 pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement?

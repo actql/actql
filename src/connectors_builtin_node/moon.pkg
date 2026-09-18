@@ -11,7 +11,8 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/encode_core" @encode,
-  "actql/actql/connectors/duckdb/driver" @binding7,
-  "actql/actql/connectors/local/driver" @binding8,
-  "actql/actql/connectors/reference_compute/driver" @binding9,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/connectors/duckdb/driver" @binding8,
+  "actql/actql/connectors/local/driver" @binding9,
+  "actql/actql/connectors/reference_compute/driver" @binding10,
 }

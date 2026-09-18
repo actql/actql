@@ -314,6 +314,35 @@ pub fn strategy_host_result_tasks(
 }
 
 ///|
+/// Complete Result Definition bodies sealed by the portable MoonBit contract
+/// implementation from the exact checked graph inventory.
+#export_name("strategyHostResultDefinitions")
+pub fn strategy_host_result_definitions(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] raise NodeHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  let program = @strategy.graph_program_definition_cid(graph)
+  let definitions : Array[String] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    let name = @strategy.graph_result_name(graph, index).unwrap()
+    let definition = match
+      @publication.prepare_result_definition(program, name) {
+      Ok(value) => value
+      Err(_) => raise InvalidCommand
+    }
+    definitions.push(
+      match @publication.result_definition_json(definition) {
+        Ok(value) => value
+        Err(_) => raise InvalidCommand
+      },
+    )
+  }
+  definitions
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -560,7 +589,7 @@ pub fn strategy_host_transfer_receipt(
 pub fn duckdb_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding7.duckdb_dispatch_registration(
+  @binding8.duckdb_dispatch_registration(
     @builtin.configured_duckdb_module(@builtin.configured_host_modules(setup)).unwrap(),
   )
 }
@@ -570,7 +599,7 @@ pub fn duckdb_registration(
 pub fn duckdb_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> @binding7.StrategyComputeHostConfiguration raise NodeHostFailure {
+) -> @binding8.StrategyComputeHostConfiguration raise NodeHostFailure {
   match
     @builtin.dispatch_duckdb(
       @builtin.configured_host_modules(setup),
@@ -591,7 +620,7 @@ pub fn duckdb_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding7.ManagedStrategyComputeHostConfiguration[Int]? raise NodeHostFailure {
+) -> @binding8.ManagedStrategyComputeHostConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -618,17 +647,17 @@ pub fn duckdb_managed_dispatch(
 ///|
 #export_name("strategyModule_duckdb_ManagedDuration")
 pub fn duckdb_managed_duration(
-  setup : @binding7.ManagedStrategyComputeHostConfiguration[Int],
+  setup : @binding8.ManagedStrategyComputeHostConfiguration[Int],
 ) -> Int64? {
-  @binding7.configured_managed_strategy_duration(setup)
+  @binding8.configured_managed_strategy_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_duckdb_ManagedCapacity")
 pub fn duckdb_managed_capacity(
-  setup : @binding7.ManagedStrategyComputeHostConfiguration[Int],
+  setup : @binding8.ManagedStrategyComputeHostConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding7.configured_managed_strategy_site_capacity(setup)
+  @binding8.configured_managed_strategy_site_capacity(setup)
 }
 
 ///|
@@ -636,7 +665,7 @@ pub fn duckdb_managed_capacity(
 pub fn local_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding8.local_dispatch_registration(
+  @binding9.local_dispatch_registration(
     @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
   )
 }
@@ -646,7 +675,7 @@ pub fn local_registration(
 pub fn local_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> @binding8.LocalDispatchOperations raise NodeHostFailure {
+) -> @binding9.LocalDispatchOperations raise NodeHostFailure {
   match
     @builtin.dispatch_local(
       @builtin.configured_host_modules(setup),
@@ -667,7 +696,7 @@ pub fn local_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding8.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding9.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -694,25 +723,25 @@ pub fn local_managed_dispatch(
 ///|
 #export_name("strategyModule_local_ManagedDuration")
 pub fn local_managed_duration(
-  setup : @binding8.LocalManagedDispatchConfiguration[Int],
+  setup : @binding9.LocalManagedDispatchConfiguration[Int],
 ) -> Int64? {
-  @binding8.local_managed_dispatch_duration(setup)
+  @binding9.local_managed_dispatch_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedCapacity")
 pub fn local_managed_capacity(
-  setup : @binding8.LocalManagedDispatchConfiguration[Int],
+  setup : @binding9.LocalManagedDispatchConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding8.local_managed_dispatch_site_capacity(setup)
+  @binding9.local_managed_dispatch_site_capacity(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedStart")
 pub fn local_managed_start(
-  setup : @binding8.LocalManagedDispatchConfiguration[Int],
-) -> @binding8.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
-  match @binding8.start_local_managed_dispatch_node(setup) {
+  setup : @binding9.LocalManagedDispatchConfiguration[Int],
+) -> @binding9.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding9.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -723,7 +752,7 @@ pub fn local_managed_start(
 pub fn reference_compute_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding9.numeric_contribution_registration(
+  @binding10.numeric_contribution_registration(
     @builtin.configured_reference_compute_module(
       @builtin.configured_host_modules(setup),
     ).unwrap(),
@@ -758,7 +787,7 @@ pub fn reference_compute_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding9.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding10.NumericManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -785,25 +814,25 @@ pub fn reference_compute_managed_dispatch(
 ///|
 #export_name("strategyModule_reference_compute_ManagedDuration")
 pub fn reference_compute_managed_duration(
-  setup : @binding9.NumericManagedDispatchConfiguration[Int],
+  setup : @binding10.NumericManagedDispatchConfiguration[Int],
 ) -> Int64? {
-  @binding9.numeric_managed_dispatch_duration(setup)
+  @binding10.numeric_managed_dispatch_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_reference_compute_ManagedCapacity")
 pub fn reference_compute_managed_capacity(
-  setup : @binding9.NumericManagedDispatchConfiguration[Int],
+  setup : @binding10.NumericManagedDispatchConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding9.numeric_managed_dispatch_site_capacity(setup)
+  @binding10.numeric_managed_dispatch_site_capacity(setup)
 }
 
 ///|
 #export_name("strategyModule_reference_compute_ManagedStart")
 pub fn reference_compute_managed_start(
-  setup : @binding9.NumericManagedDispatchConfiguration[Int],
-) -> @binding9.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
-  match @binding9.start_numeric_managed_dispatch_node(setup) {
+  setup : @binding10.NumericManagedDispatchConfiguration[Int],
+) -> @binding10.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding10.start_numeric_managed_dispatch_node(setup) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }

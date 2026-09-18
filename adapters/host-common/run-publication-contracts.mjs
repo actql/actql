@@ -25,6 +25,15 @@ const fail = (code, path = '$') => {
   throw Object.assign(new Error(code), {code, path});
 };
 
+function requireTransitionalJavascriptOwner(name) {
+  // Result Definition admission and identity are owned by run_publication in
+  // MoonBit. Keeping its schema visible here does not authorize a second
+  // JavaScript implementation of those semantics.
+  if (name === 'result_definition') {
+    fail('PublicationContractOwnedByMoonBit', `$.${name}`);
+  }
+}
+
 function normalizedText(value, path) {
   if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
     fail('InvalidCanonicalText', path);
@@ -176,6 +185,7 @@ export function publicationContractSchema(name) {
 }
 
 export function sealPublicationContract(name, supplied) {
+  requireTransitionalJavascriptOwner(name);
   const schema = registry.schemas[name];
   const identity = identityFields[name];
   if (!schema || !identity || supplied === null ||
@@ -193,6 +203,7 @@ export function sealPublicationContract(name, supplied) {
 }
 
 export function admitPublicationContract(name, supplied) {
+  requireTransitionalJavascriptOwner(name);
   const schema = registry.schemas[name];
   const identity = identityFields[name];
   if (!schema || !identity) fail('UnknownPublicationContract', `$.${name}`);

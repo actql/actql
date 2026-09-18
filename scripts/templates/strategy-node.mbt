@@ -296,6 +296,35 @@ pub fn strategy_host_result_tasks(
 }
 
 ///|
+/// Complete Result Definition bodies sealed by the portable MoonBit contract
+/// implementation from the exact checked graph inventory.
+#export_name("strategyHostResultDefinitions")
+pub fn strategy_host_result_definitions(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] raise NodeHostFailure {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  let program = @strategy.graph_program_definition_cid(graph)
+  let definitions : Array[String] = []
+  for index in 0..<@strategy.graph_result_count(graph) {
+    let name = @strategy.graph_result_name(graph, index).unwrap()
+    let definition = match
+      @publication.prepare_result_definition(program, name) {
+      Ok(value) => value
+      Err(_) => raise InvalidCommand
+    }
+    definitions.push(
+      match @publication.result_definition_json(definition) {
+        Ok(value) => value
+        Err(_) => raise InvalidCommand
+      },
+    )
+  }
+  definitions
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Bool {
   let run = @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))

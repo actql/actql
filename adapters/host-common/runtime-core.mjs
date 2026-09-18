@@ -7,6 +7,30 @@ const tuplePair = value => Array.isArray(value)
   : value !== null && typeof value === 'object'
     ? [value._0, value._1]
     : undefined;
+const cidPattern = /^sha256:[0-9a-f]{64}$/u;
+const resultDefinitionKeys = [
+  'program_definition_cid',
+  'result_definition_cid',
+  'result_name',
+  'version',
+];
+
+function checkedResultDefinition(text, name) {
+  let definition;
+  try { definition = JSON.parse(text); }
+  catch { throw new TypeError('Invalid checked Result Definition'); }
+  if (definition === null || typeof definition !== 'object' ||
+      Array.isArray(definition) ||
+      Object.keys(definition).sort().join('\0') !==
+        resultDefinitionKeys.join('\0') ||
+      definition.version !== 'actql-result-definition/0.1' ||
+      definition.result_name !== name ||
+      !cidPattern.test(definition.program_definition_cid) ||
+      !cidPattern.test(definition.result_definition_cid)) {
+    throw new TypeError('Invalid checked Result Definition');
+  }
+  return Object.freeze({...definition});
+}
 
 // Trusted assembly only. Standard entries bind this to their generated runtime;
 // execution requests cannot supply a verifier, SQL or replacement runtime.
@@ -17,16 +41,20 @@ export function runtimeCore(moon) {
     resultInventory(value) {
       const names = moon.strategyHostResultNames(value);
       const tasks = moon.strategyHostResultTasks(value);
+      const definitions = checked(moon.strategyHostResultDefinitions(value));
       if (!Array.isArray(names) || !Array.isArray(tasks) ||
-          names.length !== tasks.length ||
+          !Array.isArray(definitions) || names.length !== tasks.length ||
+          names.length !== definitions.length ||
           new Set(names).size !== names.length ||
           names.some(name => typeof name !== 'string' || name.length === 0) ||
-          tasks.some(task => !Number.isSafeInteger(task) || task < 0)) {
+          tasks.some(task => !Number.isSafeInteger(task) || task < 0) ||
+          definitions.some(body => typeof body !== 'string')) {
         throw new TypeError('Invalid checked Result inventory');
       }
       return Object.freeze(names.map((name, index) => Object.freeze({
         name,
         task: tasks[index],
+        definition: checkedResultDefinition(definitions[index], name),
       })));
     },
     next: value => checked(moon.strategyHostNext(value)),

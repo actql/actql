@@ -1,0 +1,97 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/run_publication"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
+
+pub fn result_definition_cid(ResultDefinition) -> String
+
+pub fn result_definition_json(ResultDefinition) -> Result[String, ResultDefinitionIssue]
+
+pub fn result_definition_name(ResultDefinition) -> String
+
+pub fn result_definition_program_cid(ResultDefinition) -> String
+
+pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct ResultAvailability {
+  name : String
+  state : ResultAvailabilityState
+  reason : ResultAvailabilityReason
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultAvailabilityReason {
+  ConfirmedPresent
+  RetentionExpired
+  Deleted
+  PolicyUnavailable
+  IntegrityFailed
+  NotPublished
+  StoreQueryFailed
+  ClockUncertain
+  VerificationPending
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultAvailabilityState {
+  Available
+  Unavailable
+  Unknown
+} derive(Eq, @debug.Debug)
+
+type ResultDefinition
+
+pub(all) enum ResultDefinitionIssue {
+  InvalidProgramDefinitionCid
+  EmptyResultName
+  NonCanonicalResultName
+  ResultNameLimit
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunNextAction {
+  ResolveCheckpoint
+  Reconcile
+  ReadResult(Array[String])
+  RefreshAvailability(Array[String])
+  NoAction
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunOutcomeStatus {
+  Preparing
+  Running
+  WaitingCheckpoint
+  Resuming
+  NeedsReconciliation
+  Succeeded
+  Failed
+  Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunStateIssue {
+  EmptyDeclaredResults
+  InvalidResultName(String)
+  DuplicateDeclaredResult(String)
+  DuplicateAvailability(String)
+  MissingAvailability(String)
+  ForeignAvailability(String)
+  AvailabilityReasonMismatch(String)
+  AggregateMismatch
+  CheckpointMismatch
+  ActionStatusMismatch
+  EmptyActionResults
+  DuplicateActionResult(String)
+  UnknownActionResult(String)
+  ResultNotAvailable(String)
+  ResultNotUnknown(String)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

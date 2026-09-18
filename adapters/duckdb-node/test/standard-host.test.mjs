@@ -1942,10 +1942,20 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       aliasedCore.programDefinitionCid(aliasedSetup),
       /^sha256:[0-9a-f]{64}$/u,
     );
-    assert.deepEqual(aliasedCore.resultInventory(aliasedSetup), [
-      {name: 'first', task: 1},
-      {name: 'second', task: 1},
-    ], 'checked aliases remain distinct in the standard Host inventory');
+    const aliasedInventory = aliasedCore.resultInventory(aliasedSetup);
+    assert.deepEqual(
+      aliasedInventory.map(({name, task}) => ({name, task})),
+      [
+        {name: 'first', task: 1},
+        {name: 'second', task: 1},
+      ],
+      'checked aliases remain distinct in the standard Host inventory',
+    );
+    assert.notEqual(
+      aliasedInventory[0].definition.result_definition_cid,
+      aliasedInventory[1].definition.result_definition_cid,
+      'MoonBit seals each checked Result occurrence independently',
+    );
     assert.deepEqual(
       fixture.strategyFixtureManagedObligationLabels(
         aliasedFixture, false, false, false,
@@ -1979,10 +1989,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     const acquisitionSetup = fixture.strategyFixtureManagedDispatch(
       acquisitionResultFixture,
     );
-    assert.deepEqual(runtimeCore(hostRuntime).resultInventory(
-      acquisitionSetup,
-    ), [{name: 'acquired', task: 0}],
-    'acquisition Results remain exact checked occurrences');
+    assert.deepEqual(
+      runtimeCore(hostRuntime).resultInventory(acquisitionSetup)
+        .map(({name, task}) => ({name, task})),
+      [{name: 'acquired', task: 0}],
+      'acquisition Results remain exact checked occurrences',
+    );
     assert.equal(
       fixture.strategyFixtureManagedPolicyAccepted(
         acquisitionResultFixture, true, false, false,

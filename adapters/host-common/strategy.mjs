@@ -257,7 +257,9 @@ export async function runInstalledStrategy(
       resultInventory.some(result => result === null ||
         typeof result !== 'object' || typeof result.name !== 'string' ||
         result.name.length === 0 ||
-        !Number.isSafeInteger(result.task) || result.task < 0)) {
+        !Number.isSafeInteger(result.task) || result.task < 0 ||
+        result.definition === null ||
+        typeof result.definition !== 'object')) {
     throw new StrategyHostError('InvalidCheckedResultInventory');
   }
   const checkedResultInventory = Object.freeze(resultInventory.map(result =>
@@ -270,7 +272,7 @@ export async function runInstalledStrategy(
     ? undefined
     : prepareCheckedPublicationInventory(
       programDefinitionCid,
-      checkedResultInventory,
+      resultInventory,
     );
   active.add(setup);
   const completed = [];

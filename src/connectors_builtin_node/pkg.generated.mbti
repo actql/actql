@@ -75,6 +75,8 @@ pub fn strategy_host_next_task(@connectors_builtin.ConfiguredComputeHost[@physic
 
 pub fn strategy_host_output(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> @execution_relation.CompletedOutput?
 
+pub fn strategy_host_program_definition_cid(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
+
 pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
@@ -86,6 +88,12 @@ pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
 pub fn strategy_host_resident_inputs(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Array[Int64]] raise NodeHostFailure
 
 pub fn strategy_host_resource_binding(@physical_host.PreparedTaskDispatch) -> @connector_sdk.ResourceBinding?
+
+pub fn strategy_host_result_definitions(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_host_result_names(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[String]
+
+pub fn strategy_host_result_tasks(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
 
 pub fn strategy_host_run(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @physical_strategy.CapturedDAG
 

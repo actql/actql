@@ -394,6 +394,23 @@
               "required": [
                 "checkpoint"
               ]
+            },
+            "properties": {
+              "next_action": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "read_result",
+                      "refresh_availability",
+                      "none"
+                    ]
+                  }
+                }
+              }
             }
           }
         },

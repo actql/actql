@@ -26,38 +26,53 @@ test('runtime contract registry covers every fixed publication schema', () => {
 test('canonical identity normalizes text and excludes only the self field', () => {
   assert.equal(canonicalJson({b: 'e\u0301\r\n', a: 2}),
     '{"a":2,"b":"é\\n"}');
-  const body = sealPublicationContract('result_definition', {
-    version: 'actql-result-definition/0.1',
-    program_definition_cid: cid('1'),
-    result_name: 'r',
+  const body = sealPublicationContract('run_invocation', {
+    version: 'actql-run-invocation/0.1',
+    invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
   });
-  assert.equal(body.result_definition_cid, canonicalCid({
+  assert.equal(body.invocation_cid, canonicalCid({
     version: body.version,
-    program_definition_cid: body.program_definition_cid,
-    result_name: body.result_name,
+    invocation_template_cid: body.invocation_template_cid,
+    observation_set_cid: body.observation_set_cid,
   }));
-  assert.deepEqual(admitPublicationContract('result_definition', body), body);
-  assert.throws(() => admitPublicationContract('result_definition', {
-    ...body, result_definition_cid: cid('2'),
+  assert.deepEqual(admitPublicationContract('run_invocation', body), body);
+  assert.throws(() => admitPublicationContract('run_invocation', {
+    ...body, invocation_cid: cid('3'),
   }), {code: 'PublicationIdentityMismatch'});
 });
 
 test('closed admission rejects missing, additional, and malformed members', () => {
   const base = {
+    version: 'actql-run-invocation/0.1',
+    invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
+  };
+  assert.throws(() => sealPublicationContract('run_invocation', {
+    ...base, extra: true,
+  }), {code: 'PublicationContractClosed'});
+  assert.throws(() => sealPublicationContract('run_invocation', {
+    version: base.version,
+    observation_set_cid: base.observation_set_cid,
+  }), {code: 'PublicationContractRequired'});
+  assert.throws(() => sealPublicationContract('run_invocation', {
+    ...base, invocation_template_cid: 'not-a-cid',
+  }), {code: 'PublicationContractPattern'});
+});
+
+test('Result Definition semantics have one MoonBit owner', () => {
+  const definition = {
     version: 'actql-result-definition/0.1',
     program_definition_cid: cid('1'),
     result_name: 'r',
   };
-  assert.throws(() => sealPublicationContract('result_definition', {
-    ...base, extra: true,
-  }), {code: 'PublicationContractClosed'});
-  assert.throws(() => sealPublicationContract('result_definition', {
-    version: base.version,
-    result_name: base.result_name,
-  }), {code: 'PublicationContractRequired'});
-  assert.throws(() => sealPublicationContract('result_definition', {
-    ...base, program_definition_cid: 'not-a-cid',
-  }), {code: 'PublicationContractPattern'});
+  assert.throws(() => sealPublicationContract(
+    'result_definition', definition,
+  ), {code: 'PublicationContractOwnedByMoonBit'});
+  assert.throws(() => admitPublicationContract('result_definition', {
+    ...definition,
+    result_definition_cid: cid('2'),
+  }), {code: 'PublicationContractOwnedByMoonBit'});
 });
 
 test('attempt and terminal record remain different identities', () => {

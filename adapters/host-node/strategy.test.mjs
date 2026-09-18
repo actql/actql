@@ -78,8 +78,28 @@ test('installed Host snapshots the checked Program and Result inventory', async 
   const registration = {}, f = fixture([registration]);
   const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
   const inventory = [
-    {name: 'first', task: 1},
-    {name: 'second', task: 1},
+    {
+      name: 'first',
+      task: 1,
+      definition: {
+        program_definition_cid: programDefinitionCid,
+        result_definition_cid:
+          'sha256:33cc81bf0c5e877d80d3dacf71d80fb8ef5472d6e224c83efac057853e67d966',
+        result_name: 'first',
+        version: 'actql-result-definition/0.1',
+      },
+    },
+    {
+      name: 'second',
+      task: 1,
+      definition: {
+        program_definition_cid: programDefinitionCid,
+        result_definition_cid:
+          'sha256:e11eba03bcf3d0704ba0f54930d687a118b5a14875f160a46ccc189e142b2ae2',
+        result_name: 'second',
+        version: 'actql-result-definition/0.1',
+      },
+    },
   ];
   f.core.programDefinitionCid = () => programDefinitionCid;
   f.core.resultInventory = () => inventory;
@@ -118,7 +138,7 @@ test('installed Host snapshots the checked Program and Result inventory', async 
 
 test('checked Results cannot lose their Program Definition identity', async () => {
   const registration = {}, f = fixture([registration]);
-  f.core.resultInventory = () => [{name: 'r', task: 1}];
+  f.core.resultInventory = () => [{name: 'r', task: 1, definition: {}}];
   await assert.rejects(
     runInstalledStrategy(f.setup, f.core, [{
       registration,

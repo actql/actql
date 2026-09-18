@@ -126,13 +126,15 @@ test('linear cost schedules are neutral and implementations own their work inven
 test('standard Node execution uses the connector-free serial driver and exact registration lookup', () => {
   const driver = readFileSync('adapters/host-common/strategy.mjs', 'utf8');
   const entry = readFileSync('adapters/host-node/entry.mjs', 'utf8');
-  // The common serial driver may use only the common Site and Transfer
-  // lifecycle modules. Connector or concrete I/O ownership must not leak in.
+  // The common serial driver may use only common publication, Site and
+  // Transfer lifecycle modules. Connector or concrete I/O ownership must not
+  // leak in.
   const driverImports = [...driver.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
     .map(match => match[1]).sort();
   assert.deepEqual(driverImports, [
     './execution-sites.mjs',
     './managed-site-transfer.mjs',
+    './publication-inventory.mjs',
   ]);
   assert.doesNotMatch(driver, /strategyHostNative|strategyHostTakeNative|DuckDB|duckdb|resident/);
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);

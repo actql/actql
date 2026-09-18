@@ -79,6 +79,53 @@ implemented. In particular:
 - a valid schema-shaped JSON object is not an admitted Artifact; and
 - a delivery write completion does not prove caller-side durable storage.
 
+### 2.1 Implementation placement
+
+Portable publication semantics belong in MoonBit. This includes typed contract
+admission, canonical preimages, logical CID construction, exact reference
+checks, obligation union, publication and delivery state transitions, and the
+decision that a common completion or publication may be committed. These rules
+must share the existing canonical encoder and checked Program ownership rather
+than being reimplemented in JavaScript.
+
+Environment adapters perform effects that the portable core cannot perform:
+
+- filesystem or object-store reads and writes;
+- durable synchronization and conditional index installation;
+- native database and operating-system integration; and
+- network streaming, cancellation, and physical cleanup reporting.
+
+An adapter reports typed outcomes and preserves opaque physical handles. It may
+not accept an arbitrary caller CID, recreate canonical JSON rules, decide that
+a contract is admitted, or turn an I/O success into a common publication
+success. Store interfaces require semantic guarantees such as exclusive
+conditional commit and reconciliation after an unknown result; they do not
+require a portable core to know about `fsync`, hard links, or a particular
+cloud product.
+
+This separation must not force relation cells through JavaScript. Logical view
+construction and identity use the existing typed MoonBit evaluator and bounded
+batch or stream boundaries. Node-specific file storage remains a valid first
+Store implementation, while native, browser, Workers, and other adapters can
+reuse the same publication contracts and state machine.
+
+### 2.2 Single owners and migration ledger
+
+The product has one semantic owner for each migrated decision. Adding a
+MoonBit implementation beside an active JavaScript implementation does not
+complete a migration.
+
+| Decision or effect | Product owner | Current migration state | Deletion or completion condition |
+| --- | --- | --- | --- |
+| Result Definition admission, canonical preimage, and logical CID | `run_publication` in MoonBit | Standard Host callers use the MoonBit value. The transitional JavaScript contract helper rejects Result Definition sealing and admission. | Complete for this contract when every persistence caller consumes the scoped MoonBit result rather than attempting Store-side re-admission. |
+| Run-state action, inventory, per-Result availability, and aggregate consistency | `run_publication` in MoonBit | The portable validator and independent fixtures exist. The wire schema generator remains a build-time schema owner, not a runtime semantic validator. | Connect every response builder to the validator before exposing Run state. No JavaScript response builder may reproduce these relations. |
+| Remaining Run publication contract admission, canonical preimages, identities, and publication or delivery transitions | MoonBit publication modules | The JavaScript helper is transitional and still owns unmigrated contracts. This prevents the publication feature from being declared complete. | Migrate each contract and all callers, then remove its JavaScript admission and sealing path. Remove the generic JavaScript canonical identity implementation after the final caller moves. |
+| File bytes, physical digest, synchronization, conditional index operation, reopen, and deletion | Store adapter | The Node filesystem Store is the first implementation. | Keep in the adapter. It reports bounded typed outcomes and never establishes logical identity or publication success. |
+
+Independent fixed fixtures remain outside the product implementation. They
+check MoonBit output without becoming a second product authority. Product
+JavaScript must not be retained as an oracle for migrated MoonBit semantics.
+
 ## 3. Required 0.1 contract corrections
 
 The accepted guarantees and machine contracts must agree before the runtime is
@@ -196,6 +243,14 @@ is not folded into availability.
 
 A succeeded Run remains succeeded after expiry, deletion, policy revocation, or
 temporary Store uncertainty. Current availability is derived separately.
+
+JSON Schema constrains the closed wire shape and the action kinds admitted for
+each Run status. The portable MoonBit Run-state validator owns the relational
+checks that JSON Schema cannot express: exact declared-Result coverage, the
+all-Results availability aggregate, and the eligibility of every Result named
+by `read_result` or `refresh_availability`. A Node response adapter may only
+serialize a state accepted by that validator; it must not recreate those
+decisions in JavaScript.
 
 ### 3.6 Additional closed contracts
 
