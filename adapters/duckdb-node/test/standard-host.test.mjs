@@ -516,7 +516,8 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
           else assert.equal(execution.usage().transferredBytes, 0n);
           if (mode === 0) {
-            const exportControl = runtimeCore(hostRuntime).outputExportControl;
+            const runtime = runtimeCore(hostRuntime);
+            const exportControl = runtime.outputExportControl;
             const resultExport = exportControl.beginResult(
               setup, 0, publicationResultExportLimits,
             );
@@ -536,13 +537,14 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 /^sha256:[0-9a-f]{64}$/u);
               assert.match(identity.resultSchemaCid,
                 /^sha256:[0-9a-f]{64}$/u);
+              const effectiveDataPolicyCid = hash('effective-policy');
               const issued = exportControl.issueResultEvidence(
                 resultExport,
                 {
                   computationContractCid: hash('checked-computation'),
                   inputRelationCids: [],
                   scopeCid: hash('result-scope'),
-                  effectiveDataPolicyCid: hash('effective-policy'),
+                  effectiveDataPolicyCid,
                   authorityScopeCid: hash('authority-scope'),
                 },
                 {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64},
@@ -559,6 +561,43 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               assert.deepEqual(ordering.witness_evidence, [{
                 kind: 'derivation', cid: issued.derivation.identity,
               }]);
+              const contractLimits = {
+                maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64,
+              };
+              const invocation = runtime.publicationControl.seal(
+                'run_invocation',
+                JSON.stringify({
+                  version: 'actql-run-invocation/0.1',
+                  invocation_template_cid: hash('invocation-template'),
+                  observation_set_cid: hash('observation-set'),
+                }),
+                contractLimits,
+              );
+              const retention = runtime.publicationControl.seal(
+                'result_retention_policy',
+                JSON.stringify({
+                  version: 'actql-result-retention-policy/0.1',
+                  retention_contract_cid: hash('retention-contract'),
+                  effective_data_policy_cid: effectiveDataPolicyCid,
+                  available_until: '2026-09-18T01:00:00.000Z',
+                  delete_by: '2026-09-18T02:00:00.000Z',
+                  extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+                  metadata_retention_policy_cid: hash('metadata-retention'),
+                  clock_contract_cid: hash('clock-contract'),
+                }),
+                contractLimits,
+              );
+              const artifact = runtime.publicationControl.issueResultArtifact(
+                resultExport, invocation, retention, contractLimits,
+              );
+              const artifactValue = JSON.parse(artifact.wire);
+              assert.equal(artifactValue.logical_result_cid,
+                identity.logicalRelationCid);
+              assert.equal(artifactValue.result_schema_cid,
+                identity.resultSchemaCid);
+              assert.equal(artifactValue.actual_row_count, 3);
+              assert.equal(artifactValue.ordering_evidence_cid,
+                issued.ordering.identity);
             } finally {
               exportControl.cancel(resultExport);
             }

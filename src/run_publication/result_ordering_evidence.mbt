@@ -47,6 +47,16 @@ pub(all) enum ResultEvidenceSetIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum ResultArtifactIssuanceIssue {
+  ArtifactIssuanceWrongContract
+  ArtifactIssuancePolicyMismatch
+  ArtifactIssuanceInvalidRows
+  ArtifactIssuanceEncoding
+  ArtifactIssuanceContract(PublicationContractIssue)
+  ArtifactIssuanceEvidence(ResultArtifactEvidenceIssue)
+} derive(Eq, Debug)
+
+///|
 fn exact_occurrence_order(value : @json.CanonicalValue) -> Bool {
   guard object_fields(value) is Ok(fields) else { return false }
   guard field_value(fields, "terms") is Some(@json.Array(values)) else {
@@ -226,6 +236,109 @@ pub fn validate_result_artifact_evidence(
     return Err(ArtifactMissingDerivation)
   }
   Ok(())
+}
+
+///|
+fn emit_complete_result_artifact_body(
+  definition_cid : String,
+  invocation_cid : String,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  ordering_evidence_cid : String,
+  actual_row_count : Int,
+  effective_data_policy_cid : String,
+  retention_cid : String,
+  derivation_cid : String,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "actual_completeness")
+  @encode.string_value(writer, "complete")
+  @encode.key(writer, "actual_row_count")
+  @encode.number_value(writer, actual_row_count.to_double())
+  @encode.key(writer, "effective_data_policy_cid")
+  @encode.string_value(writer, effective_data_policy_cid)
+  @encode.key(writer, "effective_retention_policy_cid")
+  @encode.string_value(writer, retention_cid)
+  @encode.key(writer, "invocation_cid")
+  @encode.string_value(writer, invocation_cid)
+  @encode.key(writer, "logical_result_cid")
+  @encode.string_value(writer, logical_value_cid)
+  @encode.key(writer, "ordering_evidence_cid")
+  @encode.string_value(writer, ordering_evidence_cid)
+  @encode.key(writer, "provenance_evidence_cids")
+  @encode.begin_array(writer)
+  @encode.string_value(writer, derivation_cid)
+  @encode.end_array(writer)
+  @encode.key(writer, "result_definition_cid")
+  @encode.string_value(writer, definition_cid)
+  @encode.key(writer, "result_schema_cid")
+  @encode.string_value(writer, result_schema_cid)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-result-artifact/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+/// Issue one complete Run-bound Artifact from the already established export
+/// evidence. Invocation and retention are admitted contracts rather than CID
+/// strings, so the adapter cannot substitute a differently typed reference.
+pub fn issue_complete_result_artifact(
+  definition : PublicationContract,
+  invocation : PublicationContract,
+  evidence : ResultOrderingEvidence,
+  retention : PublicationContract,
+  actual_row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, ResultArtifactIssuanceIssue] {
+  if definition.name != "result_definition" ||
+    invocation.name != "run_invocation" ||
+    retention.name != "result_retention_policy" {
+    return Err(ArtifactIssuanceWrongContract)
+  }
+  if actual_row_count < 0 {
+    return Err(ArtifactIssuanceInvalidRows)
+  }
+  let logical = contract_string(evidence.derivation, "logical_value_cid").unwrap()
+  let schema = contract_string(evidence.derivation, "relation_schema_cid").unwrap()
+  let policy = contract_string(evidence.derivation, "effective_data_policy_cid").unwrap()
+  if contract_string(retention, "effective_data_policy_cid") != Some(policy) {
+    return Err(ArtifactIssuancePolicyMismatch)
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(ArtifactIssuanceEncoding)
+  }
+  emit_complete_result_artifact_body(
+    definition.identity,
+    invocation.identity,
+    logical,
+    schema,
+    evidence.ordering.identity,
+    actual_row_count,
+    policy,
+    retention.identity,
+    evidence.derivation.identity,
+    writer,
+  ) catch {
+    _ => return Err(ArtifactIssuanceEncoding)
+  }
+  let body = @encode.finish(writer) catch {
+    _ => return Err(ArtifactIssuanceEncoding)
+  }
+  let artifact = match
+    seal_publication_contract(
+      "result_artifact", body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(ArtifactIssuanceContract(issue))
+  }
+  match
+    validate_result_artifact_evidence(definition, artifact, evidence, retention) {
+    Ok(_) => Ok(artifact)
+    Err(issue) => Err(ArtifactIssuanceEvidence(issue))
+  }
 }
 
 ///|

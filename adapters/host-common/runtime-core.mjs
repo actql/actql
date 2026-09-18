@@ -148,6 +148,26 @@ function publicationControl(moon) {
         limits.maxDepth,
       );
     },
+    issueResultArtifact(exportHandle, invocation, retention, limits) {
+      if (limits === null || typeof limits !== 'object' ||
+          !Number.isSafeInteger(limits.maxWireBytes) ||
+          !Number.isSafeInteger(limits.maxNodes) ||
+          !Number.isSafeInteger(limits.maxDepth) ||
+          limits.maxWireBytes < 0 || limits.maxNodes < 0 ||
+          limits.maxDepth < 0) {
+        throw new TypeError('Invalid Result Artifact issuance limits');
+      }
+      return inspect(checked(
+        moon.strategyHostOutputExportIssueResultArtifact(
+          exportHandle,
+          token(invocation),
+          token(retention),
+          limits.maxWireBytes,
+          limits.maxNodes,
+          limits.maxDepth,
+        ),
+      ));
+    },
     deliveryTransition(previous, next) {
       return moon.strategyDeliveryRecordTransition(
         previous === undefined ? undefined : token(previous),

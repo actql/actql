@@ -18,6 +18,7 @@ struct StrategyHostOutputExport {
   definition : @publication.PublicationContract?
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut evidence : @publication.ResultOrderingEvidence?
+  mut artifact : @publication.PublicationContract?
 }
 
 ///|
@@ -733,6 +734,7 @@ pub fn strategy_host_output_export_begin(
       definition: None,
       receipt: None,
       evidence: None,
+      artifact: None,
     }
     Err(issue) => raise OutputExport(issue)
   }
@@ -839,6 +841,7 @@ pub fn strategy_host_result_output_export_begin(
       definition: Some(definition),
       receipt: None,
       evidence: None,
+      artifact: None,
     }
     Err(issue) => raise OutputExport(issue)
   }
@@ -1017,6 +1020,45 @@ pub fn strategy_host_output_export_ordering_evidence_json(
 }
 
 ///|
+/// Issue the complete Artifact from this Result export and already admitted
+/// Run-bound references. The adapter does not assemble Artifact fields.
+#export_name("strategyHostOutputExportIssueResultArtifact")
+pub fn strategy_host_output_export_issue_result_artifact(
+  value : StrategyHostOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.evidence is Some(evidence) else { raise InvalidCommand }
+  if value.artifact is Some(_) {
+    raise InvalidCommand
+  }
+  let rows = @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  ).3
+  let artifact = match
+    @publication.issue_complete_result_artifact(
+      definition,
+      invocation,
+      evidence,
+      retention,
+      rows,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  value.artifact = Some(artifact)
+  artifact
+}
+
+///|
 #export_name("strategyHostOutputExportSchemaBytes")
 pub fn strategy_host_output_export_schema_bytes(
   value : StrategyHostOutputExport,
@@ -1059,6 +1101,7 @@ pub fn strategy_host_output_export_cancel(
       @execution.cancel_completed_relation_export_receipt(receipt)
       value.receipt = None
       value.evidence = None
+      value.artifact = None
     }
     None => @execution.cancel_completed_output_export(value.stream)
   }

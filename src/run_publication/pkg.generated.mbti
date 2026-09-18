@@ -22,6 +22,8 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
+pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
+
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
@@ -147,6 +149,15 @@ pub(all) enum ResultArtifactEvidenceIssue {
   ArtifactRetentionMismatch
   ArtifactMissingDerivation
   ArtifactEncoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResultArtifactIssuanceIssue {
+  ArtifactIssuanceWrongContract
+  ArtifactIssuancePolicyMismatch
+  ArtifactIssuanceInvalidRows
+  ArtifactIssuanceEncoding
+  ArtifactIssuanceContract(PublicationContractIssue)
+  ArtifactIssuanceEvidence(ResultArtifactEvidenceIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ResultAvailability {

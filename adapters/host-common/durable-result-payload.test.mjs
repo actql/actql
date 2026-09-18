@@ -130,11 +130,29 @@ test('Result evidence is issued before its durable payload becomes visible',
       ...limits,
     });
     const evidenceContext = Object.freeze({context: true});
-    const evidenceLimits = Object.freeze({
+    const publicationLimits = Object.freeze({
       maxWireBytes: 4096, maxNodes: 100, maxDepth: 10,
     });
     const events = [];
     const evidence = Object.freeze({derivation: {}, ordering: {}});
+    const artifact = Object.freeze({name: 'result_artifact'});
+    const publicationControl = Object.freeze({
+      issueResultArtifact(handle, invocation, retention, supplied) {
+        assert.deepEqual(handle, {});
+        assert.equal(invocation, 'invocation');
+        assert.equal(retention, 'retention');
+        assert.equal(supplied, publicationLimits);
+        events.push('artifact');
+        return artifact;
+      },
+    });
+    const publication = Object.freeze({
+      control: publicationControl,
+      evidenceContext,
+      limits: publicationLimits,
+      invocation: 'invocation',
+      retention: 'retention',
+    });
     const control = {
       ...exportFixture([text], text, {
         cancelled: () => events.push('cancel'),
@@ -148,7 +166,7 @@ test('Result evidence is issued before its durable payload becomes visible',
       issueResultEvidence(handle, context, supplied) {
         assert.deepEqual(handle, {});
         assert.equal(context, evidenceContext);
-        assert.equal(supplied, evidenceLimits);
+        assert.equal(supplied, publicationLimits);
         events.push('evidence');
         return evidence;
       },
@@ -159,11 +177,12 @@ test('Result evidence is issued before its durable payload becomes visible',
       host,
       0,
       resultLimits,
-      evidenceContext,
-      evidenceLimits,
+      publication,
     );
-    assert.equal(stored.evidence, evidence);
-    assert.deepEqual(events, ['evidence', 'cancel']);
+    assert.equal(stored.publication.derivation, evidence.derivation);
+    assert.equal(stored.publication.ordering, evidence.ordering);
+    assert.equal(stored.publication.artifact, artifact);
+    assert.deepEqual(events, ['evidence', 'artifact', 'cancel']);
 
     const failing = {
       ...control,
@@ -176,8 +195,7 @@ test('Result evidence is issued before its durable payload becomes visible',
         host,
         0,
         resultLimits,
-        evidenceContext,
-        evidenceLimits,
+        publication,
       ),
       /evidence rejected/u,
     );

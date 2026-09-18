@@ -95,6 +95,8 @@ pub fn strategy_host_output_export_derivation_evidence_json(StrategyHostOutputEx
 
 pub fn strategy_host_output_export_finish(StrategyHostOutputExport) -> String raise NodeHostFailure
 
+pub fn strategy_host_output_export_issue_result_artifact(StrategyHostOutputExport, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
 pub fn strategy_host_output_export_issue_result_evidence(StrategyHostOutputExport, String, Array[String], String, String, String, Int, Int, Int) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_output_export_logical_relation_cid(StrategyHostOutputExport) -> String raise NodeHostFailure

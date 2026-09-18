@@ -111,12 +111,13 @@ export async function storeCompletedResultPublicationPayload(
   host,
   result,
   limits,
-  evidenceContext,
-  evidenceLimits,
+  publication,
   signal,
 ) {
   if (!validStore(store) || !validResultControl(control) ||
       typeof control.issueResultEvidence !== 'function' ||
+      publication === null || typeof publication !== 'object' ||
+      typeof publication.control?.issueResultArtifact !== 'function' ||
       !Number.isSafeInteger(result) || result < 0) {
     fail('InvalidDurableResultPayloadAdapter');
   }
@@ -126,9 +127,18 @@ export async function storeCompletedResultPublicationPayload(
     () => control.beginResult(host, result, limits),
     limits,
     signal,
-    handle => control.issueResultEvidence(
-      handle, evidenceContext, evidenceLimits,
-    ),
+    handle => {
+      const evidence = control.issueResultEvidence(
+        handle, publication.evidenceContext, publication.limits,
+      );
+      const artifact = publication.control.issueResultArtifact(
+        handle,
+        publication.invocation,
+        publication.retention,
+        publication.limits,
+      );
+      return Object.freeze({...evidence, artifact});
+    },
   );
 }
 
@@ -159,7 +169,7 @@ async function storeCompletedPayload(
     if (!validIdentity(orderedRows)) {
       fail('InvalidDurableResultPayloadIdentity');
     }
-    const evidence = issueEvidence?.(exportHandle);
+    const publication = issueEvidence?.(exportHandle);
     const physical = await writer.seal(orderedRows.orderedRowsCid);
     sealed = true;
     if (physical.bytes !== orderedRows.bytes ||
@@ -171,7 +181,7 @@ async function storeCompletedPayload(
     return Object.freeze({
       physical: Object.freeze({...physical}),
       orderedRows: Object.freeze({...orderedRows}),
-      ...(evidence === undefined ? {} : {evidence}),
+      ...(publication === undefined ? {} : {publication}),
     });
   } catch (reason) {
     const cleanupErrors = [];
