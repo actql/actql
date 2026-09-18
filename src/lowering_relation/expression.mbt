@@ -383,6 +383,7 @@ fn lower_expression_measured(
       | Where(op)
       | CountGroup(op)
       | WindowGroup(op)
+      | Analytic(op)
       | AssertRows(op) => op
       Values(_)
       | RowWindow(_)

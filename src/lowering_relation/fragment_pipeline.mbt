@@ -103,6 +103,7 @@ fn emit_fragment_pipeline(
           } else {
             "REL.groupBy"
           }
+        AnalyticRows(_) => "REL.analytic"
         Select(_)
         | AssertUnique(_)
         | JsonPick(_, _, _)
@@ -123,6 +124,8 @@ fn emit_fragment_pipeline(
     @encode.key(out, "params")
     if kernel.body is Groups(group) {
       emit_group_params(group, out)
+    } else if kernel.body is AnalyticRows(analytic) {
+      emit_analytic_params(analytic, out)
     } else {
       @encode.begin_object(out)
       match kernel.body {
@@ -171,6 +174,7 @@ fn emit_fragment_pipeline(
         | Lag(_, _)
         | Watermark(_, _, _, _)
         | CountGroups(_)
+        | AnalyticRows(_)
         | Groups(_) => raise @encode.InvalidStructure
       }
       @encode.end_object(out)

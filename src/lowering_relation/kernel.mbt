@@ -42,6 +42,7 @@ pub enum KernelBody {
     @relation.LatePolicy,
     PreparedWatermarkThreshold
   )
+  AnalyticRows(PreparedAnalytic)
   CountGroups(PreparedCountGroup)
   Groups(PreparedGroup)
 }
@@ -65,6 +66,7 @@ pub(all) enum KernelIssue {
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
   GroupFailure(GroupIssue)
+  AnalyticFailure(AnalyticIssue)
 }
 
 ///|
@@ -115,6 +117,15 @@ pub fn kernel_pivot(kernel : PreparedKernel) -> PreparedPivot? {
 }
 
 ///|
+/// Allocation-free complete analytic view bound to this checked kernel.
+pub fn kernel_analytic(kernel : PreparedKernel) -> PreparedAnalytic? {
+  match kernel.body {
+    AnalyticRows(value) => Some(value)
+    _ => None
+  }
+}
+
+///|
 /// Allocation-free batch selection view; the order remains owned by preparation.
 pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
   match kernel.body {
@@ -136,6 +147,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | StableSort(_)
     | Lag(_, _)
     | Watermark(_, _, _, _)
+    | AnalyticRows(_)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -166,6 +178,7 @@ pub fn ordered_binding_at(
     | StableSort(_)
     | Lag(_, _)
     | Watermark(_, _, _, _)
+    | AnalyticRows(_)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -195,6 +208,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Lag(offset, order) => Lag(offset, order)
     Watermark(time, timestamp, policy, threshold) =>
       Watermark(time, timestamp, policy, threshold)
+    AnalyticRows(value) => AnalyticRows(value)
     CountGroups(group) => CountGroups(group)
     Groups(group) => Groups(group)
   }
@@ -221,6 +235,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | StableSort(_)
     | Lag(_, _)
     | Watermark(_, _, _, _)
+    | AnalyticRows(_)
     | CountGroups(_)
     | Groups(_) => 0
   }
@@ -280,6 +295,7 @@ fn prepare_kernel_measured(
     | WindowGroup(op)
     | Lag(op)
     | Watermark(op)
+    | Analytic(op)
     | AssertRows(op) => op
     JsonPick(op) => op
     Values(_)
@@ -788,6 +804,18 @@ fn prepare_kernel_measured(
       remaining = { ..remaining, max_work: remaining.max_work - entries, }
       Lag(offset, completion)
     }
+    Aggregation if @relation.operation(checked) == @relation.Analytic => {
+      let (analytic, after) = match
+        prepare_analytic(
+          owner, step_index, max_bindings, names_remaining, remaining,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(AnalyticFailure(issue))
+      }
+      names_remaining -= analytic_name_bytes(analytic)
+      remaining = after
+      AnalyticRows(analytic)
+    }
     RowOperation => {
       guard @relation.row_operation(checked)
         is Some(@relation.Take(count~, offset~)) else {
@@ -961,6 +989,7 @@ fn prepare_kernel_measured(
   let binding_count = match body {
     CountGroups(group) => group.keys.length() + group.counts.length()
     Groups(group) => group_entry_count(group)
+    AnalyticRows(value) => analytic_entry_count(value)
     Pivot(value) => pivot_index_count(value) + pivot_axis_count(value) + 2
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) | AssertAll(_) => 1

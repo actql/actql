@@ -118,6 +118,35 @@ fn group_root_pointer(name : String, leaf : String, available : Int) -> String? 
 }
 
 ///|
+fn analytic_root_pointer(
+  name : String,
+  leaf : String,
+  available : Int,
+) -> String? {
+  let fixed = 12 + leaf.length()
+  if available < fixed || name.length() > available - fixed {
+    return None
+  }
+  let out = StringBuilder()
+  out.write_string("/functions/")
+  for c in name {
+    match c {
+      '~' => out.write_string("~0")
+      '/' => out.write_string("~1")
+      _ => out.write_char(c)
+    }
+  }
+  out.write_char('/')
+  out.write_string(leaf)
+  let pointer = out.to_string()
+  if @utf8.encode(pointer).length() > available {
+    None
+  } else {
+    Some(pointer)
+  }
+}
+
+///|
 pub fn prepare_roots(
   sequence : PreparedSequence,
   limits : RootLimits,
@@ -166,7 +195,8 @@ pub fn prepare_kernel_roots(
         | AssertAll(_)
         | SnapshotMap(_)
         | OrderedBindings(_)
-        | Groups(_) => ()
+        | Groups(_)
+        | AnalyticRows(_) => ()
       }
   }
   prepare_root_range(sequence, step_index, step_index + 1, limits)
@@ -216,6 +246,53 @@ fn prepare_root_range(
           | Lag(_, _)
           | Watermark(_, _, _, _)
           | CountGroups(_) => continue
+          AnalyticRows(analytic) => {
+            for call in analytic.calls {
+              let add = fn(leaf : String, expr : Expression) -> Bool {
+                if sorted.length() == limits.max_roots || work == 0 {
+                  return false
+                }
+                guard analytic_root_pointer(call.name, leaf, bytes)
+                  is Some(pointer) else {
+                  return false
+                }
+                let size = @utf8.encode(pointer).length()
+                if size >= work {
+                  return false
+                }
+                bytes -= size
+                work -= 1 + size
+                sorted.push({
+                  step_index,
+                  step_id: sequence.owner.prepared.nodes[step_index].id,
+                  parameter_pointer: pointer,
+                  expression: expr,
+                  typed_expression: expr.typed_owner,
+                })
+                true
+              }
+              match call.function {
+                PreparedLag(expression, _)
+                | PreparedLead(expression, _)
+                | PreparedFirstValue(expression)
+                | PreparedLastValue(expression) =>
+                  if !add("expr", expression) {
+                    return Err(RootLimit)
+                  }
+                PreparedFrameAggregate(aggregate) => {
+                  if aggregate.filter is Some(filter) && !add("filter", filter) {
+                    return Err(RootLimit)
+                  }
+                  if aggregate.argument is AggregateExpression(expression) &&
+                    !add("expr", expression) {
+                    return Err(RootLimit)
+                  }
+                }
+                PreparedRowNumber | PreparedRank | PreparedDenseRank => ()
+              }
+            }
+            continue
+          }
           Groups(group) => {
             for i in 0..<group.aggregates.length() {
               let aggregate = group.aggregates[i]

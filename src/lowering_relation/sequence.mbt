@@ -177,6 +177,7 @@ pub fn prepare_sequence(
       | WindowGroup(_)
       | Lag(_)
       | Watermark(_)
+      | Analytic(_)
       | AssertRows(_)
       | JsonPick(_) => {
         let (kernel, remaining, used_names, used_bindings) = match

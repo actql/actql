@@ -80,6 +80,7 @@ pub fn emit_kernel_node(
       StableSort(_) => "REL.orderByStable"
       Lag(_, _) => "REL.window.lag"
       Watermark(_, _, _, _) => "REL.watermark"
+      AnalyticRows(_) => "REL.analytic"
       CountGroups(_) => "REL.groupBy"
       Groups(group) =>
         if group.window {
@@ -96,9 +97,15 @@ pub fn emit_kernel_node(
     @encode.end_object(out)
     return
   }
+  if kernel.body is AnalyticRows(analytic) {
+    emit_analytic_params(analytic, out)
+    @encode.end_object(out)
+    return
+  }
   @encode.begin_object(out)
   match kernel.body {
     CountGroups(_) | Groups(_) => raise @encode.InvalidStructure
+    AnalyticRows(_) => raise @encode.InvalidStructure
     DistinctRows => ()
     StableSort(_) => {
       @encode.key(out, "by")

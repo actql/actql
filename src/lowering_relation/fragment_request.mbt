@@ -86,7 +86,7 @@ pub fn emit_fragment_request(
           has_null = true
         }
       }
-    Filter(_) | AssertAll(_) | Groups(_) => ()
+    Filter(_) | AssertAll(_) | Groups(_) | AnalyticRows(_) => ()
     Select(_)
     | AssertUnique(_)
     | JsonPick(_, _, _)
@@ -133,6 +133,7 @@ pub fn emit_fragment_request(
       | Lag(_, _)
       | Watermark(_, _, _, _)
       | CountGroups(_)
+      | AnalyticRows(_)
       | Groups(_) => raise @encode.InvalidStructure
     }
     @encode.end_object(out)

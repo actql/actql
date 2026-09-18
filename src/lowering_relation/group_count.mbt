@@ -186,6 +186,112 @@ pub fn count_group_aggregate_at(
 }
 
 ///|
+/// Lowers one checked aggregate occurrence for group and analytic consumers.
+/// The caller supplies owner-bound expression and Parameter resolution.
+fn prepare_aggregate_occurrence(
+  aggregate : @relation.CheckedAggregate,
+  ordinal : Int,
+  input_schema : @schema.Schema,
+  max_order_terms : Int,
+  lower : (Int) -> Result[Expression, GroupIssue],
+  resolve_count : (@relation.CountValue) -> Result[Int64, GroupIssue],
+  resolve_fraction : (@relation.FractionValue) -> Result[Double, GroupIssue],
+  spend_name : (String) -> Bool,
+) -> Result[(PreparedAggregate, Int), GroupIssue] {
+  let name = @relation.aggregate_name(aggregate)
+  if max_order_terms < 0 || !spend_name(name) {
+    return Err(GroupPreparationLimit)
+  }
+  let filter = match @relation.aggregate_filter(aggregate) {
+    None => None
+    Some(index) =>
+      match lower(index) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  let (argument, input_contract) = match
+    @relation.aggregate_argument(aggregate) {
+    Rows => (AggregateRows, None)
+    Field(key) => {
+      let field = key.field
+      if !spend_name(@schema.reference_name(field)) {
+        return Err(GroupPreparationLimit)
+      }
+      guard @schema.lookup(input_schema, field) is Some(contract) else {
+        return Err(InvalidCheckedAggregate(ordinal))
+      }
+      (AggregateField(field), Some(contract))
+    }
+    Expression(index) =>
+      match lower(index) {
+        Ok(value) => {
+          let contract = expression_contract(value)
+          (AggregateExpression(value), Some(contract))
+        }
+        Err(issue) => return Err(issue)
+      }
+  }
+  let order = @relation.aggregate_order(aggregate)
+  if order.length() > max_order_terms {
+    return Err(GroupPreparationLimit)
+  }
+  for term in order {
+    if !spend_name(@schema.reference_name(term.field)) {
+      return Err(GroupPreparationLimit)
+    }
+  }
+  let item_limit = match @relation.aggregate_item_limit(aggregate) {
+    None => None
+    Some(value) =>
+      match resolve_count(value) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  let byte_limit = match @relation.aggregate_byte_limit(aggregate) {
+    None => None
+    Some(value) =>
+      match resolve_count(value) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  let fraction = match @relation.aggregate_fraction(aggregate) {
+    None => None
+    Some(value) =>
+      match resolve_fraction(value) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(issue)
+      }
+  }
+  let function = @relation.aggregate_function(aggregate)
+  let numeric_observation = (
+      function is @relation.Sum || function is @relation.Avg
+    ) &&
+    input_contract is Some({ shape: @contract.Number, .. })
+  Ok(
+    (
+      {
+        name,
+        function,
+        argument,
+        filter,
+        result: @relation.aggregate_result(aggregate),
+        distinct: @relation.aggregate_distinct(aggregate),
+        order,
+        item_limit,
+        byte_limit,
+        delimiter: @relation.aggregate_delimiter(aggregate),
+        fraction,
+        numeric_observation,
+      },
+      order.length(),
+    ),
+  )
+}
+
+///|
 /// Prepares every normative group aggregate from the exact checked step.
 /// This is a typed execution view, not registry or numeric-observation
 /// admission.
@@ -319,93 +425,22 @@ pub fn prepare_group(
   let mut entries = checked_keys.length() + aggregate_count
   for i in 0..<aggregate_count {
     let aggregate = @relation.aggregate_at(group, i).unwrap()
-    let name = @relation.aggregate_name(aggregate)
-    if !spend_name(name) {
-      return Err(GroupPreparationLimit)
+    let (prepared, order_terms) = match
+      prepare_aggregate_occurrence(
+        aggregate,
+        i,
+        input_schema,
+        max_entries - entries,
+        lower,
+        resolve_count,
+        resolve_fraction,
+        spend_name,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
-    let filter = match @relation.aggregate_filter(aggregate) {
-      None => None
-      Some(index) =>
-        match lower(index) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    let (argument, input_contract) = match
-      @relation.aggregate_argument(aggregate) {
-      Rows => (AggregateRows, None)
-      Field(key) => {
-        let field = key.field
-        if !spend_name(@schema.reference_name(field)) {
-          return Err(GroupPreparationLimit)
-        }
-        guard @schema.lookup(input_schema, field) is Some(contract) else {
-          return Err(InvalidCheckedAggregate(i))
-        }
-        (AggregateField(field), Some(contract))
-      }
-      Expression(index) =>
-        match lower(index) {
-          Ok(value) => {
-            let contract = expression_contract(value)
-            (AggregateExpression(value), Some(contract))
-          }
-          Err(issue) => return Err(issue)
-        }
-    }
-    let order = @relation.aggregate_order(aggregate)
-    if order.length() > max_entries - entries {
-      return Err(GroupPreparationLimit)
-    }
-    entries += order.length()
-    for term in order {
-      if !spend_name(@schema.reference_name(term.field)) {
-        return Err(GroupPreparationLimit)
-      }
-    }
-    let item_limit = match @relation.aggregate_item_limit(aggregate) {
-      None => None
-      Some(value) =>
-        match resolve_count(value) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    let byte_limit = match @relation.aggregate_byte_limit(aggregate) {
-      None => None
-      Some(value) =>
-        match resolve_count(value) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    let fraction = match @relation.aggregate_fraction(aggregate) {
-      None => None
-      Some(value) =>
-        match resolve_fraction(value) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    let function = @relation.aggregate_function(aggregate)
-    let numeric_observation = (
-        function is @relation.Sum || function is @relation.Avg
-      ) &&
-      input_contract is Some({ shape: @contract.Number, .. })
-    aggregates.push({
-      name,
-      function,
-      argument,
-      filter,
-      result: @relation.aggregate_result(aggregate),
-      distinct: @relation.aggregate_distinct(aggregate),
-      order,
-      item_limit,
-      byte_limit,
-      delimiter: @relation.aggregate_delimiter(aggregate),
-      fraction,
-      numeric_observation,
-    })
+    entries += order_terms
+    aggregates.push(prepared)
   }
   Ok(
     (

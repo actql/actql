@@ -84,6 +84,7 @@ fn attach_fragment_budgets(
             if !budgets.contains(i) {
               return Err(MissingFragmentContext(i))
             }
+          @lower.AnalyticRows(_) => ()
           @lower.Select(_) => ()
           @lower.JsonPick(_, _, _) => ()
           @lower.Watermark(time, _, _, _) => {

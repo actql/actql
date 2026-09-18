@@ -44,6 +44,7 @@ pub enum Payload {
   WindowGroup(@relation.CheckedOperation)
   Lag(@relation.CheckedOperation)
   Watermark(@relation.CheckedOperation)
+  Analytic(@relation.CheckedOperation)
   AssertRows(@relation.CheckedOperation)
   JsonPick(@relation.CheckedOperation)
   InnerJoin(@join.CheckedJoin)
@@ -164,6 +165,7 @@ pub fn operation(value : PreparedNode) -> String {
     WindowGroup(_) => "REL.window.project"
     Lag(_) => "REL.window.lag"
     Watermark(_) => "REL.watermark"
+    Analytic(_) => "REL.analytic"
     AssertRows(op) =>
       match @relation.row_operation(op) {
         Some(@relation.AssertWhere) => "REL.assert_all"
@@ -206,7 +208,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         JsonPick => Some(JsonPick(v))
         Lag => Some(Lag(v))
         WatermarkRows => Some(Watermark(v))
-        Analytic => None
+        Analytic => Some(Analytic(v))
       }
     Join(checked~, ..) => Some(InnerJoin(checked))
     CrossJoin(checked~, ..) => Some(CrossJoinRows(checked))
@@ -317,6 +319,7 @@ pub fn prepare(
       WindowGroup(_) => ("window_group", 1)
       Lag(_) => ("lag", 1)
       Watermark(_) => ("watermark", 1)
+      Analytic(_) => ("analytic", 1)
       AssertRows(_) => ("assert", 1)
       JsonPick(_) => ("json_pick", 1)
       InnerJoin(_) => ("join", 2)
@@ -398,7 +401,8 @@ pub fn prepare(
       | CountGroup(_)
       | WindowGroup(_)
       | Lag(_)
-      | Watermark(_) => None
+      | Watermark(_)
+      | Analytic(_) => None
       AssertRows(_) => None
       JsonPick(_) => None
       AppendRows(_) => None

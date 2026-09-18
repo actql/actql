@@ -113,6 +113,7 @@ fn prepare_ordered_budgets(
           | @lower.StableSort(_)
           | @lower.Lag(_, _)
           | @lower.Watermark(_, _, _, _)
+          | @lower.AnalyticRows(_)
           | @lower.CountGroups(_) => ()
         }
         release_slots(metadata, entries)

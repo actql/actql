@@ -495,6 +495,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.StableSort(_) => return Err(InvalidRows)
         @lower.Lag(_, _) => return Err(InvalidRows)
         @lower.Watermark(_, _, _, _) => return Err(InvalidRows)
+        @lower.AnalyticRows(_) => return Err(InvalidRows)
         @lower.CountGroups(_) => return Err(InvalidRows)
         @lower.Groups(_) => return Err(InvalidRows)
         @lower.OrderedBindings(bindings) =>

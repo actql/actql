@@ -22,6 +22,42 @@ import {
 }
 
 // Values
+pub fn analytic_call_at(PreparedAnalytic, Int) -> PreparedAnalyticCall?
+
+pub fn analytic_call_count(PreparedAnalytic) -> Int
+
+pub fn analytic_call_function(PreparedAnalyticCall) -> PreparedAnalyticFunction
+
+pub fn analytic_call_name(PreparedAnalyticCall) -> String
+
+pub fn analytic_call_result(PreparedAnalyticCall) -> @value_contract.Contract
+
+pub fn analytic_checked(PreparedAnalytic) -> @relation_typing.CheckedOperation
+
+pub fn analytic_entry_count(PreparedAnalytic) -> Int
+
+pub fn analytic_frame(PreparedAnalytic) -> PreparedRowsFrame?
+
+pub fn analytic_input_schema(PreparedAnalytic) -> @relation_schema.Schema
+
+pub fn analytic_name_bytes(PreparedAnalytic) -> Int
+
+pub fn analytic_output_schema(PreparedAnalytic) -> @relation_schema.Schema
+
+pub fn analytic_partition_at(PreparedAnalytic, Int) -> @relation_schema.FieldName?
+
+pub fn analytic_partition_count(PreparedAnalytic) -> Int
+
+pub fn analytic_peer_term_at(PreparedAnalytic, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn analytic_peer_term_count(PreparedAnalytic) -> Int
+
+pub fn analytic_position_term_at(PreparedAnalytic, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn analytic_position_term_count(PreparedAnalytic) -> Int
+
+pub fn analytic_uses_retained_position_order(PreparedAnalytic) -> Bool
+
 pub fn append_kernel_field_at(PreparedAppendKernel, Int) -> (@relation_schema.FieldName, Int, Int)?
 
 pub fn append_kernel_field_count(PreparedAppendKernel) -> Int
@@ -240,6 +276,8 @@ pub fn join_kernel_profile(PreparedJoinKernel) -> PreparedInnerJoin
 
 pub fn join_kernel_step(PreparedJoinKernel) -> Int
 
+pub fn kernel_analytic(PreparedKernel) -> PreparedAnalytic?
+
 pub fn kernel_body(PreparedKernel) -> KernelBody
 
 pub fn kernel_checked(PreparedKernel) -> @relation_typing.CheckedOperation
@@ -390,6 +428,8 @@ pub fn preparation_schema_at(Prepared, @pipeline_typing.Target) -> @relation_sch
 
 pub fn prepare(@pipeline_typing.CheckedPipeline, Limits) -> Result[Prepared, Issue]
 
+pub fn prepare_analytic(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Result[(PreparedAnalytic, ExpressionLimits), AnalyticIssue]
+
 pub fn prepare_append_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedAppendKernel, AppendIssue]
 
 pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
@@ -429,6 +469,10 @@ pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement
 pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKernel, SetIssue]
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
+
+pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
+
+pub fn prepared_frame_start(PreparedRowsFrame) -> PreparedFrameBoundary
 
 pub fn projection_field_count(PreparedProjection) -> Int
 
@@ -527,6 +571,17 @@ pub fn window_time(PreparedWindow) -> @relation_schema.FieldName
 // Errors
 
 // Types and methods
+pub(all) enum AnalyticIssue {
+  AnalyticNotFound
+  InvalidAnalyticLimits
+  AnalyticPreparationLimit
+  AnalyticExpressionFailure(ExpressionIssue)
+  MissingAnalyticParameter(String)
+  InvalidAnalyticParameter(String)
+  InvalidAnalyticCall(Int)
+  AnalyticAggregateFailure(GroupIssue)
+}
+
 pub(all) enum AppendIssue {
   InvalidLimits
   PreparationLimit
@@ -747,6 +802,7 @@ pub enum KernelBody {
   StableSort(@pipeline_typing.SortOrder?)
   Lag(Int64, @pipeline_typing.SortCompletion)
   Watermark(@relation_schema.FieldName, Bool, @relation_typing.LatePolicy, PreparedWatermarkThreshold)
+  AnalyticRows(PreparedAnalytic)
   CountGroups(PreparedCountGroup)
   Groups(PreparedGroup)
 }
@@ -769,6 +825,7 @@ pub(all) enum KernelIssue {
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
   GroupFailure(GroupIssue)
+  AnalyticFailure(AnalyticIssue)
 }
 
 pub(all) struct Limits {
@@ -823,6 +880,7 @@ pub enum Payload {
   WindowGroup(@relation_typing.CheckedOperation)
   Lag(@relation_typing.CheckedOperation)
   Watermark(@relation_typing.CheckedOperation)
+  Analytic(@relation_typing.CheckedOperation)
   AssertRows(@relation_typing.CheckedOperation)
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
@@ -848,6 +906,21 @@ pub enum PreparedAggregateArgument {
   AggregateExpression(Expression)
 }
 
+type PreparedAnalytic
+
+type PreparedAnalyticCall
+
+pub enum PreparedAnalyticFunction {
+  PreparedRowNumber
+  PreparedRank
+  PreparedDenseRank
+  PreparedLag(Expression, Int64)
+  PreparedLead(Expression, Int64)
+  PreparedFirstValue(Expression)
+  PreparedLastValue(Expression)
+  PreparedFrameAggregate(PreparedAggregate)
+}
+
 type PreparedAppendKernel
 
 pub struct PreparedCount {
@@ -861,6 +934,14 @@ type PreparedCountGroup
 type PreparedCrossJoin
 
 type PreparedCrossJoinKernel
+
+pub(all) enum PreparedFrameBoundary {
+  PreparedUnboundedPreceding
+  PreparedPreceding(Int64)
+  PreparedCurrentRow
+  PreparedFollowing(Int64)
+  PreparedUnboundedFollowing
+} derive(Eq, @debug.Debug)
 
 type PreparedGroup
 
@@ -880,6 +961,11 @@ pub enum PreparedPivotFill {
 }
 
 type PreparedProjection
+
+pub struct PreparedRowsFrame {
+  start : PreparedFrameBoundary
+  end : PreparedFrameBoundary
+}
 
 type PreparedSequence
 
