@@ -1,0 +1,1361 @@
+{
+  "version": "actql-run-publication-registry/0.1",
+  "schemas": {
+    "result_definition": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-result-definition-0.1.json",
+      "title": "actql-result-definition-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "program_definition_cid",
+        "result_name",
+        "result_definition_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-result-definition/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "run_invocation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-run-invocation-0.1.json",
+      "title": "actql-run-invocation-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "invocation_template_cid",
+        "observation_set_cid",
+        "invocation_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-run-invocation/0.1"
+        },
+        "invocation_template_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "observation_set_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "result_retention_policy": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-result-retention-policy-0.1.json",
+      "title": "actql-result-retention-policy-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "retention_contract_cid",
+        "effective_data_policy_cid",
+        "available_until",
+        "delete_by",
+        "extension_ceiling_at",
+        "metadata_retention_policy_cid",
+        "clock_contract_cid",
+        "effective_retention_policy_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-result-retention-policy/0.1"
+        },
+        "retention_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "available_until": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "delete_by": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "extension_ceiling_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "metadata_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "clock_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "durable_result_binding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-durable-result-binding-0.1.json",
+      "title": "actql-durable-result-binding-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_definition_cid",
+        "result_definition_cid",
+        "invocation_cid",
+        "logical_result_cid",
+        "result_schema_cid",
+        "ordering_evidence_cid",
+        "codec_contract_cid",
+        "material_generation_cid",
+        "store_authority_cid",
+        "effective_retention_policy_cid",
+        "row_count",
+        "byte_count",
+        "physical_sha256",
+        "durable_result_binding_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-durable-result-binding/0.1"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_result_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordering_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "codec_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "material_generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "physical_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "durable_result_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "publication_request": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-publication-request-0.1.json",
+      "title": "actql-publication-request-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tenant_id",
+        "authority_scope_cid",
+        "run_definition_cid",
+        "inventory",
+        "publication_policy_cid",
+        "publication_target_cid",
+        "requested_at",
+        "publication_request_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-publication-request/0.1"
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "inventory": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "result_name",
+              "result_definition_cid"
+            ],
+            "properties": {
+              "result_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_definition_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "publication_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "publication_target_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "requested_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "publication_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "publication_attempt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-publication-attempt-0.1.json",
+      "title": "actql-publication-attempt-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "publication_request_cid",
+        "run_definition_cid",
+        "attempt_id",
+        "fence_cid",
+        "started_at",
+        "publication_attempt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-publication-attempt/0.1"
+        },
+        "publication_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "external_idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "publication_attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "publication_record": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-publication-record-0.1.json",
+      "title": "actql-publication-record-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "publication_attempt_cid",
+        "sequence",
+        "state",
+        "observed_at",
+        "cleanup_owner_cids",
+        "publication_record_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-publication-record/0.1"
+        },
+        "publication_attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prior_record_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "enum": [
+            "preparing",
+            "committing",
+            "publication_unknown",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "observed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "public_index_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "failure_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "cleanup_owner_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "publication_record_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "succeeded"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "public_index_entry_cid"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "failed"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "failure_cid"
+            ]
+          }
+        }
+      ]
+    },
+    "manifest_read_grant": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-manifest-read-grant-0.1.json",
+      "title": "actql-manifest-read-grant-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tenant_id",
+        "authority_scope_cid",
+        "principal_id",
+        "run_definition_cid",
+        "result_manifest_cid",
+        "purpose",
+        "data_ceiling_cid",
+        "max_bytes",
+        "max_uses",
+        "expires_at",
+        "authorization_context_cid",
+        "manifest_read_grant_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-manifest-read-grant/0.1"
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "principal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_ceiling_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_uses": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expires_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "authorization_context_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "manifest_read_grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "result_read_grant": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-result-read-grant-0.1.json",
+      "title": "actql-result-read-grant-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tenant_id",
+        "authority_scope_cid",
+        "principal_id",
+        "run_definition_cid",
+        "result_manifest_cid",
+        "purpose",
+        "data_ceiling_cid",
+        "max_bytes",
+        "max_uses",
+        "expires_at",
+        "authorization_context_cid",
+        "results",
+        "formats",
+        "egress_admission_cid",
+        "result_read_grant_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-result-read-grant/0.1"
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "principal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_ceiling_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_uses": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expires_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "authorization_context_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "results": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "result_name",
+              "result_artifact_cid"
+            ],
+            "properties": {
+              "result_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result_artifact_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "formats": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "json",
+              "jsonl",
+              "csv"
+            ]
+          }
+        },
+        "egress_admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_read_grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "delivery_attempt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-delivery-attempt-0.1.json",
+      "title": "actql-delivery-attempt-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "attempt_id",
+        "result_read_grant_cid",
+        "run_definition_cid",
+        "result_manifest_cid",
+        "result_name",
+        "result_artifact_cid",
+        "serialization_contract_cid",
+        "requested_at",
+        "delivery_attempt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-delivery-attempt/0.1"
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_read_grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "serialization_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "requested_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "delivery_attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "delivery_record": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-delivery-record-0.1.json",
+      "title": "actql-delivery-record-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "delivery_attempt_cid",
+        "sequence",
+        "state",
+        "confirmed_byte_count",
+        "exposure",
+        "observed_at",
+        "cleanup_owner_cids",
+        "delivery_record_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-delivery-record/0.1"
+        },
+        "delivery_attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prior_record_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "enum": [
+            "streaming",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "confirmed_byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "exposure": {
+          "enum": [
+            "exact",
+            "unknown_additional"
+          ]
+        },
+        "possible_unconfirmed_max_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "delivered_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "result_delivery_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "failure_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "observed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "cleanup_owner_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "delivery_record_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "succeeded"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "delivered_sha256",
+              "result_delivery_receipt_cid"
+            ],
+            "properties": {
+              "exposure": {
+                "const": "exact"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "exposure": {
+                "const": "unknown_additional"
+              }
+            },
+            "required": [
+              "exposure"
+            ]
+          },
+          "then": {
+            "required": [
+              "possible_unconfirmed_max_bytes"
+            ]
+          }
+        }
+      ]
+    },
+    "public_index_entry": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-public-index-entry-0.1.json",
+      "title": "actql-public-index-entry-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "tenant_id",
+        "authority_scope_cid",
+        "run_definition_cid",
+        "invocation_cid",
+        "result_manifest_cid",
+        "run_receipt_cid",
+        "captured_run_cid",
+        "publication_request_cid",
+        "publication_attempt_cid",
+        "committed_at",
+        "public_index_entry_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-public-index-entry/0.1"
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "captured_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "publication_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "publication_attempt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "committed_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+        },
+        "public_index_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "schema_cids": {
+    "result_definition": "sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973",
+    "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
+    "result_retention_policy": "sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb",
+    "durable_result_binding": "sha256:5d7617bb6df3a5131e939dd8564a4a9a9fe83137a5ffee5d00a4156f7df13ca4",
+    "publication_request": "sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82",
+    "publication_attempt": "sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5",
+    "publication_record": "sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d",
+    "manifest_read_grant": "sha256:2aeaa77acc11099eb0192defd561691a3bd90bbf70d5ed111ffdfbb71ae90e78",
+    "result_read_grant": "sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215",
+    "delivery_attempt": "sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf",
+    "delivery_record": "sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4",
+    "public_index_entry": "sha256:02b9bdcfad98727743c300aac47dad642d9e2a4220375b1054ff59cd9302de4a"
+  },
+  "reference_roles": {
+    "result_definition": {
+      "program_definition_cid": "external:program-definition"
+    },
+    "run_invocation": {
+      "invocation_template_cid": "external:bound-invocation-template",
+      "observation_set_cid": "external:observation-set"
+    },
+    "result_retention_policy": {
+      "retention_contract_cid": "external:retention-contract",
+      "effective_data_policy_cid": "external:data-policy",
+      "metadata_retention_policy_cid": "external:metadata-retention-policy",
+      "clock_contract_cid": "external:clock-contract"
+    },
+    "durable_result_binding": {
+      "run_definition_cid": "external:run-definition",
+      "result_definition_cid": "result_definition",
+      "invocation_cid": "run_invocation",
+      "logical_result_cid": "external:logical-relation",
+      "result_schema_cid": "external:value-contract",
+      "ordering_evidence_cid": "external:ordering-evidence",
+      "codec_contract_cid": "external:durable-codec",
+      "material_generation_cid": "external:material-generation",
+      "store_authority_cid": "external:store-authority",
+      "effective_retention_policy_cid": "result_retention_policy"
+    },
+    "publication_request": {
+      "authority_scope_cid": "external:authority-scope",
+      "run_definition_cid": "external:run-definition",
+      "inventory/*/result_definition_cid": "result_definition",
+      "publication_policy_cid": "external:publication-policy",
+      "publication_target_cid": "external:publication-target"
+    },
+    "publication_attempt": {
+      "publication_request_cid": "publication_request",
+      "run_definition_cid": "external:run-definition",
+      "fence_cid": "external:publication-fence"
+    },
+    "publication_record": {
+      "publication_attempt_cid": "publication_attempt",
+      "prior_record_cid": "publication_record?",
+      "public_index_entry_cid": "public_index_entry?",
+      "failure_cid": "external:runtime-error?",
+      "cleanup_owner_cids/*": "external:cleanup-owner"
+    },
+    "manifest_read_grant": {
+      "authority_scope_cid": "external:authority-scope",
+      "run_definition_cid": "external:run-definition",
+      "result_manifest_cid": "external:result-manifest",
+      "data_ceiling_cid": "external:data-ceiling",
+      "authorization_context_cid": "external:authorization-context"
+    },
+    "result_read_grant": {
+      "authority_scope_cid": "external:authority-scope",
+      "run_definition_cid": "external:run-definition",
+      "result_manifest_cid": "external:result-manifest",
+      "data_ceiling_cid": "external:data-ceiling",
+      "authorization_context_cid": "external:authorization-context",
+      "results/*/result_artifact_cid": "external:result-artifact",
+      "egress_admission_cid": "external:egress-admission"
+    },
+    "delivery_attempt": {
+      "result_read_grant_cid": "result_read_grant",
+      "run_definition_cid": "external:run-definition",
+      "result_manifest_cid": "external:result-manifest",
+      "result_artifact_cid": "external:result-artifact",
+      "serialization_contract_cid": "external:result-serialization"
+    },
+    "delivery_record": {
+      "delivery_attempt_cid": "delivery_attempt",
+      "prior_record_cid": "delivery_record?",
+      "result_delivery_receipt_cid": "external:delivery-receipt?",
+      "failure_cid": "external:runtime-error?",
+      "cleanup_owner_cids/*": "external:cleanup-owner"
+    },
+    "public_index_entry": {
+      "authority_scope_cid": "external:authority-scope",
+      "run_definition_cid": "external:run-definition",
+      "invocation_cid": "run_invocation",
+      "result_manifest_cid": "external:result-manifest",
+      "run_receipt_cid": "external:run-receipt",
+      "captured_run_cid": "external:captured-run",
+      "publication_request_cid": "publication_request",
+      "publication_attempt_cid": "publication_attempt"
+    }
+  },
+  "reference_graph": [
+    {
+      "source": "result_definition",
+      "slot": "program_definition_cid",
+      "target": "external:program-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "run_invocation",
+      "slot": "invocation_template_cid",
+      "target": "external:bound-invocation-template",
+      "role": "semantic"
+    },
+    {
+      "source": "run_invocation",
+      "slot": "observation_set_cid",
+      "target": "external:observation-set",
+      "role": "semantic"
+    },
+    {
+      "source": "result_retention_policy",
+      "slot": "retention_contract_cid",
+      "target": "external:retention-contract",
+      "role": "retention"
+    },
+    {
+      "source": "result_retention_policy",
+      "slot": "effective_data_policy_cid",
+      "target": "external:data-policy",
+      "role": "retention"
+    },
+    {
+      "source": "result_retention_policy",
+      "slot": "metadata_retention_policy_cid",
+      "target": "external:metadata-retention-policy",
+      "role": "retention"
+    },
+    {
+      "source": "result_retention_policy",
+      "slot": "clock_contract_cid",
+      "target": "external:clock-contract",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "result_definition_cid",
+      "target": "result_definition",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "invocation_cid",
+      "target": "run_invocation",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "logical_result_cid",
+      "target": "external:logical-relation",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "result_schema_cid",
+      "target": "external:value-contract",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "ordering_evidence_cid",
+      "target": "external:ordering-evidence",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "codec_contract_cid",
+      "target": "external:durable-codec",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "material_generation_cid",
+      "target": "external:material-generation",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "store_authority_cid",
+      "target": "external:store-authority",
+      "role": "retention"
+    },
+    {
+      "source": "durable_result_binding",
+      "slot": "effective_retention_policy_cid",
+      "target": "result_retention_policy",
+      "role": "retention"
+    },
+    {
+      "source": "publication_request",
+      "slot": "authority_scope_cid",
+      "target": "external:authority-scope",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_request",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_request",
+      "slot": "inventory/*/result_definition_cid",
+      "target": "result_definition",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_request",
+      "slot": "publication_policy_cid",
+      "target": "external:publication-policy",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_request",
+      "slot": "publication_target_cid",
+      "target": "external:publication-target",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_attempt",
+      "slot": "publication_request_cid",
+      "target": "publication_request",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_attempt",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_attempt",
+      "slot": "fence_cid",
+      "target": "external:publication-fence",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_record",
+      "slot": "publication_attempt_cid",
+      "target": "publication_attempt",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_record",
+      "slot": "prior_record_cid",
+      "target": "publication_record?",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_record",
+      "slot": "public_index_entry_cid",
+      "target": "public_index_entry?",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_record",
+      "slot": "failure_cid",
+      "target": "external:runtime-error?",
+      "role": "semantic"
+    },
+    {
+      "source": "publication_record",
+      "slot": "cleanup_owner_cids/*",
+      "target": "external:cleanup-owner",
+      "role": "semantic"
+    },
+    {
+      "source": "manifest_read_grant",
+      "slot": "authority_scope_cid",
+      "target": "external:authority-scope",
+      "role": "authorization"
+    },
+    {
+      "source": "manifest_read_grant",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "authorization"
+    },
+    {
+      "source": "manifest_read_grant",
+      "slot": "result_manifest_cid",
+      "target": "external:result-manifest",
+      "role": "authorization"
+    },
+    {
+      "source": "manifest_read_grant",
+      "slot": "data_ceiling_cid",
+      "target": "external:data-ceiling",
+      "role": "authorization"
+    },
+    {
+      "source": "manifest_read_grant",
+      "slot": "authorization_context_cid",
+      "target": "external:authorization-context",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "authority_scope_cid",
+      "target": "external:authority-scope",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "result_manifest_cid",
+      "target": "external:result-manifest",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "data_ceiling_cid",
+      "target": "external:data-ceiling",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "authorization_context_cid",
+      "target": "external:authorization-context",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "results/*/result_artifact_cid",
+      "target": "external:result-artifact",
+      "role": "authorization"
+    },
+    {
+      "source": "result_read_grant",
+      "slot": "egress_admission_cid",
+      "target": "external:egress-admission",
+      "role": "authorization"
+    },
+    {
+      "source": "delivery_attempt",
+      "slot": "result_read_grant_cid",
+      "target": "result_read_grant",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_attempt",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_attempt",
+      "slot": "result_manifest_cid",
+      "target": "external:result-manifest",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_attempt",
+      "slot": "result_artifact_cid",
+      "target": "external:result-artifact",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_attempt",
+      "slot": "serialization_contract_cid",
+      "target": "external:result-serialization",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_record",
+      "slot": "delivery_attempt_cid",
+      "target": "delivery_attempt",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_record",
+      "slot": "prior_record_cid",
+      "target": "delivery_record?",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_record",
+      "slot": "result_delivery_receipt_cid",
+      "target": "external:delivery-receipt?",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_record",
+      "slot": "failure_cid",
+      "target": "external:runtime-error?",
+      "role": "semantic"
+    },
+    {
+      "source": "delivery_record",
+      "slot": "cleanup_owner_cids/*",
+      "target": "external:cleanup-owner",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "authority_scope_cid",
+      "target": "external:authority-scope",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "run_definition_cid",
+      "target": "external:run-definition",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "invocation_cid",
+      "target": "run_invocation",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "result_manifest_cid",
+      "target": "external:result-manifest",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "run_receipt_cid",
+      "target": "external:run-receipt",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "captured_run_cid",
+      "target": "external:captured-run",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "publication_request_cid",
+      "target": "publication_request",
+      "role": "semantic"
+    },
+    {
+      "source": "public_index_entry",
+      "slot": "publication_attempt_cid",
+      "target": "publication_attempt",
+      "role": "semantic"
+    }
+  ],
+  "laws": {
+    "self_identity": "each_self_cid_hashes_the_complete_closed_body_without_only_its_self_member",
+    "result_definition": "program_definition_and_result_name_resolve_one_exact_checked_result_occurrence",
+    "run_invocation": "template_matches_observation_set_and_all_required_observations_are_admitted",
+    "publication_commit": "one_tenant_authority_run_definition_has_one_atomic_durable_public_index_entry",
+    "publication_retry": "unknown_reconciles_under_fencing_before_retry_and_durable_commit_wins_cancel_race",
+    "availability": "run_outcome_is_immutable_and_current_per_result_availability_is_separate_from_authority",
+    "delivery": "attempt_identity_precedes_append_only_progress_and_retry_starts_at_byte_zero",
+    "retention": "availability_authority_and_deletion_deadline_are_independent"
+  }
+}

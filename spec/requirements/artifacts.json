@@ -47,6 +47,83 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-run-bound-result-definition-must-resolve-one-exact-checked-result-occurrence",
+      "statement_sha256": "6d88e16bb15d7ce80ebca64de48a41fa206f7e724d0500b276d672d44b6eb464",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-run-bound-invocation-must-bind-the-exact-template-and-complete-admitted-observation-set",
+      "statement_sha256": "394a38a2819387129656fe6732f17eadea2225edee89eeb597c8e138c523510f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-durable-result-binding-must-bind-logical-and-physical-identities-with-the-effective-retention-policy",
+      "statement_sha256": "c040dfc0648d5b11d8d606a9dd1ece5978ecbcb45f82d452c869f0ec25b5feb2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-publication-attempt-must-not-contain-its-future-outcome-or-terminal-record",
+      "statement_sha256": "a79e4c8768d3806f160bedbac7b5f68cc6c1c4172dbe2d287ab7f2212cac37ba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition",
+      "statement_sha256": "e819becbe7a25919561fdd3d0f70a0720fd1a52862636da0563bf2e3fbcaa598",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest",
+      "statement_sha256": "9590d01ba1967b53acea72786b520f20c4bccb92a1112c1f525d8d39e2a44a5c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.a-delivery-attempt-must-have-an-immutable-identity-separate-from-progress-and-terminal-records",
+      "statement_sha256": "e90a4209c017f8b1310fc0cb8ccc8fa1929462a567de876b1d59a374a88948b7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.product-09af8ecc4189",
       "statement_sha256": "09af8ecc4189374158d85406c96c7cdf6fb8438b7e15e528430cf794a856e8ea",
       "status": "pending",
@@ -444,7 +521,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/machine-contracts.exact-artifacts",
-      "statement_sha256": "e89887690a44eac7d8f2140763928eafd724d82a5a18173b5200ebed021400e5",
+      "statement_sha256": "cd52a2d347558a261ce86e2790dbc2fbb9f3bfde9ec4db89a8ae99c8550b7995",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

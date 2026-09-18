@@ -75,7 +75,7 @@ data MUST retain the policy derivation fixed during check.
 After Result computation succeeds, the Host MUST create one
 `actql-result-manifest/0.1` with the following closed shape:
 
-<!-- requirement-block: result-artifacts.resultmanifest result-artifacts.product-09af8ecc4189 result-artifacts.product-76552b0b4805 -->
+<!-- requirement-block: result-artifacts.resultmanifest -->
 <!-- normative-code: grammar -->
 ```text
 ResultManifest := {
@@ -94,6 +94,58 @@ This keeps Run completion and inspection bounded even when Result payloads are
 large; payload bytes remain in authorized artifact storage and MAY be streamed
 during delivery.
 
+#### Run-bound publication chain
+
+<!-- requirement-block: result-artifacts.a-run-bound-result-definition-must-resolve-one-exact-checked-result-occurrence -->
+A Run-bound Result Definition MUST resolve one exact checked Result occurrence
+from its Program Definition and Result name. Its self identity excludes only
+`result_definition_cid`. Because this is a Run-bound definition, any Program
+Definition change, including a change to another declared Result, changes the
+Result Definition identity. It is not the local semantic Result projection.
+
+<!-- requirement-block: result-artifacts.a-run-bound-invocation-must-bind-the-exact-template-and-complete-admitted-observation-set -->
+A Run-bound Invocation MUST bind the exact Bound Invocation Template and the
+complete admitted ObservationSet. The ObservationSet's template reference must
+match, and every required observation must be established before issuance. It
+does not contain a future Run Manifest or Run Definition. Equal Invocation
+content does not merge distinct Run occurrences.
+
+<!-- requirement-block: result-artifacts.a-durable-result-binding-must-bind-logical-and-physical-identities-with-the-effective-retention-policy -->
+A durable Result binding MUST bind the exact Run, Result Definition,
+Invocation, ordered logical Result, schema, ordering evidence, codec, material
+generation, Store authority, physical digest and size, and effective retention
+policy. The payload digest, LogicalRelation CID, and delivery-byte hash remain
+different identities even when one bounded pass computes them.
+
+<!-- requirement-block: result-artifacts.a-publication-attempt-must-not-contain-its-future-outcome-or-terminal-record -->
+A Publication Attempt MUST bind immutable request intent, Run, unique attempt,
+fence, and start time without containing its future outcome or terminal record.
+Append-only progress is serialized with Store compare-and-swap or equivalent
+fencing. An unknown commit outcome is reconciled before another attempt; a
+durable commit wins a concurrent cancellation request.
+
+<!-- requirement-block: result-artifacts.a-committed-run-must-have-one-public-index-entry-for-its-authority-scoped-run-definition -->
+A committed Run MUST have one public-index entry for its tenant and authority
+scoped exact Run Definition. The first atomic durable commit fixes its
+Invocation and Manifest. The same publication intent returns that commit;
+conflicting Invocation, Manifest, or intent is rejected. Prepared objects are
+not visible through ordinary Result lookup before this commit.
+
+<!-- requirement-block: result-artifacts.manifest-and-result-read-grants-must-be-separate-and-bind-an-exact-committed-manifest -->
+Manifest and Result read grants MUST be separate and bind an exact committed
+Manifest, principal, tenant, authority scope, purpose, data ceiling, byte and
+use limits, and expiry. Result grants also bind exact Result Artifacts, allowed
+formats, and egress admission. A pre-commit publication permission is not a
+read grant, and an unknown Manifest CID or unrestricted wildcard is invalid.
+
+<!-- requirement-block: result-artifacts.a-delivery-attempt-must-have-an-immutable-identity-separate-from-progress-and-terminal-records -->
+A Delivery Attempt MUST have an immutable identity separate from progress and
+terminal records. A failed sink records the confirmed prefix separately from
+any unknown additional exposure. Retry performs fresh authorization and egress
+admission from byte zero and may duplicate bytes; the protocol does not imply
+midstream resume or exactly-once delivery.
+
+<!-- requirement-block: result-artifacts.product-09af8ecc4189 -->
 That Run-bound Manifest remains an audit/delivery index; its shape and CID law
 are unchanged. A local semantic dependency MUST instead use the registered
 `actql-local-result-manifest/0.1` projection: `{version, unit_definition_cid,
@@ -123,6 +175,7 @@ not arbitrary purported artifacts. The entire bundle, not just root field names,
 is checked for locality and cycles.
 
 Projection is deterministic over authenticated Captured Run/apply evidence.
+<!-- requirement-block: result-artifacts.product-76552b0b4805 -->
 `actql-semantic-projection-attestation/0.1` binds the local semantic CID, original
 audit CIDs, graph membership, projection law, issuer, scope, policy and detached
 authentication. Recompute the projection from the admitted source and compare
@@ -825,6 +878,21 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_availability_evidence sha256:28b21024a3d5291871e346b8f646d13c606e217ddc81d9fe1756f32816bcd59e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_manifest sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_delivery_receipt sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21
+../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973
+../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81
+../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb
+../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:5d7617bb6df3a5131e939dd8564a4a9a9fe83137a5ffee5d00a4156f7df13ca4
+../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82
+../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5
+../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d
+../../../spec/contracts/actql-run-publication.json#/schemas/manifest_read_grant sha256:2aeaa77acc11099eb0192defd561691a3bd90bbf70d5ed111ffdfbb71ae90e78
+../../../spec/contracts/actql-run-publication.json#/schemas/result_read_grant sha256:288322154204b30c3715cf6b8da76ea0ac564a2e2064ad2558531904509d2215
+../../../spec/contracts/actql-run-publication.json#/schemas/delivery_attempt sha256:f26252778de76cc45e95559a1b9d95055d1f650af6d89ca1262592dcffba48cf
+../../../spec/contracts/actql-run-publication.json#/schemas/delivery_record sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4
+../../../spec/contracts/actql-run-publication.json#/schemas/public_index_entry sha256:02b9bdcfad98727743c300aac47dad642d9e2a4220375b1054ff59cd9302de4a
+../../../spec/contracts/actql-run-publication.json#/reference_roles sha256:bc570f812a154f195cb9681449d618b47d77717736fd8e1a302deb935e4592d3
+../../../spec/contracts/actql-run-publication.json#/reference_graph sha256:c75bbb4cb84122e6bec5344faf9241e671951fac51201d538197a4f15d4c44a5
+../../../spec/contracts/actql-run-publication.json#/laws sha256:9d6de1a60e727f7ef6b594aa59b9b7a39d7045fa8950d48851574585f8aa6474
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_source sha256:32020595b3f1a5cbf52b582b8c92c6967afe4b46f97cfc4b6fdf19429b105632
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_barrier sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/artifact_evidence sha256:702409a249ef4617394564dc251f2a361a5da1494d220fe16e14d7563153349e
