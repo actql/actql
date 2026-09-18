@@ -272,6 +272,12 @@ pub fn kernel_is_projection(PreparedKernel) -> Bool
 
 pub fn kernel_is_sort(PreparedKernel) -> Bool
 
+pub fn kernel_lag(PreparedKernel) -> (@relation_schema.FieldName, String, Int64)?
+
+pub fn kernel_lag_partition_at(PreparedKernel, Int) -> @relation_schema.FieldName?
+
+pub fn kernel_lag_partition_count(PreparedKernel) -> Int
+
 pub fn kernel_output_schema(PreparedKernel) -> @relation_schema.Schema
 
 pub fn kernel_owner(PreparedKernel) -> BoundPrepared
@@ -305,6 +311,8 @@ pub fn kernel_unpivot_keep_count(PreparedKernel) -> Int
 pub fn kernel_unpivot_outputs(PreparedKernel) -> (String, String)?
 
 pub fn kernel_view_entries(PreparedKernel) -> Int
+
+pub fn kernel_watermark(PreparedKernel) -> (@relation_schema.FieldName, Bool, @relation_typing.LatePolicy, PreparedWatermarkThreshold)?
 
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
 
@@ -487,6 +495,12 @@ pub fn set_kernel_step(PreparedSetKernel) -> Int
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
 pub fn usage(Prepared) -> Usage
+
+pub fn watermark_input_order(PreparedWatermarkThreshold) -> @pipeline_typing.LogicalOrder?
+
+pub fn watermark_is_prefix(PreparedWatermarkThreshold) -> Bool
+
+pub fn watermark_threshold_value(PreparedWatermarkThreshold) -> Double
 
 pub fn window_authored_step(PreparedWindow) -> Int64?
 
@@ -731,6 +745,8 @@ pub enum KernelBody {
   DistinctRows
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
+  Lag(Int64, @pipeline_typing.SortCompletion)
+  Watermark(@relation_schema.FieldName, Bool, @relation_typing.LatePolicy, PreparedWatermarkThreshold)
   CountGroups(PreparedCountGroup)
   Groups(PreparedGroup)
 }
@@ -746,6 +762,10 @@ pub(all) enum KernelIssue {
   PendingTakeOrder
   PendingTopKOrder
   PendingSortOrder
+  PendingLagOrder
+  InvalidLagOffset
+  PendingWatermarkOrder
+  InvalidWatermarkThreshold
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
   GroupFailure(GroupIssue)
@@ -801,6 +821,8 @@ pub enum Payload {
   Sort(@relation_typing.CheckedOperation)
   CountGroup(@relation_typing.CheckedOperation)
   WindowGroup(@relation_typing.CheckedOperation)
+  Lag(@relation_typing.CheckedOperation)
+  Watermark(@relation_typing.CheckedOperation)
   AssertRows(@relation_typing.CheckedOperation)
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
@@ -874,6 +896,11 @@ pub enum PreparedStep {
 }
 
 type PreparedValues
+
+pub enum PreparedWatermarkThreshold {
+  FixedWatermark(Double)
+  PrefixWatermark(Int64, @pipeline_typing.LogicalOrder)
+}
 
 type PreparedWindow
 

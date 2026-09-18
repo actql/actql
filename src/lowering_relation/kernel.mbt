@@ -10,6 +10,14 @@ struct PreparedKernel {
 }
 
 ///|
+/// A bound watermark threshold. Prefix mode retains the exact checked input
+/// order whose occurrence sequence defines the running maximum.
+pub enum PreparedWatermarkThreshold {
+  FixedWatermark(Double)
+  PrefixWatermark(Int64, @pipeline.LogicalOrder)
+}
+
+///|
 pub enum KernelBody {
   SnapshotMap(Array[(String, Expression)])
   OrderedBindings(Array[(String, Expression)])
@@ -28,6 +36,12 @@ pub enum KernelBody {
   DedupeRows
   StableSort(@pipeline.SortOrder?)
   Lag(Int64, @pipeline.SortCompletion)
+  Watermark(
+    @schema.FieldName,
+    Bool,
+    @relation.LatePolicy,
+    PreparedWatermarkThreshold
+  )
   CountGroups(PreparedCountGroup)
   Groups(PreparedGroup)
 }
@@ -46,6 +60,8 @@ pub(all) enum KernelIssue {
   PendingSortOrder
   PendingLagOrder
   InvalidLagOffset
+  PendingWatermarkOrder
+  InvalidWatermarkThreshold
   PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
   GroupFailure(GroupIssue)
@@ -119,6 +135,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | DedupeRows
     | StableSort(_)
     | Lag(_, _)
+    | Watermark(_, _, _, _)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -148,6 +165,7 @@ pub fn ordered_binding_at(
     | DedupeRows
     | StableSort(_)
     | Lag(_, _)
+    | Watermark(_, _, _, _)
     | CountGroups(_)
     | Groups(_) => None
   }
@@ -175,6 +193,8 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
     Lag(offset, order) => Lag(offset, order)
+    Watermark(time, timestamp, policy, threshold) =>
+      Watermark(time, timestamp, policy, threshold)
     CountGroups(group) => CountGroups(group)
     Groups(group) => Groups(group)
   }
@@ -200,6 +220,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | DedupeRows
     | StableSort(_)
     | Lag(_, _)
+    | Watermark(_, _, _, _)
     | CountGroups(_)
     | Groups(_) => 0
   }
@@ -258,6 +279,7 @@ fn prepare_kernel_measured(
     | CountGroup(op)
     | WindowGroup(op)
     | Lag(op)
+    | Watermark(op)
     | AssertRows(op) => op
     JsonPick(op) => op
     Values(_)
@@ -611,6 +633,89 @@ fn prepare_kernel_measured(
     }
     RowOperation if @relation.operation(checked) == @relation.Distinct =>
       DistinctRows
+    RowOperation if @relation.operation(checked) == @relation.WatermarkRows => {
+      guard @relation.row_operation(checked)
+        is Some(@relation.Watermark(time~, timestamp~, threshold~, policy~)) else {
+        return Err(InvalidKernelWiring)
+      }
+      if max_bindings < 2 || remaining.max_work < 2 {
+        return Err(KernelBudgetExceeded)
+      }
+      let time_name = @schema.reference_name(time.field)
+      let time_bytes = @utf8.encode(time_name).length()
+      if time_bytes > names_remaining {
+        return Err(KernelBudgetExceeded)
+      }
+      names_remaining -= time_bytes
+      let bind_name = fn(
+        name : String,
+      ) -> Result[@value.CheckedValue, KernelIssue] {
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+        match owner.by_name.get(name) {
+          Some(value) => Ok(value)
+          None => Err(InvalidWatermarkThreshold)
+        }
+      }
+      let prepared_threshold = match threshold {
+        @relation.FixedThreshold(value) => FixedWatermark(value)
+        @relation.ThresholdParameter(name) => {
+          guard bind_name(name) is Ok(bound) &&
+            bound.value is @value.Number(value) &&
+            !value.is_nan() &&
+            !value.is_inf() &&
+            !(value == 0.0 && 1.0 / value < 0.0) else {
+            return Err(InvalidWatermarkThreshold)
+          }
+          FixedWatermark(value)
+        }
+        @relation.PrefixSkew(value, duration~) => {
+          guard @pipeline.resolve_existing_input_order(
+              owner.prepared.owner,
+              step_index,
+            )
+            is Some(resolution) &&
+            @pipeline.input_order_requirement(resolution)
+            is @relation.WatermarkPrefixOrder else {
+            return Err(PendingWatermarkOrder)
+          }
+          guard node.input_targets.get(0) is Some(target) &&
+            target == @pipeline.input_order_target(resolution) else {
+            return Err(InvalidKernelWiring)
+          }
+          let skew = match value {
+            Literal(value) => value
+            Parameter(name) => {
+              guard bind_name(name) is Ok(bound) else {
+                return Err(InvalidWatermarkThreshold)
+              }
+              if duration {
+                guard bound.value is @value.Text(text) &&
+                  @scalar.read_duration_ms(text) is Some(value) else {
+                  return Err(InvalidWatermarkThreshold)
+                }
+                value
+              } else {
+                guard bound.value is @value.Number(number) &&
+                  @scalar.read_safe_integer(number) is Some(value) else {
+                  return Err(InvalidWatermarkThreshold)
+                }
+                value
+              }
+            }
+          }
+          if skew < 1L || skew > 9007199254740991L {
+            return Err(InvalidWatermarkThreshold)
+          }
+          PrefixWatermark(skew, @pipeline.input_order_evidence(resolution))
+        }
+      }
+      remaining = { ..remaining, max_work: remaining.max_work - 2, }
+      Watermark(time.field, timestamp, policy, prepared_threshold)
+    }
     RowOperation if @relation.operation(checked) == @relation.Lag => {
       guard @pipeline.lag_order_completion(owner.prepared.owner, step_index)
         is Some(completion) else {
@@ -889,6 +994,7 @@ fn prepare_kernel_measured(
       @relation.lag_term_count(checked) +
       @pipeline.sort_completion_count(completion) +
       2
+    Watermark(_, _, _, _) => 2
     DedupeRows =>
       @relation.dedupe_key_count(checked) +
       @relation.dedupe_order_count(checked)

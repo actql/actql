@@ -98,6 +98,7 @@ pub fn local_managed_sequence_supported(
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
+          Watermark(_, _, _, _) => false
           Groups(group) => @execution.group_execution_supported(group)
           Pivot(pivot) =>
             match @lower.pivot_function(pivot) {

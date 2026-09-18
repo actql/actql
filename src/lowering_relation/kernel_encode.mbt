@@ -79,6 +79,7 @@ pub fn emit_kernel_node(
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
       Lag(_, _) => "REL.window.lag"
+      Watermark(_, _, _, _) => "REL.watermark"
       CountGroups(_) => "REL.groupBy"
       Groups(group) =>
         if group.window {
@@ -179,6 +180,30 @@ pub fn emit_kernel_node(
         )
       }
       @encode.end_array(out)
+    }
+    Watermark(time, _, policy, threshold) => {
+      @encode.key(out, "late_policy")
+      @encode.string_value(
+        out,
+        match policy {
+          @relation.DropLate => "drop"
+          @relation.MarkLate => "mark"
+        },
+      )
+      match threshold {
+        FixedWatermark(value) => {
+          @encode.key(out, "time")
+          @encode.string_value(out, @schema.reference_name(time))
+          @encode.key(out, "watermark_ms")
+          @encode.number_value(out, value)
+        }
+        PrefixWatermark(value, _) => {
+          @encode.key(out, "max_skew_ms")
+          @encode.number_value(out, value.to_double())
+          @encode.key(out, "time")
+          @encode.string_value(out, @schema.reference_name(time))
+        }
+      }
     }
     Pivot(pivot) => {
       @encode.key(out, "aggregate")

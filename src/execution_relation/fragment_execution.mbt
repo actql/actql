@@ -86,6 +86,14 @@ fn attach_fragment_budgets(
             }
           @lower.Select(_) => ()
           @lower.JsonPick(_, _, _) => ()
+          @lower.Watermark(time, _, _, _) => {
+            let name = @schema.reference_name(time)
+            if !spend_control(control, 1) ||
+              !spend_control_text(control, name) ||
+              @schema.lookup(@lower.kernel_input_schema(kernel), time) is None {
+              return Err(FragmentContext(i, KernelMismatch))
+            }
+          }
           @lower.Pivot(pivot) => {
             let schema = @lower.pivot_input_schema(pivot)
             for j = 0; j < @lower.pivot_index_count(pivot) + 2; j = j + 1 {

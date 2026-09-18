@@ -86,6 +86,47 @@ pub fn kernel_lag(
 }
 
 ///|
+/// Bound watermark semantics. Prefix order remains owned by the threshold and
+/// cannot be supplied independently by an execution backend.
+pub fn kernel_watermark(
+  kernel : PreparedKernel,
+) -> (@schema.FieldName, Bool, @relation.LatePolicy, PreparedWatermarkThreshold)? {
+  match kernel.body {
+    Watermark(time, timestamp, policy, threshold) =>
+      Some((time, timestamp, policy, threshold))
+    _ => None
+  }
+}
+
+///|
+/// The exact checked input sequence used by prefix watermark progression.
+pub fn watermark_input_order(
+  threshold : PreparedWatermarkThreshold,
+) -> @pipeline.LogicalOrder? {
+  match threshold {
+    PrefixWatermark(_, order) => Some(order)
+    FixedWatermark(_) => None
+  }
+}
+
+///|
+/// Fixed threshold or prefix skew in milliseconds.
+pub fn watermark_threshold_value(
+  threshold : PreparedWatermarkThreshold,
+) -> Double {
+  match threshold {
+    FixedWatermark(value) => value
+    PrefixWatermark(value, _) => value.to_double()
+  }
+}
+
+///|
+/// True only for the running-prefix threshold law.
+pub fn watermark_is_prefix(threshold : PreparedWatermarkThreshold) -> Bool {
+  threshold is PrefixWatermark(_, _)
+}
+
+///|
 /// Allocation-free count view for both global and partitioned top-k kernels.
 pub fn kernel_top_k_count(kernel : PreparedKernel) -> Int64? {
   match kernel.body {

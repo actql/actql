@@ -116,6 +116,7 @@ fn emit_fragment_pipeline(
         | DedupeRows
         | StableSort(_)
         | Lag(_, _)
+        | Watermark(_, _, _, _)
         | CountGroups(_) => raise @encode.InvalidStructure
       },
     )
@@ -168,6 +169,7 @@ fn emit_fragment_pipeline(
         | DedupeRows
         | StableSort(_)
         | Lag(_, _)
+        | Watermark(_, _, _, _)
         | CountGroups(_)
         | Groups(_) => raise @encode.InvalidStructure
       }
