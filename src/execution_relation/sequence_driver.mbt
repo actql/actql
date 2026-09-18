@@ -68,6 +68,7 @@ fn evaluate_sequence_components(
   fragments? : Array[FragmentRuntimeContext]? = None,
   join_ceiling? : (Int, Int64)? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   ordered? : OrderedExecution = {
     contexts: [],
     max_bytes: 0,
@@ -96,6 +97,7 @@ fn evaluate_sequence_components(
       ordered,
       join_ceiling~,
       aggregate_outputs~,
+      analytic_envelopes~,
     )
   }
   let invocation = match
@@ -113,7 +115,12 @@ fn evaluate_sequence_components(
     Ok(invocation) => invocation
     Err(issue) => return Err(issue)
   }
-  run_sequence_invocation(invocation, join_ceiling~, aggregate_outputs~)
+  run_sequence_invocation(
+    invocation,
+    join_ceiling~,
+    aggregate_outputs~,
+    analytic_envelopes~,
+  )
 }
 
 ///|
@@ -404,6 +411,7 @@ fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
   join_ceiling? : (Int, Int64)? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   run_completed_sequence_backend(
     invocation,
@@ -425,6 +433,10 @@ fn run_sequence_invocation(
         ordered_budget=logical,
         aggregate_outputs=selected_aggregate_outputs_at(
           aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
+        analytic_envelope=selected_analytic_envelope_at(
+          analytic_envelopes,
           @lower.kernel_step(kernel),
         ),
         identity_limits=Some(invocation.limits.input_values),

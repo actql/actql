@@ -391,6 +391,7 @@ pub fn[T] start_local_managed_dispatch(
           setup.measurement,
           join_output_ceiling=setup.join_output_ceilings.get(0),
           aggregate_output_ceilings=setup.aggregate_output_ceilings,
+          analytic_envelopes=setup.analytic_envelopes,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Configuration(issue))

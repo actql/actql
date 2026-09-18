@@ -194,6 +194,8 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
@@ -650,6 +652,15 @@ type AdmittedOutputStreamReceipt
 pub enum AggregateOutputUnit {
   ArrayItems
   StringBytes
+} derive(Eq, @debug.Debug)
+
+pub(all) enum AnalyticEnvelopeScope {
+  InputWireBytes
+  OutputWireBytes
+  PartitionWireBytes
+  FrameMemberships
+  OutputRows
+  Measurement
 } derive(Eq, @debug.Debug)
 
 pub struct BackendCapabilityIssue {
@@ -1290,6 +1301,7 @@ pub(all) enum RowIssue {
   JoinDuplicateKey(Bool, Int, Int)
   WindowTime(Int)
   WindowArithmetic(Int)
+  AnalyticEnvelope(AnalyticEnvelopeScope)
 }
 
 type RowWireIdentity

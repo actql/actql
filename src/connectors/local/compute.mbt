@@ -135,6 +135,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   measurement : @execution.FixedInputGuardMeasureLimits,
   join_output_ceiling? : (Int, Int64)? = None,
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
 ) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
   guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
@@ -179,6 +180,21 @@ pub fn[T] execute_local_managed_fixed_compute(
         @connector.aggregate_output_ceiling_name(ceiling),
         unit,
         @connector.aggregate_output_ceiling_maximum(ceiling),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
+  }
+  for envelope in analytic_envelopes {
+    constrained = match
+      @execution.constrain_generated_analytic_envelope(
+        constrained,
+        @connector.analytic_envelope_step(envelope),
+        @connector.analytic_envelope_input_wire_bytes(envelope),
+        @connector.analytic_envelope_output_wire_bytes(envelope),
+        @connector.analytic_envelope_partition_wire_bytes(envelope),
+        @connector.analytic_envelope_frame_memberships(envelope),
+        @connector.analytic_envelope_output_rows(envelope),
       ) {
       Ok(value) => value
       Err(issue) => return Err(Execution(issue))

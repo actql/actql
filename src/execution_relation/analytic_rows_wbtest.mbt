@@ -76,6 +76,162 @@ fn analytic_execution_input(owner : @lower.BoundPrepared) -> Table {
 }
 
 ///|
+fn analytic_wire_bytes(value : String) -> Int64 {
+  @scalar.admit_utf8_length64(value, 100000L).unwrap()
+}
+
+///|
+fn analytic_test_envelope(
+  input_wire_bytes : Int64,
+  output_wire_bytes : Int64,
+  partition_wire_bytes : Int64,
+  frame_memberships : Int64,
+  output_rows : Int64,
+) -> SelectedAnalyticEnvelope {
+  {
+    step: 0,
+    input_wire_bytes,
+    output_wire_bytes,
+    partition_wire_bytes,
+    frame_memberships,
+    output_rows,
+  }
+}
+
+///|
+test "analytic envelope enforces exact typed wire scopes" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"functions\":{" +
+    "\"position\":{\"fn\":\"row_number\"}}}",
+  )
+  let input = "[{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+    "{\"amount\":20,\"group\":null,\"id\":2}," +
+    "{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+    "{\"amount\":null,\"group\":null,\"id\":4}," +
+    "{\"amount\":30,\"group\":\"a\",\"id\":5}]"
+  let output = "[{\"amount\":30,\"group\":\"a\",\"id\":3,\"position\":2}," +
+    "{\"amount\":20,\"group\":null,\"id\":2,\"position\":1}," +
+    "{\"amount\":10,\"group\":\"a\",\"id\":1,\"position\":1}," +
+    "{\"amount\":null,\"group\":null,\"id\":4,\"position\":2}," +
+    "{\"amount\":30,\"group\":\"a\",\"id\":5,\"position\":3}]"
+  let null_partition = "[{\"amount\":20,\"group\":null,\"id\":2}," +
+    "{\"amount\":null,\"group\":null,\"id\":4}]"
+  let text_partition = "[{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+    "{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+    "{\"amount\":30,\"group\":\"a\",\"id\":5}]"
+  let input_bytes = analytic_wire_bytes(input)
+  let output_bytes = analytic_wire_bytes(output)
+  let partition_bytes = Int64::max(
+    analytic_wire_bytes(null_partition),
+    analytic_wire_bytes(text_partition),
+  )
+  let exact = analytic_test_envelope(
+    input_bytes, output_bytes, partition_bytes, 0L, 5L,
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some(exact),
+    )
+    is Ok(_),
+  )
+  for
+    (limited, expected) in [
+      ({ ..exact, input_wire_bytes: input_bytes - 1L, }, InputWireBytes),
+      ({ ..exact, output_wire_bytes: output_bytes - 1L, }, OutputWireBytes),
+      (
+        { ..exact, partition_wire_bytes: partition_bytes - 1L, },
+        PartitionWireBytes,
+      ),
+      ({ ..exact, output_rows: 4L, }, OutputRows),
+    ] {
+    assert_true(
+      evaluate_rows(
+        row_kernel(owner, 0),
+        analytic_execution_input(owner),
+        5,
+        { remaining: 100000, max_frames: 100, },
+        row_output(),
+        analytic_envelope=Some(limited),
+      )
+      is Err(AnalyticEnvelope(scope)) &&
+      scope == expected,
+    )
+  }
+}
+
+///|
+test "analytic envelope counts navigation memberships" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"functions\":{" +
+    "\"previous\":{\"fn\":\"lag\",\"expr\":\"amount\"}}}",
+  )
+  let generous = analytic_test_envelope(10000L, 10000L, 10000L, 3L, 5L)
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some(generous),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some({ ..generous, frame_memberships: 2L, }),
+    )
+    is Err(AnalyticEnvelope(FrameMemberships)),
+  )
+}
+
+///|
+test "analytic envelope counts every aggregate frame membership" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{" +
+    "\"start\":\"unbounded_preceding\",\"end\":\"current_row\"}," +
+    "\"functions\":{\"n\":{\"fn\":\"count\"," +
+    "\"field\":\"amount\"}}}",
+  )
+  let generous = analytic_test_envelope(10000L, 10000L, 10000L, 9L, 5L)
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some(generous),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 0),
+      analytic_execution_input(owner),
+      5,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      analytic_envelope=Some({ ..generous, frame_memberships: 8L, }),
+    )
+    is Err(AnalyticEnvelope(FrameMemberships)),
+  )
+}
+
+///|
 test "analytic ranking navigation and frame values retain source order" {
   let owner = analytic_execution_owner(
     "\"analytic\":{\"partition_by\":[\"group\",\"group\"]," +
@@ -459,6 +615,19 @@ test "analytic collection limits bind exact prepared calls" {
   )
   assert_true(
     constrain_generated_aggregate_output(items, 0, "items", ArrayItems, 1L)
+    is Err(InputSet),
+  )
+  let envelope = constrain_generated_analytic_envelope(
+    generated, 0, 100L, 200L, 50L, 20L, 5L,
+  ).unwrap()
+  assert_true(
+    constrain_generated_analytic_envelope(envelope, 0, 100L, 200L, 50L, 20L, 5L)
+    is Err(InputSet),
+  )
+  assert_true(
+    constrain_generated_analytic_envelope(
+      generated, 1, 100L, 200L, 50L, 20L, 5L,
+    )
     is Err(InputSet),
   )
 }

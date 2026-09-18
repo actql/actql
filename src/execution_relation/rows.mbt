@@ -29,7 +29,18 @@ pub(all) enum RowIssue {
   JoinDuplicateKey(Bool, Int, Int)
   WindowTime(Int)
   WindowArithmetic(Int)
+  AnalyticEnvelope(AnalyticEnvelopeScope)
 }
+
+///|
+pub(all) enum AnalyticEnvelopeScope {
+  InputWireBytes
+  OutputWireBytes
+  PartitionWireBytes
+  FrameMemberships
+  OutputRows
+  Measurement
+} derive(Eq, Debug)
 
 ///|
 fn table_from_capture_bounded(
@@ -149,6 +160,7 @@ fn evaluate_rows_with_workspace(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
 ) -> Result[Table, RowIssue] {
   evaluate_rows_dispatch(
@@ -215,6 +227,7 @@ fn evaluate_rows_with_workspace(
           workspace,
           ordered_budget=logical,
           aggregate_outputs~,
+          analytic_envelope~,
           identity_limits~,
         )
       },
@@ -336,6 +349,7 @@ fn[T : RelationRows] evaluate_row_body(
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
 ) -> Result[Table, RowIssue] {
   let rows : Array[Array[Value]] = []
@@ -353,6 +367,7 @@ fn[T : RelationRows] evaluate_row_body(
       },
       ordered_budget~,
       aggregate_outputs~,
+      analytic_envelope~,
       identity_limits~,
     ) {
     Ok(names) => names
@@ -378,6 +393,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   ],
   ordered_budget? : LogicalBudget? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
@@ -403,6 +419,7 @@ fn[T : RelationRows] evaluate_row_body_into(
     scope,
     accept_row,
     aggregate_outputs,
+    analytic_envelope,
     identity_limits.unwrap_or(output.limits),
   )
   if scope is Some(s) {
@@ -428,6 +445,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
     RowIssue,
   ],
   aggregate_outputs : Array[SelectedAggregateOutput],
+  analytic_envelope : SelectedAnalyticEnvelope?,
   identity_limits : ValueLimits,
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
@@ -469,7 +487,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
     @lower.kernel_analytic(kernel) is Some(analytic) {
     return evaluate_analytic_into(
       analytic, input, max_rows, control, output, workspace, scope, aggregate_outputs,
-      identity_limits, accept_row,
+      analytic_envelope, identity_limits, accept_row,
     )
   }
   let view_entries = match body {

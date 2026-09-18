@@ -11,6 +11,7 @@ fn evaluate_completed_body(
   workspace : RowWorkspace,
   logical : LogicalBudget?,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
 ) -> Result[CompletedTable, RowIssue] {
   let projection = match body {
@@ -28,6 +29,7 @@ fn evaluate_completed_body(
       workspace,
       ordered_budget=logical,
       aggregate_outputs~,
+      analytic_envelope~,
       identity_limits~,
     ).map(table => RowTable(table))
   }
@@ -56,6 +58,7 @@ fn evaluate_completed_body(
         },
         ordered_budget=logical,
         aggregate_outputs~,
+        analytic_envelope~,
         identity_limits~,
       ) {
       Ok(names) => names
@@ -109,6 +112,7 @@ fn evaluate_completed_body(
       },
       ordered_budget=logical,
       aggregate_outputs~,
+      analytic_envelope~,
       identity_limits~,
     ) {
     Ok(names) => names
@@ -200,6 +204,7 @@ fn evaluate_completed_rows(
   workspace : RowWorkspace,
   logical : LogicalBudget?,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
 ) -> Result[CompletedTable, RowIssue] {
   evaluate_rows_dispatch(
@@ -304,6 +309,7 @@ fn evaluate_completed_rows(
           workspace,
           logical,
           aggregate_outputs~,
+          analytic_envelope~,
           identity_limits~,
         )
       },

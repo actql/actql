@@ -5,6 +5,77 @@ priv struct AnalyticPartitionRange {
 }
 
 ///|
+fn[T : IndexedRows] measure_analytic_row_array(
+  rows : T,
+  names : Array[String],
+  indices : Array[Int],
+  start : Int,
+  end : Int,
+  ceiling : Int64,
+  scope : AnalyticEnvelopeScope,
+  control : ControlBudget,
+) -> Result[Unit, RowIssue] {
+  if ceiling < 0L || start < 0 || end < start || end > indices.length() {
+    return Err(AnalyticEnvelope(Measurement))
+  }
+  let cap = Int64::min(ceiling, 2147483647L).to_int()
+  let result = try {
+    let writer = @encode.measuring_writer(cap, 2147483647, 2147483647)
+    @encode.begin_array(writer)
+    for position in start..<end {
+      let row = indices[position]
+      if row < 0 ||
+        row >= rows.row_count() ||
+        rows.row_width(row) != names.length() ||
+        !spend_control(control, 1) {
+        return Err(AnalyticEnvelope(Measurement))
+      }
+      @encode.begin_object(writer)
+      for column in 0..<names.length() {
+        if !spend_control(control, 1) {
+          return Err(AnalyticEnvelope(Measurement))
+        }
+        @encode.key(writer, names[column])
+        emit_runtime_value(rows.read_cell(row, column), writer)
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish_measurement(writer) |> ignore
+    Ok(())
+  } catch {
+    _ => Err(AnalyticEnvelope(scope))
+  }
+  result
+}
+
+///|
+fn emit_analytic_output_row(
+  writer : @encode.Writer,
+  names : Array[String],
+  row : Array[Value],
+  control : ControlBudget,
+) -> Result[Unit, RowIssue] {
+  if names.length() != row.length() || !spend_control(control, 1) {
+    return Err(AnalyticEnvelope(Measurement))
+  }
+  try {
+    @encode.begin_object(writer)
+    for column in 0..<names.length() {
+      if !spend_control(control, 1) {
+        return Err(AnalyticEnvelope(Measurement))
+      }
+      @encode.key(writer, names[column])
+      emit_runtime_value(row[column], writer)
+    }
+    @encode.end_object(writer)
+    Ok(())
+  } catch {
+    _ => Err(AnalyticEnvelope(OutputWireBytes))
+  }
+}
+
+///|
 pub fn analytic_execution_supported(analytic : @lower.PreparedAnalytic) -> Bool {
   let schema = @lower.analytic_input_schema(analytic)
   for i in 0..<@lower.analytic_partition_count(analytic) {
@@ -139,6 +210,7 @@ fn[T : RelationRows] evaluate_analytic_into(
   workspace : RowWorkspace,
   scope : ExpressionRoots?,
   aggregate_outputs : Array[SelectedAggregateOutput],
+  envelope : SelectedAnalyticEnvelope?,
   identity_limits : ValueLimits,
   accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
     Unit,
@@ -152,6 +224,26 @@ fn[T : RelationRows] evaluate_analytic_into(
   let count = IndexedRows::row_count(input)
   if count > max_rows {
     return Err(RowLimit)
+  }
+  if envelope is Some(value) && Int64::from_int(count) > value.output_rows {
+    return Err(AnalyticEnvelope(OutputRows))
+  }
+  if envelope is Some(value) {
+    let input_order = Array::makei(count, i => i)
+    match
+      measure_analytic_row_array(
+        input,
+        names,
+        input_order,
+        0,
+        count,
+        value.input_wire_bytes,
+        InputWireBytes,
+        control,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   let ordinals : Map[String, Int] = Map([])
   for column in 0..<names.length() {
@@ -273,6 +365,24 @@ fn[T : RelationRows] evaluate_analytic_into(
       start = position
     }
   }
+  if envelope is Some(value) {
+    for range in ranges {
+      match
+        measure_analytic_row_array(
+          input,
+          names,
+          sorted,
+          range.start,
+          range.end,
+          value.partition_wire_bytes,
+          PartitionWireBytes,
+          control,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+  }
   let call_count = @lower.analytic_call_count(analytic)
   let aggregate_arguments : Array[Int?] = Array::make(call_count, None)
   if !reserve_slots(workspace, call_count) {
@@ -314,6 +424,7 @@ fn[T : RelationRows] evaluate_analytic_into(
       return Err(RowLimit)
     }
   }
+  let mut frame_memberships = 0L
   for range_index in 0..<ranges.length() {
     let range = ranges[range_index]
     let mut peer_start = range.start
@@ -387,6 +498,28 @@ fn[T : RelationRows] evaluate_analytic_into(
           PreparedFrameAggregate(_) => -1
         }
         references[call_index][source] = reference
+        if envelope is Some(value) {
+          let memberships = match @lower.analytic_call_function(call) {
+            PreparedLag(_, _)
+            | PreparedLead(_, _)
+            | PreparedFirstValue(_)
+            | PreparedLastValue(_) => if reference >= 0 { 1L } else { 0L }
+            PreparedFrameAggregate(_) => {
+              guard @lower.analytic_frame(analytic) is Some(frame) else {
+                return Err(InvalidRows)
+              }
+              match analytic_frame_range(frame, relative, length) {
+                None => 0L
+                Some((first, end)) => Int64::from_int(end - first)
+              }
+            }
+            PreparedRowNumber | PreparedRank | PreparedDenseRank => 0L
+          }
+          if memberships > value.frame_memberships - frame_memberships {
+            return Err(AnalyticEnvelope(FrameMemberships))
+          }
+          frame_memberships += memberships
+        }
       }
     }
   }
@@ -541,6 +674,19 @@ fn[T : RelationRows] evaluate_analytic_into(
         }
     }
   }
+  let output_writer = match envelope {
+    None => None
+    Some(value) => {
+      let cap = Int64::min(value.output_wire_bytes, 2147483647L).to_int()
+      let writer = @encode.measuring_writer(cap, 2147483647, 2147483647) catch {
+        _ => return Err(AnalyticEnvelope(OutputWireBytes))
+      }
+      @encode.begin_array(writer) catch {
+        _ => return Err(AnalyticEnvelope(OutputWireBytes))
+      }
+      Some(writer)
+    }
+  }
   for source in 0..<count {
     let row : Array[Value] = []
     if !spend_control(control, 1) ||
@@ -583,6 +729,12 @@ fn[T : RelationRows] evaluate_analytic_into(
         )
       }
     }
+    if output_writer is Some(writer) {
+      match emit_analytic_output_row(writer, output_names, row, control) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
     if !retain_row(row, output_names, output) {
       return Err(RowLimit)
     }
@@ -596,6 +748,14 @@ fn[T : RelationRows] evaluate_analytic_into(
     match accept_row(row, source, output_names, None) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
+    }
+  }
+  if output_writer is Some(writer) {
+    try {
+      @encode.end_array(writer)
+      @encode.finish_measurement(writer) |> ignore
+    } catch {
+      _ => return Err(AnalyticEnvelope(OutputWireBytes))
     }
   }
   Ok(output_names)

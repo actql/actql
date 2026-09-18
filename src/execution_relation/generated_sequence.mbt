@@ -8,6 +8,7 @@ struct GeneratedSequence {
   retained_ids : Array[String]
   join_ceiling : (Int, Int64)?
   aggregate_outputs : Array[SelectedAggregateOutput]
+  analytic_envelopes : Array[SelectedAnalyticEnvelope]
 }
 
 ///|
@@ -69,6 +70,7 @@ pub fn prepare_generated_sequence(
         retained_ids,
         join_ceiling: None,
         aggregate_outputs: [],
+        analytic_envelopes: [],
       })
     Err(issue) => Err(issue)
   }
@@ -94,6 +96,7 @@ pub fn execute_generated_sequence(
     fragments=Some(generated.contexts),
     join_ceiling=generated.join_ceiling,
     aggregate_outputs=generated.aggregate_outputs,
+    analytic_envelopes=generated.analytic_envelopes,
   )
 }
 
@@ -187,6 +190,48 @@ pub fn constrain_generated_aggregate_output(
   let aggregate_outputs = generated.aggregate_outputs.copy()
   aggregate_outputs.push({ step, aggregate, unit, maximum, })
   Ok({ ..generated, aggregate_outputs, })
+}
+
+///|
+/// Narrow one exact analytic operation. All scopes remain distinct and none
+/// can be substituted by the request's general row or value ceilings.
+pub fn constrain_generated_analytic_envelope(
+  generated : GeneratedSequence,
+  step : Int,
+  input_wire_bytes : Int64,
+  output_wire_bytes : Int64,
+  partition_wire_bytes : Int64,
+  frame_memberships : Int64,
+  output_rows : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if step < 0 ||
+    input_wire_bytes < 0L ||
+    output_wire_bytes < 0L ||
+    partition_wire_bytes < 0L ||
+    frame_memberships < 0L ||
+    output_rows < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_analytic(kernel) is Some(_) else {
+    return Err(InputSet)
+  }
+  for prior in generated.analytic_envelopes {
+    if prior.step == step {
+      return Err(InputSet)
+    }
+  }
+  let analytic_envelopes = generated.analytic_envelopes.copy()
+  analytic_envelopes.push({
+    step,
+    input_wire_bytes,
+    output_wire_bytes,
+    partition_wire_bytes,
+    frame_memberships,
+    output_rows,
+  })
+  Ok({ ..generated, analytic_envelopes, })
 }
 
 ///|

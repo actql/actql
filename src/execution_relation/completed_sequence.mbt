@@ -68,6 +68,7 @@ fn evaluate_physical_sequence(
   ordered : OrderedExecution,
   join_ceiling? : (Int, Int64)? = None,
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
+  analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let invocation = match
     prepare_physical_sequence(
@@ -97,6 +98,10 @@ fn evaluate_physical_sequence(
         logical,
         aggregate_outputs=selected_aggregate_outputs_at(
           aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
+        analytic_envelope=selected_analytic_envelope_at(
+          analytic_envelopes,
           @lower.kernel_step(kernel),
         ),
         identity_limits=Some(invocation.limits.input_values),

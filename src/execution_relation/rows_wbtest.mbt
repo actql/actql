@@ -16,12 +16,17 @@ fn evaluate_rows(
   max_rows : Int,
   control : ControlBudget,
   output : ValueBudget,
+  analytic_envelope? : SelectedAnalyticEnvelope? = None,
 ) -> Result[Table, RowIssue] {
-  evaluate_rows_with_workspace(kernel, input, max_rows, control, output, {
-    limit: 100000,
-    live: 0,
-    peak: 0,
-  })
+  evaluate_rows_with_workspace(
+    kernel,
+    input,
+    max_rows,
+    control,
+    output,
+    { limit: 100000, live: 0, peak: 0, },
+    analytic_envelope~,
+  )
 }
 
 ///|
