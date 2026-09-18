@@ -877,6 +877,52 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal((await lostBase.latestRecord(lost.attempt.identity)).state,
     'succeeded');
 
+  const raceDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-race-',
+  ));
+  t.after(() => rm(raceDirectory, {recursive: true, force: true}));
+  const raceBase = await openLocalPublicationStore({
+    directory: raceDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control);
+  await raceBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
+  t.after(async () => { await raceBase.close(); });
+  let commitArrivals = 0;
+  let releaseCommits;
+  const commitsReady = new Promise(resolve => { releaseCommits = resolve; });
+  const raceStore = Object.freeze({
+    ...raceBase,
+    async commitIndex(...arguments_) {
+      commitArrivals++;
+      if (commitArrivals === 2) releaseCommits();
+      await commitsReady;
+      return raceBase.commitIndex(...arguments_);
+    },
+  });
+  const raceAttempts = ['race-a', 'race-b'].map(attemptId => ({
+    ...publicationOptions.attempt,
+    attemptId,
+  }));
+  const raced = await Promise.all(raceAttempts.map(attempt =>
+    publishEffectFreeRun({...publicationOptions, store: raceStore, attempt})));
+  assert.equal(raced.filter(value => value.committed).length, 1);
+  assert.equal(raced.filter(value => value.idempotent).length, 1);
+  assert.equal(raced[0].index.identity, raced[1].index.identity);
+  assert.equal(raced[0].attempt.identity, raced[1].attempt.identity);
+  const raceContracts = raceAttempts.map(attempt =>
+    control.issuePublicationAttempt(request, run, attempt, limits));
+  const raceStates = await Promise.all(raceContracts.map(attempt =>
+    raceBase.latestRecord(attempt.identity)));
+  assert.deepEqual(
+    raceStates.map(value => value.state).sort(),
+    ['cancelled', 'succeeded'],
+  );
+
   const unknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-unknown-',
   ));
@@ -895,10 +941,10 @@ test('portable control validates Receipt and Captured Run references',
   let indexInspections = 0;
   const unknownStore = Object.freeze({
     ...unknownBase,
-    async inspectCommittedIndex(...arguments_) {
+    async confirmCommittedIndex(...arguments_) {
       indexInspections++;
       if (indexInspections > 1) throw new Error('index unavailable');
-      return unknownBase.inspectCommittedIndex(...arguments_);
+      return unknownBase.confirmCommittedIndex(...arguments_);
     },
     async commitIndex() { throw new Error('commit outcome unavailable'); },
   });

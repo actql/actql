@@ -36,7 +36,8 @@ function validateStore(store) {
   if (store === null || typeof store !== 'object' ||
       !['putPublicationContract', 'createAttempt', 'latestRecord',
         'latestRecordContract', 'appendRecord', 'commitIndex',
-        'inspectCommittedIndex', 'readPublicationContract',
+        'inspectCommittedIndex', 'confirmCommittedIndex',
+        'readPublicationContract',
         'validateCommittedEvidence']
         .every(name => typeof store[name] === 'function')) {
     fail('InvalidRunPublicationStore');
@@ -149,7 +150,7 @@ function indexKey(request, evidence) {
 }
 
 async function admittedCommittedIndex(store, control, key) {
-  const value = await store.inspectCommittedIndex(key);
+  const value = await store.confirmCommittedIndex(key);
   if (value === undefined) return undefined;
   if (!cidPattern.test(value.public_index_entry_cid)) {
     fail('InvalidCommittedPublicationIndex');
@@ -220,9 +221,65 @@ async function finishCommittedAttempt(
       !['committing', 'publication_unknown'].includes(value?.state)) {
     fail('InvalidCommittedPublicationAttempt');
   }
-  await appendState(
-    store, control, attempt, previous, 'succeeded', now(), limits, index,
+  try {
+    await appendState(
+      store, control, attempt, previous, 'succeeded', now(), limits, index,
+    );
+  } catch (error) {
+    if (error?.code !== 'PublicationRecordConflict' ||
+        (await store.latestRecord(attempt.identity))?.state !== 'succeeded') {
+      throw error;
+    }
+  }
+}
+
+async function finishSupersededAttempt(
+  store, control, attempt, now, limits,
+) {
+  const value = await store.latestRecord(attempt.identity);
+  if (value === undefined ||
+      ['cancelled', 'failed', 'succeeded'].includes(value.state)) {
+    return;
+  }
+  const previous = await store.latestRecordContract(attempt.identity);
+  if (previous === undefined ||
+      !['committing', 'publication_unknown'].includes(value.state)) {
+    fail('InvalidSupersededPublicationAttempt');
+  }
+  try {
+    await appendState(
+      store,
+      control,
+      attempt,
+      previous,
+      'cancelled',
+      now(),
+      limits,
+      undefined,
+      true,
+    );
+  } catch (error) {
+    if (error?.code !== 'PublicationRecordConflict' ||
+        (await store.latestRecord(attempt.identity))?.state !== 'cancelled') {
+      throw error;
+    }
+  }
+}
+
+async function finishResolvedCommit(
+  store, control, currentAttempt, index, now, limits,
+) {
+  const value = JSON.parse(index.wire);
+  const winner = await store.readPublicationContract(
+    value.publication_attempt_cid, 'publication_attempt',
   );
+  await finishCommittedAttempt(store, control, winner, index, now, limits);
+  if (winner.identity !== currentAttempt.identity) {
+    await finishSupersededAttempt(
+      store, control, currentAttempt, now, limits,
+    );
+  }
+  return winner;
 }
 
 async function requireActiveAttempt(
@@ -297,11 +354,9 @@ export async function publishEffectFreeRun(options) {
   );
   if (existing !== undefined) {
     await store.validateCommittedEvidence(existing.index, evidence);
-    if (existing.attempt.identity === publicationAttempt.identity) {
-      await finishCommittedAttempt(
-        store, control, existing.attempt, existing.index, now, limits,
-      );
-    }
+    await finishCommittedAttempt(
+      store, control, existing.attempt, existing.index, now, limits,
+    );
     return Object.freeze({
       state: 'succeeded',
       committed: false,
@@ -377,6 +432,7 @@ export async function publishEffectFreeRun(options) {
       throw uncertainFailure(primary, reconciliation, recordFailure);
     }
     if (reconciled === undefined) throw primary;
+    await store.validateCommittedEvidence(reconciled.index, evidence);
     committed = Object.freeze({
       entry: JSON.parse(reconciled.index.wire),
       committed: false,
@@ -386,7 +442,7 @@ export async function publishEffectFreeRun(options) {
   const committedIndex = await store.readPublicationContract(
     committed.entry.public_index_entry_cid, 'public_index_entry',
   );
-  await finishCommittedAttempt(
+  const winningAttempt = await finishResolvedCommit(
     store, control, publicationAttempt, committedIndex, now, limits,
   );
   return Object.freeze({
@@ -394,7 +450,7 @@ export async function publishEffectFreeRun(options) {
     committed: committed.committed,
     idempotent: committed.idempotent,
     request: publicationRequest,
-    attempt: publicationAttempt,
+    attempt: winningAttempt,
     index: committedIndex,
   });
 }

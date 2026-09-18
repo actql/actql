@@ -43,11 +43,13 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
-async function syncDirectory(path) {
+async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
   finally { await directory.close(); }
 }
+
+const localDurability = Object.freeze({syncDirectory: syncDirectoryPath});
 
 async function writeExclusive(path, bytes) {
   const handle = await open(path, constants.O_CREAT | constants.O_EXCL |
@@ -100,8 +102,8 @@ async function acquireStoreOwnership(root) {
         token,
       }), 'utf8');
       await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
-      await syncDirectory(ownershipDirectory);
-      await syncDirectory(root);
+      await syncDirectoryPath(ownershipDirectory);
+      await syncDirectoryPath(root);
       let released = false;
       return Object.freeze({
         async release() {
@@ -117,7 +119,7 @@ async function acquireStoreOwnership(root) {
           }
           await unlink(ownerPath);
           await rmdir(ownershipDirectory);
-          await syncDirectory(root);
+          await syncDirectoryPath(root);
           released = true;
           return true;
         },
@@ -145,7 +147,7 @@ async function acquireStoreOwnership(root) {
         throw renameError;
       }
       await rm(stale, {recursive: true, force: false});
-      await syncDirectory(root);
+      await syncDirectoryPath(root);
     }
   }
 }
@@ -204,9 +206,18 @@ function indexKey(value) {
   return hash.digest('hex');
 }
 
-export async function openLocalPublicationStore(supplied, suppliedControl) {
+export async function openLocalPublicationStore(
+  supplied,
+  suppliedControl,
+  durability = localDurability,
+) {
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
+  if (!exactKeys(durability, ['syncDirectory']) ||
+      typeof durability.syncDirectory !== 'function') {
+    fail('InvalidPublicationStoreDurability');
+  }
+  const syncDirectory = durability.syncDirectory;
   const contractLimits = Object.freeze({
     maxWireBytes: configuration.maxObjectBytes,
     maxNodes: configuration.maxContractNodes,
@@ -270,6 +281,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
+  const durablyConfirmedIndexes = new Map();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
@@ -882,12 +894,37 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     return entry;
   };
 
+  const confirmCommittedIndex = async key => {
+    active();
+    const entry = await inspectCommittedIndex(key);
+    if (entry === undefined) return undefined;
+    const keyHash = indexKey(key);
+    const durableCid = durablyConfirmedIndexes.get(keyHash);
+    if (durableCid !== undefined &&
+        durableCid !== entry.public_index_entry_cid) {
+      fail('PublicIndexDurabilityMismatch');
+    }
+    if (durableCid === undefined) {
+      // Visibility is not durability. Synchronize the exact containing
+      // directory and then ensure that the same immutable entry is still
+      // installed before reporting a durable commit.
+      await syncDirectory(indexesDirectory);
+      const confirmed = await inspectCommittedIndex(key);
+      if (confirmed?.public_index_entry_cid !==
+          entry.public_index_entry_cid) {
+        fail('PublicIndexDurabilityMismatch');
+      }
+      durablyConfirmedIndexes.set(keyHash, entry.public_index_entry_cid);
+    }
+    return entry;
+  };
+
   const lookupCommittedIndex = async (key, authorize) => {
     active();
     if (typeof authorize !== 'function' || authorize(Object.freeze({...key})) !== true) {
       fail('PublicationLookupDenied');
     }
-    const entry = await inspectCommittedIndex(key);
+    const entry = await confirmCommittedIndex(key);
     if (entry === undefined || authorize(Object.freeze({...key, entry})) !== true) {
       // Missing and unauthorized entries deliberately share one external code.
       fail('PublicationLookupDenied');
@@ -1013,7 +1050,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
       authorityScopeCid: entry.authority_scope_cid,
       runDefinitionCid: entry.run_definition_cid,
     };
-    const committed = await inspectCommittedIndex(key);
+    const committed = await confirmCommittedIndex(key);
     if (committed?.public_index_entry_cid !== admitted.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
@@ -1068,11 +1105,14 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     try {
       await link(contractPath(entry.public_index_entry_cid), target);
       await syncDirectory(indexesDirectory);
+      durablyConfirmedIndexes.set(
+        indexKey(key), entry.public_index_entry_cid,
+      );
       adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({entry, committed: true, idempotent: false});
     } catch (error) {
       if (error?.code !== 'EEXIST') throw error;
-      const existing = await inspectCommittedIndex(key);
+      const existing = await confirmCommittedIndex(key);
       if (existing.invocation_cid !== entry.invocation_cid ||
           existing.result_manifest_cid !== entry.result_manifest_cid ||
           existing.publication_request_cid !== entry.publication_request_cid) {
@@ -1131,7 +1171,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     }
     const request = Object.freeze({...key, resultDefinitionCid});
     if (authorize(request) !== true) fail('PublicationLookupDenied');
-    const entry = await inspectCommittedIndex(key);
+    const entry = await confirmCommittedIndex(key);
     if (entry === undefined) fail('PublicationLookupDenied');
     const matches = [];
     for (const bindingCid of entry.durable_result_binding_cids) {
@@ -1191,6 +1231,7 @@ export async function openLocalPublicationStore(supplied, suppliedControl) {
     commitIndex,
     validateCommittedEvidence,
     inspectCommittedIndex,
+    confirmCommittedIndex,
     lookupCommittedIndex,
     status() {
       return Object.freeze({

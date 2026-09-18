@@ -4,6 +4,7 @@ import {
   chmod,
   mkdir,
   mkdtemp,
+  open,
   readdir,
   rm,
   writeFile,
@@ -566,6 +567,73 @@ test('public index is invisible before commit and survives a lost response',
     assert.equal((await reopened.latestRecord(
       attempt.publication_attempt_cid,
     )).state, 'succeeded');
+  });
+
+test('visible index is not committed until directory durability is confirmed',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-durability-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let indexSyncFailures = 2;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'indexes') && indexSyncFailures > 0) {
+          indexSyncFailures--;
+          const error = new Error('injected index directory sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    t.after(async () => { await store.close(); });
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await assert.rejects(
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      code('EIO'),
+    );
+    assert.deepEqual(
+      await store.inspectCommittedIndex(indexKeyFor(request)), entry,
+    );
+    await assert.rejects(
+      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+      code('EIO'),
+    );
+    assert.deepEqual(
+      await store.confirmCommittedIndex(indexKeyFor(request)), entry,
+    );
+    const idempotent = await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    assert.equal(idempotent.committed, false);
+    assert.equal(idempotent.idempotent, true);
+    assert.deepEqual(idempotent.entry, entry);
+    assert.equal(prepared.prepared.status().pending, false);
   });
 
 test('commit verifies durable binding against the stored physical generation',
