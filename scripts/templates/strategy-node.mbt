@@ -7,6 +7,7 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  CapturedRun(@publication.CapturedRunIssuanceIssue)
 }
 
 ///|
@@ -1474,6 +1475,36 @@ pub fn strategy_host_output_export_issue_result_artifact(
   }
   value.artifact = Some(artifact)
   artifact
+}
+
+///|
+/// Bind Captured Run rows to the same finished Result export and Artifact.
+/// The environment receives only an opaque snapshot handle, never row cells.
+#export_name("strategyHostOutputExportAdmitCapturedResultSnapshot")
+pub fn strategy_host_output_export_admit_captured_result_snapshot(
+  value : StrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  guard value.definition is Some(definition) else { raise InvalidCommand }
+  guard value.artifact is Some(artifact) else { raise InvalidCommand }
+  let (rows_wire, fields) = match
+    @execution.completed_relation_export_snapshot(
+      value.stream, receipt, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise OutputExport(issue)
+  }
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(snapshot) => snapshot
+    Err(issue) => raise CapturedRun(issue)
+  }
 }
 
 ///|

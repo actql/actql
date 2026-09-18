@@ -606,6 +606,9 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               const artifactValue = JSON.parse(
                 stored.publication.artifact.wire,
               );
+              assert.deepEqual(stored.publication.snapshot, {
+                kind: 'captured-result-snapshot',
+              });
               assert.equal(artifactValue.logical_result_cid,
                 identity.logicalRelationCid);
               assert.equal(artifactValue.result_schema_cid,

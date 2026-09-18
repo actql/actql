@@ -306,6 +306,51 @@ fn emit_completed_export_row(
 }
 
 ///|
+/// Reify the already admitted Result view for a Captured Run without routing
+/// cells through an environment adapter. The finished receipt keeps the exact
+/// completed output alive while this second, bounded canonical encoding is
+/// produced. Its logical identity is checked again by the publication owner.
+pub fn completed_relation_export_snapshot(
+  value : CompletedOutputExport,
+  receipt : CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, Array[String]), CompletedExportIssue] {
+  guard receipt.rows.source is Some(source) else { return Err(Closed) }
+  if !completed_output_available(source) {
+    return Err(Unavailable)
+  }
+  if value.source is Some(_) ||
+    value.row != IndexedRows::row_count(value.rows) ||
+    max_bytes < 0 ||
+    max_nodes < 0 ||
+    max_depth < 0 {
+    return Err(NotFinished)
+  }
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    issue => return Err(Wire(Encoding(issue)))
+  }
+  try {
+    @encode.begin_array(writer)
+    for row = 0; row < IndexedRows::row_count(value.rows); row = row + 1 {
+      @encode.begin_object(writer)
+      for (name, column) in value.order.columns {
+        let cell = IndexedRows::read_cell(value.rows, row, column)
+        @encode.key(writer, name)
+        emit_runtime_value(cell, writer)
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    let wire = @encode.finish(writer)
+    Ok((wire, completed_export_field_names(value.rows)))
+  } catch {
+    issue => Err(Wire(Encoding(issue)))
+  }
+}
+
+///|
 pub fn finish_completed_output_export(
   value : CompletedOutputExport,
 ) -> Result[(CompletedOutputExportReceipt, String), CompletedExportIssue] {

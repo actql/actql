@@ -136,6 +136,7 @@ test('Result evidence is issued before its durable payload becomes visible',
     const events = [];
     const evidence = Object.freeze({derivation: {}, ordering: {}});
     const artifact = Object.freeze({name: 'result_artifact'});
+    const snapshot = Object.freeze({kind: 'captured-result-snapshot'});
     const publicationControl = Object.freeze({
       issueResultArtifact(handle, invocation, retention, supplied) {
         assert.deepEqual(handle, {});
@@ -144,6 +145,12 @@ test('Result evidence is issued before its durable payload becomes visible',
         assert.equal(supplied, publicationLimits);
         events.push('artifact');
         return artifact;
+      },
+      admitCompletedResultSnapshot(handle, supplied) {
+        assert.deepEqual(handle, {});
+        assert.equal(supplied, publicationLimits);
+        events.push('snapshot');
+        return snapshot;
       },
     });
     const publication = Object.freeze({
@@ -182,7 +189,8 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(stored.publication.derivation, evidence.derivation);
     assert.equal(stored.publication.ordering, evidence.ordering);
     assert.equal(stored.publication.artifact, artifact);
-    assert.deepEqual(events, ['evidence', 'artifact', 'cancel']);
+    assert.equal(stored.publication.snapshot, snapshot);
+    assert.deepEqual(events, ['evidence', 'artifact', 'snapshot', 'cancel']);
 
     const failing = {
       ...control,

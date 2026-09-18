@@ -118,6 +118,8 @@ export async function storeCompletedResultPublicationPayload(
       typeof control.issueResultEvidence !== 'function' ||
       publication === null || typeof publication !== 'object' ||
       typeof publication.control?.issueResultArtifact !== 'function' ||
+      typeof publication.control?.admitCompletedResultSnapshot !==
+        'function' ||
       !Number.isSafeInteger(result) || result < 0) {
     fail('InvalidDurableResultPayloadAdapter');
   }
@@ -137,7 +139,11 @@ export async function storeCompletedResultPublicationPayload(
         publication.retention,
         publication.limits,
       );
-      return Object.freeze({...evidence, artifact});
+      const snapshot = publication.control.admitCompletedResultSnapshot(
+        handle,
+        publication.limits,
+      );
+      return Object.freeze({...evidence, artifact, snapshot});
     },
   );
 }

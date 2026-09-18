@@ -261,6 +261,17 @@ function publicationControl(moon) {
         ),
       ));
     },
+    admitCompletedResultSnapshot(exportHandle, limits) {
+      issuanceLimits(limits, 'completed Result snapshot');
+      return inspectSnapshot(checked(
+        moon.strategyHostOutputExportAdmitCapturedResultSnapshot(
+          exportHandle,
+          limits.maxWireBytes,
+          limits.maxNodes,
+          limits.maxDepth,
+        ),
+      ));
+    },
     admitPendingSourceStateAdvance(completeWire, observation, limits) {
       issuanceLimits(limits, 'pending source-state advance');
       if (typeof completeWire !== 'string') {
