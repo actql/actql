@@ -30,37 +30,37 @@ undefined parameter-path form or for a future shape-evidence API.
 Legend: complete (`C`), partial (`P`), missing (`-`). `Host` means managed
 standard-Host candidate and execution support, not a direct kernel call.
 
-| Operation | Checked | Lowering | Kernel | Host | Main gap |
+| Operation | Checked | Lowering | Kernel | Host | Status |
 | --- | :---: | :---: | :---: | :---: | --- |
-| filter | C | C | C | C | Complete: text and structured forms, parameters, NULL and demanded failures, all Relation value preservation, all comparable domains including owned references, managed lifetime, and linear work |
-| select | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all directly admitted domains, source variants, two consumers, and the performance floor are covered |
-| rename | C | C | C | P | Standard-Host evidence, collision matrix, and shared owned-reference runtime boundary; swap/empty variants, direct value domains, NULL, branches, and linear work are covered |
-| drop | C | C | C | P | Standard-Host evidence, all-column rejection connection, and shared owned-reference runtime boundary; repeated/empty variants, direct value domains, NULL, branches, and linear work are covered |
-| derive | C | C | C | C | Complete: snapshot, empty, ordered, parameter, overwrite, demanded-failure, and all result domains including owned references; standard Host, two consumers, exact retained-output limits, and linear work are covered |
-| sort | C | C | C | C | Complete: stable direction, NULL placement, compound and parameter terms, scalar and reference domains, exact budget boundaries, indexed scaling, Standard Host execution, and two consumers |
-| take | C | C | C | P | Standard-Host evidence, the full admitted value-domain retention matrix, and large-scale exact/one-short budgets; literal and parameter counts, offsets, inherited order, boundary rejection, whole-input validation, branches, two consumers, and linear scaling are covered |
-| top_k | C | C | C | C | Complete: compound NULL order, stable completion, literal and parameter counts, all payload and orderable domains, exact large budgets, standard Host, two consumers, and indexed scaling |
-| top_k_by | C | C | C | C | Complete: repeated and nullable partitions, all payload, key, and orderable domains, literal and parameter counts, exact large budgets, standard Host, two consumers, and indexed scaling |
-| row_window | C | C | C | C | Complete: fixed/sliding number and timestamp windows, literal and Parameter bounds, exact signed grids, arithmetic failures, budgets, Standard Host execution, two consumers, and emitted-membership scaling |
-| window_group | C | C | P | P | All exact aggregate and formal type domains, major managed two-consumer families, Standard-Host filtered aggregation, exact limits, and indexed scaling are covered; binary64 sum/avg still require shared attempt-bound numeric observations |
-| lag | C | C | C | C | Complete: literal, default, and Parameter offsets; full value, key, and orderable type matrices; stable ties and NULL boundaries; exact budgets; Standard Host execution; two consumers; cancellation; and indexed scaling |
-| watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
-| pivot | C | C | P | P | Count, min/max/first, literal and Parameter fill, every AuthorOrderable min/max domain, empty axes, and Decimal sum are managed; count uses the standard Host, while binary64 observation and native observation-aware aggregation remain |
-| unpivot | C | C | C | C | Complete: repeated selected fields, exact names, heterogeneous rejection, every relation value domain, NULLs, bounded ordered expansion, sealed column output, Standard Host execution, two consumers, and linear scaling |
-| json_pick | C | C | C | C | Complete: exact typed object-key paths, nullable ancestors, opaque JSON leaf retention and unsupported traversal rejection, every relation-value leaf including owned references, exact budgets, Standard Host execution, two consumers, and linear scaling |
-| unnest | C | C | C | C | Complete: inner and outer expansion, optional indices, NULL and empty arrays, max-items admission, all relation value domains, sealed column output, Standard Host execution, two consumers, exact budgets, and linear scaling |
-| join | C | C | C | C | All equality kinds, cross-stage full identity, all value and key domains, exact diagnostics, multiple invocations, two consumers, and indexed scaling are covered |
+| filter | C | C | C | C | Complete |
+| select | C | C | C | C | Complete |
+| rename | C | C | C | C | Complete |
+| drop | C | C | C | C | Complete |
+| derive | C | C | C | C | Complete |
+| sort | C | C | C | C | Complete |
+| take | C | C | C | C | Complete |
+| top_k | C | C | C | C | Complete |
+| top_k_by | C | C | C | C | Complete |
+| row_window | C | C | C | C | Complete |
+| window_group | C | C | C | C | Complete |
+| lag | C | C | C | C | Complete |
+| watermark_rows | C | C | C | C | Complete |
+| pivot | C | C | C | C | Complete |
+| unpivot | C | C | C | C | Complete |
+| json_pick | C | C | C | C | Complete |
+| unnest | C | C | C | C | Complete |
+| join | C | C | C | C | Complete |
 | nest | C | - | - | - | Canonical common contract is missing |
-| group | C | C | C | C | Complete: all formal key and aggregate domains, binary64 sum/avg through selected attempt-bound numeric observations, managed two-consumer execution, exact limits, and indexed scaling |
-| distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
-| dedupe_rows | C | C | C | C | Complete: compound nullable and global keys, canonical representative order, required tie failure, all key/orderable and payload domains, owned-reference lifetime, exact large indexed budgets, standard Host, two consumers, and final reclamation |
-| assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
-| append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
-| values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |
-| except | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
-| intersect | C | C | P | P | Empty sides, layout pairs, and sort-merge scaling are fixed; reference-value and failure evidence remain |
-| cross_join | C | C | P | P | Layout pairs and product-proportional scaling are fixed; full types and cancellation lifetime remain |
-| analytic | C | C | P | P | The full exact formal type and call matrix, failures, owned-reference lifetime, exact envelopes, indexed scaling, managed two-consumer execution, and the standard Host are covered; binary64 sum/avg still require shared attempt-bound numeric observations |
+| group | C | C | C | C | Complete |
+| distinct | C | C | C | C | Complete |
+| dedupe_rows | C | C | C | C | Complete |
+| assert_rows | C | C | C | C | Complete |
+| append | C | C | C | C | Complete |
+| values | C | C | C | C | Complete |
+| except | C | C | C | C | Complete |
+| intersect | C | C | C | C | Complete |
+| cross_join | C | C | C | C | Complete |
+| analytic | C | C | C | C | Complete |
 
 ## Shared-boundary notifications
 
@@ -83,16 +83,12 @@ notification happens before editing it.
 
 ## Completion evidence
 
-`sort`, `values`, and `watermark_rows` have all newly agreed evidence. `select`
-and `append` now have complete source, managed two-consumer, and performance
-evidence; their remaining gap is the shared owned-reference runtime boundary.
-The remaining incomplete operations still need one or more of:
+The manifest records 28 complete operations. `window_group`, `pivot`, and
+`analytic` now route binary64 sum and average through the selected,
+attempt-owned numeric executor. Their managed two-consumer fixtures and
+three-target conformance include the numeric paths, and analytic numeric frames
+have an indexed scaling floor.
 
-- every formal source variant connected to common lowering;
-- every allowed operation/type combination checked on JS, Wasm, and native;
-- two actual downstream Computes with overlapping holding;
-- storage-strategy failure, cancellation, and exact final reclamation;
-- algorithm applicability, complexity, and fixed performance diagnostics.
-
-Existing lower-level tests remain valuable evidence for their exact scope, but
-they do not satisfy these broader completion claims by themselves.
+`nest` is the only remaining operation. It requires a canonical common AoA
+contract before lowering, Local execution, managed lifetime, and coverage can
+be completed without frontend rediscovery.

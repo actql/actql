@@ -1962,12 +1962,12 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "partial",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -1985,7 +1985,16 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "window keys",
+                "empty windows"
+              ],
+              "obligations": [
+                "schema"
+              ]
+            }
           },
           {
             "operation": "window_group",
@@ -1998,14 +2007,27 @@
               "Local managed window filters gate aggregate expression demand",
               "Local managed window direct aggregates feed two downstream Computes",
               "Local managed window collections feed two downstream Computes",
-              "Local managed window statistics feed two downstream Computes"
+              "Local managed window statistics feed two downstream Computes",
+              "Local managed window numeric reductions feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "window keys",
+                "aggregate bindings",
+                "empty windows",
+                "ordering",
+                "capacity guards"
+              ],
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -2020,7 +2042,8 @@
               "Local managed window filters gate aggregate expression demand",
               "Local managed window direct aggregates feed two downstream Computes",
               "Local managed window collections feed two downstream Computes",
-              "Local managed window statistics feed two downstream Computes"
+              "Local managed window statistics feed two downstream Computes",
+              "Local managed window numeric reductions feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2058,7 +2081,24 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "window keys",
+                "empty windows",
+                "ordering",
+                "capacity guards"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "window_group",
@@ -2076,7 +2116,26 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "aggregate bindings"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable",
+                "numeric",
+                "collection"
+              ],
+              "obligations": [
+                "demand",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           }
         ],
         "performance": [
@@ -2097,9 +2156,7 @@
           }
         ]
       },
-      "gaps": [
-        "Every key, order, selected-value, constructible collection, direct exact, ordered, collection, percentile, variance, and standard-deviation domain is covered by independent window-group fixtures. Major aggregate families reach two independently released managed consumers on three targets, and representative filtered aggregation reaches the standard Host. Exact work, storage, output-row boundaries, and indexed scaling are fixed. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
-      ]
+      "gaps": []
     },
     {
       "operation": "lag",
@@ -2498,11 +2555,11 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -2520,7 +2577,18 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "empty and nonempty axis",
+                "aggregate bindings",
+                "fill policy",
+                "generated field identity"
+              ],
+              "obligations": [
+                "schema"
+              ]
+            }
           },
           {
             "operation": "pivot",
@@ -2534,7 +2602,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "empty and nonempty axis",
+                "aggregate bindings",
+                "fill policy",
+                "numeric profiles",
+                "generated field identity"
+              ],
+              "types": [
+                "numeric"
+              ],
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -2585,14 +2668,37 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "empty and nonempty axis",
+                "aggregate bindings",
+                "fill policy",
+                "generated field identity"
+              ],
+              "types": [
+                "numeric"
+              ],
+              "obligations": [
+                "capacity",
+                "demand",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "pivot",
             "layer": "conformance",
             "path": "src/execution_relation/pivot_domains_wbtest.mbt",
             "fixtures": [
-              "pivot min and max cover every AuthorOrderable value domain"
+              "pivot min and max cover every AuthorOrderable value domain",
+              "pivot compares every key domain including owned references",
+              "pivot first preserves every relation value domain"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2606,6 +2712,8 @@
                 "fill policy"
               ],
               "types": [
+                "relation_value",
+                "key_comparable",
                 "author_orderable"
               ],
               "obligations": [
@@ -2649,9 +2757,7 @@
           }
         ]
       },
-      "gaps": [
-        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, literal and Parameter fill, every AuthorOrderable min/max domain, final Decimal overflow checks, and exact/one-short work. These variants reach two managed consumers on three targets, and count also traverses the standard Host. Indexed grouping and stable ordering have a fixed N-log-N work and linear workspace floor. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; native layout aggregation and its observation-aware standard-Host path remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "unpivot",
@@ -5729,12 +5835,12 @@
       "layers": {
         "checker": "complete",
         "lowering": "complete",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
-        "performance": "partial"
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -5753,7 +5859,19 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "partition keys",
+                "ordered frame",
+                "all analytic bindings",
+                "numeric slots",
+                "array capacity"
+              ],
+              "obligations": [
+                "schema"
+              ]
+            }
           },
           {
             "operation": "analytic",
@@ -5764,14 +5882,27 @@
               "Local managed analytic filters gate aggregate expression demand",
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
-              "Local managed analytic statistics feed two downstream Computes"
+              "Local managed analytic statistics feed two downstream Computes",
+              "Local managed analytic numeric reductions feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "all analytic bindings",
+                "numeric slots"
+              ],
+              "types": [
+                "numeric"
+              ],
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -5784,7 +5915,8 @@
               "Local managed analytic filters gate aggregate expression demand",
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
-              "Local managed analytic statistics feed two downstream Computes"
+              "Local managed analytic statistics feed two downstream Computes",
+              "Local managed analytic numeric reductions feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5834,7 +5966,27 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "ordered frame",
+                "all analytic bindings",
+                "NULL values",
+                "numeric slots",
+                "array capacity"
+              ],
+              "obligations": [
+                "capacity",
+                "demand",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "analytic",
@@ -5853,7 +6005,31 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "partition keys",
+                "ordered frame",
+                "all analytic bindings",
+                "NULL values",
+                "array capacity"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable",
+                "numeric",
+                "collection"
+              ],
+              "obligations": [
+                "demand",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "analytic",
@@ -5864,7 +6040,8 @@
               "Local managed analytic filters gate aggregate expression demand",
               "Local managed analytic navigation feeds two downstream Computes",
               "Local managed analytic collections feed two downstream Computes",
-              "Local managed analytic statistics feed two downstream Computes"
+              "Local managed analytic statistics feed two downstream Computes",
+              "Local managed analytic numeric reductions feed two downstream Computes"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -5880,7 +6057,8 @@
             "layer": "performance",
             "path": "src/execution_relation/analytic_scale_wbtest.mbt",
             "fixtures": [
-              "analytic ranking navigation and count retain indexed scaling"
+              "analytic ranking navigation and count retain indexed scaling",
+              "analytic numeric frames retain indexed scaling"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -5891,9 +6069,7 @@
           }
         ]
       },
-      "gaps": [
-        "Every formal partition-key, authored-order, navigation-value, frame-value, ordered aggregate, selected-value, and constructible collection domain is covered. Ranking, navigation, direct, collection, filtered-expression, and statistical frames reach managed Local execution with exact envelopes, failures, owned-reference lifetime, two downstream consumers, standard-Host evidence, and indexed scaling. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
-      ]
+      "gaps": []
     }
   ],
   "evidence_schema": "test fixture ID, registered suite, and execution target binding"
