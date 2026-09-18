@@ -1,0 +1,113 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_site_protocol"
+
+import {
+  "actql/actql/execution_site",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn accept_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
+
+pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
+
+pub fn begin_provisioning(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn begin_remote_execution(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn begin_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn confirm_execution_cancelled(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn confirm_execution_failed(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn confirm_native_settled(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn confirm_remote_release(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
+
+pub fn dispatch_record_state(DispatchRecord) -> (RemoteExecutionState, RemoteEvidenceState, RemoteCleanupState, Bool, Bool)
+
+pub fn dispatch_request_identity(DispatchRequest) -> String
+
+pub fn force_loss(SiteDispatchJournal, DispatchRecord, Bool) -> Result[Unit, DispatchIssue]
+
+pub fn mark_execution_unknown(DispatchRecord) -> Unit
+
+pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
+
+pub fn reconcile_cleanup_after_loss(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn record_durable_execution_evidence(DispatchRecord, String) -> Result[Unit, DispatchIssue]
+
+pub fn reject_execution_evidence(DispatchRecord) -> Result[Unit, DispatchIssue]
+
+pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
+
+pub fn restart_site_generation(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[Int, DispatchIssue]
+
+pub fn retain_remote_output(DispatchRecord, String, String) -> Result[Unit, DispatchIssue]
+
+pub fn site_dispatch_generation(SiteDispatchJournal) -> Int
+
+pub fn site_dispatch_protocol_version(SiteDispatchJournal) -> String
+
+pub fn stop_site_admission(SiteDispatchJournal) -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) enum DispatchAcceptance {
+  NewDispatch
+  ExistingDispatch
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DispatchIssue {
+  InvalidJournal
+  InvalidDispatch
+  ForeignSite
+  StaleSiteGeneration
+  DispatchCollision
+  AttemptAlreadyDispatched
+  InvalidTransition
+  MaterialUnavailable
+  UnauthorizedForceLoss
+  DispatchIdentityMismatch
+} derive(Eq, @debug.Debug)
+
+type DispatchRecord
+
+type DispatchRequest
+
+pub(all) enum RemoteCleanupState {
+  CleanupActive
+  CleanupReleasing
+  CleanupReleased
+  CleanupUnknown
+  CleanupForceLost
+  CleanupRecoveredAfterLoss
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteEvidenceState {
+  NoEvidence
+  OutputRetained(String, String)
+  EvidenceDurable(String, String, String)
+  EvidenceRejected
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteExecutionState {
+  Accepted
+  Provisioning
+  Running
+  NativeSettled
+  ExecutionFailed
+  ExecutionCancelled
+  ExecutionUnknown
+} derive(Eq, @debug.Debug)
+
+type SiteDispatchJournal
+
+// Type aliases
+
+// Traits
