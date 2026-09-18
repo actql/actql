@@ -218,7 +218,7 @@
       "variant_scope": ["inner", "left", "full", "semi", "anti", "compound nullable equality keys", "cardinality assertions", "self join"],
       "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
       "evidence": {"source_connection":["src/lowering_relation/inner_join_test.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_join_wbtest.mbt"],"conformance":["src/execution_relation/retained_join_validation_wbtest.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"performance":[]},
-      "gaps": ["Inner and left equality joins bind two imported producer ports, enforce the selected output ceiling, preserve required duplicate and unmatched-row order, reach two managed consumers, and reclaim each holding. The common Local kernel also executes full/semi/anti; their source E2E, full-join stable-identity evidence, compound nullable keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."]
+      "gaps": ["Inner, left, semi, and anti equality joins bind two imported producer ports, enforce the selected output ceiling, preserve required duplicate, unmatched, and single-left-row order, reach two managed consumers, and reclaim each holding. The common Local kernel also executes full; its stable-identity source E2E, compound nullable keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."]
     },
     {
       "operation": "nest",

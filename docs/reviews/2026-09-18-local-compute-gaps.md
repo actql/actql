@@ -45,7 +45,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unpivot | C | C | P | P | Type matrix, native layout writer, and performance evidence |
 | json_pick | C | C | C | P | Failure, type, budget, and performance coverage |
 | unnest | C | - | - | - | Bounded expansion lowering and execution |
-| join | C | P | P | P | Inner/left equality joins are managed end-to-end; full/semi/anti source E2E, compound/self joins, types, diagnostics, and indexed performance remain |
+| join | C | P | P | P | Inner/left/semi/anti equality joins are managed end-to-end; full source E2E, compound/self joins, types, diagnostics, and indexed performance remain |
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | - | Only count aggregation is lowered |
 | distinct | C | C | C | P | Keyed/NULL/type and indexed performance evidence |

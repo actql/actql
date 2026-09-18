@@ -173,4 +173,14 @@ test "Local managed equality joins bind both ports and feed two Computes" {
       "{\"r\":null,\"l\":\"ln\",\"id\":null}", "{\"r\":null,\"l\":\"l3\",\"id\":2}",
     ],
   )
+  run_local_managed_join_case(
+    "semi",
+    ["{\"id\":1,\"l\":\"l1\"}", "{\"id\":1,\"l\":\"l2\"}"],
+    ["{\"l\":\"l1\",\"id\":1}", "{\"l\":\"l2\",\"id\":1}"],
+  )
+  run_local_managed_join_case(
+    "anti",
+    ["{\"id\":null,\"l\":\"ln\"}", "{\"id\":2,\"l\":\"l3\"}"],
+    ["{\"l\":\"ln\",\"id\":null}", "{\"l\":\"l3\",\"id\":2}"],
+  )
 }

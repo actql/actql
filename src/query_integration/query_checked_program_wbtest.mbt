@@ -66,6 +66,32 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if local_values_join_chain &&
+    (local_values_join_kind == "semi" || local_values_join_kind == "anti") {
+    text
+    .replace(
+      old="\"select\":{\"id\":\"left.id\",\"l\":\"left.l\",\"r\":\"right.r\"}",
+      new="\"select\":{\"id\":\"left.id\",\"l\":\"left.l\"}",
+    )
+    .replace_all(
+      old="\"fields\":[\"id\",\"l\",\"r\"]",
+      new="\"fields\":[\"id\",\"l\"]",
+    )
+    .replace(
+      old="\"select\":[\"id\",\"l\",\"r\"]",
+      new="\"select\":[\"id\",\"l\"]",
+    )
+    .replace(
+      old="\"select\":[\"r\",\"l\",\"id\"]",
+      new="\"select\":[\"l\",\"id\"]",
+    )
+    .replace(
+      old="\"fields\":[\"r\",\"l\",\"id\"]",
+      new="\"fields\":[\"l\",\"id\"]",
+    )
+  } else {
+    text
+  }
   let text = match local_values_unary_chain {
     None => text
     Some(kind) => local_values_unary_program(kind)
@@ -181,7 +207,11 @@ fn query_checked_program_fixture(
     let right_cid = @wire.cid(@wire.program_proof_witness(right))
     let joined = query_capacity_proof(
       "actql.bound.join-output",
-      20L,
+      if local_values_join_kind == "semi" || local_values_join_kind == "anti" {
+        4L
+      } else {
+        20L
+      },
       "{\"op\":\"source\"}",
       inputs=[left_cid, right_cid],
     )
