@@ -1515,7 +1515,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1527,6 +1527,21 @@
               "json pick kernel retains exact checked field path and output"
             ],
             "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "json_pick",
+            "layer": "source_connection",
+            "path": "src/execution_relation/json_pick_domains_wbtest.mbt",
+            "fixtures": [
+              "json pick preserves every directly admitted leaf domain and NULL",
+              "json pick rejects a retained object outside its checked path"
+            ],
+            "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
@@ -1582,6 +1597,21 @@
           {
             "operation": "json_pick",
             "layer": "conformance",
+            "path": "src/execution_relation/json_pick_domains_wbtest.mbt",
+            "fixtures": [
+              "json pick preserves every directly admitted leaf domain and NULL",
+              "json pick rejects a retained object outside its checked path"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "json_pick",
+            "layer": "conformance",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
               "Local managed unary source forms feed two downstream Computes"
@@ -1594,10 +1624,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "json_pick",
+            "layer": "performance",
+            "path": "src/execution_relation/row_contract_scale_wbtest.mbt",
+            "fixtures": [
+              "json pick and row assertions respect their scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Nested typed-object extraction and nullable parents reach two managed consumers on three targets; missing-path and malformed retained-value failures, broader type conformance, budget boundaries, and performance evidence remain."
+        "Nested typed-object extraction and nullable parents reach two managed consumers on three targets; all directly admitted leaf domains, malformed retained values, and linear scaling are covered. Standard Host evidence, opaque-json shape coverage, parameter paths, exact budget boundaries, and shared owned-reference runtime support remain."
       ]
     },
     {
@@ -2265,7 +2310,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2288,7 +2333,8 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
-              "Local managed unary source forms feed two downstream Computes"
+              "Local managed unary source forms feed two downstream Computes",
+              "Local managed demanded failures publish nothing and release their use"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2320,7 +2366,8 @@
             "layer": "conformance",
             "path": "src/execution_relation/rows_wbtest.mbt",
             "fixtures": [
-              "row assertions preserve exact rows and fail atomically"
+              "row assertions preserve exact rows and fail atomically",
+              "compound nullable assertion keys reject nulls and exact duplicates"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2334,7 +2381,8 @@
             "layer": "conformance",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
-              "Local managed unary source forms feed two downstream Computes"
+              "Local managed unary source forms feed two downstream Computes",
+              "Local managed demanded failures publish nothing and release their use"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2344,10 +2392,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "assert_rows",
+            "layer": "performance",
+            "path": "src/execution_relation/row_contract_scale_wbtest.mbt",
+            "fixtures": [
+              "json pick and row assertions respect their scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Where and single-field unique assertions reach two managed consumers and their core failures are atomic; compound nullable/reference keys, demanded-failure locations through Host, and performance evidence remain."
+        "Where, single-field unique, compound nullable keys, and demanded failures are covered through managed or kernel paths on three targets, with linear scaling evidence. Standard Host failure-location evidence, the full KeyComparable domain including owned references, and exact budget boundaries remain."
       ]
     },
     {
