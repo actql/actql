@@ -66,6 +66,8 @@ pub fn append_retained_storage_scan_values(RetainedStorageScan, Array[@value_adm
 
 pub fn append_retained_storage_scan_wire(RetainedStorageScan, String, RetainedRowDecodeLimits) -> Result[Array[@value_admission.CheckedValue], CompletedImportIssue]
 
+pub fn array_items_output_unit() -> AggregateOutputUnit
+
 pub fn attach_fixed_producer_stream_measurement(FixedProducerMeasurement, AdmittedOutputStream) -> Result[Unit, FixedInputGuardIssue]
 
 pub fn attach_retained_join_scan(RetainedProducerScan, FixedJoinStream) -> Result[Unit, RowIssue]
@@ -187,6 +189,8 @@ pub fn completed_row_count(CompletedOutput) -> Int
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
 
 pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relation.PreparedSequence
+
+pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
@@ -616,6 +620,8 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
+pub fn string_bytes_output_unit() -> AggregateOutputUnit
+
 pub fn[T] try_bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedRetainedOutput[T], (ManagedRetainedOutput[T]) -> String?) -> Result[ManagedIdentityIssuer[T], ManagedIdentityIssuanceIssue]
 
 pub fn unary(@lowering_relation.UnaryOperator, Value) -> Result[Value, ScalarIssue]
@@ -638,6 +644,11 @@ type AdmittedOutputRows
 type AdmittedOutputStream
 
 type AdmittedOutputStreamReceipt
+
+pub enum AggregateOutputUnit {
+  ArrayItems
+  StringBytes
+} derive(Eq, @debug.Debug)
 
 pub struct BackendCapabilityIssue {
   kind : BackendCapabilityIssueKind

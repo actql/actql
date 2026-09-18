@@ -146,6 +146,7 @@ fn evaluate_rows_with_workspace(
   output : ValueBudget,
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[Table, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -200,6 +201,7 @@ fn evaluate_rows_with_workspace(
           output,
           workspace,
           ordered_budget=logical,
+          aggregate_outputs~,
         )
       },
     },
@@ -311,6 +313,7 @@ fn[T : RelationRows] evaluate_row_body(
   output : ValueBudget,
   workspace : RowWorkspace,
   ordered_budget? : LogicalBudget? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[Table, RowIssue] {
   let rows : Array[Array[Value]] = []
   let names = match
@@ -326,6 +329,7 @@ fn[T : RelationRows] evaluate_row_body(
         Ok(())
       },
       ordered_budget~,
+      aggregate_outputs~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -349,6 +353,7 @@ fn[T : RelationRows] evaluate_row_body_into(
     RowIssue,
   ],
   ordered_budget? : LogicalBudget? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
     if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
@@ -364,7 +369,7 @@ fn[T : RelationRows] evaluate_row_body_into(
       ExpressionRoots)
   })
   let result = evaluate_row_body_impl(
-    body, input, max_rows, control, output, workspace, scope, accept_row,
+    body, input, max_rows, control, output, workspace, scope, accept_row, aggregate_outputs,
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -388,6 +393,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
     Unit,
     RowIssue,
   ],
+  aggregate_outputs : Array[SelectedAggregateOutput],
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -420,7 +426,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   }
   if body is PreparedBody(kernel) && @lower.kernel_group(kernel) is Some(group) {
     return evaluate_group_into(
-      group, input, max_rows, control, output, workspace, accept_row,
+      group, input, max_rows, control, output, workspace, accept_row, aggregate_outputs,
     )
   }
   let view_entries = match body {

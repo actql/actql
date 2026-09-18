@@ -7,6 +7,7 @@ struct GeneratedSequence {
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
   join_ceiling : (Int, Int64)?
+  aggregate_outputs : Array[SelectedAggregateOutput]
 }
 
 ///|
@@ -61,7 +62,14 @@ pub fn prepare_generated_sequence(
       workspace,
     ) {
     Ok(_) =>
-      Ok({ contracts, sequence, contexts, retained_ids, join_ceiling: None, })
+      Ok({
+        contracts,
+        sequence,
+        contexts,
+        retained_ids,
+        join_ceiling: None,
+        aggregate_outputs: [],
+      })
     Err(issue) => Err(issue)
   }
 }
@@ -85,6 +93,7 @@ pub fn execute_generated_sequence(
     produced~,
     fragments=Some(generated.contexts),
     join_ceiling=generated.join_ceiling,
+    aggregate_outputs=generated.aggregate_outputs,
   )
 }
 
@@ -113,6 +122,51 @@ pub fn constrain_generated_join_output(
     }
   }
   Ok({ ..generated, join_ceiling: Some((step, ceiling)), })
+}
+
+///|
+/// Narrow one exact collection aggregate. A selected limit may strengthen an
+/// authored guard but cannot weaken it or apply to another aggregate unit.
+pub fn constrain_generated_aggregate_output(
+  generated : GeneratedSequence,
+  step : Int,
+  aggregate : String,
+  unit : AggregateOutputUnit,
+  maximum : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if maximum < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_group(kernel) is Some(group) else {
+    return Err(InputSet)
+  }
+  let mut matched : @lower.PreparedAggregate? = None
+  for index in 0..<@lower.group_aggregate_count(group) {
+    let candidate = @lower.group_aggregate_at(group, index).unwrap()
+    if @lower.group_aggregate_name(candidate) == aggregate {
+      if matched is Some(_) {
+        return Err(InputSet)
+      }
+      matched = Some(candidate)
+    }
+  }
+  guard matched is Some(candidate) && aggregate_output_matches(candidate, unit) else {
+    return Err(InputSet)
+  }
+  if authored_aggregate_output_limit(candidate, unit) is Some(authored) &&
+    maximum > authored {
+    return Err(InputSet)
+  }
+  for prior in generated.aggregate_outputs {
+    if prior.step == step && prior.aggregate == aggregate && prior.unit == unit {
+      return Err(InputSet)
+    }
+  }
+  let aggregate_outputs = generated.aggregate_outputs.copy()
+  aggregate_outputs.push({ step, aggregate, unit, maximum, })
+  Ok({ ..generated, aggregate_outputs, })
 }
 
 ///|

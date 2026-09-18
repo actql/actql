@@ -67,6 +67,7 @@ fn evaluate_sequence_components(
   produced? : Array[BoundProducerInput] = [],
   fragments? : Array[FragmentRuntimeContext]? = None,
   join_ceiling? : (Int, Int64)? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   ordered? : OrderedExecution = {
     contexts: [],
     max_bytes: 0,
@@ -94,6 +95,7 @@ fn evaluate_sequence_components(
       fragments,
       ordered,
       join_ceiling~,
+      aggregate_outputs~,
     )
   }
   let invocation = match
@@ -111,7 +113,7 @@ fn evaluate_sequence_components(
     Ok(invocation) => invocation
     Err(issue) => return Err(issue)
   }
-  run_sequence_invocation(invocation, join_ceiling~)
+  run_sequence_invocation(invocation, join_ceiling~, aggregate_outputs~)
 }
 
 ///|
@@ -401,6 +403,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
   join_ceiling? : (Int, Int64)? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   run_completed_sequence_backend(
     invocation,
@@ -420,6 +423,10 @@ fn run_sequence_invocation(
         invocation.output_budget,
         { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
         ordered_budget=logical,
+        aggregate_outputs=selected_aggregate_outputs_at(
+          aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
       )
     },
     store => RowStore(store),

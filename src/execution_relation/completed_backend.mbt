@@ -10,6 +10,7 @@ fn evaluate_completed_body(
   output : ValueBudget,
   workspace : RowWorkspace,
   logical : LogicalBudget?,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[CompletedTable, RowIssue] {
   let projection = match body {
     Projection(_) => true
@@ -25,6 +26,7 @@ fn evaluate_completed_body(
       output,
       workspace,
       ordered_budget=logical,
+      aggregate_outputs~,
     ).map(table => RowTable(table))
   }
   if input is AdmittedTable(table) {
@@ -51,6 +53,7 @@ fn evaluate_completed_body(
           Ok(())
         },
         ordered_budget=logical,
+        aggregate_outputs~,
       ) {
       Ok(names) => names
       Err(issue) => return Err(issue)
@@ -102,6 +105,7 @@ fn evaluate_completed_body(
         Ok(())
       },
       ordered_budget=logical,
+      aggregate_outputs~,
     ) {
     Ok(names) => names
     Err(issue) => return Err(issue)
@@ -191,6 +195,7 @@ fn evaluate_completed_rows(
   output : ValueBudget,
   workspace : RowWorkspace,
   logical : LogicalBudget?,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[CompletedTable, RowIssue] {
   evaluate_rows_dispatch(
     kernel,
@@ -275,7 +280,15 @@ fn evaluate_completed_rows(
       },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
-          body, input, id, max_rows, control, output, workspace, logical,
+          body,
+          input,
+          id,
+          max_rows,
+          control,
+          output,
+          workspace,
+          logical,
+          aggregate_outputs~,
         )
       },
     },

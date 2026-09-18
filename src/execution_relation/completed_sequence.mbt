@@ -67,6 +67,7 @@ fn evaluate_physical_sequence(
   fragments : Array[FragmentRuntimeContext]?,
   ordered : OrderedExecution,
   join_ceiling? : (Int, Int64)? = None,
+  aggregate_outputs? : Array[SelectedAggregateOutput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let invocation = match
     prepare_physical_sequence(
@@ -94,6 +95,10 @@ fn evaluate_physical_sequence(
         invocation.output_budget,
         { limit: limits.operation_entries, live: 0, peak: 0, },
         logical,
+        aggregate_outputs=selected_aggregate_outputs_at(
+          aggregate_outputs,
+          @lower.kernel_step(kernel),
+        ),
       )
     },
     store => PhysicalStore(store),

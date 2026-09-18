@@ -101,6 +101,15 @@ pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
         if @lower.group_aggregate_order_count(aggregate) == 0 {
           return false
         }
+      (@relation.ArrayAgg, @lower.AggregateField(_)) =>
+        if @lower.group_aggregate_order_count(aggregate) == 0 {
+          return false
+        }
+      (@relation.StringAgg, @lower.AggregateField(_)) =>
+        if @lower.group_aggregate_order_count(aggregate) == 0 ||
+          @lower.group_aggregate_delimiter(aggregate) is None {
+          return false
+        }
       _ => return false
     }
   }
@@ -177,6 +186,133 @@ fn distinct_aggregate_values(
 }
 
 ///|
+fn admitted_aggregate_item(value : Value) -> @admitted.Value? {
+  match value {
+    Null => None
+    Boolean(value) => Some(@admitted.boolean_value(value))
+    Number(value) => @admitted.number_value(value)
+    Text(value) => @admitted.text_value(value, 2147483647)
+    Captured(value) => Some(value)
+  }
+}
+
+///|
+fn[T : IndexedRows] ordered_aggregate_values(
+  input : T,
+  indices : Array[Int],
+  range : AggregateGroupRange,
+  column : Int,
+  order : Array[ColumnOrder],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[Value], RowIssue] {
+  let members : AggregateRangeRows[T] = {
+    input,
+    indices,
+    start: range.start,
+    end: range.end,
+  }
+  let ordered = match stable_order_indices(members, order, control, workspace) {
+    Ok(ordered) => ordered
+    Err(InvalidInput) => return Err(InvalidRows)
+    Err(Limit) => return Err(RowLimit)
+    Err(Scalar(issue)) => return Err(Comparison(issue))
+  }
+  let values : Array[Value] = []
+  for position in ordered {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    let value = IndexedRows::read_cell(members, position, column)
+    if !(value is Null) {
+      if !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      values.push(value)
+    }
+  }
+  Ok(values)
+}
+
+///|
+fn spend_control_bytes(control : ControlBudget, bytes : Int64) -> Bool {
+  bytes >= 0L &&
+  bytes <= control.remaining.to_int64() &&
+  spend_control(control, bytes.to_int())
+}
+
+///|
+fn evaluate_array_aggregate(
+  aggregate : @lower.PreparedAggregate,
+  values : Array[Value],
+  selected : Array[SelectedAggregateOutput],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Value, RowIssue] {
+  guard selected_aggregate_output_limit(selected, aggregate, ArrayItems)
+    is Some(maximum) else {
+    return Err(InvalidRows)
+  }
+  if values.length().to_int64() > maximum ||
+    !spend_control(control, values.length()) ||
+    !reserve_slots(workspace, values.length()) {
+    return Err(RowLimit)
+  }
+  let admitted : Array[@admitted.Value] = []
+  for value in values {
+    guard admitted_aggregate_item(value) is Some(item) else {
+      return Err(InvalidRows)
+    }
+    admitted.push(item)
+  }
+  Ok(Captured(@admitted.array_value(admitted)))
+}
+
+///|
+fn evaluate_string_aggregate(
+  aggregate : @lower.PreparedAggregate,
+  values : Array[Value],
+  selected : Array[SelectedAggregateOutput],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Value, RowIssue] {
+  if values.is_empty() {
+    return Ok(Null)
+  }
+  guard selected_aggregate_output_limit(selected, aggregate, StringBytes)
+    is Some(maximum) &&
+    @lower.group_aggregate_delimiter(aggregate) is Some(delimiter) else {
+    return Err(InvalidRows)
+  }
+  let delimiter_bytes = match @scalar.admit_utf8_length64(delimiter, maximum) {
+    Ok(bytes) => bytes
+    Err(_) => return Err(RowLimit)
+  }
+  if !reserve_slots(workspace, values.length()) {
+    return Err(RowLimit)
+  }
+  let strings : Array[String] = []
+  let mut total = 0L
+  for index, value in values {
+    guard value is Text(text) else { return Err(InvalidRows) }
+    let bytes = match @scalar.admit_utf8_length64(text, maximum) {
+      Ok(bytes) => bytes
+      Err(_) => return Err(RowLimit)
+    }
+    let separator = if index == 0 { 0L } else { delimiter_bytes }
+    if separator > maximum - total ||
+      bytes > maximum - total - separator ||
+      !spend_control_bytes(control, separator) ||
+      !spend_control_bytes(control, bytes) {
+      return Err(RowLimit)
+    }
+    total += separator + bytes
+    strings.push(text)
+  }
+  Ok(Text(strings.join(delimiter)))
+}
+
+///|
 fn[T : IndexedRows] aggregate_group_ranges(
   input : T,
   indices : Array[Int],
@@ -243,8 +379,34 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
   order : Array[ColumnOrder],
   control : ControlBudget,
   workspace : RowWorkspace,
+  selected : Array[SelectedAggregateOutput],
 ) -> Result[Value, RowIssue] {
   let function = @lower.group_aggregate_function(aggregate)
+  if function is @relation.ArrayAgg || function is @relation.StringAgg {
+    guard argument is Some(column) && !order.is_empty() else {
+      return Err(InvalidRows)
+    }
+    let ordered = match
+      ordered_aggregate_values(
+        input, indices, range, column, order, control, workspace,
+      ) {
+      Ok(values) => values
+      Err(issue) => return Err(issue)
+    }
+    let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
+      match distinct_aggregate_values(ordered, control, workspace) {
+        Ok(values) => values
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      ordered
+    }
+    return if function is @relation.ArrayAgg {
+      evaluate_array_aggregate(aggregate, values, selected, control, workspace)
+    } else {
+      evaluate_string_aggregate(aggregate, values, selected, control, workspace)
+    }
+  }
   if function is @relation.First || function is @relation.Last {
     guard argument is Some(column) && !order.is_empty() else {
       return Err(InvalidRows)
@@ -394,6 +556,7 @@ fn[T : RelationRows] evaluate_group_into(
     Unit,
     RowIssue,
   ],
+  aggregate_outputs : Array[SelectedAggregateOutput],
 ) -> Result[Array[String], RowIssue] {
   if !group_execution_supported(group) {
     return Err(InvalidRows)
@@ -534,6 +697,7 @@ fn[T : RelationRows] evaluate_group_into(
           aggregate_orders[i],
           control,
           workspace,
+          aggregate_outputs,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
