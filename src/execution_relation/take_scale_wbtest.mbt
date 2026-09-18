@@ -19,6 +19,25 @@ fn check_take_scale(count : Int) -> Unit raise {
   assert_true(input.rows[selected.0][0] is Number(1.0))
   assert_true(allowance - control.remaining <= count + 20)
   assert_true(workspace.peak <= count * 4 + 20)
+  let used = allowance - control.remaining
+  let peak = workspace.peak
+  for
+    (work, slots, succeeds) in [
+      (used, peak, true),
+      (used - 1, peak, false),
+      (used, peak - 1, false),
+    ] {
+    let attempt = evaluate_take_selection(
+      input,
+      1L,
+      (count - 1).to_int64(),
+      count,
+      { remaining: work, max_frames: 0, },
+      row_output(),
+      { limit: slots, live: 0, peak: 0, },
+    )
+    assert_eq(attempt is Ok(_), succeeds)
+  }
 }
 
 ///|

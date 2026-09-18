@@ -182,3 +182,81 @@ test "take retains independent selected branch outputs" {
     is Number(0.0),
   )
 }
+
+///|
+test "take preserves every relation value domain and NULL" {
+  let cases = [
+    ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
+    ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
+    (
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}", "\"1.20\"",
+      "ordinary",
+    ),
+    ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
+    (
+      "{\"type\":\"timestamp\",\"nullable\":true}", "\"2000-02-29T12:30:00.000Z\"",
+      "ordinary",
+    ),
+    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
+    (
+      "{\"type\":\"json\",\"nullable\":true}", "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
+      "{\"x\":\"v\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
+      "[1,null]", "ordinary",
+    ),
+    (
+      "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
+      "[1,2]", "ordinary",
+    ),
+    (
+      "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}",
+      "", "resource",
+    ),
+    (
+      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "", "artifact",
+    ),
+  ]
+  for (body, wire, kind) in cases {
+    let contract = select_checked_contract(body)
+    let live = Ref(true)
+    let value = match kind {
+      "resource" =>
+        issued_resource_value(
+          contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          live,
+        ).value
+      "artifact" => issued_artifact_value(contract, live).value
+      _ =>
+        @admitted.admit(contract, input_cursor(wire), {
+          max_nodes: 100,
+          max_depth: 10,
+          max_text_bytes: 1000,
+        }).unwrap().value
+    }
+    let table : Table = {
+      owner: row_owner(""),
+      id: "source",
+      names: ["value"],
+      rows: [[capture(value)], [Null]],
+    }
+    let result = evaluate_take_rows(
+      table,
+      "limited",
+      2L,
+      0L,
+      2,
+      { remaining: 10000, max_frames: 0, },
+      row_output(),
+      { limit: 1000, live: 0, peak: 0, },
+    ).unwrap()
+    assert_true(append_value_equal(result.rows[0][0], capture(value)))
+    assert_true(result.rows[1][0] is Null)
+    live.val = false
+  }
+}

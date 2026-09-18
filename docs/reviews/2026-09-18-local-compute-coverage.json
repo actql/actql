@@ -1009,10 +1009,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -1030,7 +1030,23 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "literal and parameter count",
+                "offset",
+                "inherited order",
+                "zero and boundary counts"
+              ],
+              "types": [
+                "safe_integer_parameter"
+              ],
+              "obligations": [
+                "logical_order",
+                "parameter_binding",
+                "schema"
+              ]
+            }
           },
           {
             "operation": "take",
@@ -1044,7 +1060,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -1061,6 +1082,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "take",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -1072,14 +1106,26 @@
               "take uses proven input order and safe offset without skipping upstream",
               "take rejects missing order during preparation even for empty runtime input",
               "take physical budgets apply to full input and permit exact selected output",
-              "take retains independent selected branch outputs"
+              "take retains independent selected branch outputs",
+              "take preserves every relation value domain and NULL"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "take",
@@ -1144,9 +1190,7 @@
           }
         ]
       },
-      "gaps": [
-        "Literal and parameter counts, offsets, inherited order, zero and unsafe parameter rejection, whole-input validation, exact small-case budgets, independent branches, two managed consumers, and linear scaling are covered on three targets. Standard Host evidence, the full admitted value-domain retention matrix, and large-scale exact/one-short budget evidence remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "top_k",
