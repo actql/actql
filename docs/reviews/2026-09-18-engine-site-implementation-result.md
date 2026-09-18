@@ -4,6 +4,7 @@ Date: 2026-09-18. Initial implementation commit: `120cd1dc`.
 Lifecycle follow-up commit: `fad218f3`.
 Cleanup and placement follow-up commit: `e6500144`.
 Transfer authorization follow-up commit: `e6499915`.
+Destination authority follow-up commit: `b9c14b5e`.
 Baseline: `5a305f3ce5cdac421985fb9a71878bc22af51237`.
 
 This report closes E0 through E3 of
@@ -120,6 +121,12 @@ final commit boundary, while graceful teardown continues to permit work that
 was already admitted. Authorization rejection is not stop confirmation: the
 source pin and reservations remain owned until actual access termination and
 cleanup are confirmed.
+
+The committed destination has a separate exact binding authority. It does not
+retain the source authorization callback, whose Site-operation scope ends when
+the Transfer settles. This keeps later destination consumers independent from
+the completed Transfer while preserving normal Site admission for their own
+operations.
 
 Early managed-output release and full Host close now use the same owner-aware
 release path. A synchronous or asynchronous close failure installs the Site
