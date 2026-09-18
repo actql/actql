@@ -1,4 +1,8 @@
 import {checked} from './runtime-result.mjs';
+import {
+  validOutputLimits,
+  validResultOutputLimits,
+} from './result-output-limits.mjs';
 
 const usageKeys = ['planningWork', 'attempts', 'holdings', 'transferredBytes',
   'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes', 'reservedExecutionBytes'];
@@ -840,39 +844,6 @@ function publicationControl(moon) {
 }
 
 function outputExportControl(moon, publications) {
-  const fields = [
-    'maxRows',
-    'maxValueNodes',
-    'maxValueTextBytes',
-    'maxValueDepth',
-    'maxValueWork',
-    'maxWireBytes',
-    'maxWireNodes',
-    'maxWireDepth',
-    'maxColumns',
-    'maxOrderWork',
-    'maxLogicalWireBytes',
-    'maxLogicalWireNodes',
-    'maxLogicalWireDepth',
-    'maxSchemaFields',
-    'maxSchemaBytes',
-    'maxSchemaNodes',
-    'maxSchemaDepth',
-    'maxBatchBytes',
-  ];
-  const resultFields = [
-    'maxResultFields',
-    'maxResultMappingWork',
-    'maxResultOrderWork',
-    'maxResultWorkspaceEntries',
-    ...fields,
-  ];
-  const validLimits = (limits, expected) =>
-    limits !== null && typeof limits === 'object' &&
-    Object.keys(limits).sort().join('\0') ===
-      [...expected].sort().join('\0') &&
-    expected.every(name => Number.isSafeInteger(limits[name]) &&
-      limits[name] >= 0);
   const evidenceFields = [
     'computationContractCid',
     'inputRelationCids',
@@ -881,6 +852,14 @@ function outputExportControl(moon, publications) {
     'authorityScopeCid',
   ];
   const cidPattern = /^sha256:[0-9a-f]{64}$/u;
+  const evidenceLimitFields = ['maxWireBytes', 'maxNodes', 'maxDepth'];
+  const validEvidenceLimits = limits =>
+    limits !== null && typeof limits === 'object' &&
+    !Array.isArray(limits) &&
+    Object.keys(limits).sort().join('\0') ===
+      [...evidenceLimitFields].sort().join('\0') &&
+    evidenceLimitFields.every(name =>
+      Number.isSafeInteger(limits[name]) && limits[name] >= 0);
   const validEvidenceContext = value =>
     value !== null && typeof value === 'object' &&
     Object.keys(value).sort().join('\0') ===
@@ -891,7 +870,7 @@ function outputExportControl(moon, publications) {
     value.inputRelationCids.every(cid => cidPattern.test(cid));
   return Object.freeze({
     begin(output, limits) {
-      if (!validLimits(limits, fields)) {
+      if (!validOutputLimits(limits)) {
         throw new TypeError('Invalid output export limits');
       }
       return checked(moon.strategyHostOutputExportBegin(
@@ -918,7 +897,7 @@ function outputExportControl(moon, publications) {
     },
     beginResult(host, result, limits) {
       if (!Number.isSafeInteger(result) || result < 0 ||
-          !validLimits(limits, resultFields)) {
+          !validResultOutputLimits(limits)) {
         throw new TypeError('Invalid Result output export request');
       }
       return checked(moon.strategyHostResultOutputExportBegin(
@@ -979,7 +958,7 @@ function outputExportControl(moon, publications) {
     },
     issueResultEvidence(value, context, limits) {
       if (!validEvidenceContext(context) ||
-          !validLimits(limits, ['maxWireBytes', 'maxNodes', 'maxDepth'])) {
+          !validEvidenceLimits(limits)) {
         throw new TypeError('Invalid Result evidence issuance request');
       }
       checked(moon.strategyHostOutputExportIssueResultEvidence(

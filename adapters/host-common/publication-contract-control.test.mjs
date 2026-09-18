@@ -45,6 +45,30 @@ const limits = Object.freeze({
   maxNodes: 4096,
   maxDepth: 64,
 });
+const publicationOutputLimits = Object.freeze({
+  maxResultFields: 10,
+  maxResultMappingWork: 100,
+  maxResultOrderWork: 100,
+  maxResultWorkspaceEntries: 10,
+  maxRows: 100,
+  maxValueNodes: 1000,
+  maxValueTextBytes: 4096,
+  maxValueDepth: 10,
+  maxValueWork: 8192,
+  maxWireBytes: 4096,
+  maxWireNodes: 1000,
+  maxWireDepth: 10,
+  maxColumns: 10,
+  maxOrderWork: 1000,
+  maxLogicalWireBytes: 8192,
+  maxLogicalWireNodes: 1003,
+  maxLogicalWireDepth: 12,
+  maxSchemaFields: 10,
+  maxSchemaBytes: 4096,
+  maxSchemaNodes: 100,
+  maxSchemaDepth: 10,
+  maxBatchBytes: 1024,
+});
 const canonical = value => Array.isArray(value)
   ? value.map(canonical)
   : value !== null && typeof value === 'object'
@@ -549,10 +573,7 @@ test('publication preflight rejects immutable or physical incompatibility',
         externalIdempotencyKey: undefined,
         startedAt: '2026-09-18T00:00:01.000Z',
       }),
-      outputLimits: Object.freeze({
-        maxWireBytes: 4096,
-        maxLogicalWireBytes: 8192,
-      }),
+      outputLimits: publicationOutputLimits,
       contractLimits: limits,
       now: () => '2026-09-18T00:00:02.000Z',
     });
@@ -593,6 +614,40 @@ test('publication preflight rejects immutable or physical incompatibility',
       control,
       publicationInventory: Object.freeze({occurrences: Object.freeze([])}),
       plan,
+    }), {code: 'InvalidRunPublicationPreflight'});
+    const missingBatchLimit = Object.freeze(Object.fromEntries(
+      Object.entries(publicationOutputLimits)
+        .filter(([name]) => name !== 'maxBatchBytes'),
+    ));
+    assert.throws(() => prepareCompletedEffectFreeRunPublication({
+      store: {publicationCapacitySupports: () => true},
+      control,
+      publicationInventory,
+      plan: Object.freeze({...plan, outputLimits: missingBatchLimit}),
+    }), {code: 'InvalidRunPublicationPreflight'});
+    assert.throws(() => prepareCompletedEffectFreeRunPublication({
+      store: {publicationCapacitySupports: () => true},
+      control,
+      publicationInventory,
+      plan: Object.freeze({
+        ...plan,
+        outputLimits: Object.freeze({
+          ...publicationOutputLimits,
+          maxSchemaBytes: -1,
+        }),
+      }),
+    }), {code: 'InvalidRunPublicationPreflight'});
+    assert.throws(() => prepareCompletedEffectFreeRunPublication({
+      store: {publicationCapacitySupports: () => true},
+      control,
+      publicationInventory,
+      plan: Object.freeze({
+        ...plan,
+        outputLimits: Object.freeze({
+          ...publicationOutputLimits,
+          unboundedBytes: 1,
+        }),
+      }),
     }), {code: 'InvalidRunPublicationPreflight'});
   });
 

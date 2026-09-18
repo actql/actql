@@ -2,6 +2,8 @@
 // MoonBit owns contract meaning and inventory consistency. Environment Stores
 // report only their current bounded physical capacity without reserving it.
 
+import {validResultOutputLimits} from './result-output-limits.mjs';
+
 export class RunPublicationPreflightError extends Error {
   constructor(code, cause) {
     super(code, cause === undefined ? undefined : {cause});
@@ -43,8 +45,7 @@ function snapshotPlan(plan) {
       !exactKeys(plan.contractLimits, [
         'maxWireBytes', 'maxNodes', 'maxDepth',
       ]) || !Object.values(plan.contractLimits).every(positive) ||
-      plan.outputLimits === null || typeof plan.outputLimits !== 'object' ||
-      !positive(plan.outputLimits.maxWireBytes) ||
+      !validResultOutputLimits(plan.outputLimits) ||
       typeof plan.now !== 'function' || !contract(plan.runDefinition) ||
       !contract(plan.invocation)) {
     fail('InvalidRunPublicationPreflight');
