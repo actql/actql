@@ -100,7 +100,8 @@ pub fn local_managed_sequence_supported(
           | DedupeRows
           | CountGroups(_) => true
           Groups(group) => @execution.group_execution_supported(group)
-          AnalyticRows(_) => false
+          AnalyticRows(analytic) =>
+            @execution.analytic_execution_supported(analytic)
           Pivot(pivot) =>
             match @lower.pivot_function(pivot) {
               @relation.Count

@@ -21,7 +21,30 @@ fn query_request_catalog_fixture() -> @environment.SourceRequestContracts {
 fn query_catalog_from_wire(
   wire : String,
   expected? : String = "sha256:8b7d6e867b4078f8ec1440aff53de9c73e980058b65827ec9a28707fcf5106d3",
+  analytic? : Bool = false,
 ) -> @environment.SourceRequestContracts {
+  let expected = if analytic {
+    "sha256:bab3f460743379f098af60441c3f95ef75dfaea2caf462c4115792a1141d1c19"
+  } else {
+    expected
+  }
+  let wire = if analytic {
+    wire
+    .replace(
+      old="\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\"",
+      new="\"evidence_bundle_cid\":\"" + expected + "\"",
+    )
+    .replace(
+      old="\"max_aggregate_array_items\":10000,",
+      new="\"max_aggregate_array_items\":10000," +
+        "\"max_analytic_frame_memberships\":10000," +
+        "\"max_analytic_input_wire_bytes\":10000," +
+        "\"max_analytic_output_wire_bytes\":10000," +
+        "\"max_analytic_partition_wire_bytes\":10000,",
+    )
+  } else {
+    wire
+  }
   let caps : @environment.Limits = {
     max_bytes: 1000000,
     max_nodes: 100000,

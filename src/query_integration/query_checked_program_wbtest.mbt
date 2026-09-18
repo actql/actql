@@ -22,6 +22,7 @@ fn query_checked_program_fixture(
   local_values_lag_variant? : String = "literal",
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
+  local_values_analytic_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -69,6 +70,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_watermark_chain {
     local_values_watermark_program(local_values_watermark_variant)
+  } else {
+    text
+  }
+  let text = if local_values_analytic_chain {
+    local_values_analytic_program()
   } else {
     text
   }
@@ -312,7 +318,9 @@ fn query_checked_program_fixture(
             } else if nullable {
               query_nullable_catalog_fixture()
             } else {
-              query_program_catalog_fixture()
+              query_program_catalog_fixture(
+                analytic=local_values_analytic_chain,
+              )
             },
           ),
         ),
