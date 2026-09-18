@@ -16,6 +16,54 @@ pub struct PreparedCount {
 }
 
 ///|
+/// Owner-bound aggregate input. Expressions retain their checked typed owner;
+/// direct fields retain exact schema identity rather than a textual lookup.
+pub enum PreparedAggregateArgument {
+  AggregateRows
+  AggregateField(@schema.FieldName)
+  AggregateExpression(Expression)
+}
+
+///|
+/// Complete typed view of one checked aggregate occurrence.
+struct PreparedAggregate {
+  name : String
+  function : @relation.AggregateFunction
+  argument : PreparedAggregateArgument
+  filter : Expression?
+  result : @contract.Contract
+  distinct : Bool?
+  order : Array[@relation.OrderTerm]
+  item_limit : Int64?
+  byte_limit : Int64?
+  delimiter : String?
+  fraction : Double?
+  numeric_observation : Bool
+}
+
+///|
+/// Complete group view for execution lowering. The checked owner remains the
+/// authority for validation and operation identity.
+struct PreparedGroup {
+  checked : @relation.CheckedOperation
+  keys : Array[@schema.FieldName]
+  aggregates : Array[PreparedAggregate]
+  name_bytes : Int
+  entries : Int
+}
+
+///|
+pub(all) enum GroupIssue {
+  GroupNotFound
+  InvalidGroupLimits
+  GroupPreparationLimit
+  GroupExpressionFailure(ExpressionIssue)
+  MissingGroupParameter(String)
+  InvalidGroupParameter(String)
+  InvalidCheckedAggregate(Int)
+}
+
+///|
 pub(all) enum CountGroupIssue {
   NotGroup
   UnsupportedAggregate(Int)
@@ -133,6 +181,348 @@ pub fn count_group_aggregate_at(
   index : Int,
 ) -> PreparedCount? {
   group.counts.get(index)
+}
+
+///|
+/// Prepares every normative group aggregate from the exact checked step.
+/// This is a typed execution view, not registry or numeric-observation
+/// admission.
+pub fn prepare_group(
+  owner : BoundPrepared,
+  step_index : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  limits : ExpressionLimits,
+) -> Result[(PreparedGroup, ExpressionLimits), GroupIssue] {
+  if max_entries < 0 ||
+    max_name_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_work < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_literal_nodes < 0 ||
+    limits.max_literal_text_bytes < 0 {
+    return Err(InvalidGroupLimits)
+  }
+  guard owner.prepared.nodes.get(step_index) is Some(node) &&
+    node.payload is CountGroup(checked) else {
+    return Err(GroupNotFound)
+  }
+  guard @relation.group(checked) is Some(group) else {
+    return Err(GroupNotFound)
+  }
+  let aggregate_count = @relation.aggregate_count(group)
+  let checked_keys = @relation.group_keys(group)
+  if checked_keys.length() > max_entries ||
+    aggregate_count > max_entries - checked_keys.length() {
+    return Err(GroupPreparationLimit)
+  }
+  let mut remaining_names = max_name_bytes
+  let spend_name = fn(name : String) -> Bool {
+    if name.length() > remaining_names {
+      return false
+    }
+    let bytes = @utf8.encode(name).length()
+    if bytes > remaining_names {
+      return false
+    }
+    remaining_names -= bytes
+    true
+  }
+  let keys : Array[@schema.FieldName] = []
+  for key in checked_keys {
+    if !spend_name(@schema.reference_name(key.field)) {
+      return Err(GroupPreparationLimit)
+    }
+    keys.push(key.field)
+  }
+  let mut remaining = limits
+  let lower = fn(index : Int) -> Result[Expression, GroupIssue] {
+    let (expression, usage) = match
+      lower_expression_measured(owner, step_index, index, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(GroupExpressionFailure(issue))
+    }
+    remaining = {
+      ..remaining,
+      max_nodes: remaining.max_nodes - usage.nodes,
+      max_work: remaining.max_work - usage.work,
+      max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+      max_literal_text_bytes: remaining.max_literal_text_bytes -
+      usage.literal_bytes,
+    }
+    Ok(expression)
+  }
+  let resolve_count = fn(
+    value : @relation.CountValue,
+  ) -> Result[Int64, GroupIssue] {
+    match value {
+      Literal(value) => Ok(value)
+      Parameter(name) => {
+        if !spend_name(name) {
+          return Err(GroupPreparationLimit)
+        }
+        guard parameter_value(owner, name) is Some(bound) else {
+          return Err(MissingGroupParameter(name))
+        }
+        guard bound.value is @value.Number(number) &&
+          @scalar.read_safe_integer(number) is Some(value) &&
+          value >= 1L else {
+          return Err(InvalidGroupParameter(name))
+        }
+        Ok(value)
+      }
+    }
+  }
+  let resolve_fraction = fn(
+    value : @relation.FractionValue,
+  ) -> Result[Double, GroupIssue] {
+    match value {
+      Fraction(value) => Ok(value)
+      ParameterFraction(name) => {
+        if !spend_name(name) {
+          return Err(GroupPreparationLimit)
+        }
+        guard parameter_value(owner, name) is Some(bound) else {
+          return Err(MissingGroupParameter(name))
+        }
+        guard bound.value is @value.Number(number) &&
+          @scalar.read_finite_number(number) is Some(value) &&
+          value >= 0.0 &&
+          value <= 1.0 &&
+          (value != 0.0 || 1.0 / value > 0.0) else {
+          return Err(InvalidGroupParameter(name))
+        }
+        Ok(value)
+      }
+    }
+  }
+  let input_schema = @relation.input_schema(checked)
+  let aggregates : Array[PreparedAggregate] = []
+  let mut entries = checked_keys.length() + aggregate_count
+  for i in 0..<aggregate_count {
+    let aggregate = @relation.aggregate_at(group, i).unwrap()
+    let name = @relation.aggregate_name(aggregate)
+    if !spend_name(name) {
+      return Err(GroupPreparationLimit)
+    }
+    let filter = match @relation.aggregate_filter(aggregate) {
+      None => None
+      Some(index) =>
+        match lower(index) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(issue)
+        }
+    }
+    let (argument, input_contract) = match
+      @relation.aggregate_argument(aggregate) {
+      Rows => (AggregateRows, None)
+      Field(key) => {
+        let field = key.field
+        if !spend_name(@schema.reference_name(field)) {
+          return Err(GroupPreparationLimit)
+        }
+        guard @schema.lookup(input_schema, field) is Some(contract) else {
+          return Err(InvalidCheckedAggregate(i))
+        }
+        (AggregateField(field), Some(contract))
+      }
+      Expression(index) =>
+        match lower(index) {
+          Ok(value) => {
+            let contract = expression_contract(value)
+            (AggregateExpression(value), Some(contract))
+          }
+          Err(issue) => return Err(issue)
+        }
+    }
+    let order = @relation.aggregate_order(aggregate)
+    if order.length() > max_entries - entries {
+      return Err(GroupPreparationLimit)
+    }
+    entries += order.length()
+    for term in order {
+      if !spend_name(@schema.reference_name(term.field)) {
+        return Err(GroupPreparationLimit)
+      }
+    }
+    let item_limit = match @relation.aggregate_item_limit(aggregate) {
+      None => None
+      Some(value) =>
+        match resolve_count(value) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(issue)
+        }
+    }
+    let byte_limit = match @relation.aggregate_byte_limit(aggregate) {
+      None => None
+      Some(value) =>
+        match resolve_count(value) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(issue)
+        }
+    }
+    let fraction = match @relation.aggregate_fraction(aggregate) {
+      None => None
+      Some(value) =>
+        match resolve_fraction(value) {
+          Ok(value) => Some(value)
+          Err(issue) => return Err(issue)
+        }
+    }
+    let function = @relation.aggregate_function(aggregate)
+    let numeric_observation = (
+        function is @relation.Sum || function is @relation.Avg
+      ) &&
+      input_contract is Some({ shape: @contract.Number, .. })
+    aggregates.push({
+      name,
+      function,
+      argument,
+      filter,
+      result: @relation.aggregate_result(aggregate),
+      distinct: @relation.aggregate_distinct(aggregate),
+      order,
+      item_limit,
+      byte_limit,
+      delimiter: @relation.aggregate_delimiter(aggregate),
+      fraction,
+      numeric_observation,
+    })
+  }
+  Ok(
+    (
+      {
+        checked,
+        keys,
+        aggregates,
+        name_bytes: max_name_bytes - remaining_names,
+        entries,
+      },
+      remaining,
+    ),
+  )
+}
+
+///|
+pub fn group_checked(group : PreparedGroup) -> @relation.CheckedOperation {
+  group.checked
+}
+
+///|
+pub fn group_input_schema(group : PreparedGroup) -> @schema.Schema {
+  @relation.input_schema(group.checked)
+}
+
+///|
+pub fn group_output_schema(group : PreparedGroup) -> @schema.Schema {
+  @relation.output_schema(group.checked)
+}
+
+///|
+pub fn group_key_count(group : PreparedGroup) -> Int {
+  group.keys.length()
+}
+
+///|
+pub fn group_key_at(group : PreparedGroup, index : Int) -> @schema.FieldName? {
+  group.keys.get(index)
+}
+
+///|
+pub fn group_aggregate_count(group : PreparedGroup) -> Int {
+  group.aggregates.length()
+}
+
+///|
+pub fn group_aggregate_at(
+  group : PreparedGroup,
+  index : Int,
+) -> PreparedAggregate? {
+  group.aggregates.get(index)
+}
+
+///|
+pub fn group_name_bytes(group : PreparedGroup) -> Int {
+  group.name_bytes
+}
+
+///|
+pub fn group_entry_count(group : PreparedGroup) -> Int {
+  group.entries
+}
+
+///|
+pub fn group_aggregate_name(value : PreparedAggregate) -> String {
+  value.name
+}
+
+///|
+pub fn group_aggregate_function(
+  value : PreparedAggregate,
+) -> @relation.AggregateFunction {
+  value.function
+}
+
+///|
+pub fn group_aggregate_argument(
+  value : PreparedAggregate,
+) -> PreparedAggregateArgument {
+  value.argument
+}
+
+///|
+pub fn group_aggregate_filter(value : PreparedAggregate) -> Expression? {
+  value.filter
+}
+
+///|
+pub fn group_aggregate_result(value : PreparedAggregate) -> @contract.Contract {
+  value.result
+}
+
+///|
+pub fn group_aggregate_distinct(value : PreparedAggregate) -> Bool? {
+  value.distinct
+}
+
+///|
+pub fn group_aggregate_order_count(value : PreparedAggregate) -> Int {
+  value.order.length()
+}
+
+///|
+pub fn group_aggregate_order_at(
+  value : PreparedAggregate,
+  index : Int,
+) -> @relation.OrderTerm? {
+  value.order.get(index)
+}
+
+///|
+pub fn group_aggregate_item_limit(value : PreparedAggregate) -> Int64? {
+  value.item_limit
+}
+
+///|
+pub fn group_aggregate_byte_limit(value : PreparedAggregate) -> Int64? {
+  value.byte_limit
+}
+
+///|
+pub fn group_aggregate_delimiter(value : PreparedAggregate) -> String? {
+  value.delimiter
+}
+
+///|
+pub fn group_aggregate_fraction(value : PreparedAggregate) -> Double? {
+  value.fraction
+}
+
+///|
+pub fn group_aggregate_requires_numeric_observation(
+  value : PreparedAggregate,
+) -> Bool {
+  value.numeric_observation
 }
 
 ///|

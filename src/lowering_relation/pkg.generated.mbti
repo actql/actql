@@ -59,6 +59,32 @@ pub fn count_group_key_count(PreparedCountGroup) -> Int
 
 pub fn count_group_output_schema(PreparedCountGroup) -> @relation_schema.Schema
 
+pub fn cross_join_checked(PreparedCrossJoin) -> @relation_join_shape.CheckedCrossJoin
+
+pub fn cross_join_field_at(PreparedCrossJoin, Int) -> CrossJoinField?
+
+pub fn cross_join_field_count(PreparedCrossJoin) -> Int
+
+pub fn cross_join_has_projection(PreparedCrossJoin) -> Bool
+
+pub fn cross_join_input_schema(PreparedCrossJoin, Bool) -> @relation_schema.Schema
+
+pub fn cross_join_kernel_input(PreparedCrossJoinKernel, Bool) -> String
+
+pub fn cross_join_kernel_name_bytes(PreparedCrossJoinKernel) -> Int
+
+pub fn cross_join_kernel_output(PreparedCrossJoinKernel) -> String
+
+pub fn cross_join_kernel_output_limit(PreparedCrossJoinKernel) -> Int64?
+
+pub fn cross_join_kernel_owner(PreparedCrossJoinKernel) -> BoundPrepared
+
+pub fn cross_join_kernel_profile(PreparedCrossJoinKernel) -> PreparedCrossJoin
+
+pub fn cross_join_kernel_step(PreparedCrossJoinKernel) -> Int
+
+pub fn cross_join_requires_one_right(PreparedCrossJoin) -> Bool
+
 pub fn demand_root_at(DemandIndex, Int) -> @expression_typing.DemandPaths?
 
 pub fn demand_roots(DemandIndex) -> RootIndex
@@ -70,6 +96,8 @@ pub fn demand_source_tests(DemandIndex, Int, Int, max_tests~ : Int, max_pointer_
 pub fn demand_usage(DemandIndex) -> DemandUsage
 
 pub fn emit_append_kernel(PreparedAppendKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_cross_join_kernel(PreparedCrossJoinKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_expression(Expression, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -126,6 +154,50 @@ pub fn fragment_request_pipeline(FragmentRequest) -> FragmentPipeline
 pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
+
+pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
+
+pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
+
+pub fn group_aggregate_byte_limit(PreparedAggregate) -> Int64?
+
+pub fn group_aggregate_count(PreparedGroup) -> Int
+
+pub fn group_aggregate_delimiter(PreparedAggregate) -> String?
+
+pub fn group_aggregate_distinct(PreparedAggregate) -> Bool?
+
+pub fn group_aggregate_filter(PreparedAggregate) -> Expression?
+
+pub fn group_aggregate_fraction(PreparedAggregate) -> Double?
+
+pub fn group_aggregate_function(PreparedAggregate) -> @relation_typing.AggregateFunction
+
+pub fn group_aggregate_item_limit(PreparedAggregate) -> Int64?
+
+pub fn group_aggregate_name(PreparedAggregate) -> String
+
+pub fn group_aggregate_order_at(PreparedAggregate, Int) -> @relation_typing.OrderTerm?
+
+pub fn group_aggregate_order_count(PreparedAggregate) -> Int
+
+pub fn group_aggregate_requires_numeric_observation(PreparedAggregate) -> Bool
+
+pub fn group_aggregate_result(PreparedAggregate) -> @value_contract.Contract
+
+pub fn group_checked(PreparedGroup) -> @relation_typing.CheckedOperation
+
+pub fn group_entry_count(PreparedGroup) -> Int
+
+pub fn group_input_schema(PreparedGroup) -> @relation_schema.Schema
+
+pub fn group_key_at(PreparedGroup, Int) -> @relation_schema.FieldName?
+
+pub fn group_key_count(PreparedGroup) -> Int
+
+pub fn group_name_bytes(PreparedGroup) -> Int
+
+pub fn group_output_schema(PreparedGroup) -> @relation_schema.Schema
 
 pub fn inner_join_assertion(PreparedInnerJoin) -> @relation_join_shape.Cardinality?
 
@@ -305,6 +377,8 @@ pub fn prepare_append_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedApp
 
 pub fn prepare_count_group(@relation_typing.CheckedOperation, Int, Int) -> Result[PreparedCountGroup, CountGroupIssue]
 
+pub fn prepare_cross_join_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedCrossJoinKernel, CrossJoinIssue]
+
 pub fn prepare_demand(RootIndex, DemandLimits) -> Result[DemandIndex, DemandIssue]
 
 pub fn prepare_fragment_enforcement(FragmentRequest, FragmentRowLimits, Int, Int, Int, Int64?, Bool) -> Result[FragmentEnforcement, SequenceRequirementsIssue]
@@ -312,6 +386,8 @@ pub fn prepare_fragment_enforcement(FragmentRequest, FragmentRowLimits, Int, Int
 pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[FragmentPipeline, RootIssue]
 
 pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : FragmentRowLimits?) -> Result[FragmentRequest, FragmentRequestIssue]
+
+pub fn prepare_group(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Result[(PreparedGroup, ExpressionLimits), GroupIssue]
 
 pub fn prepare_inner_join(@relation_join_shape.CheckedJoin, Int, Int) -> Result[PreparedInnerJoin, InnerJoinIssue]
 
@@ -454,6 +530,18 @@ pub(all) enum CountGroupIssue {
   PreparationLimit
 } derive(Eq, @debug.Debug)
 
+pub struct CrossJoinField {
+  output : @relation_schema.FieldName
+  input : @relation_schema.FieldName
+}
+
+pub(all) enum CrossJoinIssue {
+  InvalidLimits
+  PreparationLimit
+  InvalidCheckedShape
+  InvalidGuard
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DemandAddressIssue {
   InvalidAddressLimits
   InvalidRoot
@@ -557,6 +645,16 @@ pub(all) struct FragmentRowLimits {
   max_value_bytes : Int64
   max_live_value_bytes : Int64
   max_work : Int64
+}
+
+pub(all) enum GroupIssue {
+  GroupNotFound
+  InvalidGroupLimits
+  GroupPreparationLimit
+  GroupExpressionFailure(ExpressionIssue)
+  MissingGroupParameter(String)
+  InvalidGroupParameter(String)
+  InvalidCheckedAggregate(Int)
 }
 
 pub struct InnerJoinField {
@@ -671,6 +769,7 @@ pub enum Payload {
   AssertRows(@relation_typing.CheckedOperation)
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
+  CrossJoinRows(@relation_join_shape.CheckedCrossJoin)
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
 }
@@ -684,6 +783,14 @@ pub(all) enum PivotIssue {
 
 type Prepared
 
+type PreparedAggregate
+
+pub enum PreparedAggregateArgument {
+  AggregateRows
+  AggregateField(@relation_schema.FieldName)
+  AggregateExpression(Expression)
+}
+
 type PreparedAppendKernel
 
 pub struct PreparedCount {
@@ -693,6 +800,12 @@ pub struct PreparedCount {
 }
 
 type PreparedCountGroup
+
+type PreparedCrossJoin
+
+type PreparedCrossJoinKernel
+
+type PreparedGroup
 
 type PreparedInnerJoin
 
@@ -719,6 +832,7 @@ pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
+  CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
 }
@@ -762,6 +876,7 @@ pub(all) enum SequenceIssue {
   ValuesFailure(Int, ValuesIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
+  CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
 }
