@@ -258,6 +258,11 @@ fn evaluate_completed_rows(
             completed_selection(input, id, indices, control, workspace)
         }
       },
+      unnest: fn(kernel, input, id) {
+        evaluate_unnest_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        ).map(table => RowTable(table))
+      },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
           body, input, id, max_rows, control, output, workspace, logical,

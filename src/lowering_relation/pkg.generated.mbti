@@ -204,6 +204,8 @@ pub fn kernel_top_k_partition_at(PreparedKernel, Int) -> @relation_schema.FieldN
 
 pub fn kernel_top_k_partition_count(PreparedKernel) -> Int
 
+pub fn kernel_unnest(PreparedKernel) -> (@relation_schema.FieldName, String, String?, Bool, Int64?)?
+
 pub fn kernel_view_entries(PreparedKernel) -> Int
 
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
@@ -531,6 +533,7 @@ pub enum KernelBody {
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
   TopK(Int64, @pipeline_typing.LogicalOrder)
   PartitionedTopK(Int64, @pipeline_typing.LogicalOrder)
+  Unnest(@relation_schema.FieldName, String, String?, Bool, Int64?)
   DistinctRows
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
@@ -592,6 +595,7 @@ pub enum Payload {
   Limit(@relation_typing.CheckedOperation)
   TopK(@relation_typing.CheckedOperation)
   TopKBy(@relation_typing.CheckedOperation)
+  Unnest(@relation_typing.CheckedOperation)
   Distinct(@relation_typing.CheckedOperation)
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)

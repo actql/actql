@@ -90,6 +90,9 @@ fn evaluate_layout_kernel(
           Err(issue) => Err(issue)
         }
       },
+      // Row expansion materializes a row table in the production completed
+      // backend; this experimental layout adapter has no expansion writer.
+      unnest: fn(_kernel, _input, _id) { Err(InvalidRows) },
       body: fn(body, input, id, logical) {
         evaluate_layout_body(
           kernel,

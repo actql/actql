@@ -83,6 +83,14 @@ fn attach_fragment_budgets(
             }
           @lower.Select(_) => ()
           @lower.JsonPick(_, _, _) => ()
+          @lower.Unnest(column, _, _, _, _) => {
+            let name = @schema.reference_name(column)
+            if !spend_control(control, 1) ||
+              !spend_control_text(control, name) ||
+              @schema.lookup(@lower.kernel_input_schema(kernel), column) is None {
+              return Err(FragmentContext(i, KernelMismatch))
+            }
+          }
           @lower.AssertUnique(keys) => {
             let schema = @lower.kernel_input_schema(kernel)
             for name in keys {

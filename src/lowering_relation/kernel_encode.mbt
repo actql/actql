@@ -67,6 +67,7 @@ pub fn emit_kernel_node(
       Limit(_, _, _) => "REL.limit"
       TopK(_, _) => "REL.topk"
       PartitionedTopK(_, _) => "REL.topk_partitioned"
+      Unnest(_, _, _, _, _) => "REL.unnest"
       DistinctRows => "REL.distinct"
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
@@ -124,6 +125,18 @@ pub fn emit_kernel_node(
           )
         }
         @encode.end_array(out)
+      }
+    }
+    Unnest(column, element, index, outer, _) => {
+      @encode.key(out, "as")
+      @encode.string_value(out, element)
+      @encode.key(out, "column")
+      @encode.string_value(out, @schema.reference_name(column))
+      @encode.key(out, "outer")
+      @encode.bool_value(out, outer)
+      if index is Some(name) {
+        @encode.key(out, "with_index")
+        @encode.string_value(out, name)
       }
     }
     DedupeRows => {

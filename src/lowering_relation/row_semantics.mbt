@@ -88,6 +88,17 @@ pub fn kernel_is_partitioned_top_k(kernel : PreparedKernel) -> Bool {
 }
 
 ///|
+pub fn kernel_unnest(
+  kernel : PreparedKernel,
+) -> (@schema.FieldName, String, String?, Bool, Int64?)? {
+  match kernel.body {
+    Unnest(column, element, index, outer, max_items) =>
+      Some((column, element, index, outer, max_items))
+    _ => None
+  }
+}
+
+///|
 pub fn kernel_is_projection(kernel : PreparedKernel) -> Bool {
   kernel.body is Select(_)
 }

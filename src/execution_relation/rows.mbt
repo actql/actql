@@ -174,6 +174,11 @@ fn evaluate_rows_with_workspace(
           kernel, input, id, count, max_rows, control, output, workspace,
         )
       },
+      unnest: fn(kernel, input, id) {
+        evaluate_unnest_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
       body: fn(body, input, id, logical) {
         evaluate_row_body(
           body,
@@ -200,6 +205,7 @@ priv struct RowBackend[T] {
   distinct : (T, String) -> Result[T, RowIssue]
   take : (T, String, Int64, Int64) -> Result[T, RowIssue]
   top_k : (@lower.PreparedKernel, T, String, Int64) -> Result[T, RowIssue]
+  unnest : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
 }
 
@@ -247,6 +253,9 @@ fn[T : RelationRows] evaluate_rows_dispatch(
   }
   if @lower.kernel_top_k_count(kernel) is Some(count) {
     return (backend.top_k)(kernel, input, @lower.node_id(node), count)
+  }
+  if @lower.kernel_unnest(kernel) is Some(_) {
+    return (backend.unnest)(kernel, input, @lower.node_id(node))
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
@@ -412,6 +421,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.Limit(_, _, _) => return Err(InvalidRows)
         @lower.TopK(_, _) => return Err(InvalidRows)
         @lower.PartitionedTopK(_, _) => return Err(InvalidRows)
+        @lower.Unnest(_, _, _, _, _) => return Err(InvalidRows)
         @lower.DistinctRows => return Err(InvalidRows)
         @lower.DedupeRows => return Err(InvalidRows)
         @lower.StableSort(_) => return Err(InvalidRows)

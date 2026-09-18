@@ -277,6 +277,21 @@ fn run_traffic_rows(
               traffic,
             )
           },
+          unnest: fn(kernel, table, id) {
+            traffic_row_result(
+              evaluate_unnest_rows(
+                kernel,
+                table,
+                id,
+                limits.max_rows,
+                control,
+                output,
+                workspace,
+              ),
+              true,
+              traffic,
+            )
+          },
           body: fn(body, table, id, logical) {
             traffic_row_result(
               evaluate_row_body(

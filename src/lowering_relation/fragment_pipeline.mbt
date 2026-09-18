@@ -98,6 +98,7 @@ fn emit_fragment_pipeline(
         | Limit(_, _, _)
         | TopK(_, _)
         | PartitionedTopK(_, _)
+        | Unnest(_, _, _, _, _)
         | DistinctRows
         | DedupeRows
         | StableSort(_)
@@ -143,6 +144,7 @@ fn emit_fragment_pipeline(
       | Limit(_, _, _)
       | TopK(_, _)
       | PartitionedTopK(_, _)
+      | Unnest(_, _, _, _, _)
       | DistinctRows
       | DedupeRows
       | StableSort(_)

@@ -385,6 +385,7 @@ fn lower_expression_measured(
       | Limit(_)
       | TopK(_)
       | TopKBy(_)
+      | Unnest(_)
       | Distinct(_)
       | Dedupe(_)
       | Sort(_)
