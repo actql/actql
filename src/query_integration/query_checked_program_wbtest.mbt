@@ -214,9 +214,19 @@ fn local_unnest_program() -> String {
 }
 
 ///|
+fn local_unpivot_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"jan":{"type":"number","nullable":true},"feb":{"type":"number","nullable":true}},"rows":[{"id":1,"jan":10,"feb":null},{"id":2,"jan":null,"feb":20}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","jan","feb"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"unpivot":{"columns":["jan","feb","jan"],"keep":["id","jan"],"name_column":"metric","value_column":"amount"},"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 fn local_values_unary_program(kind : String) -> String {
   if kind == "unnest" {
     return local_unnest_program()
+  }
+  if kind == "unpivot" {
+    return local_unpivot_program()
   }
   if kind == "json_pick" {
     return local_json_pick_program()

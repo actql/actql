@@ -183,9 +183,9 @@
       "canonical_operations": ["REL.unpivot"],
       "machine_registry": "registered",
       "variant_scope": ["selected fields", "name and value outputs", "heterogeneous rejection", "NULL values", "row expansion bounds"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and bounded row expansion are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/unpivot_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/unpivot_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Repeated authored columns, ordered keep fields, NULL values, empty input, bounded expansion, exact/one-short work, and two managed consumers execute on three targets. Heterogeneous rejection evidence, broader value-type conformance, a native layout expansion writer, and performance evidence remain."]
     },
     {
       "operation": "json_pick",

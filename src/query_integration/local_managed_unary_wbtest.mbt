@@ -31,6 +31,12 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"id\":1,\"item\":2,\"items\":[2,null],\"position\":0}", "{\"id\":1,\"item\":null,\"items\":[2,null],\"position\":1}",
         "{\"id\":2,\"item\":null,\"items\":[],\"position\":null}", "{\"id\":3,\"item\":null,\"items\":null,\"position\":null}",
       ]
+    "unpivot" =>
+      [
+        "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":1,\"jan\":10,\"metric\":\"feb\"}",
+        "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":2,\"jan\":null,\"metric\":\"jan\"}",
+        "{\"amount\":20,\"id\":2,\"jan\":null,\"metric\":\"feb\"}", "{\"amount\":null,\"id\":2,\"jan\":null,\"metric\":\"jan\"}",
+      ]
     "distinct" =>
       [
         "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
@@ -46,6 +52,8 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
     [
       "{\"id\":1,\"items\":[2,null]}", "{\"id\":2,\"items\":[]}", "{\"id\":3,\"items\":null}",
     ]
+  } else if kind == "unpivot" {
+    ["{\"feb\":null,\"id\":1,\"jan\":10}", "{\"feb\":20,\"id\":2,\"jan\":null}"]
   } else if kind == "json_pick" {
     [
       "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}}", "{\"id\":2,\"payload\":null}",
@@ -96,8 +104,8 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
       wire: {
-        max_bytes: 200,
-        max_nodes: 40,
+        max_bytes: 1000,
+        max_nodes: 200,
         max_depth: 4,
         max_columns: 4,
         max_order_work: 100,
@@ -194,7 +202,7 @@ test "Local managed unary source forms feed two downstream Computes" {
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
       "drop", "json_pick", "assert_where", "assert_unique", "sort", "take", "distinct",
-      "top_k", "top_k_by", "dedupe_rows", "unnest",
+      "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot",
     ] {
     run_local_managed_unary_case(kind)
   }

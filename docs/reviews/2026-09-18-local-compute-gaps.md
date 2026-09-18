@@ -42,7 +42,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | lag | C | - | - | - | Ordered partition execution |
 | watermark_rows | C | - | - | - | Finite watermark lowering and execution |
 | pivot | C | - | - | - | Dynamic schema view and execution |
-| unpivot | C | - | - | - | Bounded reshape lowering and execution |
+| unpivot | C | C | P | P | Type matrix, native layout writer, and performance evidence |
 | json_pick | C | C | C | P | Failure, type, budget, and performance coverage |
 | unnest | C | - | - | - | Bounded expansion lowering and execution |
 | join | C | P | P | - | Only inner equality join is lowered |
