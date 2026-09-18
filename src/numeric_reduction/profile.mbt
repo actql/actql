@@ -14,6 +14,28 @@ pub(all) enum Issue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum Operation {
+  Sum
+  Average
+} derive(Eq, Debug)
+
+///|
+pub(all) enum ReductionIssue {
+  InvalidLimits
+  ContributorLimit
+  WorkLimit
+  NonfiniteContributor(Int)
+  NonfiniteIntermediate
+} derive(Eq, Debug)
+
+///|
+pub struct Outcome {
+  value : Double?
+  count : Int
+  work : Int
+}
+
+///|
 struct Profile {
   bytes : Int
 }
@@ -103,4 +125,150 @@ pub fn reduction_cid(r : Reduction) -> String {
     LeftFold => left_fold_cid()
     AdjacentPairs => adjacent_pairs_cid()
   }
+}
+
+///|
+pub fn outcome_value(outcome : Outcome) -> Double? {
+  outcome.value
+}
+
+///|
+pub fn outcome_count(outcome : Outcome) -> Int {
+  outcome.count
+}
+
+///|
+pub fn outcome_work(outcome : Outcome) -> Int {
+  outcome.work
+}
+
+///|
+fn finite(value : Double) -> Bool {
+  !value.is_nan() && !value.is_inf()
+}
+
+///|
+fn public_zero(value : Double) -> Double {
+  if value == 0.0 {
+    0.0
+  } else {
+    value
+  }
+}
+
+///|
+fn checked_add(left : Double, right : Double) -> Result[Double, ReductionIssue] {
+  let value = left + right
+  if finite(value) {
+    Ok(value)
+  } else {
+    Err(NonfiniteIntermediate)
+  }
+}
+
+///|
+fn reduce_left_fold(
+  contributors : Array[Double],
+  work : Ref[Int],
+  max_work : Int,
+) -> Result[Double, ReductionIssue] {
+  let mut value = 0.0
+  for contributor in contributors {
+    if work.val == max_work {
+      return Err(WorkLimit)
+    }
+    work.val += 1
+    value = match checked_add(value, contributor) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(value)
+}
+
+///|
+fn reduce_adjacent_pairs(
+  contributors : Array[Double],
+  work : Ref[Int],
+  max_work : Int,
+) -> Result[Double, ReductionIssue] {
+  if contributors.length() == 1 {
+    return Ok(contributors[0])
+  }
+  let mut current = contributors.copy()
+  while current.length() > 1 {
+    let next : Array[Double] = []
+    let mut index = 0
+    while index < current.length() {
+      if index + 1 == current.length() {
+        next.push(current[index])
+      } else {
+        if work.val == max_work {
+          return Err(WorkLimit)
+        }
+        work.val += 1
+        let value = match checked_add(current[index], current[index + 1]) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        next.push(value)
+      }
+      index += 2
+    }
+    current = next
+  }
+  Ok(current[0])
+}
+
+///|
+/// Execute one selected reduction member over an already selected contributor
+/// sequence. Work charges one unit for each contributor admission, each
+/// prescribed addition, and the final average division. This function does not
+/// admit an aggregate slot, bind an attempt, or publish capture evidence.
+pub fn execute(
+  reduction : Reduction,
+  operation : Operation,
+  contributors : Array[Double],
+  max_contributors : Int,
+  max_work : Int,
+) -> Result[Outcome, ReductionIssue] {
+  if max_contributors < 0 || max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  let count = contributors.length()
+  if count > max_contributors {
+    return Err(ContributorLimit)
+  }
+  let work = Ref(0)
+  for index, contributor in contributors {
+    if work.val == max_work {
+      return Err(WorkLimit)
+    }
+    work.val += 1
+    if !finite(contributor) {
+      return Err(NonfiniteContributor(index))
+    }
+  }
+  if count == 0 {
+    return Ok({ value: None, count, work: work.val, })
+  }
+  let sum = match reduction.algorithm {
+    LeftFold => reduce_left_fold(contributors, work, max_work)
+    AdjacentPairs => reduce_adjacent_pairs(contributors, work, max_work)
+  }
+  let mut value = match sum {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if operation is Average {
+    if work.val == max_work {
+      return Err(WorkLimit)
+    }
+    work.val += 1
+    value /= count.to_double()
+    if !finite(value) {
+      return Err(NonfiniteIntermediate)
+    }
+  }
+  Ok({ value: Some(public_zero(value)), count, work: work.val, })
 }
