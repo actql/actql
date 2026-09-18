@@ -3921,13 +3921,13 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "partial",
-        "kernel": "partial",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
-        "performance": "partial"
+        "lowering": "complete",
+        "kernel": "complete",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -3978,14 +3978,28 @@
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
               "Local managed filtered expressions reach two independent consumers",
-              "Local managed group statistics reach two independent consumers"
+              "Local managed group statistics reach two independent consumers",
+              "Local managed numeric reductions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "empty and compound keys",
+                "all aggregate bindings",
+                "NULL keys and values",
+                "empty input",
+                "canonical output order",
+                "aggregate overflow"
+              ],
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -4004,7 +4018,8 @@
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
               "Local managed filtered expressions reach two independent consumers",
-              "Local managed group statistics reach two independent consumers"
+              "Local managed group statistics reach two independent consumers",
+              "Local managed numeric reductions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4041,6 +4056,7 @@
               "ordered first and last exclude null and keep independent orders",
               "direct decimal sum checks only its final public precision",
               "direct group capability separates numeric observations from expressions",
+              "selected numeric reductions execute every group occurrence exactly once",
               "aggregate filters gate expression demand before ordered distinct folds",
               "direct group accepts exact shared work and rejects one-short execution",
               "direct group stays within indexed aggregation scaling floors"
@@ -4050,7 +4066,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "numeric"
+              ],
+              "obligations": [
+                "capacity",
+                "demand",
+                "failure_atomicity",
+                "logical_order",
+                "measurement",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "group",
@@ -4069,7 +4100,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "collection"
+              ]
+            }
           },
           {
             "operation": "group",
@@ -4123,7 +4159,8 @@
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
               "Local managed filtered expressions reach two independent consumers",
-              "Local managed group statistics reach two independent consumers"
+              "Local managed group statistics reach two independent consumers",
+              "Local managed numeric reductions reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4145,7 +4182,14 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "author_orderable"
+              ]
+            }
           }
         ],
         "performance": [
@@ -4179,9 +4223,7 @@
           }
         ]
       },
-      "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, filtered expression arguments, all formal key domains, all ordered discrete-percentile domains, continuous percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, demanded filter ordering, deterministic statistical folds, managed two-consumer execution, exact work boundaries, and indexed scaling. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
-      ]
+      "gaps": []
     },
     {
       "operation": "distinct",
