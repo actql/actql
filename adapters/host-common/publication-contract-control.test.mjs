@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -15,6 +17,69 @@ const limits = Object.freeze({
   maxNodes: 4096,
   maxDepth: 64,
 });
+const protocolSchemas = JSON.parse(readFileSync(new URL(
+  '../../spec/contracts/actql-protocol-schemas.json', import.meta.url,
+), 'utf8')).artifact_schemas;
+const embeddedIdentity = Object.freeze({
+  'actql-prepared-invocation/0.1': 'prepared_invocation_cid',
+  'actql-run-authorization/0.1': 'run_authorization_cid',
+  'actql-observation-set/0.1': 'observation_set_cid',
+  'actql-result-artifact/0.1': 'result_artifact_cid',
+  'actql-result-manifest/0.1': 'result_manifest_cid',
+  'actql-source-evidence/0.1': 'source_evidence_cid',
+  'actql-authoring-context/0.1': 'authoring_context_cid',
+  'actql-model-invocation-evidence/0.1':
+    'model_invocation_evidence_cid',
+  'actql-run-effect-context/0.1': 'effect_context_cid',
+});
+
+const canonical = value => Array.isArray(value)
+  ? value.map(canonical)
+  : value !== null && typeof value === 'object'
+    ? Object.fromEntries(Object.keys(value).sort()
+      .map(key => [key, canonical(value[key])]))
+    : value;
+const canonicalCid = value => `sha256:${createHash('sha256')
+  .update(JSON.stringify(canonical(value))).digest('hex')}`;
+function sealEmbedded(value) {
+  if (Array.isArray(value)) return value.map(sealEmbedded);
+  if (value === null || typeof value !== 'object') return value;
+  const result = Object.fromEntries(Object.entries(value)
+    .map(([name, child]) => [name, sealEmbedded(child)]));
+  const identity = embeddedIdentity[result.version];
+  if (identity !== undefined) {
+    delete result[identity];
+    result[identity] = canonicalCid(result);
+  }
+  return result;
+}
+function minimumValue(schema) {
+  if (schema.oneOf !== undefined) return minimumValue(schema.oneOf[0]);
+  if (schema.const !== undefined) return schema.const;
+  if (schema.enum !== undefined) return schema.enum[0];
+  if (schema.type === undefined) return null;
+  if (schema.type === 'null') return null;
+  if (schema.type === 'boolean') return false;
+  if (schema.type === 'integer') return schema.minimum ?? 0;
+  if (schema.type === 'array') {
+    return Array.from({length: schema.minItems ?? 0}, () =>
+      minimumValue(schema.items ?? {}));
+  }
+  if (schema.type === 'object') {
+    return Object.fromEntries((schema.required ?? []).map(name => [
+      name, minimumValue(schema.properties[name]),
+    ]));
+  }
+  if (schema.type === 'string') {
+    if (schema.format === 'date-time' || schema.pattern?.includes('\\d{4}')) {
+      return '2026-09-18T00:00:00.000Z';
+    }
+    if (schema.pattern?.startsWith('^sha256:')) return cid('c');
+    if (schema.pattern === '^[0-9a-f]{64}$') return 'd'.repeat(64);
+    return 'x'.repeat(Math.max(1, schema.minLength ?? 0));
+  }
+  throw new TypeError(`Unsupported fixture schema: ${schema.type}`);
+}
 
 function invocation(control) {
   return control.seal('run_invocation', JSON.stringify({
@@ -91,6 +156,172 @@ test('portable control validates the exact Run Result publication chain', () => 
   ), true);
   assert.equal(control.runChainValid(
     run, invoked, [definition], [], manifest, limits,
+  ), false);
+});
+
+test('portable control validates Receipt and Captured Run references', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const observation = sealEmbedded(minimumValue(
+    protocolSchemas.run_receipt.properties.observation_set,
+  ));
+  observation.invocation_template_cid = cid('1');
+  delete observation.observation_set_cid;
+  observation.observation_set_cid = canonicalCid(observation);
+  const run = control.seal('run_definition', JSON.stringify({
+    version: 'actql-run-definition/0.1',
+    scope_id: 'scope',
+    run_id: 'run',
+    compiled_plan_cid: cid('3'),
+    invocation_template_cid: cid('1'),
+    authorization_context_cid: cid('4'),
+    input_artifact_set_cid: cid('5'),
+    created_at: '2026-09-18T00:00:00.000Z',
+    valid_until: '2026-09-18T01:00:00.000Z',
+  }), limits);
+  const invoked = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1',
+    invocation_template_cid: cid('1'),
+    observation_set_cid: observation.observation_set_cid,
+  }), limits);
+  const definition = control.seal('result_definition', JSON.stringify({
+    version: 'actql-result-definition/0.1',
+    program_definition_cid: cid('6'),
+    result_name: 'answer',
+  }), limits);
+  const artifact = control.seal('result_artifact', JSON.stringify({
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: definition.identity,
+    invocation_cid: invoked.identity,
+    logical_result_cid: cid('7'),
+    result_schema_cid: cid('8'),
+    ordering_evidence_cid: cid('9'),
+    actual_row_count: 1,
+    actual_completeness: 'complete',
+    effective_data_policy_cid: cid('a'),
+    effective_retention_policy_cid: cid('b'),
+    provenance_evidence_cids: [],
+  }), limits);
+  const artifactValue = JSON.parse(artifact.wire);
+  const manifest = control.seal('result_manifest', JSON.stringify({
+    version: 'actql-result-manifest/0.1',
+    run_definition_cid: run.identity,
+    invocation_cid: invoked.identity,
+    results: {answer: artifactValue},
+  }), limits);
+  const receiptValue = minimumValue(protocolSchemas.run_receipt);
+  const prepared = receiptValue.prepared_invocation;
+  prepared.invocation_template_cid = cid('1');
+  prepared.compiled_plan_cid = cid('3');
+  receiptValue.prepared_invocation = sealEmbedded(prepared);
+  const authorization = receiptValue.run_authorization;
+  authorization.prepared_invocation_cid =
+    receiptValue.prepared_invocation.prepared_invocation_cid;
+  authorization.execution_context_cid =
+    receiptValue.prepared_invocation.execution_context_cid;
+  authorization.host_policy_cid =
+    receiptValue.prepared_invocation.host_policy_cid;
+  receiptValue.run_authorization = sealEmbedded(authorization);
+  receiptValue.program_definition_cid = cid('6');
+  receiptValue.invocation_cid = invoked.identity;
+  receiptValue.compiled_plan_cid = cid('3');
+  receiptValue.observation_set = observation;
+  receiptValue.observation_set_cid = observation.observation_set_cid;
+  receiptValue.result_manifest = JSON.parse(manifest.wire);
+  receiptValue.result_manifest_cid = manifest.identity;
+  receiptValue.result_artifacts = {answer: artifactValue};
+  receiptValue.source_evidence = [];
+  receiptValue.source_evidence_cids = [];
+  delete receiptValue.receipt_identity_cid;
+  const receipt = control.seal(
+    'run_receipt', JSON.stringify(receiptValue), limits,
+  );
+  const capturedValue = minimumValue(protocolSchemas.captured_run);
+  capturedValue.receipt = JSON.parse(receipt.wire);
+  const effect = capturedValue.effect_context;
+  effect.effects = {};
+  effect.effect_plans = {};
+  effect.effect_plan_logical_cids = {};
+  effect.result_values = {answer: null};
+  effect.result_artifacts = {answer: artifactValue};
+  effect.result_fields = {answer: []};
+  effect.authoring_context.program_definition_cid = cid('6');
+  effect.authoring_context = sealEmbedded(effect.authoring_context);
+  effect.model_invocation_evidence = [];
+  effect.model_invocation_evidence_cids = [];
+  capturedValue.effect_context = sealEmbedded(effect);
+  delete capturedValue.captured_run_cid;
+  const captured = control.seal(
+    'captured_run', JSON.stringify(capturedValue), limits,
+  );
+  assert.equal(control.effectFreeChainValid(
+    run,
+    invoked,
+    [definition],
+    [artifact],
+    manifest,
+    receipt,
+    captured,
+    limits,
+  ), true);
+  const foreignDefinition = control.seal(
+    'result_definition',
+    JSON.stringify({
+      version: 'actql-result-definition/0.1',
+      program_definition_cid: cid('f'),
+      result_name: 'answer',
+    }),
+    limits,
+  );
+  assert.equal(control.effectFreeChainValid(
+    run,
+    invoked,
+    [foreignDefinition],
+    [artifact],
+    manifest,
+    receipt,
+    captured,
+    limits,
+  ), false);
+  const wrongReceiptValue = JSON.parse(receipt.wire);
+  delete wrongReceiptValue.receipt_identity_cid;
+  wrongReceiptValue.compiled_plan_cid = cid('e');
+  const wrongReceipt = control.seal(
+    'run_receipt', JSON.stringify(wrongReceiptValue), limits,
+  );
+  const wrongReceiptCaptureValue = JSON.parse(captured.wire);
+  delete wrongReceiptCaptureValue.captured_run_cid;
+  wrongReceiptCaptureValue.receipt = JSON.parse(wrongReceipt.wire);
+  const wrongReceiptCapture = control.seal(
+    'captured_run', JSON.stringify(wrongReceiptCaptureValue), limits,
+  );
+  assert.equal(control.effectFreeChainValid(
+    run,
+    invoked,
+    [definition],
+    [artifact],
+    manifest,
+    wrongReceipt,
+    wrongReceiptCapture,
+    limits,
+  ), false);
+  const wrongInventoryValue = JSON.parse(captured.wire);
+  delete wrongInventoryValue.captured_run_cid;
+  const wrongEffect = wrongInventoryValue.effect_context;
+  delete wrongEffect.effect_context_cid;
+  wrongEffect.result_values = {foreign: null};
+  wrongEffect.effect_context_cid = canonicalCid(wrongEffect);
+  const wrongInventoryCapture = control.seal(
+    'captured_run', JSON.stringify(wrongInventoryValue), limits,
+  );
+  assert.equal(control.effectFreeChainValid(
+    run,
+    invoked,
+    [definition],
+    [artifact],
+    manifest,
+    receipt,
+    wrongInventoryCapture,
+    limits,
   ), false);
 });
 

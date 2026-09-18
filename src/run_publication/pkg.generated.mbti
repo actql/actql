@@ -50,6 +50,8 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
 
+pub fn validate_effect_free_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
+
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
@@ -139,6 +141,17 @@ pub(all) enum ResultDefinitionIssue {
   ResultNameLimit
   Contract(PublicationContractIssue)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunEvidenceChainIssue {
+  EvidenceRoot(RunPublicationChainIssue)
+  EvidenceWrongContract(String)
+  EvidenceMissingField(String)
+  EvidenceReferenceMismatch(String)
+  EvidenceEmbeddedIdentity(String)
+  EvidenceInventoryMismatch(String)
+  EvidenceNotEffectFree
+  EvidenceEncoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunNextAction {

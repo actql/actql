@@ -1,0 +1,365 @@
+///|
+pub(all) enum RunEvidenceChainIssue {
+  EvidenceRoot(RunPublicationChainIssue)
+  EvidenceWrongContract(String)
+  EvidenceMissingField(String)
+  EvidenceReferenceMismatch(String)
+  EvidenceEmbeddedIdentity(String)
+  EvidenceInventoryMismatch(String)
+  EvidenceNotEffectFree
+  EvidenceEncoding
+} derive(Eq, Debug)
+
+///|
+fn evidence_object(
+  value : @json.CanonicalValue,
+  field : String,
+) -> Result[@json.CanonicalValue, RunEvidenceChainIssue] {
+  match @json.object_field(value, field) {
+    Some(child) if object_fields(child) is Ok(_) => Ok(child)
+    _ => Err(EvidenceMissingField(field))
+  }
+}
+
+///|
+fn evidence_string(value : @json.CanonicalValue, field : String) -> String? {
+  optional_string(@json.object_field(value, field))
+}
+
+///|
+fn evidence_value_equal(
+  left : @json.CanonicalValue,
+  right : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard canonical_value_wire(left, max_wire_bytes, max_nodes, max_depth)
+    is Some(left_wire) else {
+    return false
+  }
+  guard canonical_value_wire(right, max_wire_bytes, max_nodes, max_depth)
+    is Some(right_wire) else {
+    return false
+  }
+  left_wire == right_wire
+}
+
+///|
+fn evidence_contract_equal(
+  value : @json.CanonicalValue,
+  contract : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  canonical_value_wire(value, max_wire_bytes, max_nodes, max_depth) ==
+  Some(contract.wire)
+}
+
+///|
+fn evidence_identity_valid(
+  value : @json.CanonicalValue,
+  identity_field : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard optional_string(@json.object_field(value, identity_field))
+    is Some(identity) else {
+    return false
+  }
+  guard @json.object_without_field(value, identity_field) is Some(preimage) else {
+    return false
+  }
+  let expected = @json.cid_value(preimage, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return false
+  }
+  expected == identity
+}
+
+///|
+fn evidence_string_array(value : @json.CanonicalValue) -> Array[String]? {
+  guard value is @json.Array(frozen) else { return None }
+  let output : Array[String] = []
+  for item in @json.array_values(frozen) {
+    guard string_value(item) is Some(text) else { return None }
+    output.push(text)
+  }
+  Some(output)
+}
+
+///|
+fn evidence_embedded_identity_array(
+  value : @json.CanonicalValue,
+  identity_field : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[String]? {
+  guard value is @json.Array(frozen) else { return None }
+  let output : Array[String] = []
+  for item in @json.array_values(frozen) {
+    if !evidence_identity_valid(
+        item, identity_field, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return None
+    }
+    guard optional_string(@json.object_field(item, identity_field))
+      is Some(identity) else {
+      return None
+    }
+    output.push(identity)
+  }
+  Some(output)
+}
+
+///|
+fn evidence_empty_object(value : @json.CanonicalValue?) -> Bool {
+  match value {
+    Some(child) =>
+      object_fields(child).map(fields => fields.is_empty()).unwrap_or(false)
+    None => false
+  }
+}
+
+///|
+fn evidence_inventory_names(value : @json.CanonicalValue) -> Array[String]? {
+  guard object_fields(value) is Ok(fields) else { return None }
+  let names : Array[String] = []
+  for (name, _) in fields {
+    if name.is_empty() {
+      return None
+    }
+    names.push(name)
+  }
+  Some(names)
+}
+
+///|
+fn same_names(left : Array[String], right : Array[String]) -> Bool {
+  if left.length() != right.length() {
+    return false
+  }
+  for name in left {
+    if !right.contains(name) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Validate the complete Effect-free evidence chain before a Store adapter may
+/// expose an index entry. Every input is already a closed, self-identified
+/// contract; this function owns their cross-object meaning.
+pub fn validate_effect_free_run_evidence_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  match
+    validate_run_publication_chain(
+      run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(EvidenceRoot(issue))
+  }
+  if receipt.name != "run_receipt" {
+    return Err(EvidenceWrongContract("run_receipt"))
+  }
+  if captured_run.name != "captured_run" {
+    return Err(EvidenceWrongContract("captured_run"))
+  }
+  let receipt_value = receipt.value
+  if evidence_string(receipt_value, "invocation_cid") !=
+    Some(invocation.identity) {
+    return Err(EvidenceReferenceMismatch("invocation_cid"))
+  }
+  if evidence_string(receipt_value, "compiled_plan_cid") !=
+    contract_string(run_definition, "compiled_plan_cid") {
+    return Err(EvidenceReferenceMismatch("compiled_plan_cid"))
+  }
+  if evidence_string(receipt_value, "result_manifest_cid") !=
+    Some(manifest.identity) {
+    return Err(EvidenceReferenceMismatch("result_manifest_cid"))
+  }
+  let first_definition = definitions[0]
+  let program = contract_string(first_definition, "program_definition_cid")
+  if evidence_string(receipt_value, "program_definition_cid") != program {
+    return Err(EvidenceReferenceMismatch("program_definition_cid"))
+  }
+  for definition in definitions {
+    if contract_string(definition, "program_definition_cid") != program {
+      return Err(EvidenceReferenceMismatch("program_definition_cid"))
+    }
+  }
+  let prepared = match evidence_object(receipt_value, "prepared_invocation") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_identity_valid(
+      prepared, "prepared_invocation_cid", max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceEmbeddedIdentity("prepared_invocation_cid"))
+  }
+  if evidence_string(prepared, "invocation_template_cid") !=
+    contract_string(invocation, "invocation_template_cid") ||
+    evidence_string(prepared, "compiled_plan_cid") !=
+    contract_string(run_definition, "compiled_plan_cid") {
+    return Err(EvidenceReferenceMismatch("prepared_invocation"))
+  }
+  let authorization = match
+    evidence_object(receipt_value, "run_authorization") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_identity_valid(
+      authorization, "run_authorization_cid", max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceEmbeddedIdentity("run_authorization_cid"))
+  }
+  if evidence_string(authorization, "prepared_invocation_cid") !=
+    evidence_string(prepared, "prepared_invocation_cid") ||
+    evidence_string(authorization, "execution_context_cid") !=
+    evidence_string(prepared, "execution_context_cid") ||
+    evidence_string(authorization, "host_policy_cid") !=
+    evidence_string(prepared, "host_policy_cid") {
+    return Err(EvidenceReferenceMismatch("run_authorization"))
+  }
+  let observation = match evidence_object(receipt_value, "observation_set") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_identity_valid(
+      observation, "observation_set_cid", max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceEmbeddedIdentity("observation_set_cid"))
+  }
+  if evidence_string(observation, "invocation_template_cid") !=
+    contract_string(invocation, "invocation_template_cid") ||
+    evidence_string(observation, "observation_set_cid") !=
+    contract_string(invocation, "observation_set_cid") ||
+    evidence_string(receipt_value, "observation_set_cid") !=
+    contract_string(invocation, "observation_set_cid") {
+    return Err(EvidenceReferenceMismatch("observation_set"))
+  }
+  let embedded_manifest = match
+    evidence_object(receipt_value, "result_manifest") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_contract_equal(
+      embedded_manifest, manifest, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceReferenceMismatch("result_manifest"))
+  }
+  guard @json.object_field(receipt_value, "result_artifacts")
+    is Some(receipt_artifacts) else {
+    return Err(EvidenceMissingField("result_artifacts"))
+  }
+  guard @json.object_field(manifest.value, "results") is Some(manifest_results) else {
+    return Err(EvidenceMissingField("results"))
+  }
+  if !evidence_value_equal(
+      receipt_artifacts, manifest_results, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceInventoryMismatch("result_artifacts"))
+  }
+  guard @json.object_field(receipt_value, "source_evidence")
+    is Some(source_evidence) else {
+    return Err(EvidenceMissingField("source_evidence"))
+  }
+  guard @json.object_field(receipt_value, "source_evidence_cids")
+    is Some(source_evidence_cids) else {
+    return Err(EvidenceMissingField("source_evidence_cids"))
+  }
+  let embedded_source_cids = evidence_embedded_identity_array(
+    source_evidence, "source_evidence_cid", max_wire_bytes, max_nodes, max_depth,
+  )
+  let listed_source_cids = evidence_string_array(source_evidence_cids)
+  if embedded_source_cids is None || embedded_source_cids != listed_source_cids {
+    return Err(EvidenceReferenceMismatch("source_evidence_cids"))
+  }
+  let captured_value = captured_run.value
+  let captured_receipt = match evidence_object(captured_value, "receipt") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_contract_equal(
+      captured_receipt, receipt, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceReferenceMismatch("receipt"))
+  }
+  let effect_context = match evidence_object(captured_value, "effect_context") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_identity_valid(
+      effect_context, "effect_context_cid", max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
+  }
+  if !evidence_empty_object(@json.object_field(effect_context, "effects")) ||
+    !evidence_empty_object(@json.object_field(effect_context, "effect_plans")) ||
+    !evidence_empty_object(
+      @json.object_field(effect_context, "effect_plan_logical_cids"),
+    ) {
+    return Err(EvidenceNotEffectFree)
+  }
+  guard @json.object_field(effect_context, "result_artifacts")
+    is Some(captured_artifacts) else {
+    return Err(EvidenceMissingField("result_artifacts"))
+  }
+  if !evidence_value_equal(
+      captured_artifacts, manifest_results, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(EvidenceInventoryMismatch("captured_result_artifacts"))
+  }
+  let declared_names = evidence_inventory_names(manifest_results).unwrap()
+  for field in ["result_values", "result_fields"] {
+    guard @json.object_field(effect_context, field) is Some(inventory) else {
+      return Err(EvidenceMissingField(field))
+    }
+    guard evidence_inventory_names(inventory) is Some(names) else {
+      return Err(EvidenceInventoryMismatch(field))
+    }
+    if !same_names(declared_names, names) {
+      return Err(EvidenceInventoryMismatch(field))
+    }
+  }
+  let authoring = match evidence_object(effect_context, "authoring_context") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !evidence_identity_valid(
+      authoring, "authoring_context_cid", max_wire_bytes, max_nodes, max_depth,
+    ) ||
+    evidence_string(authoring, "program_definition_cid") != program {
+    return Err(EvidenceEmbeddedIdentity("authoring_context_cid"))
+  }
+  guard @json.object_field(effect_context, "model_invocation_evidence")
+    is Some(model_evidence) else {
+    return Err(EvidenceMissingField("model_invocation_evidence"))
+  }
+  guard @json.object_field(effect_context, "model_invocation_evidence_cids")
+    is Some(model_evidence_cids) else {
+    return Err(EvidenceMissingField("model_invocation_evidence_cids"))
+  }
+  let embedded_model_cids = evidence_embedded_identity_array(
+    model_evidence, "model_invocation_evidence_cid", max_wire_bytes, max_nodes, max_depth,
+  )
+  let listed_model_cids = evidence_string_array(model_evidence_cids)
+  if embedded_model_cids is None || embedded_model_cids != listed_model_cids {
+    return Err(EvidenceReferenceMismatch("model_invocation_evidence_cids"))
+  }
+  Ok(())
+}
