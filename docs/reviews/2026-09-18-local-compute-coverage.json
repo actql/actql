@@ -882,10 +882,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
         "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -916,7 +916,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -945,6 +950,9 @@
               "sort obeys explicit null placement independently of direction and retains empty identity",
               "sort keeps an imported total witness only from its actual completed producer",
               "sort executes each supported scalar domain using the shared comparator",
+              "sort preserves every relation value payload domain",
+              "sort preserves owned reference payloads with their row occurrences",
+              "sort preserves a parameter-derived ordering requirement",
               "sort charges shared work across distinct and take and can retry with fresh limits",
               "sort candidate completion uses checked keys and validates actual uniqueness"
             ],
@@ -953,7 +961,30 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "ascending and descending",
+                "NULLS FIRST and LAST",
+                "compound keys",
+                "stable ties",
+                "parameter expressions"
+              ],
+              "types": [
+                "relation_value",
+                "author_orderable"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "parameter_binding",
+                "schema",
+                "stable_ties",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "sort",
@@ -984,11 +1015,25 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "sort",
+            "layer": "performance",
+            "path": "src/execution_relation/stable_order_wbtest.mbt",
+            "fixtures": [
+              "stable ordering work and workspace bounds are exact at scale"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
           }
         ]
       },
       "gaps": [
-        "Ascending and descending stable sort, explicit NULL placement, compound terms, scalar domains, two managed consumers, and indexed scaling floors are covered on three targets. Standard Host evidence, parameter-derived ordering requirements, exact budget boundaries at scale, and the shared owned-reference comparison boundary remain."
+        "The standard Host cross-Site path still loses producer availability before Local finishes importing the transferred generation. Sort conformance, managed source connection, two managed consumers, exact scale boundaries, and three-target semantics are otherwise covered."
       ]
     },
     {
