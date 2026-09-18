@@ -95,7 +95,14 @@ pub fn local_managed_sequence_supported(
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
-          Pivot(_) => false
+          Pivot(pivot) =>
+            match @lower.pivot_function(pivot) {
+              @relation.Count
+              | @relation.Min
+              | @relation.Max
+              | @relation.First => true
+              _ => false
+            }
         }
       @lower.AppendStep(_) => true
       @lower.JoinStep(_) => false

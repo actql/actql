@@ -172,9 +172,9 @@
       "canonical_operations": ["REL.pivot"],
       "machine_registry": "registered",
       "variant_scope": ["empty and nonempty axis", "aggregate bindings", "fill policy", "numeric profiles", "generated field identity"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering, dynamic output schema view, and Local execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/pivot_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/pivot_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Count, min, max, and first preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, exact/one-short work, and a count result reaches two managed consumers on three targets. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; decimal sum, full type/parameter conformance, native layout aggregation, all-variant managed coverage, and performance evidence remain."]
     },
     {
       "operation": "unpivot",

@@ -221,12 +221,22 @@ fn local_unpivot_program() -> String {
 }
 
 ///|
+fn local_pivot_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"status":{"type":"string","nullable":true},"amount":{"type":"number","nullable":true}},"rows":[{"id":2,"status":"open","amount":20},{"id":1,"status":"won","amount":10},{"id":2,"status":"open","amount":30},{"id":1,"status":"open","amount":null},{"id":1,"status":"other","amount":99},{"id":1,"status":null,"amount":5}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","status"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"pivot":{"index":["id","id"],"column":"status","values":["won","open"],"value":"amount","aggregate":"count"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","open","won"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","open","won"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
 fn local_values_unary_program(kind : String) -> String {
   if kind == "unnest" {
     return local_unnest_program()
   }
   if kind == "unpivot" {
     return local_unpivot_program()
+  }
+  if kind == "pivot" {
+    return local_pivot_program()
   }
   if kind == "json_pick" {
     return local_json_pick_program()

@@ -54,6 +54,19 @@ test "initial Local managed support is a finite unary surface" {
       task_test_generated(values),
     ),
   )
+  for (aggregate, expected) in [("count", true), ("sum", false), ("avg", false)] {
+    let pivot = local_managed_support_owner(
+      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":1,\"status\":\"open\",\"amount\":2}]},\"as\":\"seed\"},{\"from\":\"seed\",\"pivot\":{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"" +
+      aggregate +
+      "\"}}]",
+    )
+    assert_eq(
+      @local_connector.local_managed_sequence_supported(
+        task_test_generated(pivot),
+      ),
+      expected,
+    )
+  }
 }
 
 ///|

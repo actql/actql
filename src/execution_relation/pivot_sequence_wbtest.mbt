@@ -102,6 +102,58 @@ test "pivot min fills empty buckets and ignores undeclared axes" {
 }
 
 ///|
+test "pivot max and first preserve their distinct aggregate laws" {
+  let maximum = pivot_sequence_owner(
+    "{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"max\"}",
+  )
+  let input = capture_input(
+    maximum,
+    0,
+    [
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":10}"),
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":30}"),
+      input_cursor("{\"id\":1,\"status\":\"open\",\"amount\":20}"),
+    ],
+    max_rows=3,
+    run_limits().input_values,
+  ).unwrap()
+  let max_result = execute_generated_sequence(
+    pivot_generated(maximum),
+    [input],
+    { rows: run_limits(), max_work: 100000, max_frames: 100, },
+  ).unwrap()
+  let max_table = test_row_output(
+    completed_output(max_result, Step(0)).unwrap(),
+  )
+  assert_true(max_table.rows[0][1] is Number(30))
+
+  let first = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":2,\"status\":\"open\",\"amount\":20},{\"id\":1,\"status\":\"open\",\"amount\":30},{\"id\":1,\"status\":\"open\",\"amount\":10}]},\"as\":\"seed\"},{\"from\":\"seed\",\"pivot\":{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"first\"}}]",
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(first),
+    [],
+    ["pivot_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let first_result = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let first_table = test_row_output(
+    completed_output(first_result, Step(1)).unwrap(),
+  )
+  assert_eq(first_table.rows.length(), 2)
+  assert_true(first_table.rows[0][0] is Number(1))
+  assert_true(first_table.rows[0][1] is Number(30))
+  assert_true(first_table.rows[1][0] is Number(2))
+  assert_true(first_table.rows[1][1] is Number(20))
+}
+
+///|
 test "empty pivot axes retain first index occurrence and global empty output" {
   let indexed = pivot_sequence_owner(
     "{\"index\":[\"id\"],\"column\":\"status\",\"values\":[],\"value\":\"amount\",\"aggregate\":\"count\"}",
