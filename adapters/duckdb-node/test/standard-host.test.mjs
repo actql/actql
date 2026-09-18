@@ -1026,6 +1026,56 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   maxContractDepth: 64,
                 }, runtime.publicationControl);
                 const attempts = execution.usage().attempts;
+                const expectLateRejection = async (plan, code) => {
+                  await assert.rejects(execution.publishEffectFreeRun(
+                    lateRejectionStore,
+                    plan,
+                    controller.signal,
+                  ), {code});
+                  assert.equal(execution.usage().attempts, attempts);
+                  assert.equal(lateRejectionStore.status().storedBytes, 0);
+                  assert.equal(lateRejectionStore.status().reservedBytes, 0);
+                  assert.equal(lateRejectionStore.status().objectCount, 0);
+                  assert.equal(lateRejectionStore.status().reservedObjects, 0);
+                };
+                await expectLateRejection({
+                  ...publicationPlan,
+                  results: publicationPlan.results.map((result, index) =>
+                    index === 0 ? {retention: result.retention} : result),
+                }, 'InvalidRunPublicationPreflight');
+                await expectLateRejection({
+                  ...publicationPlan,
+                  request: {
+                    ...publicationPlan.request,
+                    authorityScopeCid: hash('foreign-authority-scope'),
+                  },
+                }, 'IncompatibleRunPublicationPreflight');
+                const foreignRetention =
+                  runtime.publicationControl.seal(
+                    'result_retention_policy',
+                    JSON.stringify({
+                      version: 'actql-result-retention-policy/0.1',
+                      retention_contract_cid:
+                        hash('retention-contract'),
+                      effective_data_policy_cid:
+                        hash('foreign-effective-policy'),
+                      available_until: '2026-09-18T01:00:00.000Z',
+                      delete_by: '2026-09-18T02:00:00.000Z',
+                      extension_ceiling_at:
+                        '2026-09-18T03:00:00.000Z',
+                      metadata_retention_policy_cid:
+                        hash('metadata-retention'),
+                      clock_contract_cid: hash('clock-contract'),
+                    }),
+                    contractLimits,
+                  );
+                await expectLateRejection({
+                  ...publicationPlan,
+                  results: publicationPlan.results.map(result => ({
+                    ...result,
+                    retention: foreignRetention,
+                  })),
+                }, 'IncompatibleRunPublicationPreflight');
                 await assert.rejects(execution.publishEffectFreeRun(
                   lateRejectionStore,
                   publicationPlan,
