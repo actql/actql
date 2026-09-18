@@ -5,18 +5,33 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
+  "moonbitlang/core/debug",
 }
 
 // Values
+pub fn aggregate_output_ceiling(Int, String, AggregateOutputUnit, Int64) -> Result[AggregateOutputCeiling, FixedComputeIssue]
+
+pub fn aggregate_output_ceiling_maximum(AggregateOutputCeiling) -> Int64
+
+pub fn aggregate_output_ceiling_name(AggregateOutputCeiling) -> String
+
+pub fn aggregate_output_ceiling_step(AggregateOutputCeiling) -> Int
+
+pub fn aggregate_output_ceiling_unit(AggregateOutputCeiling) -> AggregateOutputUnit
+
+pub fn aggregate_output_unit_name(AggregateOutputUnit) -> String
+
+pub fn array_items_output_unit() -> AggregateOutputUnit
+
 pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedCompute[T], FixedComputeIssue]
 
 pub fn[T, P] bind_managed_compute_candidate(CapabilityRegistration, ManagedFixedComputeRequest[T], P, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int) -> Result[PreparedManagedCompute[T, P], FixedComputeIssue]
 
-pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
+pub fn[T, E, P, U] bind_prepared_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionOperations[E, P]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling]) -> Result[PreparedExecution[T, E, P], FixedComputeIssue]
 
-pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
+pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
 
-pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure]) -> Result[SynchronousCompute, FixedComputeIssue]
+pub fn[T] bind_synchronous_compute(FixedComputeChoice, PreparedCompute[T], SynchronousComputeCapacity, Array[(Int, Int64)], (T) -> Result[@execution_relation.CompletedOutput, SynchronousComputeFailure], aggregate_output_ceilings? : Array[AggregateOutputCeiling]) -> Result[SynchronousCompute, FixedComputeIssue]
 
 pub fn capability_description(CapabilityRegistration) -> CapabilityDescription
 
@@ -110,6 +125,8 @@ pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> R
 
 pub fn[T] prepared_compute_candidate(PreparedCompute[T]) -> FixedComputeCandidate
 
+pub fn[T, E, P] prepared_execution_aggregate_output_ceiling(PreparedExecution[T, E, P], Int, String, AggregateOutputUnit) -> Int64?
+
 pub fn[T, E, P] prepared_execution_available(PreparedExecution[T, E, P]) -> Bool
 
 pub fn[T, E, P] prepared_execution_candidate(PreparedExecution[T, E, P]) -> FixedComputeCandidate
@@ -121,6 +138,8 @@ pub fn[T, E, P] prepared_execution_join_output_ceiling(PreparedExecution[T, E, P
 pub fn[T, E, P] prepared_execution_retained_bytes(PreparedExecution[T, E, P]) -> Result[Int64, ExecutionPreparationIssue[E]]
 
 pub fn[T, P] prepared_managed_compute_candidate(PreparedManagedCompute[T, P]) -> ManagedFixedComputeCandidate[T]
+
+pub fn[I, T, E] prepared_managed_execution_aggregate_output_ceiling(PreparedManagedExecution[I, T, E], Int, String, AggregateOutputUnit) -> Int64?
 
 pub fn[I, T, E] prepared_managed_execution_available(PreparedManagedExecution[I, T, E]) -> Bool
 
@@ -140,6 +159,10 @@ pub fn[T, E, P] start_prepared_execution(PreparedExecution[T, E, P]) -> Result[(
 
 pub fn[I, T, E] start_prepared_managed_execution(PreparedManagedExecution[I, T, E]) -> Result[(T, ManagedExecutionOperations[E]), ExecutionPreparationIssue[E]]
 
+pub fn string_bytes_output_unit() -> AggregateOutputUnit
+
+pub fn synchronous_compute_aggregate_output_ceiling(SynchronousCompute, Int, String, AggregateOutputUnit) -> Int64?
+
 pub fn synchronous_compute_available(SynchronousCompute) -> Bool
 
 pub fn synchronous_compute_candidate(SynchronousCompute) -> FixedComputeCandidate
@@ -153,6 +176,18 @@ pub fn valid_quantity(Int64?) -> Bool
 // Errors
 
 // Types and methods
+pub struct AggregateOutputCeiling {
+  step : Int
+  aggregate : String
+  unit : AggregateOutputUnit
+  maximum : Int64
+}
+
+pub enum AggregateOutputUnit {
+  ArrayItems
+  StringBytes
+} derive(Eq, @debug.Debug)
+
 pub(all) struct CapabilityBundle[A, C] {
   name : String
   acquisition : ((CapabilityRegistry, CapabilityRegistration) -> A)?

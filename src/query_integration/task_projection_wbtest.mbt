@@ -153,6 +153,153 @@ test "later and multiple join obligations keep their step and producer ownership
 }
 
 ///|
+test "captured tasks retain selected aggregate output ceilings" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_group_chain=true,
+    local_values_group_variant="collections",
+  )
+  assert_eq(@strategy.captured_task_aggregate_output_count(run, 2), Some(2))
+  assert_eq(
+    @strategy.captured_task_aggregate_output_limit(
+      run,
+      2,
+      1,
+      "items",
+      @connector.array_items_output_unit(),
+    ),
+    Some(3L),
+  )
+  assert_eq(
+    @strategy.captured_task_aggregate_output_limit(
+      run,
+      2,
+      1,
+      "text",
+      @connector.string_bytes_output_unit(),
+    ),
+    Some(17L),
+  )
+  assert_eq(
+    @strategy.captured_task_aggregate_output_limit(
+      run,
+      2,
+      1,
+      "items",
+      @connector.string_bytes_output_unit(),
+    ),
+    None,
+  )
+  assert_eq(@strategy.captured_task_aggregate_output_count(run, 1), Some(0))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<5 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "common start checks every selected aggregate output ceiling" {
+  let (run, issuer) = captured_graph_fixture(collections=true)
+  let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
+  let request = @connector.prepare_fixed_compute_request(
+    [input],
+    dispatch_test_limits().capacity,
+  ).unwrap()
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "aggregate-limit-test", acquisition: false, fixed_compute: true, }],
+    1,
+    100,
+  ).unwrap()
+  let prepared = @connector.bind_compute_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    request,
+    17,
+    1,
+    [{ work_slots: [0], milliseconds: Some(1L), }],
+    { transfer_bytes: Some(0L), retained_bytes: None, money_units: None, },
+    100,
+  ).unwrap()
+  guard @connector.choose_fixed_compute_candidate(
+      registry,
+      request,
+      [@connector.prepared_compute_candidate(prepared)],
+      None,
+      100,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("choice")
+  }
+  let items = fn(name : String, maximum : Int64) {
+    @connector.aggregate_output_ceiling(
+      2,
+      name,
+      @connector.array_items_output_unit(),
+      maximum,
+    ).unwrap()
+  }
+  let text = fn(maximum : Int64) {
+    @connector.aggregate_output_ceiling(
+      2,
+      "text",
+      @connector.string_bytes_output_unit(),
+      maximum,
+    ).unwrap()
+  }
+  let calls = Ref(0)
+  let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  for
+    ceilings in [
+      [],
+      [items("items", 5L)],
+      [items("other", 5L), text(17L)],
+      [items("items", 6L), text(17L)],
+      [items("items", 5L), text(18L)],
+    ] {
+    let compute = @connector.bind_synchronous_compute(
+      choice,
+      prepared,
+      { retained_bytes: 0L, execution_bytes: 0L, },
+      [],
+      _ => {
+        calls.val += 1
+        Err(MissingOutput)
+      },
+      aggregate_output_ceilings=ceilings,
+    ).unwrap()
+    assert_true(
+      @strategy.execute_captured_synchronous_task(run, 1, compute)
+      is Err(ForeignCandidate),
+    )
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+      before,
+    )
+  }
+  assert_eq(calls.val, 0)
+  let valid = @connector.bind_synchronous_compute(
+    choice,
+    prepared,
+    { retained_bytes: 0L, execution_bytes: 0L, },
+    [],
+    _ => {
+      calls.val += 1
+      Err(MissingOutput)
+    },
+    aggregate_output_ceilings=[items("items", 4L), text(16L)],
+  ).unwrap()
+  assert_true(
+    @strategy.execute_captured_synchronous_task(run, 1, valid) is Err(_),
+  )
+  assert_eq(calls.val, 1)
+  assert_false(@strategy.captured_task_completed(run, 1))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "common start checks every selected join ceiling before spending an attempt" {
   let (run, issuer) = captured_graph_fixture(join=true, join_steps=[1, 2])
   captured_graph_local(run, 1).unwrap()

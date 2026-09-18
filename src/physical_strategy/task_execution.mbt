@@ -132,6 +132,17 @@ pub fn[I, T] start_captured_managed_execution(
       return Err(ForeignCandidate)
     }
   }
+  if !aggregate_output_limits_satisfied(run.aggregate_limits[task], (
+      step,
+      name,
+      unit,
+    ) => {
+      @connector.prepared_managed_execution_aggregate_output_ceiling(
+        prepared, step, name, unit,
+      )
+    }) {
+    return Err(ForeignCandidate)
+  }
   let capacity = @connector.prepared_managed_execution_capacity(prepared)
   let transfer = capacity.transfer_bytes
   let retention = capacity.retained_bytes
@@ -234,6 +245,17 @@ fn[T] start_task_execution(
       actual <= required else {
       return Err(ForeignCandidate)
     }
+  }
+  if !aggregate_output_limits_satisfied(run.aggregate_limits[task], (
+      step,
+      name,
+      unit,
+    ) => {
+      @connector.prepared_execution_aggregate_output_ceiling(
+        prepared, step, name, unit,
+      )
+    }) {
+    return Err(ForeignCandidate)
   }
   let capacity = @connector.prepared_execution_capacity(prepared)
   let transfer = capacity.transfer_bytes

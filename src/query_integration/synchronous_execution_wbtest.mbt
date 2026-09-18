@@ -93,12 +93,21 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
   let (run, _) = captured_graph_fixture()
   let (_, choice, candidate) = synchronous_test_choice(run)
   let ceilings = [(0, 10L), (1, 3L)]
+  let aggregate_ceilings = [
+    @connector.aggregate_output_ceiling(
+      1,
+      "items",
+      @connector.array_items_output_unit(),
+      4L,
+    ).unwrap(),
+  ]
   let synchronous = @connector.bind_synchronous_compute(
     choice,
     candidate,
     { retained_bytes: 100L, execution_bytes: 100L, },
     ceilings,
     _ => Err(MissingOutput),
+    aggregate_output_ceilings=aggregate_ceilings,
   ).unwrap()
   let prepare = fn(
     _payload : Int,
@@ -112,10 +121,16 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
     execution_bytes: 100L,
   }
   let asynchronous = @connector.bind_prepared_execution(
-    choice, candidate, capacity, ceilings, prepare,
+    choice,
+    candidate,
+    capacity,
+    ceilings,
+    prepare,
+    aggregate_output_ceilings=aggregate_ceilings,
   ).unwrap()
   ceilings[0] = (0, 999L)
   ceilings.clear()
+  aggregate_ceilings.clear()
   for (step, expected) in [(0, Some(10L)), (1, Some(3L)), (2, None)] {
     assert_eq(
       @connector.synchronous_compute_join_output_ceiling(synchronous, step),
@@ -126,6 +141,24 @@ test "both execution protocols bind immutable per-step ceiling declarations to t
       expected,
     )
   }
+  assert_eq(
+    @connector.synchronous_compute_aggregate_output_ceiling(
+      synchronous,
+      1,
+      "items",
+      @connector.array_items_output_unit(),
+    ),
+    Some(4L),
+  )
+  assert_eq(
+    @connector.prepared_execution_aggregate_output_ceiling(
+      asynchronous,
+      1,
+      "items",
+      @connector.array_items_output_unit(),
+    ),
+    Some(4L),
+  )
   for bad in [[(0, 1L), (0, 2L)], [(2, 1L)]] {
     assert_true(
       @connector.bind_synchronous_compute(

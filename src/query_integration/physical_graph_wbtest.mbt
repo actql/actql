@@ -71,6 +71,7 @@ test "physical DAG reads checked data and control edges separately" {
 ///|
 fn captured_graph_fixture(
   count? : Bool = false,
+  collections? : Bool = false,
   join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
@@ -101,6 +102,7 @@ fn captured_graph_fixture(
     nullable~,
     dag=true,
     dag_count=count,
+    dag_collections=collections,
     dag_join=join,
     self_join~,
     numeric_dag~,

@@ -39,6 +39,7 @@ struct PreparedExecution[T, E, P] {
   candidate : FixedComputeCandidate
   capacity : ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
+  aggregate_output_ceilings : Array[AggregateOutputCeiling]
   prepare : () -> Result[(T, ExecutionOperations[E, P]), E]
   retained_bytes : () -> Result[Int64, E]
   mut started : Bool
@@ -54,6 +55,7 @@ pub fn[T, E, P, U] bind_prepared_execution(
   join_output_ceilings : Array[(Int, Int64)],
   prepare : (U) -> Result[(T, ExecutionOperations[E, P]), E],
   retained_bytes? : () -> Result[Int64, E],
+  aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
 ) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
@@ -70,10 +72,15 @@ pub fn[T, E, P, U] bind_prepared_execution(
   guard snapshot_step_ceilings(join_output_ceilings, steps) is Some(ceilings) else {
     return Err(InvalidLimits)
   }
+  guard snapshot_aggregate_output_ceilings(aggregate_output_ceilings, steps)
+    is Some(aggregate_ceilings) else {
+    return Err(InvalidLimits)
+  }
   Ok({
     candidate: prepared.candidate,
     capacity,
     join_output_ceilings: ceilings,
+    aggregate_output_ceilings: aggregate_ceilings,
     prepare: fn() { prepare(payload) },
     retained_bytes: retained_bytes.unwrap_or(fn() {
       Ok(capacity.retained_bytes)
@@ -123,6 +130,21 @@ pub fn[T, E, P] prepared_execution_join_output_ceiling(
   step : Int,
 ) -> Int64? {
   step_ceiling(prepared.join_output_ceilings, step)
+}
+
+///|
+pub fn[T, E, P] prepared_execution_aggregate_output_ceiling(
+  prepared : PreparedExecution[T, E, P],
+  step : Int,
+  aggregate : String,
+  unit : AggregateOutputUnit,
+) -> Int64? {
+  find_aggregate_output_ceiling(
+    prepared.aggregate_output_ceilings,
+    step,
+    aggregate,
+    unit,
+  )
 }
 
 ///|

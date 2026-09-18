@@ -4,6 +4,7 @@ fn query_checked_program_fixture(
   catalog? : @environment.SourceRequestContracts? = None,
   dag? : Bool = false,
   dag_count? : Bool = false,
+  dag_collections? : Bool = false,
   dag_join? : Bool = false,
   self_join? : Bool = false,
   numeric_dag? : Bool = false,
@@ -216,6 +217,14 @@ fn query_checked_program_fixture(
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
       new="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_collections {
+    text.replace(
+      old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
+      new="{\"derive\":{\"label\":\"to_string(id)\"},\"as\":\"derived\"},{\"from\":\"derived\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"field\":\"id\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":5},\"n\":{\"fn\":\"count\"},\"text\":{\"fn\":\"string_agg\",\"field\":\"label\",\"delimiter\":\"|\",\"order_by\":[{\"id\":\"asc\"}],\"max_bytes\":17}}},\"as\":\"grouped\"},{\"from\":\"grouped\",\"select\":[{\"id\":\"n\"}],\"as\":\"out\"}",
     )
   } else {
     text
@@ -789,6 +798,13 @@ fn local_values_group_program(variant : String) -> String {
         "[\"id\",\"k\",\"label\"]", "[\"first_asc\",\"first_desc\",\"k\",\"last_asc\",\"last_desc\"]",
         "[\"last_desc\",\"last_asc\",\"k\",\"first_desc\",\"first_asc\"]",
       )
+    "collections" =>
+      (
+        "{\"k\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"k\":1,\"id\":1,\"label\":\"a\"},{\"k\":1,\"id\":2,\"label\":null},{\"k\":1,\"id\":3,\"label\":\"b\"}]",
+        "[]", "{\"items\":{\"fn\":\"array_agg\",\"field\":\"label\",\"order_by\":[{\"id\":\"asc\"}],\"max_items\":5},\"n\":{\"fn\":\"count\"},\"text\":{\"fn\":\"string_agg\",\"field\":\"label\",\"delimiter\":\"|\",\"order_by\":[{\"id\":\"desc\"}],\"max_bytes\":17}}",
+        "[\"id\",\"k\",\"label\"]", "[\"n\"]", "[\"n\"]",
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =
@@ -802,6 +818,17 @@ fn local_values_group_program(variant : String) -> String {
     selected +
     "}}}"
   }
+  let group_alias = if variant == "collections" { "grouped" } else { "out" }
+  let group_open = if variant == "collections" {
+    "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"group\":{\"by\":"
+  } else {
+    "{\"group\":{\"by\":"
+  }
+  let group_tail = if variant == "collections" {
+    ",{\"from\":\"grouped\",\"select\":[\"n\"],\"as\":\"out\"}"
+  } else {
+    ""
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   remote +
   "," +
@@ -812,11 +839,16 @@ fn local_values_group_program(variant : String) -> String {
   "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   input_fields +
   "}}}," +
-  "{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[{\"group\":{\"by\":" +
+  "{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[" +
+  group_open +
   by +
   ",\"aggregates\":" +
   aggregates +
-  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  "},\"as\":\"" +
+  group_alias +
+  "\"}" +
+  group_tail +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   fields +
   "}}}," +
   consumer("compute_c", fields) +

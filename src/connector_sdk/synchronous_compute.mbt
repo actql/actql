@@ -21,6 +21,7 @@ struct SynchronousCompute {
   candidate : FixedComputeCandidate
   capacity : SynchronousComputeCapacity
   join_output_ceilings : Array[(Int, Int64)]
+  aggregate_output_ceilings : Array[AggregateOutputCeiling]
   execute : () -> Result[@execution.CompletedOutput, SynchronousComputeFailure]
   mut started : Bool
 }
@@ -35,6 +36,7 @@ pub fn[T] bind_synchronous_compute(
   capacity : SynchronousComputeCapacity,
   join_output_ceilings : Array[(Int, Int64)],
   execute : (T) -> Result[@execution.CompletedOutput, SynchronousComputeFailure],
+  aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
 ) -> Result[SynchronousCompute, FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
@@ -48,10 +50,15 @@ pub fn[T] bind_synchronous_compute(
   guard snapshot_step_ceilings(join_output_ceilings, steps) is Some(ceilings) else {
     return Err(InvalidLimits)
   }
+  guard snapshot_aggregate_output_ceilings(aggregate_output_ceilings, steps)
+    is Some(aggregate_ceilings) else {
+    return Err(InvalidLimits)
+  }
   Ok({
     candidate: prepared.candidate,
     capacity,
     join_output_ceilings: ceilings,
+    aggregate_output_ceilings: aggregate_ceilings,
     execute: fn() { execute(payload) },
     started: false,
   })
@@ -77,6 +84,21 @@ pub fn synchronous_compute_join_output_ceiling(
   step : Int,
 ) -> Int64? {
   step_ceiling(compute.join_output_ceilings, step)
+}
+
+///|
+pub fn synchronous_compute_aggregate_output_ceiling(
+  compute : SynchronousCompute,
+  step : Int,
+  aggregate : String,
+  unit : AggregateOutputUnit,
+) -> Int64? {
+  find_aggregate_output_ceiling(
+    compute.aggregate_output_ceilings,
+    step,
+    aggregate,
+    unit,
+  )
 }
 
 ///|

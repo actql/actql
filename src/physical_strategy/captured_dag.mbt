@@ -12,6 +12,7 @@ struct CapturedDAG {
   lifetimes : Array[TaskLifetime]
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, @witness.LimitClaim)]]
+  aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
   inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
@@ -51,6 +52,26 @@ pub(all) enum RunIssue {
 }
 
 ///|
+/// Compare every owned requirement with an exact Connector declaration. A
+/// stricter declaration is safe; a missing, mismatched, or looser one is not.
+fn aggregate_output_limits_satisfied(
+  required : Array[@connector.AggregateOutputCeiling],
+  declared : (Int, String, @connector.AggregateOutputUnit) -> Int64?,
+) -> Bool {
+  for value in required {
+    let step = @connector.aggregate_output_ceiling_step(value)
+    let name = @connector.aggregate_output_ceiling_name(value)
+    let unit = @connector.aggregate_output_ceiling_unit(value)
+    let maximum = @connector.aggregate_output_ceiling_maximum(value)
+    match declared(step, name, unit) {
+      Some(actual) if actual <= maximum => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 /// Initial profile: one captured acquisition at unit zero, one or two checked
 /// data inputs per task and one final output. No fresh
 /// reads are synthesized. Bindings are indexed by checked receiving port.
@@ -72,6 +93,10 @@ pub fn open_captured_dag(
   }
   let seen = Array::make(count, 0)
   let join_limits : Array[Array[(Int, @witness.LimitClaim)]] = Array::makei(
+    count,
+    _ => [],
+  )
+  let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
     count,
     _ => [],
   )
@@ -111,6 +136,37 @@ pub fn open_captured_dag(
           (check.site.step, @step_bounds.join_limit_claim(check.limit)),
         )
       }
+      if requirement.disposition is ExecutionCheck(GroupExecution(check)) {
+        let ceiling = match check.rule {
+          EnforceArrayItems(limit) =>
+            @connector.aggregate_output_ceiling(
+              check.site.step,
+              @relation.aggregate_name(@context.group_array_limit_call(limit)),
+              @connector.array_items_output_unit(),
+              @context.group_array_limit_maximum(limit),
+            )
+          EnforceStringBytes(limit) =>
+            @connector.aggregate_output_ceiling(
+              check.site.step,
+              @relation.aggregate_name(@context.group_string_limit_call(limit)),
+              @connector.string_bytes_output_unit(),
+              @context.group_string_limit_maximum(limit),
+            )
+          _ => continue
+        }
+        guard ceiling is Ok(ceiling) else { return Err(UnsupportedGraph) }
+        for previous in aggregate_limits[index] {
+          if @connector.aggregate_output_ceiling_step(previous) ==
+            @connector.aggregate_output_ceiling_step(ceiling) &&
+            @connector.aggregate_output_ceiling_name(previous) ==
+            @connector.aggregate_output_ceiling_name(ceiling) &&
+            @connector.aggregate_output_ceiling_unit(previous) ==
+            @connector.aggregate_output_ceiling_unit(ceiling) {
+            return Err(UnsupportedGraph)
+          }
+        }
+        aggregate_limits[index].push(ceiling)
+      }
     }
   }
   // This bounded execution profile exposes one final output per Compute.
@@ -146,6 +202,7 @@ pub fn open_captured_dag(
     lifetimes,
     resources,
     join_limits,
+    aggregate_limits,
     inputs: Array::makei(count, task => {
       Array::make(
         if task == 0 {
@@ -646,6 +703,17 @@ pub fn execute_captured_synchronous_task(
       return Err(ForeignCandidate)
     }
   }
+  if !aggregate_output_limits_satisfied(run.aggregate_limits[task], (
+      step,
+      name,
+      unit,
+    ) => {
+      @connector.synchronous_compute_aggregate_output_ceiling(
+        compute, step, name, unit,
+      )
+    }) {
+    return Err(ForeignCandidate)
+  }
   let capacity = @connector.synchronous_compute_capacity(compute)
   if strategy_task_envelope(run, task) is Some(selected) &&
     (
@@ -925,4 +993,41 @@ pub fn captured_task_join_output_at(
   .map(pair => {
     (pair.0, @derivation.minimum_value(@witness.limit_minimum(pair.1)))
   })
+}
+
+///|
+/// Selected checked collection limits, retained by exact aggregate occurrence.
+pub fn captured_task_aggregate_output_count(
+  run : CapturedDAG,
+  task : Int,
+) -> Int? {
+  run.aggregate_limits.get(task).map(items => items.length())
+}
+
+///|
+pub fn captured_task_aggregate_output_at(
+  run : CapturedDAG,
+  task : Int,
+  index : Int,
+) -> @connector.AggregateOutputCeiling? {
+  run.aggregate_limits.get(task).bind(items => items.get(index))
+}
+
+///|
+pub fn captured_task_aggregate_output_limit(
+  run : CapturedDAG,
+  task : Int,
+  step : Int,
+  aggregate : String,
+  unit : @connector.AggregateOutputUnit,
+) -> Int64? {
+  guard run.aggregate_limits.get(task) is Some(items) else { return None }
+  for value in items {
+    if @connector.aggregate_output_ceiling_step(value) == step &&
+      @connector.aggregate_output_ceiling_name(value) == aggregate &&
+      @connector.aggregate_output_ceiling_unit(value) == unit {
+      return Some(@connector.aggregate_output_ceiling_maximum(value))
+    }
+  }
+  None
 }
