@@ -1441,22 +1441,71 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "complete",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
         "performance": "missing"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
+        "source_connection": [
+          {
+            "operation": "lag",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/lag_encode_test.mbt",
+            "fixtures": [
+              "lag emits owned partition order navigation and key completion",
+              "lag binds a positive safe integer offset before kernel publication",
+              "lag default offset normalizes to the explicit one-row kernel"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "lag",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_lag_wbtest.mbt",
+            "fixtures": [
+              "Local managed literal lag feeds two downstream Computes",
+              "Local managed parameter lag feeds two downstream Computes"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "lag",
+            "layer": "conformance",
+            "path": "src/execution_relation/lag_sequence_wbtest.mbt",
+            "fixtures": [
+              "lag uses complete partition order and preserves occurrence order",
+              "lag binds offset parameters and shares the exact execution budget"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
         "performance": []
       },
       "gaps": [
-        "Common lowering and ordered partition execution are missing."
+        "Literal, default, and Parameter offsets now lower through the common typed kernel. Nullable partitions, completed ties, original occurrence order, exact execution budgets, two independently released managed consumers, and final reclamation pass on three targets. The complete value, key, and orderable type matrix, Standard Host evidence, cancellation coverage, and fixed indexed-scaling evidence remain."
       ]
     },
     {
