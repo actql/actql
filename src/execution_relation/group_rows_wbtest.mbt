@@ -99,3 +99,20 @@ test "empty global count publishes zero and feeds an independently completed con
     is Err(Rows(1, RowLimit)),
   )
 }
+
+///|
+test "group count enforces its cumulative result ceiling" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"k\":1},{\"k\":2}]},\"as\":\"seed\"},{\"group\":{\"by\":[\"k\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}}]",
+  )
+  assert_true(
+    evaluate_rows(
+      row_kernel(owner, 1),
+      row_capture(owner),
+      1,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(RowLimit),
+  )
+}

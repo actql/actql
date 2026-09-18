@@ -95,8 +95,75 @@ fn run_local_managed_test_task(
     Err(
       @local_driver.Configuration(@connector.Execution(Rows(_, OwnerMismatch)))
     ) => fail("Local managed sequence rejected a row owner")
-    Err(@local_driver.Configuration(@connector.Execution(_))) =>
-      fail("Local managed sequence failed")
+    Err(@local_driver.Configuration(@connector.Execution(InvalidLimits))) =>
+      fail("Local managed sequence rejected its limits")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(InputExecutionEvidencePending(_))
+      )
+    ) => fail("Local managed sequence lacked execution evidence")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(InputRepresentationRequired(_))
+      )
+    ) => fail("Local managed sequence lacked an input representation")
+    Err(@local_driver.Configuration(@connector.Execution(InputLimit))) =>
+      fail("Local managed sequence exceeded an input limit")
+    Err(@local_driver.Configuration(@connector.Execution(InputKey(_, _)))) =>
+      fail("Local managed sequence rejected an input key")
+    Err(@local_driver.Configuration(@connector.Execution(Capture(_, _)))) =>
+      fail("Local managed sequence failed capture")
+    Err(@local_driver.Configuration(@connector.Execution(Store(_)))) =>
+      fail("Local managed sequence failed storage")
+    Err(@local_driver.Configuration(@connector.Execution(OrderedContext(_, _)))) =>
+      fail("Local managed sequence rejected ordered context")
+    Err(
+      @local_driver.Configuration(@connector.Execution(FragmentContext(_, _)))
+    ) => fail("Local managed sequence rejected fragment context")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(MissingFragmentContext(_))
+      )
+    ) => fail("Local managed sequence missed fragment context")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(MixedExecutionConfiguration)
+      )
+    ) => fail("Local managed sequence mixed execution configuration")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(UnsupportedRowComparison(_, _))
+      )
+    ) => fail("Local managed sequence lacked row comparison support")
+    Err(@local_driver.Preparation(_)) =>
+      fail("Local managed execution failed preparation")
+    Err(@local_driver.Dispatch(_)) =>
+      fail("Local managed execution failed dispatch")
+    Err(
+      @local_driver.Execution(
+        @strategy.Compute(@connector.Execution(UnsupportedRowComparison(_, _)))
+      )
+    ) => fail("Local managed runtime lacked row comparison support")
+    Err(
+      @local_driver.Execution(
+        @strategy.Compute(@connector.Execution(Rows(_, Comparison(_))))
+      )
+    ) => fail("Local managed runtime failed scalar comparison")
+    Err(@local_driver.Execution(@strategy.Compute(@connector.Execution(_)))) =>
+      fail("Local managed runtime sequence failed")
+    Err(@local_driver.Execution(@strategy.Compute(_))) =>
+      fail("Local managed runtime compute failed")
+    Err(@local_driver.Execution(@strategy.Physical(_))) =>
+      fail("Local managed runtime physical accounting failed")
+    Err(@local_driver.Execution(_)) => fail("Local managed runtime failed")
+    Err(@local_driver.Search(_)) => fail("Local managed search failed")
+    Err(@local_driver.ManagedValues(_)) =>
+      fail("Local managed value setup failed")
+    Err(@local_driver.ManagedCopy(_)) => fail("Local managed copy setup failed")
+    Err(@local_driver.ManagedRetention(_)) =>
+      fail("Local managed retention setup failed")
+    Err(@local_driver.ManagedCompletion(_)) =>
+      fail("Local managed completion setup failed")
     Err(_) => fail("Local managed dispatch failed")
   }
   (operations.settle)().unwrap()
@@ -124,8 +191,16 @@ fn local_managed_test_rows(
 }
 
 ///|
-test "Local managed group count feeds two real downstream Computes" {
-  let (run, issuer) = captured_graph_fixture(local_values_group_chain=true)
+fn run_local_managed_group_case(
+  variant : String,
+  input_expected : Array[String],
+  group_expected : Array[String],
+  second_expected : Array[String],
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_group_chain=true,
+    local_values_group_variant=variant,
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -142,7 +217,7 @@ test "Local managed group count feeds two real downstream Computes" {
     {
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
-      wire: retained_attempt_wire_limits(),
+      wire: { ..retained_attempt_wire_limits(), max_columns: 4, },
       row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
       max_batch_bytes: 64,
     },
@@ -160,7 +235,7 @@ test "Local managed group count feeds two real downstream Computes" {
     value_live,
   )
   let value_rows = local_managed_test_rows(value_ops)
-  assert_eq(value_rows, ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"])
+  assert_eq(value_rows, input_expected)
 
   let group_live = Ref(true)
   let (group_ops, groups) = run_local_managed_test_task(
@@ -173,7 +248,7 @@ test "Local managed group count feeds two real downstream Computes" {
     group_live,
   )
   let group_rows = local_managed_test_rows(group_ops)
-  assert_eq(group_rows, ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"])
+  assert_eq(group_rows, group_expected)
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -197,9 +272,7 @@ test "Local managed group count feeds two real downstream Computes" {
     4,
     second_live,
   )
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}",
-  ])
+  assert_eq(local_managed_test_rows(second_ops), second_expected)
   assert_true(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
 
@@ -231,4 +304,51 @@ test "Local managed group count feeds two real downstream Computes" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed group count orders nullable keys for two consumers" {
+  run_local_managed_group_case(
+    "keyed",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
+    ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+  )
+}
+
+///|
+test "Local managed group count preserves compound canonical order" {
+  run_local_managed_group_case(
+    "compound",
+    [
+      "{\"a\":1,\"b\":\"b\"}", "{\"a\":null,\"b\":\"a\"}", "{\"a\":1,\"b\":\"a\"}",
+      "{\"a\":null,\"b\":\"a\"}",
+    ],
+    [
+      "{\"a\":null,\"b\":\"a\",\"n\":2}", "{\"a\":1,\"b\":\"a\",\"n\":1}", "{\"a\":1,\"b\":\"b\",\"n\":1}",
+    ],
+    [
+      "{\"n\":2,\"b\":\"a\",\"a\":null}", "{\"n\":1,\"b\":\"a\",\"a\":1}", "{\"n\":1,\"b\":\"b\",\"a\":1}",
+    ],
+  )
+}
+
+///|
+test "Local managed keyed group emits no group for empty input" {
+  run_local_managed_group_case("empty_keyed", [], [], [])
+}
+
+///|
+test "Local managed global group emits zero for empty input" {
+  run_local_managed_group_case("empty_global", [], ["{\"n\":0}"], ["{\"n\":0}"])
+}
+
+///|
+test "Local managed group distinguishes row and field counts" {
+  run_local_managed_group_case(
+    "counts",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1,\"present\":0}", "{\"id\":1,\"n\":2,\"present\":2}"],
+    ["{\"present\":0,\"n\":1,\"id\":null}", "{\"present\":2,\"n\":2,\"id\":1}"],
+  )
 }

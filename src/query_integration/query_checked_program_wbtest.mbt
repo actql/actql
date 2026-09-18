@@ -12,6 +12,7 @@ fn query_checked_program_fixture(
   local_values_two_consumer_chain? : Bool = false,
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
+  local_values_group_variant? : String = "keyed",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
@@ -38,9 +39,7 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_values_group_chain {
-    (
-      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true}},"rows":[{"id":null},{"id":1},{"id":1}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"group":{"by":["id"],"aggregates":{"n":{"fn":"count"}}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","n"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["id","n"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","n"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["n","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["n","id"]}}}],"results":{"c":{"from":{"stage":"compute_c","result":"r"}}}}
-    )
+    local_values_group_program(local_values_group_variant)
   } else {
     text
   }
@@ -581,6 +580,74 @@ fn local_select_qualified_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":2,"l":"l2"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"selected","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}]},"as":"joined"},{"from":"joined","select":[{"right_value":"right.r"},{"left_value":"left.l"},{"id":"left.id"}],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value","id"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["id","left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["right_value","id","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","id","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
+}
+
+///|
+fn local_values_group_program(variant : String) -> String {
+  let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
+    variant {
+    "keyed" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
+        "[\"id\"]", "{\"n\":{\"fn\":\"count\"}}", "[\"id\"]", "[\"id\",\"n\"]", "[\"n\",\"id\"]",
+      )
+    "compound" =>
+      (
+        "{\"a\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"a\":1,\"b\":\"b\"},{\"a\":null,\"b\":\"a\"},{\"a\":1,\"b\":\"a\"},{\"a\":null,\"b\":\"a\"}]",
+        "[\"a\",\"b\"]", "{\"n\":{\"fn\":\"count\"}}", "[\"a\",\"b\"]", "[\"a\",\"b\",\"n\"]",
+        "[\"n\",\"b\",\"a\"]",
+      )
+    "empty_keyed" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":false}}", "[]", "[\"id\"]", "{\"n\":{\"fn\":\"count\"}}",
+        "[\"id\"]", "[\"id\",\"n\"]", "[\"n\",\"id\"]",
+      )
+    "empty_global" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":false}}", "[]", "[]", "{\"n\":{\"fn\":\"count\"}}",
+        "[\"id\"]", "[\"n\"]", "[\"n\"]",
+      )
+    "counts" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
+        "[\"id\"]", "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
+        "[\"id\"]", "[\"id\",\"n\",\"present\"]", "[\"present\",\"n\",\"id\"]",
+      )
+    _ => abort("unknown Local group fixture")
+  }
+  let remote =
+    #|{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}}
+  let consumer = fn(id : String, selected : String) {
+    "{\"id\":\"" +
+    id +
+    "\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_b\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+    selected +
+    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+    selected +
+    "}}}"
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+  remote +
+  "," +
+  "{\"id\":\"compute_a\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  input_fields +
+  "}}}," +
+  "{\"id\":\"compute_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"compute_a\",\"result\":\"r\"}}},\"steps\":[{\"group\":{\"by\":" +
+  by +
+  ",\"aggregates\":" +
+  aggregates +
+  "},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  consumer("compute_c", fields) +
+  "," +
+  consumer("compute_d", reversed) +
+  "],\"results\":{\"c\":{\"from\":{\"stage\":\"compute_c\",\"result\":\"r\"}}}}"
 }
 
 ///|

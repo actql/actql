@@ -110,3 +110,30 @@ test "count groups keep UTF16 ordering and compare typed columns without row mat
     }
   }
 }
+
+///|
+test "count grouping work stays subquadratic across key distributions" {
+  for count in [100, 1000, 10000] {
+    for same in [true, false] {
+      let table = order_table(
+        Array::makei(count, i => {
+          Number(if same { 1.0 } else { (count - i).to_double() })
+        }),
+      )
+      let control = { remaining: 10000000, max_frames: 0, }
+      let workspace = { limit: count * 6 + 10, live: 0, peak: 0, }
+      let groups = count_groups(
+        table,
+        [{ column: 0, descending: false, nulls_first: true, }],
+        [None],
+        count,
+        control,
+        workspace,
+      ).unwrap()
+      let group_count = if same { 1 } else { count }
+      assert_eq(groups.length(), group_count)
+      assert_eq(workspace.live, group_count * 2)
+      assert_true(10000000 - control.remaining < count * 60)
+    }
+  }
+}
