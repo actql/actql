@@ -16,6 +16,13 @@ const fail = (code, cause) => {
 const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const member = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
 const contract = value => value !== null && typeof value === 'object' &&
   typeof value.name === 'string' && typeof value.identity === 'string' &&
   typeof value.wire === 'string';
@@ -89,24 +96,57 @@ function uniqueContracts(values) {
 }
 
 async function releasePreparedResults(exported, primary) {
-  const handles = exported
+  const prepared = [...new Set(exported
     .map(value => value?.prepared)
-    .filter(value => value !== undefined && value?.status().pending === true);
+    .filter(value => value !== undefined))];
   const errors = [];
-  for (let index = handles.length - 1; index >= 0; index--) {
-    try { await handles[index].release(); }
+  for (let index = prepared.length - 1; index >= 0; index--) {
+    let pending = true;
+    try { pending = prepared[index].status()?.pending !== false; }
+    catch (error) { errors.push(error); }
+    if (!pending) continue;
+    try { await prepared[index].release(); }
     catch (error) { errors.push(error); }
   }
-  const pending = handles.filter(value => value.status().pending === true);
-  if (pending.length === 0) throw primary;
+  const owners = [];
+  const ownerHandles = new Set();
+  const addOwner = (handle, required) => {
+    if (handle !== undefined && ownerHandles.has(handle)) return;
+    if (handle !== undefined) ownerHandles.add(handle);
+    owners.push(Object.freeze({handle, required}));
+  };
+  if (member(primary, 'cleanupPending') === true) {
+    addOwner(member(primary, 'cleanupHandle'), true);
+  }
+  for (const handle of prepared) addOwner(handle, true);
+  const ownerState = owner => {
+    if (!owner.handle || typeof member(owner.handle, 'status') !== 'function') {
+      return {pending: owner.required, errors: []};
+    }
+    try {
+      const value = owner.handle.status();
+      return value && typeof value.pending === 'boolean'
+        ? {pending: value.pending,
+          outcome: typeof value.outcome === 'string'
+            ? value.outcome : undefined,
+          errors: Array.isArray(value.errors) ? [...value.errors] : []}
+        : {pending: true, errors: []};
+    } catch (error) { return {pending: true, errors: [error]}; }
+  };
+  if (!owners.some(owner => ownerState(owner).pending)) throw primary;
   const failure = new CompletedRunPublicationError(
-    typeof primary?.code === 'string'
-      ? primary.code : 'CompletedRunPublicationFailed',
+    typeof member(primary, 'code') === 'string'
+      ? member(primary, 'code') : 'CompletedRunPublicationFailed',
     primary,
   );
   const status = () => Object.freeze({
-    pending: pending.some(value => value.status().pending === true),
-    errors: Object.freeze([...errors]),
+    pending: owners.some(owner => ownerState(owner).pending),
+    outcome: owners.map(owner => ownerState(owner).outcome)
+      .find(value => value !== undefined),
+    errors: Object.freeze([
+      ...owners.flatMap(owner => ownerState(owner).errors),
+      ...errors,
+    ]),
   });
   failure.primaryFailure = primary;
   failure.cleanupPending = true;
@@ -114,9 +154,10 @@ async function releasePreparedResults(exported, primary) {
   failure.cleanupHandle = Object.freeze({
     status,
     async retry() {
-      for (const handle of pending) {
-        if (handle.status().pending !== true) continue;
-        try { await handle.retry(); }
+      for (const owner of owners) {
+        if (!ownerState(owner).pending ||
+            typeof member(owner.handle, 'retry') !== 'function') continue;
+        try { await owner.handle.retry(); }
         catch (error) { errors.push(error); }
       }
       failure.cleanupPending = status().pending;

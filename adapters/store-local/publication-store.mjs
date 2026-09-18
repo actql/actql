@@ -651,8 +651,10 @@ export async function openLocalPublicationStore(
         if (group === undefined) {
           group = {
             holders: new Set(),
+            commitOwners: new Set(),
             removable: physical.created,
             committed: false,
+            pendingUnlink: undefined,
             busy: Promise.resolve(),
           };
           preparedObjects.set(physical.cid, group);
@@ -666,16 +668,36 @@ export async function openLocalPublicationStore(
           pending: holder.active,
           errors: Object.freeze([...errors]),
         });
+        const finishPendingUnlink = async () => {
+          const pending = group.pendingUnlink;
+          if (pending === undefined) return;
+          await syncDirectory(objectsDirectory);
+          storedBytes -= pending.bytes;
+          objectCount--;
+          pending.owner.active = false;
+          group.holders.delete(pending.owner);
+          group.pendingUnlink = undefined;
+        };
         const release = () => {
           if (!holder.active) return Promise.resolve(false);
           if (holder.releasing !== undefined) return holder.releasing;
           const operation = group.busy.then(async () => {
             if (!holder.active) return false;
+            await finishPendingUnlink();
+            if (!holder.active) {
+              if (group.holders.size === 0 &&
+                  group.commitOwners.size === 0) {
+                preparedObjects.delete(physical.cid);
+              }
+              return true;
+            }
+            if (group.commitOwners.size > 0) return false;
             if (group.committed || group.holders.size > 1 ||
                 !group.removable) {
               group.holders.delete(holder);
               holder.active = false;
-              if (group.holders.size === 0) {
+              if (group.holders.size === 0 &&
+                  group.commitOwners.size === 0) {
                 preparedObjects.delete(physical.cid);
               }
               return true;
@@ -695,12 +717,13 @@ export async function openLocalPublicationStore(
               return true;
             }
             await unlink(path);
-            await syncDirectory(objectsDirectory);
-            storedBytes -= before.size;
-            objectCount--;
-            group.holders.delete(holder);
-            holder.active = false;
-            preparedObjects.delete(physical.cid);
+            group.removable = false;
+            group.pendingUnlink = {owner: holder, bytes: before.size};
+            await finishPendingUnlink();
+            if (group.holders.size === 0 &&
+                group.commitOwners.size === 0) {
+              preparedObjects.delete(physical.cid);
+            }
             return true;
           });
           group.busy = operation.catch(() => {});
@@ -729,10 +752,82 @@ export async function openLocalPublicationStore(
       const group = preparedObjects.get(cid);
       if (group === undefined) continue;
       group.committed = true;
+      for (const owner of group.commitOwners) {
+        owner.groups.delete(group);
+        if (owner.groups.size === 0) {
+          owner.pending = false;
+          owner.outcome = 'committed';
+        }
+      }
+      group.commitOwners.clear();
       for (const holder of group.holders) holder.active = false;
       group.holders.clear();
       preparedObjects.delete(cid);
     }
+  };
+
+  const beginPreparedCommit = (cids, key, indexCid) => {
+    const owner = {
+      pending: false,
+      outcome: undefined,
+      groups: new Set(),
+      errors: [],
+    };
+    for (const cid of new Set(cids)) {
+      const group = preparedObjects.get(cid);
+      if (group === undefined || group.committed) continue;
+      group.commitOwners.add(owner);
+      owner.groups.add(group);
+      owner.pending = true;
+    }
+    const settleUncommitted = () => {
+      for (const group of owner.groups) group.commitOwners.delete(owner);
+      owner.groups.clear();
+      owner.pending = false;
+      owner.outcome = 'uncommitted';
+    };
+    const status = () => Object.freeze({
+      pending: owner.pending,
+      outcome: owner.outcome,
+      errors: Object.freeze([...owner.errors]),
+    });
+    const resolveConfirmed = entry => {
+      if (!owner.pending) return status();
+      if (entry?.public_index_entry_cid === indexCid) {
+        adoptPreparedObjects(cids);
+      } else {
+        settleUncommitted();
+      }
+      return status();
+    };
+    return Object.freeze({
+      status,
+      resolveConfirmed,
+      async retry() {
+        if (!owner.pending) return status();
+        try {
+          return resolveConfirmed(await confirmCommittedIndex(key));
+        } catch (error) {
+          owner.errors.push(error);
+          throw error;
+        }
+      },
+    });
+  };
+
+  const commitCustodyFailure = (primary, custody, reconciliation) => {
+    if (custody.status().pending !== true) return primary;
+    const code = typeof primary?.code === 'string'
+      ? primary.code : 'PublicationCommitUnknown';
+    const failure = new PublicationStoreError(code, primary);
+    failure.primaryFailure = primary;
+    failure.reconciliationFailure = reconciliation;
+    failure.cleanupPending = true;
+    failure.cleanupErrors = Object.freeze(
+      reconciliation === undefined ? [] : [reconciliation],
+    );
+    failure.cleanupHandle = custody;
+    return failure;
   };
 
   const putBytes = async (value, expectedCid) => {
@@ -1495,8 +1590,13 @@ export async function openLocalPublicationStore(
       runDefinitionCid: entry.run_definition_cid,
     };
     const target = resolve(indexesDirectory, `${indexKey(key)}.json`);
+    const custody = beginPreparedCommit(
+      boundPhysicalCids, key, entry.public_index_entry_cid,
+    );
+    let installed = false;
     try {
       await link(contractPath(entry.public_index_entry_cid), target);
+      installed = true;
       await syncDirectory(indexesDirectory);
       durablyConfirmedIndexes.set(
         indexKey(key), entry.public_index_entry_cid,
@@ -1504,18 +1604,26 @@ export async function openLocalPublicationStore(
       adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({entry, committed: true, idempotent: false});
     } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await confirmCommittedIndex(key);
+      let existing;
+      try { existing = await confirmCommittedIndex(key); }
+      catch (reconciliation) {
+        throw commitCustodyFailure(error, custody, reconciliation);
+      }
+      if (existing === undefined) {
+        custody.resolveConfirmed(undefined);
+        throw error;
+      }
       if (existing.invocation_cid !== entry.invocation_cid ||
           existing.result_manifest_cid !== entry.result_manifest_cid ||
           existing.publication_request_cid !== entry.publication_request_cid) {
+        custody.resolveConfirmed(existing);
         fail('PublicationCommitConflict');
       }
       adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({
         entry: existing,
-        committed: false,
-        idempotent: true,
+        committed: installed,
+        idempotent: !installed,
       });
     }
   };

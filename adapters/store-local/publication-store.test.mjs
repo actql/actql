@@ -7,6 +7,7 @@ import {
   open,
   readdir,
   rm,
+  unlink,
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -426,6 +427,69 @@ test('prepared payload cleanup retains ownership and capacity until retry',
     assert.equal(await store.close(), true);
   });
 
+test('prepared cleanup resumes directory sync after its exact unlink',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-cleanup-sync-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const objects = join(directory, 'objects');
+    let failObjectSync = false;
+    let objectSyncs = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === objects) {
+          objectSyncs++;
+          if (failObjectSync) {
+            failObjectSync = false;
+            const error = new Error('injected object directory sync failure');
+            error.code = 'EIO';
+            throw error;
+          }
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore({
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+      maxObjects: 10,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    }, contractControl, durability);
+    const writer = store.createPreparedObjectWriter(7);
+    await writer.append('payload');
+    const stored = await writer.seal(digest('payload'));
+    const beforeReleaseSyncs = objectSyncs;
+    failObjectSync = true;
+    await assert.rejects(stored.prepared.release(), code('EIO'));
+    assert.equal(stored.prepared.status().pending, true);
+    assert.equal(store.status().storedBytes, 7);
+    await assert.rejects(
+      store.verifyObject(digest('payload')),
+      code('PublicationObjectMissing'),
+    );
+    const replacementWriter = store.createPreparedObjectWriter(7);
+    await replacementWriter.append('payload');
+    const replacement = await replacementWriter.seal(digest('payload'));
+    assert.equal(replacement.created, true);
+    assert.equal(store.status().storedBytes, 14);
+    const beforeRetrySyncs = objectSyncs;
+    const retried = await stored.prepared.retry();
+    assert.equal(retried.pending, false);
+    assert.equal(objectSyncs, beforeRetrySyncs + 1);
+    assert.equal(objectSyncs > beforeReleaseSyncs + 2, true);
+    assert.equal(store.status().storedBytes, 7);
+    assert.equal(store.status().objectCount, 1);
+    assert.equal(await replacement.prepared.release(), true);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(await store.close(), true);
+  });
+
 test('writer retains capacity and cleanup identity until unlink succeeds',
   async t => {
     const {store, directory} = await fixture(t, {
@@ -828,17 +892,22 @@ test('visible index is not committed until directory durability is confirmed',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
+    let unknown;
     await assert.rejects(
       store.commitIndex(wire(entry), prepared.required, prepared.evidence),
-      code('EIO'),
+      error => {
+        unknown = error;
+        return error?.code === 'EIO' && error.cleanupPending === true &&
+          error.cleanupHandle?.status().pending === true;
+      },
     );
     assert.deepEqual(
       await store.inspectCommittedIndex(indexKeyFor(request)), entry,
     );
-    await assert.rejects(
-      store.commitIndex(wire(entry), prepared.required, prepared.evidence),
-      code('EIO'),
-    );
+    assert.equal(prepared.prepared.status().pending, true);
+    assert.equal(store.status().storedBytes > 0, true);
+    assert.equal((await unknown.cleanupHandle.retry()).pending, false);
+    assert.equal(unknown.cleanupHandle.status().outcome, 'committed');
     assert.deepEqual(
       await store.confirmCommittedIndex(indexKeyFor(request)), entry,
     );
@@ -849,6 +918,68 @@ test('visible index is not committed until directory durability is confirmed',
     assert.equal(idempotent.idempotent, true);
     assert.deepEqual(idempotent.entry, entry);
     assert.equal(prepared.prepared.status().pending, false);
+  });
+
+test('confirmed non-commit releases custody before prepared reclamation',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-noncommit-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let indexSyncFailures = 2;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'indexes') && indexSyncFailures > 0) {
+          indexSyncFailures--;
+          const error = new Error('injected index directory sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    let unknown;
+    await assert.rejects(store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    ), error => {
+      unknown = error;
+      return error?.cleanupHandle?.status().pending === true;
+    });
+    const installed = await readdir(join(directory, 'indexes'));
+    assert.equal(installed.length, 1);
+    await unlink(join(directory, 'indexes', installed[0]));
+    const reconciled = await unknown.cleanupHandle.retry();
+    assert.equal(reconciled.pending, false);
+    assert.equal(reconciled.outcome, 'uncommitted');
+    assert.equal(prepared.prepared.status().pending, true);
+    assert.equal(await prepared.prepared.release(), true);
+    assert.equal(prepared.prepared.status().pending, false);
+    assert.equal(await store.close(), true);
   });
 
 test('commit verifies durable binding against the stored physical generation',

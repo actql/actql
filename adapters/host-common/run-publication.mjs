@@ -16,6 +16,13 @@ const fail = (code, cause) => { throw new RunPublicationError(code, cause); };
 const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const member = (value, name) => {
+  try {
+    return value !== null &&
+      (typeof value === 'object' || typeof value === 'function')
+      ? value[name] : undefined;
+  } catch { return undefined; }
+};
 const contractShape = value => exactKeys(value,
   ['name', 'identityField', 'identity', 'wire']) &&
   typeof value.name === 'string' && value.name.length !== 0 &&
@@ -307,11 +314,66 @@ async function requireActiveAttempt(
   }
 }
 
-function uncertainFailure(primary, reconciliation, recordFailure) {
+function cleanupState(handle, required) {
+  if (!handle || typeof member(handle, 'status') !== 'function') {
+    return {pending: required, errors: []};
+  }
+  try {
+    const value = handle.status();
+    return value && typeof value.pending === 'boolean'
+      ? {pending: value.pending,
+        errors: Array.isArray(value.errors) ? [...value.errors] : []}
+      : {pending: true, errors: []};
+  } catch (error) { return {pending: true, errors: [error]}; }
+}
+
+function uncertainFailure(
+  primary, reconciliation, recordFailure, reconcile,
+) {
   const failure = new RunPublicationError('RunPublicationUnknown', primary);
   failure.publicationState = 'publication_unknown';
   failure.reconciliationFailure = reconciliation;
   failure.recordFailure = recordFailure;
+  const upstreamRequired = member(primary, 'cleanupPending') === true;
+  const upstream = upstreamRequired
+    ? member(primary, 'cleanupHandle') : undefined;
+  const errors = [];
+  let resolved = false;
+  let result;
+  const status = () => {
+    const cleanup = cleanupState(upstream, upstreamRequired);
+    return Object.freeze({
+      pending: !resolved || cleanup.pending,
+      outcome: result?.outcome,
+      errors: Object.freeze([...cleanup.errors, ...errors]),
+    });
+  };
+  const handle = Object.freeze({
+    status,
+    async retry() {
+      if (!resolved) {
+        try {
+          result = await reconcile(upstream);
+          resolved = true;
+          failure.publicationResult = result.publication;
+        } catch (error) {
+          errors.push(error);
+          throw error;
+        }
+      }
+      if (cleanupState(upstream, upstreamRequired).pending &&
+          typeof member(upstream, 'retry') === 'function') {
+        try { await upstream.retry(); }
+        catch (error) { errors.push(error); }
+      }
+      failure.cleanupPending = status().pending;
+      failure.cleanupErrors = status().errors;
+      return status();
+    },
+  });
+  failure.cleanupPending = true;
+  failure.cleanupHandle = handle;
+  failure.cleanupErrors = status().errors;
   return failure;
 }
 
@@ -429,9 +491,44 @@ export async function publishEffectFreeRun(options) {
           now(), limits,
         );
       } catch (error) { recordFailure = error; }
-      throw uncertainFailure(primary, reconciliation, recordFailure);
+      const reconcile = async upstream => {
+        const resolved = await validateExistingCommit(
+          store, control, evidence, publicationRequest, key, limits,
+        );
+        if (resolved === undefined) {
+          if (typeof member(upstream, 'resolveConfirmed') === 'function') {
+            upstream.resolveConfirmed(undefined);
+          }
+          return Object.freeze({outcome: 'uncommitted'});
+        }
+        await store.validateCommittedEvidence(resolved.index, evidence);
+        const winningAttempt = await finishResolvedCommit(
+          store, control, publicationAttempt, resolved.index, now, limits,
+        );
+        return Object.freeze({
+          outcome: 'committed',
+          publication: Object.freeze({
+            state: 'succeeded',
+            committed: false,
+            idempotent: true,
+            request: publicationRequest,
+            attempt: winningAttempt,
+            index: resolved.index,
+          }),
+        });
+      };
+      throw uncertainFailure(
+        primary, reconciliation, recordFailure, reconcile,
+      );
     }
-    if (reconciled === undefined) throw primary;
+    if (reconciled === undefined) {
+      const cleanup = member(primary, 'cleanupHandle');
+      if (member(primary, 'cleanupPending') === true &&
+          typeof member(cleanup, 'resolveConfirmed') === 'function') {
+        cleanup.resolveConfirmed(undefined);
+      }
+      throw primary;
+    }
     await store.validateCommittedEvidence(reconciled.index, evidence);
     committed = Object.freeze({
       entry: JSON.parse(reconciled.index.wire),

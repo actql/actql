@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, open, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import * as moon from
@@ -1022,6 +1022,98 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(retried.idempotent, true);
   assert.equal(retried.index.identity, committed.index.identity);
 
+  const completedUnknownDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-completed-publication-unknown-',
+  ));
+  t.after(() => rm(
+    completedUnknownDirectory, {recursive: true, force: true},
+  ));
+  let completedUnknownIndexSyncFailures = 3;
+  const completedUnknownDurability = Object.freeze({
+    async syncDirectory(path) {
+      if (path === join(completedUnknownDirectory, 'indexes') &&
+          completedUnknownIndexSyncFailures > 0) {
+        completedUnknownIndexSyncFailures--;
+        const error = new Error('injected index directory sync failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  const completedUnknownStore = await openLocalPublicationStore({
+    directory: completedUnknownDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  }, control, completedUnknownDurability);
+  await completedUnknownStore.putSemantic(resultSchemaWire, resultSchemaCid);
+  const completedUnknownWriter =
+    completedUnknownStore.createPreparedObjectWriter(payloadBytes);
+  await completedUnknownWriter.append(payloadWire);
+  const completedUnknownPayload =
+    await completedUnknownWriter.seal(physicalCid);
+  let completedUnknownExports = 0;
+  const completedUnknownExecution = Object.freeze({
+    ...execution,
+    async storePublicationResult(index, target, supplied) {
+      completedUnknownExports++;
+      assert.equal(index, 0);
+      assert.equal(target, completedUnknownStore);
+      assert.equal(supplied.runDefinition, run);
+      assert.equal(supplied.invocation, invoked);
+      return Object.freeze({
+        occurrence: Object.freeze({
+          name: 'answer', task: 1, definition,
+        }),
+        physical: Object.freeze({cid: physicalCid, bytes: payloadBytes}),
+        orderedRows: Object.freeze({rows: 1}),
+        publication: Object.freeze({
+          derivation,
+          ordering,
+          artifact,
+          snapshot,
+          durableBinding: binding,
+        }),
+        prepared: completedUnknownPayload.prepared,
+      });
+    },
+  });
+  let completedUnknownFailure;
+  await assert.rejects(publishCompletedEffectFreeRun({
+    ...completedPublicationOptions,
+    execution: completedUnknownExecution,
+    store: completedUnknownStore,
+    attempt: {
+      ...completedPublicationOptions.attempt,
+      attemptId: 'unknown-completed-attempt',
+    },
+  }), error => {
+    completedUnknownFailure = error;
+    return error?.code === 'RunPublicationUnknown' &&
+      error.cleanupHandle?.status().pending === true;
+  });
+  assert.equal(completedUnknownExports, 1);
+  assert.equal(completedUnknownPayload.prepared.status().pending, true);
+  assert.equal((await completedUnknownStore.verifyObject(physicalCid)).bytes,
+    payloadBytes);
+  const reconciledCompletedUnknown =
+    await completedUnknownFailure.cleanupHandle.retry();
+  assert.equal(reconciledCompletedUnknown.pending, false);
+  assert.equal(reconciledCompletedUnknown.outcome, 'committed');
+  assert.equal(completedUnknownPayload.prepared.status().pending, false);
+  assert.equal(completedUnknownExports, 1);
+  assert.equal(
+    completedUnknownFailure.primaryFailure.publicationResult.state,
+    'succeeded',
+  );
+  assert.equal(await completedUnknownStore.close(), true);
+
   await store.close();
   const deliveryStore = await openLocalPublicationStore({
     directory,
@@ -1814,4 +1906,129 @@ test('complete publication reclaims prepared payloads after a later export fails
     }), /second export failed/u);
     assert.equal(releases, 1);
     assert.equal(pending, false);
+  });
+
+test('complete publication composes every unresolved cleanup owner',
+  async () => {
+    const definition = Object.freeze({
+      name: 'result_definition', identity: cid('1'), wire: '{}',
+    });
+    const runDefinition = Object.freeze({
+      name: 'run_definition', identity: cid('2'), wire: '{}',
+    });
+    const invoked = Object.freeze({
+      name: 'run_invocation', identity: cid('3'), wire: '{}',
+    });
+    const retention = Object.freeze({
+      name: 'result_retention_policy', identity: cid('4'), wire: '{}',
+    });
+    let preparedPending = true;
+    let primaryPending = true;
+    let allowPrepared = false;
+    let allowPrimary = false;
+    let preparedRetries = 0;
+    let primaryRetries = 0;
+    const prepared = Object.freeze({
+      status: () => Object.freeze({
+        pending: preparedPending, errors: Object.freeze([]),
+      }),
+      async release() { throw new Error('prepared release failed'); },
+      async retry() {
+        preparedRetries++;
+        if (allowPrepared) preparedPending = false;
+        return this.status();
+      },
+    });
+    const primaryCleanup = Object.freeze({
+      status: () => Object.freeze({
+        pending: primaryPending, errors: Object.freeze([]),
+      }),
+      async retry() {
+        primaryRetries++;
+        if (allowPrimary) primaryPending = false;
+        return this.status();
+      },
+    });
+    const primary = Object.freeze({
+      code: 'SecondExportFailed',
+      cleanupPending: true,
+      cleanupHandle: primaryCleanup,
+    });
+    const publication = Object.freeze({
+      artifact: definition,
+      derivation: definition,
+      ordering: definition,
+      durableBinding: definition,
+      snapshot: Object.freeze({}),
+    });
+    const occurrences = Object.freeze([0, 1].map((_, index) =>
+      Object.freeze({
+        name: `result-${index}`,
+        task: index + 1,
+        definitionContract: definition,
+      })));
+    const execution = Object.freeze({
+      status: 'host-tasks-completed',
+      resultInventory: occurrences,
+      publicationInventory: Object.freeze({occurrences}),
+      async storePublicationResult(index) {
+        if (index === 1) throw primary;
+        return Object.freeze({
+          occurrence: Object.freeze({
+            name: 'result-0', task: 1, definition,
+          }),
+          publication,
+          prepared,
+        });
+      },
+    });
+    const control = Object.freeze({
+      issueResultManifest() { assert.fail('Manifest must not be issued'); },
+      issueEffectFreeRunReceipt() { assert.fail('Receipt must not be issued'); },
+      issueEffectFreeCapturedRun() {
+        assert.fail('Captured Run must not be issued');
+      },
+    });
+    let failure;
+    await assert.rejects(publishCompletedEffectFreeRun({
+      execution,
+      store: Object.freeze({}),
+      control,
+      admission: Object.freeze({}),
+      runDefinition,
+      invocation: invoked,
+      observation: Object.freeze({}),
+      normalizationJournal: Object.freeze({}),
+      authoringContext: Object.freeze({}),
+      results: [0, 1].map(() => ({
+        retention,
+        evidenceContext: Object.freeze({}),
+      })),
+      receiptEvidence: {
+        bindings: [], sourceEvidence: [], modelEvidence: [],
+        barrierAttemptReceiptCids: [],
+      },
+      captureEvidence: {
+        pendingSourceStateAdvances: [], modelEvidence: [],
+      },
+      request: Object.freeze({}),
+      attempt: Object.freeze({}),
+      outputLimits: Object.freeze({}),
+      contractLimits: Object.freeze({}),
+      now: () => '2026-09-18T00:00:00.000Z',
+      signal: undefined,
+    }), error => {
+      failure = error;
+      return error?.code === 'SecondExportFailed' &&
+        error.primaryFailure === primary &&
+        error.cleanupHandle?.status().pending === true;
+    });
+    allowPrepared = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, true);
+    assert.equal(preparedPending, false);
+    assert.equal(primaryPending, true);
+    allowPrimary = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(preparedRetries, 1);
+    assert.equal(primaryRetries, 2);
   });
