@@ -68,8 +68,8 @@ test "Local managed support is a finite checked surface" {
   for
     (aggregate, expected) in [
       ("{\"n\":{\"fn\":\"sum\",\"field\":\"exact\"}}", true),
-      ("{\"n\":{\"fn\":\"sum\",\"field\":\"amount\"}}", false),
-      ("{\"n\":{\"fn\":\"avg\",\"field\":\"amount\"}}", false),
+      ("{\"n\":{\"fn\":\"sum\",\"field\":\"amount\"}}", true),
+      ("{\"n\":{\"fn\":\"avg\",\"field\":\"amount\"}}", true),
       ("{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", true),
       ("{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}", true),
     ] {

@@ -181,7 +181,19 @@ fn run_local_managed_test_task(
       fail("Local managed retention setup failed")
     Err(@local_driver.ManagedCompletion(_)) =>
       fail("Local managed completion setup failed")
-    Err(_) => fail("Local managed dispatch failed")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(@execution.Rows(_, @execution.InvalidRows))
+      )
+    ) =>
+      fail("Local managed task " + task.to_string() + " produced invalid rows")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(@execution.Rows(_, @execution.Aggregation(_)))
+      )
+    ) => fail("Local managed sequence failed aggregate arithmetic")
+    Err(@local_driver.Configuration(_)) =>
+      fail("Local managed dispatch configuration failed")
   }
   (operations.settle)().unwrap()
   let completed = (operations.complete)(payload, operations.storage_bytes, fn() {
@@ -218,6 +230,31 @@ fn run_local_managed_group_case(
     local_values_group_chain=true,
     local_values_group_variant=variant,
   )
+  if variant == "numeric" {
+    let graph = @strategy.captured_dag_graph(run)
+    assert_eq(@strategy.graph_task_numeric_observation_count(graph, 2), Some(2))
+    let first = @strategy.graph_task_numeric_observation_at(graph, 2, 0).unwrap()
+    let second = @strategy.graph_task_numeric_observation_at(graph, 2, 1).unwrap()
+    assert_eq(@strategy.task_numeric_observation_step(first), 0)
+    assert_eq(@strategy.task_numeric_observation_name(first), "mean")
+    assert_eq(@strategy.task_numeric_observation_step(second), 0)
+    assert_eq(@strategy.task_numeric_observation_name(second), "total")
+    let numeric_steps : Array[Int] = []
+    @execution.generated_sequence_all_steps(dispatch_test_generated(run)[1], fn(
+      step,
+    ) {
+      match step {
+        @lower.RowStep(kernel) =>
+          if @lower.kernel_group(kernel) is Some(_) {
+            numeric_steps.push(@lower.kernel_step(kernel))
+          }
+        _ => ()
+      }
+      true
+    })
+    |> ignore
+    assert_eq(numeric_steps, [0])
+  }
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -234,7 +271,8 @@ fn run_local_managed_group_case(
     variant == "collections" ||
     variant == "nested_distinct" ||
     variant == "filtered_expression" ||
-    variant == "statistics"
+    variant == "statistics" ||
+    variant == "numeric"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -517,6 +555,23 @@ test "Local managed group statistics reach two independent consumers" {
       "\"population_deviation\":0.816496580927726," +
       "\"population\":0.6666666666666666,\"discrete\":2," +
       "\"continuous\":2}",
+    ],
+  )
+}
+
+///|
+test "Local managed numeric reductions reach two independent consumers" {
+  run_local_managed_group_case(
+    "numeric",
+    [
+      "{\"k\":1,\"n\":10000000000000000}", "{\"k\":1,\"n\":1}", "{\"k\":1,\"n\":-10000000000000000}",
+      "{\"k\":null,\"n\":null}",
+    ],
+    [
+      "{\"k\":null,\"mean\":null,\"total\":null}", "{\"k\":1,\"mean\":0,\"total\":0}",
+    ],
+    [
+      "{\"total\":null,\"mean\":null,\"k\":null}", "{\"total\":0,\"mean\":0,\"k\":1}",
     ],
   )
 }

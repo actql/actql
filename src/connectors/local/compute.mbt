@@ -63,9 +63,54 @@ pub fn[T] local_managed_fixed_compute_candidate(
     ) {
     return Err(ForeignPreparation)
   }
+  let numeric_reductions = if local_managed_sequence_requires_numeric(sequence) {
+    let profile = @numeric.builtin_profile()
+    [
+      @connector.numeric_reduction_support(
+        @numeric.cid(profile),
+        @numeric.member_cid_at(profile, 0).unwrap(),
+      ).unwrap(),
+    ]
+  } else {
+    []
+  }
   @connector.bind_managed_compute_candidate(
-    registration, request, sequence, 5, estimates, quantities, max_entries,
+    registration,
+    request,
+    sequence,
+    5,
+    estimates,
+    quantities,
+    max_entries,
+    numeric_reductions~,
   )
+}
+
+///|
+fn local_managed_sequence_requires_numeric(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let mut required = false
+  @execution.generated_sequence_all_steps(sequence, fn(step) {
+    match step {
+      @lower.RowStep(kernel) =>
+        match @lower.kernel_group(kernel) {
+          None => ()
+          Some(group) =>
+            for index in 0..<@lower.group_aggregate_count(group) {
+              if @lower.group_aggregate_requires_numeric_observation(
+                  @lower.group_aggregate_at(group, index).unwrap(),
+                ) {
+                required = true
+              }
+            }
+        }
+      _ => ()
+    }
+    true
+  })
+  |> ignore
+  required
 }
 
 ///|
@@ -98,7 +143,8 @@ pub fn local_managed_sequence_supported(
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
-          Groups(group) => @execution.group_execution_supported(group)
+          Groups(group) =>
+            @execution.group_execution_supported_with_numeric(group)
           AnalyticRows(analytic) =>
             @execution.analytic_execution_supported(analytic)
           Pivot(pivot) =>
@@ -133,6 +179,7 @@ pub fn[T] execute_local_managed_fixed_compute(
   join_output_ceilings? : Array[(Int, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
+  numeric? : @execution.NumericAggregateExecution? = None,
 ) -> Result[@execution.CompletedOutput, @connector.FixedComputeIssue] {
   guard @connector.managed_fixed_compute_choice_payload(choice, prepared)
     is Some(sequence) else {
@@ -156,6 +203,11 @@ pub fn[T] execute_local_managed_fixed_compute(
     }
   }
   let mut constrained = sequence
+  if numeric is Some(execution) {
+    constrained = @execution.bind_generated_numeric_execution(
+      constrained, execution,
+    )
+  }
   for (step, ceiling) in join_output_ceilings {
     constrained = match
       @execution.constrain_generated_join_output(constrained, step, ceiling) {

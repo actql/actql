@@ -7,4 +7,5 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_contract" @contract,
   "actql/actql/physical_cost" @cost,
+  "actql/actql/numeric_reduction" @numeric,
 }

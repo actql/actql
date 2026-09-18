@@ -322,6 +322,35 @@ pub fn[T] start_local_managed_dispatch(
     is Some(execution_attempt) else {
     return Err(Execution(ForeignCandidate))
   }
+  guard @strategy.task_execution_numeric_reduction_count(setup.run, execution)
+    is Some(numeric_count) else {
+    return Err(Execution(ForeignCandidate))
+  }
+  let numeric = if numeric_count == 0 {
+    None
+  } else {
+    Some(
+      @execution.numeric_aggregate_execution((
+        step,
+        name,
+        occurrence,
+        contributors,
+        expected_count,
+        max_work,
+      ) => {
+        @strategy.execute_task_numeric_reduction_for_slot(
+          setup.run,
+          execution,
+          step,
+          name,
+          occurrence,
+          contributors,
+          expected_count,
+          max_work,
+        )
+      }),
+    )
+  }
   let transfers = Array::makei(bridges.length(), index => {
     let bridge = bridges[index]
     LocalManagedInputTransfer::{
@@ -381,9 +410,18 @@ pub fn[T] start_local_managed_dispatch(
           join_output_ceilings=setup.join_output_ceilings,
           aggregate_output_ceilings=setup.aggregate_output_ceilings,
           analytic_envelopes=setup.analytic_envelopes,
+          numeric~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Configuration(issue))
+      }
+      if numeric_count > 0 &&
+        !@strategy.seal_task_numeric_reductions(
+          setup.run,
+          execution,
+          @execution.completed_row_count(output),
+        ) {
+        return Err(Execution(ForeignCandidate))
       }
       let independent = match
         @execution.copy_completed_output_independent(
