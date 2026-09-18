@@ -1,5 +1,5 @@
 ///|
-test "initial Local managed support is a finite unary surface" {
+test "Local managed support is a finite checked surface" {
   let (_, acquisition) = query_issuer_fixture()
   let source = @query.query_sequence_owner(acquisition)
   let shapes = [
@@ -9,6 +9,10 @@ test "initial Local managed support is a finite unary surface" {
     ("[{\"sort\":[]}]", true),
     (
       "[{\"join\":{\"with\":\"prior\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}}}]",
+      true,
+    ),
+    (
+      "[{\"join\":{\"with\":\"prior\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}}},{\"join\":{\"with\":\"prior\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}}}]",
       false,
     ),
     (

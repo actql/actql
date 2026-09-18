@@ -216,9 +216,9 @@
       "canonical_operations": ["REL.join"],
       "machine_registry": "registered",
       "variant_scope": ["inner", "left", "full", "semi", "anti", "compound nullable equality keys", "cardinality assertions", "self join"],
-      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"missing","source_connection":"partial","two_consumer_e2e":"missing","three_target_conformance":"partial","performance":"missing"},
-      "evidence": {"source_connection":["src/lowering_relation/inner_join_test.mbt"],"two_consumer_e2e":[],"conformance":["src/execution_relation/retained_join_validation_wbtest.mbt"],"performance":[]},
-      "gaps": ["Only inner equality join has common lowering; other normative kinds and managed Host execution are missing."]
+      "layers": {"checker":"complete","lowering":"partial","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/inner_join_test.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_join_wbtest.mbt"],"conformance":["src/execution_relation/retained_join_validation_wbtest.mbt","src/query_integration/local_managed_join_wbtest.mbt"],"performance":[]},
+      "gaps": ["Inner equality join now binds two imported producer ports, enforces its selected output ceiling, excludes NULL keys, preserves left-major/right-minor duplicate order, reaches two managed consumers on three targets, and reclaims each holding. Left/full/semi/anti, compound nullable keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."]
     },
     {
       "operation": "nest",

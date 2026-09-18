@@ -74,6 +74,7 @@ pub fn[T] local_managed_fixed_compute_candidate(
 pub fn local_managed_sequence_supported(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
+  let mut joins = 0
   @execution.generated_sequence_all_steps(sequence, fn(step) {
     match step {
       @lower.ValuesStep(_) => true
@@ -112,7 +113,10 @@ pub fn local_managed_sequence_supported(
             }
         }
       @lower.AppendStep(_) => true
-      @lower.JoinStep(_) => false
+      @lower.JoinStep(_) => {
+        joins += 1
+        joins <= 1
+      }
     }
   })
 }

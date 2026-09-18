@@ -39,6 +39,8 @@ task, compute)`. The common driver checks selection and input ownership, reserve
 the declared capacity, and installs a verified result with its holding atomically.
 For a join task, bind the exact `(step, ceiling)` returned by
 `captured_task_join_output_at(run, task, index)`; never substitute step zero.
+The managed Local dispatch driver reads this checked task-owned ceiling itself
+and passes the same occurrence to common execution admission and the evaluator.
 The Local engine currently supports one selected join ceiling per invocation.
 Its driver rejects multiple such obligations before candidate comparison.
 

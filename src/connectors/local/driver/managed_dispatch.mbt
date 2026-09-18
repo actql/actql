@@ -11,6 +11,7 @@ struct LocalManagedDispatchConfiguration[T] {
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
   capacity : @connector.ExecutionCapacity
+  join_output_ceilings : Array[(Int, Int64)]
 }
 
 ///|
@@ -143,6 +144,21 @@ pub fn[T] prepare_local_managed_dispatch(
     ) {
     return Err(Configuration(InvalidLimits))
   }
+  let join_output_ceilings = []
+  guard @strategy.captured_task_join_output_count(installed.run, task)
+    is Some(join_count) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  if join_count > 1 {
+    return Ok(None)
+  }
+  for index in 0..<join_count {
+    guard @strategy.captured_task_join_output_at(installed.run, task, index)
+      is Some(ceiling) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    join_output_ceilings.push(ceiling)
+  }
   Ok(
     Some({
       run: installed.run,
@@ -163,6 +179,7 @@ pub fn[T] prepare_local_managed_dispatch(
         scratch_bytes: base.execution_bytes + base.retained_bytes + imported,
         execution_bytes: base.execution_bytes + base.retained_bytes + imported,
       },
+      join_output_ceilings,
     }),
   )
 }
@@ -212,7 +229,7 @@ pub fn[T] start_local_managed_dispatch(
       setup.choice,
       setup.prepared,
       setup.capacity,
-      [],
+      setup.join_output_ceilings,
       fn(_sequence) {
         for input in managed_inputs {
           let bridge = match
@@ -334,6 +351,7 @@ pub fn[T] start_local_managed_dispatch(
           exact,
           setup.execution,
           setup.measurement,
+          join_output_ceiling=setup.join_output_ceilings.get(0),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Configuration(issue))

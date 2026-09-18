@@ -78,11 +78,13 @@ fn captured_graph_fixture(
   values? : Bool = false,
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
+  local_values_join_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
+  ledger_limits? : @resources.LedgerLimits? = None,
   compute_filter? : String = "id > 2",
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = query_checked_program_fixture(
@@ -96,6 +98,7 @@ fn captured_graph_fixture(
     dag_values=values,
     local_values_group_chain~,
     local_values_append_chain~,
+    local_values_join_chain~,
     local_values_unary_chain~,
     join_steps~,
     compute_filter~,
@@ -103,7 +106,12 @@ fn captured_graph_fixture(
   let sequence = query_checked_sequence(program)
   let owners = physical_graph_owners(program)
   owners[0] = @query.query_sequence_owner(sequence)
-  let graph = @strategy.prepare_checked_dag(program, owners, 5, 1000).unwrap()
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    @program_check.unit_count(program),
+    1000,
+  ).unwrap()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
     @program_check.source_identity(program),
@@ -129,14 +137,16 @@ fn captured_graph_fixture(
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
-  let ledger = @resources.create_ledger({
-    planning_work: 10000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 300000L,
-    retained_bytes: 32000000L,
-    execution_bytes: 134217728L,
-  }).unwrap()
+  let ledger = @resources.create_ledger(
+    ledger_limits.unwrap_or({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 32000000L,
+      execution_bytes: 134217728L,
+    }),
+  ).unwrap()
   (@strategy.open_captured_dag(graph, source, ledger).unwrap(), issuer)
 }
 
