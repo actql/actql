@@ -17,6 +17,14 @@ the implementation.
 These are required-scope gaps, not reasons to remove operations from the Local
 milestone.
 
+The fixed baseline does not define parameterized `json_pick` path components.
+Its paths are nonempty arrays of exact object-key strings. The same baseline
+also retains opaque `json` traversal as an unsupported evidence boundary and
+defines no Host API for supplying that evidence. Local coverage therefore
+includes typed-object traversal, retaining an opaque `json` leaf, and rejecting
+further opaque traversal without evidence. It does not claim support for an
+undefined parameter-path form or for a future shape-evidence API.
+
 ## Current implementation layers
 
 Legend: complete (`C`), partial (`P`), missing (`-`). `Host` means managed
@@ -39,7 +47,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | watermark_rows | C | C | C | C | Complete: fixed and prefix thresholds, number and timestamp inputs, parameter binding, mark/drop policies, exact budgets, two consumers, Standard Host execution, and linear scaling |
 | pivot | C | C | P | P | Count, min/fill, empty axes, and Decimal sum are managed with fixed scaling evidence; binary64 numeric observation, full variants/types, and native layout aggregation remain |
 | unpivot | C | C | C | C | Complete: repeated selected fields, exact names, heterogeneous rejection, every relation value domain, NULLs, bounded ordered expansion, sealed column output, Standard Host execution, two consumers, and linear scaling |
-| json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
+| json_pick | C | C | C | C | Complete: exact typed object-key paths, nullable ancestors, opaque JSON leaf retention and unsupported traversal rejection, every relation-value leaf including owned references, exact budgets, Standard Host execution, two consumers, and linear scaling |
 | unnest | C | C | C | C | Complete: inner and outer expansion, optional indices, NULL and empty arrays, max-items admission, all relation value domains, sealed column output, Standard Host execution, two consumers, exact budgets, and linear scaling |
 | join | C | C | C | C | All equality kinds, cross-stage full identity, all value and key domains, exact diagnostics, multiple invocations, two consumers, and indexed scaling are covered |
 | nest | C | - | - | - | Canonical common contract is missing |

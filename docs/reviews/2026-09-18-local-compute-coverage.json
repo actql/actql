@@ -2826,20 +2826,20 @@
       ],
       "machine_registry": "registered",
       "variant_scope": [
-        "path selection",
-        "missing and NULL values",
-        "target typing",
-        "invalid JSON shape",
-        "parameter path components"
+        "exact object-key path selection",
+        "missing and NULL propagation",
+        "typed leaf selection and ancestor nullability",
+        "opaque JSON leaf retention and traversal rejection without shape evidence",
+        "invalid source and output shape rejection"
       ],
       "layers": {
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -2856,7 +2856,78 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection"
+              ],
+              "obligations": [
+                "ownership",
+                "schema"
+              ]
+            }
+          },
+          {
+            "operation": "json_pick",
+            "layer": "source_connection",
+            "path": "src/relation_typing/reshape_test.mbt",
+            "fixtures": [
+              "typed pick retains opaque leaves and propagates nullable ancestors"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "typed leaf selection and ancestor nullability",
+                "opaque JSON leaf retention and traversal rejection without shape evidence"
+              ],
+              "types": [
+                "structured"
+              ],
+              "obligations": [
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "json_pick",
+            "layer": "source_connection",
+            "path": "src/program_check/json_pick_wbtest.mbt",
+            "fixtures": [
+              "formal json pick rejects invalid traversals without partial Programs",
+              "formal json pick retains exact object paths nullable contracts and imported ownership"
+            ],
+            "suite": "moon:program_check",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "typed leaf selection and ancestor nullability",
+                "opaque JSON leaf retention and traversal rejection without shape evidence",
+                "invalid source and output shape rejection"
+              ],
+              "types": [
+                "structured"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "json_pick",
@@ -2871,7 +2942,25 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "missing and NULL propagation",
+                "invalid source and output shape rejection"
+              ],
+              "types": [
+                "structured",
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "json_pick",
@@ -2885,7 +2974,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "missing and NULL propagation"
+              ],
+              "types": [
+                "structured",
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -2901,7 +3005,35 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "missing and NULL propagation"
+              ],
+              "types": [
+                "structured",
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership"
+              ]
+            }
+          },
+          {
+            "operation": "json_pick",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -2917,7 +3049,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "missing and NULL propagation",
+                "typed leaf selection and ancestor nullability"
+              ],
+              "types": [
+                "structured"
+              ],
+              "obligations": [
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "json_pick",
@@ -2925,6 +3072,8 @@
             "path": "src/execution_relation/json_pick_domains_wbtest.mbt",
             "fixtures": [
               "json pick preserves every directly admitted leaf domain and NULL",
+              "json pick preserves owned reference leaves and current authorization",
+              "json pick accepts exact runtime budgets and rejects one-short limits",
               "json pick rejects a retained object outside its checked path"
             ],
             "suite": "moon:execution_relation",
@@ -2932,7 +3081,55 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "missing and NULL propagation",
+                "typed leaf selection and ancestor nullability",
+                "invalid source and output shape rejection"
+              ],
+              "types": [
+                "structured",
+                "relation_value"
+              ],
+              "obligations": [
+                "capacity",
+                "failure_atomicity",
+                "null_semantics",
+                "ownership",
+                "schema",
+                "value_validation"
+              ]
+            }
+          },
+          {
+            "operation": "json_pick",
+            "layer": "conformance",
+            "path": "src/relation_typing/reshape_test.mbt",
+            "fixtures": [
+              "typed pick retains opaque leaves and propagates nullable ancestors"
+            ],
+            "suite": "moon:relation_typing",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "typed leaf selection and ancestor nullability",
+                "opaque JSON leaf retention and traversal rejection without shape evidence"
+              ],
+              "types": [
+                "structured"
+              ],
+              "obligations": [
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "json_pick",
@@ -2946,7 +3143,22 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "exact object-key path selection",
+                "missing and NULL propagation"
+              ],
+              "types": [
+                "structured",
+                "relation_value"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "null_semantics",
+                "ownership"
+              ]
+            }
           }
         ],
         "performance": [
@@ -2966,9 +3178,7 @@
           }
         ]
       },
-      "gaps": [
-        "Nested typed-object extraction and nullable parents reach two managed consumers on three targets; all directly admitted leaf domains, malformed retained values, and linear scaling are covered. Standard Host evidence, opaque-json shape coverage, parameter paths, exact budget boundaries, and shared owned-reference runtime support remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "unnest",

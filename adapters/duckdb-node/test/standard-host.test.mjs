@@ -1984,6 +1984,53 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         : [...unnestFields].reverse(),
     }},
   })));
+  const jsonPickProgram = structuredClone(zeroInputProgram);
+  const jsonPickFields = ['id', 'payload', 'picked'];
+  jsonPickProgram.stages.splice(1, 3, {
+    id: 'json_pick_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        payload: {
+          type: 'object',
+          nullable: true,
+          fields: {
+            inner: {
+              type: 'object',
+              nullable: false,
+              fields: {leaf: {type: 'number', nullable: false}},
+            },
+          },
+        },
+      },
+      rows: [
+        {id: 1, payload: {inner: {leaf: 3}}},
+        {id: 2, payload: null},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'payload']}},
+  }, {
+    id: 'json_picked',
+    inputs: {x: {result: {stage: 'json_pick_values', result: 'r'}}},
+    steps: [{json_pick: {
+      column: 'payload',
+      path: ['inner', 'leaf'],
+      output: 'picked',
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: jsonPickFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `json_pick_consumer_${id}`,
+    inputs: {x: {result: {stage: 'json_picked', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? jsonPickFields
+      : [...jsonPickFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a'
+        ? jsonPickFields
+        : [...jsonPickFields].reverse(),
+    }},
+  })));
   const joinProgram = structuredClone(zeroInputProgram);
   const joinFields = ['id', 'l', 'r'];
   joinProgram.stages.splice(1, 3, {
@@ -2088,6 +2135,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['parameter lag', lagProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
+    ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram, [1, 2, 3]],
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
@@ -2157,6 +2205,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'json pick') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
