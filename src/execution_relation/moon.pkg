@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/relation_join_shape" @join,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/value_admission" @admitted,
   "actql/actql/canonical_value" @canonical,

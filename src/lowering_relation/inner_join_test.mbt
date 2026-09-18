@@ -76,14 +76,22 @@ test "inner join omitted projection retains both qualified sides without inventi
   }
   assert_true(@lowering_relation.inner_join_field_at(join, 2) is None)
   assert_true(@lowering_relation.inner_join_key_at(join, -1) is None)
-  assert_true(
-    @lowering_relation.prepare_inner_join(
-      inner_checked("", kind="left"),
+  for kind in ["left", "full", "semi", "anti"] {
+    let prepared = @lowering_relation.prepare_inner_join(
+      inner_checked("", kind~),
       4,
       100,
+    ).unwrap()
+    assert_eq(
+      @lowering_relation.inner_join_kind(prepared),
+      match kind {
+        "left" => @join.Left
+        "full" => @join.Full
+        "semi" => @join.Semi
+        _ => @join.Anti
+      },
     )
-    is Err(UnsupportedKind),
-  )
+  }
 }
 
 ///|
@@ -136,4 +144,29 @@ test "join sequence preserves two self input occurrences and emits checked proje
     @encode.finish(writer),
     "[{\"id\":\"join_raw_1\",\"in\":[\"values_0\",\"values_0\"],\"op\":\"REL.join\",\"params\":{\"how\":\"inner\",\"key_pairs\":[{\"left\":\"id\",\"right\":\"id\"}],\"max_output_rows\":3,\"null_key\":\"no_match\",\"on\":{\"left\":{\"path\":[\"left\",\"id\"],\"type\":\"col\"},\"op\":\"eq\",\"right\":{\"path\":[\"right\",\"id\"],\"type\":\"col\"},\"type\":\"cmp\"},\"on_duplicate\":\"fail\"}},{\"id\":\"join_1\",\"in\":[\"join_raw_1\"],\"op\":\"REL.select\",\"params\":{\"columns\":[{\"from\":\"left.id\",\"to\":\"x\"}]}}]",
   )
+}
+
+///|
+test "join emission retains every checked equality kind" {
+  for kind in ["left", "full", "semi", "anti"] {
+    let pipeline = checked(
+      ",{\"join\":{\"with\":\"seed\",\"kind\":\"" + kind + "\",\"on\":\"id\"}}",
+    )
+    let owner = @lowering_relation.bind_parameters(
+      @lowering_relation.prepare(pipeline, limits()).unwrap(),
+      None,
+      max_parameters=0,
+      max_name_bytes=0,
+    ).unwrap()
+    let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+    guard @lowering_relation.sequence_step(sequence, 1)
+      is Some(JoinStep(kernel)) else {
+      abort("binary step")
+    }
+    let writer = @encode.writer(10000, 1000, 30)
+    @encode.begin_array(writer)
+    @lowering_relation.emit_join_kernel(kernel, writer)
+    @encode.end_array(writer)
+    assert_true(@encode.finish(writer).contains("\"how\":\"" + kind + "\""))
+  }
 }

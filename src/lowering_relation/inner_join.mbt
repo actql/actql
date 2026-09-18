@@ -1,5 +1,5 @@
 ///|
-/// Bounded view of the existing checked inner-join contract. No cardinality
+/// Bounded view of the existing checked equality-join contract. No cardinality
 /// assumption, input evidence or physical ordering is invented by preparation.
 struct PreparedInnerJoin {
   checked : @join.CheckedJoin
@@ -31,9 +31,6 @@ pub fn prepare_inner_join(
 ) -> Result[PreparedInnerJoin, InnerJoinIssue] {
   if max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
-  }
-  if @join.kind(checked) != @join.Inner {
-    return Err(UnsupportedKind)
   }
   let key_count = @join.key_count(checked)
   let schema = @join.output_schema(checked)
@@ -88,6 +85,11 @@ pub fn prepare_inner_join(
 ///|
 pub fn inner_join_checked(join : PreparedInnerJoin) -> @join.CheckedJoin {
   join.checked
+}
+
+///|
+pub fn inner_join_kind(join : PreparedInnerJoin) -> @join.Kind {
+  @join.kind(join.checked)
 }
 
 ///|

@@ -12,6 +12,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_join_shape" @join,
   "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/bigint",
   "moonbitlang/core/json",

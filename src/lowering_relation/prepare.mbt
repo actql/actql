@@ -185,12 +185,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         JsonPick => Some(JsonPick(v))
         Analytic | Lag | WatermarkRows => None
       }
-    Join(checked~, ..) =>
-      if @join.kind(checked) == @join.Inner {
-        Some(InnerJoin(checked))
-      } else {
-        None
-      }
+    Join(checked~, ..) => Some(InnerJoin(checked))
     Append(checked~, ..) => Some(AppendRows(checked))
     Nest(..)
     | Set(..)

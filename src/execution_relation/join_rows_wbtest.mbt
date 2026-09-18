@@ -4,6 +4,8 @@ fn join_test_sequence(
   right : String,
   options? : String = "",
   tail? : String = "",
+  kind? : String = "inner",
+  projection? : String = "{\"k\":\"left.id\",\"l\":\"left.v\",\"r\":\"right.v\"}",
 ) -> GeneratedSequence raise {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":true},\"v\":{\"type\":\"number\",\"nullable\":false}}"
   let owner = bound_pipeline(
@@ -17,7 +19,10 @@ fn join_test_sequence(
     ",\"rows\":" +
     right +
     "},\"as\":\"r\"}," +
-    "{\"join\":{\"with\":\"r\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"k\":\"left.id\",\"l\":\"left.v\",\"r\":\"right.v\"}" +
+    "{\"join\":{\"with\":\"r\",\"kind\":\"" +
+    kind +
+    "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":" +
+    projection +
     options +
     "},\"from\":\"l\"}" +
     tail +
@@ -32,6 +37,129 @@ fn join_test_sequence(
     100000,
     10000,
   ).unwrap()
+}
+
+///|
+fn join_numeric_rows_equal(
+  actual : Array[Array[Value]],
+  expected : Array[Array[Value]],
+) -> Bool {
+  if actual.length() != expected.length() {
+    return false
+  }
+  for row in 0..<actual.length() {
+    if actual[row].length() != expected[row].length() {
+      return false
+    }
+    for column in 0..<actual[row].length() {
+      match (actual[row][column], expected[row][column]) {
+        (Null, Null) => ()
+        (Number(left), Number(right)) if left == right => ()
+        _ => return false
+      }
+    }
+  }
+  true
+}
+
+///|
+test "equality join kinds preserve unmatched and single-left row order" {
+  let left = "[{\"id\":1,\"v\":10},{\"id\":2,\"v\":11},{\"id\":null,\"v\":12}]"
+  let right = "[{\"id\":1,\"v\":20},{\"id\":1,\"v\":21},{\"id\":3,\"v\":22},{\"id\":null,\"v\":23}]"
+  let limits = { rows: run_limits(), max_work: 100000, max_frames: 100, }
+  for
+    (kind, expected) in [
+      (
+        "left",
+        [
+          [Number(1), Number(10), Number(20)],
+          [Number(1), Number(10), Number(21)],
+          [Number(2), Number(11), Null],
+          [Null, Number(12), Null],
+        ],
+      ),
+      (
+        "full",
+        [
+          [Number(1), Number(10), Number(20)],
+          [Number(1), Number(10), Number(21)],
+          [Number(2), Number(11), Null],
+          [Null, Number(12), Null],
+          [Null, Null, Number(22)],
+          [Null, Null, Number(23)],
+        ],
+      ),
+    ] {
+    let generated = join_test_sequence(left, right, kind~)
+    let table = test_row_output(
+      completed_output(
+        execute_generated_sequence(generated, [], limits).unwrap(),
+        Step(2),
+      ).unwrap(),
+    )
+    assert_true(join_numeric_rows_equal(table.rows, expected))
+  }
+  for
+    (kind, expected) in [
+      ("semi", [[Number(1), Number(10)]]),
+      ("anti", [[Number(2), Number(11)], [Null, Number(12)]]),
+    ] {
+    let generated = join_test_sequence(
+      left,
+      right,
+      kind~,
+      projection="{\"k\":\"left.id\",\"l\":\"left.v\"}",
+    )
+    let table = test_row_output(
+      completed_output(
+        execute_generated_sequence(generated, [], limits).unwrap(),
+        Step(2),
+      ).unwrap(),
+    )
+    assert_true(join_numeric_rows_equal(table.rows, expected))
+  }
+}
+
+///|
+test "semi join does not charge right multiplicity as output rows" {
+  let left = "[{\"id\":1,\"v\":10}]"
+  let right = "[{\"id\":1,\"v\":20},{\"id\":1,\"v\":21},{\"id\":1,\"v\":22}]"
+  let generated = join_test_sequence(
+    left,
+    right,
+    kind="semi",
+    projection="{\"k\":\"left.id\",\"l\":\"left.v\"}",
+    options=",\"max_output_rows\":1",
+  )
+  let output = completed_output(
+    execute_generated_sequence(generated, [], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    }).unwrap(),
+    Step(2),
+  ).unwrap()
+  assert_eq(completed_row_count(output), 1)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(1)))
+  assert_true(completed_cell(output, 0, 1) is Some(Number(10)))
+}
+
+///|
+test "outer unmatched rows obey the checked output ceiling" {
+  let generated = join_test_sequence(
+    "[{\"id\":1,\"v\":10},{\"id\":2,\"v\":11}]",
+    "[]",
+    kind="left",
+    options=",\"max_output_rows\":1",
+  )
+  assert_true(
+    execute_generated_sequence(generated, [], {
+      rows: run_limits(),
+      max_work: 100000,
+      max_frames: 100,
+    })
+    is Err(Rows(2, RowLimit)),
+  )
 }
 
 ///|

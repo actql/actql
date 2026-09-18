@@ -13,6 +13,7 @@ fn query_checked_program_fixture(
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
   local_values_join_chain? : Bool = false,
+  local_values_join_kind? : String = "inner",
   local_values_unary_chain? : String? = None,
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
@@ -53,6 +54,14 @@ fn query_checked_program_fixture(
   let text = if local_values_join_chain {
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":null,"l":"ln"},{"id":2,"l":"l3"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":null,"r":"rn"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain && local_values_join_kind != "inner" {
+    text.replace(
+      old="\"kind\":\"inner\"",
+      new="\"kind\":\"" + local_values_join_kind + "\"",
     )
   } else {
     text

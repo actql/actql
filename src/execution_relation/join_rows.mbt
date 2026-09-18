@@ -108,11 +108,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
         ceiling = bound.to_int()
       }
     }
-    let pairs = match
-      inner_join_indices(left, right, keys, false, ceiling, control, workspace) {
-      Ok(v) => v
-      Err(e) => return Err(join_index_failure(e))
-    }
+    let kind = @lower.inner_join_kind(profile)
     let names : Array[String] = []
     let columns : Array[(Bool, Int)] = []
     for index in 0..<@lower.inner_join_field_count(profile) {
@@ -146,7 +142,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
       retained += 1
     }
     let rows : Array[Array[Value]] = []
-    for (lrow, rrow) in pairs {
+    let emit = fn(lrow : Int?, rrow : Int?) -> Result[Unit, RowIssue] {
       if !reserve_slots(workspace, 1) ||
         !reserve_slots(workspace, names.length()) ||
         !spend_control(control, 1) ||
@@ -156,15 +152,51 @@ fn[L : RelationRows, R : RelationRows] evaluate_join_rows(
       retained += 1 + names.length()
       let row = columns.map(pair => {
         if pair.0 {
-          IndexedRows::read_cell(left, lrow, pair.1)
+          match lrow {
+            Some(row) => IndexedRows::read_cell(left, row, pair.1)
+            None => Null
+          }
         } else {
-          IndexedRows::read_cell(right, rrow, pair.1)
+          match rrow {
+            Some(row) => IndexedRows::read_cell(right, row, pair.1)
+            None => Null
+          }
         }
       })
       if !retain_row(row, names, output) {
         return Err(RowLimit)
       }
       rows.push(row)
+      Ok(())
+    }
+    if kind == @join.Inner {
+      let pairs = match
+        inner_join_indices(
+          left, right, keys, false, ceiling, control, workspace,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(join_index_failure(issue))
+      }
+      for (left, right) in pairs {
+        match emit(Some(left), Some(right)) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+    } else {
+      let pairs = match
+        non_inner_join_indices(
+          kind, left, right, keys, ceiling, control, workspace,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(join_index_failure(issue))
+      }
+      for pair in pairs {
+        match emit(pair.left, pair.right) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
     }
     Ok({
       owner,

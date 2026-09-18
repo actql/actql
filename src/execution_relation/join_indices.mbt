@@ -10,6 +10,12 @@ priv enum JoinIndexIssue {
 }
 
 ///|
+priv struct JoinPair {
+  left : Int?
+  right : Int?
+}
+
+///|
 /// Verify a side's non-NULL equality tuples. Sorted coordinates preserve the
 /// first occurrence in each tuple; choose the earliest duplicate in original
 /// input order, rather than reporting whichever key sorts first. The caller
@@ -265,4 +271,207 @@ fn[L : IndexedRows, R : IndexedRows] inner_join_indices(
   }
   release_slots(workspace, workspace.live - baseline - retained)
   result
+}
+
+///|
+/// Determine only whether each left row has a matching right occurrence. This
+/// avoids materializing the right-side multiplicity for semi and anti joins.
+fn[L : IndexedRows, R : IndexedRows] join_left_match_flags(
+  left : L,
+  right : R,
+  keys : Array[(Int, Int)],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[Bool], JoinIndexIssue] {
+  if keys.is_empty() ||
+    control.remaining < 0 ||
+    workspace.live < 0 ||
+    workspace.live > workspace.limit ||
+    workspace.peak < workspace.live {
+    return Err(InvalidInput)
+  }
+  let baseline = workspace.live
+  let run = fn() -> Result[Array[Bool], JoinIndexIssue] {
+    if !reserve_slots(workspace, keys.length()) ||
+      !spend_control(control, keys.length()) {
+      return Err(Limit)
+    }
+    let order : Array[ColumnOrder] = []
+    for (lc, rc) in keys {
+      if lc < 0 ||
+        lc >= left.column_count() ||
+        rc < 0 ||
+        rc >= right.column_count() {
+        return Err(InvalidInput)
+      }
+      order.push({ column: rc, descending: false, nulls_first: true, })
+    }
+    if validate_join_index_input(left, keys, true, false, control) is Err(e) {
+      return Err(e)
+    }
+    if validate_join_index_input(right, keys, false, false, control) is Err(e) {
+      return Err(e)
+    }
+    let indices = match stable_order_indices(right, order, control, workspace) {
+      Ok(value) => value
+      Err(InvalidInput) => return Err(InvalidInput)
+      Err(Limit) => return Err(Limit)
+      Err(Scalar(e)) => return Err(Scalar(e))
+    }
+    if !reserve_slots(workspace, left.row_count()) {
+      return Err(Limit)
+    }
+    let matches = Array::make(left.row_count(), false)
+    for lrow in 0..<left.row_count() {
+      if !spend_control(control, 1) {
+        return Err(Limit)
+      }
+      let mut null_key = false
+      for (lc, _) in keys {
+        if !spend_control(control, 1) {
+          return Err(Limit)
+        }
+        if left.read_cell(lrow, lc) is Null {
+          null_key = true
+          break
+        }
+      }
+      if null_key {
+        continue
+      }
+      let mut low = 0
+      let mut high = indices.length()
+      while low < high {
+        let middle = low + (high - low) / 2
+        let comparison = match
+          compare_join_indices(
+            left,
+            lrow,
+            right,
+            indices[middle],
+            keys,
+            control,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if comparison > 0 {
+          low = middle + 1
+        } else {
+          high = middle
+        }
+      }
+      if low < indices.length() {
+        matches[lrow] = match
+          compare_join_indices(left, lrow, right, indices[low], keys, control) {
+          Ok(value) => value == 0
+          Err(issue) => return Err(issue)
+        }
+      }
+    }
+    release_slots(workspace, indices.length() + keys.length())
+    Ok(matches)
+  }
+  let result = run()
+  if result is Err(_) {
+    release_slots(workspace, workspace.live - baseline)
+  }
+  result
+}
+
+///|
+/// Produce the exact semantic row coordinates for non-inner equality joins.
+/// Missing-side coordinates are explicit and never stand in for an input row.
+fn[L : IndexedRows, R : IndexedRows] non_inner_join_indices(
+  kind : @join.Kind,
+  left : L,
+  right : R,
+  keys : Array[(Int, Int)],
+  max_output_rows : Int,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[JoinPair], JoinIndexIssue] {
+  if max_output_rows < 0 || kind == @join.Inner {
+    return Err(InvalidInput)
+  }
+  let baseline = workspace.live
+  if kind == @join.Semi || kind == @join.Anti {
+    let matches = match
+      join_left_match_flags(left, right, keys, control, workspace) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let output : Array[JoinPair] = []
+    for row, matched in matches {
+      if matched == (kind == @join.Semi) {
+        if output.length() >= max_output_rows ||
+          !spend_control(control, 1) ||
+          !reserve_slots(workspace, 2) {
+          release_slots(workspace, workspace.live - baseline)
+          return Err(Limit)
+        }
+        output.push({ left: Some(row), right: None, })
+      }
+    }
+    release_slots(workspace, matches.length())
+    return Ok(output)
+  }
+  let pairs = match
+    inner_join_indices(
+      left, right, keys, false, max_output_rows, control, workspace,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let right_matches = if kind == @join.Full {
+    if !reserve_slots(workspace, right.row_count()) {
+      release_slots(workspace, workspace.live - baseline)
+      return Err(Limit)
+    }
+    Some(Array::make(right.row_count(), false))
+  } else {
+    None
+  }
+  let output : Array[JoinPair] = []
+  let mut cursor = 0
+  let append = fn(left : Int?, right : Int?) -> Bool {
+    if output.length() >= max_output_rows ||
+      !spend_control(control, 1) ||
+      !reserve_slots(workspace, 2) {
+      return false
+    }
+    output.push({ left, right, })
+    true
+  }
+  for lrow in 0..<left.row_count() {
+    let start = cursor
+    while cursor < pairs.length() && pairs[cursor].0 == lrow {
+      let rrow = pairs[cursor].1
+      if right_matches is Some(flags) {
+        flags[rrow] = true
+      }
+      if !append(Some(lrow), Some(rrow)) {
+        release_slots(workspace, workspace.live - baseline)
+        return Err(Limit)
+      }
+      cursor += 1
+    }
+    if cursor == start && !append(Some(lrow), None) {
+      release_slots(workspace, workspace.live - baseline)
+      return Err(Limit)
+    }
+  }
+  if right_matches is Some(flags) {
+    for rrow, matched in flags {
+      if !matched && !append(None, Some(rrow)) {
+        release_slots(workspace, workspace.live - baseline)
+        return Err(Limit)
+      }
+    }
+  }
+  release_slots(
+    workspace,
+    pairs.length() * 2 + right_matches.map(flags => flags.length()).unwrap_or(0),
+  )
+  Ok(output)
 }

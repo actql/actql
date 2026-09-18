@@ -50,7 +50,16 @@ pub fn emit_join_kernel(
     )
   }
   @encode.key(out, "how")
-  @encode.string_value(out, "inner")
+  @encode.string_value(
+    out,
+    match inner_join_kind(profile) {
+      Inner => "inner"
+      Left => "left"
+      Full => "full"
+      Semi => "semi"
+      Anti => "anti"
+    },
+  )
   @encode.key(out, "key_pairs")
   @encode.begin_array(out)
   for (left, right) in profile.keys {

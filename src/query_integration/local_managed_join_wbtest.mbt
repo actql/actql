@@ -1,5 +1,9 @@
 ///|
-test "Local managed inner join binds both ports and feeds two Computes" {
+fn run_local_managed_join_case(
+  kind : String,
+  expected_joined : Array[String],
+  expected_second : Array[String],
+) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
     attempts: 20,
@@ -10,6 +14,7 @@ test "Local managed inner join binds both ports and feeds two Computes" {
   }
   let (run, issuer) = captured_graph_fixture(
     local_values_join_chain=true,
+    local_values_join_kind=kind,
     ledger_limits=Some(ledger_limits),
   )
   let registry = search_registry()
@@ -83,10 +88,7 @@ test "Local managed inner join binds both ports and feeds two Computes" {
     join_live,
   )
   let joined_rows = local_managed_test_rows(join_ops)
-  assert_eq(joined_rows, [
-    "{\"id\":1,\"l\":\"l1\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l1\",\"r\":\"r2\"}",
-    "{\"id\":1,\"l\":\"l2\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l2\",\"r\":\"r2\"}",
-  ])
+  assert_eq(joined_rows, expected_joined)
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -109,10 +111,7 @@ test "Local managed inner join binds both ports and feeds two Computes" {
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), joined_rows)
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"r\":\"r1\",\"l\":\"l1\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l1\",\"id\":1}",
-    "{\"r\":\"r1\",\"l\":\"l2\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l2\",\"id\":1}",
-  ])
+  assert_eq(local_managed_test_rows(second_ops), expected_second)
 
   first_live.val = false
   @strategy.close_captured_task_output(run, 4)
@@ -146,4 +145,32 @@ test "Local managed inner join binds both ports and feeds two Computes" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed equality joins bind both ports and feed two Computes" {
+  run_local_managed_join_case(
+    "inner",
+    [
+      "{\"id\":1,\"l\":\"l1\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l1\",\"r\":\"r2\"}",
+      "{\"id\":1,\"l\":\"l2\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l2\",\"r\":\"r2\"}",
+    ],
+    [
+      "{\"r\":\"r1\",\"l\":\"l1\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l1\",\"id\":1}",
+      "{\"r\":\"r1\",\"l\":\"l2\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l2\",\"id\":1}",
+    ],
+  )
+  run_local_managed_join_case(
+    "left",
+    [
+      "{\"id\":1,\"l\":\"l1\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l1\",\"r\":\"r2\"}",
+      "{\"id\":1,\"l\":\"l2\",\"r\":\"r1\"}", "{\"id\":1,\"l\":\"l2\",\"r\":\"r2\"}",
+      "{\"id\":null,\"l\":\"ln\",\"r\":null}", "{\"id\":2,\"l\":\"l3\",\"r\":null}",
+    ],
+    [
+      "{\"r\":\"r1\",\"l\":\"l1\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l1\",\"id\":1}",
+      "{\"r\":\"r1\",\"l\":\"l2\",\"id\":1}", "{\"r\":\"r2\",\"l\":\"l2\",\"id\":1}",
+      "{\"r\":null,\"l\":\"ln\",\"id\":null}", "{\"r\":null,\"l\":\"l3\",\"id\":2}",
+    ],
+  )
 }

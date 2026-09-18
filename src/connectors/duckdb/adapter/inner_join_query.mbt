@@ -105,6 +105,9 @@ pub fn compile_fixed_inner_join(
     Err(_) => return Err(UnsupportedShape)
   }
   let profile = @lower.join_kernel_profile(kernel)
+  if @lower.inner_join_kind(profile) != @join.Inner {
+    return Err(UnsupportedShape)
+  }
   let schemas = [
     @lower.preparation_input_schema(prepared, left_input).unwrap(),
     @lower.preparation_input_schema(prepared, right_input).unwrap(),
