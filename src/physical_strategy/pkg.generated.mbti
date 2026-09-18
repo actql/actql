@@ -136,6 +136,8 @@ pub fn graph_result_count(CheckedDAG) -> Int
 
 pub fn graph_result_name(CheckedDAG, Int) -> String?
 
+pub fn graph_result_occurrence(CheckedDAG, Int) -> @execution_relation.ManagedResultOccurrence?
+
 pub fn graph_result_task(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int

@@ -176,13 +176,22 @@ function outputExportControl(moon) {
     'maxSchemaDepth',
     'maxBatchBytes',
   ];
+  const resultFields = [
+    'maxResultFields',
+    'maxResultMappingWork',
+    'maxResultOrderWork',
+    'maxResultWorkspaceEntries',
+    ...fields,
+  ];
+  const validLimits = (limits, expected) =>
+    limits !== null && typeof limits === 'object' &&
+    Object.keys(limits).sort().join('\0') ===
+      [...expected].sort().join('\0') &&
+    expected.every(name => Number.isSafeInteger(limits[name]) &&
+      limits[name] >= 0);
   return Object.freeze({
     begin(output, limits) {
-      if (limits === null || typeof limits !== 'object' ||
-          Object.keys(limits).sort().join('\0') !==
-            [...fields].sort().join('\0') ||
-          fields.some(name => !Number.isSafeInteger(limits[name]) ||
-            limits[name] < 0)) {
+      if (!validLimits(limits, fields)) {
         throw new TypeError('Invalid output export limits');
       }
       return checked(moon.strategyHostOutputExportBegin(
@@ -207,21 +216,59 @@ function outputExportControl(moon) {
         limits.maxBatchBytes,
       ));
     },
+    beginResult(host, result, limits) {
+      if (!Number.isSafeInteger(result) || result < 0 ||
+          !validLimits(limits, resultFields)) {
+        throw new TypeError('Invalid Result output export request');
+      }
+      return checked(moon.strategyHostResultOutputExportBegin(
+        host,
+        result,
+        limits.maxResultFields,
+        limits.maxResultMappingWork,
+        limits.maxResultOrderWork,
+        limits.maxResultWorkspaceEntries,
+        limits.maxRows,
+        limits.maxValueNodes,
+        limits.maxValueTextBytes,
+        limits.maxValueDepth,
+        limits.maxValueWork,
+        limits.maxWireBytes,
+        limits.maxWireNodes,
+        limits.maxWireDepth,
+        limits.maxColumns,
+        limits.maxOrderWork,
+        limits.maxLogicalWireBytes,
+        limits.maxLogicalWireNodes,
+        limits.maxLogicalWireDepth,
+        limits.maxSchemaFields,
+        limits.maxSchemaBytes,
+        limits.maxSchemaNodes,
+        limits.maxSchemaDepth,
+        limits.maxBatchBytes,
+      ));
+    },
     next: value => checked(moon.strategyHostOutputExportNext(value)),
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),
     identity(value) {
       return Object.freeze({
-        orderedRowsCid: moon.strategyHostOutputExportCid(value),
+        orderedRowsCid: checked(moon.strategyHostOutputExportCid(value)),
         logicalRelationCid:
-          moon.strategyHostOutputExportLogicalRelationCid(value),
+          checked(moon.strategyHostOutputExportLogicalRelationCid(value)),
         resultSchemaCid:
-          moon.strategyHostOutputExportResultSchemaCid(value),
-        bytes: moon.strategyHostOutputExportBytes(value),
-        nodes: moon.strategyHostOutputExportNodes(value),
-        rows: moon.strategyHostOutputExportRows(value),
-        schemaBytes: moon.strategyHostOutputExportSchemaBytes(value),
-        schemaNodes: moon.strategyHostOutputExportSchemaNodes(value),
-        schemaFields: moon.strategyHostOutputExportSchemaFields(value),
+          checked(moon.strategyHostOutputExportResultSchemaCid(value)),
+        bytes: checked(moon.strategyHostOutputExportBytes(value)),
+        nodes: checked(moon.strategyHostOutputExportNodes(value)),
+        rows: checked(moon.strategyHostOutputExportRows(value)),
+        schemaBytes: checked(
+          moon.strategyHostOutputExportSchemaBytes(value),
+        ),
+        schemaNodes: checked(
+          moon.strategyHostOutputExportSchemaNodes(value),
+        ),
+        schemaFields: checked(
+          moon.strategyHostOutputExportSchemaFields(value),
+        ),
       });
     },
     cancel: moon.strategyHostOutputExportCancel,

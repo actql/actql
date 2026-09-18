@@ -48,6 +48,30 @@ const root = fileURLToPath(new URL('../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
+const publicationResultExportLimits = Object.freeze({
+  maxResultFields: 10,
+  maxResultMappingWork: 1000,
+  maxResultOrderWork: 10000,
+  maxResultWorkspaceEntries: 100,
+  maxRows: 100,
+  maxValueNodes: 10000,
+  maxValueTextBytes: 100000,
+  maxValueDepth: 64,
+  maxValueWork: 100000,
+  maxWireBytes: 100000,
+  maxWireNodes: 10000,
+  maxWireDepth: 64,
+  maxColumns: 10,
+  maxOrderWork: 10000,
+  maxLogicalWireBytes: 100000,
+  maxLogicalWireNodes: 10003,
+  maxLogicalWireDepth: 66,
+  maxSchemaFields: 10,
+  maxSchemaBytes: 100000,
+  maxSchemaNodes: 10000,
+  maxSchemaDepth: 64,
+  maxBatchBytes: 4096,
+});
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 // Conformance-only contribution body. It uses the selected product
@@ -491,6 +515,31 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
           assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
           if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
           else assert.equal(execution.usage().transferredBytes, 0n);
+          if (mode === 0) {
+            const exportControl = runtimeCore(hostRuntime).outputExportControl;
+            const resultExport = exportControl.beginResult(
+              setup, 0, publicationResultExportLimits,
+            );
+            try {
+              let resultWire = '';
+              for (;;) {
+                const part = exportControl.next(resultExport);
+                if (part === undefined) break;
+                resultWire += part;
+              }
+              resultWire += exportControl.finish(resultExport);
+              assert.deepEqual(JSON.parse(resultWire), [
+                {id: 3}, {id: 2}, {id: 3},
+              ]);
+              const identity = exportControl.identity(resultExport);
+              assert.match(identity.logicalRelationCid,
+                /^sha256:[0-9a-f]{64}$/u);
+              assert.match(identity.resultSchemaCid,
+                /^sha256:[0-9a-f]{64}$/u);
+            } finally {
+              exportControl.cancel(resultExport);
+            }
+          }
         }
       } finally { execution?.close(); capture.close(); }
       assert.equal(execution.cleanupPending(), false);
@@ -1152,12 +1201,16 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     fixture.strategyFixtureAcquisition(managedStandardFixture),
     suppliedLimits,
   );
+  let managedStandardSetup;
   let managedStandardExecution;
   try {
     assert.equal(fixture.strategyFixtureOpen(
       managedStandardFixture, managedStandardCapture.source()), true);
+    managedStandardSetup = fixture.strategyFixtureManagedDispatch(
+      managedStandardFixture,
+    );
     managedStandardExecution = await runCapturedInternalStrategy(
-      fixture.strategyFixtureManagedDispatch(managedStandardFixture),
+      managedStandardSetup,
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
         importLimits: {maxRows: 100, maxCells: 1000},

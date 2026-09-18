@@ -25,6 +25,10 @@ function validControl(control) {
       .every(name => typeof control[name] === 'function');
 }
 
+function validResultControl(control) {
+  return validControl(control) && typeof control.beginResult === 'function';
+}
+
 function validIdentity(value) {
   return value !== null && typeof value === 'object' &&
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
@@ -36,12 +40,31 @@ function validIdentity(value) {
       Number.isSafeInteger(value[name]) && value[name] >= 0);
 }
 
-function payloadFailure(reason, cleanupErrors) {
+function payloadFailure(reason, cleanupErrors, writer) {
   const failure = reason instanceof Error
     ? reason
     : new DurableResultPayloadError('DurableResultPayloadFailed', reason);
   if (cleanupErrors.length !== 0) {
     failure.cleanupErrors = Object.freeze([...cleanupErrors]);
+  }
+  if (writer?.status().reservationHeld === true) {
+    const status = () => Object.freeze({
+      pending: writer.status().reservationHeld === true,
+      errors: Object.freeze([...cleanupErrors]),
+    });
+    failure.cleanupPending = true;
+    failure.cleanupHandle = Object.freeze({
+      status,
+      async retry() {
+        if (writer.status().reservationHeld === true) {
+          try { await writer.cancel(); }
+          catch (error) { cleanupErrors.push(error); }
+        }
+        failure.cleanupPending = status().pending;
+        failure.cleanupErrors = status().errors;
+        return status();
+      },
+    });
   }
   return failure;
 }
@@ -55,13 +78,40 @@ export async function storeCompletedOutputPayload(
   if (!validStore(store) || !validControl(control)) {
     fail('InvalidDurableResultPayloadAdapter');
   }
+  return storeCompletedPayload(
+    store, control, () => control.begin(output, limits), limits, signal,
+  );
+}
+
+/// Stream one exact checked Named Result from the common Host graph. The
+/// adapter receives an index only; projection, ordering, and identity remain
+/// bound to the opaque occurrence retained by the MoonBit runtime.
+export async function storeCompletedResultPayload(
+  store, control, host, result, limits, signal,
+) {
+  if (!validStore(store) || !validResultControl(control) ||
+      !Number.isSafeInteger(result) || result < 0) {
+    fail('InvalidDurableResultPayloadAdapter');
+  }
+  return storeCompletedPayload(
+    store,
+    control,
+    () => control.beginResult(host, result, limits),
+    limits,
+    signal,
+  );
+}
+
+async function storeCompletedPayload(
+  store, control, beginExport, limits, signal,
+) {
   signal?.throwIfAborted();
   let exportHandle;
   let writer;
   let sealed = false;
   let exportReleased = false;
   try {
-    exportHandle = control.begin(output, limits);
+    exportHandle = beginExport();
     writer = store.createObjectWriter(limits.maxWireBytes);
     for (;;) {
       signal?.throwIfAborted();
@@ -101,6 +151,6 @@ export async function storeCompletedOutputPayload(
       try { control.cancel(exportHandle); }
       catch (error) { cleanupErrors.push(error); }
     }
-    throw payloadFailure(reason, cleanupErrors);
+    throw payloadFailure(reason, cleanupErrors, writer);
   }
 }

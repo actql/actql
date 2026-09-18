@@ -4,7 +4,10 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {storeCompletedOutputPayload} from './durable-result-payload.mjs';
+import {
+  storeCompletedOutputPayload,
+  storeCompletedResultPayload,
+} from './durable-result-payload.mjs';
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 
@@ -50,6 +53,7 @@ async function fixture(t) {
     maxContractNodes: 1000,
     maxContractDepth: 64,
   }, unusedContractControl);
+  t.after(async () => { await store.close(); });
   return store;
 }
 
@@ -83,6 +87,34 @@ function exportFixture(parts, text, hooks = {}) {
     cancel() { hooks.cancelled?.(); },
   });
 }
+
+test('exact Result occurrence streams through the same bounded Store path',
+  async t => {
+    const store = await fixture(t);
+    const host = {};
+    const text = '[{"answer":1}]';
+    const resultLimits = Object.freeze({
+      maxResultFields: 10,
+      maxResultMappingWork: 100,
+      maxResultOrderWork: 100,
+      maxResultWorkspaceEntries: 10,
+      ...limits,
+    });
+    const control = {
+      ...exportFixture([text], text, {}),
+      beginResult(actualHost, result, supplied) {
+        assert.equal(actualHost, host);
+        assert.equal(result, 2);
+        assert.equal(supplied, resultLimits);
+        return {};
+      },
+    };
+    const stored = await storeCompletedResultPayload(
+      store, control, host, 2, resultLimits,
+    );
+    assert.equal(stored.physical.cid, digest(text));
+    assert.equal(stored.orderedRows.orderedRowsCid, digest(text));
+  });
 
 test('canonical batches stream to one durable object without whole-array input',
   async t => {

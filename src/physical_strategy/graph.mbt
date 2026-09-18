@@ -341,6 +341,16 @@ pub fn graph_result_name(graph : CheckedDAG, index : Int) -> String? {
 }
 
 ///|
+/// Exact checked occurrence for common publication execution. This opaque
+/// binding includes its Program owner and ResultPort; a name is insufficient.
+pub fn graph_result_occurrence(
+  graph : CheckedDAG,
+  index : Int,
+) -> @execution.ManagedResultOccurrence? {
+  graph.results.get(index).map(result => result.occurrence)
+}
+
+///|
 pub fn graph_task_count(graph : CheckedDAG) -> Int {
   graph.owners.length()
 }

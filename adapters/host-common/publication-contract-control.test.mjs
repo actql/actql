@@ -402,6 +402,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
+  t.after(async () => { await store.close(); });
   for (const contract of [
     run,
     invoked,
@@ -495,6 +496,7 @@ test('local durable Store accepts only MoonBit-admitted contract wire',
       maxContractNodes: limits.maxNodes,
       maxContractDepth: limits.maxDepth,
     }, control);
+    t.after(async () => { await store.close(); });
     const sealed = invocation(control);
     const stored = await store.putPublicationContract(
       sealed.name, sealed.wire,

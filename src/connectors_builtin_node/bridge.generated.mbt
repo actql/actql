@@ -726,6 +726,97 @@ pub fn strategy_host_output_export_begin(
 }
 
 ///|
+/// Begin an export for one exact checked Named Result occurrence. The common
+/// graph supplies both the completed producer and its opaque ResultPort; the
+/// adapter cannot replace either with a task number or an authored name.
+#export_name("strategyHostResultOutputExportBegin")
+pub fn strategy_host_result_output_export_begin(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  result : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> StrategyHostOutputExport raise NodeHostFailure {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(host),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_result_task(graph, result) is Some(task) else {
+    raise InvalidCommand
+  }
+  guard @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
+    raise InvalidCommand
+  }
+  guard @strategy.captured_task_target(run, task) is Some(target) else {
+    raise InvalidCommand
+  }
+  guard @strategy.captured_task_output(run, task, target) is Some(output) else {
+    raise InvalidCommand
+  }
+  match
+    @execution.prepare_completed_result_relation_export(
+      output,
+      occurrence,
+      {
+        max_fields: max_result_fields,
+        max_mapping_work: max_result_mapping_work,
+        max_order_work: max_result_order_work,
+        max_workspace_entries: max_result_workspace_entries,
+      },
+      max_rows,
+      {
+        max_nodes: max_value_nodes,
+        max_text_bytes: max_value_text_bytes,
+        max_depth: max_value_depth,
+        max_work: max_value_work,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_wire_bytes,
+        max_nodes: max_wire_nodes,
+        max_depth: max_wire_depth,
+      },
+      {
+        max_columns,
+        max_order_work,
+        max_bytes: max_logical_wire_bytes,
+        max_nodes: max_logical_wire_nodes,
+        max_depth: max_logical_wire_depth,
+      },
+      {
+        max_fields: max_schema_fields,
+        max_bytes: max_schema_bytes,
+        max_nodes: max_schema_nodes,
+        max_depth: max_schema_depth,
+      },
+      max_batch_bytes,
+    ) {
+    Ok(stream) => { stream, receipt: None, }
+    Err(issue) => raise OutputExport(issue)
+  }
+}
+
+///|
 #export_name("strategyHostOutputExportNext")
 pub fn strategy_host_output_export_next(
   value : StrategyHostOutputExport,
