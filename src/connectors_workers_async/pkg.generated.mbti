@@ -30,6 +30,8 @@ pub fn[E] dispatch_managed_reference_compute(ConfiguredComputeModules[E], Array[
 
 pub fn[C, E] dispatch_reference_compute(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
+pub fn[C, E] dispatch_reference_compute_with_completion_admission(ConfiguredComputeModules[E], @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch, () -> Bool) -> Result[Unit, ConfiguredDispatchIssue[E]]
+
 pub fn[E] execute_configured_in_process(ConfiguredComputeHost[E], @physical_host.PreparedTaskDispatch) -> Result[Unit, ConfiguredDispatchIssue[E]]
 
 pub fn[E] open_configured_compute_host(ConfiguredComputeModules[E], @connector_sdk.CapabilityRegistry, @connector_sdk.FixedComputeCapacity, Int, Int, Int) -> Result[ConfiguredComputeHost[E], @physical_host.ComputeHostIssue[E]]

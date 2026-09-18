@@ -8,6 +8,9 @@ import {numericStrategyContribution} from
   '../reference-compute-node/strategy-bundle.mjs';
 import {registerManagedMemoryInput} from
   '../store-local/managed-memory-representations.mjs';
+import {beginExecutionSiteTeardown, createInProcessExecutionSite,
+  executionSiteStatus, prepareExecutionSitePolicy,
+  revokeExecutionSite} from '../host-common/execution-sites.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 const failed = value => ({$tag: 0, _0: value});
@@ -51,6 +54,77 @@ test('Local contribution admits, reads, executes and completes before exposing i
   assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 1, importedBytes: '10'});
   output.close();
   assert.equal(f.events.at(-1), 'close');
+});
+
+test('standard Local legacy completion observes forced Site loss', async () => {
+  for (const forced of [true, false]) {
+    const setup = {}, registration = {}, task = {};
+    const selectedSite = createInProcessExecutionSite({
+      key: forced ? 'local-forced-loss' : 'local-graceful-stop',
+      generation: 1,
+      runtimeRevision: 'local-test-runtime/1',
+    });
+    let completed = false, completionCalls = 0;
+    const operations = {
+      inputs: [],
+      execute() {
+        if (forced) revokeExecutionSite(selectedSite);
+        else beginExecutionSiteTeardown(selectedSite);
+        return ok();
+      },
+      settle: () => ok(),
+      complete() {
+        completionCalls++;
+        completed = true;
+        return ok();
+      },
+      close() {},
+    };
+    const entry = localStrategyContribution({
+      strategyModule_local_Registration: () => registration,
+      strategyHostRegistrationSelectionKey: () => 'local-test',
+      strategyHostNextTask: () => -1,
+      strategyHostManagedProducers: () => [],
+      strategyModule_local_Dispatch: (owner, work) => {
+        assert.equal(owner, setup);
+        assert.equal(work, task);
+        return ok(operations);
+      },
+    }, setup, checked);
+    const core = {
+      count: () => 2,
+      next: () => task,
+      task: () => 1,
+      taskCapacity: () => [0n, 0n],
+      registration: () => registration,
+      completed: () => completed,
+      finished: () => completed,
+      stop() {},
+      closeOutputs() {},
+      output: () => completed ? {} : undefined,
+      usage: () => ({}),
+      explain: () => ({}),
+    };
+    const result = await runInstalledStrategy(
+      setup,
+      core,
+      [entry],
+      undefined,
+      undefined,
+      prepareExecutionSitePolicy({sites: [selectedSite]}),
+    );
+    assert.equal(result.status,
+      forced ? 'host-tasks-failed' : 'host-tasks-completed');
+    assert.equal(completionCalls, forced ? 0 : 1);
+    assert.equal(completed, !forced);
+    await result.close();
+    const status = executionSiteStatus(selectedSite);
+    assert.equal(status.teardownComplete, true,
+      `${forced ? 'forced revocation' : 'graceful teardown'}: ${JSON.stringify(
+        status,
+        (_key, value) => typeof value === 'bigint' ? String(value) : value,
+      )}`);
+  }
 });
 
 test('Local cancellation stops before reservation or awaits the current reader before settlement', async () => {

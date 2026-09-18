@@ -444,6 +444,10 @@ export function startExecutionSiteTransferOperation(
   transferOperations.set(operation, {
     source,
     destination,
+    sourceIdentity: source.identity,
+    sourceGeneration: source.generation,
+    destinationIdentity: destination.identity,
+    destinationGeneration: destination.generation,
     sourceStopped: false,
     destinationStopped: false,
     retention: capacity.retainedBytes,
@@ -453,6 +457,20 @@ export function startExecutionSiteTransferOperation(
   source.activeTransfers.add(operation);
   destination.activeTransfers.add(operation);
   return operation;
+}
+
+// Recheck the exact admitted Site generations at the Transfer commit
+// boundary. Graceful teardown only stops new admission; forced generation
+// revocation invalidates unfinished work.
+export function executionSiteTransferOperationAvailable(operation) {
+  const state = transferOperations.get(operation) ??
+    fail('ForeignExecutionSiteTransferOperation');
+  return !state.sourceStopped && !state.destinationStopped &&
+    !state.source.revoked && !state.destination.revoked &&
+    state.source.identity === state.sourceIdentity &&
+    state.source.generation === state.sourceGeneration &&
+    state.destination.identity === state.destinationIdentity &&
+    state.destination.generation === state.destinationGeneration;
 }
 
 export function settleExecutionSiteTransferSource(operation) {
@@ -484,7 +502,8 @@ export function settleExecutionSiteTransferDestination(operation) {
 export function retainExecutionSiteTransferHolding(operation, value, bytes) {
   const state = transferOperations.get(operation) ??
     fail('ForeignExecutionSiteTransferOperation');
-  if (state.destinationStopped || state.holding !== undefined || value == null ||
+  if (state.source.revoked || state.destination.revoked ||
+      state.destinationStopped || state.holding !== undefined || value == null ||
       !bytesValue(bytes) || bytes > state.retention) {
     fail('ExecutionSiteHoldingRejected');
   }

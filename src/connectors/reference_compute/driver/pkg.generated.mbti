@@ -25,6 +25,8 @@ pub fn execute_async_numeric(AsyncNumericExecution) -> Result[Unit, @physical_st
 
 pub fn[C, E] execute_numeric_contribution(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch) -> Result[Unit, @physical_strategy.RunIssue]
 
+pub fn[C, E] execute_numeric_contribution_with_completion_admission(NumericComputeContribution, @physical_host.DispatchHost[C, E], @physical_host.PreparedTaskDispatch, () -> Bool) -> Result[Unit, @physical_strategy.RunIssue]
+
 pub fn[E] numeric_compute_contribution(NumericComputeContribution, (@physical_strategy.RunIssue) -> E, (@physical_strategy.RunIssue) -> E) -> @physical_host.ComputeContribution[Unit, E]
 
 pub fn numeric_contribution_registration(NumericComputeContribution) -> @connector_sdk.CapabilityRegistration

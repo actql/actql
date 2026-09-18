@@ -44,6 +44,8 @@ pub fn dispatch_work_registration(DispatchWork) -> @connector_sdk.CapabilityRegi
 
 pub fn[C, E, T] execute_compute_author_work(ComputeAuthorContext, DispatchHost[C, E], PreparedTaskDispatch, DispatchChannel[@connector_sdk.PreparedExecution[T, @physical_strategy.RunIssue, @physical_strategy.TaskPublication]], (T) -> Result[Unit, @physical_strategy.RunIssue]) -> Result[Unit, @physical_strategy.RunIssue]
 
+pub fn[C, E, T] execute_compute_author_work_with_completion_admission(ComputeAuthorContext, DispatchHost[C, E], PreparedTaskDispatch, DispatchChannel[@connector_sdk.PreparedExecution[T, @physical_strategy.RunIssue, @physical_strategy.TaskPublication]], (T) -> Result[Unit, @physical_strategy.RunIssue], () -> Bool) -> Result[Unit, @physical_strategy.RunIssue]
+
 pub fn[T] managed_task_estimate_quantities(Array[@execution_relation.ManagedProducerRead[T]]) -> TaskEstimateQuantities
 
 pub fn[E] open_adaptive_dispatch(DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityImplementations[(Unit, Int, TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], E]], Array[Int?], @physical_strategy.SearchLimits, Int) -> Result[AdaptiveDispatch[E], AdaptiveEstimateIssue[E]]

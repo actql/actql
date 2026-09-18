@@ -2,6 +2,7 @@
 // concrete copier is an adopted representation provider; common completion and
 // physical accounting remain in the existing runtime Core.
 import {executionSiteDescription, executionSiteTransferProvider,
+  executionSiteTransferOperationAvailable,
   releaseExecutionSiteCleanup,
   releaseExecutionSiteHolding,
   retainExecutionSiteTransferHolding,
@@ -316,6 +317,9 @@ export function createManagedSiteTransferCoordinator(
       });
       if (!validDestination(destination, estimate, occurrence)) {
         throw fail('InvalidTransferDestination');
+      }
+      if (!executionSiteTransferOperationAvailable(siteOperation)) {
+        throw fail('ExecutionSiteTransferCommitRejected');
       }
       // Source access has returned and the provider's commit boundary has
       // established the destination generation. Settle before retaining it.

@@ -124,7 +124,7 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
     async beforeNext() {
       await closeEnvironments([...environments].filter(([, value]) => !value.status().live));
     },
-    async run(task, signal) {
+    async run(task, signal, completionPermit) {
       const index = moon.strategyHostTask(task);
       const resident = moon.strategyHostResident(task);
       const inputs = [];
@@ -153,14 +153,23 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       const selected = checked(moon.strategyModule_duckdb_Dispatch(setup, task));
       const result = options.managedOutput
         ? await runManagedRetainedStrategyHostCompute(
-          selected, limits, imports, options.managedOutput, signal, `task-${index}`,
+          selected, limits, imports, options.managedOutput, signal,
+          `task-${index}`, completionPermit?.isAvailable,
         )
         : resident
-        ? await runResidentStrategyHostCompute(selected, environment, inputs, limits, mapping, signal,
-          options.retainedOutput, `task-${index}`)
+        ? await runResidentStrategyHostCompute(
+          selected, environment, inputs, limits, mapping, signal,
+          options.retainedOutput, `task-${index}`,
+          completionPermit?.isAvailable,
+        )
         : options.retainedOutput
-          ? await runRetainedStrategyHostCompute(selected, limits, imports, options.retainedOutput, signal, `task-${index}`)
-          : await runStrategyHostCompute(selected, limits, imports, signal);
+          ? await runRetainedStrategyHostCompute(
+            selected, limits, imports, options.retainedOutput, signal,
+            `task-${index}`, completionPermit?.isAvailable,
+          )
+          : await runStrategyHostCompute(
+            selected, limits, imports, signal, completionPermit?.isAvailable,
+          );
       return Object.freeze({
         completed: result.completed,
         material: result.material,

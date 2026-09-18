@@ -4,6 +4,7 @@
   "estimate_policy": null,
   "module": "NumericComputeContribution",
   "dispatch": "execute_numeric_contribution",
+  "completion_dispatch": "execute_numeric_contribution_with_completion_admission",
   "dispatch_result": "Unit",
   "managed_dispatch": "prepare_numeric_managed_dispatch",
   "managed_dispatch_optional": true,

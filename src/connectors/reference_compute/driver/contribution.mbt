@@ -35,6 +35,23 @@ pub fn[C, E] execute_numeric_contribution(
 }
 
 ///|
+/// Node and Workers Site bridges use this path so forced Site revocation can
+/// reject common completion after synchronous execution has settled.
+pub fn[C, E] execute_numeric_contribution_with_completion_admission(
+  configured : NumericComputeContribution,
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+  completion_ready : () -> Bool,
+) -> Result[Unit, @strategy.RunIssue] {
+  execute_numeric_dispatch_with_completion_admission(
+    configured.installed,
+    host,
+    task,
+    completion_ready,
+  )
+}
+
+///|
 pub fn[E] numeric_compute_contribution(
   configured : NumericComputeContribution,
   dispatch_issue : (@strategy.RunIssue) -> E,

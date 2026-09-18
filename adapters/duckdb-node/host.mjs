@@ -287,7 +287,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
 }
 
 export async function runResidentStrategyHostCompute(setup, environment, tables, limits, mappingLimits, signal,
-  retention, outputKey) {
+  retention, outputKey, completionReady) {
   const retained = retention === undefined ? undefined : retainedConfiguration(retention);
   if (retained && (retained.maxFrameBytes > limits.maxTransportBytes ||
       (retainedProcessStore(retained) &&
@@ -303,7 +303,10 @@ export async function runResidentStrategyHostCompute(setup, environment, tables,
   const moon = await loadRuntime();
   const inputs = checked(moon.residentBorrowSetup(setup, owned.env, tables,
     mappingLimits.maxEntries, mappingLimits.maxNameBytes, limits.maxSqlBytes));
-  return runHostCompute(setup, limits, undefined, signal, true, { ...owned, inputs }, retained, outputKey);
+  return runHostCompute(
+    setup, limits, undefined, signal, true, {...owned, inputs}, retained,
+    outputKey, completionReady,
+  );
 }
 
 // No source grant or connection enters Compute. The fixed product runtime
@@ -326,13 +329,21 @@ export async function runRetainedFixedHostCompute(setup, limits, importLimits, r
 }
 
 // Same trusted transport wiring, with completion owned by the checked DAG.
-export async function runStrategyHostCompute(setup, limits, importLimits, signal) {
-  return runHostCompute(setup, limits, importLimits, signal, true);
+export async function runStrategyHostCompute(
+  setup, limits, importLimits, signal, completionReady,
+) {
+  return runHostCompute(
+    setup, limits, importLimits, signal, true, undefined, undefined,
+    undefined, completionReady,
+  );
 }
 
 // Same selected DAG task and common reservation/completion boundary, with
 // additional independently reclaimed file storage. No private success path.
-export async function runRetainedStrategyHostCompute(setup, limits, importLimits, retention, signal, outputKey) {
+export async function runRetainedStrategyHostCompute(
+  setup, limits, importLimits, retention, signal, outputKey,
+  completionReady,
+) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
   importLimits = Object.freeze({ maxRows: importLimits?.maxRows, maxCells: importLimits?.maxCells });
@@ -346,7 +357,10 @@ export async function runRetainedStrategyHostCompute(setup, limits, importLimits
   if (retainedProcessStore(retained) && (typeof outputKey !== 'string' || !outputKey.length || outputKey.length > 256)) {
     throw new DuckDBTransportError('InvalidRetainedConfiguration');
   }
-  return runHostCompute(setup, limits, importLimits, signal, true, undefined, retained, outputKey);
+  return runHostCompute(
+    setup, limits, importLimits, signal, true, undefined, retained, outputKey,
+    completionReady,
+  );
 }
 
 // The first managed task consumes the standard checked dispatch ticket, but
@@ -354,6 +368,7 @@ export async function runRetainedStrategyHostCompute(setup, limits, importLimits
 // is the product counterpart of downstream managed-to-managed dispatch.
 export async function runManagedRetainedStrategyHostCompute(
   setup, limits, importLimits, retention, signal, outputKey,
+  completionReady,
 ) {
   signal?.throwIfAborted();
   limits = validateLimits(limits);
@@ -372,14 +387,17 @@ export async function runManagedRetainedStrategyHostCompute(
   }
   return runHostCompute(
     setup, limits, importLimits, signal, true, undefined, retained, outputKey,
-    true,
+    completionReady, true,
   );
 }
 
 async function runHostCompute(
   setup, limits, importLimits, signal, strategy, resident, retained, outputKey,
-  managed = false,
+  completionReady = () => true, managed = false,
 ) {
+  if (typeof completionReady !== 'function') {
+    throw new DuckDBTransportError('InvalidCompletionAdmission');
+  }
   const moon = await loadRuntime();
   const startedInputStreams = new Set();
   const beginInputStream = (port, wire, maxFrameBytes) => {
@@ -714,6 +732,9 @@ async function runHostCompute(
         readResultSql: () => checked(moon.computeResidentSql(run, 1)),
         cleanupSqls: () => checked(moon.computeResidentCleanupSql(run)),
       }), limits, consume, finishOutput, signal, accounting);
+      if (!completionReady()) {
+        throw new DuckDBTransportError('ExecutionSiteCompletionNotReady');
+      }
       checked(moon.computeResidentCommit(run));
     } else {
       result = await runFixedCompute(port, limits, importLimits, consume, signal, accounting);
@@ -727,6 +748,9 @@ async function runHostCompute(
     let logicalDiagnostics = {};
     if (managed) {
       checked(moon.managedOutputVerifyCompute(managedOutput));
+      if (!completionReady()) {
+        throw new DuckDBTransportError('ExecutionSiteCompletionNotReady');
+      }
       output = checked(moon.managedOutputCompleteStrategyCompute(
         managedOutput, managedCompletion,
       ));
@@ -769,6 +793,9 @@ async function runHostCompute(
         ),
       };
     } else {
+      if (!completionReady()) {
+        throw new DuckDBTransportError('ExecutionSiteCompletionNotReady');
+      }
       output = checked(moon.computeHostComplete(run));
       if (retained) registerRetained(output, moon.computeHostStreamMaterial(retainedHandle),
         input => moon.computeHostStreamReadable(retainedHandle, input), body, retained);
