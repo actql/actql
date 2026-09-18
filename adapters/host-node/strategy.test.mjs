@@ -74,6 +74,31 @@ test('installed completion observer receives the exact core output only after pu
   result.close();
 });
 
+test('installed Host snapshots the checked Program and Result inventory', async () => {
+  const registration = {}, f = fixture([registration]);
+  const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
+  const inventory = [
+    {name: 'first', task: 1},
+    {name: 'second', task: 1},
+  ];
+  f.core.programDefinitionCid = () => programDefinitionCid;
+  f.core.resultInventory = () => inventory;
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run() { f.complete.add(1); },
+  }]);
+  inventory[0].name = 'changed';
+  inventory.push({name: 'third', task: 1});
+  assert.equal(result.programDefinitionCid, programDefinitionCid);
+  assert.deepEqual(result.resultInventory, [
+    {name: 'first', task: 1},
+    {name: 'second', task: 1},
+  ]);
+  assert(Object.isFrozen(result.resultInventory));
+  assert(result.resultInventory.every(Object.isFrozen));
+  result.close();
+});
+
 test('resolved connector callback without common completion cannot issue an observed output', async () => {
   const registration = {}, f = fixture([registration]);
   let observed = 0;

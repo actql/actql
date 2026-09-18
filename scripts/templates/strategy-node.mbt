@@ -258,6 +258,44 @@ pub fn strategy_host_count(host : @builtin.ConfiguredComputeHost[@strategy.RunIs
 }
 
 ///|
+#export_name("strategyHostProgramDefinitionCid")
+pub fn strategy_host_program_definition_cid(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> String {
+  @strategy.graph_program_definition_cid(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
+#export_name("strategyHostResultNames")
+pub fn strategy_host_result_names(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[String] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index =>
+    @strategy.graph_result_name(graph, index).unwrap()
+  )
+}
+
+///|
+#export_name("strategyHostResultTasks")
+pub fn strategy_host_result_tasks(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Array[Int] {
+  let graph = @strategy.captured_dag_graph(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+  Array::makei(@strategy.graph_result_count(graph), index =>
+    @strategy.graph_result_task(graph, index).unwrap()
+  )
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]) -> Bool {
   let run = @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host))

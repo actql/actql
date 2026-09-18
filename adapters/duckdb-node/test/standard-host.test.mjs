@@ -1934,6 +1934,18 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   );
   try {
     assert.equal(fixture.strategyFixtureOpen(aliasedFixture, aliasedCapture.source()), true);
+    const aliasedSetup = fixture.strategyFixtureManagedDispatch(
+      aliasedFixture,
+    );
+    const aliasedCore = runtimeCore(hostRuntime);
+    assert.match(
+      aliasedCore.programDefinitionCid(aliasedSetup),
+      /^sha256:[0-9a-f]{64}$/u,
+    );
+    assert.deepEqual(aliasedCore.resultInventory(aliasedSetup), [
+      {name: 'first', task: 1},
+      {name: 'second', task: 1},
+    ], 'checked aliases remain distinct in the standard Host inventory');
     assert.deepEqual(
       fixture.strategyFixtureManagedObligationLabels(
         aliasedFixture, false, false, false,
@@ -1964,6 +1976,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
   try {
     assert.equal(fixture.strategyFixtureOpen(
       acquisitionResultFixture, acquisitionResultCapture.source()), true);
+    const acquisitionSetup = fixture.strategyFixtureManagedDispatch(
+      acquisitionResultFixture,
+    );
+    assert.deepEqual(runtimeCore(hostRuntime).resultInventory(
+      acquisitionSetup,
+    ), [{name: 'acquired', task: 0}],
+    'acquisition Results remain exact checked occurrences');
     assert.equal(
       fixture.strategyFixtureManagedPolicyAccepted(
         acquisitionResultFixture, true, false, false,

@@ -13,6 +13,22 @@ const tuplePair = value => Array.isArray(value)
 export function runtimeCore(moon) {
   return Object.freeze({
     count: moon.strategyHostCount,
+    programDefinitionCid: moon.strategyHostProgramDefinitionCid,
+    resultInventory(value) {
+      const names = moon.strategyHostResultNames(value);
+      const tasks = moon.strategyHostResultTasks(value);
+      if (!Array.isArray(names) || !Array.isArray(tasks) ||
+          names.length !== tasks.length ||
+          new Set(names).size !== names.length ||
+          names.some(name => typeof name !== 'string' || name.length === 0) ||
+          tasks.some(task => !Number.isSafeInteger(task) || task < 0)) {
+        throw new TypeError('Invalid checked Result inventory');
+      }
+      return Object.freeze(names.map((name, index) => Object.freeze({
+        name,
+        task: tasks[index],
+      })));
+    },
     next: value => checked(moon.strategyHostNext(value)),
     nextTask: moon.strategyHostNextTask,
     managedProducer: moon.strategyHostManagedProducer,

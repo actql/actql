@@ -245,6 +245,24 @@ export async function runInstalledStrategy(
     failure.cleanupPending = combined.status().pending;
     return failure;
   };
+  const programDefinitionCid = core.programDefinitionCid?.(setup);
+  const resultInventory = core.resultInventory?.(setup) ?? [];
+  if ((programDefinitionCid !== undefined &&
+      (typeof programDefinitionCid !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(programDefinitionCid))) ||
+      !Array.isArray(resultInventory) ||
+      resultInventory.some(result => result === null ||
+        typeof result !== 'object' || typeof result.name !== 'string' ||
+        result.name.length === 0 ||
+        !Number.isSafeInteger(result.task) || result.task < 0)) {
+    throw new StrategyHostError('InvalidCheckedResultInventory');
+  }
+  const checkedResultInventory = Object.freeze(resultInventory.map(result =>
+    Object.freeze({name: result.name, task: result.task})));
+  if (new Set(checkedResultInventory.map(result => result.name)).size !==
+      checkedResultInventory.length) {
+    throw new StrategyHostError('InvalidCheckedResultInventory');
+  }
   active.add(setup);
   const completed = [];
   const candidateExclusions = [];
@@ -597,6 +615,8 @@ export async function runInstalledStrategy(
     completed: Object.freeze(completed),
     candidateExclusions: Object.freeze(candidateExclusions),
     candidateComparisons: Object.freeze(candidateComparisons),
+    programDefinitionCid,
+    resultInventory: checkedResultInventory,
     usage: () => core.usage(setup),
     cleanupPending,
     cleanup() {

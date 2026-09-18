@@ -314,6 +314,33 @@ pub fn graph_program(graph : CheckedDAG) -> @checked.CheckedProgram {
 }
 
 ///|
+/// Exact identity of the admitted Program Definition. This is not a source
+/// text hash and is never derived from a task or connector configuration.
+pub fn graph_program_definition_cid(graph : CheckedDAG) -> String {
+  @context.program_identity_definition_cid(
+    @checked.source_identity(graph.program),
+  )
+}
+
+///|
+/// Complete checked root Result inventory, including distinct authored aliases.
+pub fn graph_result_count(graph : CheckedDAG) -> Int {
+  graph.results.length()
+}
+
+///|
+pub fn graph_result_task(graph : CheckedDAG, index : Int) -> Int? {
+  graph.results.get(index).map(result => result.task)
+}
+
+///|
+pub fn graph_result_name(graph : CheckedDAG, index : Int) -> String? {
+  graph.results
+  .get(index)
+  .map(result => @execution.managed_result_occurrence_name(result.occurrence))
+}
+
+///|
 pub fn graph_task_count(graph : CheckedDAG) -> Int {
   graph.owners.length()
 }
