@@ -4,7 +4,7 @@ Date: 2026-09-19
 
 Owner: common execution engine
 
-Verified implementation SHA: `c967148a39c398bc00b528a7567ffc0784ca8424`
+Verified implementation SHA: `1618a7211a9487ab9fbda282b9104facb9ea11a7`
 
 Plan: [Run-Bound Named Result Publication Implementation][plan]
 
@@ -221,6 +221,18 @@ const delivered = await deliverAuthorizedResult(
 );
 ```
 
+The sink implements bounded `write(bytes, signal)` and
+`finish(signal)` operations. Each write confirms its exact accepted byte
+count. `finish` must return `{confirmed: true}` before the Host can issue a
+successful delivery receipt. This terminal confirmation is required even for
+zero-byte JSONL. A failed or unknown terminal confirmation produces no
+success receipt.
+
+Delivery-record visibility is not durability. If synchronizing the record
+directory fails after the exact immutable record becomes visible, the caller
+receives a pending cleanup handle. Its retry synchronizes that same record;
+it does not serialize or send the Result again.
+
 Manifest access, Run-state access, Result retention extension, Result
 retirement, and metadata retirement use their separate installed authorities.
 Individual Result access does not require permission to inspect the Manifest.
@@ -241,7 +253,7 @@ Individual Result access does not require permission to inspect the Manifest.
 | Authorization | Manifest-only, Result-only, revoked, expired, wrong binding, use limit, and hidden absence tests |
 | Retention | Extension, forbidden extension, trusted-clock rollback, active readers, deletion retry, and metadata deletion tests |
 | Formats | MoonBit fixed JSON, JSONL, and CSV vectors plus real standard Host delivery |
-| Delivery | Success, idempotency, byte-zero retry, known prefix, unknown exposure, sink failure, and corruption tests |
+| Delivery | Success, idempotency, empty-stream finish, byte-zero retry, known prefix, unknown exposure, record durability retry, sink failure, and corruption tests |
 | Late publication | Real completed Local and DuckDB execution, exact success, authority, evidence, policy, and capacity rejection |
 | Cleanup | Primitive failures, unconfirmed readers, retry, shared allocations, losing attempts, and reservation return |
 | Restart | Freshly authorized committed delivery, integrity recheck, stale-handle rejection, and incomplete cleanup recovery |
@@ -288,7 +300,7 @@ plan, which is unrelated to this branch and was not staged or modified.
 | `moon test --target native --deny-warn` | 4,591 passed |
 | `node scripts/check-moonbit-api.mjs` | pass |
 | `node --test scripts/moonbit-environment.test.mjs` | 3 passed |
-| `npm run check:retained-boundary` | 221 passed |
+| `npm run check:retained-boundary` | 222 passed |
 | `npm run check:publication-runtime` | 16 passed |
 | retained benchmark fixture tests | 26 passed |
 | `npm run check:process-capacity` | 15 passed |
