@@ -204,16 +204,23 @@ export async function runInstalledStrategy(
     setup, core, siteInstallation,
   );
   const coreSiteOutputs = coreOutputSiteOwner(core, setup);
+  // A contribution that explicitly reports unconfirmed cleanup without a
+  // usable status authority cannot release its Site operation. There is no
+  // safe retry to invent, but the reservation and teardown responsibility
+  // must remain visible.
+  const unconfirmedSiteOperations = new Set();
   const settleSiteAfterFailure = (operation, error) => {
-    if (failureMember(error, 'cleanupPending') !== true ||
-        typeof failureMember(
-          failureMember(error, 'cleanupHandle'), 'status',
-        ) !== 'function') {
+    if (failureMember(error, 'cleanupPending') !== true) {
       settleExecutionSiteOperation(operation);
       return error;
     }
     const upstream = failureMember(error, 'cleanupHandle');
     const failure = ownedStrategyFailure(error, 'StrategyExecutionFailed');
+    if (typeof failureMember(upstream, 'status') !== 'function') {
+      unconfirmedSiteOperations.add(operation);
+      failure.cleanupPending = true;
+      return failure;
+    }
     const combined = Object.freeze({
       status() {
         let state;
@@ -288,6 +295,7 @@ export async function runInstalledStrategy(
   const cleanupPending = () => {
     if (pendingCloses.size) return true;
     if (unconfirmedRelease.size) return true;
+    if (unconfirmedSiteOperations.size) return true;
     for (const handle of pendingCleanup) {
       try { if (handle.status().pending) return true; }
       catch { return true; }
@@ -398,30 +406,70 @@ export async function runInstalledStrategy(
       if (managed && !core.selectManaged(setup, index, managed.entry.registration)) {
         throw new StrategyHostError('ManagedSelectionRejected');
       }
-      const siteCandidate = managed?.siteCandidate ?? executionSiteCandidate({
-        installation: siteInstallation,
-        contribution: entry,
-        site: executionSitePlacements(siteInstallation, entry)[0],
-        task: index,
-        registration: entry.registration,
-        inputs: [],
-        durationMilliseconds: 0n,
-        acceptsSiteTransfer: false,
-        capacity: (() => {
-          const value = core.taskCapacity(setup, index);
-          if (!Array.isArray(value) || value.length !== 2 ||
-              value.some(item => typeof item !== 'bigint' || item < 0n)) {
-            throw new StrategyHostError('InvalidExecutionSiteCapacity');
-          }
-          return Object.freeze({
-            retainedBytes: value[0],
-            executionBytes: value[1],
+      let siteCandidate = managed?.siteCandidate;
+      let legacyExclusions = [];
+      if (!siteCandidate) {
+        const value = core.taskCapacity(setup, index);
+        if (!Array.isArray(value) || value.length !== 2 ||
+            value.some(item => typeof item !== 'bigint' || item < 0n)) {
+          throw new StrategyHostError('InvalidExecutionSiteCapacity');
+        }
+        const capacity = Object.freeze({
+          retainedBytes: value[0],
+          executionBytes: value[1],
+        });
+        const placementCandidates = [];
+        for (const site of executionSitePlacements(siteInstallation, entry)) {
+          // The implementation and task are already fixed by the checked
+          // legacy dispatcher. Its unknown execution duration is a shared
+          // term, not zero work; only the known Site placement cost varies and
+          // participates in this comparison.
+          const candidate = executionSiteCandidate({
+            installation: siteInstallation,
+            contribution: entry,
+            site,
+            task: index,
+            registration: entry.registration,
+            inputs: [],
+            durationMilliseconds: 0n,
+            acceptsSiteTransfer: false,
+            capacity,
           });
-        })(),
-      });
+          if (candidate && candidate.excluded === undefined) {
+            placementCandidates.push(candidate);
+            candidateComparisons.push(Object.freeze({
+              task: index,
+              registrationKey: entry.managedSelectionKey,
+              site: executionSiteDescription(site),
+              durationMilliseconds: candidate.durationMilliseconds,
+              scope: 'selected-registration-placement',
+            }));
+          } else {
+            const reason = candidate?.excluded ?? 'ExecutionSiteUnavailable';
+            legacyExclusions.push(reason);
+            candidateExclusions.push(Object.freeze({
+              task: index,
+              registrationKey: entry.managedSelectionKey,
+              site: executionSiteDescription(site),
+              reason,
+              scope: 'selected-registration-placement',
+            }));
+          }
+        }
+        placementCandidates.sort((left, right) => {
+          if (left.durationMilliseconds !== right.durationMilliseconds) {
+            return left.durationMilliseconds < right.durationMilliseconds
+              ? -1 : 1;
+          }
+          return left.selectionKey < right.selectionKey ? -1
+            : left.selectionKey > right.selectionKey ? 1 : 0;
+        });
+        siteCandidate = placementCandidates[0];
+      }
       if (!siteCandidate || siteCandidate.excluded !== undefined) {
         throw new StrategyHostError(
-          siteCandidate?.excluded ?? 'ExecutionSiteUnavailable',
+          siteCandidate?.excluded ??
+            [...legacyExclusions].sort()[0] ?? 'ExecutionSiteUnavailable',
         );
       }
       const siteBinding = bindExecutionSiteCandidate(siteCandidate);
