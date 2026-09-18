@@ -1921,7 +1921,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -2007,10 +2007,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "join",
+            "layer": "performance",
+            "path": "src/execution_relation/binary_scale_wbtest.mbt",
+            "fixtures": [
+              "equality join uses indexed lookup outside output multiplicity"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. Cross-stage full-join identity transfer, compound nullable match keys, cardinality assertions, self join, broader types and diagnostics, indexed performance, and multi-join invocation support remain."
+        "All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. The equality path has fixed indexed lookup work outside result multiplicity and linear retained coordinates. Cross-stage full-join identity transfer, compound nullable match keys, cardinality assertions, self join, broader types and diagnostics, and multi-join invocation support remain."
       ]
     },
     {
@@ -3098,7 +3113,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -3165,10 +3180,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "except",
+            "layer": "performance",
+            "path": "src/execution_relation/binary_scale_wbtest.mbt",
+            "fixtures": [
+              "row set kernels stay within sort-merge scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets; empty sides, full relation_value types including references, detailed failure evidence, and performance remain."
+        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Empty sides, full relation_value types including references, and detailed failure evidence remain."
       ]
     },
     {
@@ -3194,7 +3224,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -3261,10 +3291,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "intersect",
+            "layer": "performance",
+            "path": "src/execution_relation/binary_scale_wbtest.mbt",
+            "fixtures": [
+              "row set kernels stay within sort-merge scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets; empty sides, full relation_value types including references, detailed failure evidence, and performance remain."
+        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets. Sort-merge work and retained storage have fixed scaling floors. Empty sides, full relation_value types including references, and detailed failure evidence remain."
       ]
     },
     {
@@ -3290,7 +3335,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -3361,10 +3406,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "cross_join",
+            "layer": "performance",
+            "path": "src/execution_relation/binary_scale_wbtest.mbt",
+            "fixtures": [
+              "cross join work and retention follow the emitted product"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, and bounded unpublished-workspace cleanup; the full relation_value type matrix, mixed physical input representations, cancellation lifecycle, and performance evidence remain."
+        "Unrestricted and singleton cross joins reach two managed consumers on three targets with left-major order, exact guards, bounded unpublished-workspace cleanup, and fixed work and retention proportional to the emitted product. The full relation_value type matrix, mixed physical input representations, and cancellation lifecycle remain."
       ]
     },
     {

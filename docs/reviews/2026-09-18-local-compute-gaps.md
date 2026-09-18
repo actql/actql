@@ -42,7 +42,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |
 | json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
 | unnest | C | C | P | P | Inner/outer managed paths and linear scaling are covered; nested-value matrix and native layout writer remain |
-| join | C | P | P | P | All five equality kinds are managed end-to-end; cross-stage full identity transfer, compound/self joins, types, diagnostics, and indexed performance remain |
+| join | C | P | P | P | All five equality kinds are managed end-to-end with indexed scaling; cross-stage full identity transfer, compound/self joins, types, and diagnostics remain |
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | P | Count is managed for empty, nullable, and compound keys with two consumers, result limits, and subquadratic work; non-count aggregates and remaining key domains remain |
 | distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
@@ -50,9 +50,9 @@ standard-Host candidate and execution support, not a direct kernel call.
 | assert_rows | C | C | C | P | Standard-Host failure-location evidence, exact budget boundaries, and the full KeyComparable domain including the shared owned-reference runtime boundary; compound nullable keys, demanded failures, and linear scaling are covered |
 | append | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all source variants, two consumers, and the performance floor are covered |
 | values | C | C | C | C | Complete: all fixed-contract variants, three targets, two consumers, limits, and performance floor |
-| except | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
-| intersect | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
-| cross_join | C | C | P | P | Full types, failure/cancellation lifetime, and performance evidence |
+| except | C | C | P | P | Sort-merge scaling is fixed; empty-side, reference-value, and failure evidence remain |
+| intersect | C | C | P | P | Sort-merge scaling is fixed; empty-side, reference-value, and failure evidence remain |
+| cross_join | C | C | P | P | Product-proportional scaling is fixed; full types and failure/cancellation lifetime remain |
 | analytic | C | - | - | - | Machine contract, lowering, and execution |
 
 ## Shared-boundary notifications
