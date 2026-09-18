@@ -911,6 +911,26 @@ fn local_values_group_program(variant : String) -> String {
         "[\"k\"]", "{\"lowest\":{\"fn\":\"min\",\"expr\":\"10 / id\",\"filter\":\"id > 0\"}}",
         "[\"id\",\"k\"]", "[\"k\",\"lowest\"]", "[\"lowest\",\"k\"]",
       )
+    "statistics" =>
+      (
+        "{\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"n\":1},{\"n\":2},{\"n\":3},{\"n\":null}]",
+        "[]",
+        "{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"population\":{\"fn\":\"var_pop\",\"field\":\"n\"}," +
+        "\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"n\"},\"sample\":{\"fn\":\"var_samp\"," +
+        "\"field\":\"n\"},\"sample_deviation\":{" +
+        "\"fn\":\"stddev_samp\",\"field\":\"n\"}}",
+        "[\"n\"]",
+        "[\"continuous\",\"discrete\",\"population\"," +
+        "\"population_deviation\",\"sample\",\"sample_deviation\"]",
+        "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
+        "\"population\",\"discrete\",\"continuous\"]",
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =

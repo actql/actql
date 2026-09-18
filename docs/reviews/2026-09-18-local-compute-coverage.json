@@ -3977,7 +3977,8 @@
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
-              "Local managed filtered expressions reach two independent consumers"
+              "Local managed filtered expressions reach two independent consumers",
+              "Local managed group statistics reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4002,7 +4003,8 @@
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
-              "Local managed filtered expressions reach two independent consumers"
+              "Local managed filtered expressions reach two independent consumers",
+              "Local managed group statistics reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -4120,9 +4122,25 @@
               "Local managed ordered aggregates reach two independent consumers",
               "Local managed collection aggregates reach two independent consumers",
               "Local managed nested distinct count reaches two independent consumers",
-              "Local managed filtered expressions reach two independent consumers"
+              "Local managed filtered expressions reach two independent consumers",
+              "Local managed group statistics reach two independent consumers"
             ],
             "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "conformance",
+            "path": "src/execution_relation/group_domains_wbtest.mbt",
+            "fixtures": [
+              "group compares every key domain including owned references",
+              "group discrete percentile covers every ordered domain"
+            ],
+            "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
@@ -4162,7 +4180,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, filtered expression arguments, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, demanded filter ordering, deterministic statistical folds, two consumers for implemented managed variants, exact work boundaries, and indexed scaling. Binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, filtered expression arguments, all formal key domains, all ordered discrete-percentile domains, continuous percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, demanded filter ordering, deterministic statistical folds, managed two-consumer execution, exact work boundaries, and indexed scaling. Binary64 sum and avg still require the shared attempt-bound numeric-observation path."
       ]
     },
     {

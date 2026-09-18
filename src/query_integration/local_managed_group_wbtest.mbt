@@ -233,7 +233,8 @@ fn run_local_managed_group_case(
     variant == "ordered" ||
     variant == "collections" ||
     variant == "nested_distinct" ||
-    variant == "filtered_expression"
+    variant == "filtered_expression" ||
+    variant == "statistics"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -498,5 +499,24 @@ test "Local managed filtered expressions reach two independent consumers" {
     ],
     ["{\"k\":1,\"lowest\":5}"],
     ["{\"lowest\":5,\"k\":1}"],
+  )
+}
+
+///|
+test "Local managed group statistics reach two independent consumers" {
+  run_local_managed_group_case(
+    "statistics",
+    ["{\"n\":1}", "{\"n\":2}", "{\"n\":3}", "{\"n\":null}"],
+    [
+      "{\"continuous\":2,\"discrete\":2,\"population\":" +
+      "0.6666666666666666,\"population_deviation\":" +
+      "0.816496580927726,\"sample\":1,\"sample_deviation\":1}",
+    ],
+    [
+      "{\"sample_deviation\":1,\"sample\":1," +
+      "\"population_deviation\":0.816496580927726," +
+      "\"population\":0.6666666666666666,\"discrete\":2," +
+      "\"continuous\":2}",
+    ],
   )
 }
