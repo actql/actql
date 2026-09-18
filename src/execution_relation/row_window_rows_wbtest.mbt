@@ -103,3 +103,72 @@ test "timestamp row windows convert canonical UTC values to Unix milliseconds" {
   assert_true(table.rows[1][1] is Number(1250))
   assert_true(table.rows[1][2] is Number(250))
 }
+
+///|
+test "fixed row windows retain exact grids across large signed offsets" {
+  let negative_offset = execute_window(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":2}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":-9007199254740991}}]",
+    "window_1",
+    max_rows=1,
+  )
+  assert_eq(negative_offset.rows.length(), 1)
+  assert_true(negative_offset.rows[0][1] is Number(5))
+  assert_true(negative_offset.rows[0][2] is Number(2))
+
+  let positive_offset = execute_window(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":-2}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":9007199254740991}}]",
+    "window_1",
+    max_rows=1,
+  )
+  assert_eq(positive_offset.rows.length(), 1)
+  assert_true(positive_offset.rows[0][1] is Number(1))
+  assert_true(positive_offset.rows[0][2] is Number(-2))
+}
+
+///|
+test "row windows preserve exact boundaries for fractional times" {
+  let table = execute_window(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":2.5},{\"at\":5},{\"at\":-1.5}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":2}}]",
+    "window_1",
+    max_rows=3,
+  )
+  assert_eq(table.rows.length(), 3)
+  assert_true(table.rows[0][1] is Number(5))
+  assert_true(table.rows[0][2] is Number(2))
+  assert_true(table.rows[1][1] is Number(8))
+  assert_true(table.rows[1][2] is Number(5))
+  assert_true(table.rows[2][1] is Number(-1))
+  assert_true(table.rows[2][2] is Number(-4))
+}
+
+///|
+test "sliding row windows use exact large-offset overlap boundaries" {
+  let table = execute_window(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":5}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":6,\"offset\":-9007199254740991}}]",
+    "window_1",
+    max_rows=2,
+  )
+  assert_eq(table.rows.length(), 2)
+  assert_true(table.rows[0][1] is Number(9))
+  assert_true(table.rows[0][2] is Number(-1))
+  assert_true(table.rows[1][1] is Number(15))
+  assert_true(table.rows[1][2] is Number(5))
+}
+
+///|
+test "row windows reject unrepresentable exact boundaries as arithmetic" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"at\":9007199254740991}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":9007199254740991}}]",
+  )
+  assert_true(
+    evaluate_sequence_components(
+      registered_relation_contracts(),
+      prepared_sequence(owner),
+      [],
+      ["window_1"],
+      { ..run_limits(), max_rows: 1, },
+      { remaining: 100000, max_frames: 100, },
+    )
+    is Err(Rows(1, WindowArithmetic(0))),
+  )
+}

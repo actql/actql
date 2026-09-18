@@ -17,6 +17,11 @@ fn local_values_window_program(variant : String) -> String {
         "[{\"at\":\"1969-12-31T23:59:59.999Z\",\"id\":1},{\"at\":\"1970-01-01T00:00:00.250Z\",\"id\":2}]",
         "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":1000,\"offset\":250}",
       )
+    "large_offset" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":2,\"id\":1}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":-9007199254740991}",
+      )
     _ => abort("unknown Local window fixture")
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
@@ -184,5 +189,14 @@ test "Local managed timestamp row windows use epoch milliseconds" {
       "{\"window_start\":-750,\"id\":1,\"window_end\":250,\"at\":\"1969-12-31T23:59:59.999Z\"}",
       "{\"window_start\":250,\"id\":2,\"window_end\":1250,\"at\":\"1970-01-01T00:00:00.250Z\"}",
     ],
+  )
+}
+
+///|
+test "Local managed row windows retain exact large-offset membership" {
+  run_local_managed_window_case(
+    "large_offset",
+    ["{\"at\":2,\"id\":1,\"window_end\":5,\"window_start\":2}"],
+    ["{\"window_start\":2,\"id\":1,\"window_end\":5,\"at\":2}"],
   )
 }
