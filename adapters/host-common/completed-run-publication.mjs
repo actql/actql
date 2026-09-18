@@ -79,6 +79,15 @@ function validateOptions(options) {
   }
 }
 
+function uniqueContracts(values) {
+  const seen = new Set();
+  return values.filter(value => {
+    if (seen.has(value.identity)) return false;
+    seen.add(value.identity);
+    return true;
+  });
+}
+
 async function releasePreparedResults(exported, primary) {
   const handles = exported
     .map(value => value?.prepared)
@@ -211,7 +220,9 @@ export async function publishCompletedEffectFreeRun(options) {
       orderings: Object.freeze(exported.map(
         value => value.publication.ordering,
       )),
-      retentions: Object.freeze(results.map(value => value.retention)),
+      retentions: Object.freeze(uniqueContracts(
+        results.map(value => value.retention),
+      )),
       durableBindings: Object.freeze(exported.map(
         value => value.publication.durableBinding,
       )),

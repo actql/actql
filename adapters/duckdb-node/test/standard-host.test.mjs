@@ -647,6 +647,205 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 publicationStore.storeAuthorityCid);
               assert.equal(bindingValue.byte_count, stored.physical.bytes);
               assert.equal(await stored.prepared.release(), true);
+
+              const programDefinitionCid = execution.programDefinitionCid;
+              const template = runtime.publicationControl.sealRunEvidence(
+                'bound_invocation_template',
+                JSON.stringify({
+                  version: 'actql-bound-invocation-template/0.1',
+                  program_definition_cid: programDefinitionCid,
+                  parameter_values_cid: hash('parameter-values'),
+                  invocation_bindings_cid: hash('invocation-bindings'),
+                  check_environment_cid: hash('check-environment'),
+                  grammar_manifest_cid: hash('grammar-manifest'),
+                  required_profile_contracts: [],
+                  barrier_contract_manifest_cid:
+                    hash('barrier-contract-manifest'),
+                  source_evidence: 'unbound',
+                }),
+                contractLimits,
+              );
+              const compiledPlan = runtime.publicationControl.seal(
+                'compiled_plan',
+                JSON.stringify({
+                  version: 'actql-compiled-plan/0.1',
+                  compiler_version: 'compiler-test-0.1',
+                  aoa_ir_version: 'aoa-ir-test-0.1',
+                  executable_plan_cid: hash('executable-plan'),
+                  program_definition_cid: programDefinitionCid,
+                  program_semantics_cid: hash('program-semantics'),
+                  aoa_contract_cid: hash('aoa-contract'),
+                  aoa_logical_cid: hash('aoa-logical'),
+                }),
+                contractLimits,
+              );
+              const preparedInvocation =
+                runtime.publicationControl.sealRunEvidence(
+                  'prepared_invocation',
+                  JSON.stringify({
+                    version: 'actql-prepared-invocation/0.1',
+                    invocation_template_cid: template.identity,
+                    compiled_plan_cid: compiledPlan.identity,
+                    execution_context_cid: hash('execution-context'),
+                    host_policy_cid: hash('host-policy'),
+                    policy_decision: 'allow',
+                    expires_at: '2026-09-18T03:00:00.000Z',
+                  }),
+                  contractLimits,
+                );
+              const authorization =
+                runtime.publicationControl.sealRunEvidence(
+                  'run_authorization',
+                  JSON.stringify({
+                    version: 'actql-run-authorization/0.1',
+                    prepared_invocation_cid: preparedInvocation.identity,
+                    execution_context_cid: hash('execution-context'),
+                    host_policy_cid: hash('host-policy'),
+                    decision: 'allowed',
+                  }),
+                  contractLimits,
+                );
+              const admission =
+                runtime.publicationControl.admitRunPublication(
+                  template,
+                  preparedInvocation,
+                  authorization,
+                  compiledPlan,
+                );
+              const publishedRun =
+                runtime.publicationControl.issueRunDefinition(admission, {
+                  scopeId: 'standard-host-publication-scope',
+                  runId: 'standard-host-publication-run',
+                  inputArtifactSetCid: hash('input-artifact-set'),
+                  createdAt: '2026-09-18T00:00:00.000Z',
+                  validUntil: '2026-09-18T02:30:00.000Z',
+                }, contractLimits);
+              const publishedObservation =
+                runtime.publicationControl.sealRunEvidence(
+                  'observation_set',
+                  JSON.stringify({
+                    version: 'actql-observation-set/0.1',
+                    invocation_template_cid: template.identity,
+                    source_evidence_cids: [],
+                    captured_input_artifact_cids: [],
+                    consistency: 'no_external_sources',
+                    capture_started_at: null,
+                    capture_completed_at: null,
+                    replayability: {
+                      materialized: false,
+                      availability_evidence_cids: [],
+                    },
+                    data_policy_cid: effectiveDataPolicyCid,
+                  }),
+                  contractLimits,
+                );
+              const publishedInvocation =
+                runtime.publicationControl.issueRunInvocation(
+                  template, publishedObservation, contractLimits,
+                );
+              const publishedRetention = runtime.publicationControl.seal(
+                'result_retention_policy',
+                JSON.stringify({
+                  version: 'actql-result-retention-policy/0.1',
+                  retention_contract_cid: hash('retention-contract'),
+                  effective_data_policy_cid: effectiveDataPolicyCid,
+                  available_until: '2026-09-18T01:00:00.000Z',
+                  delete_by: '2026-09-18T02:00:00.000Z',
+                  extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+                  metadata_retention_policy_cid:
+                    hash('metadata-retention'),
+                  clock_contract_cid: hash('clock-contract'),
+                }),
+                contractLimits,
+              );
+              const normalizationJournal =
+                runtime.publicationControl.sealRunEvidence(
+                  'normalization_journal',
+                  JSON.stringify({
+                    version: 'actql-normalization-journal/0.1',
+                    rule_catalog_cid: hash('rule-catalog'),
+                    entries: [],
+                  }),
+                  contractLimits,
+                );
+              const authoringContext =
+                runtime.publicationControl.sealRunEvidence(
+                  'authoring_context',
+                  JSON.stringify({
+                    version: 'actql-authoring-context/0.1',
+                    program_definition_cid: programDefinitionCid,
+                    annotations: [],
+                  }),
+                  contractLimits,
+                );
+              const published = await execution.publishEffectFreeRun(
+                publicationStore,
+                {
+                  admission,
+                  runDefinition: publishedRun,
+                  invocation: publishedInvocation,
+                  observation: publishedObservation,
+                  normalizationJournal,
+                  authoringContext,
+                  results: execution.publicationInventory.occurrences.map(
+                    (occurrence, resultIndex) => ({
+                      retention: publishedRetention,
+                      evidenceContext: {
+                        computationContractCid: hash(
+                          `checked-computation-${resultIndex}`,
+                        ),
+                        inputRelationCids: [],
+                        scopeCid: hash(`result-scope-${resultIndex}`),
+                        effectiveDataPolicyCid,
+                        authorityScopeCid: hash('authority-scope'),
+                      },
+                    }),
+                  ),
+                  receiptEvidence: {
+                    bindings: [],
+                    sourceEvidence: [],
+                    modelEvidence: [],
+                    barrierAttemptReceiptCids: [],
+                  },
+                  captureEvidence: {
+                    pendingSourceStateAdvances: [],
+                    modelEvidence: [],
+                  },
+                  request: {
+                    tenantId: 'tenant-a',
+                    authorityScopeCid: hash('authority-scope'),
+                    publicationPolicyCid: hash('publication-policy'),
+                    publicationTargetCid: hash('publication-target'),
+                    requestedAt: '2026-09-18T00:00:00.000Z',
+                  },
+                  attempt: {
+                    attemptId: 'standard-host-attempt',
+                    fenceCid: hash('publication-fence'),
+                    externalIdempotencyKey: undefined,
+                    startedAt: '2026-09-18T00:00:01.000Z',
+                  },
+                  outputLimits: publicationResultExportLimits,
+                  contractLimits,
+                  now: () => '2026-09-18T00:00:02.000Z',
+                },
+                controller.signal,
+              );
+              assert.equal(published.publication.state, 'succeeded');
+              assert.equal(published.results.length,
+                execution.publicationInventory.occurrences.length);
+              assert.equal(published.evidence.artifacts.length,
+                execution.publicationInventory.occurrences.length);
+              for (const occurrence of
+                execution.publicationInventory.occurrences) {
+                const received = [];
+                await publicationStore.consumeCommittedResult({
+                  tenantId: 'tenant-a',
+                  authorityScopeCid: hash('authority-scope'),
+                  runDefinitionCid: publishedRun.identity,
+                }, occurrence.definitionContract.identity,
+                () => true, chunk => received.push(Buffer.from(chunk)));
+                assert.ok(received.length > 0);
+              }
             } finally {
               await publicationStore.close();
               await rm(publicationDirectory, {recursive: true, force: true});
