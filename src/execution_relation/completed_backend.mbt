@@ -288,6 +288,11 @@ fn evaluate_completed_rows(
           kernel, input, id, max_rows, control, output, workspace,
         ).map(table => RowTable(table))
       },
+      watermark: fn(kernel, input, id) {
+        evaluate_watermark_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        ).map(table => RowTable(table))
+      },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
           body,

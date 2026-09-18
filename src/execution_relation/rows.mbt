@@ -199,6 +199,11 @@ fn evaluate_rows_with_workspace(
           kernel, input, id, max_rows, control, output, workspace,
         )
       },
+      watermark: fn(kernel, input, id) {
+        evaluate_watermark_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
       body: fn(body, input, id, logical) {
         evaluate_row_body(
           body,
@@ -231,6 +236,7 @@ priv struct RowBackend[T] {
   unpivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   pivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   lag : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
+  watermark : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
 }
 
@@ -290,6 +296,9 @@ fn[T : RelationRows] evaluate_rows_dispatch(
   }
   if @lower.kernel_lag(kernel) is Some(_) {
     return (backend.lag)(kernel, input, @lower.node_id(node))
+  }
+  if @lower.kernel_watermark(kernel) is Some(_) {
+    return (backend.watermark)(kernel, input, @lower.node_id(node))
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
