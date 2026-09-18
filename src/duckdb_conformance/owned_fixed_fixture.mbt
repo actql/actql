@@ -706,14 +706,12 @@ pub fn managed_query_completion(
   authorize : () -> Bool,
   transport : (@execution.ManagedOutputValueReceipt) -> Bool,
 ) -> @duckdb_compute.ManagedInputDuckDBCompletion[Int] raise {
-  let fragment_start = @duckdb.managed_fixed_query_fragment_start(query)
   let generated = fixture_generated(
     @duckdb.managed_fixed_query_owner(query),
     registry_json,
     values_json,
     fragment_json,
     @duckdb.managed_fixed_query_requires_fragment(query),
-    fragment_start=Int::max(0, fragment_start),
   )
   @duckdb_compute.prepare_managed_input_duckdb_completion(
     query,

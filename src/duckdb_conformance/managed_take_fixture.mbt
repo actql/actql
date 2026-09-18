@@ -190,7 +190,6 @@ fn managed_take_fixture_base(
     values_contract,
     fragment,
     deriving || chained,
-    fragment_start=if chained { 0 } else { 1 },
   )
   let completion = @execution.prepare_managed_completion_port(
     profile,

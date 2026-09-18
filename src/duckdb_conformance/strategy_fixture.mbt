@@ -805,14 +805,12 @@ pub fn strategy_fixture_managed_configuration(
     abort("managed choice")
   }
   let query = @connector.managed_fixed_compute_choice_payload(choice, prepared).unwrap()
-  let fragment_start = @duckdb.managed_fixed_query_fragment_start(query)
   let generated = fixture_generated(
     @duckdb.managed_fixed_query_owner(query),
     f.registry_json,
     f.values_json,
     f.fragment_json,
     @duckdb.managed_fixed_query_requires_fragment(query),
-    fragment_start=Int::max(0, fragment_start),
   ) catch {
     _ => abort("managed completion fixture")
   }

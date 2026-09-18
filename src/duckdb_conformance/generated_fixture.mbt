@@ -6,7 +6,6 @@ fn fixture_generated(
   values_json : String,
   fragment_json : String,
   filter : Bool,
-  fragment_start? : Int = 0,
 ) -> @execution.GeneratedSequence raise {
   let registry_limits : @execution.RegistryLimits = {
     max_body_bytes: 100000,
@@ -37,44 +36,64 @@ fn fixture_generated(
       max_literal_text_bytes: 10000,
     },
   }).unwrap()
-  let expression_kernel = match
-    @lower.prepare_kernel_roots(sequence, fragment_start, {
-      max_roots: 100,
-      max_pointer_bytes: 10000,
-      max_work: 100000,
-    }) {
-    Ok(_) => true
-    Err(@lower.NotExpressionKernel) => false
-    Err(_) => fail("invalid conformance fragment root")
-  }
-  let contexts = if filter && expression_kernel {
-    let pipeline = @lower.prepare_fragment_pipeline(sequence, fragment_start, {
-      max_roots: 100,
-      max_pointer_bytes: 10000,
-      max_work: 100000,
-    }).unwrap()
-    let request = @lower.prepare_fragment_request(pipeline, 100L, 1000L).unwrap()
-    let context = @execution.prepare_runtime_fragment(
-      request,
-      fragment,
-      {
-        max_roots: 100,
-        max_nodes: 1000,
-        max_work: 100000,
-        max_text_bytes: 100000,
-        max_links: 10000,
-      },
-      registry_limits,
-      {
-        max_input_rows: 100L,
-        max_value_bytes: 1000L,
-        max_live_value_bytes: 10000L,
-        max_work: 100000L,
-      },
-    ).unwrap()
-    [context]
-  } else {
-    []
+  let contexts = []
+  if filter {
+    for step in 0..<@lower.sequence_count(sequence) {
+      let required = match @lower.sequence_step(sequence, step) {
+        Some(@lower.RowStep(kernel)) =>
+          match @lower.kernel_body(kernel) {
+            @lower.SnapshotMap(_)
+            | @lower.OrderedBindings(_)
+            | @lower.Filter(_)
+            | @lower.AssertAll(_) => true
+            @lower.Groups(group) => {
+              let mut found = false
+              for aggregate = 0
+                  aggregate < @lower.group_aggregate_count(group)
+                  aggregate = aggregate + 1 {
+                if @lower.group_aggregate_requires_expression_context(
+                    @lower.group_aggregate_at(group, aggregate).unwrap(),
+                  ) {
+                  found = true
+                }
+              }
+              found
+            }
+            @lower.AnalyticRows(analytic) =>
+              @lower.analytic_requires_expression_context(analytic)
+            _ => false
+          }
+        _ => false
+      }
+      if required {
+        let pipeline = @lower.prepare_fragment_pipeline(sequence, step, {
+          max_roots: 100,
+          max_pointer_bytes: 10000,
+          max_work: 100000,
+        }).unwrap()
+        let request = @lower.prepare_fragment_request(pipeline, 100L, 1000L).unwrap()
+        contexts.push(
+          @execution.prepare_runtime_fragment(
+            request,
+            fragment,
+            {
+              max_roots: 100,
+              max_nodes: 1000,
+              max_work: 100000,
+              max_text_bytes: 100000,
+              max_links: 10000,
+            },
+            registry_limits,
+            {
+              max_input_rows: 100L,
+              max_value_bytes: 1000L,
+              max_live_value_bytes: 10000L,
+              max_work: 100000L,
+            },
+          ).unwrap(),
+        )
+      }
+    }
   }
   @execution.prepare_generated_sequence(
     registered,
