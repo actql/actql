@@ -106,9 +106,9 @@
       "canonical_operations": ["REL.topk"],
       "machine_registry": "registered",
       "variant_scope": ["compound order", "stable ties", "literal and parameter k", "NULL ordering"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and Local kernel are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/top_k_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/top_k_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Literal global TopK with checked order completion reaches two managed consumers; parameter binding, nullable/compound ordering, and exact/one-short budgets have focused conformance coverage. Broader type conformance, a parameterized standard-Host E2E, and performance evidence remain."]
     },
     {
       "operation": "top_k_by",
@@ -117,9 +117,9 @@
       "canonical_operations": ["REL.topk_partitioned"],
       "machine_registry": "registered",
       "variant_scope": ["partition keys", "compound order", "stable ties", "literal and parameter k", "nullable keys"],
-      "layers": {"checker":"complete","lowering":"missing","kernel":"missing","managed":"missing","source_connection":"missing","two_consumer_e2e":"missing","three_target_conformance":"missing","performance":"missing"},
-      "evidence": {"source_connection":[],"two_consumer_e2e":[],"conformance":[],"performance":[]},
-      "gaps": ["Common lowering and partitioned TopK execution are missing."]
+      "layers": {"checker":"complete","lowering":"complete","kernel":"partial","managed":"partial","source_connection":"partial","two_consumer_e2e":"partial","three_target_conformance":"partial","performance":"missing"},
+      "evidence": {"source_connection":["src/lowering_relation/top_k_encode_test.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"two_consumer_e2e":["src/query_integration/local_managed_unary_wbtest.mbt"],"conformance":["src/execution_relation/top_k_sequence_wbtest.mbt","src/query_integration/local_managed_unary_wbtest.mbt"],"performance":[]},
+      "gaps": ["Repeated and empty partition occurrences, nullable canonical partition order, and exact/one-short budgets execute through Local. A parameterized standard-Host E2E, broader type conformance, and performance evidence remain."]
     },
     {
       "operation": "row_window",

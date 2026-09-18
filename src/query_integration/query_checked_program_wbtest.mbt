@@ -184,6 +184,10 @@ fn local_ordered_set_program(kind : String) -> String {
   let operation = match kind {
     "sort" => "{\"sort\":[{\"id\":\"asc\"}],\"as\":\"out\"}"
     "take" => "{\"take\":{\"count\":2,\"offset\":1},\"as\":\"out\"}"
+    "top_k" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":2,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
+    "top_k_by" =>
+      "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k_by\":{\"partition_by\":[\"id\",\"id\"],\"k\":1,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
     "distinct" => "{\"distinct\":true,\"as\":\"out\"}"
     "dedupe_rows" =>
       "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
@@ -209,6 +213,8 @@ fn local_values_unary_program(kind : String) -> String {
   }
   if kind == "sort" ||
     kind == "take" ||
+    kind == "top_k" ||
+    kind == "top_k_by" ||
     kind == "distinct" ||
     kind == "dedupe_rows" {
     return local_ordered_set_program(kind)

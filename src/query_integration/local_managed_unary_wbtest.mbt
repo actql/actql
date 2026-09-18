@@ -24,6 +24,8 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"id\":2,\"amount\":30}",
       ]
     "take" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
+    "top_k" => ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
+    "top_k_by" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
     "distinct" =>
       [
         "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
@@ -41,6 +43,8 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
     ]
   } else if kind == "sort" ||
     kind == "take" ||
+    kind == "top_k" ||
+    kind == "top_k_by" ||
     kind == "distinct" ||
     kind == "dedupe_rows" {
     [
@@ -181,7 +185,7 @@ test "Local managed unary source forms feed two downstream Computes" {
     kind in [
       "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
       "drop", "json_pick", "assert_where", "assert_unique", "sort", "take", "distinct",
-      "dedupe_rows",
+      "top_k", "top_k_by", "dedupe_rows",
     ] {
     run_local_managed_unary_case(kind)
   }
