@@ -256,6 +256,14 @@ test "Result availability separates guarantee expiry and deletion deadline" {
     Ok("delete_due"),
   )
   assert_eq(
+    result_metadata_retention_state(retention, "2026-09-18T04:59:59.999Z"),
+    Ok("retained"),
+  )
+  assert_eq(
+    result_metadata_retention_state(retention, "2026-09-18T05:00:00.000Z"),
+    Ok("delete_due"),
+  )
+  assert_eq(
     result_retention_clock_contract_cid(retention),
     Ok(delivery_test_cid("d")),
   )

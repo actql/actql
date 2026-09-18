@@ -1320,6 +1320,18 @@ pub fn strategy_result_read_availability(
 }
 
 ///|
+#export_name("strategyResultMetadataRetentionState")
+pub fn strategy_result_metadata_retention_state(
+  retention : @publication.PublicationContract,
+  observed_at : String,
+) -> String raise NodeHostFailure {
+  match @publication.result_metadata_retention_state(retention, observed_at) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyIssueResultRetentionExtension")
 pub fn strategy_issue_result_retention_extension(
   base : @publication.PublicationContract,

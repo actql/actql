@@ -230,6 +230,43 @@ test "publication preflight fixes the complete immutable inventory" {
       ordering_test_cid("2"),
     ),
   )
+  let early_metadata_deletion = seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    ordering_test_cid("5") +
+    "\",\"effective_data_policy_cid\":\"" +
+    ordering_test_cid("7") +
+    "\",\"available_until\":\"2026-09-18T01:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    ordering_test_cid("6") +
+    "\",\"metadata_delete_by\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"clock_contract_cid\":\"" +
+    ordering_test_cid("7") +
+    "\"}",
+    8192,
+    64,
+    5,
+  ).unwrap()
+  assert_false(
+    publication_preflight_valid(
+      admission,
+      run,
+      invocation,
+      [first, second],
+      [early_metadata_deletion, early_metadata_deletion],
+      computations,
+      inputs,
+      scopes,
+      policies,
+      authorities,
+      request,
+      attempt,
+      ordering_test_cid("2"),
+    ),
+  )
   assert_true(
     !publication_preflight_valid(
       admission,

@@ -265,7 +265,10 @@ pub fn publication_preflight_valid(
       return false
     }
   }
-  retentions.all(fn(retention) { retention.name == "result_retention_policy" })
+  retentions.all(fn(retention) {
+    retention.name == "result_retention_policy" &&
+    result_retention_intervals_valid(retention)
+  })
 }
 
 ///|

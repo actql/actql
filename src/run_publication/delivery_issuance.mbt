@@ -195,6 +195,26 @@ pub fn result_read_retention_policy_cid(
 }
 
 ///|
+
+///|
+pub fn result_retention_intervals_valid(
+  retention : PublicationContract,
+) -> Bool {
+  guard retention.name == "result_retention_policy" &&
+    contract_string(retention, "available_until") is Some(available_until) &&
+    contract_string(retention, "delete_by") is Some(delete_by) &&
+    contract_string(retention, "extension_ceiling_at") is Some(ceiling) &&
+    contract_string(retention, "metadata_delete_by") is Some(metadata_delete_by) &&
+    valid_timestamp(available_until) &&
+    valid_timestamp(delete_by) &&
+    valid_timestamp(ceiling) &&
+    valid_timestamp(metadata_delete_by) else {
+    return false
+  }
+  available_until <= delete_by && delete_by <= metadata_delete_by
+}
+
+///|
 fn retention_interval_state(
   retention : PublicationContract,
   observed_at : String,
@@ -202,15 +222,30 @@ fn retention_interval_state(
   guard contract_string(retention, "available_until") is Some(available_until) &&
     contract_string(retention, "delete_by") is Some(delete_by) &&
     valid_timestamp(observed_at) &&
-    valid_timestamp(available_until) &&
-    valid_timestamp(delete_by) &&
-    available_until <= delete_by else {
+    result_retention_intervals_valid(retention) else {
     return Err(DeliveryIssuanceReferenceMismatch("retention_interval"))
   }
   if observed_at <= available_until {
     Ok("available")
   } else if observed_at < delete_by {
     Ok("retention_expired")
+  } else {
+    Ok("delete_due")
+  }
+}
+
+///|
+pub fn result_metadata_retention_state(
+  retention : PublicationContract,
+  observed_at : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  guard result_retention_intervals_valid(retention) &&
+    valid_timestamp(observed_at) &&
+    contract_string(retention, "metadata_delete_by") is Some(delete_by) else {
+    return Err(DeliveryIssuanceReferenceMismatch("metadata_retention_interval"))
+  }
+  if observed_at < delete_by {
+    Ok("retained")
   } else {
     Ok("delete_due")
   }
@@ -296,7 +331,9 @@ pub fn issue_result_retention_extension(
     valid_timestamp(available_until) &&
     valid_timestamp(delete_by) &&
     valid_timestamp(ceiling) &&
+    valid_timestamp(metadata_delete_by) &&
     valid_timestamp(admitted_at) &&
+    result_retention_intervals_valid(base) &&
     base_until <= available_until &&
     available_until <= delete_by &&
     available_until <= ceiling &&

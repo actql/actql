@@ -665,6 +665,14 @@ function publicationControl(moon) {
         token(manifest), resultName, token(retention), observedAt,
       ));
     },
+    resultMetadataRetentionState(retention, observedAt) {
+      if (typeof observedAt !== 'string') {
+        throw new TypeError('Invalid Result metadata retention request');
+      }
+      return checked(moon.strategyResultMetadataRetentionState(
+        token(retention), observedAt,
+      ));
+    },
     issueResultRetentionExtension(
       base, availableUntil, admittedAt, limits,
     ) {
