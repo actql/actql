@@ -597,7 +597,8 @@ test "finite publication registry admits every non-Result contract" {
       c +
       "\",\"codec_contract_cid\":\"" +
       c +
-      "\",\"material_generation_cid\":\"" +
+      "\",\"result_fields\":[\"answer\"]" +
+      ",\"material_generation_cid\":\"" +
       c +
       "\",\"store_authority_cid\":\"" +
       c +

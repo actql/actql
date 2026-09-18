@@ -781,6 +781,17 @@ export async function openLocalPublicationStore(
     if (schemaCid !== binding.result_schema_cid) {
       fail('PublicationDurableBindingMismatch');
     }
+    let schema;
+    try { schema = JSON.parse(schemaBytes.toString('utf8')); }
+    catch (error) { fail('PublicationDurableBindingMismatch', error); }
+    if (schema === null || typeof schema !== 'object' ||
+        Array.isArray(schema) || !Array.isArray(binding.result_fields) ||
+        binding.result_fields.length !== Object.keys(schema).length ||
+        binding.result_fields.some(field =>
+          typeof field !== 'string' ||
+          !Object.prototype.hasOwnProperty.call(schema, field))) {
+      fail('PublicationDurableBindingMismatch');
+    }
     return Object.freeze({
       binding,
       physical,
@@ -1213,6 +1224,8 @@ export async function openLocalPublicationStore(
       durableResultBindingCid: selected.contract.identity,
       logicalResultCid: verified.binding.logical_result_cid,
       resultSchemaCid: verified.binding.result_schema_cid,
+      resultSchemaWire: verified.schema.wire,
+      resultFields: Object.freeze([...verified.binding.result_fields]),
       rowCount: verified.binding.row_count,
       bytes: consumed.bytes,
     });

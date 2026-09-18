@@ -28,6 +28,7 @@ struct CompletedRelationExportReceipt {
   rows : CompletedOutputExportReceipt
   logical : LogicalRelationIdentity
   schema : RelationSchemaIdentity
+  fields : Array[String]
 }
 
 ///|
@@ -376,8 +377,27 @@ pub fn finish_completed_relation_export(
   result.bind(finished => {
     guard finished.2 is Some(logical) else { return Err(Closed) }
     guard value.schema is Some(schema) else { return Err(Closed) }
-    Ok(({ rows: finished.0, logical, schema, }, finished.1))
+    Ok(
+      (
+        {
+          rows: finished.0,
+          logical,
+          schema,
+          fields: completed_export_field_names(value.rows),
+        },
+        finished.1,
+      ),
+    )
   })
+}
+
+///|
+/// Return the checked Result field order retained by the same immutable
+/// export receipt that established the logical and physical identities.
+pub fn completed_relation_export_field_names(
+  value : CompletedRelationExportReceipt,
+) -> Array[String] {
+  value.fields.copy()
 }
 
 ///|

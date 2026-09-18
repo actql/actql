@@ -849,6 +849,8 @@ pub fn strategy_issue_durable_result_binding(
   ordering : @publication.PublicationContract,
   retention : @publication.PublicationContract,
   codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
   material_generation_cid : String,
   store_authority_cid : String,
   row_count : Int,
@@ -867,6 +869,8 @@ pub fn strategy_issue_durable_result_binding(
       ordering,
       retention,
       codec_contract_cid,
+      result_fields,
+      result_schema_wire,
       material_generation_cid,
       store_authority_cid,
       row_count,
@@ -1090,6 +1094,208 @@ pub fn strategy_delivery_record_transition(
   next : @publication.PublicationContract,
 ) -> Bool {
   @publication.validate_delivery_record_transition(previous, next) is Ok(_)
+}
+
+///|
+#export_name("strategyResultSerializationContractCid")
+pub fn strategy_result_serialization_contract_cid(
+  format : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.result_serialization_contract_cid(
+      format, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueManifestReadGrant")
+pub fn strategy_issue_manifest_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_manifest_read_grant(
+      index, manifest, principal_id, purpose, data_ceiling_cid, max_bytes, max_uses,
+      expires_at, authorization_context_cid, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueResultReadGrant")
+pub fn strategy_issue_result_read_grant(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_names : Array[String],
+  formats : Array[String],
+  principal_id : String,
+  purpose : String,
+  data_ceiling_cid : String,
+  max_bytes : Int,
+  max_uses : Int,
+  expires_at : String,
+  authorization_context_cid : String,
+  egress_admission_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_read_grant(
+      index, manifest, result_names, formats, principal_id, purpose, data_ceiling_cid,
+      max_bytes, max_uses, expires_at, authorization_context_cid, egress_admission_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueDeliveryAttempt")
+pub fn strategy_issue_delivery_attempt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_delivery_attempt(
+      index, manifest, grant, result_name, format, attempt_id, requested_at, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueResultDeliveryReceipt")
+pub fn strategy_issue_result_delivery_receipt(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  grant : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  delivered_byte_count : Int,
+  delivered_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_result_delivery_receipt(
+      index, manifest, grant, attempt, delivered_byte_count, delivered_sha256, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueDeliveryRecord")
+pub fn strategy_issue_delivery_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  confirmed_byte_count : Int,
+  exposure : String,
+  possible_unconfirmed_max_bytes : Int?,
+  delivered_sha256 : String?,
+  receipt : @publication.PublicationContract?,
+  failure_cid : String?,
+  observed_at : String,
+  cleanup_owner_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_delivery_record(
+      attempt, previous, state, confirmed_byte_count, exposure, possible_unconfirmed_max_bytes,
+      delivered_sha256, receipt, failure_cid, observed_at, cleanup_owner_cids, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPrepareResultDeliverySerializer")
+pub fn strategy_prepare_result_delivery_serializer(
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.ResultDeliverySerializer raise NodeHostFailure {
+  match
+    @publication.prepare_result_delivery_serializer(
+      format, schema_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyBeginResultDelivery")
+pub fn strategy_begin_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.begin_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyNextResultDeliveryRow")
+pub fn strategy_next_result_delivery_row(
+  serializer : @publication.ResultDeliverySerializer,
+  row_wire : String,
+) -> String raise NodeHostFailure {
+  match @publication.next_result_delivery_row(serializer, row_wire) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyFinishResultDelivery")
+pub fn strategy_finish_result_delivery(
+  serializer : @publication.ResultDeliverySerializer,
+) -> String raise NodeHostFailure {
+  match @publication.finish_result_delivery(serializer) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
 }
 
 ///|
@@ -1404,6 +1610,26 @@ pub fn strategy_host_output_export_result_schema_cid(
   @execution.relation_schema_cid(
     @execution.completed_relation_export_schema_identity(receipt),
   )
+}
+
+///|
+#export_name("strategyHostOutputExportResultSchemaWire")
+pub fn strategy_host_output_export_result_schema_wire(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("strategyHostOutputExportResultFields")
+pub fn strategy_host_output_export_result_fields(
+  value : StrategyHostOutputExport,
+) -> Array[String] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.completed_relation_export_field_names(receipt)
 }
 
 ///|

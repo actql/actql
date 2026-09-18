@@ -186,6 +186,7 @@
         "result_schema_cid",
         "ordering_evidence_cid",
         "codec_contract_cid",
+        "result_fields",
         "material_generation_cid",
         "store_authority_cid",
         "effective_retention_policy_cid",
@@ -225,6 +226,15 @@
         "codec_contract_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "material_generation_cid": {
           "type": "string",
@@ -956,7 +966,7 @@
     "result_definition": "sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973",
     "run_invocation": "sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81",
     "result_retention_policy": "sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb",
-    "durable_result_binding": "sha256:5d7617bb6df3a5131e939dd8564a4a9a9fe83137a5ffee5d00a4156f7df13ca4",
+    "durable_result_binding": "sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4",
     "publication_request": "sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82",
     "publication_attempt": "sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5",
     "publication_record": "sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d",

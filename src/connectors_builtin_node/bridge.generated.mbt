@@ -809,6 +809,8 @@ pub fn strategy_issue_durable_result_binding(
   ordering : @publication.PublicationContract,
   retention : @publication.PublicationContract,
   codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
   material_generation_cid : String,
   store_authority_cid : String,
   row_count : Int,
@@ -821,8 +823,8 @@ pub fn strategy_issue_durable_result_binding(
   match
     @publication.issue_durable_result_binding(
       run_definition, definition, invocation, artifact, ordering, retention, codec_contract_cid,
-      material_generation_cid, store_authority_cid, row_count, byte_count, physical_sha256,
-      max_wire_bytes, max_nodes, max_depth,
+      result_fields, result_schema_wire, material_generation_cid, store_authority_cid,
+      row_count, byte_count, physical_sha256, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1526,6 +1528,15 @@ pub fn strategy_host_output_export_result_schema_wire(
   @execution.relation_schema_wire(
     @execution.completed_relation_export_schema_identity(receipt),
   )
+}
+
+///|
+#export_name("strategyHostOutputExportResultFields")
+pub fn strategy_host_output_export_result_fields(
+  value : StrategyHostOutputExport,
+) -> Array[String] raise NodeHostFailure {
+  guard value.receipt is Some(receipt) else { raise InvalidCommand }
+  @execution.completed_relation_export_field_names(receipt)
 }
 
 ///|

@@ -664,6 +664,8 @@ test('portable control validates Receipt and Captured Run references',
     retention,
   }, {
     codecContractCid: cid('b'),
+    resultFields: ['value'],
+    resultSchemaWire,
     materialGenerationCid: physicalCid,
     storeAuthorityCid: cid('a'),
     rowCount: 1,

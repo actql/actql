@@ -72,6 +72,7 @@ priv enum FieldRule {
   SafeCount
   Choice(Array[String])
   CidList
+  NonemptyTextList
   Inventory
   ResultList
   FormatList
@@ -235,6 +236,7 @@ fn contract_spec(name : String) -> ContractSpec? {
           required("result_schema_cid", Cid),
           required("ordering_evidence_cid", Cid),
           required("codec_contract_cid", Cid),
+          required("result_fields", NonemptyTextList),
           required("material_generation_cid", Cid),
           required("store_authority_cid", Cid),
           required("effective_retention_policy_cid", Cid),
@@ -709,6 +711,22 @@ fn validate_rule(value : @json.CanonicalValue, rule : FieldRule) -> Bool {
       for item in items {
         guard string_value(item) is Some(text) else { return false }
         if !valid_contract_cid(text) || seen.contains(text) {
+          return false
+        }
+        seen.push(text)
+      }
+      true
+    }
+    NonemptyTextList => {
+      guard value is @json.Array(values) else { return false }
+      let items = @json.array_values(values)
+      if items.is_empty() {
+        return false
+      }
+      let seen : Array[String] = []
+      for item in items {
+        guard string_value(item) is Some(text) else { return false }
+        if text.is_empty() || seen.contains(text) {
           return false
         }
         seen.push(text)

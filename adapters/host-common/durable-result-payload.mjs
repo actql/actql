@@ -35,6 +35,10 @@ function validIdentity(value) {
     /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.resultSchemaCid) &&
     typeof value.resultSchemaWire === 'string' &&
+    Array.isArray(value.resultFields) && value.resultFields.length > 0 &&
+    new Set(value.resultFields).size === value.resultFields.length &&
+    value.resultFields.every(field =>
+      typeof field === 'string' && field.length > 0) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.codecContractCid) &&
     ['bytes', 'nodes', 'rows'].every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0) &&
@@ -168,6 +172,8 @@ export async function storeCompletedResultPublicationPayload(
         retention: publication.retention,
       }, {
         codecContractCid: orderedRows.codecContractCid,
+        resultFields: orderedRows.resultFields,
+        resultSchemaWire: orderedRows.resultSchemaWire,
         materialGenerationCid: physical.cid,
         storeAuthorityCid: store.storeAuthorityCid,
         rowCount: orderedRows.rows,

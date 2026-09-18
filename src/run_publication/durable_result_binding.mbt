@@ -19,6 +19,8 @@ pub fn issue_durable_result_binding(
   ordering : PublicationContract,
   retention : PublicationContract,
   codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
   material_generation_cid : String,
   store_authority_cid : String,
   row_count : Int,
@@ -81,11 +83,48 @@ pub fn issue_durable_result_binding(
     return Err(DurableBindingReferenceMismatch("row_count"))
   }
   if !valid_contract_cid(codec_contract_cid) ||
+    result_fields.is_empty() ||
     !valid_contract_cid(material_generation_cid) ||
     !valid_contract_cid(store_authority_cid) ||
     row_count < 0 ||
     byte_count < 0 ||
     !valid_digest(physical_sha256) {
+    return Err(DurableBindingInvalidPhysicalIdentity)
+  }
+  let seen : Array[String] = []
+  for field in result_fields {
+    guard @canonical.normalize_nfc_lf(field) is Ok(normalized) else {
+      return Err(DurableBindingInvalidPhysicalIdentity)
+    }
+    if field.is_empty() || normalized != field || seen.contains(field) {
+      return Err(DurableBindingInvalidPhysicalIdentity)
+    }
+    seen.push(field)
+  }
+  let schema = match
+    parse_contract_wire(
+      result_schema_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(DurableBindingInvalidPhysicalIdentity)
+  }
+  guard object_fields(schema) is Ok(schema_fields) else {
+    return Err(DurableBindingInvalidPhysicalIdentity)
+  }
+  let canonical_schema = @json.stringify_value(
+    schema, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(DurableBindingEncoding)
+  }
+  let schema_identity = @json.cid_value(
+    schema, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(DurableBindingEncoding)
+  }
+  if canonical_schema != result_schema_wire ||
+    schema_identity != schema_cid ||
+    schema_fields.length() != result_fields.length() ||
+    result_fields.any(field => @json.object_field(schema, field) is None) {
     return Err(DurableBindingInvalidPhysicalIdentity)
   }
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
@@ -109,6 +148,12 @@ pub fn issue_durable_result_binding(
     @encode.string_value(writer, ordering.identity)
     @encode.key(writer, "physical_sha256")
     @encode.string_value(writer, physical_sha256)
+    @encode.key(writer, "result_fields")
+    @encode.begin_array(writer)
+    for field in result_fields {
+      @encode.string_value(writer, field)
+    }
+    @encode.end_array(writer)
     @encode.key(writer, "result_definition_cid")
     @encode.string_value(writer, definition.identity)
     @encode.key(writer, "result_schema_cid")

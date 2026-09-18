@@ -16,6 +16,12 @@ const safeCount = {
   maximum: 9007199254740991,
 };
 const nonempty = {type: 'string', minLength: 1};
+const resultFields = {
+  type: 'array',
+  minItems: 1,
+  uniqueItems: true,
+  items: {type: 'string', minLength: 1},
+};
 const clone = value => structuredClone(value);
 
 function schema(name, version, required, properties, allOf) {
@@ -134,6 +140,7 @@ export function publicationSchemas() {
       'result_schema_cid',
       'ordering_evidence_cid',
       'codec_contract_cid',
+      'result_fields',
       'material_generation_cid',
       'store_authority_cid',
       'effective_retention_policy_cid',
@@ -150,6 +157,7 @@ export function publicationSchemas() {
       result_schema_cid: clone(cid),
       ordering_evidence_cid: clone(cid),
       codec_contract_cid: clone(cid),
+      result_fields: clone(resultFields),
       material_generation_cid: clone(cid),
       store_authority_cid: clone(cid),
       effective_retention_policy_cid: clone(cid),

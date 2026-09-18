@@ -113,9 +113,11 @@ content does not merge distinct Run occurrences.
 <!-- requirement-block: result-artifacts.a-durable-result-binding-must-bind-logical-and-physical-identities-with-the-effective-retention-policy -->
 A durable Result binding MUST bind the exact Run, Result Definition,
 Invocation, ordered logical Result, schema, ordering evidence, codec, material
-generation, Store authority, physical digest and size, and effective retention
-policy. The payload digest, LogicalRelation CID, and delivery-byte hash remain
-different identities even when one bounded pass computes them.
+generation, Store authority, physical digest and size, exact declared Result
+field order, and effective retention policy. The payload digest,
+LogicalRelation CID, and delivery-byte hash remain different identities even
+when one bounded pass computes them. The field order is retained from the same
+checked Result export and is not reconstructed from canonical object-key order.
 
 <!-- requirement-block: result-artifacts.a-publication-attempt-must-not-contain-its-future-outcome-or-terminal-record -->
 A Publication Attempt MUST bind immutable request intent, Run, unique attempt,
@@ -882,7 +884,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_definition sha256:13d36d24b7adcd346f7719a513f6850260bd84738c897c5bd41def223daba973
 ../../../spec/contracts/actql-run-publication.json#/schemas/run_invocation sha256:6295e0fe2d2b066f39c3d5ecd7c16125018aa2d46d0cfa3537c213d109b96c81
 ../../../spec/contracts/actql-run-publication.json#/schemas/result_retention_policy sha256:a9d44b6289099516bf9f01bb696691cb9d92ea39d9a2aaaf57d8e3b27fc69aeb
-../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:5d7617bb6df3a5131e939dd8564a4a9a9fe83137a5ffee5d00a4156f7df13ca4
+../../../spec/contracts/actql-run-publication.json#/schemas/durable_result_binding sha256:f775ad3a57f76aa6fd0272d498e7c9045644874288f796b1d5daae3cbc15fed4
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_request sha256:ad979661e8eacccf11714411861325038f11192f6531dcc8093c480a359e9c82
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_attempt sha256:bd7b6a8ebf31e1c61c952fe2a5a5cf29813676f19777940fd771b573b86000a5
 ../../../spec/contracts/actql-run-publication.json#/schemas/publication_record sha256:ebc1b92730a37fb67b3fed5b70ffca9e5a8b64aefcafc546cdc875dc7b5caa4d

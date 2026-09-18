@@ -119,6 +119,8 @@ pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise 
 
 pub fn strategy_host_output_export_ordering_evidence_json(StrategyHostOutputExport) -> String raise NodeHostFailure
 
+pub fn strategy_host_output_export_result_fields(StrategyHostOutputExport) -> Array[String] raise NodeHostFailure
+
 pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
@@ -201,7 +203,7 @@ pub fn strategy_issue_delivery_attempt(@run_publication.PublicationContract, @ru
 
 pub fn strategy_issue_delivery_record(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, Int, String, Int?, String?, @run_publication.PublicationContract?, String?, String, Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, Int, Int, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

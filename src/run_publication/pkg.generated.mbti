@@ -40,7 +40,7 @@ pub fn issue_delivery_attempt(PublicationContract, PublicationContract, Publicat
 
 pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
-pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
+pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[PublicationContract, DurableResultBindingIssue]
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 

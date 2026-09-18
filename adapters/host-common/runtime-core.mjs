@@ -361,6 +361,8 @@ function publicationControl(moon) {
         token(chain.ordering),
         token(chain.retention),
         physical.codecContractCid,
+        physical.resultFields,
+        physical.resultSchemaWire,
         physical.materialGenerationCid,
         physical.storeAuthorityCid,
         physical.rowCount,
@@ -768,6 +770,8 @@ function outputExportControl(moon, publications) {
           checked(moon.strategyHostOutputExportResultSchemaCid(value)),
         resultSchemaWire:
           checked(moon.strategyHostOutputExportResultSchemaWire(value)),
+        resultFields:
+          checked(moon.strategyHostOutputExportResultFields(value)),
         codecContractCid:
           checked(moon.strategyHostOutputExportCodecContractCid(value)),
         bytes: checked(moon.strategyHostOutputExportBytes(value)),

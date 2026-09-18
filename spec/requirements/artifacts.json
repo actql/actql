@@ -70,7 +70,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.a-durable-result-binding-must-bind-logical-and-physical-identities-with-the-effective-retention-policy",
-      "statement_sha256": "c040dfc0648d5b11d8d606a9dd1ece5978ecbcb45f82d452c869f0ec25b5feb2",
+      "statement_sha256": "698f534cfad7f7d6a69ad95c60d8a832394c4f14c65c68b36895e17475b0460e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -521,7 +521,7 @@
     },
     {
       "requirement_id": "actql.protocol.artifacts/machine-contracts.exact-artifacts",
-      "statement_sha256": "b1a41655fa4e19e85ec02302ee8573ed6d4e37958fdb5bd293f5355fdf0dce65",
+      "statement_sha256": "d34290b49d01ae43db2ad66d8551faa7fe4ff7b87afadb05370803df8266bd87",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
