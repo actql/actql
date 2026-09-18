@@ -381,6 +381,7 @@ fn lower_expression_measured(
     let op = match step.payload {
       Derive(op) | Where(op) | CountGroup(op) | AssertRows(op) => op
       Values(_)
+      | RowWindow(_)
       | Select(_)
       | Limit(_)
       | TopK(_)

@@ -9,6 +9,7 @@ struct PreparedSequence {
 ///|
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
+  WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
   CrossJoinStep(PreparedCrossJoinKernel)
@@ -31,6 +32,7 @@ pub(all) enum SequenceIssue {
   InvalidSequenceLimits
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
+  WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
@@ -139,6 +141,26 @@ pub fn prepare_sequence(
         rows -= count
         ValuesStep(prepared)
       }
+      RowWindow(_) => {
+        let (prepared, used_names, used_bindings, used_work) = match
+          prepare_window(
+            owner,
+            i,
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(WindowFailure(i, issue))
+        }
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        WindowStep(prepared)
+      }
       Derive(_)
       | Where(_)
       | Select(_)
@@ -187,6 +209,7 @@ pub fn emit_sequence_steps(
   for step in value.steps {
     match step {
       ValuesStep(v) => emit_values_node(v, out)
+      WindowStep(v) => emit_window_node(v, out)
       JoinStep(v) => emit_join_kernel(v, out)
       CrossJoinStep(v) => emit_cross_join_kernel(v, out)
       AppendStep(v) => emit_append_kernel(v, out)

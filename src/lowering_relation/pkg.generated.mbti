@@ -15,6 +15,7 @@ import {
   "actql/actql/relation_set",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
+  "actql/actql/temporal_window",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -128,6 +129,8 @@ pub fn emit_set_kernel(PreparedSetKernel, @encode_core.Writer) -> Unit raise @en
 pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_window_node(PreparedWindow, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_wire_value(@value_admission.Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -483,6 +486,28 @@ pub fn source(PreparedNode) -> @decode_core.Cursor
 
 pub fn usage(Prepared) -> Usage
 
+pub fn window_authored_step(PreparedWindow) -> Int64?
+
+pub fn window_boundaries(PreparedWindow) -> (@relation_schema.FieldName, @relation_schema.FieldName)
+
+pub fn window_effective_step(PreparedWindow) -> Int64
+
+pub fn window_input(PreparedWindow) -> String
+
+pub fn window_kind(PreparedWindow) -> @temporal_window.Kind
+
+pub fn window_offset(PreparedWindow) -> Int64
+
+pub fn window_owner(PreparedWindow) -> BoundPrepared
+
+pub fn window_requires_epoch_milliseconds(PreparedWindow) -> Bool
+
+pub fn window_size(PreparedWindow) -> Int64
+
+pub fn window_step_index(PreparedWindow) -> Int
+
+pub fn window_time(PreparedWindow) -> @relation_schema.FieldName
+
 // Errors
 
 // Types and methods
@@ -759,6 +784,7 @@ type OrderedReferences
 
 pub enum Payload {
   Values(@relation_values.CheckedValues)
+  RowWindow(@temporal_window.CheckedWindow)
   Derive(@relation_typing.CheckedOperation)
   Where(@relation_typing.CheckedOperation)
   Select(@relation_typing.CheckedOperation)
@@ -836,6 +862,7 @@ type PreparedSetKernel
 
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
+  WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
   CrossJoinStep(PreparedCrossJoinKernel)
@@ -844,6 +871,8 @@ pub enum PreparedStep {
 }
 
 type PreparedValues
+
+type PreparedWindow
 
 type RootEvidence
 
@@ -880,6 +909,7 @@ pub(all) enum SequenceIssue {
   InvalidSequenceLimits
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
+  WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
   CrossJoinFailure(Int, CrossJoinIssue)
@@ -940,6 +970,15 @@ pub(all) enum ValuesIssue {
   MissingValuesParameter(String)
   InvalidValuesRow
 }
+
+pub(all) enum WindowIssue {
+  InvalidWindowLimits
+  MissingWindowNode
+  InvalidWindowWiring
+  WindowBudgetExceeded
+  MissingWindowParameter(String)
+  InvalidWindowParameter(String)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

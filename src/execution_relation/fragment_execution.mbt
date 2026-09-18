@@ -39,6 +39,7 @@ fn attach_fragment_budgets(
     }
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => ()
+      @lower.WindowStep(_) => ()
       @lower.AppendStep(_) => ()
       @lower.SetStep(_) => ()
       @lower.JoinStep(kernel) => {

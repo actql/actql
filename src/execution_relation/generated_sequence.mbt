@@ -206,6 +206,7 @@ pub fn generated_sequence_all_row_kernels(
     match step {
       @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))
       @lower.ValuesStep(_)
+      | @lower.WindowStep(_)
       | @lower.JoinStep(_)
       | @lower.CrossJoinStep(_)
       | @lower.AppendStep(_)

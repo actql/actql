@@ -140,6 +140,7 @@ pub fn prepare_kernel_roots(
   }
   match step {
     ValuesStep(_)
+    | WindowStep(_)
     | JoinStep(_)
     | CrossJoinStep(_)
     | AppendStep(_)
@@ -191,6 +192,7 @@ fn prepare_root_range(
     work -= 1
     let bindings = match sequence.steps[step_index] {
       ValuesStep(_)
+      | WindowStep(_)
       | JoinStep(_)
       | CrossJoinStep(_)
       | AppendStep(_)

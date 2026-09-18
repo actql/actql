@@ -27,6 +27,7 @@ struct PreparedNode {
 /// not a second semantic IR, and must not be passed to an execution engine.
 pub enum Payload {
   Values(@values.CheckedValues)
+  RowWindow(@window.CheckedWindow)
   Derive(@relation.CheckedOperation)
   Where(@relation.CheckedOperation)
   Select(@relation.CheckedOperation)
@@ -139,6 +140,11 @@ pub fn input_id(value : Prepared, index : Int) -> String? {
 pub fn operation(value : PreparedNode) -> String {
   match value.payload {
     Values(_) => "REL.values"
+    RowWindow(value) =>
+      match @window.kind(@window.options(value)) {
+        @window.Fixed => "REL.window.fixed"
+        @window.Sliding => "REL.window.sliding"
+      }
     Derive(_) => "REL.derive"
     Where(_) => "REL.where"
     Select(_) => "REL.select"
@@ -174,6 +180,7 @@ pub fn operation(value : PreparedNode) -> String {
 fn classify(op : @pipeline.CheckedOperation) -> Payload? {
   match op {
     Values(v) => Some(Values(v))
+    Window(value) => Some(RowWindow(value))
     Unary(v) =>
       match @relation.operation(v) {
         Derive => Some(Derive(v))
@@ -203,7 +210,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | Sequence(_)
     | TimeSeries(_)
     | Calendar(_)
-    | Window(_)
     | Projection(_)
     | Graph(_)
     | GraphMatch(_)
@@ -286,6 +292,7 @@ pub fn prepare(
     }
     let (preferred, arity) = match payload {
       Values(_) => ("values", 0)
+      RowWindow(_) => ("window", 1)
       Derive(_) => ("derive", 1)
       Where(_) => ("where", 1)
       Select(_) => ("select", 1)
@@ -365,6 +372,7 @@ pub fn prepare(
         }
       }
       Values(_)
+      | RowWindow(_)
       | Derive(_)
       | Where(_)
       | Select(_)

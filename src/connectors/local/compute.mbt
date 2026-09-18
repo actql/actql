@@ -78,6 +78,7 @@ pub fn local_managed_sequence_supported(
   @execution.generated_sequence_all_steps(sequence, fn(step) {
     match step {
       @lower.ValuesStep(_) => true
+      @lower.WindowStep(_) => false
       @lower.RowStep(kernel) =>
         match @lower.kernel_body(kernel) {
           SnapshotMap(_)

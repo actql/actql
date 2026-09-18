@@ -7,6 +7,7 @@ import {
   "actql/actql/relation_append" @append,
   "actql/actql/relation_set" @set,
   "actql/actql/relation_values" @values,
+  "actql/actql/temporal_window" @window,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/parameter_binding" @parameter,
@@ -24,4 +25,5 @@ import {
 import {
   "actql/actql/source_value" @source,
   "actql/actql/carrier_contract" @carrier,
+  "moonbitlang/core/debug",
 } for "test"
