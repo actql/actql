@@ -22,6 +22,7 @@ pub enum KernelBody {
   TopK(Int64, @pipeline.LogicalOrder)
   PartitionedTopK(Int64, @pipeline.LogicalOrder)
   Unnest(@schema.FieldName, String, String?, Bool, Int64?)
+  Unpivot(Array[@schema.FieldName], Array[@schema.FieldName], String, String)
   DistinctRows
   DedupeRows
   StableSort(@pipeline.SortOrder?)
@@ -87,6 +88,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | TopK(_, _)
     | PartitionedTopK(_, _)
     | Unnest(_, _, _, _, _)
+    | Unpivot(_, _, _, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -112,6 +114,7 @@ pub fn ordered_binding_at(
     | TopK(_, _)
     | PartitionedTopK(_, _)
     | Unnest(_, _, _, _, _)
+    | Unpivot(_, _, _, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -134,6 +137,8 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     PartitionedTopK(count, order) => PartitionedTopK(count, order)
     Unnest(column, element, index, outer, max_items) =>
       Unnest(column, element, index, outer, max_items)
+    Unpivot(columns, keep, name_column, value_column) =>
+      Unpivot(columns.copy(), keep.copy(), name_column, value_column)
     DistinctRows => DistinctRows
     DedupeRows => DedupeRows
     StableSort(order) => StableSort(order)
@@ -155,6 +160,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | TopK(_, _)
     | PartitionedTopK(_, _)
     | Unnest(_, _, _, _, _)
+    | Unpivot(_, _, _, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -207,6 +213,7 @@ fn prepare_kernel_measured(
     | TopK(op)
     | TopKBy(op)
     | Unnest(op)
+    | Unpivot(op)
     | Distinct(op)
     | Dedupe(op)
     | Sort(op)
@@ -489,6 +496,46 @@ fn prepare_kernel_measured(
       }
       Unnest(column, element, index, outer, max_items)
     }
+    Reshape if @relation.operation(checked) == @relation.Unpivot => {
+      let columns = @relation.unpivot_columns_count(checked)
+      let keep = @relation.unpivot_keep_count(checked)
+      guard @relation.unpivot_outputs(checked)
+        is Some((name_column, value_column)) else {
+        return Err(InvalidKernelWiring)
+      }
+      let bindings = columns + keep + 2
+      if columns <= 0 ||
+        columns > max_bindings ||
+        keep > max_bindings - columns ||
+        2 > max_bindings - columns - keep ||
+        bindings > remaining.max_work {
+        return Err(KernelBudgetExceeded)
+      }
+      let lowered_columns : Array[@schema.FieldName] = []
+      let lowered_keep : Array[@schema.FieldName] = []
+      for i = 0; i < columns + keep + 2; i = i + 1 {
+        let name = if i < columns {
+          let field = @relation.unpivot_column_at(checked, i).unwrap().field
+          lowered_columns.push(field)
+          @schema.reference_name(field)
+        } else if i < columns + keep {
+          let field = @relation.unpivot_keep_at(checked, i - columns).unwrap().field
+          lowered_keep.push(field)
+          @schema.reference_name(field)
+        } else if i == columns + keep {
+          name_column
+        } else {
+          value_column
+        }
+        let bytes = @utf8.encode(name).length()
+        if bytes > names_remaining {
+          return Err(KernelBudgetExceeded)
+        }
+        names_remaining -= bytes
+      }
+      remaining = { ..remaining, max_work: remaining.max_work - bindings, }
+      Unpivot(lowered_columns, lowered_keep, name_column, value_column)
+    }
     RowOperation if @relation.operation(checked) == @relation.DedupeRows => {
       let keys = @relation.dedupe_key_count(checked)
       let terms = @relation.dedupe_order_count(checked)
@@ -660,6 +707,7 @@ fn prepare_kernel_measured(
       .map(@pipeline.sort_completion_count)
       .unwrap_or(0)
     Unnest(_, _, index, _, _) => 2 + (if index is Some(_) { 1 } else { 0 })
+    Unpivot(columns, keep, _, _) => columns.length() + keep.length() + 2
     StableSort(resolution) =>
       @relation.sort_term_count(checked) +
       resolution

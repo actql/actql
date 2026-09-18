@@ -99,6 +99,53 @@ pub fn kernel_unnest(
 }
 
 ///|
+pub fn kernel_unpivot_column_count(kernel : PreparedKernel) -> Int {
+  match kernel.body {
+    Unpivot(columns, _, _, _) => columns.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn kernel_unpivot_column_at(
+  kernel : PreparedKernel,
+  index : Int,
+) -> @schema.FieldName? {
+  match kernel.body {
+    Unpivot(columns, _, _, _) => columns.get(index)
+    _ => None
+  }
+}
+
+///|
+pub fn kernel_unpivot_keep_count(kernel : PreparedKernel) -> Int {
+  match kernel.body {
+    Unpivot(_, keep, _, _) => keep.length()
+    _ => 0
+  }
+}
+
+///|
+pub fn kernel_unpivot_keep_at(
+  kernel : PreparedKernel,
+  index : Int,
+) -> @schema.FieldName? {
+  match kernel.body {
+    Unpivot(_, keep, _, _) => keep.get(index)
+    _ => None
+  }
+}
+
+///|
+pub fn kernel_unpivot_outputs(kernel : PreparedKernel) -> (String, String)? {
+  match kernel.body {
+    Unpivot(_, _, name_column, value_column) =>
+      Some((name_column, value_column))
+    _ => None
+  }
+}
+
+///|
 pub fn kernel_is_projection(kernel : PreparedKernel) -> Bool {
   kernel.body is Select(_)
 }

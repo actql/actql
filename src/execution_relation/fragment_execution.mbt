@@ -91,6 +91,17 @@ fn attach_fragment_budgets(
               return Err(FragmentContext(i, KernelMismatch))
             }
           }
+          @lower.Unpivot(columns, keep, _, _) => {
+            let schema = @lower.kernel_input_schema(kernel)
+            for field in columns + keep {
+              let name = @schema.reference_name(field)
+              if !spend_control(control, 1) ||
+                !spend_control_text(control, name) ||
+                @schema.lookup(schema, field) is None {
+                return Err(FragmentContext(i, KernelMismatch))
+              }
+            }
+          }
           @lower.AssertUnique(keys) => {
             let schema = @lower.kernel_input_schema(kernel)
             for name in keys {

@@ -125,6 +125,7 @@ pub fn prepare_kernel_roots(
         | TopK(_, _)
         | PartitionedTopK(_, _)
         | Unnest(_, _, _, _, _)
+        | Unpivot(_, _, _, _)
         | DistinctRows
         | DedupeRows
         | StableSort(_)
@@ -166,6 +167,7 @@ fn prepare_root_range(
           | TopK(_, _)
           | PartitionedTopK(_, _)
           | Unnest(_, _, _, _, _)
+          | Unpivot(_, _, _, _)
           | DistinctRows
           | DedupeRows
           | StableSort(_)

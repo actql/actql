@@ -94,6 +94,7 @@ pub fn emit_fragment_request(
     | TopK(_, _)
     | PartitionedTopK(_, _)
     | Unnest(_, _, _, _, _)
+    | Unpivot(_, _, _, _)
     | DistinctRows
     | DedupeRows
     | StableSort(_)
@@ -121,6 +122,7 @@ pub fn emit_fragment_request(
       | TopK(_, _)
       | PartitionedTopK(_, _)
       | Unnest(_, _, _, _, _)
+      | Unpivot(_, _, _, _)
       | DistinctRows
       | DedupeRows
       | StableSort(_)

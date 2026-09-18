@@ -292,6 +292,21 @@ fn run_traffic_rows(
               traffic,
             )
           },
+          unpivot: fn(kernel, table, id) {
+            traffic_row_result(
+              evaluate_unpivot_rows(
+                kernel,
+                table,
+                id,
+                limits.max_rows,
+                control,
+                output,
+                workspace,
+              ),
+              true,
+              traffic,
+            )
+          },
           body: fn(body, table, id, logical) {
             traffic_row_result(
               evaluate_row_body(

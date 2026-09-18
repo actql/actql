@@ -68,6 +68,7 @@ pub fn emit_kernel_node(
       TopK(_, _) => "REL.topk"
       PartitionedTopK(_, _) => "REL.topk_partitioned"
       Unnest(_, _, _, _, _) => "REL.unnest"
+      Unpivot(_, _, _, _) => "REL.unpivot"
       DistinctRows => "REL.distinct"
       DedupeRows => "REL.dedupeRows"
       StableSort(_) => "REL.orderByStable"
@@ -138,6 +139,24 @@ pub fn emit_kernel_node(
         @encode.key(out, "with_index")
         @encode.string_value(out, name)
       }
+    }
+    Unpivot(columns, keep, name_column, value_column) => {
+      @encode.key(out, "columns")
+      @encode.begin_array(out)
+      for field in columns {
+        @encode.string_value(out, @schema.reference_name(field))
+      }
+      @encode.end_array(out)
+      @encode.key(out, "keep")
+      @encode.begin_array(out)
+      for field in keep {
+        @encode.string_value(out, @schema.reference_name(field))
+      }
+      @encode.end_array(out)
+      @encode.key(out, "name_column")
+      @encode.string_value(out, name_column)
+      @encode.key(out, "value_column")
+      @encode.string_value(out, value_column)
     }
     DedupeRows => {
       @encode.key(out, "by")

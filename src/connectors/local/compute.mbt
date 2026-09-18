@@ -90,6 +90,7 @@ pub fn local_managed_sequence_supported(
           | TopK(_, _)
           | PartitionedTopK(_, _)
           | Unnest(_, _, _, _, _)
+          | Unpivot(_, _, _, _)
           | StableSort(_)
           | DistinctRows
           | DedupeRows
