@@ -1,3 +1,6 @@
+// Independent adapter-test fixture. Product execution never imports this file;
+// the portable run_publication package is the sole product authority for
+// canonical identity, contract admission, and publication transitions.
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
@@ -24,15 +27,6 @@ const identityFields = Object.freeze({
 const fail = (code, path = '$') => {
   throw Object.assign(new Error(code), {code, path});
 };
-
-function requireTransitionalJavascriptOwner(name) {
-  // Result Definition admission and identity are owned by run_publication in
-  // MoonBit. Keeping its schema visible here does not authorize a second
-  // JavaScript implementation of those semantics.
-  if (name === 'result_definition') {
-    fail('PublicationContractOwnedByMoonBit', `$.${name}`);
-  }
-}
 
 function normalizedText(value, path) {
   if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
@@ -185,7 +179,6 @@ export function publicationContractSchema(name) {
 }
 
 export function sealPublicationContract(name, supplied) {
-  requireTransitionalJavascriptOwner(name);
   const schema = registry.schemas[name];
   const identity = identityFields[name];
   if (!schema || !identity || supplied === null ||
@@ -203,7 +196,6 @@ export function sealPublicationContract(name, supplied) {
 }
 
 export function admitPublicationContract(name, supplied) {
-  requireTransitionalJavascriptOwner(name);
   const schema = registry.schemas[name];
   const identity = identityFields[name];
   if (!schema || !identity) fail('UnknownPublicationContract', `$.${name}`);
@@ -221,4 +213,84 @@ export function publicationIdentityField(name) {
   const field = identityFields[name];
   if (!field) fail('UnknownPublicationContract', `$.${name}`);
   return field;
+}
+
+export function createPublicationContractControlFixture() {
+  const tokens = new WeakMap();
+  const inspect = (name, value) => {
+    const identityField = publicationIdentityField(name);
+    const result = Object.freeze({
+      name,
+      identityField,
+      identity: value[identityField],
+      wire: canonicalJson(value),
+    });
+    tokens.set(result, value);
+    return result;
+  };
+  const token = value => {
+    const result = tokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign publication contract');
+    }
+    return result;
+  };
+  return Object.freeze({
+    seal(name, bodyWire) {
+      return inspect(name, sealPublicationContract(name, JSON.parse(bodyWire)));
+    },
+    admit(name, completeWire) {
+      return inspect(name,
+        admitPublicationContract(name, JSON.parse(completeWire)));
+    },
+    recordTransition(previous, next, uncommittedConfirmed) {
+      const current = token(next);
+      const prior = previous === undefined ? undefined : token(previous);
+      if (next.name !== 'publication_record' ||
+          previous !== undefined && previous.name !== 'publication_record') {
+        return false;
+      }
+      if (prior === undefined) {
+        return current.sequence === 0 &&
+          !Object.hasOwn(current, 'prior_record_cid') &&
+          current.state === 'preparing';
+      }
+      if (current.publication_attempt_cid !==
+          prior.publication_attempt_cid ||
+          current.sequence !== prior.sequence + 1 ||
+          current.prior_record_cid !== prior.publication_record_cid) {
+        return false;
+      }
+      const allowed = prior.state === 'preparing'
+        ? ['preparing', 'committing', 'failed', 'cancelled']
+        : ['committing', 'publication_unknown'].includes(prior.state)
+          ? ['publication_unknown', 'succeeded', 'failed', 'cancelled']
+          : [];
+      return allowed.includes(current.state) &&
+        (!['committing', 'publication_unknown'].includes(prior.state) ||
+          !['failed', 'cancelled'].includes(current.state) ||
+          uncommittedConfirmed === true);
+    },
+    recordAllowsCommit(record) {
+      return record.name === 'publication_record' &&
+        token(record).state === 'committing';
+    },
+    deliveryTransition(previous, next) {
+      const current = token(next);
+      const prior = previous === undefined ? undefined : token(previous);
+      if (next.name !== 'delivery_record' ||
+          previous !== undefined && previous.name !== 'delivery_record') {
+        return false;
+      }
+      if (prior === undefined) {
+        return current.sequence === 0 &&
+          !Object.hasOwn(current, 'prior_record_cid');
+      }
+      return current.delivery_attempt_cid === prior.delivery_attempt_cid &&
+        current.sequence === prior.sequence + 1 &&
+        current.prior_record_cid === prior.delivery_record_cid &&
+        prior.state === 'streaming' &&
+        current.confirmed_byte_count >= prior.confirmed_byte_count;
+    },
+  });
 }

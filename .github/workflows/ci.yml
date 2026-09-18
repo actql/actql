@@ -48,6 +48,8 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test bounded retained storage and process lifecycle
         run: npm run check:retained-boundary
+      - name: Test portable publication control with the durable Store
+        run: npm run check:publication-runtime
       - name: Test retained experiment fixtures and timing assessment
         run: node --test benchmarks/retained-results/*.test.mjs
       - name: Test control-side process admission without DuckDB

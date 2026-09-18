@@ -3,11 +3,11 @@ import test from 'node:test';
 import {canonicalCid, canonicalJson, admitPublicationContract,
   publicationContractNames, publicationContractSchema,
   publicationIdentityField, sealPublicationContract} from
-  './run-publication-contracts.mjs';
+  './publication-contract-control.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
-test('runtime contract registry covers every fixed publication schema', () => {
+test('fixture registry covers every fixed publication schema', () => {
   assert.deepEqual(publicationContractNames(), [
     'result_definition', 'run_invocation', 'result_retention_policy',
     'durable_result_binding', 'publication_request',
@@ -60,19 +60,17 @@ test('closed admission rejects missing, additional, and malformed members', () =
   }), {code: 'PublicationContractPattern'});
 });
 
-test('Result Definition semantics have one MoonBit owner', () => {
+test('fixture has an independent fixed Result Definition vector', () => {
   const definition = {
     version: 'actql-result-definition/0.1',
     program_definition_cid: cid('1'),
     result_name: 'r',
   };
-  assert.throws(() => sealPublicationContract(
-    'result_definition', definition,
-  ), {code: 'PublicationContractOwnedByMoonBit'});
-  assert.throws(() => admitPublicationContract('result_definition', {
-    ...definition,
-    result_definition_cid: cid('2'),
-  }), {code: 'PublicationContractOwnedByMoonBit'});
+  const sealed = sealPublicationContract('result_definition', definition);
+  assert.equal(sealed.result_definition_cid,
+    'sha256:1a9c54da253f576314a5a58df94e48599a5d1975cec4d5755578635bbfa24cf0');
+  assert.deepEqual(admitPublicationContract('result_definition', sealed),
+    sealed);
 });
 
 test('attempt and terminal record remain different identities', () => {

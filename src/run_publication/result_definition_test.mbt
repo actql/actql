@@ -14,6 +14,15 @@ test "Result Definition seals the registered canonical preimage" {
     program +
     "\",\"result_definition_cid\":\"sha256:33cc81bf0c5e877d80d3dacf71d80fb8ef5472d6e224c83efac057853e67d966\",\"result_name\":\"first\",\"version\":\"actql-result-definition/0.1\"}",
   )
+  let admitted = admit_result_definition(
+    result_definition_json(definition).unwrap(),
+    4096,
+    16,
+    2,
+  ).unwrap()
+  assert_eq(result_definition_program_cid(admitted), program)
+  assert_eq(result_definition_name(admitted), "first")
+  assert_eq(result_definition_cid(admitted), result_definition_cid(definition))
 }
 
 ///|

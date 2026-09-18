@@ -343,6 +343,107 @@ pub fn strategy_host_result_definitions(
 }
 
 ///|
+/// Admit and seal a bounded publication body in the portable contract owner.
+/// The Node adapter supplies bytes and budgets; it does not define canonical
+/// identity or contract validity.
+#export_name("strategyPublicationSeal")
+pub fn strategy_publication_seal(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.seal_publication_contract(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPublicationAdmit")
+pub fn strategy_publication_admit(
+  name : String,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.admit_publication_contract(
+      name, complete_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyPublicationContractName")
+pub fn strategy_publication_contract_name(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_name(contract)
+}
+
+///|
+#export_name("strategyPublicationContractIdentityField")
+pub fn strategy_publication_contract_identity_field(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity_field(contract)
+}
+
+///|
+#export_name("strategyPublicationContractIdentity")
+pub fn strategy_publication_contract_identity(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity(contract)
+}
+
+///|
+#export_name("strategyPublicationContractJson")
+pub fn strategy_publication_contract_json(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_json(contract)
+}
+
+///|
+#export_name("strategyPublicationRecordTransition")
+pub fn strategy_publication_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+  uncommitted_confirmed : Bool,
+) -> Bool {
+  @publication.validate_publication_record_transition(
+    previous, next, uncommitted_confirmed,
+  )
+  is Ok(_)
+}
+
+///|
+#export_name("strategyPublicationRecordAllowsCommit")
+pub fn strategy_publication_record_allows_commit(
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.publication_record_allows_commit(record)
+}
+
+///|
+#export_name("strategyDeliveryRecordTransition")
+pub fn strategy_delivery_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_record_transition(previous, next) is Ok(_)
+}
+
+///|
 #export_name("strategyHostFinished")
 pub fn strategy_host_finished(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],

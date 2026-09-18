@@ -6,7 +6,21 @@ import {
 }
 
 // Values
+pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
+pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
+
+pub fn publication_contract_identity(PublicationContract) -> String
+
+pub fn publication_contract_identity_field(PublicationContract) -> String
+
+pub fn publication_contract_json(PublicationContract) -> String
+
+pub fn publication_contract_name(PublicationContract) -> String
+
+pub fn publication_record_allows_commit(PublicationContract) -> Bool
 
 pub fn result_definition_cid(ResultDefinition) -> String
 
@@ -16,11 +30,52 @@ pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
 
+pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
+pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
+
+pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
+
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
 // Errors
 
 // Types and methods
+pub(all) enum DeliveryTransitionIssue {
+  DeliveryWrongContract
+  DeliveryAttemptMismatch
+  DeliverySequenceMismatch
+  DeliveryPriorRecordMismatch
+  DeliveryStateMismatch
+  ConfirmedBytesDecreased
+} derive(Eq, @debug.Debug)
+
+type PublicationContract
+
+pub(all) enum PublicationContractIssue {
+  UnknownContract
+  InvalidLimits
+  InvalidWire
+  InvalidObject
+  MissingField(String)
+  UnknownField(String)
+  InvalidField(String)
+  IdentityAlreadyPresent
+  IdentityMissing
+  IdentityMismatch
+  ConditionalField(String)
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationTransitionIssue {
+  WrongContract
+  AttemptMismatch
+  SequenceMismatch
+  PriorRecordMismatch
+  StateMismatch
+  UncommittedNotConfirmed
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ResultAvailability {
   name : String
   state : ResultAvailabilityState
@@ -52,6 +107,7 @@ pub(all) enum ResultDefinitionIssue {
   EmptyResultName
   NonCanonicalResultName
   ResultNameLimit
+  Contract(PublicationContractIssue)
   Encoding
 } derive(Eq, @debug.Debug)
 

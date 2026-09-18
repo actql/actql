@@ -15,6 +15,7 @@ const resultDefinitionKeys = [
   'version',
 ];
 const siteControls = new WeakMap();
+const publicationControls = new WeakMap();
 
 function siteControl(moon) {
   let control = siteControls.get(moon);
@@ -54,6 +55,67 @@ function siteControl(moon) {
   return control;
 }
 
+function publicationControl(moon) {
+  let control = publicationControls.get(moon);
+  if (control !== undefined) return control;
+  const tokens = new WeakMap();
+  const inspect = contract => {
+    const value = Object.freeze({
+      name: moon.strategyPublicationContractName(contract),
+      identityField: moon.strategyPublicationContractIdentityField(contract),
+      identity: moon.strategyPublicationContractIdentity(contract),
+      wire: moon.strategyPublicationContractJson(contract),
+    });
+    tokens.set(value, contract);
+    return value;
+  };
+  const token = value => {
+    const result = tokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign publication contract');
+    }
+    return result;
+  };
+  control = Object.freeze({
+    seal(name, bodyWire, limits) {
+      return inspect(checked(moon.strategyPublicationSeal(
+        name,
+        bodyWire,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    admit(name, completeWire, limits) {
+      return inspect(checked(moon.strategyPublicationAdmit(
+        name,
+        completeWire,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    recordTransition(previous, next, uncommittedConfirmed) {
+      return moon.strategyPublicationRecordTransition(
+        previous === undefined ? undefined : token(previous),
+        token(next),
+        uncommittedConfirmed,
+      );
+    },
+    recordAllowsCommit(record) {
+      return moon.strategyPublicationRecordAllowsCommit(token(record));
+    },
+    deliveryTransition(previous, next) {
+      return moon.strategyDeliveryRecordTransition(
+        previous === undefined ? undefined : token(previous),
+        token(next),
+      );
+    },
+  });
+  publicationControls.set(moon, control);
+  return control;
+}
+
 function checkedResultDefinition(text, name) {
   let definition;
   try { definition = JSON.parse(text); }
@@ -76,6 +138,7 @@ function checkedResultDefinition(text, name) {
 export function runtimeCore(moon) {
   return Object.freeze({
     siteControl: siteControl(moon),
+    publicationControl: publicationControl(moon),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
     resultInventory(value) {

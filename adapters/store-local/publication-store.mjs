@@ -15,12 +15,6 @@ import {
 } from 'node:fs/promises';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
-import {
-  admitPublicationContract,
-  canonicalCid,
-  canonicalJson,
-  publicationIdentityField,
-} from '../host-common/run-publication-contracts.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
@@ -84,15 +78,29 @@ function validateConfiguration(options) {
     'capacityBytes',
     'maxObjectBytes',
     'maxObjects',
+    'maxContractNodes',
+    'maxContractDepth',
   ]) || typeof options.directory !== 'string' ||
       options.directory.length === 0 ||
       !cidPattern.test(options.storeAuthorityCid) ||
       !quantity(options.capacityBytes) ||
       !quantity(options.maxObjectBytes) || options.maxObjectBytes === 0 ||
-      !quantity(options.maxObjects) || options.maxObjects === 0) {
+      !quantity(options.maxObjects) || options.maxObjects === 0 ||
+      !quantity(options.maxContractNodes) || options.maxContractNodes === 0 ||
+      !quantity(options.maxContractDepth) || options.maxContractDepth === 0) {
     fail('InvalidPublicationStoreConfiguration');
   }
   return Object.freeze({...options, directory: resolve(options.directory)});
+}
+
+function validateContractControl(value) {
+  if (value === null || typeof value !== 'object' ||
+      typeof value.admit !== 'function' ||
+      typeof value.recordTransition !== 'function' ||
+      typeof value.recordAllowsCommit !== 'function') {
+    fail('InvalidPublicationContractControl');
+  }
+  return value;
 }
 
 function indexKey(value) {
@@ -103,31 +111,27 @@ function indexKey(value) {
       !cidPattern.test(value.runDefinitionCid)) {
     fail('InvalidPublicationIndexKey');
   }
-  return canonicalCid({
-    tenant_id: value.tenantId,
-    authority_scope_cid: value.authorityScopeCid,
-    run_definition_cid: value.runDefinitionCid,
-  }).slice('sha256:'.length);
+  const hash = createHash('sha256');
+  hash.update('actql-local-public-index-key/0.1\0', 'utf8');
+  for (const text of [value.tenantId, value.authorityScopeCid,
+    value.runDefinitionCid]) {
+    const bytes = Buffer.from(text, 'utf8');
+    const length = Buffer.alloc(8);
+    length.writeBigUInt64BE(BigInt(bytes.byteLength));
+    hash.update(length);
+    hash.update(bytes);
+  }
+  return hash.digest('hex');
 }
 
-const transitionAllowed = (previous, next) => {
-  if (previous === undefined) return next === 'preparing';
-  if (previous === 'preparing') {
-    return ['preparing', 'committing', 'failed', 'cancelled'].includes(next);
-  }
-  if (previous === 'committing') {
-    return ['publication_unknown', 'succeeded', 'failed',
-      'cancelled'].includes(next);
-  }
-  if (previous === 'publication_unknown') {
-    return ['publication_unknown', 'succeeded', 'failed',
-      'cancelled'].includes(next);
-  }
-  return false;
-};
-
-export async function openLocalPublicationStore(supplied) {
+export async function openLocalPublicationStore(supplied, suppliedControl) {
   const configuration = validateConfiguration(supplied);
+  const contractControl = validateContractControl(suppliedControl);
+  const contractLimits = Object.freeze({
+    maxWireBytes: configuration.maxObjectBytes,
+    maxNodes: configuration.maxContractNodes,
+    maxDepth: configuration.maxContractDepth,
+  });
   const root = configuration.directory;
   const objectsDirectory = resolve(root, 'objects');
   const contractsDirectory = resolve(root, 'contracts');
@@ -143,7 +147,7 @@ export async function openLocalPublicationStore(supplied) {
     version: 'actql-local-publication-store/0.1',
     store_authority_cid: configuration.storeAuthorityCid,
   });
-  const storeContractBytes = Buffer.from(canonicalJson(storeContract), 'utf8');
+  const storeContractBytes = Buffer.from(JSON.stringify(storeContract), 'utf8');
   const storeContractPath = resolve(root, 'store.json');
   try {
     await writeExclusive(storeContractPath, storeContractBytes);
@@ -377,16 +381,16 @@ export async function openLocalPublicationStore(supplied) {
     }
   };
 
-  const putCanonical = (value, expectedCid) => putBytes(
-    Buffer.from(canonicalJson(value), 'utf8'), expectedCid,
-  );
-
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
-  const putSemantic = async (value, semanticCid) => {
+  const putSemantic = async (wire, semanticCid) => {
+    if (typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationSemanticWire');
+    }
     cidHex(semanticCid);
-    const bytes = Buffer.from(canonicalJson(value), 'utf8');
+    const bytes = Buffer.from(wire, 'utf8');
     const physical = await putBytes(bytes);
     const target = contractPath(semanticCid);
     try {
@@ -401,12 +405,43 @@ export async function openLocalPublicationStore(supplied) {
     }
   };
 
-  const putPublicationContract = async (name, supplied) => {
-    const value = admitPublicationContract(name, supplied);
-    const semanticCid = value[publicationIdentityField(name)];
+  const admitContract = (name, wire) => {
+    if (typeof name !== 'string' || typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationContractWire');
+    }
+    let contract;
+    try { contract = contractControl.admit(name, wire, contractLimits); }
+    catch (error) { fail('InvalidPublicationContract', error); }
+    if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
+        contract.name !== name || typeof contract.identityField !== 'string' ||
+        !cidPattern.test(contract.identity) || typeof contract.wire !== 'string' ||
+        Buffer.byteLength(contract.wire, 'utf8') >
+          configuration.maxObjectBytes) {
+      fail('InvalidPublicationContractControlResult');
+    }
+    return contract;
+  };
+
+  const parseContract = contract => {
+    let value;
+    try { value = JSON.parse(contract.wire); }
+    catch (error) { fail('InvalidPublicationContractControlResult', error); }
+    if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+        value[contract.identityField] !== contract.identity) {
+      fail('InvalidPublicationContractControlResult');
+    }
+    return value;
+  };
+
+  const putPublicationContract = async (name, suppliedWire) => {
+    const contract = admitContract(name, suppliedWire);
+    const value = parseContract(contract);
+    const semanticCid = contract.identity;
     return Object.freeze({
       value,
-      ...await putSemantic(value, semanticCid),
+      contract,
+      ...await putSemantic(contract.wire, semanticCid),
     });
   };
 
@@ -448,22 +483,30 @@ export async function openLocalPublicationStore(supplied) {
     }
   };
 
-  const readJsonObject = async (cid, contractName) => {
+  const readContract = async (cid, contractName) => {
     const bytes = await readSemanticBytes(cid);
-    let value;
-    try { value = JSON.parse(bytes.toString('utf8')); }
-    catch (error) { fail('InvalidPublicationJsonObject', error); }
-    return contractName === undefined
-      ? value
-      : admitPublicationContract(contractName, value);
+    const wire = bytes.toString('utf8');
+    if (contractName === undefined) {
+      let value;
+      try { value = JSON.parse(wire); }
+      catch (error) { fail('InvalidPublicationJsonObject', error); }
+      return Object.freeze({wire, value});
+    }
+    const contract = admitContract(contractName, wire);
+    return Object.freeze({wire: contract.wire,
+      value: parseContract(contract), contract});
   };
 
-  const createAttempt = async suppliedAttempt => {
+  const readJsonObject = async (cid, contractName) =>
+    (await readContract(cid, contractName)).value;
+
+  const createAttempt = async suppliedWire => {
     active();
-    const attempt = admitPublicationContract(
-      'publication_attempt', suppliedAttempt,
+    const admitted = admitContract('publication_attempt', suppliedWire);
+    const attempt = parseContract(admitted);
+    const stored = await putPublicationContract(
+      'publication_attempt', admitted.wire,
     );
-    const stored = await putPublicationContract('publication_attempt', attempt);
     const directory = attemptPath(attempt.publication_attempt_cid);
     await mkdir(directory, {recursive: true, mode: 0o700});
     try {
@@ -476,14 +519,14 @@ export async function openLocalPublicationStore(supplied) {
       const existing = await readBounded(
         resolve(directory, 'attempt.json'), configuration.maxObjectBytes,
       );
-      if (existing.toString('utf8') !== canonicalJson(attempt)) {
+      if (existing.toString('utf8') !== admitted.wire) {
         fail('PublicationAttemptConflict');
       }
       return Object.freeze({attempt, created: false});
     }
   };
 
-  const latestRecord = async attemptCid => {
+  const latestRecordContract = async attemptCid => {
     active();
     const directory = attemptPath(attemptCid);
     const entries = await readdir(directory);
@@ -503,41 +546,44 @@ export async function openLocalPublicationStore(supplied) {
     const bytes = await readBounded(
       resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
     );
-    let parsed;
-    try { parsed = JSON.parse(bytes.toString('utf8')); }
-    catch (error) { fail('InvalidPublicationRecord', error); }
-    return admitPublicationContract('publication_record', parsed);
+    try {
+      return admitContract('publication_record', bytes.toString('utf8'));
+    } catch (error) {
+      fail('InvalidPublicationRecord', error);
+    }
   };
 
-  const appendRecord = async (suppliedRecord, options = {}) => {
+  const latestRecord = async attemptCid => {
+    const contract = await latestRecordContract(attemptCid);
+    return contract === undefined ? undefined : parseContract(contract);
+  };
+
+  const appendRecord = async (suppliedWire, options = {}) => {
     active();
     if (!exactKeys(options, ['uncommittedConfirmed']) ||
         typeof options.uncommittedConfirmed !== 'boolean') {
       fail('InvalidPublicationRecordOptions');
     }
-    const record = admitPublicationContract(
-      'publication_record', suppliedRecord,
-    );
+    const contract = admitContract('publication_record', suppliedWire);
+    const record = parseContract(contract);
     const directory = attemptPath(record.publication_attempt_cid);
-    const attempt = await readJsonObject(
+    const attempt = (await readContract(
       record.publication_attempt_cid, 'publication_attempt',
+    )).value;
+    const previous = await latestRecordContract(
+      record.publication_attempt_cid,
     );
-    const previous = await latestRecord(record.publication_attempt_cid);
-    const expectedSequence = previous === undefined ? 0 : previous.sequence + 1;
-    if (record.sequence !== expectedSequence ||
-        (previous === undefined
-          ? Object.hasOwn(record, 'prior_record_cid')
-          : record.prior_record_cid !== previous.publication_record_cid) ||
-        !transitionAllowed(previous?.state, record.state) ||
-        (['committing', 'publication_unknown'].includes(previous?.state) &&
-          ['failed', 'cancelled'].includes(record.state) &&
-          options.uncommittedConfirmed !== true)) {
+    if (contractControl.recordTransition(
+      previous,
+      contract,
+      options.uncommittedConfirmed,
+    ) !== true) {
       fail('InvalidPublicationRecordTransition');
     }
     if (attempt.publication_attempt_cid !== record.publication_attempt_cid) {
       fail('PublicationAttemptMismatch');
     }
-    await putPublicationContract('publication_record', record);
+    await putPublicationContract('publication_record', contract.wire);
     const target = resolve(directory, `${record.sequence}.json`);
     try { await link(contractPath(record.publication_record_cid), target); }
     catch (error) {
@@ -557,10 +603,10 @@ export async function openLocalPublicationStore(supplied) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
-    let parsed;
-    try { parsed = JSON.parse(bytes.toString('utf8')); }
-    catch (error) { fail('InvalidPublicIndexEntry', error); }
-    const entry = admitPublicationContract('public_index_entry', parsed);
+    const admitted = admitContract(
+      'public_index_entry', bytes.toString('utf8'),
+    );
+    const entry = parseContract(admitted);
     if (entry.tenant_id !== key.tenantId ||
         entry.authority_scope_cid !== key.authorityScopeCid ||
         entry.run_definition_cid !== key.runDefinitionCid) {
@@ -583,9 +629,10 @@ export async function openLocalPublicationStore(supplied) {
     return entry;
   };
 
-  const commitIndex = async (suppliedEntry, requiredObjectCids) => {
+  const commitIndex = async (suppliedWire, requiredObjectCids) => {
     active();
-    const entry = admitPublicationContract('public_index_entry', suppliedEntry);
+    const admitted = admitContract('public_index_entry', suppliedWire);
+    const entry = parseContract(admitted);
     if (!Array.isArray(requiredObjectCids) ||
         new Set(requiredObjectCids).size !== requiredObjectCids.length ||
         requiredObjectCids.some(cid => !cidPattern.test(cid))) {
@@ -610,11 +657,12 @@ export async function openLocalPublicationStore(supplied) {
         attempt.run_definition_cid !== entry.run_definition_cid) {
       fail('PublicationAttemptMismatch');
     }
-    const previous = await latestRecord(entry.publication_attempt_cid);
-    if (previous?.state !== 'committing') {
+    const previous = await latestRecordContract(entry.publication_attempt_cid);
+    if (previous === undefined ||
+        contractControl.recordAllowsCommit(previous) !== true) {
       fail('PublicationAttemptNotCommitting');
     }
-    await putPublicationContract('public_index_entry', entry);
+    await putPublicationContract('public_index_entry', admitted.wire);
     const key = {
       tenantId: entry.tenant_id,
       authorityScopeCid: entry.authority_scope_cid,
@@ -645,7 +693,6 @@ export async function openLocalPublicationStore(supplied) {
     storeAuthorityCid: configuration.storeAuthorityCid,
     createObjectWriter,
     putBytes,
-    putCanonical,
     putSemantic,
     putPublicationContract,
     verifyObject,

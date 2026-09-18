@@ -8,11 +8,20 @@ import {
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {
-  canonicalCid,
-  sealPublicationContract,
-} from '../host-common/run-publication-contracts.mjs';
+import {createPublicationContractControlFixture} from
+  '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
+
+const contractControl = createPublicationContractControlFixture();
+const limits = Object.freeze({
+  maxWireBytes: 64 * 1024,
+  maxNodes: 4096,
+  maxDepth: 64,
+});
+const seal = (name, value) => JSON.parse(
+  contractControl.seal(name, JSON.stringify(value), limits).wire,
+);
+const wire = value => JSON.stringify(value);
 
 const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
@@ -41,17 +50,19 @@ async function fixture(t, options = {}) {
     capacityBytes: 1024 * 1024,
     maxObjectBytes: 64 * 1024,
     maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
     ...options,
   };
   return {
     directory,
     configuration,
-    store: await openLocalPublicationStore(configuration),
+    store: await openLocalPublicationStore(configuration, contractControl),
   };
 }
 
 function invocation() {
-  return sealPublicationContract('run_invocation', {
+  return seal('run_invocation', {
     version: 'actql-run-invocation/0.1',
     invocation_template_cid: cids.template,
     observation_set_cid: cids.observations,
@@ -74,7 +85,7 @@ function resultDefinition(name = 'answer') {
 }
 
 function publicationRequest(result = resultDefinition()) {
-  return sealPublicationContract('publication_request', {
+  return seal('publication_request', {
     version: 'actql-publication-request/0.1',
     tenant_id: 'tenant-a',
     authority_scope_cid: cids.scope,
@@ -90,7 +101,7 @@ function publicationRequest(result = resultDefinition()) {
 }
 
 function publicationAttempt(request, attemptId = 'attempt-1') {
-  return sealPublicationContract('publication_attempt', {
+  return seal('publication_attempt', {
     version: 'actql-publication-attempt/0.1',
     publication_request_cid: request.publication_request_cid,
     run_definition_cid: cids.run,
@@ -101,7 +112,7 @@ function publicationAttempt(request, attemptId = 'attempt-1') {
 }
 
 function publicationRecord(attempt, sequence, state, prior, extra = {}) {
-  return sealPublicationContract('publication_record', {
+  return seal('publication_record', {
     version: 'actql-publication-record/0.1',
     publication_attempt_cid: attempt.publication_attempt_cid,
     ...(prior === undefined ? {} : {
@@ -116,7 +127,7 @@ function publicationRecord(attempt, sequence, state, prior, extra = {}) {
 }
 
 function indexEntry(request, attempt, invocationValue, values = {}) {
-  return sealPublicationContract('public_index_entry', {
+  return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
     tenant_id: 'tenant-a',
     authority_scope_cid: cids.scope,
@@ -145,13 +156,15 @@ async function prepareCommit(store, request, attempt, invocationValue) {
     [{version: 'receipt'}, cids.receipt],
     [{version: 'captured'}, cids.captured],
   ];
-  for (const [value, cid] of semantic) await store.putSemantic(value, cid);
-  await store.putPublicationContract('publication_request', request);
-  await store.createAttempt(attempt);
+  for (const [value, cid] of semantic) {
+    await store.putSemantic(wire(value), cid);
+  }
+  await store.putPublicationContract('publication_request', wire(request));
+  await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
-  await store.appendRecord(preparing, {uncommittedConfirmed: false});
+  await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
   const committing = publicationRecord(attempt, 1, 'committing', preparing);
-  await store.appendRecord(committing, {uncommittedConfirmed: false});
+  await store.appendRecord(wire(committing), {uncommittedConfirmed: false});
   return {
     preparing,
     committing,
@@ -182,7 +195,9 @@ test('bounded object writes are durable, streamed, and physically addressed',
     await store.consumeObject(stored.cid, chunk => chunks.push(Buffer.from(chunk)));
     assert.equal(Buffer.concat(chunks).toString('utf8'), 'abcdef');
     store.close();
-    const reopened = await openLocalPublicationStore(configuration);
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
     assert.deepEqual(await reopened.verifyObject(stored.cid), {
       cid: stored.cid, bytes: 6,
     });
@@ -194,7 +209,7 @@ test('semantic contract identity remains distinct from physical body digest',
     const {store} = await fixture(t);
     const value = invocation();
     const stored = await store.putPublicationContract(
-      'run_invocation', value,
+      'run_invocation', wire(value),
     );
     assert.equal(stored.semanticCid, value.invocation_cid);
     assert.notEqual(stored.physical.cid, stored.semanticCid);
@@ -202,16 +217,22 @@ test('semantic contract identity remains distinct from physical body digest',
       value.invocation_cid, 'run_invocation',
     ), value);
     await assert.rejects(store.putSemantic(
-      {...value, observation_set_cid: cids.result}, value.invocation_cid,
+      wire({...value, observation_set_cid: cids.result}),
+      value.invocation_cid,
     ), code('PublicationSemanticIdentityConflict'));
   });
 
-test('Store cannot re-admit MoonBit-owned Result Definition semantics',
+test('Store persists admitted Result Definition wire without reimplementing it',
   async t => {
     const {store} = await fixture(t);
-    await assert.rejects(store.putPublicationContract(
-      'result_definition', resultDefinition(),
-    ), code('PublicationContractOwnedByMoonBit'));
+    const definition = resultDefinition();
+    const stored = await store.putPublicationContract(
+      'result_definition', wire(resultDefinition()),
+    );
+    assert.equal(stored.semanticCid, definition.result_definition_cid);
+    assert.deepEqual(await store.readJsonObject(
+      definition.result_definition_cid, 'result_definition',
+    ), definition);
   });
 
 test('publication records are append-only and sequence creation is CAS',
@@ -219,15 +240,15 @@ test('publication records are append-only and sequence creation is CAS',
     const {store} = await fixture(t);
     const request = publicationRequest();
     const attempt = publicationAttempt(request);
-    await store.putPublicationContract('publication_request', request);
-    await store.createAttempt(attempt);
+    await store.putPublicationContract('publication_request', wire(request));
+    await store.createAttempt(wire(attempt));
     const first = publicationRecord(attempt, 0, 'preparing');
-    await store.appendRecord(first, {uncommittedConfirmed: false});
+    await store.appendRecord(wire(first), {uncommittedConfirmed: false});
     const committing = publicationRecord(attempt, 1, 'committing', first);
     const cancelled = publicationRecord(attempt, 1, 'cancelled', first);
     const results = await Promise.allSettled([
-      store.appendRecord(committing, {uncommittedConfirmed: false}),
-      store.appendRecord(cancelled, {uncommittedConfirmed: false}),
+      store.appendRecord(wire(committing), {uncommittedConfirmed: false}),
+      store.appendRecord(wire(cancelled), {uncommittedConfirmed: false}),
     ]);
     assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
     assert.equal(results.filter(result => result.status === 'rejected').length, 1);
@@ -241,21 +262,21 @@ test('unknown publication cannot become failed without confirmed non-commit',
     const {store} = await fixture(t);
     const request = publicationRequest();
     const attempt = publicationAttempt(request);
-    await store.putPublicationContract('publication_request', request);
-    await store.createAttempt(attempt);
+    await store.putPublicationContract('publication_request', wire(request));
+    await store.createAttempt(wire(attempt));
     const first = publicationRecord(attempt, 0, 'preparing');
     const second = publicationRecord(attempt, 1, 'committing', first);
     const unknown = publicationRecord(attempt, 2, 'publication_unknown', second);
     for (const record of [first, second, unknown]) {
-      await store.appendRecord(record, {uncommittedConfirmed: false});
+      await store.appendRecord(wire(record), {uncommittedConfirmed: false});
     }
     const failed = publicationRecord(attempt, 3, 'failed', unknown, {
       failure_cid: digest('failure'),
     });
     await assert.rejects(store.appendRecord(
-      failed, {uncommittedConfirmed: false},
+      wire(failed), {uncommittedConfirmed: false},
     ), code('InvalidPublicationRecordTransition'));
-    await store.appendRecord(failed, {uncommittedConfirmed: true});
+    await store.appendRecord(wire(failed), {uncommittedConfirmed: true});
   });
 
 test('public index is invisible before commit and survives a lost response',
@@ -269,16 +290,20 @@ test('public index is invisible before commit and survives a lost response',
     );
     assert.equal(await store.inspectCommittedIndex(indexKey), undefined);
     const entry = indexEntry(request, attempt, invocationValue);
-    const committed = await store.commitIndex(entry, prepared.required);
+    const committed = await store.commitIndex(wire(entry), prepared.required);
     assert.equal(committed.committed, true);
     // Simulate losing the response after the durable commit by closing without
     // appending the terminal attempt record, then reconcile after restart.
     store.close();
-    const reopened = await openLocalPublicationStore(configuration);
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
     assert.deepEqual(await reopened.inspectCommittedIndex(indexKey), entry);
     const succeeded = publicationRecord(attempt, 2, 'succeeded',
       prepared.committing, {public_index_entry_cid: entry.public_index_entry_cid});
-    await reopened.appendRecord(succeeded, {uncommittedConfirmed: false});
+    await reopened.appendRecord(
+      wire(succeeded), {uncommittedConfirmed: false},
+    );
     assert.equal((await reopened.latestRecord(
       attempt.publication_attempt_cid,
     )).state, 'succeeded');
@@ -294,7 +319,7 @@ test('same intent is idempotent while conflicting commit is rejected',
       store, request, attempt, invocationValue,
     );
     const entry = indexEntry(request, attempt, invocationValue);
-    await store.commitIndex(entry, prepared.required);
+    await store.commitIndex(wire(entry), prepared.required);
 
     const retryAttempt = publicationAttempt(request, 'attempt-2');
     const retry = await prepareCommit(
@@ -303,7 +328,9 @@ test('same intent is idempotent while conflicting commit is rejected',
     const retryEntry = indexEntry(request, retryAttempt, invocationValue, {
       committed_at: '2026-09-18T00:01:00.000Z',
     });
-    const idempotent = await store.commitIndex(retryEntry, retry.required);
+    const idempotent = await store.commitIndex(
+      wire(retryEntry), retry.required,
+    );
     assert.equal(idempotent.committed, false);
     assert.equal(idempotent.idempotent, true);
     assert.deepEqual(idempotent.entry, entry);
@@ -319,7 +346,7 @@ test('same intent is idempotent while conflicting commit is rejected',
       conflictingRequest, conflictAttempt, invocationValue,
     );
     await assert.rejects(store.commitIndex(
-      conflictingEntry, conflict.required,
+      wire(conflictingEntry), conflict.required,
     ), code('PublicationCommitConflict'));
   });
 

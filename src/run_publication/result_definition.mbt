@@ -6,7 +6,7 @@ struct ResultDefinition {
   program_definition_cid : String
   result_name : String
   result_definition_cid : String
-  max_wire_bytes : Int
+  contract : PublicationContract
 }
 
 ///|
@@ -15,6 +15,7 @@ pub(all) enum ResultDefinitionIssue {
   EmptyResultName
   NonCanonicalResultName
   ResultNameLimit
+  Contract(PublicationContractIssue)
   Encoding
 } derive(Eq, Debug)
 
@@ -49,23 +50,6 @@ fn emit_result_definition_body(
 }
 
 ///|
-fn emit_result_definition(
-  definition : ResultDefinition,
-  writer : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  @encode.key(writer, "program_definition_cid")
-  @encode.string_value(writer, definition.program_definition_cid)
-  @encode.key(writer, "result_definition_cid")
-  @encode.string_value(writer, definition.result_definition_cid)
-  @encode.key(writer, "result_name")
-  @encode.string_value(writer, definition.result_name)
-  @encode.key(writer, "version")
-  @encode.string_value(writer, "actql-result-definition/0.1")
-  @encode.end_object(writer)
-}
-
-///|
 /// Seal the exact 0.1 Result Definition. The bound is derived from the already
 /// checked metadata and covers worst-case JSON escaping without allocating a
 /// second unbounded representation.
@@ -92,18 +76,53 @@ pub fn prepare_result_definition(
     return Err(ResultNameLimit)
   }
   let max_wire_bytes = result_name.length() * 6 + 512
-  let writer = @encode.hashing_writer(max_wire_bytes, 4, 1) catch {
+  let writer = @encode.writer(max_wire_bytes, 4, 1) catch {
     _ => return Err(Encoding)
   }
   emit_result_definition_body(program_definition_cid, result_name, writer) catch {
     _ => return Err(Encoding)
   }
-  let digest = @encode.finish_hash(writer) catch { _ => return Err(Encoding) }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  let contract = match
+    seal_publication_contract("result_definition", body, max_wire_bytes, 5, 1) {
+    Ok(value) => value
+    Err(issue) => return Err(Contract(issue))
+  }
   Ok({
     program_definition_cid,
     result_name,
-    result_definition_cid: "sha256:" + digest,
-    max_wire_bytes,
+    result_definition_cid: publication_contract_identity(contract),
+    contract,
+  })
+}
+
+///|
+/// Admit one persisted Result Definition through the same bounded canonical
+/// owner used for construction and every other publication contract.
+pub fn admit_result_definition(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ResultDefinition, ResultDefinitionIssue] {
+  let contract = match
+    admit_publication_contract(
+      "result_definition", wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Contract(issue))
+  }
+  guard contract_string(contract, "program_definition_cid") is Some(program) else {
+    return Err(Encoding)
+  }
+  guard contract_string(contract, "result_name") is Some(name) else {
+    return Err(Encoding)
+  }
+  Ok({
+    program_definition_cid: program,
+    result_name: name,
+    result_definition_cid: publication_contract_identity(contract),
+    contract,
   })
 }
 
@@ -128,13 +147,5 @@ pub fn result_definition_cid(definition : ResultDefinition) -> String {
 pub fn result_definition_json(
   definition : ResultDefinition,
 ) -> Result[String, ResultDefinitionIssue] {
-  let writer = @encode.writer(definition.max_wire_bytes, 5, 1) catch {
-    _ => return Err(Encoding)
-  }
-  emit_result_definition(definition, writer) catch {
-    _ => return Err(Encoding)
-  }
-  Ok(@encode.finish(writer)) catch {
-    _ => Err(Encoding)
-  }
+  Ok(publication_contract_json(definition.contract))
 }
