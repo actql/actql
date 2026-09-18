@@ -97,6 +97,8 @@ pub fn strategy_host_output_export_cancel(StrategyHostOutputExport) -> Unit
 
 pub fn strategy_host_output_export_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
+pub fn strategy_host_output_export_codec_contract_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
+
 pub fn strategy_host_output_export_derivation_evidence_json(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_finish(StrategyHostOutputExport) -> String raise NodeHostFailure

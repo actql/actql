@@ -638,6 +638,7 @@ export async function runInstalledStrategy(
           publication === null || typeof publication !== 'object' ||
           publication.outputLimits === undefined ||
           publication.contractLimits === undefined ||
+          publication.runDefinition === undefined ||
           publication.invocation === undefined ||
           publication.retention === undefined ||
           publication.evidenceContext === undefined ||
@@ -657,6 +658,8 @@ export async function runInstalledStrategy(
         publication.outputLimits,
         {
           control: core.publicationControl,
+          runDefinition: publication.runDefinition,
+          definition: occurrence.definitionContract,
           invocation: publication.invocation,
           retention: publication.retention,
           evidenceContext: publication.evidenceContext,

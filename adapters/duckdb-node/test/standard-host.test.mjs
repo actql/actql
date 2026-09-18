@@ -536,6 +536,21 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               const contractLimits = {
                 maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64,
               };
+              const runDefinition = runtime.publicationControl.seal(
+                'run_definition',
+                JSON.stringify({
+                  version: 'actql-run-definition/0.1',
+                  scope_id: 'publication-test-scope',
+                  run_id: 'publication-test-run',
+                  compiled_plan_cid: hash('compiled-plan'),
+                  invocation_template_cid: hash('invocation-template'),
+                  authorization_context_cid: hash('authorization-context'),
+                  input_artifact_set_cid: hash('input-artifact-set'),
+                  created_at: '2026-09-18T00:00:00.000Z',
+                  valid_until: '2026-09-18T04:00:00.000Z',
+                }),
+                contractLimits,
+              );
               const invocation = runtime.publicationControl.seal(
                 'run_invocation',
                 JSON.stringify({
@@ -565,6 +580,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                 {
                   outputLimits: publicationResultExportLimits,
                   contractLimits,
+                  runDefinition,
                   invocation,
                   retention,
                   evidenceContext: {
@@ -616,6 +632,20 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               assert.equal(artifactValue.actual_row_count, 3);
               assert.equal(artifactValue.ordering_evidence_cid,
                 stored.publication.ordering.identity);
+              const bindingValue = JSON.parse(
+                stored.publication.durableBinding.wire,
+              );
+              assert.equal(bindingValue.run_definition_cid,
+                runDefinition.identity);
+              assert.equal(bindingValue.result_definition_cid,
+                stored.occurrence.definition.identity);
+              assert.equal(bindingValue.material_generation_cid,
+                stored.physical.cid);
+              assert.equal(bindingValue.codec_contract_cid,
+                identity.codecContractCid);
+              assert.equal(bindingValue.store_authority_cid,
+                publicationStore.storeAuthorityCid);
+              assert.equal(bindingValue.byte_count, stored.physical.bytes);
             } finally {
               await publicationStore.close();
               await rm(publicationDirectory, {recursive: true, force: true});

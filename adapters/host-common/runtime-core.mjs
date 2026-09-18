@@ -627,6 +627,8 @@ function outputExportControl(moon, publications) {
           checked(moon.strategyHostOutputExportLogicalRelationCid(value)),
         resultSchemaCid:
           checked(moon.strategyHostOutputExportResultSchemaCid(value)),
+        codecContractCid:
+          checked(moon.strategyHostOutputExportCodecContractCid(value)),
         bytes: checked(moon.strategyHostOutputExportBytes(value)),
         nodes: checked(moon.strategyHostOutputExportNodes(value)),
         rows: checked(moon.strategyHostOutputExportRows(value)),

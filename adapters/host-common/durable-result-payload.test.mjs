@@ -77,6 +77,7 @@ function exportFixture(parts, text, hooks = {}) {
         logicalRelationCid: hooks.logicalCid ??
           digest(`{"sort":"relation","value":${text}}`),
         resultSchemaCid: hooks.schemaCid ?? cid('c'),
+        codecContractCid: hooks.codecCid ?? cid('d'),
         bytes: Buffer.byteLength(text),
         nodes: 7,
         rows: 2,
@@ -137,6 +138,7 @@ test('Result evidence is issued before its durable payload becomes visible',
     const evidence = Object.freeze({derivation: {}, ordering: {}});
     const artifact = Object.freeze({name: 'result_artifact'});
     const snapshot = Object.freeze({kind: 'captured-result-snapshot'});
+    const durableBinding = Object.freeze({name: 'durable_result_binding'});
     const publicationControl = Object.freeze({
       issueResultArtifact(handle, invocation, retention, supplied) {
         assert.deepEqual(handle, {});
@@ -152,9 +154,30 @@ test('Result evidence is issued before its durable payload becomes visible',
         events.push('snapshot');
         return snapshot;
       },
+      issueDurableResultBinding(chain, physical, supplied) {
+        assert.equal(chain.runDefinition, 'run-definition');
+        assert.equal(chain.definition, 'result-definition');
+        assert.equal(chain.invocation, 'invocation');
+        assert.equal(chain.artifact, artifact);
+        assert.equal(chain.ordering, evidence.ordering);
+        assert.equal(chain.retention, 'retention');
+        assert.deepEqual(physical, {
+          codecContractCid: cid('d'),
+          materialGenerationCid: digest(text),
+          storeAuthorityCid: cid('a'),
+          rowCount: 2,
+          byteCount: Buffer.byteLength(text),
+          physicalSha256: digest(text).slice('sha256:'.length),
+        });
+        assert.equal(supplied, publicationLimits);
+        events.push('binding');
+        return durableBinding;
+      },
     });
     const publication = Object.freeze({
       control: publicationControl,
+      runDefinition: 'run-definition',
+      definition: 'result-definition',
       evidenceContext,
       limits: publicationLimits,
       invocation: 'invocation',
@@ -190,7 +213,9 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(stored.publication.ordering, evidence.ordering);
     assert.equal(stored.publication.artifact, artifact);
     assert.equal(stored.publication.snapshot, snapshot);
-    assert.deepEqual(events, ['evidence', 'artifact', 'snapshot', 'cancel']);
+    assert.equal(stored.publication.durableBinding, durableBinding);
+    assert.deepEqual(events,
+      ['evidence', 'artifact', 'snapshot', 'binding', 'cancel']);
 
     const failing = {
       ...control,
@@ -235,7 +260,7 @@ test('canonical batches stream to one durable object without whole-array input',
       orderedRows: {orderedRowsCid: digest(text),
         logicalRelationCid:
           'sha256:5b3aeccd9ebf1cf22f64ef2357114e647d1daac6fbb7957e30a3e3043d7254d1',
-        resultSchemaCid: cid('c'),
+        resultSchemaCid: cid('c'), codecContractCid: cid('d'),
         bytes: Buffer.byteLength(text), nodes: 7, rows: 2,
         schemaBytes: 64, schemaNodes: 8, schemaFields: 1},
     });

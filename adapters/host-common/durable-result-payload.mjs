@@ -34,6 +34,7 @@ function validIdentity(value) {
     /^sha256:[0-9a-f]{64}$/u.test(value.orderedRowsCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.logicalRelationCid) &&
     /^sha256:[0-9a-f]{64}$/u.test(value.resultSchemaCid) &&
+    /^sha256:[0-9a-f]{64}$/u.test(value.codecContractCid) &&
     ['bytes', 'nodes', 'rows'].every(name =>
       Number.isSafeInteger(value[name]) && value[name] >= 0) &&
     ['schemaBytes', 'schemaNodes', 'schemaFields'].every(name =>
@@ -118,6 +119,7 @@ export async function storeCompletedResultPublicationPayload(
       typeof control.issueResultEvidence !== 'function' ||
       publication === null || typeof publication !== 'object' ||
       typeof publication.control?.issueResultArtifact !== 'function' ||
+      typeof publication.control?.issueDurableResultBinding !== 'function' ||
       typeof publication.control?.admitCompletedResultSnapshot !==
         'function' ||
       !Number.isSafeInteger(result) || result < 0) {
@@ -145,11 +147,33 @@ export async function storeCompletedResultPublicationPayload(
       );
       return Object.freeze({...evidence, artifact, snapshot});
     },
+    (physical, orderedRows, evidence) =>
+      publication.control.issueDurableResultBinding({
+        runDefinition: publication.runDefinition,
+        definition: publication.definition,
+        invocation: publication.invocation,
+        artifact: evidence.artifact,
+        ordering: evidence.ordering,
+        retention: publication.retention,
+      }, {
+        codecContractCid: orderedRows.codecContractCid,
+        materialGenerationCid: physical.cid,
+        storeAuthorityCid: store.storeAuthorityCid,
+        rowCount: orderedRows.rows,
+        byteCount: physical.bytes,
+        physicalSha256: physical.cid.slice('sha256:'.length),
+      }, publication.limits),
   );
 }
 
 async function storeCompletedPayload(
-  store, control, beginExport, limits, signal, issueEvidence,
+  store,
+  control,
+  beginExport,
+  limits,
+  signal,
+  issueEvidence,
+  issuePhysicalEvidence,
 ) {
   signal?.throwIfAborted();
   let exportHandle;
@@ -182,12 +206,17 @@ async function storeCompletedPayload(
         physical.cid !== orderedRows.orderedRowsCid) {
       fail('DurableResultPayloadIdentityMismatch');
     }
+    const durableBinding = issuePhysicalEvidence?.(
+      physical, orderedRows, publication,
+    );
     control.cancel(exportHandle);
     exportReleased = true;
     return Object.freeze({
       physical: Object.freeze({...physical}),
       orderedRows: Object.freeze({...orderedRows}),
-      ...(publication === undefined ? {} : {publication}),
+      ...(publication === undefined ? {} : {
+        publication: Object.freeze({...publication, durableBinding}),
+      }),
     });
   } catch (reason) {
     const cleanupErrors = [];

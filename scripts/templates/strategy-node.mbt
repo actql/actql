@@ -1407,6 +1407,17 @@ pub fn strategy_host_output_export_result_schema_cid(
 }
 
 ///|
+/// Physical payload batches use the registered canonical ordered-row codec.
+/// This is the codec contract identity, not the payload content identity.
+#export_name("strategyHostOutputExportCodecContractCid")
+pub fn strategy_host_output_export_codec_contract_cid(
+  value : StrategyHostOutputExport,
+) -> String raise NodeHostFailure {
+  guard value.receipt is Some(_) else { raise InvalidCommand }
+  @execution.ordered_rows_canonical_contract_cid()
+}
+
+///|
 /// Issue occurrence-order evidence from the same finished export that
 /// established the logical Relation and schema identities. Only a Named
 /// Result export carries a checked Result Definition.
