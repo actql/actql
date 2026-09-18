@@ -1,7 +1,7 @@
 {
-  "source_revision": "aa3c7a3e047144b8823ec59ae86dfdaeb76b4d74",
-  "registry_cid": "sha256:5be4133ab14b50ece1109cb2ce7cacf52005ff1c04ef48b2aa7b88f163eba09f",
-  "values_cid": "sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17",
+  "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
+  "registry_cid": "sha256:604f29b5b36a5b9e66fdd8b866978a65f529d56a41c9c571052a59364196943a",
+  "values_cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44",
   "fragment_cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60",
   "registry": {
     "REL.select": {
@@ -139,6 +139,27 @@
       "output": "relation"
     },
     "REL.unionAll": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.except_rows": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.intersect_rows": {
+      "inputs": [
+        "relation",
+        "relation"
+      ],
+      "output": "relation"
+    },
+    "REL.cross_join": {
       "inputs": [
         "relation",
         "relation"
@@ -370,7 +391,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17"
+        "cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
       }
     },
     "ACTQL.expression_fragment/0.1": {
@@ -1356,6 +1377,30 @@
       "row_multiplicity": "retain_all_occurrences",
       "object_key_order": "canonical_utf16_order_not_row_order",
       "publication": "validate_all_rows_and_resolved_limits_before_publication",
+      "recursive_resources": {
+        "selected_root_types": [
+          "array",
+          "object",
+          "vector"
+        ],
+        "bytes": "sum_canonical_typed_wire_cell_bytes_across_all_occurrences_including_null_without_double_counting_nested_containers",
+        "byte_exclusions": [
+          "scalar_typed_cells",
+          "row_keys",
+          "row_wrappers",
+          "rows_wrapper",
+          "schema"
+        ],
+        "host_byte_ceiling": "max_nested_value_bytes",
+        "depth": "declared_cell_type_scalar_0_vector_1_array_1_plus_items_object_1_plus_max_fields",
+        "depth_excludes": [
+          "row_wrapper",
+          "rows_wrapper"
+        ],
+        "host_depth_ceiling": "max_nested_value_depth",
+        "empty_or_null": "type_depth_still_checked_zero_selected_cells_have_zero_bytes",
+        "failure": "atomic_before_any_consumer_without_truncation"
+      },
       "unsupported_backend": "reject_runnable_plan_without_exact_registered_contract_support"
     }
   },

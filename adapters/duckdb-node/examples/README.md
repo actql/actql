@@ -348,13 +348,11 @@ stop the graph rather than enabling automatic fallback.
 
 ## Adopted execution contracts
 
-The row engine still selects its adopted registry, REL.values and fragment pins.
-The current main specification includes a newer REL.values resource-scope
-contract; this example does not silently claim that newer engine support.
-`../contracts/adopted-relation.json` packages the exact previously published
-bodies from revision `aa3c7a3e047144b8823ec59ae86dfdaeb76b4d74`, with their CIDs.
-These are contract material, not test outputs or a compatibility implementation.
-The existing product admission verifies the bodies against its unchanged pins.
-Current Query Acquisition/process-evidence/two-receipt contracts are loaded from
-their repository-owned files. Updating engine contract support is separate from
-this example; neither pins nor shared semantics are rewritten here.
+The row engine selects its adopted registry, REL.values and fragment pins.
+`../contracts/adopted-relation.json` packages the exact selected bodies from
+revision `9edb5a65db8b822b8629cfa4913fb1097fb99945`, with their CIDs. The bundle
+and the product pins are generated from the same registered contracts; this
+example does not infer compatibility with older bodies. These are contract
+material, not test outputs or a compatibility implementation. Current Query
+Acquisition/process-evidence/two-receipt contracts are loaded from their
+repository-owned files.

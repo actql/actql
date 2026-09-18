@@ -13,13 +13,16 @@ const cid = value => `sha256:${createHash('sha256').update(canonical(value)).dig
 test('example ships exact adopted contract bodies, not test-generated execution expectations', async () => {
   const bundle = JSON.parse(await readFile(new URL('../contracts/adopted-relation.json', import.meta.url), 'utf8'));
   const expected = {
-    registry: 'sha256:5be4133ab14b50ece1109cb2ce7cacf52005ff1c04ef48b2aa7b88f163eba09f',
-    values: 'sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17',
+    registry: 'sha256:604f29b5b36a5b9e66fdd8b866978a65f529d56a41c9c571052a59364196943a',
+    values: 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44',
     fragment: 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60',
   };
   for (const [key, identity] of Object.entries(expected)) {
     assert.equal(bundle[`${key}_cid`], identity);
     assert.equal(cid(bundle[key]), identity);
   }
-  assert.equal(bundle.source_revision, 'aa3c7a3e047144b8823ec59ae86dfdaeb76b4d74');
+  assert.equal(
+    bundle.source_revision,
+    '9edb5a65db8b822b8629cfa4913fb1097fb99945',
+  );
 });
