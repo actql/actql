@@ -6,6 +6,29 @@ struct ManagedFixedComputeCandidate[T] {
   registration : CapabilityRegistration
   duration : @cost.DurationEstimate
   quantities : QueryQuantities
+  numeric_reductions : Array[NumericReductionSupport]
+}
+
+///|
+/// One implementation-declared profile member. This is capability metadata,
+/// not profile admission, selection authority, or capture evidence.
+struct NumericReductionSupport {
+  profile_cid : String
+  member_cid : String
+}
+
+///|
+fn valid_content_cid(value : String) -> Bool {
+  if value.length() != 71 || !value.has_prefix("sha256:") {
+    return false
+  }
+  for index = 7; index < value.length(); index = index + 1 {
+    let code = value[index].to_int()
+    if !((code >= 48 && code <= 57) || (code >= 97 && code <= 102)) {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -39,7 +62,11 @@ pub fn[T, P] bind_managed_compute_candidate(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : QueryQuantities,
   max_entries : Int,
+  numeric_reductions? : Array[NumericReductionSupport] = [],
 ) -> Result[PreparedManagedCompute[T, P], FixedComputeIssue] {
+  if max_entries < 0 {
+    return Err(InvalidLimits)
+  }
   if !registration.owner.live {
     return Err(CapabilityClosed)
   }
@@ -51,11 +78,37 @@ pub fn[T, P] bind_managed_compute_candidate(
     !valid_quantity(quantities.money_units) {
     return Err(NegativeQuantity)
   }
-  match @cost.assess_serial(work_slots, estimates, max_entries) {
+  if numeric_reductions.length() > max_entries {
+    return Err(PlanningLimit)
+  }
+  let reductions = numeric_reductions.copy()
+  for index, reduction in reductions {
+    if !valid_content_cid(reduction.profile_cid) ||
+      !valid_content_cid(reduction.member_cid) {
+      return Err(InvalidLimits)
+    }
+    for prior in 0..<index {
+      if reductions[prior].profile_cid == reduction.profile_cid {
+        return Err(InvalidLimits)
+      }
+    }
+  }
+  match
+    @cost.assess_serial(
+      work_slots,
+      estimates,
+      max_entries - reductions.length(),
+    ) {
     Err(issue) => Err(Cost(issue))
     Ok(duration) =>
       Ok({
-        candidate: { request, registration, duration, quantities, },
+        candidate: {
+          request,
+          registration,
+          duration,
+          quantities,
+          numeric_reductions: reductions,
+        },
         payload,
       })
   }
@@ -168,4 +221,45 @@ pub fn[T] managed_fixed_compute_candidate_quantities(
   candidate : ManagedFixedComputeCandidate[T],
 ) -> QueryQuantities {
   candidate.quantities
+}
+
+///|
+pub fn numeric_reduction_support(
+  profile_cid : String,
+  member_cid : String,
+) -> Result[NumericReductionSupport, FixedComputeIssue] {
+  if !valid_content_cid(profile_cid) || !valid_content_cid(member_cid) {
+    Err(InvalidLimits)
+  } else {
+    Ok({ profile_cid, member_cid, })
+  }
+}
+
+///|
+pub fn[T] managed_fixed_compute_candidate_numeric_reduction_count(
+  candidate : ManagedFixedComputeCandidate[T],
+) -> Int {
+  candidate.numeric_reductions.length()
+}
+
+///|
+pub fn[T] managed_fixed_compute_candidate_numeric_reduction_at(
+  candidate : ManagedFixedComputeCandidate[T],
+  index : Int,
+) -> NumericReductionSupport? {
+  candidate.numeric_reductions.get(index)
+}
+
+///|
+pub fn numeric_reduction_support_profile_cid(
+  support : NumericReductionSupport,
+) -> String {
+  support.profile_cid
+}
+
+///|
+pub fn numeric_reduction_support_member_cid(
+  support : NumericReductionSupport,
+) -> String {
+  support.member_cid
 }
