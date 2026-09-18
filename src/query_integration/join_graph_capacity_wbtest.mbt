@@ -93,13 +93,17 @@ fn query_capacity_proof(
   value : Int64,
   derivation : String,
   inputs? : Array[String] = [],
+  step? : Int = 0,
 ) -> @wire.ProgramProofClaim {
   let input_text = inputs.map(value => "\"" + value + "\"").join(",")
+  let semantic_ref = "checked-step:" + step.to_string()
   let proof_body = "{\"inputs\":[" +
     input_text +
     "],\"law_id\":\"" +
     law +
-    "\",\"semantic_ref\":\"checked-step:0\",\"unit\":\"rows\",\"value\":" +
+    "\",\"semantic_ref\":\"" +
+    semantic_ref +
+    "\",\"unit\":\"rows\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(proof_body))
@@ -123,7 +127,9 @@ fn query_capacity_proof(
     law +
     "\",\"role\":\"proven_upper_bound\",\"source\":{\"kind\":\"program\",\"proof_cid\":\"" +
     proof_cid +
-    "\",\"semantic_ref\":\"checked-step:0\"},\"unit\":\"rows\",\"value\":" +
+    "\",\"semantic_ref\":\"" +
+    semantic_ref +
+    "\"},\"unit\":\"rows\",\"value\":" +
     value.to_string() +
     ",\"version\":\"actql-bound-witness/0.1\""
   let witness_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + "}"))

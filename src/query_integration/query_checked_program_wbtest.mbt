@@ -58,6 +58,21 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = if local_values_join_chain && local_values_join_kind == "full" {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"joined","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]},"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]},"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"right_rows"},{"from":"left_rows","join":{"with":"right_rows","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"joined_raw"},{"from":"joined_raw","distinct":true,"as":"unique"},{"from":"unique","sort":[{"id":"asc"},{"l":"asc"},{"r":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain && local_values_join_kind == "full" {
+    text.replace(
+      old="{\"select\":[\"r\",\"l\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"r\",\"l\",\"id\"]}}}",
+      new="{\"select\":[\"id\",\"l\",\"r\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"l\",\"r\"]}}}",
+    )
+  } else {
+    text
+  }
   let text = if local_values_join_chain && local_values_join_kind != "inner" {
     text.replace(
       old="\"kind\":\"inner\"",
@@ -197,28 +212,48 @@ fn query_checked_program_fixture(
   let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_join_chain {
+    let full = local_values_join_kind == "full"
     let left = query_capacity_proof(
-      "actql.bound.values", 4L, "{\"op\":\"source\"}",
+      "actql.bound.values",
+      if full {
+        3L
+      } else {
+        4L
+      },
+      "{\"op\":\"source\"}",
+      step=0,
     )
     let right = query_capacity_proof(
-      "actql.bound.values", 5L, "{\"op\":\"source\"}",
+      "actql.bound.values",
+      if full {
+        4L
+      } else {
+        5L
+      },
+      "{\"op\":\"source\"}",
+      step=if full { 2 } else { 0 },
     )
     let left_cid = @wire.cid(@wire.program_proof_witness(left))
     let right_cid = @wire.cid(@wire.program_proof_witness(right))
     let joined = query_capacity_proof(
       "actql.bound.join-output",
-      if local_values_join_kind == "semi" || local_values_join_kind == "anti" {
+      if full {
+        12L
+      } else if local_values_join_kind == "semi" ||
+        local_values_join_kind == "anti" {
         4L
       } else {
         20L
       },
       "{\"op\":\"source\"}",
       inputs=[left_cid, right_cid],
+      step=if full { 4 } else { 0 },
     )
     [
       join_graph_capacity_material(
         environment,
         "joined",
+        steps=if full { [4] } else { [0] },
         proofs=[left, right, joined],
         candidates=[joined],
       ),
@@ -242,7 +277,16 @@ fn query_checked_program_fixture(
       ),
       Some(input_cursor(parameter_json)),
       evidence,
-      { input: input_limits, compilation: query_checked_limits(10), },
+      {
+        input: input_limits,
+        compilation: query_checked_limits(
+          if local_values_join_chain && local_values_join_kind == "full" {
+            20
+          } else {
+            10
+          },
+        ),
+      },
     ) {
     Checked(value) => value
     NeedsInputs(_) => fail("fixture requires complete checking inputs")
