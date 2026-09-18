@@ -94,6 +94,7 @@ pub fn local_managed_sequence_supported(
           | Unnest(_, _, _, _, _)
           | Unpivot(_, _, _, _)
           | StableSort(_)
+          | Lag(_, _)
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
