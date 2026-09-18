@@ -13,6 +13,8 @@ import {
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
@@ -48,6 +50,23 @@ const cids = Object.freeze({
   fence: digest('fence'),
 });
 const code = expected => error => error?.code === expected;
+
+async function runStoreChild(source) {
+  const child = spawn(process.execPath, [
+    '--input-type=module', '--eval', source,
+  ], {stdio: ['ignore', 'pipe', 'pipe']});
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on('data', chunk => stdout.push(chunk));
+  child.stderr.on('data', chunk => stderr.push(chunk));
+  const [exitCode, signal] = await once(child, 'exit');
+  return Object.freeze({
+    exitCode,
+    signal,
+    stdout: Buffer.concat(stdout).toString('utf8'),
+    stderr: Buffer.concat(stderr).toString('utf8'),
+  });
+}
 
 async function fixture(t, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
@@ -608,6 +627,200 @@ test('a dead local Store owner is reclaimed without weakening live exclusion',
       openLocalPublicationStore(configuration, contractControl),
       code('PublicationStoreBusy'),
     );
+  });
+
+test('restart reclaims a prepared payload abandoned by process exit',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-prepared-crash-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+    const controlUrl = new URL(
+      '../host-common/publication-contract-control.fixture.mjs',
+      import.meta.url,
+    ).href;
+    const payload = 'prepared payload abandoned by process exit';
+    const child = await runStoreChild(`
+      import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+      import {createPublicationContractControlFixture} from
+        ${JSON.stringify(controlUrl)};
+      const store = await openLocalPublicationStore(
+        ${JSON.stringify(configuration)},
+        createPublicationContractControlFixture(),
+      );
+      const writer = store.createPreparedObjectWriter(
+        Buffer.byteLength(${JSON.stringify(payload)}, 'utf8'),
+      );
+      await writer.append(${JSON.stringify(payload)});
+      const sealed = await writer.seal();
+      process.stdout.write(sealed.cid);
+    `);
+    assert.equal(child.exitCode, 0, child.stderr);
+    assert.equal(child.signal, null);
+    const abandonedCid = child.stdout;
+    const store = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await store.close(); });
+    await assert.rejects(
+      store.verifyObject(abandonedCid),
+      code('PublicationObjectMissing'),
+    );
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+    assert.deepEqual(await readdir(join(directory, 'staging')), []);
+  });
+
+test('restart reclaims a semantic object from a pre-link process crash',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-semantic-crash-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+    const controlUrl = new URL(
+      '../host-common/publication-contract-control.fixture.mjs',
+      import.meta.url,
+    ).href;
+    const value = invocation();
+    const admitted = contractControl.admit(
+      'run_invocation', wire(value), limits,
+    );
+    const physicalCid = digest(admitted.wire);
+    const child = await runStoreChild(`
+      import {constants} from 'node:fs';
+      import {open} from 'node:fs/promises';
+      import {join} from 'node:path';
+      import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+      import {createPublicationContractControlFixture} from
+        ${JSON.stringify(controlUrl)};
+      const directory = ${JSON.stringify(directory)};
+      const durability = Object.freeze({async syncDirectory(path) {
+        const handle = await open(path, constants.O_RDONLY);
+        try { await handle.sync(); } finally { await handle.close(); }
+        if (path === join(directory, 'objects')) process.exit(73);
+      }});
+      const store = await openLocalPublicationStore(
+        ${JSON.stringify(configuration)},
+        createPublicationContractControlFixture(),
+        durability,
+      );
+      await store.putPublicationContract(
+        'run_invocation', ${JSON.stringify(admitted.wire)},
+      );
+    `);
+    assert.equal(child.exitCode, 73, child.stderr);
+    assert.equal(child.signal, null);
+    const store = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await store.close(); });
+    await assert.rejects(
+      store.verifyObject(physicalCid),
+      code('PublicationObjectMissing'),
+    );
+    await assert.rejects(
+      store.readJsonObject(value.invocation_cid, 'run_invocation'),
+      code('PublicationContractMissing'),
+    );
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+    assert.deepEqual(await readdir(join(directory, 'staging')), []);
+  });
+
+test('crash custody cannot reclaim a committed shared allocation',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-shared-custody-crash-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    const initial = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      initial, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await initial.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    const materialCid = JSON.parse(
+      prepared.binding.wire,
+    ).material_generation_cid;
+    await initial.close();
+
+    const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+    const controlUrl = new URL(
+      '../host-common/publication-contract-control.fixture.mjs',
+      import.meta.url,
+    ).href;
+    const payload = 'fixture durable Result payload';
+    const child = await runStoreChild(`
+      import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+      import {createPublicationContractControlFixture} from
+        ${JSON.stringify(controlUrl)};
+      const store = await openLocalPublicationStore(
+        ${JSON.stringify(configuration)},
+        createPublicationContractControlFixture(),
+      );
+      const writer = store.createPreparedObjectWriter(
+        Buffer.byteLength(${JSON.stringify(payload)}, 'utf8'),
+      );
+      await writer.append(${JSON.stringify(payload)});
+      await writer.seal(${JSON.stringify(materialCid)});
+    `);
+    assert.equal(child.exitCode, 0, child.stderr);
+    assert.equal(child.signal, null);
+
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal((await reopened.verifyObject(materialCid)).cid, materialCid);
+    const consumed = [];
+    await reopened.consumeCommittedResult(
+      indexKeyFor(request),
+      request.inventory[0].result_definition_cid,
+      () => true,
+      chunk => consumed.push(Buffer.from(chunk)),
+    );
+    assert.equal(Buffer.concat(consumed).toString('utf8'), payload);
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
   });
 
 test('semantic contract identity remains distinct from physical body digest',
@@ -1289,6 +1502,77 @@ test('visible index is not committed until directory durability is confirmed',
     assert.equal(idempotent.idempotent, true);
     assert.deepEqual(idempotent.entry, entry);
     assert.equal(prepared.prepared.status().pending, false);
+  });
+
+test('committed payload custody remains retryable after cleanup failure',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-custody-retry-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let custodySyncFailures = 0;
+    let custodySyncSkips = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'prepared-custody') &&
+            custodySyncFailures > 0) {
+          if (custodySyncSkips > 0) {
+            custodySyncSkips--;
+          } else {
+            custodySyncFailures--;
+            const error = new Error('injected custody sync failure');
+            error.code = 'EIO';
+            throw error;
+          }
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    t.after(async () => { await store.close(); });
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    custodySyncSkips = 2;
+    custodySyncFailures = 2;
+    let unknown;
+    await assert.rejects(store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    ), error => {
+      unknown = error;
+      return error?.cleanupPending === true &&
+        error.cleanupHandle?.status().pending === true;
+    });
+    assert.deepEqual(
+      await store.inspectCommittedIndex(indexKeyFor(request)), entry,
+    );
+    assert.equal(prepared.prepared.status().pending, true);
+    const recovered = await unknown.cleanupHandle.retry();
+    assert.equal(recovered.pending, false);
+    assert.equal(recovered.outcome, 'committed');
+    assert.equal(prepared.prepared.status().pending, false);
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
   });
 
 test('confirmed non-commit releases custody before prepared reclamation',

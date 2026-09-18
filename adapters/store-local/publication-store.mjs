@@ -23,6 +23,8 @@ import {createRetainedRowFrames} from './row-frames.mjs';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
+const custodyNamePattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
 const timestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
@@ -233,6 +235,7 @@ export async function openLocalPublicationStore(
   const objectsDirectory = resolve(root, 'objects');
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
+  const custodyDirectory = resolve(root, 'prepared-custody');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
@@ -241,7 +244,7 @@ export async function openLocalPublicationStore(
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
-    stagingDirectory, attemptsDirectory, deliveriesDirectory,
+    stagingDirectory, custodyDirectory, attemptsDirectory, deliveriesDirectory,
     manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
     deletionsDirectory,
     clocksDirectory]) {
@@ -290,6 +293,24 @@ export async function openLocalPublicationStore(
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
   const ownership = await acquireStoreOwnership(root);
+
+  for (const name of await readdir(stagingDirectory)) {
+    const path = resolve(stagingDirectory, name);
+    if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
+        !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationStagingObject');
+    }
+    await unlink(path);
+  }
+  await syncDirectory(stagingDirectory);
+
+  for (const name of await readdir(custodyDirectory)) {
+    const path = resolve(custodyDirectory, name);
+    if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationPreparedCustody');
+    }
+  }
+  await syncDirectory(custodyDirectory);
 
   for (const name of await readdir(deliveriesDirectory)) {
     const path = resolve(deliveriesDirectory, name);
@@ -377,6 +398,7 @@ export async function openLocalPublicationStore(
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
+  const reclaimableCustodies = new Map();
   const durablyConfirmedIndexes = new Map();
   const durablyConfirmedClocks = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
@@ -388,6 +410,7 @@ export async function openLocalPublicationStore(
   const reclaimingMaterialCids = new Set();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
+  const custodyPath = token => resolve(custodyDirectory, `${token}.json`);
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
   const publicationAttemptPath = cid =>
     resolve(attemptsDirectory, cidHex(cid));
@@ -416,6 +439,78 @@ export async function openLocalPublicationStore(
     );
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
+  };
+
+  const parseCustodyRecord = bytes => {
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) { fail('InvalidPublicationPreparedCustody', error); }
+    if (!exactKeys(value, [
+      'version', 'material_generation_cid', 'byte_count', 'device', 'inode',
+    ]) || value.version !== 'actql-local-prepared-custody/0.1' ||
+        !cidPattern.test(value.material_generation_cid) ||
+        !quantity(value.byte_count) || typeof value.device !== 'string' ||
+        !/^(0|[1-9][0-9]*)$/u.test(value.device) ||
+        typeof value.inode !== 'string' ||
+        !/^(0|[1-9][0-9]*)$/u.test(value.inode)) {
+      fail('InvalidPublicationPreparedCustody');
+    }
+    return Object.freeze(value);
+  };
+
+  const registerCustody = async (cid, bytes, state) => {
+    const token = randomUUID();
+    const record = Object.freeze({
+      version: 'actql-local-prepared-custody/0.1',
+      material_generation_cid: cid,
+      byte_count: bytes,
+      device: String(state.dev),
+      inode: String(state.ino),
+    });
+    const path = custodyPath(token);
+    await writeExclusive(path, Buffer.from(JSON.stringify(record), 'utf8'));
+    await syncDirectory(custodyDirectory);
+    const custody = {token, path, record, busy: Promise.resolve()};
+    reclaimableCustodies.set(token, custody);
+    return custody;
+  };
+
+  const removeCustodyRecord = async custody => {
+    try { await unlink(custody.path); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    await syncDirectory(custodyDirectory);
+    reclaimableCustodies.delete(custody.token);
+  };
+
+  const reclaimCustody = custody => {
+    const operation = custody.busy.then(async () => {
+      if (!reclaimableCustodies.has(custody.token)) return false;
+      const cid = custody.record.material_generation_cid;
+      let state;
+      try { state = await lstat(objectPath(cid)); }
+      catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+        await removeCustodyRecord(custody);
+        return true;
+      }
+      if (!state.isFile() || state.size !== custody.record.byte_count) {
+        fail('InvalidPublicationPreparedCustody');
+      }
+      const ownsAllocation = String(state.dev) === custody.record.device &&
+        String(state.ino) === custody.record.inode;
+      if (ownsAllocation && state.nlink === 1 &&
+          !(await materialHasLiveReference(cid))) {
+        await verifyObject(cid);
+        await unlink(objectPath(cid));
+        await syncDirectory(objectsDirectory);
+        storedBytes -= state.size;
+        objectCount--;
+      }
+      await removeCustodyRecord(custody);
+      return true;
+    });
+    custody.busy = operation.catch(() => {});
+    return operation;
   };
 
   const verifyObject = async cid => {
@@ -533,7 +628,7 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
-  const createObjectWriter = maxBytes => {
+  const createObjectWriter = (maxBytes, trackCustody = false) => {
     active();
     if (!quantity(maxBytes) || maxBytes > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
@@ -555,6 +650,7 @@ export async function openLocalPublicationStore(
     let finished = false;
     let cleanupPending = false;
     let reservationHeld = true;
+    let custody;
     let busy = Promise.resolve();
     const releaseReservation = () => {
       if (!reservationHeld) return;
@@ -650,6 +746,7 @@ export async function openLocalPublicationStore(
           if (finished) fail('PublicationObjectWriterClosed');
           finished = true;
           let installed = false;
+          let result;
           try {
             await handle.sync();
             const state = await handle.stat();
@@ -662,10 +759,13 @@ export async function openLocalPublicationStore(
             if (expectedCid !== undefined && expectedCid !== cid) {
               fail('PublicationObjectIdentityMismatch');
             }
-            const finalPath = objectPath(cid);
             if (reclaimingMaterialCids.has(cid)) {
               fail('PublicationObjectReclamationPending');
             }
+            if (trackCustody) {
+              custody = await registerCustody(cid, bytes, state);
+            }
+            const finalPath = objectPath(cid);
             try {
               await link(temporary, finalPath);
               installed = true;
@@ -679,8 +779,22 @@ export async function openLocalPublicationStore(
                 fail('PublicationObjectIdentityMismatch');
               }
             }
-            return Object.freeze({cid, bytes, created: installed});
+            result = custody === undefined
+              ? Object.freeze({cid, bytes, created: installed})
+              : Object.freeze({cid, bytes, created: installed, custody});
+          } catch (error) {
+            if (custody !== undefined) {
+              try {
+                await reclaimCustody(custody);
+                custody = undefined;
+              } catch {
+                cleanupPending = true;
+              }
+            }
+            throw error;
           } finally { await cleanupAndRelease(); }
+          custody = undefined;
+          return result;
         });
       },
       cancel() {
@@ -690,9 +804,15 @@ export async function openLocalPublicationStore(
             if (!reservationHeld) return false;
             throw error;
           }
-          if (finished && !reservationHeld) return false;
+          if (finished && !reservationHeld && custody === undefined) {
+            return false;
+          }
           finished = true;
-          await cleanupAndRelease();
+          if (reservationHeld) await cleanupAndRelease();
+          if (custody !== undefined) {
+            await reclaimCustody(custody);
+            custody = undefined;
+          }
           return true;
         });
       },
@@ -702,12 +822,13 @@ export async function openLocalPublicationStore(
         finished,
         cleanupPending,
         reservationHeld,
+        custodyPending: custody !== undefined,
       }),
     });
   };
 
   const createPreparedObjectWriter = maxBytes => {
-    const writer = createObjectWriter(maxBytes);
+    const writer = createObjectWriter(maxBytes, true);
     return Object.freeze({
       append: frame => writer.append(frame),
       cancel: () => writer.cancel(),
@@ -722,11 +843,15 @@ export async function openLocalPublicationStore(
             removable: physical.created,
             committed: false,
             pendingUnlink: undefined,
+            custodies: new Set(),
             busy: Promise.resolve(),
           };
           preparedObjects.set(physical.cid, group);
         } else if (physical.created) {
           group.removable = true;
+        }
+        if (physical.custody !== undefined) {
+          group.custodies.add(physical.custody);
         }
         const errors = [];
         const holder = {active: true, releasing: undefined};
@@ -735,12 +860,22 @@ export async function openLocalPublicationStore(
           pending: holder.active,
           errors: Object.freeze([...errors]),
         });
+        const clearCustodies = async () => {
+          for (const custody of [...group.custodies]) {
+            await removeCustodyRecord(custody);
+            group.custodies.delete(custody);
+          }
+        };
         const finishPendingUnlink = async () => {
           const pending = group.pendingUnlink;
           if (pending === undefined) return;
-          await syncDirectory(objectsDirectory);
-          storedBytes -= pending.bytes;
-          objectCount--;
+          if (!pending.accounted) {
+            await syncDirectory(objectsDirectory);
+            storedBytes -= pending.bytes;
+            objectCount--;
+            pending.accounted = true;
+          }
+          await clearCustodies();
           pending.owner.active = false;
           group.holders.delete(pending.owner);
           group.pendingUnlink = undefined;
@@ -761,10 +896,12 @@ export async function openLocalPublicationStore(
             if (group.commitOwners.size > 0) return false;
             if (group.committed || group.holders.size > 1 ||
                 !group.removable) {
+              const finalHolder = group.holders.size === 1 &&
+                group.commitOwners.size === 0;
+              if (finalHolder) await clearCustodies();
               group.holders.delete(holder);
               holder.active = false;
-              if (group.holders.size === 0 &&
-                  group.commitOwners.size === 0) {
+              if (finalHolder) {
                 preparedObjects.delete(physical.cid);
               }
               return true;
@@ -785,7 +922,11 @@ export async function openLocalPublicationStore(
             }
             await unlink(path);
             group.removable = false;
-            group.pendingUnlink = {owner: holder, bytes: before.size};
+            group.pendingUnlink = {
+              owner: holder,
+              bytes: before.size,
+              accounted: false,
+            };
             await finishPendingUnlink();
             if (group.holders.size === 0 &&
                 group.commitOwners.size === 0) {
@@ -809,15 +950,24 @@ export async function openLocalPublicationStore(
             return state();
           },
         });
-        return Object.freeze({...physical, prepared});
+        return Object.freeze({
+          cid: physical.cid,
+          bytes: physical.bytes,
+          created: physical.created,
+          prepared,
+        });
       },
     });
   };
 
-  const adoptPreparedObjects = cids => {
+  const adoptPreparedObjects = async cids => {
     for (const cid of cids) {
       const group = preparedObjects.get(cid);
       if (group === undefined) continue;
+      for (const custody of [...group.custodies]) {
+        await removeCustodyRecord(custody);
+        group.custodies.delete(custody);
+      }
       group.committed = true;
       for (const owner of group.commitOwners) {
         owner.groups.delete(group);
@@ -858,10 +1008,10 @@ export async function openLocalPublicationStore(
       outcome: owner.outcome,
       errors: Object.freeze([...owner.errors]),
     });
-    const resolveConfirmed = entry => {
+    const resolveConfirmed = async entry => {
       if (!owner.pending) return status();
       if (entry?.public_index_entry_cid === indexCid) {
-        adoptPreparedObjects(cids);
+        await adoptPreparedObjects(cids);
       } else {
         settleUncommitted();
       }
@@ -873,7 +1023,7 @@ export async function openLocalPublicationStore(
       async retry() {
         if (!owner.pending) return status();
         try {
-          return resolveConfirmed(await confirmCommittedIndex(key));
+          return await resolveConfirmed(await confirmCommittedIndex(key));
         } catch (error) {
           owner.errors.push(error);
           throw error;
@@ -897,7 +1047,7 @@ export async function openLocalPublicationStore(
     return failure;
   };
 
-  const putBytes = async (value, expectedCid) => {
+  const putBytesInternal = async (value, expectedCid, trackCustody) => {
     const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value);
     const cid = `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
     if (expectedCid !== undefined && expectedCid !== cid) {
@@ -912,7 +1062,7 @@ export async function openLocalPublicationStore(
     } catch (error) {
       if (error?.code !== 'PublicationObjectMissing') throw error;
     }
-    const writer = createObjectWriter(buffer.byteLength);
+    const writer = createObjectWriter(buffer.byteLength, trackCustody);
     try {
       await writer.append(buffer);
       return await writer.seal(cid);
@@ -920,21 +1070,26 @@ export async function openLocalPublicationStore(
       const cleanupErrors = [];
       try {
         const status = writer.status();
-        if (status.reservationHeld) await writer.cancel();
+        if (status.reservationHeld || status.custodyPending) {
+          await writer.cancel();
+        }
       } catch (error) { cleanupErrors.push(error); }
-      if (!writer.status().reservationHeld) throw primaryFailure;
+      if (!writer.status().reservationHeld &&
+          !writer.status().custodyPending) throw primaryFailure;
       const code = typeof primaryFailure?.code === 'string'
         ? primaryFailure.code : 'PublicationObjectWriteFailed';
       const failure = new PublicationStoreError(code, primaryFailure);
       failure.primaryFailure = primaryFailure;
       const status = () => Object.freeze({
-        pending: writer.status().reservationHeld,
+        pending: writer.status().reservationHeld ||
+          writer.status().custodyPending,
         errors: Object.freeze([...cleanupErrors]),
       });
       const cleanupHandle = Object.freeze({
         status,
         async retry() {
-          if (writer.status().reservationHeld) {
+          if (writer.status().reservationHeld ||
+              writer.status().custodyPending) {
             try { await writer.cancel(); }
             catch (error) { cleanupErrors.push(error); }
           }
@@ -950,6 +1105,9 @@ export async function openLocalPublicationStore(
     }
   };
 
+  const putBytes = (value, expectedCid) =>
+    putBytesInternal(value, expectedCid, false);
+
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
@@ -960,17 +1118,66 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     const bytes = Buffer.from(wire, 'utf8');
-    const physical = await putBytes(bytes);
+    const physical = await putBytesInternal(bytes, undefined, true);
     const target = contractPath(semanticCid);
+    let created = true;
     try {
-      await link(objectPath(physical.cid), target);
+      try {
+        await link(objectPath(physical.cid), target);
+      } catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        created = false;
+        const existing = await readBounded(
+          target, configuration.maxObjectBytes,
+        );
+        if (!existing.equals(bytes)) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+      }
       await syncDirectory(contractsDirectory);
-      return Object.freeze({semanticCid, physical, created: true});
+      if (physical.custody !== undefined) {
+        await removeCustodyRecord(physical.custody);
+      }
+      const visible = Object.freeze({
+        cid: physical.cid,
+        bytes: physical.bytes,
+        created: physical.created,
+      });
+      return Object.freeze({semanticCid, physical: visible, created});
     } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
-      const existing = await readBounded(target, configuration.maxObjectBytes);
-      if (!existing.equals(bytes)) fail('PublicationSemanticIdentityConflict');
-      return Object.freeze({semanticCid, physical, created: false});
+      if (physical.custody === undefined ||
+          !reclaimableCustodies.has(physical.custody.token)) throw error;
+      const cleanupErrors = [];
+      try { await reclaimCustody(physical.custody); }
+      catch (cleanupError) { cleanupErrors.push(cleanupError); }
+      if (!reclaimableCustodies.has(physical.custody.token)) throw error;
+      const failure = new PublicationStoreError(
+        typeof error?.code === 'string'
+          ? error.code : 'PublicationSemanticWriteFailed',
+        error,
+      );
+      failure.primaryFailure = error;
+      const status = () => Object.freeze({
+        pending: reclaimableCustodies.has(physical.custody.token),
+        errors: Object.freeze([...cleanupErrors]),
+      });
+      failure.cleanupPending = true;
+      failure.cleanupErrors = status().errors;
+      failure.cleanupHandle = Object.freeze({
+        status,
+        async retry() {
+          try { await reclaimCustody(physical.custody); }
+          catch (cleanupError) {
+            cleanupErrors.push(cleanupError);
+            throw cleanupError;
+          } finally {
+            failure.cleanupPending = status().pending;
+            failure.cleanupErrors = status().errors;
+          }
+          return status();
+        },
+      });
+      throw failure;
     }
   };
 
@@ -1735,7 +1942,7 @@ export async function openLocalPublicationStore(
     const boundPhysicalCids = await verifyCommitEvidence(
       admitted, entry, suppliedEvidence, undefined,
     );
-    adoptPreparedObjects(boundPhysicalCids);
+    await adoptPreparedObjects(boundPhysicalCids);
     return true;
   };
 
@@ -1791,7 +1998,7 @@ export async function openLocalPublicationStore(
       durablyConfirmedIndexes.set(
         indexKey(key), entry.public_index_entry_cid,
       );
-      adoptPreparedObjects(boundPhysicalCids);
+      await adoptPreparedObjects(boundPhysicalCids);
       return Object.freeze({entry, committed: true, idempotent: false});
     } catch (error) {
       let existing;
@@ -1800,16 +2007,19 @@ export async function openLocalPublicationStore(
         throw commitCustodyFailure(error, custody, reconciliation);
       }
       if (existing === undefined) {
-        custody.resolveConfirmed(undefined);
+        await custody.resolveConfirmed(undefined);
         throw error;
       }
       if (existing.invocation_cid !== entry.invocation_cid ||
           existing.result_manifest_cid !== entry.result_manifest_cid ||
           existing.publication_request_cid !== entry.publication_request_cid) {
-        custody.resolveConfirmed(existing);
+        await custody.resolveConfirmed(existing);
         fail('PublicationCommitConflict');
       }
-      adoptPreparedObjects(boundPhysicalCids);
+      try { await adoptPreparedObjects(boundPhysicalCids); }
+      catch (reconciliation) {
+        throw commitCustodyFailure(error, custody, reconciliation);
+      }
       return Object.freeze({
         entry: existing,
         committed: installed,
@@ -2150,6 +2360,25 @@ export async function openLocalPublicationStore(
     return false;
   };
 
+  const recoverPreparedCustodies = async () => {
+    const recovered = [];
+    for (const name of await readdir(custodyDirectory)) {
+      if (!custodyNamePattern.test(name)) {
+        fail('InvalidPublicationPreparedCustody');
+      }
+      const token = name.slice(0, -5);
+      const path = custodyPath(token);
+      const record = parseCustodyRecord(await readBounded(
+        path, configuration.maxObjectBytes,
+      ));
+      const custody = {token, path, record, busy: Promise.resolve()};
+      reclaimableCustodies.set(token, custody);
+      await reclaimCustody(custody);
+      recovered.push(record.material_generation_cid);
+    }
+    return Object.freeze(recovered);
+  };
+
   const ensureResultDeletionMarker = async (
     keyHash,
     resultDefinitionCid,
@@ -2357,8 +2586,13 @@ export async function openLocalPublicationStore(
     return Object.freeze(recovered);
   };
 
-  // Reconcile durable deletion markers before accepting new Store work.
-  // A failed physical cleanup remains owned by the returned Store and can be
+  // Recover process-crash custody before accepting new Store work. A
+  // committed or shared allocation survives; an unpublished allocation is
+  // reclaimed using its exact recorded generation.
+  await recoverPreparedCustodies();
+
+  // Reconcile durable deletion markers before accepting new Store work. A
+  // failed physical cleanup remains owned by the returned Store and can be
   // retried without making the deleted Result visible again.
   await recoverRetiredResults();
 
@@ -2380,6 +2614,7 @@ export async function openLocalPublicationStore(
     readCommittedResultRetentionExtension,
     putCommittedResultRetentionExtension,
     retireCommittedResult,
+    recoverPreparedCustodies,
     recoverRetiredResults,
     readJsonObject,
     async readPublicationContract(cid, name) {
@@ -2416,6 +2651,7 @@ export async function openLocalPublicationStore(
     close() {
       closed = true;
       if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
+          reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
           activeResultReaders.size !== 0) {
         return Promise.reject(new PublicationStoreError(

@@ -263,7 +263,8 @@ async function storeCompletedPayload(
       catch (error) {
         cleanupErrors.push(error);
         cleanupOwners.push(Object.freeze({
-          pending: () => writer.status().reservationHeld === true,
+          pending: () => writer.status().reservationHeld === true ||
+            writer.status().custodyPending === true,
           retry: () => writer.cancel(),
         }));
       }
