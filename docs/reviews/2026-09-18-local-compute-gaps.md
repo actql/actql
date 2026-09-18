@@ -27,9 +27,9 @@ standard-Host candidate and execution support, not a direct kernel call.
 | --- | :---: | :---: | :---: | :---: | --- |
 | filter | C | C | C | C | Complete the formal predicate/operator and admitted type matrix, including the shared owned-reference runtime boundary |
 | select | C | C | C | C | Add the shared owned-reference runtime boundary for `resource_ref` and `artifact_ref`; all directly admitted domains, source variants, two consumers, and the performance floor are covered |
-| rename | C | C | C | P | Multiple rename, collision, type, and performance coverage |
-| drop | C | C | C | P | Multiple drop, empty-schema, type, and performance coverage |
-| derive | C | C | C | P | Demanded failure, type, overwrite, and performance coverage |
+| rename | C | C | C | P | Standard-Host evidence, collision matrix, and shared owned-reference runtime boundary; swap/empty variants, direct value domains, NULL, branches, and linear work are covered |
+| drop | C | C | C | P | Standard-Host evidence, all-column rejection connection, and shared owned-reference runtime boundary; repeated/empty variants, direct value domains, NULL, branches, and linear work are covered |
+| derive | C | C | C | P | Standard-Host evidence, full result-type and overwrite matrix, and shared owned-reference runtime boundary; empty/ordered/parameter/failure variants and linear work are covered |
 | sort | C | C | C | P | Managed stability and performance floor |
 | take | C | C | C | P | Managed validation and boundary cases |
 | top_k | C | - | - | - | Common lowering and execution |

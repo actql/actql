@@ -63,7 +63,7 @@
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
               "Local managed unary source forms feed two downstream Computes",
-              "Local managed filter failure publishes nothing and releases its use"
+              "Local managed demanded failures publish nothing and release their use"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -341,7 +341,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -390,12 +390,57 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "rename",
+            "layer": "conformance",
+            "path": "src/execution_relation/projection_operations_wbtest.mbt",
+            "fixtures": [
+              "rename and drop preserve every directly admitted value domain and NULL"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "rename",
+            "layer": "conformance",
+            "path": "src/execution_relation/projection_sequence_wbtest.mbt",
+            "fixtures": [
+              "rename swaps simultaneously and drop/select consume checked projections",
+              "empty projection operations preserve empty schemas and their authored nodes",
+              "rename branch retains its original input"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "rename",
+            "layer": "performance",
+            "path": "src/execution_relation/projection_operations_wbtest.mbt",
+            "fixtures": [
+              "rename and drop work stay linear in rows and retained width"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "A single rename reaches two managed consumers on three targets; multiple renames, collision rejection, full type, and performance coverage remain."
+        "Single, simultaneous swap, and empty renames reach the managed and formal sequence paths; directly admitted value domains, NULL, branch ownership, and linear work are covered. The standard Host evidence, collision matrix, and shared owned-reference runtime boundary remain."
       ]
     },
     {
@@ -419,7 +464,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -468,12 +513,57 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "drop",
+            "layer": "conformance",
+            "path": "src/execution_relation/projection_operations_wbtest.mbt",
+            "fixtures": [
+              "rename and drop preserve every directly admitted value domain and NULL"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "drop",
+            "layer": "conformance",
+            "path": "src/execution_relation/projection_sequence_wbtest.mbt",
+            "fixtures": [
+              "rename swaps simultaneously and drop/select consume checked projections",
+              "empty projection operations preserve empty schemas and their authored nodes",
+              "rename branch retains its original input"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "drop",
+            "layer": "performance",
+            "path": "src/execution_relation/projection_operations_wbtest.mbt",
+            "fixtures": [
+              "rename and drop work stay linear in rows and retained width"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "A single drop reaches two managed consumers on three targets; multiple drops, empty-schema rules, full type, and performance coverage remain."
+        "Single, repeated, and empty drops reach the managed and formal sequence paths; directly admitted value domains, NULL, branch ownership, and linear work are covered. The standard Host evidence, all-column rejection connection, and shared owned-reference runtime boundary remain."
       ]
     },
     {
@@ -499,7 +589,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -508,7 +598,8 @@
             "layer": "source_connection",
             "path": "src/query_integration/local_managed_unary_wbtest.mbt",
             "fixtures": [
-              "Local managed unary source forms feed two downstream Computes"
+              "Local managed unary source forms feed two downstream Computes",
+              "Local managed demanded failures publish nothing and release their use"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -565,10 +656,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "derive",
+            "layer": "performance",
+            "path": "src/execution_relation/derive_scale_wbtest.mbt",
+            "fixtures": [
+              "snapshot and ordered derive work stay linear in rows and bindings"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Snapshot-map and ordered parameter derives reach two managed consumers on three targets; demanded failures, full type and overwrite coverage, and performance evidence remain."
+        "Snapshot-map, empty, ordered parameter, and demanded-failure derives reach the managed path on three targets, with linear work evidence. Standard Host evidence, the full result-type and overwrite matrix, and the shared owned-reference runtime boundary remain."
       ]
     },
     {
