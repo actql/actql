@@ -706,7 +706,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
             const publicationDirectory = await mkdtemp(join(
               root, '_build/duckdb-fixtures/publication-payload-',
             ));
-            const publicationStore = await openLocalPublicationStore({
+            const publicationConfiguration = {
               directory: publicationDirectory,
               storeAuthorityCid: hash('publication-store'),
               capacityBytes: 4 * 1024 * 1024,
@@ -714,7 +714,12 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
               maxObjects: 100,
               maxContractNodes: 10000,
               maxContractDepth: 64,
-            }, runtime.publicationControl);
+            };
+            const publicationStore = await openLocalPublicationStore(
+              publicationConfiguration,
+              runtime.publicationControl,
+            );
+            let restartedPublicationStore;
             try {
               const effectiveDataPolicyCid = hash('effective-policy');
               const contractLimits = {
@@ -1188,7 +1193,75 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
                   );
                 }
               }
+              await publicationStore.close();
+              restartedPublicationStore = await openLocalPublicationStore(
+                publicationConfiguration,
+                runtime.publicationControl,
+              );
+              let restartedAdmissions = 0;
+              let restartedAuthorizations = 0;
+              const restartedAccess = installNodeResultAccessService({
+                store: restartedPublicationStore,
+                control: runtime.publicationControl,
+                authority: installResultAccessAuthority({
+                  admitResultRead() {
+                    restartedAdmissions++;
+                    return {
+                      authorizationContextCid:
+                        hash('restarted-authorization-context'),
+                      dataCeilingCid: hash('restarted-data-ceiling'),
+                      egressAdmissionCid: hash('restarted-egress-admission'),
+                      expiresAt: '2026-09-18T01:00:00.000Z',
+                      maxBytes: 100000,
+                      maxUses: 1,
+                    };
+                  },
+                  authorizeResultRead() {
+                    restartedAuthorizations++;
+                    return true;
+                  },
+                }),
+                now: () => '2026-09-18T00:45:00.000Z',
+                limits: contractLimits,
+                frameLimits: {
+                  maxRowBytes: 4096,
+                  maxDepth: 32,
+                  maxFrameBytes: 4096,
+                },
+              });
+              const restartedOccurrence =
+                execution.publicationInventory.occurrences[0];
+              const restartedBytes = [];
+              await deliverAuthorizedResult(
+                restartedAccess,
+                {
+                  indexKey: {
+                    tenantId: 'tenant-a',
+                    authorityScopeCid: hash('authority-scope'),
+                    runDefinitionCid: publishedRun.identity,
+                  },
+                  principalId: 'principal-after-restart',
+                  purpose: 'download-after-restart',
+                  resultName: restartedOccurrence.name,
+                  format: 'json',
+                  attemptId: `restarted-${mode}`,
+                },
+                {
+                  async write(bytes) {
+                    restartedBytes.push(Buffer.from(bytes));
+                    return {confirmedBytes: bytes.byteLength};
+                  },
+                },
+                controller.signal,
+              );
+              assert.equal(restartedAdmissions, 1);
+              assert.ok(restartedAuthorizations >= 3);
+              assert.equal(
+                Buffer.concat(restartedBytes).toString('utf8'),
+                expectedDelivery[restartedOccurrence.name].json,
+              );
             } finally {
+              await restartedPublicationStore?.close();
               await publicationStore.close();
               await rm(publicationDirectory, {recursive: true, force: true});
             }
