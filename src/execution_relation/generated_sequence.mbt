@@ -6,7 +6,7 @@ struct GeneratedSequence {
   sequence : @lower.PreparedSequence
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
-  join_ceiling : (Int, Int64)?
+  join_ceilings : Array[(Int, Int64)]
   aggregate_outputs : Array[SelectedAggregateOutput]
   analytic_envelopes : Array[SelectedAnalyticEnvelope]
 }
@@ -17,6 +17,25 @@ pub(all) struct SequenceExecutionLimits {
   rows : SequenceRunLimits
   max_work : Int
   max_frames : Int
+}
+
+///|
+fn selected_join_ceiling_at(
+  ceilings : Array[(Int, Int64)],
+  step : Int,
+) -> (Int, Int64)? {
+  let mut selected : Int64? = None
+  for (candidate, maximum) in ceilings {
+    if candidate == step {
+      selected = Some(
+        match selected {
+          Some(prior) => Int64::min(prior, maximum)
+          None => maximum
+        },
+      )
+    }
+  }
+  selected.map(maximum => (step, maximum))
 }
 
 ///|
@@ -68,7 +87,7 @@ pub fn prepare_generated_sequence(
         sequence,
         contexts,
         retained_ids,
-        join_ceiling: None,
+        join_ceilings: [],
         aggregate_outputs: [],
         analytic_envelopes: [],
       })
@@ -94,7 +113,7 @@ pub fn execute_generated_sequence(
     { remaining: limits.max_work, max_frames: limits.max_frames, },
     produced~,
     fragments=Some(generated.contexts),
-    join_ceiling=generated.join_ceiling,
+    join_ceilings=generated.join_ceilings,
     aggregate_outputs=generated.aggregate_outputs,
     analytic_envelopes=generated.analytic_envelopes,
   )
@@ -115,16 +134,19 @@ pub fn constrain_generated_join_output(
     (value is @lower.JoinStep(_) || value is @lower.CrossJoinStep(_)) else {
     return Err(InputSet)
   }
-  let ceiling = match generated.join_ceiling {
-    None => ceiling
-    Some((prior_step, prior)) => {
-      if prior_step != step {
-        return Err(InputSet)
-      }
-      Int64::min(prior, ceiling)
+  let ceilings = generated.join_ceilings.copy()
+  let mut replaced = false
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, ceiling))
+      replaced = true
+      break
     }
   }
-  Ok({ ..generated, join_ceiling: Some((step, ceiling)), })
+  if !replaced {
+    ceilings.push((step, ceiling))
+  }
+  Ok({ ..generated, join_ceilings: ceilings, })
 }
 
 ///|

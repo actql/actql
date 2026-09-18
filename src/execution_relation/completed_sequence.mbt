@@ -68,7 +68,7 @@ fn evaluate_physical_sequence(
   produced : Array[BoundProducerInput],
   fragments : Array[FragmentRuntimeContext]?,
   ordered : OrderedExecution,
-  join_ceiling? : (Int, Int64)? = None,
+  join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
@@ -129,7 +129,10 @@ fn evaluate_physical_sequence(
         control,
         invocation.output_budget,
         { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=join_ceiling,
+        selected_ceiling=selected_join_ceiling_at(
+          join_ceilings,
+          @lower.join_kernel_step(kernel),
+        ),
       ).map(table => RowTable(table))
     }),
     evaluate_cross_join=Some((kernel, left, right) => {
@@ -141,7 +144,10 @@ fn evaluate_physical_sequence(
         control,
         invocation.output_budget,
         { limit: limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=join_ceiling,
+        selected_ceiling=selected_join_ceiling_at(
+          join_ceilings,
+          @lower.cross_join_kernel_step(kernel),
+        ),
       ).map(table => RowTable(table))
     }),
     evaluate_append=Some((kernel, left, right) => {

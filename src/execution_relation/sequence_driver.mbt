@@ -66,7 +66,7 @@ fn evaluate_sequence_components(
   control : ControlBudget,
   produced? : Array[BoundProducerInput] = [],
   fragments? : Array[FragmentRuntimeContext]? = None,
-  join_ceiling? : (Int, Int64)? = None,
+  join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
   ordered? : OrderedExecution = {
@@ -95,7 +95,7 @@ fn evaluate_sequence_components(
       produced,
       fragments,
       ordered,
-      join_ceiling~,
+      join_ceilings~,
       aggregate_outputs~,
       analytic_envelopes~,
     )
@@ -117,7 +117,7 @@ fn evaluate_sequence_components(
   }
   run_sequence_invocation(
     invocation,
-    join_ceiling~,
+    join_ceilings~,
     aggregate_outputs~,
     analytic_envelopes~,
   )
@@ -409,7 +409,7 @@ fn[T : RelationRows] prepare_sequence_with_importers(
 ///|
 fn run_sequence_invocation(
   invocation : SequenceInvocation[Table],
-  join_ceiling? : (Int, Int64)? = None,
+  join_ceilings? : Array[(Int, Int64)] = [],
   aggregate_outputs? : Array[SelectedAggregateOutput] = [],
   analytic_envelopes? : Array[SelectedAnalyticEnvelope] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
@@ -462,7 +462,10 @@ fn run_sequence_invocation(
         invocation.control,
         invocation.output_budget,
         { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=join_ceiling,
+        selected_ceiling=selected_join_ceiling_at(
+          join_ceilings,
+          @lower.join_kernel_step(kernel),
+        ),
       )
     }),
     evaluate_cross_join=Some((kernel, left, right) => {
@@ -474,7 +477,10 @@ fn run_sequence_invocation(
         invocation.control,
         invocation.output_budget,
         { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
-        selected_ceiling=join_ceiling,
+        selected_ceiling=selected_join_ceiling_at(
+          join_ceilings,
+          @lower.cross_join_kernel_step(kernel),
+        ),
       )
     }),
     evaluate_append=Some((kernel, left, right) => {

@@ -28,10 +28,7 @@ pub fn generated_sequence_requirements(
   @lower.prepare_sequence_requirements(
     generated.sequence,
     fragments,
-    match generated.join_ceiling {
-      None => []
-      Some(ceiling) => [ceiling]
-    },
+    generated.join_ceilings,
     max_entries,
   )
 }
@@ -77,10 +74,14 @@ pub fn generated_satisfies_requirements(
       return false
     }
   }
-  match generated.join_ceiling {
-    None => @lower.sequence_requirements_join_count(required) == 0
-    Some(ceiling) =>
-      @lower.sequence_requirements_join_count(required) == 1 &&
-      @lower.sequence_requirements_join_at(required, 0) == Some(ceiling)
+  if generated.join_ceilings.length() !=
+    @lower.sequence_requirements_join_count(required) {
+    return false
   }
+  for index, ceiling in generated.join_ceilings {
+    if @lower.sequence_requirements_join_at(required, index) != Some(ceiling) {
+      return false
+    }
+  }
+  true
 }
