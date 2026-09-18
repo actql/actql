@@ -984,7 +984,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1069,10 +1069,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "top_k",
+            "layer": "performance",
+            "path": "src/execution_relation/top_k_scale_wbtest.mbt",
+            "fixtures": [
+              "global and partitioned top-k stay within indexed scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Literal global TopK with checked order completion reaches two managed consumers; parameter binding, nullable/compound ordering, and exact/one-short budgets have focused conformance coverage. Broader type conformance, a parameterized standard-Host E2E, and performance evidence remain."
+        "Literal and parameter global TopK, compound NULL ordering, checked stable completion, exact small-case budgets, two managed consumers, and indexed O(N log N) work with O(N) workspace are covered on three targets. Standard Host evidence, the broader orderable type matrix, and large-scale exact/one-short budget evidence remain."
       ]
     },
     {
@@ -1098,7 +1113,7 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "complete"
       },
       "evidence": {
         "source_connection": [
@@ -1183,10 +1198,25 @@
             ]
           }
         ],
-        "performance": []
+        "performance": [
+          {
+            "operation": "top_k_by",
+            "layer": "performance",
+            "path": "src/execution_relation/top_k_scale_wbtest.mbt",
+            "fixtures": [
+              "global and partitioned top-k stay within indexed scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ]
       },
       "gaps": [
-        "Repeated and empty partition occurrences, nullable canonical partition order, and exact/one-short budgets execute through Local. A parameterized standard-Host E2E, broader type conformance, and performance evidence remain."
+        "Repeated, empty, and nullable partition occurrences, literal and parameter counts, exact small-case budgets, two managed consumers, and indexed O(N log N) work with O(N) workspace are covered on three targets. Standard Host evidence, the broader key/orderable type matrix, and large-scale exact/one-short budget evidence remain."
       ]
     },
     {
