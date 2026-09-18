@@ -125,3 +125,34 @@ test "cross join releases unpublished workspace after a bounded failure" {
   assert_eq(workspace.live, 0)
   assert_true(workspace.peak > 0)
 }
+
+///|
+test "cross join accepts every pair of retained input layouts" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"left_rows\"},{\"values\":{\"schema\":{\"tag\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"tag\":{\"literal\":\"a\"}},{\"tag\":{\"literal\":\"b\"}}]},\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"cross_join\":{\"with\":\"right_rows\",\"select\":{\"id\":\"left.id\",\"tag\":\"right.tag\"}},\"as\":\"out\"}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 2)
+    is Some(@lower.CrossJoinStep(kernel)) else {
+    fail("cross join kernel was not prepared")
+  }
+  let left = capture_values(owner, 0, max_rows=2, run_limits().input_values).unwrap()
+  let right = capture_values(owner, 1, max_rows=2, run_limits().input_values).unwrap()
+  for left_layout in [RowLayout, ValueColumns, TypedColumns] {
+    for right_layout in [RowLayout, ValueColumns, TypedColumns] {
+      let result = evaluate_cross_join_rows(
+        kernel,
+        layout_relation(left, left_layout),
+        layout_relation(right, right_layout),
+        4,
+        { remaining: 100000, max_frames: 100, },
+        value_budget(run_limits().output_values).unwrap(),
+        { limit: 10000, live: 0, peak: 0, },
+      ).unwrap()
+      assert_eq(result.rows.length(), 4)
+      assert_true(result.rows[0][0] is Number(1))
+      assert_true(result.rows[0][1] is Text("a"))
+      assert_true(result.rows[3][0] is Number(2))
+      assert_true(result.rows[3][1] is Text("b"))
+    }
+  }
+}

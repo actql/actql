@@ -2,10 +2,10 @@
 fn set_test_sequence(
   operation : String,
   duplicates : String,
+  left? : String = "[{\"k\":1,\"payload\":[1]},{\"k\":1,\"payload\":[1]},{\"k\":2,\"payload\":[2]},{\"k\":null,\"payload\":[]}]",
+  right? : String = "[{\"payload\":[1],\"k\":1},{\"payload\":[3],\"k\":3}]",
 ) -> GeneratedSequence raise {
   let schema = "{\"k\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
-  let left = "[{\"k\":1,\"payload\":[1]},{\"k\":1,\"payload\":[1]},{\"k\":2,\"payload\":[2]},{\"k\":null,\"payload\":[]}]"
-  let right = "[{\"payload\":[1],\"k\":1},{\"payload\":[3],\"k\":3}]"
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":" +
     schema +
@@ -130,4 +130,71 @@ test "row set output ceiling fails atomically" {
     })
     is Err(_),
   )
+}
+
+///|
+test "row set variants preserve their empty-side laws" {
+  let limits = { rows: run_limits(), max_work: 100000, max_frames: 100, }
+  for
+    (operation, duplicates, left, right, expected) in [
+      (
+        "except",
+        "all",
+        "[{\"k\":1,\"payload\":[1]},{\"k\":1,\"payload\":[1]}]",
+        "[]",
+        [Number(1), Number(1)],
+      ),
+      (
+        "except",
+        "distinct",
+        "[{\"k\":1,\"payload\":[1]},{\"k\":1,\"payload\":[1]}]",
+        "[]",
+        [Number(1)],
+      ),
+      ("intersect", "all", "[{\"k\":1,\"payload\":[1]}]", "[]", []),
+      ("intersect", "distinct", "[]", "[{\"payload\":[1],\"k\":1}]", []),
+    ] {
+    let completed = execute_generated_sequence(
+      set_test_sequence(operation, duplicates, left~, right~),
+      [],
+      limits,
+    ).unwrap()
+    let output = completed_output(completed, Step(2)).unwrap()
+    assert_true(set_key_values_match(set_keys(output), expected))
+  }
+}
+
+///|
+test "row set execution accepts every pair of retained input layouts" {
+  for operation in ["except", "intersect"] {
+    let generated = set_test_sequence(operation, "all")
+    let owner = generated_sequence_owner(generated)
+    guard @lower.sequence_step(prepared_sequence(owner), 2)
+      is Some(@lower.SetStep(kernel)) else {
+      fail("set kernel was not prepared")
+    }
+    let left = capture_values(owner, 0, max_rows=4, run_limits().input_values).unwrap()
+    let right = capture_values(owner, 1, max_rows=2, run_limits().input_values).unwrap()
+    for left_layout in [RowLayout, ValueColumns, TypedColumns] {
+      for right_layout in [RowLayout, ValueColumns, TypedColumns] {
+        let result = evaluate_set_rows(
+          kernel,
+          layout_relation(left, left_layout),
+          layout_relation(right, right_layout),
+          4,
+          { remaining: 100000, max_frames: 100, },
+          value_budget(run_limits().output_values).unwrap(),
+          { limit: 10000, live: 0, peak: 0, },
+        ).unwrap()
+        assert_eq(
+          result.rows.length(),
+          if operation == "except" {
+            3
+          } else {
+            1
+          },
+        )
+      }
+    }
+  }
 }
