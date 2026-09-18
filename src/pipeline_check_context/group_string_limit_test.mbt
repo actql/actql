@@ -170,6 +170,10 @@ test "string aggregate ceilings retain exact Host and author scopes without requ
             None => assert_true(host_value is None)
           }
           let call = group_string_limit_call(limit)
+          assert_eq(
+            group_string_limit_name(limit),
+            @relation.aggregate_name(call),
+          )
           assert_eq(@relation.aggregate_name(call), "a")
           guard @pipeline.step_at(site.pipeline, site.step).unwrap().operation
             is @pipeline.Unary(operation) else {

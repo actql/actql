@@ -327,6 +327,8 @@ pub fn group_array_limit_input_law(GroupArrayLimit) -> String
 
 pub fn group_array_limit_maximum(GroupArrayLimit) -> Int64
 
+pub fn group_array_limit_name(GroupArrayLimit) -> String
+
 pub fn group_array_limit_owner(GroupArrayLimit) -> ProgramOperationResolutionIndex
 
 pub fn group_array_limit_requirement(GroupArrayLimit) -> Int
@@ -342,6 +344,8 @@ pub fn group_string_limit_guard_resolution(GroupStringLimit) -> OperationScalarR
 pub fn group_string_limit_host(GroupStringLimit) -> @capacity_policy.Ceiling?
 
 pub fn group_string_limit_maximum(GroupStringLimit) -> Int64
+
+pub fn group_string_limit_name(GroupStringLimit) -> String
 
 pub fn group_string_limit_owner(GroupStringLimit) -> ProgramOperationResolutionIndex
 

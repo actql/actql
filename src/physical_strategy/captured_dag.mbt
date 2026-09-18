@@ -141,14 +141,14 @@ pub fn open_captured_dag(
           EnforceArrayItems(limit) =>
             @connector.aggregate_output_ceiling(
               check.site.step,
-              @relation.aggregate_name(@context.group_array_limit_call(limit)),
+              @context.group_array_limit_name(limit),
               @connector.array_items_output_unit(),
               @context.group_array_limit_maximum(limit),
             )
           EnforceStringBytes(limit) =>
             @connector.aggregate_output_ceiling(
               check.site.step,
-              @relation.aggregate_name(@context.group_string_limit_call(limit)),
+              @context.group_string_limit_name(limit),
               @connector.string_bytes_output_unit(),
               @context.group_string_limit_maximum(limit),
             )

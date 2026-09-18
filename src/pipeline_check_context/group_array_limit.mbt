@@ -14,6 +14,7 @@ struct GroupArrayLimit {
   owner : ProgramOperationResolutionIndex
   requirement : Int
   call : @relation.CheckedAggregate
+  name : String
   host : @policy.Ceiling
   guard_value : Int64?
   guard_resolution : OperationScalarResolution?
@@ -44,6 +45,11 @@ pub fn group_array_limit_call(
   value : GroupArrayLimit,
 ) -> @relation.CheckedAggregate {
   value.call
+}
+
+///|
+pub fn group_array_limit_name(value : GroupArrayLimit) -> String {
+  value.name
 }
 
 ///|
@@ -242,6 +248,7 @@ fn select_array_limit(
     owner,
     requirement,
     call,
+    name: @relation.aggregate_name(call),
     host,
     guard_value,
     guard_resolution,

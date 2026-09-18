@@ -12,6 +12,7 @@ struct GroupStringLimit {
   owner : ProgramOperationResolutionIndex
   requirement : Int
   call : @relation.CheckedAggregate
+  name : String
   host : @policy.Ceiling?
   guard_value : Int64?
   guard_resolution : OperationScalarResolution?
@@ -36,6 +37,11 @@ pub fn group_string_limit_call(
   v : GroupStringLimit,
 ) -> @relation.CheckedAggregate {
   v.call
+}
+
+///|
+pub fn group_string_limit_name(v : GroupStringLimit) -> String {
+  v.name
 }
 
 ///|
@@ -225,6 +231,7 @@ fn select_string_limit(
     owner,
     requirement,
     call,
+    name: @relation.aggregate_name(call),
     host,
     guard_value,
     guard_resolution,

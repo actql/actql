@@ -39,7 +39,7 @@ test "array aggregate limits select owned Host and literal or bound guards" {
         } else {
           assert_true(group_array_limit_guard_resolution(limit) is None)
         }
-        assert_eq(@relation.aggregate_name(group_array_limit_call(limit)), "a")
+        assert_eq(group_array_limit_name(limit), "a")
         let host = @policy.ceiling_value(group_array_limit_host(limit))
         let expected = if guard_text == "" {
           host
