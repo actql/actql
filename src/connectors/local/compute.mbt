@@ -109,6 +109,7 @@ pub fn local_managed_sequence_supported(
             }
         }
       @lower.AppendStep(_) => true
+      @lower.SetStep(_) => false
       @lower.JoinStep(_) => {
         joins += 1
         joins <= 1

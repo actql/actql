@@ -56,6 +56,8 @@ pub fn captured_managed_transfer_receipt_bytes(ManagedTransferReceipt) -> (Int64
 
 pub fn captured_managed_transfer_receipt_source(ManagedTransferReceipt) -> Int
 
+pub fn captured_next_managed_input_count(CapturedDAG) -> Int?
+
 pub fn captured_next_managed_obligations(CapturedDAG, Int) -> Result[@execution_relation.ManagedObligations, @execution_relation.ManagedObligationIssue]
 
 pub fn captured_next_managed_producer(CapturedDAG) -> Int?

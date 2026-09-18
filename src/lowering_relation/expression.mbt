@@ -394,7 +394,8 @@ fn lower_expression_measured(
       | CountGroup(_)
       | JsonPick(_)
       | InnerJoin(_)
-      | AppendRows(_) => expression_fail(step.source, MissingCheckedBinding)
+      | AppendRows(_)
+      | SetRows(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

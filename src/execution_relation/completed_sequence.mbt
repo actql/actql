@@ -109,5 +109,16 @@ fn evaluate_physical_sequence(
         selected_ceiling=join_ceiling,
       ).map(table => RowTable(table))
     }),
+    evaluate_set=Some((kernel, left, right) => {
+      evaluate_set_rows(
+        kernel,
+        left,
+        right,
+        limits.max_rows,
+        control,
+        invocation.output_budget,
+        { limit: limits.operation_entries, live: 0, peak: 0, },
+      ).map(table => RowTable(table))
+    }),
   )
 }

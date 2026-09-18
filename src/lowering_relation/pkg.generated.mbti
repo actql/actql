@@ -12,6 +12,7 @@ import {
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
   "actql/actql/relation_schema",
+  "actql/actql/relation_set",
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/value_admission",
@@ -94,6 +95,8 @@ pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_set_kernel(PreparedSetKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -139,6 +142,8 @@ pub fn inner_join_input_schema(PreparedInnerJoin, Bool) -> @relation_schema.Sche
 pub fn inner_join_key_at(PreparedInnerJoin, Int) -> (@relation_schema.FieldName, @relation_schema.FieldName)?
 
 pub fn inner_join_key_count(PreparedInnerJoin) -> Int
+
+pub fn inner_join_kind(PreparedInnerJoin) -> @relation_join_shape.Kind
 
 pub fn inner_join_matches_node(PreparedInnerJoin, PreparedNode) -> Bool
 
@@ -190,6 +195,8 @@ pub fn kernel_output_schema(PreparedKernel) -> @relation_schema.Schema
 
 pub fn kernel_owner(PreparedKernel) -> BoundPrepared
 
+pub fn kernel_pivot(PreparedKernel) -> PreparedPivot?
+
 pub fn kernel_sort_term_at(PreparedKernel, Int) -> (@relation_schema.FieldName, Bool, Bool)?
 
 pub fn kernel_sort_term_count(PreparedKernel) -> Int
@@ -205,6 +212,16 @@ pub fn kernel_top_k_partition_at(PreparedKernel, Int) -> @relation_schema.FieldN
 pub fn kernel_top_k_partition_count(PreparedKernel) -> Int
 
 pub fn kernel_unnest(PreparedKernel) -> (@relation_schema.FieldName, String, String?, Bool, Int64?)?
+
+pub fn kernel_unpivot_column_at(PreparedKernel, Int) -> @relation_schema.FieldName?
+
+pub fn kernel_unpivot_column_count(PreparedKernel) -> Int
+
+pub fn kernel_unpivot_keep_at(PreparedKernel, Int) -> @relation_schema.FieldName?
+
+pub fn kernel_unpivot_keep_count(PreparedKernel) -> Int
+
+pub fn kernel_unpivot_outputs(PreparedKernel) -> (String, String)?
 
 pub fn kernel_view_entries(PreparedKernel) -> Int
 
@@ -245,6 +262,28 @@ pub fn parameter_value(BoundPrepared, String) -> @value_admission.CheckedValue?
 pub fn payload(PreparedNode) -> Payload
 
 pub fn pipeline(Prepared) -> @pipeline_typing.CheckedPipeline
+
+pub fn pivot_axis_at(PreparedPivot, Int) -> String?
+
+pub fn pivot_axis_count(PreparedPivot) -> Int
+
+pub fn pivot_column(PreparedPivot) -> @relation_schema.FieldName
+
+pub fn pivot_fill(PreparedPivot) -> PreparedPivotFill?
+
+pub fn pivot_function(PreparedPivot) -> @relation_typing.AggregateFunction
+
+pub fn pivot_index_at(PreparedPivot, Int) -> @relation_schema.FieldName?
+
+pub fn pivot_index_count(PreparedPivot) -> Int
+
+pub fn pivot_input_schema(PreparedPivot) -> @relation_schema.Schema
+
+pub fn pivot_output_schema(PreparedPivot) -> @relation_schema.Schema
+
+pub fn pivot_result_contract(PreparedPivot) -> @value_contract.Contract
+
+pub fn pivot_value(PreparedPivot) -> @relation_schema.FieldName
 
 pub fn preparation_input_count(Prepared) -> Int
 
@@ -294,6 +333,8 @@ pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequenc
 
 pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
 
+pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKernel, SetIssue]
+
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
 pub fn projection_field_count(PreparedProjection) -> Int
@@ -335,6 +376,28 @@ pub fn sequence_requirements_owner(SequenceRequirements) -> BoundPrepared
 pub fn sequence_requirements_sequence(SequenceRequirements) -> PreparedSequence
 
 pub fn sequence_step(PreparedSequence, Int) -> PreparedStep?
+
+pub fn set_kernel_duplicates(PreparedSetKernel) -> @relation_set.Duplicates
+
+pub fn set_kernel_field_at(PreparedSetKernel, Int) -> (@relation_schema.FieldName, Int, Int)?
+
+pub fn set_kernel_field_count(PreparedSetKernel) -> Int
+
+pub fn set_kernel_input(PreparedSetKernel, Bool) -> String
+
+pub fn set_kernel_matches_node(PreparedSetKernel, PreparedNode) -> Bool
+
+pub fn set_kernel_name_bytes(PreparedSetKernel) -> Int
+
+pub fn set_kernel_operation(PreparedSetKernel) -> @relation_set.Operation
+
+pub fn set_kernel_output(PreparedSetKernel) -> String
+
+pub fn set_kernel_output_schema(PreparedSetKernel) -> @relation_schema.Schema
+
+pub fn set_kernel_owner(PreparedSetKernel) -> BoundPrepared
+
+pub fn set_kernel_step(PreparedSetKernel) -> Int
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
@@ -533,7 +596,9 @@ pub enum KernelBody {
   Limit(Int64, Int64, @pipeline_typing.LogicalOrder)
   TopK(Int64, @pipeline_typing.LogicalOrder)
   PartitionedTopK(Int64, @pipeline_typing.LogicalOrder)
+  Pivot(PreparedPivot)
   Unnest(@relation_schema.FieldName, String, String?, Bool, Int64?)
+  Unpivot(Array[@relation_schema.FieldName], Array[@relation_schema.FieldName], String, String)
   DistinctRows
   DedupeRows
   StableSort(@pipeline_typing.SortOrder?)
@@ -551,6 +616,7 @@ pub(all) enum KernelIssue {
   PendingTakeOrder
   PendingTopKOrder
   PendingSortOrder
+  PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
 }
 
@@ -595,7 +661,9 @@ pub enum Payload {
   Limit(@relation_typing.CheckedOperation)
   TopK(@relation_typing.CheckedOperation)
   TopKBy(@relation_typing.CheckedOperation)
+  Pivot(@relation_typing.CheckedOperation)
   Unnest(@relation_typing.CheckedOperation)
+  Unpivot(@relation_typing.CheckedOperation)
   Distinct(@relation_typing.CheckedOperation)
   Dedupe(@relation_typing.CheckedOperation)
   Sort(@relation_typing.CheckedOperation)
@@ -604,7 +672,15 @@ pub enum Payload {
   JsonPick(@relation_typing.CheckedOperation)
   InnerJoin(@relation_join_shape.CheckedJoin)
   AppendRows(@relation_append.CheckedAppend)
+  SetRows(@relation_set.CheckedSet)
 }
+
+pub(all) enum PivotIssue {
+  NotPivot
+  InvalidLimits
+  PreparationLimit
+  MissingFillParameter(String)
+} derive(Eq, @debug.Debug)
 
 type Prepared
 
@@ -626,15 +702,25 @@ type PreparedKernel
 
 type PreparedNode
 
+type PreparedPivot
+
+pub enum PreparedPivotFill {
+  Null
+  Value(@value_admission.CheckedValue)
+}
+
 type PreparedProjection
 
 type PreparedSequence
+
+type PreparedSetKernel
 
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
   AppendStep(PreparedAppendKernel)
+  SetStep(PreparedSetKernel)
 }
 
 type PreparedValues
@@ -677,6 +763,7 @@ pub(all) enum SequenceIssue {
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
   AppendFailure(Int, AppendIssue)
+  SetFailure(Int, SetIssue)
 }
 
 pub(all) struct SequenceLimits {
@@ -696,6 +783,12 @@ pub(all) enum SequenceRequirementsIssue {
   DuplicateOccurrence
   ExceedsRequest
 }
+
+pub(all) enum SetIssue {
+  InvalidLimits
+  PreparationLimit
+  InvalidCheckedShape
+} derive(Eq, @debug.Debug)
 
 pub struct SourceDemandTest {
   pointer : String

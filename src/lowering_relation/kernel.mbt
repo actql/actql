@@ -236,7 +236,8 @@ fn prepare_kernel_measured(
     | CountGroup(op)
     | AssertRows(op) => op
     JsonPick(op) => op
-    Values(_) | InnerJoin(_) | AppendRows(_) => return Err(MissingKernelNode)
+    Values(_) | InnerJoin(_) | AppendRows(_) | SetRows(_) =>
+      return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

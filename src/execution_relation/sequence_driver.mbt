@@ -446,6 +446,17 @@ fn run_sequence_invocation(
         { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
       )
     }),
+    evaluate_set=Some((kernel, left, right) => {
+      evaluate_set_rows(
+        kernel,
+        left,
+        right,
+        invocation.limits.max_rows,
+        invocation.control,
+        invocation.output_budget,
+        { limit: invocation.limits.operation_entries, live: 0, peak: 0, },
+      )
+    }),
   )
 }
 
@@ -459,6 +470,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
   wrap : (TableStore[T]) -> CompletedStore,
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   let result = run_sequence_with_backend(
     invocation,
@@ -466,6 +478,7 @@ fn[T : RelationRows] run_completed_sequence_backend(
     evaluate,
     evaluate_join~,
     evaluate_append~,
+    evaluate_set~,
   )
   if result is Err(issue) {
     return Err(issue)
@@ -491,6 +504,7 @@ fn[T : RelationRows] run_sequence_with_backend(
   evaluate : (@lower.PreparedKernel, T, LogicalBudget?) -> Result[T, RowIssue],
   evaluate_join? : ((@lower.PreparedJoinKernel, T, T) -> Result[T, RowIssue])? = None,
   evaluate_append? : ((@lower.PreparedAppendKernel, T, T) -> Result[T, RowIssue])? = None,
+  evaluate_set? : ((@lower.PreparedSetKernel, T, T) -> Result[T, RowIssue])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   let {
     sequence,
@@ -550,6 +564,11 @@ fn[T : RelationRows] run_sequence_with_backend(
         evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
       }
     }),
+    evaluate_set=evaluate_set.map(evaluate => {
+      fn(i, kernel, left, right) {
+        evaluate(kernel, left, right).map_err(issue => Rows(i, issue))
+      }
+    }),
   )
   if result is Err(issue) {
     clear_table_store(store)
@@ -580,6 +599,10 @@ fn[T : RelationRows] run_sequence_steps(
     T,
     SequenceRunIssue,
   ])? = None,
+  evaluate_set? : ((Int, @lower.PreparedSetKernel, T, T) -> Result[
+    T,
+    SequenceRunIssue,
+  ])? = None,
 ) -> Result[Unit, SequenceRunIssue] {
   if !physical_equal(@lower.sequence_owner(sequence), store.wiring.owner) {
     return Err(InputOwnership)
@@ -605,6 +628,16 @@ fn[T : RelationRows] run_sequence_steps(
         let route = store.wiring.routes[i]
         guard route.length() == 2 &&
           evaluate_append is Some(evaluate) &&
+          store.tables[route[0]] is Some(left) &&
+          store.tables[route[1]] is Some(right) else {
+          return Err(InputSet)
+        }
+        evaluate(i, kernel, left.table, right.table)
+      }
+      @lower.SetStep(kernel) => {
+        let route = store.wiring.routes[i]
+        guard route.length() == 2 &&
+          evaluate_set is Some(evaluate) &&
           store.tables[route[0]] is Some(left) &&
           store.tables[route[1]] is Some(right) else {
           return Err(InputSet)

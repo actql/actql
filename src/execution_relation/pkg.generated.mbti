@@ -1265,6 +1265,7 @@ pub(all) enum RowIssue {
   LogicalRows(LogicalBudgetIssue)
   Evaluation(Int, Int, EvalIssue)
   Comparison(ScalarIssue)
+  Aggregation(ScalarIssue)
   DedupeTopTie(Int, Int)
   DedupeIdentityCollision
   AssertionPredicate(Int)

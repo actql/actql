@@ -54,6 +54,8 @@ pub fn strategy_host_explain(@connectors_workers.ConfiguredComputeHost[@physical
 
 pub fn strategy_host_finished(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
+pub fn strategy_host_managed_input_count(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
+
 pub fn strategy_host_managed_input_matches_material(@execution_relation.ManagedProducerRead[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Bool
 
 pub fn strategy_host_managed_obligations(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @execution_relation.ManagedObligations raise NodeHostFailure

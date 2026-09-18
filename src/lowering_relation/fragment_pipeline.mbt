@@ -19,7 +19,8 @@ pub fn prepare_fragment_pipeline(
   }
   match sequence.steps[step] {
     RowStep(kernel) => Ok({ kernel, roots, })
-    ValuesStep(_) | JoinStep(_) | AppendStep(_) => Err(NotExpressionKernel)
+    ValuesStep(_) | JoinStep(_) | AppendStep(_) | SetStep(_) =>
+      Err(NotExpressionKernel)
   }
 }
 

@@ -151,7 +151,10 @@ pub fn generated_sequence_all_row_kernels(
   generated_sequence_all_steps(generated, fn(step) {
     match step {
       @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))
-      @lower.ValuesStep(_) | @lower.JoinStep(_) | @lower.AppendStep(_) => false
+      @lower.ValuesStep(_)
+      | @lower.JoinStep(_)
+      | @lower.AppendStep(_)
+      | @lower.SetStep(_) => false
     }
   })
 }

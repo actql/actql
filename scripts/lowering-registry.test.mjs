@@ -17,7 +17,8 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
-  assert.equal(cid(registry), 'sha256:c88b89effec8107537a1064c2b8332f20deb0a0911520aa305bbafe5f0f491f6');
+  assert.equal(cid(registry),
+    'sha256:305199a0bf988940ade2440b7e9a802b785acd570b46410f00c2dab4448f3a02');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
@@ -25,8 +26,14 @@ test('current registry and historical preimages keep distinct identities', () =>
   const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = registry;
   assert.ok(fragment);
   const primitive = structuredClone(previous);
-  assert.equal(cid(contract.execution_contracts['REL.derive.ordered']), 'sha256:90f5a71e31aa6a60c1961b7039a87f3a2849c4a793aaba3d776a166176fc28b9');
+  assert.equal(
+    cid(contract.execution_contracts['REL.derive.ordered']),
+    'sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de',
+  );
   delete primitive['REL.derive'].execution_extensions;
+  delete primitive['REL.except_rows'];
+  delete primitive['REL.intersect_rows'];
+  primitive['REL.values'] = valuesRegistry['REL.values'];
   assert.deepEqual(primitive, valuesRegistry);
   assert.equal(cid(fixtures.registry), 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a');
   assert.equal(Object.hasOwn(fixtures.registry, 'REL.values'), false);
@@ -36,7 +43,7 @@ test('current registry and historical preimages keep distinct identities', () =>
   assert.equal(cid(fixtures.target), contract.target_module_contract_cid);
 });
 
-test('four preparation handlers use pinned sort/arity including values extension', () => {
+test('preparation handlers use pinned relation signatures', () => {
   const source = read('src/lowering_relation/prepare.mbt');
   for (const [variant, name, arity] of [
     ['Values', 'values', 0], ['Derive', 'derive', 1],
@@ -52,11 +59,19 @@ test('four preparation handlers use pinned sort/arity including values extension
       assert.deepEqual(signature.execution_contract, {
         file: 'spec/contracts/actql-aoa.json',
         pointer: '/execution_contracts/REL.values',
-        cid: 'sha256:c95bc0d474fd6fbe62d3182bdefe6af412070f6ad2c8e102c5279d7a8b3eed17',
+        cid: 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44',
       });
       assert.equal(cid(contract.execution_contracts[op]), signature.execution_contract.cid);
     }
     assert.ok(source.includes(`${variant}(_) => ("${name}", ${arity})`));
     assert.ok(source.includes(`${variant}(_) => "${op}"`));
+  }
+  for (const op of ['REL.except_rows', 'REL.intersect_rows']) {
+    const signature = registry[op];
+    assert.deepEqual(
+      {inputs: signature.inputs, output: signature.output},
+      {inputs: ['relation', 'relation'], output: 'relation'},
+    );
+    assert.ok(source.includes(`=> "${op}"`));
   }
 });

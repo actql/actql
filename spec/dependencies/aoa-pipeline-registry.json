@@ -140,6 +140,20 @@
     ],
     "output": "relation"
   },
+  "REL.except_rows": {
+    "inputs": [
+      "relation",
+      "relation"
+    ],
+    "output": "relation"
+  },
+  "REL.intersect_rows": {
+    "inputs": [
+      "relation",
+      "relation"
+    ],
+    "output": "relation"
+  },
   "REL.topk_partitioned": {
     "inputs": [
       "relation"

@@ -40,6 +40,7 @@ fn attach_fragment_budgets(
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => ()
       @lower.AppendStep(_) => ()
+      @lower.SetStep(_) => ()
       @lower.JoinStep(kernel) => {
         let profile = @lower.join_kernel_profile(kernel)
         for key in 0..<@lower.inner_join_key_count(profile) {

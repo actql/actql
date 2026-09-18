@@ -37,6 +37,8 @@ for (const [path, body] of [
   ['src/execution_relation/registry_pins.generated.mbt', pins],
   ['src/execution_relation/registry_vectors.generated_wbtest.mbt', lines.join('\n') + '\n'],
   ['src/execution_relation/registry_vectors.generated_test.mbt', consumerLines.join('\n') + '\n'],
+  ['src/query_integration/pinned_engine_contracts_wbtest.mbt',
+    consumerLines.join('\n') + '\n'],
 ]) {
   if (process.argv.includes('--write')) writeFileSync(path, body);
   else assert.equal(readFileSync(path, 'utf8'), body, `stale ${path}`);
