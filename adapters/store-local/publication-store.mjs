@@ -355,6 +355,11 @@ export async function openLocalPublicationStore(
   }
   await syncDirectory(metadataInventoriesDirectory);
   for (const name of await readdir(metadataDeletionsDirectory)) {
+    const path = resolve(metadataDeletionsDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await unlink(path);
+      continue;
+    }
     if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
         !(await lstat(resolve(metadataDeletionsDirectory, name))).isFile()) {
       fail('InvalidPublicationMetadataDeletionStore');
@@ -547,6 +552,12 @@ export async function openLocalPublicationStore(
     catch (error) {
       fail('InvalidPublicationMetadataDeletionStore', error);
     }
+    if (exactKeys(value, ['version', 'run_definition_cid']) &&
+        value.version ===
+          'actql-local-publication-metadata-retired/0.1' &&
+        cidPattern.test(value.run_definition_cid)) {
+      return Object.freeze(value);
+    }
     if (!exactKeys(value, [
       'version', 'tenant_id', 'authority_scope_cid', 'run_definition_cid',
       'public_index_entry_cid', 'results', 'contract_objects', 'requested_at',
@@ -582,6 +593,29 @@ export async function openLocalPublicationStore(
       fail('InvalidPublicationMetadataDeletionStore');
     }
     return Object.freeze(value);
+  };
+
+  const compactMetadataDeletion = async (keyHash, runDefinitionCid) => {
+    const value = Object.freeze({
+      version: 'actql-local-publication-metadata-retired/0.1',
+      run_definition_cid: runDefinitionCid,
+    });
+    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+    const staging = resolve(
+      metadataDeletionsDirectory,
+      `.staging-${randomUUID()}`,
+    );
+    try {
+      await writeExclusive(staging, bytes);
+      await rename(staging, metadataDeletionPath(keyHash));
+      await syncDirectory(metadataDeletionsDirectory);
+    } finally {
+      try { await unlink(staging); }
+      catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+    }
+    return value;
   };
 
   const ensureMetadataDeletion = async (keyHash, value) => {
@@ -3217,6 +3251,7 @@ export async function openLocalPublicationStore(
           } catch (error) {
             if (error?.code !== 'ENOENT') throw error;
           }
+          await compactMetadataDeletion(keyHash, marker.run_definition_cid);
           pending = false;
           pendingMetadataDeletions.delete(keyHash);
         });
@@ -3246,6 +3281,17 @@ export async function openLocalPublicationStore(
     }
     const keyHash = indexKey(key);
     let marker = await readMetadataDeletion(keyHash);
+    if (marker?.version ===
+        'actql-local-publication-metadata-retired/0.1') {
+      const cleanup = Object.freeze({
+        status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
+        retry: () => Promise.resolve(Object.freeze({
+          pending: false,
+          errors: Object.freeze([]),
+        })),
+      });
+      return Object.freeze({marker, cleanup, deleted: true});
+    }
     if (marker === undefined) {
       const entry = await inspectCommittedIndexRaw(key);
       if (entry === undefined) fail('PublicationLookupDenied');
@@ -3287,9 +3333,11 @@ export async function openLocalPublicationStore(
         fail('InvalidPublicationMetadataDeletionStore');
       }
       const keyHash = name.slice(0, -5);
-      recovered.push(await createMetadataDeletionCleanup(
-        keyHash, await readMetadataDeletion(keyHash),
-      ));
+      const marker = await readMetadataDeletion(keyHash);
+      if (marker.version !==
+          'actql-local-publication-metadata-retired/0.1') {
+        recovered.push(await createMetadataDeletionCleanup(keyHash, marker));
+      }
     }
     return Object.freeze(recovered);
   };

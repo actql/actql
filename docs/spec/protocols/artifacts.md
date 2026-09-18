@@ -119,6 +119,47 @@ LogicalRelation CID, and delivery-byte hash remain different identities even
 when one bounded pass computes them. The field order is retained from the same
 checked Result export and is not reconstructed from canonical object-key order.
 
+<!-- requirement-block: result-artifacts.effective-result-retention-separates-payload-availability-deletion-and-metadata-deletion result-artifacts.retention-deadlines-have-distinct-authority-and-fixed-order result-artifacts.one-manifest-has-one-metadata-retention-deadline result-artifacts.metadata-reclamation-retains-only-a-minimal-fence -->
+An effective Result retention policy MUST bind the admitted retention contract,
+effective data policy, payload availability deadline, payload deletion
+deadline, extension ceiling, metadata retention policy, metadata deletion
+deadline, and trusted clock contract. The closed
+`actql-result-retention-policy/0.1` shape is:
+
+```text
+ResultRetentionPolicy := {
+  version: "actql-result-retention-policy/0.1",
+  retention_contract_cid: Cid,
+  effective_data_policy_cid: Cid,
+  available_until: Timestamp,
+  delete_by: Timestamp,
+  extension_ceiling_at: Timestamp,
+  metadata_retention_policy_cid: Cid,
+  metadata_delete_by: Timestamp,
+  clock_contract_cid: Cid,
+  effective_retention_policy_cid: Cid
+}
+```
+
+`available_until` is a Store guarantee for an otherwise authorized read, not
+read authority. `delete_by` bounds payload reclamation, while
+`metadata_delete_by` independently bounds the published Manifest, receipts,
+provenance, grants, delivery records, and other Run publication metadata. The
+intervals MUST satisfy `available_until <= delete_by <= metadata_delete_by`.
+An extension may not change the metadata policy or deadline and may not move
+payload availability beyond the extension ceiling or payload deletion
+deadline. Retry uses the originally admitted deadlines; it never renews them.
+
+Every Result in one committed Manifest MUST use the same metadata retention
+policy and metadata deletion deadline because the Manifest and its Run-bound
+evidence form one indivisible publication chain. Payloads may expire or be
+reclaimed independently. Metadata reclamation first makes the public index
+unavailable, retains unresolved cleanup and capacity responsibility, and then
+removes only allocations not shared by another live publication. A minimal
+Store fencing record may remain to prevent a deleted Run from being silently
+republished, but it MUST NOT retain the deleted Manifest, receipts, provenance,
+grants, delivery records, or payload identity inventory.
+
 <!-- requirement-block: result-artifacts.a-publication-attempt-must-not-contain-its-future-outcome-or-terminal-record -->
 A Publication Attempt MUST bind immutable request intent, Run, unique attempt,
 fence, and start time without containing its future outcome or terminal record.

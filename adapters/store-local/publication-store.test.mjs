@@ -6,6 +6,7 @@ import {
   mkdtemp,
   open,
   readdir,
+  readFile,
   rm,
   unlink,
   writeFile,
@@ -1155,6 +1156,18 @@ test('metadata retirement hides the Run and reclaims its durable chain',
       indexKeyFor(request), '2026-09-18T04:00:00.000Z',
     );
     assert.equal(retiredMetadata.cleanup.status().pending, false);
+    const deletionNames = await readdir(join(
+      configuration.directory, 'metadata-deletions',
+    ));
+    assert.equal(deletionNames.length, 1);
+    assert.deepEqual(JSON.parse(await readFile(join(
+      configuration.directory,
+      'metadata-deletions',
+      deletionNames[0],
+    ), 'utf8')), {
+      version: 'actql-local-publication-metadata-retired/0.1',
+      run_definition_cid: request.run_definition_cid,
+    });
     assert.equal(await store.inspectCommittedIndex(
       indexKeyFor(request),
     ), undefined);
@@ -1229,6 +1242,15 @@ test('metadata retirement retains capacity until durability retry', async t => {
   assert.equal(retired.cleanup.status().pending, true);
   assert.equal(retired.cleanup.status().errors[0].code, 'EIO');
   assert.equal(store.status().storedBytes, chargedBefore);
+  const pendingMarker = JSON.parse(await readFile(join(
+    directory,
+    'metadata-deletions',
+    (await readdir(join(directory, 'metadata-deletions')))[0],
+  ), 'utf8'));
+  assert.equal(
+    pendingMarker.version,
+    'actql-local-publication-metadata-deletion/0.1',
+  );
   assert.equal(await store.inspectCommittedIndex(
     indexKeyFor(request),
   ), undefined);
@@ -1240,6 +1262,15 @@ test('metadata retirement retains capacity until durability retry', async t => {
   assert.equal(retried.errors.length, 1);
   assert.equal(store.status().storedBytes, 0);
   assert.equal(store.status().objectCount, 0);
+  const retiredMarker = JSON.parse(await readFile(join(
+    directory,
+    'metadata-deletions',
+    (await readdir(join(directory, 'metadata-deletions')))[0],
+  ), 'utf8'));
+  assert.deepEqual(retiredMarker, {
+    version: 'actql-local-publication-metadata-retired/0.1',
+    run_definition_cid: request.run_definition_cid,
+  });
   assert.equal(await store.close(), true);
 });
 

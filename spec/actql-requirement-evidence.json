@@ -11542,6 +11542,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.effective-result-retention-separates-payload-availability-deletion-and-metadata-deletion",
+      "statement_sha256": "5b03f0d9c2f7dc882d07c3b0646d7134b2f85cfa6407ef35dcc19c2431e444ba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.retention-deadlines-have-distinct-authority-and-fixed-order",
+      "statement_sha256": "9c3a3a4f76e22640ebfcb30c7502ceb9815f1f0c48c7d7d24967d3d2910b004d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.one-manifest-has-one-metadata-retention-deadline",
+      "statement_sha256": "6b19a901f9faff2c71a7499b003d441b19e4a3568a8d874ecd527929e63598e4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-artifacts.metadata-reclamation-retains-only-a-minimal-fence",
+      "statement_sha256": "763100b26f2387b28d821b5d8c7d5bd6561777ad56614cfe0a50b4834abcf4b6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.artifacts/result-artifacts.a-publication-attempt-must-not-contain-its-future-outcome-or-terminal-record",
       "statement_sha256": "a79e4c8768d3806f160bedbac7b5f68cc6c1c4172dbe2d287ab7f2212cac37ba",
       "status": "pending",
