@@ -184,6 +184,211 @@ test "compound nullable assertion keys reject nulls and exact duplicates" {
 }
 
 ///|
+fn assertion_input_owner(
+  key : @contract.Contract,
+  payload : @contract.Contract,
+) -> @lower.BoundPrepared {
+  let schema = @schema.from_fields(
+    [
+      (@schema.Unqualified("key"), key),
+      (@schema.Unqualified("payload"), payload),
+    ],
+    max_fields=2,
+    max_name_bytes=100,
+  ).unwrap()
+  let carrier = @carrier.relation(@carrier.typed_rows(schema))
+  let checked = @pipeline.check_with_evidence(
+    input_cursor("[{\"assert_rows\":{\"unique_by\":[\"key\"]}}]"),
+    [("seed", @pipeline.CarrierInput(carrier))],
+    None,
+    Some(input_cursor("\"seed\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+fn assertion_admitted_value(
+  contract : @contract.Contract,
+  wire : String,
+  kind : String,
+  live : Ref[Bool],
+) -> Value {
+  match kind {
+    "resource" =>
+      issued_resource_value(
+        contract,
+        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        live,
+      ).value |> capture
+    "artifact" => issued_artifact_value(contract, live).value |> capture
+    _ =>
+      @admitted.admit(contract, input_cursor(wire), {
+        max_nodes: 100,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      }).unwrap().value |> capture
+  }
+}
+
+///|
+test "row assertions preserve every relation value payload" {
+  let key = select_checked_contract("{\"type\":\"number\",\"nullable\":false}")
+  let cases = [
+    ("{\"type\":\"string\",\"nullable\":true}", "\"é\"", "ordinary"),
+    ("{\"type\":\"number\",\"nullable\":true}", "1", "ordinary"),
+    (
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true}",
+      "\"1.20\"", "ordinary",
+    ),
+    ("{\"type\":\"boolean\",\"nullable\":true}", "true", "ordinary"),
+    (
+      "{\"type\":\"timestamp\",\"nullable\":true}",
+      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+    ),
+    ("{\"type\":\"date\",\"nullable\":true}", "\"0000-02-29\"", "ordinary"),
+    (
+      "{\"type\":\"json\",\"nullable\":true}",
+      "{\"z\":[1,null],\"a\":\"x\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"object\",\"nullable\":true,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"string\",\"nullable\":false}}}",
+      "{\"x\":\"v\"}", "ordinary",
+    ),
+    (
+      "{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}",
+      "[1,null]", "ordinary",
+    ),
+    (
+      "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":2,\"element_type\":\"f32\"}",
+      "[1,2]", "ordinary",
+    ),
+    (
+      "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"mail/message\"}",
+      "", "resource",
+    ),
+    (
+      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "", "artifact",
+    ),
+  ]
+  for (body, wire, kind) in cases {
+    let payload = select_checked_contract(body)
+    let owner = assertion_input_owner(key, payload)
+    let kernel = row_kernel(owner, 0)
+    let live = Ref(true)
+    let value = assertion_admitted_value(payload, wire, kind, live)
+    let input : Table = {
+      owner,
+      id: @lower.kernel_input(kernel),
+      names: ["key", "payload"],
+      rows: [[Number(1), value]],
+    }
+    let result = evaluate_rows(
+      kernel,
+      input,
+      1,
+      { remaining: 100000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+    ).unwrap()
+    assert_eq(result.rows.length(), 1)
+    assert_true(append_value_equal(result.rows[0][1], value))
+    live.val = false
+  }
+}
+
+///|
+test "unique assertions compare every key domain including owned references" {
+  let cases = [
+    ("{\"type\":\"string\",\"nullable\":false}", "\"é\"", "ordinary"),
+    ("{\"type\":\"number\",\"nullable\":false}", "1", "ordinary"),
+    (
+      "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}",
+      "\"1.20\"", "ordinary",
+    ),
+    ("{\"type\":\"boolean\",\"nullable\":false}", "true", "ordinary"),
+    (
+      "{\"type\":\"timestamp\",\"nullable\":false}",
+      "\"2000-02-29T12:30:00.000Z\"", "ordinary",
+    ),
+    ("{\"type\":\"date\",\"nullable\":false}", "\"0000-02-29\"", "ordinary"),
+    (
+      "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
+      "", "resource",
+    ),
+    (
+      "{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"application/json\"}",
+      "", "artifact",
+    ),
+  ]
+  for (body, wire, kind) in cases {
+    let contract = select_checked_contract(body)
+    let live = Ref(true)
+    let value = assertion_admitted_value(contract, wire, kind, live)
+    assert_true(
+      validate_unique_rows(
+        order_table([value, value]),
+        [@schema.Unqualified("key")],
+        Map([("key", 0)]),
+        { remaining: 100000, max_frames: 100, },
+        { limit: 10000, live: 0, peak: 0, },
+      )
+      is Err(AssertionDuplicate(0, 1)),
+    )
+    live.val = false
+  }
+}
+
+///|
+test "unique assertion work and workspace bounds are exact at scale" {
+  let count = 1000
+  let input = order_table(Array::makei(count, i => Number(i.to_double())))
+  let keys = [@schema.Unqualified("key")]
+  let ordinals = Map([("key", 0)])
+  let maximum = 1000000
+  let control = { remaining: maximum, max_frames: 100, }
+  let workspace = { limit: maximum, live: 0, peak: 0, }
+  validate_unique_rows(input, keys, ordinals, control, workspace).unwrap()
+  let used = maximum - control.remaining
+  let peak = workspace.peak
+  for (work, space, success) in [
+    (used, peak, true),
+    (used - 1, peak, false),
+    (used, peak - 1, false),
+  ] {
+    let result = validate_unique_rows(
+      input,
+      keys,
+      ordinals,
+      { remaining: work, max_frames: 100, },
+      { limit: space, live: 0, peak: 0, },
+    )
+    if success {
+      assert_true(result is Ok(_))
+    } else {
+      assert_true(result is Err(RowLimit))
+    }
+  }
+}
+
+///|
 test "json pick traverses admitted objects and composes nullable parents" {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"inner\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"leaf\":{\"type\":\"number\",\"nullable\":false}}}}}},\"rows\":[{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}},{\"id\":2,\"payload\":null}]},\"as\":\"seed\"},{\"json_pick\":{\"column\":\"payload\",\"path\":[\"inner\",\"leaf\"],\"output\":\"picked\"}}]",

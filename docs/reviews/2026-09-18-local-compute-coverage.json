@@ -3285,10 +3285,10 @@
         "checker": "complete",
         "lowering": "complete",
         "kernel": "complete",
-        "managed": "partial",
-        "source_connection": "partial",
-        "two_consumer_e2e": "partial",
-        "three_target_conformance": "partial",
+        "managed": "complete",
+        "source_connection": "complete",
+        "two_consumer_e2e": "complete",
+        "three_target_conformance": "complete",
         "performance": "complete"
       },
       "evidence": {
@@ -3320,7 +3320,12 @@
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "obligations": [
+                "ownership"
+              ]
+            }
           }
         ],
         "two_consumer_e2e": [
@@ -3337,6 +3342,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "assert_rows",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -3346,14 +3364,40 @@
             "path": "src/execution_relation/rows_wbtest.mbt",
             "fixtures": [
               "row assertions preserve exact rows and fail atomically",
-              "compound nullable assertion keys reject nulls and exact duplicates"
+              "compound nullable assertion keys reject nulls and exact duplicates",
+              "row assertions preserve every relation value payload",
+              "unique assertions compare every key domain including owned references",
+              "unique assertion work and workspace bounds are exact at scale"
             ],
             "suite": "moon:execution_relation",
             "targets": [
               "js",
               "wasm",
               "native"
-            ]
+            ],
+            "covers": {
+              "variants": [
+                "where",
+                "unique_by",
+                "compound nullable key",
+                "demanded predicate failures",
+                "logical failure location"
+              ],
+              "types": [
+                "relation_value",
+                "key_comparable",
+                "predicate"
+              ],
+              "obligations": [
+                "capacity",
+                "demand",
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "assert_rows",
@@ -3388,9 +3432,7 @@
           }
         ]
       },
-      "gaps": [
-        "Where, single-field unique, compound nullable keys, and demanded failures are covered through managed or kernel paths on three targets, with linear scaling evidence. Standard Host failure-location evidence, the full KeyComparable domain including owned references, and exact budget boundaries remain."
-      ]
+      "gaps": []
     },
     {
       "operation": "append",
