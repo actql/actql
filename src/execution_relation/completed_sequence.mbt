@@ -32,6 +32,8 @@ fn prepare_physical_sequence(
           NumberTable({ ..table, owner: bound.receiver, id, })
         AdmittedTable(table) =>
           AdmittedTable({ ..table, owner: bound.receiver, id, })
+        ColumnTable(table) =>
+          ColumnTable({ ..table, owner: bound.receiver, id, })
       }
       match bound.projection {
         None => Ok(adopted)

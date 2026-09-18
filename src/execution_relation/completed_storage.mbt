@@ -26,10 +26,25 @@ priv struct CompletedAdmitted {
 }
 
 ///|
+// Sealed column storage for mixed scalar and admitted value domains. The
+// columns are invocation-local while building and are never exposed mutably
+// after completion.
+priv struct CompletedColumns {
+  owner : @lower.BoundPrepared
+  id : String
+  names : Array[String]
+  columns : Array[Array[Value]]
+  count : Int
+  // Composed physical row coordinates, not a chain of mutable views.
+  selection : Array[Int]?
+}
+
+///|
 priv enum CompletedTable {
   RowTable(Table)
   NumberTable(CompletedNumbers)
   AdmittedTable(CompletedAdmitted)
+  ColumnTable(CompletedColumns)
 }
 
 ///|
@@ -38,6 +53,7 @@ impl IndexedRows for CompletedTable with fn row_count(self) {
     RowTable(table) => table.rows.length()
     NumberTable(table) => table.count
     AdmittedTable(table) => table.rows.length()
+    ColumnTable(table) => table.count
   }
 }
 
@@ -47,6 +63,7 @@ impl IndexedRows for CompletedTable with fn column_count(self) {
     RowTable(table) => table.names.length()
     NumberTable(table) => table.names.length()
     AdmittedTable(table) => table.names.length()
+    ColumnTable(table) => table.names.length()
   }
 }
 
@@ -56,6 +73,7 @@ impl IndexedRows for CompletedTable with fn row_width(self, row) {
     RowTable(table) => table.rows[row].length()
     NumberTable(table) => table.names.length()
     AdmittedTable(table) => table.names.length()
+    ColumnTable(table) => table.names.length()
   }
 }
 
@@ -64,6 +82,13 @@ impl IndexedRows for CompletedTable with fn read_cell(self, row, column) {
   match self {
     RowTable(table) => table.rows[row][column]
     AdmittedTable(table) => capture(table.rows[row][column])
+    ColumnTable(table) => {
+      let index = match table.selection {
+        Some(indices) => indices[row]
+        None => row
+      }
+      table.columns[column][index]
+    }
     NumberTable(table) => {
       let index = match table.selection {
         Some(indices) => indices[row]
@@ -85,6 +110,7 @@ impl RelationRows for CompletedTable with fn checked_owner(self) {
     RowTable(table) => table.owner
     NumberTable(table) => table.owner
     AdmittedTable(table) => table.owner
+    ColumnTable(table) => table.owner
   }
 }
 
@@ -94,6 +120,7 @@ impl RelationRows for CompletedTable with fn relation_id(self) {
     RowTable(table) => table.id
     NumberTable(table) => table.id
     AdmittedTable(table) => table.id
+    ColumnTable(table) => table.id
   }
 }
 
@@ -103,6 +130,7 @@ impl RelationRows for CompletedTable with fn field_names(self) {
     RowTable(table) => table.names
     NumberTable(table) => table.names
     AdmittedTable(table) => table.names
+    ColumnTable(table) => table.names
   }
 }
 
@@ -151,6 +179,21 @@ fn reserve_completed_storage(
 ) -> Bool {
   match table {
     RowTable(_) | AdmittedTable(_) => true
+    ColumnTable(table) => {
+      if !reserve_slots(workspace, table.columns.length()) {
+        return false
+      }
+      for column in table.columns {
+        if !spend_control(control, 1) ||
+          !reserve_slots(workspace, column.length()) {
+          return false
+        }
+      }
+      match table.selection {
+        None => true
+        Some(indices) => reserve_slots(workspace, indices.length())
+      }
+    }
     NumberTable(table) => {
       if !reserve_slots(workspace, table.columns.length()) {
         return false

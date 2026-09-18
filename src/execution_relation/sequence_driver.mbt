@@ -82,7 +82,7 @@ fn evaluate_sequence_components(
     produced.any(bound => {
       match bound.output.table {
         Some(RowTable(_)) | None => false
-        Some(NumberTable(_) | AdmittedTable(_)) => true
+        Some(NumberTable(_) | AdmittedTable(_) | ColumnTable(_)) => true
       }
     }) {
     return evaluate_physical_sequence(

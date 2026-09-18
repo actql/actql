@@ -54,6 +54,25 @@ pub fn copy_completed_output_independent(
         names: rows.names.copy(),
         rows: rows.rows.map(row => row.copy()),
       })
+    ColumnTable(columns) => {
+      let count = columns.count
+      CompletedTable::ColumnTable({
+        owner: columns.owner,
+        id: columns.id,
+        names: columns.names.copy(),
+        columns: columns.columns.map(column => {
+          Array::makei(count, row => {
+            let source_row = match columns.selection {
+              Some(selection) => selection[row]
+              None => row
+            }
+            column[source_row]
+          })
+        }),
+        count,
+        selection: None,
+      })
+    }
     NumberTable(numbers) => {
       let count = numbers.count
       let columns : Array[CompletedNumberColumn] = numbers.columns.map(column => {

@@ -162,6 +162,26 @@ fn completed_selection(
           rows: indices.map(i => table.rows[i]),
         }),
       )
+    ColumnTable(table) => {
+      if !reserve_slots(workspace, indices.length()) ||
+        !spend_control(control, indices.length()) {
+        return Err(RowLimit)
+      }
+      let selection = indices.map(i => {
+        match table.selection {
+          Some(previous) => previous[i]
+          None => i
+        }
+      })
+      Ok(
+        ColumnTable({
+          ..table,
+          id,
+          count: indices.length(),
+          selection: Some(selection),
+        }),
+      )
+    }
     RowTable(table) =>
       Ok(
         RowTable({
