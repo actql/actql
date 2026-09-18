@@ -47,6 +47,13 @@ struct Reduction {
 }
 
 ///|
+/// Select the repository-pinned profile without admitting external bytes.
+/// This is profile identity only; it grants no execution or capture authority.
+pub fn builtin_profile() -> Profile {
+  { bytes: 0, }
+}
+
+///|
 /// Admit one fixed, pinned contract body. This does not admit an observation,
 /// authorize execution, or choose a member on the caller's behalf.
 pub fn admit(

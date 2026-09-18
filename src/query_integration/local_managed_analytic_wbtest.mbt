@@ -21,6 +21,19 @@ fn local_values_analytic_program(variant : String) -> String {
         "[\"amount\",\"group\",\"id\",\"lowest\"]",
         "[\"lowest\",\"id\",\"group\",\"amount\"]",
       )
+    "numeric" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":10000000000000000,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":1,\"group\":\"a\",\"id\":2}," +
+        "{\"amount\":-10000000000000000,\"group\":\"a\",\"id\":3}]",
+        "{\"mean\":{\"fn\":\"avg\",\"field\":\"amount\"}," +
+        "\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}",
+        "[\"amount\",\"group\",\"id\",\"mean\",\"total\"]",
+        "[\"total\",\"mean\",\"id\",\"group\",\"amount\"]",
+      )
     "navigation" =>
       (
         "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +

@@ -21,6 +21,7 @@ struct CheckedDAG {
   data : Array[DataEdge]
   control : Array[ControlEdge]
   operations : Array[Array[TaskOperationRequirement]]
+  numeric : Array[Array[TaskNumericObservation]]
   results : Array[CheckedResultOccurrence]
 }
 
@@ -38,6 +39,34 @@ priv struct CheckedResultOccurrence {
 pub struct TaskOperationRequirement {
   site : @context.OperationRequirementSite
   disposition : @context.OperationDisposition
+}
+
+///|
+pub(all) enum NumericObservationFamily {
+  Group
+  WindowGroup
+  Pivot
+  Analytic
+} derive(Eq, Debug)
+
+///|
+priv enum NumericObservationOwner {
+  GroupOwner(@checked.GroupNumericSlot)
+  PivotOwner(@checked.PivotNumericSlot)
+  AnalyticOwner(@checked.AnalyticNumericSlot)
+}
+
+///|
+/// Producer-owned static slot projected into the execution DAG. This is not a
+/// selected reduction member, an attempt binding, or captured observation.
+struct TaskNumericObservation {
+  step : Int
+  name : String
+  slot_cid : String
+  profile : @numeric.Profile
+  operation : @numeric.Operation
+  family : NumericObservationFamily
+  owner : NumericObservationOwner
 }
 
 ///|
@@ -246,6 +275,9 @@ pub fn prepare_checked_dag(
     count,
     _ => [],
   )
+  let numeric : Array[Array[TaskNumericObservation]] = Array::makei(count, _ => {
+    []
+  })
   for index in 0..<requirements {
     guard @context.operation_requirements_at(inventory, index) is Some(site) &&
       @context.operation_closure_at(closure, index) is Some(disposition) &&
@@ -268,6 +300,91 @@ pub fn prepare_checked_dag(
       return Err(ForeignRequirement(index))
     }
     operations[site.stage].push({ site, disposition, })
+    if @checked.numeric_slot_for_requirement(program, index) is Some(slot) {
+      let demand = @checked.group_numeric_slot_demand(slot)
+      guard disposition is ExecutionCheck(GroupExecution(check)) &&
+        check.rule is CaptureNumericObservation(retained) &&
+        physical_equal(retained, demand) &&
+        retained.requirement_index == index else {
+        return Err(ForeignRequirement(index))
+      }
+      if work == 0 {
+        return Err(WorkLimit)
+      }
+      work -= 1
+      guard @checked.group_numeric_slot_reduction(slot) is Some(operation) else {
+        return Err(ForeignRequirement(index))
+      }
+      numeric[site.stage].push({
+        step: site.step,
+        name: @checked.group_numeric_slot_name(slot),
+        slot_cid: @checked.group_numeric_slot_cid(slot),
+        profile: retained.profile,
+        operation,
+        family: if @checked.group_numeric_slot_is_window_group(slot) {
+          WindowGroup
+        } else {
+          Group
+        },
+        owner: GroupOwner(slot),
+      })
+    }
+    if @checked.analytic_numeric_slot_for_requirement(program, index)
+      is Some(slot) {
+      let demand = @checked.analytic_numeric_slot_demand(slot)
+      guard disposition is ExecutionCheck(AnalyticExecution(check)) &&
+        check.rule is CaptureNumericObservation(retained) &&
+        physical_equal(retained, demand) &&
+        retained.requirement_index == index else {
+        return Err(ForeignRequirement(index))
+      }
+      if work == 0 {
+        return Err(WorkLimit)
+      }
+      work -= 1
+      guard @checked.analytic_numeric_slot_reduction(slot) is Some(operation) else {
+        return Err(ForeignRequirement(index))
+      }
+      numeric[site.stage].push({
+        step: site.step,
+        name: @checked.analytic_numeric_slot_name(slot),
+        slot_cid: @checked.analytic_numeric_slot_cid(slot),
+        profile: retained.profile,
+        operation,
+        family: Analytic,
+        owner: AnalyticOwner(slot),
+      })
+    }
+    if @checked.pivot_numeric_slots_for_requirement(program, index)
+      is Some(slots) {
+      let demand = @checked.pivot_numeric_slots_demand(slots)
+      guard disposition is ExecutionCheck(PivotExecution(check)) &&
+        check.rule is CaptureNumericObservations(retained) &&
+        physical_equal(retained, demand) &&
+        retained.requirement_index == index else {
+        return Err(ForeignRequirement(index))
+      }
+      let slot_count = @checked.pivot_numeric_slot_count(slots)
+      if slot_count > work {
+        return Err(WorkLimit)
+      }
+      work -= slot_count
+      for position in 0..<slot_count {
+        let slot = @checked.pivot_numeric_slot_at(slots, position).unwrap()
+        guard @checked.pivot_numeric_slot_reduction(slot) is Some(operation) else {
+          return Err(ForeignRequirement(index))
+        }
+        numeric[site.stage].push({
+          step: site.step,
+          name: @checked.pivot_numeric_slot_name(slot),
+          slot_cid: @checked.pivot_numeric_slot_cid(slot),
+          profile: retained.profile,
+          operation,
+          family: Pivot,
+          owner: PivotOwner(slot),
+        })
+      }
+    }
   }
   let wiring = @context.program_incoming_wiring(incoming)
   let results : Array[CheckedResultOccurrence] = []
@@ -290,7 +407,15 @@ pub fn prepare_checked_dag(
     }
     results.push({ task, occurrence, })
   }
-  Ok({ program, owners: owners.copy(), data, control, operations, results, })
+  Ok({
+    program,
+    owners: owners.copy(),
+    data,
+    control,
+    operations,
+    numeric,
+    results,
+  })
 }
 
 ///|
@@ -306,6 +431,74 @@ pub fn graph_task_operation_at(
   index : Int,
 ) -> TaskOperationRequirement? {
   graph.operations.get(task).bind(items => items.get(index))
+}
+
+///|
+pub fn graph_task_numeric_observation_count(
+  graph : CheckedDAG,
+  task : Int,
+) -> Int? {
+  graph.numeric.get(task).map(items => items.length())
+}
+
+///|
+pub fn graph_task_numeric_observation_at(
+  graph : CheckedDAG,
+  task : Int,
+  index : Int,
+) -> TaskNumericObservation? {
+  graph.numeric.get(task).bind(items => items.get(index))
+}
+
+///|
+pub fn task_numeric_observation_step(value : TaskNumericObservation) -> Int {
+  value.step
+}
+
+///|
+pub fn task_numeric_observation_name(value : TaskNumericObservation) -> String {
+  value.name
+}
+
+///|
+pub fn task_numeric_observation_slot_cid(
+  value : TaskNumericObservation,
+) -> String {
+  value.slot_cid
+}
+
+///|
+pub fn task_numeric_observation_profile(
+  value : TaskNumericObservation,
+) -> @numeric.Profile {
+  value.profile
+}
+
+///|
+pub fn task_numeric_observation_operation(
+  value : TaskNumericObservation,
+) -> @numeric.Operation {
+  value.operation
+}
+
+///|
+pub fn task_numeric_observation_family(
+  value : TaskNumericObservation,
+) -> NumericObservationFamily {
+  value.family
+}
+
+///|
+pub fn task_numeric_observation_same_owner(
+  left : TaskNumericObservation,
+  right : TaskNumericObservation,
+) -> Bool {
+  match (left.owner, right.owner) {
+    (GroupOwner(a), GroupOwner(b)) => physical_equal(a, b)
+    (PivotOwner(a), PivotOwner(b)) => physical_equal(a, b)
+    (AnalyticOwner(a), AnalyticOwner(b)) => physical_equal(a, b)
+    _ => false
+  }
 }
 
 ///|

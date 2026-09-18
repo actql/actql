@@ -59,6 +59,99 @@ test "owned task projection excludes imported join visits and keeps original cla
 }
 
 ///|
+test "checked DAG projects producer-owned numeric slots without frontend lookup" {
+  let program = query_checked_program_fixture(
+    local_values_group_chain=true,
+    local_values_group_variant="numeric",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    5,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_numeric_observation_count(graph, 2), Some(2))
+  assert_eq(@strategy.graph_task_numeric_observation_count(graph, 1), Some(0))
+  let first = @strategy.graph_task_numeric_observation_at(graph, 2, 0).unwrap()
+  let second = @strategy.graph_task_numeric_observation_at(graph, 2, 1).unwrap()
+  assert_eq(
+    [
+      @strategy.task_numeric_observation_name(first),
+      @strategy.task_numeric_observation_name(second),
+    ],
+    ["mean", "total"],
+  )
+  assert_eq(@strategy.task_numeric_observation_step(first), 0)
+  assert_eq(
+    @strategy.task_numeric_observation_family(first),
+    @strategy.NumericObservationFamily::Group,
+  )
+  assert_false(@strategy.task_numeric_observation_same_owner(first, second))
+  for index in 0..<2 {
+    let slot = @program_check.unit_group_numeric_slot_at(program, 2, index).unwrap()
+    let projected = @strategy.graph_task_numeric_observation_at(graph, 2, index).unwrap()
+    assert_eq(
+      @strategy.task_numeric_observation_slot_cid(projected),
+      @program_check.group_numeric_slot_cid(slot),
+    )
+  }
+  assert_true(@strategy.graph_task_numeric_observation_at(graph, 2, 2) is None)
+  assert_eq(@strategy.graph_task_numeric_observation_count(graph, 5), None)
+}
+
+///|
+test "checked DAG projects every numeric observation family" {
+  let cases = [
+    (
+      query_checked_program_fixture(
+        local_values_window_group_chain=true,
+        local_values_window_group_variant="numeric",
+      ),
+      @strategy.NumericObservationFamily::WindowGroup,
+      1,
+      2,
+    ),
+    (
+      query_checked_program_fixture(
+        local_values_unary_chain=Some("pivot_numeric"),
+      ),
+      @strategy.NumericObservationFamily::Pivot,
+      2,
+      0,
+    ),
+    (
+      query_checked_program_fixture(
+        local_values_analytic_chain=true,
+        local_values_analytic_variant="numeric",
+      ),
+      @strategy.NumericObservationFamily::Analytic,
+      1,
+      1,
+    ),
+  ]
+  for pair in cases {
+    let (program, family, task, step) = pair
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      5,
+      10000,
+    ).unwrap()
+    assert_eq(
+      @strategy.graph_task_numeric_observation_count(graph, task),
+      Some(2),
+    )
+    for index in 0..<2 {
+      let observation = @strategy.graph_task_numeric_observation_at(
+        graph, task, index,
+      ).unwrap()
+      assert_eq(@strategy.task_numeric_observation_family(observation), family)
+      assert_eq(@strategy.task_numeric_observation_step(observation), step)
+    }
+  }
+}
+
+///|
 test "generic captured DAG executes Local sort take and its downstream consumer" {
   let (run, issuer) = captured_graph_fixture(
     sort_take=true,

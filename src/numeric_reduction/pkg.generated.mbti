@@ -12,13 +12,23 @@ pub fn admitted_bytes(Profile) -> Int
 
 pub fn algorithm(Reduction) -> Algorithm
 
+pub fn builtin_profile() -> Profile
+
 pub fn cid(Profile) -> String
+
+pub fn execute(Reduction, Operation, Array[Double], Int, Int) -> Result[Outcome, ReductionIssue]
 
 pub fn member_cid_at(Profile, Int) -> String?
 
 pub fn member_count(Profile) -> Int
 
 pub fn observation_schema_cid(Profile) -> String
+
+pub fn outcome_count(Outcome) -> Int
+
+pub fn outcome_value(Outcome) -> Double?
+
+pub fn outcome_work(Outcome) -> Int
 
 pub fn reduction_cid(Reduction) -> String
 
@@ -42,9 +52,28 @@ pub(all) enum Issue {
   UnknownMember
 } derive(Eq, @debug.Debug)
 
+pub(all) enum Operation {
+  Sum
+  Average
+} derive(Eq, @debug.Debug)
+
+pub struct Outcome {
+  value : Double?
+  count : Int
+  work : Int
+}
+
 type Profile
 
 type Reduction
+
+pub(all) enum ReductionIssue {
+  InvalidLimits
+  ContributorLimit
+  WorkLimit
+  NonfiniteContributor(Int)
+  NonfiniteIntermediate
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

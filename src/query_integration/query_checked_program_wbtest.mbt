@@ -494,6 +494,22 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
+        numeric_profile=if (
+            local_values_group_chain && local_values_group_variant == "numeric"
+          ) ||
+          (
+            local_values_window_group_chain &&
+            local_values_window_group_variant == "numeric"
+          ) ||
+          (
+            local_values_analytic_chain &&
+            local_values_analytic_variant == "numeric"
+          ) ||
+          local_values_unary_chain == Some("pivot_numeric") {
+          Some(@numeric.builtin_profile())
+        } else {
+          None
+        },
       ),
       Some(input_cursor(parameter_json)),
       evidence,
@@ -677,6 +693,14 @@ fn local_pivot_program() -> String {
 }
 
 ///|
+fn local_numeric_pivot_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"sum\"",
+  )
+}
+
+///|
 fn local_pivot_min_fill_program() -> String {
   local_pivot_program().replace(
     old="\"aggregate\":\"count\"",
@@ -738,6 +762,9 @@ fn local_values_unary_program(kind : String) -> String {
   }
   if kind == "pivot" {
     return local_pivot_program()
+  }
+  if kind == "pivot_numeric" {
+    return local_numeric_pivot_program()
   }
   if kind == "pivot_min_fill" {
     return local_pivot_min_fill_program()
@@ -930,6 +957,13 @@ fn local_values_group_program(variant : String) -> String {
         "\"population_deviation\",\"sample\",\"sample_deviation\"]",
         "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
         "\"population\",\"discrete\",\"continuous\"]",
+      )
+    "numeric" =>
+      (
+        "{\"k\":{\"type\":\"number\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"k\":1,\"n\":10000000000000000},{\"k\":1,\"n\":1},{\"k\":1,\"n\":-10000000000000000},{\"k\":null,\"n\":null}]",
+        "[\"k\"]", "{\"mean\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}",
+        "[\"k\",\"n\"]", "[\"k\",\"mean\",\"total\"]", "[\"total\",\"mean\",\"k\"]",
       )
     _ => abort("unknown Local group fixture")
   }

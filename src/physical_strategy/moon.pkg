@@ -16,4 +16,5 @@ import {
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,
+  "actql/actql/numeric_reduction" @numeric,
 }

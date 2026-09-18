@@ -15,6 +15,19 @@ fn local_values_window_group_program(variant : String) -> String {
         "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}", "[\"n\",\"window_end\",\"window_start\"]",
         "[\"window_start\",\"n\",\"window_end\"]",
       )
+    "numeric" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"at\":1,\"n\":10000000000000000},{\"at\":2," +
+        "\"n\":1},{\"at\":3,\"n\":-10000000000000000}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"mean\":{\"fn\":\"avg\"," +
+        "\"field\":\"n\"},\"total\":{\"fn\":\"sum\"," +
+        "\"field\":\"n\"}}}",
+        "[\"mean\",\"total\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"total\",\"mean\",\"window_end\"]",
+      )
     "decimal_sum" =>
       (
         "{\"amount\":{\"type\":\"decimal\",\"precision\":38,\"scale\":2,\"nullable\":true},\"at\":{\"type\":\"number\",\"nullable\":false}}",

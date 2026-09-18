@@ -7,6 +7,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/numeric_reduction",
   "actql/actql/physical_cost",
   "actql/actql/physical_resources",
   "actql/actql/pipeline_check_context",
@@ -154,6 +155,10 @@ pub fn graph_result_task(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int
 
+pub fn graph_task_numeric_observation_at(CheckedDAG, Int, Int) -> TaskNumericObservation?
+
+pub fn graph_task_numeric_observation_count(CheckedDAG, Int) -> Int?
+
 pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement?
 
 pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
@@ -272,6 +277,20 @@ pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
 pub fn task_execution_managed_attempt(CapturedDAG, TaskExecution) -> @execution_relation.ManagedExecutionAttempt?
 
+pub fn task_numeric_observation_family(TaskNumericObservation) -> NumericObservationFamily
+
+pub fn task_numeric_observation_name(TaskNumericObservation) -> String
+
+pub fn task_numeric_observation_operation(TaskNumericObservation) -> @numeric_reduction.Operation
+
+pub fn task_numeric_observation_profile(TaskNumericObservation) -> @numeric_reduction.Profile
+
+pub fn task_numeric_observation_same_owner(TaskNumericObservation, TaskNumericObservation) -> Bool
+
+pub fn task_numeric_observation_slot_cid(TaskNumericObservation) -> String
+
+pub fn task_numeric_observation_step(TaskNumericObservation) -> Int
+
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
 
 // Errors
@@ -339,6 +358,13 @@ pub(all) enum GraphIssue {
 type ManagedTransfer
 
 type ManagedTransferReceipt
+
+pub(all) enum NumericObservationFamily {
+  Group
+  WindowGroup
+  Pivot
+  Analytic
+} derive(Eq, @debug.Debug)
 
 pub(all) struct PhysicalEnvelope {
   transfer_bytes : Int64
@@ -429,6 +455,8 @@ pub enum StrategyDecision {
 type StrategyRevision
 
 type TaskExecution
+
+type TaskNumericObservation
 
 type TaskOffer
 
