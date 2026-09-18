@@ -316,9 +316,13 @@ fn evaluate_string_aggregate(
     @lower.group_aggregate_delimiter(aggregate) is Some(delimiter) else {
     return Err(InvalidRows)
   }
-  let delimiter_bytes = match @scalar.admit_utf8_length64(delimiter, maximum) {
-    Ok(bytes) => bytes
-    Err(_) => return Err(RowLimit)
+  let delimiter_bytes = if values.length() > 1 {
+    match @scalar.admit_utf8_length64(delimiter, maximum) {
+      Ok(bytes) => bytes
+      Err(_) => return Err(RowLimit)
+    }
+  } else {
+    0L
   }
   if !reserve_slots(workspace, values.length()) {
     return Err(RowLimit)

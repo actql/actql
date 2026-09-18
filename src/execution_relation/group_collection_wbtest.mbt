@@ -47,6 +47,54 @@ fn collection_limits(
 }
 
 ///|
+fn string_group_sequence(
+  rows : String,
+  delimiter : String,
+  distinct : Bool,
+) -> GeneratedSequence raise {
+  let distinct_option = if distinct { ",\"distinct\":true" } else { "" }
+  let owner = bound_pipeline(
+    (
+      #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"label":{"type":"string","nullable":true}},"rows":
+    ) +
+    rows +
+    (
+      #|},"as":"seed"},{"group":{"by":[],"aggregates":{"text":{"fn":"string_agg","field":"label","order_by":[{"id":"asc"}],"delimiter":"
+    ) +
+    delimiter +
+    "\"" +
+    distinct_option +
+    ",\"max_bytes\":20}}}}]",
+  )
+  prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["group_1"],
+    100000,
+    10000,
+  ).unwrap()
+}
+
+///|
+fn run_string_group(
+  generated : GeneratedSequence,
+  maximum : Int64,
+) -> Result[CompletedSequence, SequenceRunIssue] {
+  execute_generated_sequence(
+    constrain_generated_aggregate_output(
+      generated,
+      1,
+      "text",
+      StringBytes,
+      maximum,
+    ).unwrap(),
+    [],
+    { rows: run_limits(), max_work: 100000, max_frames: 100, },
+  )
+}
+
+///|
 test "collection aggregates preserve independent order and first distinct occurrence" {
   let rows =
     #|[{"id":1,"k":1,"label":{"literal":"b"}},{"id":2,"k":1,"label":null},{"id":3,"k":1,"label":{"literal":"a"}},{"id":4,"k":1,"label":{"literal":"b"}}]
@@ -145,6 +193,83 @@ test "string aggregate measures raw UTF-8 output including delimiters" {
   assert_true(
     completed_cell(completed_output(result, Step(1)).unwrap(), 0, 2)
     is Some(Text("é😀€")),
+  )
+}
+
+///|
+test "string aggregate charges only delimiters present in the output" {
+  let singleton = string_group_sequence(
+    (
+      #|[{"id":1,"label":{"literal":"x"}}]
+    ),
+    "😀",
+    false,
+  )
+  let singleton_result = run_string_group(singleton, 1L).unwrap()
+  assert_true(
+    completed_cell(completed_output(singleton_result, Step(1)).unwrap(), 0, 0)
+    is Some(Text("x")),
+  )
+
+  let after_null = string_group_sequence(
+    (
+      #|[{"id":1,"label":null},{"id":2,"label":{"literal":"x"}}]
+    ),
+    "😀",
+    false,
+  )
+  assert_true(run_string_group(after_null, 1L) is Ok(_))
+
+  let after_distinct = string_group_sequence(
+    (
+      #|[{"id":1,"label":{"literal":"x"}},{"id":2,"label":{"literal":"x"}}]
+    ),
+    "😀",
+    true,
+  )
+  assert_true(run_string_group(after_distinct, 1L) is Ok(_))
+
+  let pair = string_group_sequence(
+    (
+      #|[{"id":1,"label":{"literal":"x"}},{"id":2,"label":{"literal":"x"}}]
+    ),
+    "😀",
+    false,
+  )
+  assert_true(run_string_group(pair, 5L) is Err(Rows(1, RowLimit)))
+  let pair_result = run_string_group(pair, 6L).unwrap()
+  assert_true(
+    completed_cell(completed_output(pair_result, Step(1)).unwrap(), 0, 0)
+    is Some(Text("x😀x")),
+  )
+}
+
+///|
+test "string aggregate retains empty and all-null laws at zero bytes" {
+  let empty_rows = "[]"
+  let null_rows = "[{\"id\":1,\"label\":null}]"
+  for rows in [empty_rows, null_rows] {
+    let result = run_string_group(
+      string_group_sequence(rows, "😀", false),
+      0L,
+    ).unwrap()
+    assert_true(
+      completed_cell(completed_output(result, Step(1)).unwrap(), 0, 0)
+      is Some(Null),
+    )
+  }
+  let empty_delimiter = string_group_sequence(
+    (
+      #|[{"id":1,"label":{"literal":"日"}},{"id":2,"label":{"literal":"本"}}]
+    ),
+    "",
+    false,
+  )
+  assert_true(run_string_group(empty_delimiter, 5L) is Err(Rows(1, RowLimit)))
+  let result = run_string_group(empty_delimiter, 6L).unwrap()
+  assert_true(
+    completed_cell(completed_output(result, Step(1)).unwrap(), 0, 0)
+    is Some(Text("日本")),
   )
 }
 
