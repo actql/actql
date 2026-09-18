@@ -95,6 +95,7 @@ fn evaluate_layout_kernel(
       unnest: fn(_kernel, _input, _id) { Err(InvalidRows) },
       unpivot: fn(_kernel, _input, _id) { Err(InvalidRows) },
       pivot: fn(_kernel, _input, _id) { Err(InvalidRows) },
+      lag: fn(_kernel, _input, _id) { Err(InvalidRows) },
       body: fn(body, input, id, logical) {
         evaluate_layout_body(
           kernel,

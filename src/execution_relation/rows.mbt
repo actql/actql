@@ -194,6 +194,11 @@ fn evaluate_rows_with_workspace(
           kernel, input, id, max_rows, control, output, workspace,
         )
       },
+      lag: fn(kernel, input, id) {
+        evaluate_lag_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        )
+      },
       body: fn(body, input, id, logical) {
         evaluate_row_body(
           body,
@@ -225,6 +230,7 @@ priv struct RowBackend[T] {
   unnest : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   unpivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   pivot : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
+  lag : (@lower.PreparedKernel, T, String) -> Result[T, RowIssue]
   body : (RowBodySource, T, String, LogicalBudget?) -> Result[T, RowIssue]
 }
 
@@ -281,6 +287,9 @@ fn[T : RelationRows] evaluate_rows_dispatch(
   }
   if @lower.kernel_pivot(kernel) is Some(_) {
     return (backend.pivot)(kernel, input, @lower.node_id(node))
+  }
+  if @lower.kernel_lag(kernel) is Some(_) {
+    return (backend.lag)(kernel, input, @lower.node_id(node))
   }
   if @lower.kernel_take(kernel) is Some((count, offset)) {
     let input = if @lower.order_node_id(node) is Some(id) {
@@ -475,6 +484,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.DistinctRows => return Err(InvalidRows)
         @lower.DedupeRows => return Err(InvalidRows)
         @lower.StableSort(_) => return Err(InvalidRows)
+        @lower.Lag(_, _) => return Err(InvalidRows)
         @lower.CountGroups(_) => return Err(InvalidRows)
         @lower.Groups(_) => return Err(InvalidRows)
         @lower.OrderedBindings(bindings) =>

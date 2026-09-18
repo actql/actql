@@ -283,6 +283,11 @@ fn evaluate_completed_rows(
           kernel, input, id, max_rows, control, output, workspace,
         ).map(table => RowTable(table))
       },
+      lag: fn(kernel, input, id) {
+        evaluate_lag_rows(
+          kernel, input, id, max_rows, control, output, workspace,
+        ).map(table => RowTable(table))
+      },
       body: fn(body, input, id, logical) {
         evaluate_completed_body(
           body,
