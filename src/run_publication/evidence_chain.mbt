@@ -11,6 +11,15 @@ pub(all) enum RunEvidenceChainIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum PublicationCommitIssue {
+  CommitEvidence(RunEvidenceChainIssue)
+  CommitWrongContract(String)
+  CommitReferenceMismatch(String)
+  CommitInventoryMismatch
+  CommitEncoding
+} derive(Eq, Debug)
+
+///|
 fn evidence_object(
   value : @json.CanonicalValue,
   field : String,
@@ -143,6 +152,37 @@ fn same_names(left : Array[String], right : Array[String]) -> Bool {
   }
   for name in left {
     if !right.contains(name) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn publication_inventory_matches(
+  request : PublicationContract,
+  definitions : Array[PublicationContract],
+) -> Bool {
+  guard @json.object_field(request.value, "inventory")
+    is Some(@json.Array(frozen)) else {
+    return false
+  }
+  let values = @json.array_values(frozen)
+  if values.length() != definitions.length() {
+    return false
+  }
+  for value in values {
+    guard validate_named_cid_object(
+        value, "result_name", "result_definition_cid",
+      )
+      is Some(item) else {
+      return false
+    }
+    let matches = definitions.filter(fn(definition) {
+      contract_string(definition, "result_name") == Some(item.name) &&
+      definition.identity == item.cid
+    })
+    if matches.length() != 1 {
       return false
     }
   }
@@ -360,6 +400,77 @@ pub fn validate_effect_free_run_evidence_chain(
   let listed_model_cids = evidence_string_array(model_evidence_cids)
   if embedded_model_cids is None || embedded_model_cids != listed_model_cids {
     return Err(EvidenceReferenceMismatch("model_invocation_evidence_cids"))
+  }
+  Ok(())
+}
+
+///|
+/// Validate the immutable publication intent and the exact index entry that a
+/// Store adapter proposes to make visible. The adapter still owns durability,
+/// fencing, and atomic index installation; it cannot redefine this binding.
+pub fn validate_effect_free_publication_commit(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationCommitIssue] {
+  match
+    validate_effect_free_run_evidence_chain(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(CommitEvidence(issue))
+  }
+  if request.name != "publication_request" {
+    return Err(CommitWrongContract("publication_request"))
+  }
+  if attempt.name != "publication_attempt" {
+    return Err(CommitWrongContract("publication_attempt"))
+  }
+  if index_entry.name != "public_index_entry" {
+    return Err(CommitWrongContract("public_index_entry"))
+  }
+  if evidence_string(request.value, "run_definition_cid") !=
+    Some(run_definition.identity) {
+    return Err(CommitReferenceMismatch("request.run_definition_cid"))
+  }
+  if !publication_inventory_matches(request, definitions) {
+    return Err(CommitInventoryMismatch)
+  }
+  if evidence_string(attempt.value, "publication_request_cid") !=
+    Some(request.identity) ||
+    evidence_string(attempt.value, "run_definition_cid") !=
+    Some(run_definition.identity) {
+    return Err(CommitReferenceMismatch("publication_attempt"))
+  }
+  for
+    (field, expected) in [
+      ("tenant_id", evidence_string(request.value, "tenant_id")),
+      (
+        "authority_scope_cid",
+        evidence_string(request.value, "authority_scope_cid"),
+      ),
+      ("run_definition_cid", Some(run_definition.identity)),
+      ("invocation_cid", Some(invocation.identity)),
+      ("result_manifest_cid", Some(manifest.identity)),
+      ("run_receipt_cid", Some(receipt.identity)),
+      ("captured_run_cid", Some(captured_run.identity)),
+      ("publication_request_cid", Some(request.identity)),
+      ("publication_attempt_cid", Some(attempt.identity)),
+    ] {
+    if expected is None || evidence_string(index_entry.value, field) != expected {
+      return Err(CommitReferenceMismatch("index." + field))
+    }
   }
   Ok(())
 }

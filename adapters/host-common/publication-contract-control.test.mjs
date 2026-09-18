@@ -253,6 +253,40 @@ test('portable control validates Receipt and Captured Run references', () => {
   const captured = control.seal(
     'captured_run', JSON.stringify(capturedValue), limits,
   );
+  const request = control.seal('publication_request', JSON.stringify({
+    version: 'actql-publication-request/0.1',
+    tenant_id: 'tenant-a',
+    authority_scope_cid: cid('d'),
+    run_definition_cid: run.identity,
+    inventory: [{
+      result_name: 'answer',
+      result_definition_cid: definition.identity,
+    }],
+    publication_policy_cid: cid('e'),
+    publication_target_cid: cid('f'),
+    requested_at: '2026-09-18T00:00:00.000Z',
+  }), limits);
+  const attempt = control.seal('publication_attempt', JSON.stringify({
+    version: 'actql-publication-attempt/0.1',
+    publication_request_cid: request.identity,
+    run_definition_cid: run.identity,
+    attempt_id: 'attempt-1',
+    fence_cid: cid('0'),
+    started_at: '2026-09-18T00:00:01.000Z',
+  }), limits);
+  const indexEntry = control.seal('public_index_entry', JSON.stringify({
+    version: 'actql-public-index-entry/0.1',
+    tenant_id: 'tenant-a',
+    authority_scope_cid: cid('d'),
+    run_definition_cid: run.identity,
+    invocation_cid: invoked.identity,
+    result_manifest_cid: manifest.identity,
+    run_receipt_cid: receipt.identity,
+    captured_run_cid: captured.identity,
+    publication_request_cid: request.identity,
+    publication_attempt_cid: attempt.identity,
+    committed_at: '2026-09-18T00:00:02.000Z',
+  }), limits);
   assert.equal(control.effectFreeChainValid(
     run,
     invoked,
@@ -261,6 +295,19 @@ test('portable control validates Receipt and Captured Run references', () => {
     manifest,
     receipt,
     captured,
+    limits,
+  ), true);
+  assert.equal(control.effectFreeCommitValid(
+    run,
+    invoked,
+    [definition],
+    [artifact],
+    manifest,
+    receipt,
+    captured,
+    request,
+    attempt,
+    indexEntry,
     limits,
   ), true);
   const foreignDefinition = control.seal(
@@ -321,6 +368,24 @@ test('portable control validates Receipt and Captured Run references', () => {
     manifest,
     receipt,
     wrongInventoryCapture,
+    limits,
+  ), false);
+  const wrongIndex = control.seal('public_index_entry', JSON.stringify({
+    ...JSON.parse(indexEntry.wire),
+    public_index_entry_cid: undefined,
+    result_manifest_cid: cid('0'),
+  }), limits);
+  assert.equal(control.effectFreeCommitValid(
+    run,
+    invoked,
+    [definition],
+    [artifact],
+    manifest,
+    receipt,
+    captured,
+    request,
+    attempt,
+    wrongIndex,
     limits,
   ), false);
 });

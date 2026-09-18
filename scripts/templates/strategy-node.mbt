@@ -570,6 +570,40 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyEffectFreePublicationCommitValid")
+pub fn strategy_effect_free_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effect_free_publication_commit(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    captured_run,
+    request,
+    attempt,
+    index_entry,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ) is Ok(_)
+}
+
+///|
 #export_name("strategyDeliveryRecordTransition")
 pub fn strategy_delivery_record_transition(
   previous : @publication.PublicationContract?,

@@ -126,6 +126,24 @@ function publicationControl(moon) {
         limits.maxDepth,
       );
     },
+    effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
+      manifest, receipt, capturedRun, request, attempt, indexEntry, limits) {
+      return moon.strategyEffectFreePublicationCommitValid(
+        token(runDefinition),
+        token(invocation),
+        definitions.map(token),
+        artifacts.map(token),
+        token(manifest),
+        token(receipt),
+        token(capturedRun),
+        token(request),
+        token(attempt),
+        token(indexEntry),
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      );
+    },
     deliveryTransition(previous, next) {
       return moon.strategyDeliveryRecordTransition(
         previous === undefined ? undefined : token(previous),
