@@ -100,6 +100,8 @@ pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
 
+pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], PublicationContract, PublicationContract, String) -> Bool
+
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
 
 pub fn result_definition_cid(ResultDefinition) -> String

@@ -2638,6 +2638,21 @@ export async function openLocalPublicationStore(
     inspectCommittedIndex,
     confirmCommittedIndex,
     lookupCommittedIndex,
+    publicationCapacitySupports(requirement) {
+      active();
+      if (!exactKeys(requirement, [
+        'requiredBytes', 'objectCount', 'maxObjectBytes',
+      ]) || !quantity(requirement.requiredBytes) ||
+          !quantity(requirement.objectCount) ||
+          !quantity(requirement.maxObjectBytes)) {
+        fail('InvalidPublicationCapacityRequirement');
+      }
+      return requirement.maxObjectBytes <= configuration.maxObjectBytes &&
+        storedBytes + reservedBytes + requirement.requiredBytes <=
+          configuration.capacityBytes &&
+        objectCount + reservedObjects + requirement.objectCount <=
+          configuration.maxObjects;
+    },
     status() {
       return Object.freeze({
         storedBytes,

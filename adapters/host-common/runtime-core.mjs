@@ -408,6 +408,33 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    publicationPreflightValid(
+      admission,
+      runDefinition,
+      invocation,
+      definitions,
+      retentions,
+      evidenceContexts,
+      request,
+      attempt,
+      programDefinitionCid,
+    ) {
+      return moon.strategyPublicationPreflightValid(
+        admissionToken(admission),
+        token(runDefinition),
+        token(invocation),
+        definitions.map(token),
+        retentions.map(token),
+        evidenceContexts.map(value => value.computationContractCid),
+        evidenceContexts.map(value => value.inputRelationCids),
+        evidenceContexts.map(value => value.scopeCid),
+        evidenceContexts.map(value => value.effectiveDataPolicyCid),
+        evidenceContexts.map(value => value.authorityScopeCid),
+        token(request),
+        token(attempt),
+        programDefinitionCid,
+      );
+    },
     issuePublicIndexEntry(chain, committedAt, limits) {
       issuanceLimits(limits, 'Public Index Entry');
       if (chain === null || typeof chain !== 'object' ||

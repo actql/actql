@@ -141,6 +141,75 @@ test('installed Host snapshots the checked Program and Result inventory', async 
   result.close();
 });
 
+test('publication preflight finishes before any Compute contribution starts',
+  async () => {
+    const registration = {};
+    const admitted = fixture([registration]);
+    const programDefinitionCid = `sha256:${'1'.repeat(64)}`;
+    admitted.core.programDefinitionCid = () => programDefinitionCid;
+    admitted.core.resultInventory = () => [{
+      name: 'answer',
+      task: 1,
+      definition: {
+        program_definition_cid: programDefinitionCid,
+        result_definition_cid: `sha256:${'2'.repeat(64)}`,
+        result_name: 'answer',
+        version: 'actql-result-definition/0.1',
+      },
+      definitionContract: Object.freeze({name: 'result_definition'}),
+    }];
+    let runs = 0;
+    const preflight = Object.freeze({kind: 'publication-preflight'});
+    const result = await runInstalledStrategy(
+      admitted.setup,
+      admitted.core,
+      [{
+        registration,
+        run() {
+          runs++;
+          admitted.complete.add(1);
+        },
+      }],
+      undefined,
+      undefined,
+      undefined,
+      facts => {
+        assert.equal(runs, 0);
+        assert.equal(facts.programDefinitionCid, programDefinitionCid);
+        assert.deepEqual(facts.resultInventory, [
+          {name: 'answer', task: 1},
+        ]);
+        assert.equal(facts.publicationInventory.occurrences.length, 1);
+        return preflight;
+      },
+    );
+    assert.equal(runs, 1);
+    assert.equal(result.publicationPreflight, preflight);
+    result.close();
+
+    const rejected = fixture([registration]);
+    rejected.core.programDefinitionCid = () => programDefinitionCid;
+    rejected.core.resultInventory = admitted.core.resultInventory;
+    let rejectedRuns = 0;
+    await assert.rejects(runInstalledStrategy(
+      rejected.setup,
+      rejected.core,
+      [{
+        registration,
+        run() {
+          rejectedRuns++;
+          rejected.complete.add(1);
+        },
+      }],
+      undefined,
+      undefined,
+      undefined,
+      () => { throw new Error('publication capacity rejected'); },
+    ), /publication capacity rejected/u);
+    assert.equal(rejectedRuns, 0);
+    assert.equal(rejected.stopped(), 1);
+  });
+
 test('standard Host owns publication control and exact execution binding', async () => {
   const registration = {}, f = fixture([registration]);
   const programDefinitionCid = `sha256:${'1'.repeat(64)}`;

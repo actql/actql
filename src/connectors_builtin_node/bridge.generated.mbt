@@ -879,6 +879,30 @@ pub fn strategy_issue_publication_attempt(
 }
 
 ///|
+#export_name("strategyPublicationPreflightValid")
+pub fn strategy_publication_preflight_valid(
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  computation_contract_cids : Array[String],
+  input_relation_cids : Array[Array[String]],
+  scope_cids : Array[String],
+  effective_data_policy_cids : Array[String],
+  authority_scope_cids : Array[String],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  program_definition_cid : String,
+) -> Bool {
+  @publication.publication_preflight_valid(
+    admission, run_definition, invocation, definitions, retentions, computation_contract_cids,
+    input_relation_cids, scope_cids, effective_data_policy_cids, authority_scope_cids,
+    request, attempt, program_definition_cid,
+  )
+}
+
+///|
 #export_name("strategyIssuePublicIndexEntry")
 pub fn strategy_issue_public_index_entry(
   run_definition : @publication.PublicationContract,

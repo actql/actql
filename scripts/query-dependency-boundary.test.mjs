@@ -140,7 +140,8 @@ test('standard Node execution uses the connector-free serial driver and exact re
   assert.doesNotMatch(driver, /strategyHostNative|strategyHostTakeNative|DuckDB|duckdb|resident/);
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);
   assert.match(driver, /core\.completed\(setup, index\)/);
-  assert.match(entry, /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*\)/);
+  assert.match(entry,
+    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*\)/u);
   assert.match(entry, /const observeCompletion = completionObserver\(observer\)/);
   assert(entry.indexOf('completionObserver(observer)') < entry.indexOf('await'));
   assert.doesNotMatch(entry, /strategyHostNative|runResidentStrategyHostCompute|runStrategyHostCompute/);

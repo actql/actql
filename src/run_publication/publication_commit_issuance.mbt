@@ -179,6 +179,96 @@ pub fn issue_publication_attempt(
 }
 
 ///|
+/// Validate the immutable inputs that must be known before Compute starts for
+/// one complete Named Result publication. Physical capacity and mutable Store
+/// state remain adapter observations; this function owns the cross-contract
+/// meaning of the preflight decision.
+pub fn publication_preflight_valid(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  computation_contract_cids : Array[String],
+  input_relation_cids : Array[Array[String]],
+  scope_cids : Array[String],
+  effective_data_policy_cids : Array[String],
+  authority_scope_cids : Array[String],
+  request : PublicationContract,
+  attempt : PublicationContract,
+  program_definition_cid : String,
+) -> Bool {
+  if run_definition.name != "run_definition" ||
+    invocation.name != "run_invocation" ||
+    request.name != "publication_request" ||
+    attempt.name != "publication_attempt" ||
+    definitions.is_empty() ||
+    definitions.length() != retentions.length() ||
+    definitions.length() != computation_contract_cids.length() ||
+    definitions.length() != input_relation_cids.length() ||
+    definitions.length() != scope_cids.length() ||
+    definitions.length() != effective_data_policy_cids.length() ||
+    definitions.length() != authority_scope_cids.length() {
+    return false
+  }
+  if contract_string(run_definition, "invocation_template_cid") !=
+    contract_string(invocation, "invocation_template_cid") ||
+    contract_string(run_definition, "invocation_template_cid") !=
+    Some(admission.template.identity) ||
+    contract_string(run_definition, "compiled_plan_cid") !=
+    Some(admission.compiled_plan_cid) ||
+    contract_string(run_definition, "authorization_context_cid") !=
+    Some(admission.authorization_context_cid) ||
+    contract_string(run_definition, "valid_until").map(fn(value) {
+      value <= admission.expires_at
+    }) !=
+    Some(true) ||
+    contract_string_from_value(
+      admission.template.value,
+      "program_definition_cid",
+    ) !=
+    Some(program_definition_cid) ||
+    contract_string(request, "run_definition_cid") !=
+    Some(run_definition.identity) ||
+    contract_string(attempt, "run_definition_cid") !=
+    Some(run_definition.identity) ||
+    contract_string(attempt, "publication_request_cid") !=
+    Some(request.identity) ||
+    !publication_inventory_matches(request, definitions) {
+    return false
+  }
+  let result_names : Array[String] = []
+  let authority_scope_cid = contract_string(request, "authority_scope_cid")
+  for index, definition in definitions {
+    if definition.name != "result_definition" {
+      return false
+    }
+    guard contract_string(definition, "result_name") is Some(name) else {
+      return false
+    }
+    if result_names.contains(name) {
+      return false
+    }
+    result_names.push(name)
+    if contract_string(definition, "program_definition_cid") !=
+      Some(program_definition_cid) {
+      return false
+    }
+    if !valid_contract_cid(computation_contract_cids[index]) ||
+      !input_relation_cids[index].all(valid_contract_cid) ||
+      !valid_contract_cid(scope_cids[index]) ||
+      !valid_contract_cid(effective_data_policy_cids[index]) ||
+      !valid_contract_cid(authority_scope_cids[index]) ||
+      contract_string(retentions[index], "effective_data_policy_cid") !=
+      Some(effective_data_policy_cids[index]) ||
+      authority_scope_cid != Some(authority_scope_cids[index]) {
+      return false
+    }
+  }
+  retentions.all(fn(retention) { retention.name == "result_retention_policy" })
+}
+
+///|
 /// Issue the exact entry a Store may install atomically. This establishes no
 /// success by itself; the Store still validates and persists the full chain.
 pub fn issue_public_index_entry(

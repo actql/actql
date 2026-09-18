@@ -178,13 +178,83 @@ function coreOutputSiteOwner(core, setup) {
 }
 
 export async function runInstalledStrategy(
-  setup, core, contributions, signal, observeCompletion, sitePolicy,
+  setup,
+  core,
+  contributions,
+  signal,
+  observeCompletion,
+  sitePolicy,
+  beforeCompute,
 ) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
   }
   if (active.has(setup)) throw new StrategyHostError('StrategyAlreadyRunning');
   core = Object.freeze({ ...core });
+  if (beforeCompute !== undefined && typeof beforeCompute !== 'function') {
+    throw new StrategyHostError('InvalidBeforeComputeAdmission');
+  }
+  const programDefinitionCid = core.programDefinitionCid?.(setup);
+  const resultInventory = core.resultInventory?.(setup) ?? [];
+  if (!Array.isArray(resultInventory) ||
+      (resultInventory.length > 0 && programDefinitionCid === undefined)) {
+    throw new StrategyHostError('InvalidCheckedResultInventory');
+  }
+  const checkedResultInventory = Object.freeze(resultInventory.map(result =>
+    Object.freeze({name: result.name, task: result.task})));
+  const publicationInventory = checkedResultInventory.length === 0
+    ? undefined
+    : Object.freeze({
+      programDefinitionCid,
+      occurrences: Object.freeze(resultInventory.map(result =>
+        Object.freeze({
+          name: result.name,
+          task: result.task,
+          definition: result.definition,
+          definitionContract: result.definitionContract,
+        }))),
+      requestInventory: Object.freeze(resultInventory.map(result =>
+        Object.freeze({
+          result_name: result.name,
+          result_definition_cid: result.definition.result_definition_cid,
+        }))),
+    });
+  active.add(setup);
+  let preflight;
+  try {
+    if (beforeCompute !== undefined) {
+      signal?.throwIfAborted();
+      preflight = await beforeCompute(Object.freeze({
+        programDefinitionCid,
+        resultInventory: checkedResultInventory,
+        publicationInventory,
+        publicationControl: core.publicationControl,
+      }));
+      signal?.throwIfAborted();
+    }
+  } catch (primary) {
+    let stopFailed = false;
+    let stopFailure;
+    try { core.stop(setup); }
+    catch (error) {
+      stopFailed = true;
+      stopFailure = error;
+    }
+    active.delete(setup);
+    if (!stopFailed) throw primary;
+    const failure = ownedStrategyFailure(
+      primary,
+      'PublicationPreflightFailed',
+    );
+    failure.cleanupPending = true;
+    failure.cleanupErrors = Object.freeze([
+      ...failure.cleanupErrors,
+      stopFailure,
+    ]);
+    const cleanupHandle = failureMember(stopFailure, 'cleanupHandle');
+    if (cleanupHandle !== undefined) failure.cleanupHandle = cleanupHandle;
+    throw failure;
+  }
   // Snapshot the implementation set before invoking any implementation. Opaque
   // registration object identity, never a display name, selects the driver.
   const installed = new Map();
@@ -253,32 +323,6 @@ export async function runInstalledStrategy(
     failure.cleanupPending = combined.status().pending;
     return failure;
   };
-  const programDefinitionCid = core.programDefinitionCid?.(setup);
-  const resultInventory = core.resultInventory?.(setup) ?? [];
-  if (!Array.isArray(resultInventory) ||
-      (resultInventory.length > 0 && programDefinitionCid === undefined)) {
-    throw new StrategyHostError('InvalidCheckedResultInventory');
-  }
-  const checkedResultInventory = Object.freeze(resultInventory.map(result =>
-    Object.freeze({name: result.name, task: result.task})));
-  const publicationInventory = checkedResultInventory.length === 0
-    ? undefined
-    : Object.freeze({
-      programDefinitionCid,
-      occurrences: Object.freeze(resultInventory.map(result =>
-        Object.freeze({
-          name: result.name,
-          task: result.task,
-          definition: result.definition,
-          definitionContract: result.definitionContract,
-        }))),
-      requestInventory: Object.freeze(resultInventory.map(result =>
-        Object.freeze({
-          result_name: result.name,
-          result_definition_cid: result.definition.result_definition_cid,
-        }))),
-    });
-  active.add(setup);
   const completed = [];
   const candidateExclusions = [];
   const candidateComparisons = [];
@@ -634,6 +678,7 @@ export async function runInstalledStrategy(
     programDefinitionCid,
     resultInventory: checkedResultInventory,
     publicationInventory,
+    ...(preflight === undefined ? {} : {publicationPreflight: preflight}),
     async publishEffectFreeRun(store, publication, signal) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
       if (failed || !core.finished(setup)) {

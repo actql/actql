@@ -228,6 +228,8 @@ pub fn async_strategy_publication_contract_json(@run_publication.PublicationCont
 
 pub fn async_strategy_publication_contract_name(@run_publication.PublicationContract) -> String
 
+pub fn async_strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
+
 pub fn async_strategy_publication_record_allows_commit(@run_publication.PublicationContract) -> Bool
 
 pub fn async_strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
@@ -573,6 +575,8 @@ pub fn strategy_publication_contract_identity_field(@run_publication.Publication
 pub fn strategy_publication_contract_json(@run_publication.PublicationContract) -> String
 
 pub fn strategy_publication_contract_name(@run_publication.PublicationContract) -> String
+
+pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
 
 pub fn strategy_publication_record_allows_commit(@run_publication.PublicationContract) -> Bool
 

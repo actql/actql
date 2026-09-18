@@ -14,7 +14,8 @@ import { exerciseOwnedFixedTransport } from './owned-fixed-transport.mjs';
 import { exerciseManagedExample } from './managed-example.mjs';
 import { exerciseNativeFilePlan } from './native-file-plan.mjs';
 import {runCapturedInternalStrategy,
-  runCapturedStrategy} from '../../host-node/entry.mjs';
+  runCapturedStrategy,
+  runPublishedCapturedStrategy} from '../../host-node/entry.mjs';
 import {runInstalledStrategy} from '../../host-common/strategy.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
@@ -79,6 +80,183 @@ const publicationResultExportLimits = Object.freeze({
   maxSchemaDepth: 64,
   maxBatchBytes: 4096,
 });
+
+function standardPublicationPlan(
+  runtime,
+  programDefinitionCid,
+  resultCount,
+  attemptId,
+) {
+  const control = runtime.publicationControl;
+  const contractLimits = Object.freeze({
+    maxWireBytes: 100000,
+    maxNodes: 10000,
+    maxDepth: 64,
+  });
+  const effectiveDataPolicyCid = hash('effective-policy');
+  const template = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      version: 'actql-bound-invocation-template/0.1',
+      program_definition_cid: programDefinitionCid,
+      parameter_values_cid: hash('parameter-values'),
+      invocation_bindings_cid: hash('invocation-bindings'),
+      check_environment_cid: hash('check-environment'),
+      grammar_manifest_cid: hash('grammar-manifest'),
+      required_profile_contracts: [],
+      barrier_contract_manifest_cid: hash('barrier-contract-manifest'),
+      source_evidence: 'unbound',
+    }),
+    contractLimits,
+  );
+  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
+    version: 'actql-compiled-plan/0.1',
+    compiler_version: 'compiler-test-0.1',
+    aoa_ir_version: 'aoa-ir-test-0.1',
+    executable_plan_cid: hash('executable-plan'),
+    program_definition_cid: programDefinitionCid,
+    program_semantics_cid: hash('program-semantics'),
+    aoa_contract_cid: hash('aoa-contract'),
+    aoa_logical_cid: hash('aoa-logical'),
+  }), contractLimits);
+  const prepared = control.sealRunEvidence(
+    'prepared_invocation',
+    JSON.stringify({
+      version: 'actql-prepared-invocation/0.1',
+      invocation_template_cid: template.identity,
+      compiled_plan_cid: compiledPlan.identity,
+      execution_context_cid: hash('execution-context'),
+      host_policy_cid: hash('host-policy'),
+      policy_decision: 'allow',
+      expires_at: '2026-09-18T03:00:00.000Z',
+    }),
+    contractLimits,
+  );
+  const authorization = control.sealRunEvidence(
+    'run_authorization',
+    JSON.stringify({
+      version: 'actql-run-authorization/0.1',
+      prepared_invocation_cid: prepared.identity,
+      execution_context_cid: hash('execution-context'),
+      host_policy_cid: hash('host-policy'),
+      decision: 'allowed',
+    }),
+    contractLimits,
+  );
+  const admission = control.admitRunPublication(
+    template,
+    prepared,
+    authorization,
+    compiledPlan,
+  );
+  const runDefinition = control.issueRunDefinition(admission, {
+    scopeId: 'standard-publication-scope',
+    runId: `standard-publication-${attemptId}`,
+    inputArtifactSetCid: hash('input-artifact-set'),
+    createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T02:30:00.000Z',
+  }, contractLimits);
+  const observation = control.sealRunEvidence(
+    'observation_set',
+    JSON.stringify({
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: template.identity,
+      source_evidence_cids: [],
+      captured_input_artifact_cids: [],
+      consistency: 'no_external_sources',
+      capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {
+        materialized: false,
+        availability_evidence_cids: [],
+      },
+      data_policy_cid: effectiveDataPolicyCid,
+    }),
+    contractLimits,
+  );
+  const invocation = control.issueRunInvocation(
+    template,
+    observation,
+    contractLimits,
+  );
+  const retention = control.seal(
+    'result_retention_policy',
+    JSON.stringify({
+      version: 'actql-result-retention-policy/0.1',
+      retention_contract_cid: hash('retention-contract'),
+      effective_data_policy_cid: effectiveDataPolicyCid,
+      available_until: '2026-09-18T01:00:00.000Z',
+      delete_by: '2026-09-18T02:00:00.000Z',
+      extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+      metadata_retention_policy_cid: hash('metadata-retention'),
+      clock_contract_cid: hash('clock-contract'),
+    }),
+    contractLimits,
+  );
+  const normalizationJournal = control.sealRunEvidence(
+    'normalization_journal',
+    JSON.stringify({
+      version: 'actql-normalization-journal/0.1',
+      rule_catalog_cid: hash('rule-catalog'),
+      entries: [],
+    }),
+    contractLimits,
+  );
+  const authoringContext = control.sealRunEvidence(
+    'authoring_context',
+    JSON.stringify({
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: programDefinitionCid,
+      annotations: [],
+    }),
+    contractLimits,
+  );
+  return Object.freeze({
+    admission,
+    runDefinition,
+    invocation,
+    observation,
+    normalizationJournal,
+    authoringContext,
+    results: Object.freeze(Array.from({length: resultCount}, (_, index) =>
+      Object.freeze({
+        retention,
+        evidenceContext: Object.freeze({
+          computationContractCid: hash(`checked-computation-${index}`),
+          inputRelationCids: Object.freeze([]),
+          scopeCid: hash(`result-scope-${index}`),
+          effectiveDataPolicyCid,
+          authorityScopeCid: hash('authority-scope'),
+        }),
+      }))),
+    receiptEvidence: Object.freeze({
+      bindings: Object.freeze([]),
+      sourceEvidence: Object.freeze([]),
+      modelEvidence: Object.freeze([]),
+      barrierAttemptReceiptCids: Object.freeze([]),
+    }),
+    captureEvidence: Object.freeze({
+      pendingSourceStateAdvances: Object.freeze([]),
+      modelEvidence: Object.freeze([]),
+    }),
+    request: Object.freeze({
+      tenantId: 'tenant-a',
+      authorityScopeCid: hash('authority-scope'),
+      publicationPolicyCid: hash('publication-policy'),
+      publicationTargetCid: hash('publication-target'),
+      requestedAt: '2026-09-18T00:00:00.000Z',
+    }),
+    attempt: Object.freeze({
+      attemptId,
+      fenceCid: hash('publication-fence'),
+      externalIdempotencyKey: undefined,
+      startedAt: '2026-09-18T00:00:01.000Z',
+    }),
+    outputLimits: publicationResultExportLimits,
+    contractLimits,
+    now: () => '2026-09-18T00:00:02.000Z',
+  });
+}
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 // Conformance-only contribution body. It uses the selected product
@@ -932,6 +1110,175 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedExecutionBytes, 0n);
     }
+  }
+  await replaceRows(
+    'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)',
+  );
+  const publicationFixture = fixture.strategyFixtureCreate(
+    ...args,
+    JSON.stringify(numericProgram),
+  );
+  const publicationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(publicationFixture),
+    suppliedLimits,
+  );
+  const publicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/standard-publication-entry-',
+  ));
+  let publicationOwner;
+  let publicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        publicationFixture,
+        publicationCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureModuleSubset(publicationFixture, 0);
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    const programDefinitionCid = runtime.programDefinitionCid(setup);
+    publicationStore = await openLocalPublicationStore({
+      directory: publicationDirectory,
+      storeAuthorityCid: hash('standard-publication-entry-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      programDefinitionCid,
+      resultCount,
+      'standard-publication-entry-attempt',
+    );
+    const absent = new Proxy({}, {
+      get() {
+        assert.fail('unused Compute provider settings accessed');
+      },
+    });
+    publicationOwner = await runPublishedCapturedStrategy(
+      setup,
+      {store: publicationStore, plan},
+      {duckdb: absent},
+      new AbortController().signal,
+    );
+    assert.equal(publicationOwner.status, 'published');
+    assert.equal(
+      publicationOwner.execution.status,
+      'host-tasks-completed',
+    );
+    assert.equal(
+      publicationOwner.publication.publication.state,
+      'succeeded',
+    );
+    assert.equal(
+      publicationOwner.publication.results.length,
+      resultCount,
+    );
+    assert.equal(
+      publicationOwner.publication.evidence.artifacts.length,
+      resultCount,
+    );
+    assert.equal(
+      publicationOwner.execution.publicationPreflight.request.identity,
+      publicationOwner.publication.publication.request.identity,
+    );
+    assert.deepEqual(
+      await publicationStore.inspectCommittedIndex({
+        tenantId: plan.request.tenantId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }),
+      JSON.parse(publicationOwner.publication.publication.index.wire),
+    );
+  } finally {
+    if (publicationOwner !== undefined) {
+      await publicationOwner.close();
+      assert.equal(publicationOwner.cleanupPending(), false);
+      assert.equal(await publicationOwner.cleanup(), true);
+      assert.equal(publicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(
+        publicationOwner.execution.usage().reservedExecutionBytes,
+        0n,
+      );
+    }
+    publicationCapture.close();
+    await publicationStore?.close();
+    await rm(publicationDirectory, {recursive: true, force: true});
+  }
+  const rejectedPublicationFixture = fixture.strategyFixtureCreate(
+    ...args,
+    JSON.stringify(numericProgram),
+  );
+  const rejectedPublicationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(rejectedPublicationFixture),
+    suppliedLimits,
+  );
+  const rejectedPublicationDirectory = await mkdtemp(join(
+    root,
+    '_build/duckdb-fixtures/rejected-standard-publication-entry-',
+  ));
+  let rejectedPublicationStore;
+  try {
+    assert.equal(
+      fixture.strategyFixtureOpen(
+        rejectedPublicationFixture,
+        rejectedPublicationCapture.source(),
+      ),
+      true,
+    );
+    const setup = fixture.strategyFixtureModuleSubset(
+      rejectedPublicationFixture,
+      0,
+    );
+    const runtime = runtimeCore(hostRuntime);
+    const resultCount = runtime.resultInventory(setup).length;
+    rejectedPublicationStore = await openLocalPublicationStore({
+      directory: rejectedPublicationDirectory,
+      storeAuthorityCid: hash('rejected-standard-publication-store'),
+      capacityBytes: 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime,
+      runtime.programDefinitionCid(setup),
+      resultCount,
+      'rejected-standard-publication-attempt',
+    );
+    await assert.rejects(runPublishedCapturedStrategy(
+      setup,
+      {store: rejectedPublicationStore, plan},
+      {},
+      new AbortController().signal,
+    ), {
+      code: 'RunPublicationCapacityUnsupported',
+    });
+    assert.equal(
+      fixture.strategyFixtureUsage(rejectedPublicationFixture, 3),
+      0n,
+    );
+    assert.equal(
+      fixture.strategyFixtureUsage(rejectedPublicationFixture, 4),
+      0n,
+    );
+    assert.equal(rejectedPublicationStore.status().reservedBytes, 0);
+    assert.equal(rejectedPublicationStore.status().reservedObjects, 0);
+  } finally {
+    rejectedPublicationCapture.close();
+    await rejectedPublicationStore?.close();
+    await rm(rejectedPublicationDirectory, {
+      recursive: true,
+      force: true,
+    });
   }
   // The runnable application reads user-supplied documents, not conformance
   // exports or test catalogs. Tests supply their own documents at its boundary.

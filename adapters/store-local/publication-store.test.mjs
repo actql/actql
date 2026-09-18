@@ -1760,3 +1760,34 @@ test('physical mutation is rejected after restart', async t => {
   await assert.rejects(store.verifyObject(stored.cid),
     code('PublicationObjectCorrupt'));
 });
+
+test('publication capacity preflight observes limits without reserving',
+  async t => {
+    const {store} = await fixture(t, {
+      capacityBytes: 1024,
+      maxObjectBytes: 128,
+      maxObjects: 4,
+    });
+    const before = store.status();
+    assert.equal(store.publicationCapacitySupports({
+      requiredBytes: 1024,
+      objectCount: 4,
+      maxObjectBytes: 128,
+    }), true);
+    assert.equal(store.publicationCapacitySupports({
+      requiredBytes: 1025,
+      objectCount: 4,
+      maxObjectBytes: 128,
+    }), false);
+    assert.equal(store.publicationCapacitySupports({
+      requiredBytes: 1024,
+      objectCount: 5,
+      maxObjectBytes: 128,
+    }), false);
+    assert.equal(store.publicationCapacitySupports({
+      requiredBytes: 1024,
+      objectCount: 4,
+      maxObjectBytes: 129,
+    }), false);
+    assert.deepEqual(store.status(), before);
+  });

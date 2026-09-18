@@ -10,6 +10,8 @@ import {runtimeCore} from './runtime-core.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
+import {prepareCompletedEffectFreeRunPublication} from
+  './run-publication-preflight.mjs';
 import {deliverPublishedResult} from './result-delivery.mjs';
 import {
   deliverAuthorizedResult,
@@ -58,6 +60,94 @@ function invocation(control) {
     invocation_template_cid: cid('1'),
     observation_set_cid: cid('2'),
   }), limits);
+}
+
+function admittedRun(control, programDefinitionCid) {
+  const template = control.sealRunEvidence(
+    'bound_invocation_template',
+    JSON.stringify({
+      version: 'actql-bound-invocation-template/0.1',
+      program_definition_cid: programDefinitionCid,
+      parameter_values_cid: cid('2'),
+      invocation_bindings_cid: cid('3'),
+      check_environment_cid: cid('4'),
+      grammar_manifest_cid: cid('5'),
+      required_profile_contracts: [],
+      barrier_contract_manifest_cid: cid('6'),
+      source_evidence: 'unbound',
+    }),
+    limits,
+  );
+  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
+    version: 'actql-compiled-plan/0.1',
+    compiler_version: 'compiler-0.1',
+    aoa_ir_version: 'aoa-ir-0.1',
+    executable_plan_cid: cid('0'),
+    program_definition_cid: programDefinitionCid,
+    program_semantics_cid: cid('a'),
+    aoa_contract_cid: cid('b'),
+    aoa_logical_cid: cid('c'),
+  }), limits);
+  const prepared = control.sealRunEvidence(
+    'prepared_invocation',
+    JSON.stringify({
+      version: 'actql-prepared-invocation/0.1',
+      invocation_template_cid: template.identity,
+      compiled_plan_cid: compiledPlan.identity,
+      execution_context_cid: cid('8'),
+      host_policy_cid: cid('9'),
+      policy_decision: 'allow',
+      expires_at: '2026-09-18T03:00:00.000Z',
+    }),
+    limits,
+  );
+  const authorization = control.sealRunEvidence(
+    'run_authorization',
+    JSON.stringify({
+      version: 'actql-run-authorization/0.1',
+      prepared_invocation_cid: prepared.identity,
+      execution_context_cid: cid('8'),
+      host_policy_cid: cid('9'),
+      decision: 'allowed',
+    }),
+    limits,
+  );
+  const admission = control.admitRunPublication(
+    template,
+    prepared,
+    authorization,
+    compiledPlan,
+  );
+  const run = control.issueRunDefinition(admission, {
+    scopeId: 'scope',
+    runId: 'run',
+    inputArtifactSetCid: cid('a'),
+    createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T02:00:00.000Z',
+  }, limits);
+  const observation = control.sealRunEvidence(
+    'observation_set',
+    JSON.stringify({
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: template.identity,
+      source_evidence_cids: [],
+      captured_input_artifact_cids: [],
+      consistency: 'no_external_sources',
+      capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {
+        materialized: false,
+        availability_evidence_cids: [],
+      },
+      data_policy_cid: cid('a'),
+    }),
+    limits,
+  );
+  return Object.freeze({
+    admission,
+    run,
+    invoked: control.issueRunInvocation(template, observation, limits),
+  });
 }
 
 function deliveryRoot(control) {
@@ -393,6 +483,118 @@ test('portable admission issues Run Definition from exact authority', () => {
     /Foreign Run publication admission/u,
   );
 });
+
+test('publication preflight rejects immutable or physical incompatibility',
+  () => {
+    const control = runtimeCore(moon).publicationControl;
+    const {admission, run, invoked} = admittedRun(control, cid('6'));
+    const definition = control.seal('result_definition', JSON.stringify({
+      version: 'actql-result-definition/0.1',
+      program_definition_cid: cid('6'),
+      result_name: 'answer',
+    }), limits);
+    const retention = control.seal(
+      'result_retention_policy',
+      JSON.stringify({
+        version: 'actql-result-retention-policy/0.1',
+        retention_contract_cid: cid('b'),
+        effective_data_policy_cid: cid('a'),
+        available_until: '2026-09-18T01:00:00.000Z',
+        delete_by: '2026-09-18T02:00:00.000Z',
+        extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+        metadata_retention_policy_cid: cid('c'),
+        clock_contract_cid: cid('d'),
+      }),
+      limits,
+    );
+    const plan = Object.freeze({
+      admission,
+      runDefinition: run,
+      invocation: invoked,
+      observation: Object.freeze({}),
+      normalizationJournal: Object.freeze({}),
+      authoringContext: Object.freeze({}),
+      results: Object.freeze([
+        Object.freeze({
+          retention,
+          evidenceContext: Object.freeze({
+            computationContractCid: cid('1'),
+            inputRelationCids: Object.freeze([]),
+            scopeCid: cid('2'),
+            effectiveDataPolicyCid: cid('a'),
+            authorityScopeCid: cid('7'),
+          }),
+        }),
+      ]),
+      receiptEvidence: Object.freeze({
+        bindings: Object.freeze([]),
+        sourceEvidence: Object.freeze([]),
+        modelEvidence: Object.freeze([]),
+        barrierAttemptReceiptCids: Object.freeze([]),
+      }),
+      captureEvidence: Object.freeze({
+        pendingSourceStateAdvances: Object.freeze([]),
+        modelEvidence: Object.freeze([]),
+      }),
+      request: Object.freeze({
+        tenantId: 'tenant-a',
+        authorityScopeCid: cid('7'),
+        publicationPolicyCid: cid('8'),
+        publicationTargetCid: cid('9'),
+        requestedAt: '2026-09-18T00:00:00.000Z',
+      }),
+      attempt: Object.freeze({
+        attemptId: 'attempt-a',
+        fenceCid: cid('0'),
+        externalIdempotencyKey: undefined,
+        startedAt: '2026-09-18T00:00:01.000Z',
+      }),
+      outputLimits: Object.freeze({
+        maxWireBytes: 4096,
+        maxLogicalWireBytes: 8192,
+      }),
+      contractLimits: limits,
+      now: () => '2026-09-18T00:00:02.000Z',
+    });
+    const publicationInventory = Object.freeze({
+      programDefinitionCid: cid('6'),
+      occurrences: Object.freeze([
+        Object.freeze({definitionContract: definition}),
+      ]),
+    });
+    let requirement;
+    const admitted = prepareCompletedEffectFreeRunPublication({
+      store: {
+        publicationCapacitySupports(value) {
+          requirement = value;
+          return true;
+        },
+      },
+      control,
+      publicationInventory,
+      plan,
+    });
+    assert.equal(admitted.request.name, 'publication_request');
+    assert.equal(admitted.attempt.name, 'publication_attempt');
+    assert.deepEqual(requirement, {
+      requiredBytes: 19 * limits.maxWireBytes,
+      objectCount: 19,
+      maxObjectBytes: limits.maxWireBytes,
+    });
+    assert(Object.isFrozen(admitted.plan));
+    assert.throws(() => prepareCompletedEffectFreeRunPublication({
+      store: {publicationCapacitySupports: () => false},
+      control,
+      publicationInventory,
+      plan,
+    }), {code: 'RunPublicationCapacityUnsupported'});
+    assert.throws(() => prepareCompletedEffectFreeRunPublication({
+      store: {publicationCapacitySupports: () => true},
+      control,
+      publicationInventory: Object.freeze({occurrences: Object.freeze([])}),
+      plan,
+    }), {code: 'InvalidRunPublicationPreflight'});
+  });
 
 test('portable control validates the exact Run Result publication chain', () => {
   const control = runtimeCore(moon).publicationControl;

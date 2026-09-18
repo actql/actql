@@ -7,12 +7,19 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {snapshotConfigurations} from './installation.mjs';
 import {completionObserver} from '../host-common/completion-observer.mjs';
 import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';
+import {prepareCompletedEffectFreeRunPublication} from
+  '../host-common/run-publication-preflight.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 let runtime;
 
 async function runCapturedStrategyTarget(
-  setup, options, signal, observer, publishCheckedResults,
+  setup,
+  options,
+  signal,
+  observer,
+  publishCheckedResults,
+  publication,
 ) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
@@ -43,6 +50,14 @@ async function runCapturedStrategyTarget(
     signal,
     observeCompletion,
     configurations.executionSitePolicy,
+    publication === undefined
+      ? undefined
+      : facts => prepareCompletedEffectFreeRunPublication({
+        store: publication.store,
+        control: facts.publicationControl,
+        publicationInventory: facts.publicationInventory,
+        plan: publication.plan,
+      }),
   );
 }
 
@@ -59,4 +74,58 @@ export function runCapturedInternalStrategy(
   setup, options = {}, signal, observer,
 ) {
   return runCapturedStrategyTarget(setup, options, signal, observer, false);
+}
+
+export class CapturedRunPublicationError extends Error {
+  constructor(cause, execution) {
+    super('CapturedRunPublicationFailed', {cause});
+    this.code = 'CapturedRunPublicationFailed';
+    this.primaryFailure = cause;
+    this.execution = execution;
+    this.cleanupPending = cause?.cleanupPending === true;
+    this.cleanupHandle = cause?.cleanupHandle;
+  }
+}
+
+// Execute and publish one ordinary checked Effect-free Program. Immutable
+// publication inputs and current Store capacity are admitted before any
+// Compute starts. The returned owner keeps internal completion and publication
+// cleanup explicit; publication failure never rewrites the Compute outcome.
+export async function runPublishedCapturedStrategy(
+  setup,
+  publication,
+  options = {},
+  signal,
+  observer,
+) {
+  if (publication === null || typeof publication !== 'object' ||
+      Array.isArray(publication) ||
+      Object.keys(publication).sort().join('\0') !== 'plan\0store') {
+    throw new TypeError('InvalidCapturedRunPublication');
+  }
+  const execution = await runCapturedStrategyTarget(
+    setup,
+    options,
+    signal,
+    observer,
+    true,
+    publication,
+  );
+  try {
+    const result = await execution.publishEffectFreeRun(
+      publication.store,
+      execution.publicationPreflight.plan,
+      signal,
+    );
+    return Object.freeze({
+      status: 'published',
+      execution,
+      publication: result,
+      close: () => execution.close(),
+      cleanupPending: () => execution.cleanupPending(),
+      cleanup: () => execution.cleanup(),
+    });
+  } catch (error) {
+    throw new CapturedRunPublicationError(error, execution);
+  }
 }
