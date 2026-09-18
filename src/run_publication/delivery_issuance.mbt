@@ -104,6 +104,88 @@ fn manifest_result_artifact_cid(
 }
 
 ///|
+pub fn result_read_retention_policy_cid(
+  manifest : PublicationContract,
+  result_name : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if manifest.name != "result_manifest" {
+    return Err(DeliveryIssuanceWrongContract("result_manifest"))
+  }
+  guard @json.object_field(manifest.value, "results") is Some(results) &&
+    @json.object_field(results, result_name) is Some(artifact) &&
+    optional_string(
+      @json.object_field(artifact, "effective_retention_policy_cid"),
+    )
+    is Some(retention_cid) else {
+    return Err(DeliveryIssuanceUnknownResult(result_name))
+  }
+  Ok(retention_cid)
+}
+
+///|
+pub fn result_read_availability(
+  manifest : PublicationContract,
+  result_name : String,
+  retention : PublicationContract,
+  observed_at : String,
+) -> Result[String, DeliveryIssuanceIssue] {
+  let expected = match result_read_retention_policy_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if retention.name != "result_retention_policy" {
+    return Err(DeliveryIssuanceWrongContract("result_retention_policy"))
+  }
+  if retention.identity != expected {
+    return Err(
+      DeliveryIssuanceReferenceMismatch("effective_retention_policy_cid"),
+    )
+  }
+  guard contract_string(retention, "available_until") is Some(available_until) &&
+    contract_string(retention, "delete_by") is Some(delete_by) &&
+    valid_timestamp(observed_at) &&
+    valid_timestamp(available_until) &&
+    valid_timestamp(delete_by) &&
+    available_until <= delete_by else {
+    return Err(DeliveryIssuanceReferenceMismatch("retention_interval"))
+  }
+  if observed_at <= available_until {
+    Ok("available")
+  } else if observed_at < delete_by {
+    Ok("retention_expired")
+  } else {
+    Ok("delete_due")
+  }
+}
+
+///|
+pub fn result_retention_clock_contract_cid(
+  retention : PublicationContract,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if retention.name != "result_retention_policy" {
+    return Err(DeliveryIssuanceWrongContract("result_retention_policy"))
+  }
+  match contract_string(retention, "clock_contract_cid") {
+    Some(value) => Ok(value)
+    None => Err(DeliveryIssuanceReferenceMismatch("clock_contract_cid"))
+  }
+}
+
+///|
+pub fn trusted_clock_not_before(
+  previous : String?,
+  observed_at : String,
+) -> Bool {
+  if !valid_timestamp(observed_at) {
+    return false
+  }
+  match previous {
+    Some(value) => valid_timestamp(value) && observed_at >= value
+    None => true
+  }
+}
+
+///|
 fn validate_public_read_root(
   index : PublicationContract,
   manifest : PublicationContract,

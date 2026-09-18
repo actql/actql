@@ -253,9 +253,15 @@ pub fn strategy_publication_record_transition(@run_publication.PublicationContra
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
 pub fn strategy_result_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
 
 pub fn strategy_result_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
+
+pub fn strategy_result_read_retention_policy_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_result_retention_clock_contract_cid(@run_publication.PublicationContract) -> String raise NodeHostFailure
 
 pub fn strategy_result_serialization_contract_cid(String, Int, Int, Int) -> String raise NodeHostFailure
 
@@ -314,6 +320,8 @@ pub fn strategy_site_start_transfer(@execution_site.ExecutionSite, @execution_si
 pub fn strategy_site_status(@execution_site.ExecutionSite) -> Array[Int64]
 
 pub fn strategy_site_transfer_available(@execution_site.SiteTransfer) -> Bool
+
+pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
 pub(all) suberror NodeHostFailure {

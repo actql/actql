@@ -326,6 +326,37 @@ test('bounded object writes are durable, streamed, and physically addressed',
     assert.equal(reopened.status().storedBytes, 6);
   });
 
+test('trusted clock high-water mark survives restart and rejects rollback',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    assert.deepEqual(await store.observeTrustedClock(
+      cids.scope, '2026-09-18T01:00:00.000Z',
+    ), {
+      clockContractCid: cids.scope,
+      observedAt: '2026-09-18T01:00:00.000Z',
+    });
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    await assert.rejects(reopened.observeTrustedClock(
+      cids.scope, '2026-09-18T00:59:59.999Z',
+    ), code('PublicationClockUncertain'));
+    assert.deepEqual(await reopened.observeTrustedClock(
+      cids.scope, '2026-09-18T01:00:00.000Z',
+    ), {
+      clockContractCid: cids.scope,
+      observedAt: '2026-09-18T01:00:00.000Z',
+    });
+    assert.deepEqual(await reopened.observeTrustedClock(
+      cids.scope, '2026-09-18T01:00:00.001Z',
+    ), {
+      clockContractCid: cids.scope,
+      observedAt: '2026-09-18T01:00:00.001Z',
+    });
+  });
+
 test('prepared payload holdings reclaim only the final uncommitted owner',
   async t => {
     const {store} = await fixture(t);

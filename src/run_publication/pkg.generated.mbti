@@ -106,9 +106,15 @@ pub fn result_ordering_evidence_cid(ResultOrderingEvidence) -> String
 
 pub fn result_ordering_evidence_contract(ResultOrderingEvidence) -> PublicationContract
 
+pub fn result_read_availability(PublicationContract, String, PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 
 pub fn result_read_grant_valid_at(PublicationContract, String) -> Bool
+
+pub fn result_read_retention_policy_cid(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
@@ -125,6 +131,8 @@ pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
+pub fn trusted_clock_not_before(String?, String) -> Bool
 
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
 

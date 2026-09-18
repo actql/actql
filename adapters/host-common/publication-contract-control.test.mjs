@@ -1061,6 +1061,7 @@ test('portable control validates Receipt and Captured Run references',
     });
   };
   let accessAllowed = true;
+  let accessTime = '2026-09-18T01:00:00.000Z';
   const accessChecks = [];
   const accessAuthority = installResultAccessAuthority({
     async admitResultRead(facts) {
@@ -1083,7 +1084,7 @@ test('portable control validates Receipt and Captured Run references',
     store: deliveryStore,
     control,
     authority: accessAuthority,
-    now: () => '2026-09-18T01:00:00.000Z',
+    now: () => accessTime,
     limits,
     frameLimits: {
       maxRowBytes: 4096,
@@ -1137,6 +1138,24 @@ test('portable control validates Receipt and Captured Run references',
     {write: () => assert.fail('revoked access exposed bytes')},
   ), {code: 'ResultDeliveryDenied'});
   accessAllowed = true;
+  accessTime = '2026-09-18T01:00:00.001Z';
+  await assert.rejects(deliverAuthorizedResult(
+    accessService,
+    {
+      indexKey: {
+        tenantId: 'tenant-a',
+        authorityScopeCid: cid('d'),
+        runDefinitionCid: run.identity,
+      },
+      principalId: 'principal-a',
+      purpose: 'download',
+      resultName: 'answer',
+      format: 'json',
+      attemptId: 'authorized-expired',
+    },
+    {write: () => assert.fail('expired Result exposed bytes')},
+  ), {code: 'ResultUnavailable'});
+  accessTime = '2026-09-18T01:00:00.000Z';
   const deliveryBase = {
     store: deliveryStore,
     control,

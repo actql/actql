@@ -97,6 +97,32 @@ test "serialization profiles have independent fixed identities" {
 ///|
 test "read grant and attempt bind an exact committed Result" {
   let (index, manifest, artifact) = delivery_test_root()
+  let retention = delivery_test_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    delivery_test_cid("a") +
+    "\",\"effective_data_policy_cid\":\"" +
+    delivery_test_cid("b") +
+    "\",\"available_until\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T04:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    delivery_test_cid("c") +
+    "\",\"clock_contract_cid\":\"" +
+    delivery_test_cid("d") +
+    "\"}",
+  )
+  assert_eq(
+    result_read_retention_policy_cid(manifest, "answer"),
+    Ok(delivery_test_cid("1")),
+  )
+  assert_true(
+    result_read_availability(
+      manifest, "answer", retention, "2026-09-18T01:00:00.000Z",
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("effective_retention_policy_cid")),
+  )
   let grant = issue_result_read_grant(
     index,
     manifest,
@@ -155,6 +181,94 @@ test "read grant and attempt bind an exact committed Result" {
       32768, 256, 16,
     )
     is Err(DeliveryIssuanceExpiredGrant),
+  )
+}
+
+///|
+test "Result availability separates guarantee expiry and deletion deadline" {
+  let retention = delivery_test_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    delivery_test_cid("a") +
+    "\",\"effective_data_policy_cid\":\"" +
+    delivery_test_cid("b") +
+    "\",\"available_until\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T04:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    delivery_test_cid("c") +
+    "\",\"clock_contract_cid\":\"" +
+    delivery_test_cid("d") +
+    "\"}",
+  )
+  let matching_artifact = delivery_test_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    delivery_test_cid("a") +
+    "\",\"invocation_cid\":\"" +
+    delivery_test_cid("b") +
+    "\",\"logical_result_cid\":\"" +
+    delivery_test_cid("c") +
+    "\",\"result_schema_cid\":\"" +
+    delivery_test_cid("d") +
+    "\",\"ordering_evidence_cid\":\"" +
+    delivery_test_cid("e") +
+    "\",\"actual_row_count\":0,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    delivery_test_cid("f") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    publication_contract_identity(retention) +
+    "\",\"provenance_evidence_cids\":[\"" +
+    delivery_test_cid("2") +
+    "\"]}",
+  )
+  let matching_manifest = delivery_test_contract(
+    "result_manifest",
+    "{\"version\":\"actql-result-manifest/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    delivery_test_cid("3") +
+    "\",\"invocation_cid\":\"" +
+    delivery_test_cid("b") +
+    "\",\"results\":{\"answer\":" +
+    publication_contract_json(matching_artifact) +
+    "}}",
+  )
+  assert_eq(
+    result_read_availability(
+      matching_manifest, "answer", retention, "2026-09-18T02:00:00.000Z",
+    ),
+    Ok("available"),
+  )
+  assert_eq(
+    result_read_availability(
+      matching_manifest, "answer", retention, "2026-09-18T02:00:00.001Z",
+    ),
+    Ok("retention_expired"),
+  )
+  assert_eq(
+    result_read_availability(
+      matching_manifest, "answer", retention, "2026-09-18T03:00:00.000Z",
+    ),
+    Ok("delete_due"),
+  )
+  assert_eq(
+    result_retention_clock_contract_cid(retention),
+    Ok(delivery_test_cid("d")),
+  )
+  assert_true(trusted_clock_not_before(None, "2026-09-18T03:00:00.000Z"))
+  assert_true(
+    trusted_clock_not_before(
+      Some("2026-09-18T03:00:00.000Z"),
+      "2026-09-18T03:00:00.000Z",
+    ),
+  )
+  assert_false(
+    trusted_clock_not_before(
+      Some("2026-09-18T03:00:00.001Z"),
+      "2026-09-18T03:00:00.000Z",
+    ),
   )
 }
 

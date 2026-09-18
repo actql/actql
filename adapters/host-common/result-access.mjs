@@ -48,9 +48,15 @@ function validateServiceConfiguration(configuration) {
       typeof configuration.store !== 'object' ||
       typeof configuration.store.confirmCommittedIndex !== 'function' ||
       typeof configuration.store.readPublicationContract !== 'function' ||
+      typeof configuration.store.observeTrustedClock !== 'function' ||
       configuration.control === null ||
       typeof configuration.control !== 'object' ||
       typeof configuration.control.issueResultReadGrant !== 'function' ||
+      typeof configuration.control.resultReadRetentionPolicyCid !==
+        'function' ||
+      typeof configuration.control.resultReadAvailability !== 'function' ||
+      typeof configuration.control.resultRetentionClockContractCid !==
+        'function' ||
       !authorities.has(configuration.authority) ||
       typeof configuration.now !== 'function' ||
       typeof configuration.createDigest !== 'function' ||
@@ -148,6 +154,21 @@ export async function deliverAuthorizedResult(
     entry.result_manifest_cid, 'result_manifest',
   );
   const admittedAt = observedAt(installed.now);
+  const retentionPolicyCid =
+    installed.control.resultReadRetentionPolicyCid(
+      manifest, request.resultName,
+    );
+  const retention = await installed.store.readPublicationContract(
+    retentionPolicyCid, 'result_retention_policy',
+  );
+  const clockContractCid =
+    installed.control.resultRetentionClockContractCid(retention);
+  await installed.store.observeTrustedClock(clockContractCid, admittedAt);
+  if (installed.control.resultReadAvailability(
+    manifest, request.resultName, retention, admittedAt,
+  ) !== 'available') {
+    fail('ResultUnavailable');
+  }
   const requestFacts = Object.freeze({
     indexKey,
     index,
@@ -157,6 +178,7 @@ export async function deliverAuthorizedResult(
     resultName: request.resultName,
     format: request.format,
     attemptId: request.attemptId,
+    retention,
     observedAt: admittedAt,
   });
   const admission = await installed.authority.admitResultRead(requestFacts);
@@ -178,15 +200,23 @@ export async function deliverAuthorizedResult(
     },
     installed.limits,
   );
-  const authorize = facts => installed.authority.authorizeResultRead(
-    Object.freeze({
-      ...requestFacts,
-      grant,
-      authorizationContextCid: admission.authorizationContextCid,
-      egressAdmissionCid: admission.egressAdmissionCid,
-      delivery: facts,
-    }),
-  );
+  const authorize = async facts => {
+    await installed.store.observeTrustedClock(
+      clockContractCid, facts.observedAt,
+    );
+    if (installed.control.resultReadAvailability(
+      manifest, request.resultName, retention, facts.observedAt,
+    ) !== 'available') {
+      return false;
+    }
+    return installed.authority.authorizeResultRead(Object.freeze({
+        ...requestFacts,
+        grant,
+        authorizationContextCid: admission.authorizationContextCid,
+        egressAdmissionCid: admission.egressAdmissionCid,
+        delivery: facts,
+      }));
+  };
   return deliverPublishedResult({
     store: installed.store,
     control: installed.control,

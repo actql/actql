@@ -589,6 +589,34 @@ function publicationControl(moon) {
         token(attempt),
       ));
     },
+    resultReadRetentionPolicyCid(manifest, resultName) {
+      if (typeof resultName !== 'string') {
+        throw new TypeError('Invalid Result retention request');
+      }
+      return checked(moon.strategyResultReadRetentionPolicyCid(
+        token(manifest), resultName,
+      ));
+    },
+    resultReadAvailability(manifest, resultName, retention, observedAt) {
+      if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
+        throw new TypeError('Invalid Result availability request');
+      }
+      return checked(moon.strategyResultReadAvailability(
+        token(manifest), resultName, token(retention), observedAt,
+      ));
+    },
+    resultRetentionClockContractCid(retention) {
+      return checked(moon.strategyResultRetentionClockContractCid(
+        token(retention),
+      ));
+    },
+    trustedClockNotBefore(previous, observedAt) {
+      if (previous !== undefined && typeof previous !== 'string' ||
+          typeof observedAt !== 'string') {
+        return false;
+      }
+      return moon.strategyTrustedClockNotBefore(previous, observedAt);
+    },
     resultReadGrantAllowsBytes(grant, byteCount) {
       if (!Number.isSafeInteger(byteCount) || byteCount < 0) return false;
       return moon.strategyResultReadGrantAllowsBytes(

@@ -181,6 +181,7 @@ function validateContractControl(value) {
       typeof value.recordTransition !== 'function' ||
       typeof value.deliveryTransition !== 'function' ||
       typeof value.deliverySuccessValid !== 'function' ||
+      typeof value.trustedClockNotBefore !== 'function' ||
       typeof value.recordAllowsCommit !== 'function' ||
       typeof value.effectFreeCommitValid !== 'function') {
     fail('InvalidPublicationContractControl');
@@ -233,9 +234,10 @@ export async function openLocalPublicationStore(
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
   const indexesDirectory = resolve(root, 'indexes');
+  const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
     stagingDirectory, attemptsDirectory, deliveriesDirectory,
-    indexesDirectory]) {
+    indexesDirectory, clocksDirectory]) {
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
@@ -293,13 +295,27 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(deliveriesDirectory);
+  for (const name of await readdir(clocksDirectory)) {
+    const path = resolve(clocksDirectory, name);
+    if (name.startsWith('.staging-')) {
+      await rm(path, {force: false});
+      continue;
+    }
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationClockObservation');
+    }
+  }
+  await syncDirectory(clocksDirectory);
 
   let reservedBytes = 0;
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
   const durablyConfirmedIndexes = new Map();
+  const durablyConfirmedClocks = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
+  let clockObservationBusy = Promise.resolve();
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
@@ -307,6 +323,8 @@ export async function openLocalPublicationStore(
     resolve(attemptsDirectory, cidHex(cid));
   const deliveryAttemptPath = cid =>
     resolve(deliveriesDirectory, cidHex(cid));
+  const clockObservationPath = cid =>
+    resolve(clocksDirectory, `${cidHex(cid)}.json`);
   const active = () => {
     if (closed) fail('PublicationStoreClosed');
   };
@@ -343,6 +361,87 @@ export async function openLocalPublicationStore(
     } finally {
       await handle.close();
     }
+  };
+
+  const readClockObservation = async clockContractCid => {
+    let bytes;
+    try {
+      bytes = await readBounded(
+        clockObservationPath(clockContractCid),
+        configuration.maxObjectBytes,
+      );
+    } catch (error) {
+      if (error?.code === 'ENOENT') return undefined;
+      throw error;
+    }
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) { fail('InvalidPublicationClockObservation', error); }
+    if (!exactKeys(value, ['clockContractCid', 'observedAt']) ||
+        value.clockContractCid !== clockContractCid ||
+        typeof value.observedAt !== 'string' ||
+        contractControl.trustedClockNotBefore(
+          undefined, value.observedAt,
+        ) !== true) {
+      fail('InvalidPublicationClockObservation');
+    }
+    return Object.freeze(value);
+  };
+
+  const observeTrustedClock = (clockContractCid, observedAt) => {
+    active();
+    cidHex(clockContractCid);
+    if (typeof observedAt !== 'string' ||
+        contractControl.trustedClockNotBefore(
+          undefined, observedAt,
+        ) !== true) {
+      fail('InvalidPublicationClockObservation');
+    }
+    const operation = clockObservationBusy.then(async () => {
+      const previous = await readClockObservation(clockContractCid);
+      if (contractControl.trustedClockNotBefore(
+        previous?.observedAt, observedAt,
+      ) !== true) {
+        fail('PublicationClockUncertain');
+      }
+      const confirmed = durablyConfirmedClocks.get(clockContractCid);
+      if (previous?.observedAt === observedAt) {
+        if (confirmed !== observedAt) {
+          await syncDirectory(clocksDirectory);
+          const current = await readClockObservation(clockContractCid);
+          if (current?.observedAt !== observedAt) {
+            fail('PublicationClockUncertain');
+          }
+          durablyConfirmedClocks.set(clockContractCid, observedAt);
+        }
+        return previous;
+      }
+      const value = Object.freeze({clockContractCid, observedAt});
+      const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+      if (bytes.byteLength > configuration.maxObjectBytes) {
+        fail('PublicationObjectLimit');
+      }
+      const staging = resolve(clocksDirectory, `.staging-${randomUUID()}`);
+      try {
+        await writeExclusive(staging, bytes);
+        await rename(staging, clockObservationPath(clockContractCid));
+        await syncDirectory(clocksDirectory);
+      } catch (error) {
+        try { await unlink(staging); }
+        catch (cleanupError) {
+          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
+        }
+        throw error;
+      }
+      const current = await readClockObservation(clockContractCid);
+      if (current?.observedAt !== observedAt) {
+        fail('PublicationClockUncertain');
+      }
+      durablyConfirmedClocks.set(clockContractCid, observedAt);
+      return current;
+    });
+    clockObservationBusy = operation.catch(() => {});
+    return operation;
   };
 
   const createObjectWriter = maxBytes => {
@@ -1508,6 +1607,8 @@ export async function openLocalPublicationStore(
     putSemantic,
     putPublicationContract,
     verifyObject,
+    observeTrustedClock,
+    readClockObservation,
     readSemanticBytes,
     consumeObject,
     withCommittedResult,

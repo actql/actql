@@ -42,6 +42,7 @@ const unusedContractControl = Object.freeze({
   recordTransition() { throw new Error('unexpected record transition'); },
   deliveryTransition() { throw new Error('unexpected delivery transition'); },
   deliverySuccessValid() { throw new Error('unexpected delivery success'); },
+  trustedClockNotBefore() { throw new Error('unexpected clock check'); },
   recordAllowsCommit() { throw new Error('unexpected commit check'); },
   effectFreeCommitValid() { throw new Error('unexpected chain check'); },
 });

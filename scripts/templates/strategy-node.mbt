@@ -1217,6 +1217,55 @@ pub fn strategy_delivery_result_definition_cid(
 }
 
 ///|
+#export_name("strategyResultReadRetentionPolicyCid")
+pub fn strategy_result_read_retention_policy_cid(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+) -> String raise NodeHostFailure {
+  match @publication.result_read_retention_policy_cid(manifest, result_name) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultReadAvailability")
+pub fn strategy_result_read_availability(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  retention : @publication.PublicationContract,
+  observed_at : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.result_read_availability(
+      manifest, result_name, retention, observed_at,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyResultRetentionClockContractCid")
+pub fn strategy_result_retention_clock_contract_cid(
+  retention : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match @publication.result_retention_clock_contract_cid(retention) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyTrustedClockNotBefore")
+pub fn strategy_trusted_clock_not_before(
+  previous : String?,
+  observed_at : String,
+) -> Bool {
+  @publication.trusted_clock_not_before(previous, observed_at)
+}
+
+///|
 #export_name("strategyResultReadGrantAllowsBytes")
 pub fn strategy_result_read_grant_allows_bytes(
   grant : @publication.PublicationContract,

@@ -23,6 +23,8 @@ const identityFields = Object.freeze({
   delivery_record: 'delivery_record_cid',
   public_index_entry: 'public_index_entry_cid',
 });
+const timestampPattern =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 const fail = (code, path = '$') => {
   throw Object.assign(new Error(code), {code, path});
@@ -340,6 +342,13 @@ export function createPublicationContractControlFixture() {
         recordValue.confirmed_byte_count ===
           receiptValue.delivered_byte_count &&
         recordValue.delivered_sha256 === receiptValue.delivered_sha256;
+    },
+    trustedClockNotBefore(previous, observedAt) {
+      return (previous === undefined ||
+          typeof previous === 'string' && timestampPattern.test(previous)) &&
+        typeof observedAt === 'string' &&
+        timestampPattern.test(observedAt) &&
+        (previous === undefined || observedAt >= previous);
     },
   });
 }
