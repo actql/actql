@@ -538,6 +538,8 @@ fn local_values_unary_program(kind : String) -> String {
     "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"
     "filter_structured" =>
       "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
+    "filter_null" => "{\"filter\":\"amount > 0\",\"as\":\"out\"}"
+    "filter_failure" => "{\"filter\":\"false AND 1 / 0 > 0\",\"as\":\"out\"}"
     "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
     "derive_ordered" =>
       "{\"derive\":[{\"saved\":\"id\"},{\"id\":\"id + $minimum\"},{\"next\":\"saved + id\"}],\"as\":\"out\"}"

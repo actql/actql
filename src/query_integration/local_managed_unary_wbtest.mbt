@@ -3,6 +3,7 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
   match kind {
     "select" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
     "filter_text" | "filter_structured" => ["{\"id\":2,\"amount\":null}"]
+    "filter_null" => ["{\"id\":1,\"amount\":10}"]
     "assert_where" | "assert_unique" =>
       ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
     "derive_map" =>
@@ -219,13 +220,102 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
 test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
-      "select", "filter_text", "filter_structured", "derive_map", "derive_ordered",
-      "rename", "drop", "json_pick", "assert_where", "assert_unique", "sort", "take",
-      "distinct", "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot", "pivot",
-      "pivot_decimal_sum",
+      "select", "filter_text", "filter_structured", "filter_null", "derive_map",
+      "derive_ordered", "rename", "drop", "json_pick", "assert_where", "assert_unique",
+      "sort", "take", "distinct", "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot",
+      "pivot", "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
+}
+
+///|
+test "Local managed filter failure publishes nothing and releases its use" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_unary_chain=Some("filter_failure"),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        max_bytes: 1000,
+        max_nodes: 200,
+        max_depth: 4,
+        max_columns: 4,
+        max_order_work: 100,
+      },
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+  )
+  let rows = local_managed_test_rows(values_ops)
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 2).unwrap()
+  let setup = @local_driver.prepare_local_managed_dispatch(
+      installed,
+      [values],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let failed = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  for row in rows {
+    (failed.inputs[0].append)(row).unwrap()
+  }
+  (failed.inputs[0].finish)().unwrap()
+  assert_true(
+    (failed.execute)()
+    is Err(
+      @local_driver.Configuration(
+        @connector.Execution(@execution.Rows(_, @execution.Evaluation(0, 0, _)))
+      )
+    ),
+  )
+  assert_false(@strategy.captured_task_completed(run, 2))
+  assert_true(@execution.managed_completed_output_available(values))
+  (failed.settle)().unwrap()
+  (failed.close)()
+  (failed.cleanup_refresh)() |> ignore
+
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  for task in [0, 2, 3, 4] {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|
