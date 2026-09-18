@@ -143,6 +143,11 @@ pub fn[I, T] start_captured_managed_execution(
     }) {
     return Err(ForeignCandidate)
   }
+  if !analytic_envelopes_satisfied(run.analytic_envelopes[task], step => {
+      @connector.prepared_managed_execution_analytic_envelope(prepared, step)
+    }) {
+    return Err(ForeignCandidate)
+  }
   let capacity = @connector.prepared_managed_execution_capacity(prepared)
   let transfer = capacity.transfer_bytes
   let retention = capacity.retained_bytes
@@ -254,6 +259,11 @@ fn[T] start_task_execution(
       @connector.prepared_execution_aggregate_output_ceiling(
         prepared, step, name, unit,
       )
+    }) {
+    return Err(ForeignCandidate)
+  }
+  if !analytic_envelopes_satisfied(run.analytic_envelopes[task], step => {
+      @connector.prepared_execution_analytic_envelope(prepared, step)
     }) {
     return Err(ForeignCandidate)
   }

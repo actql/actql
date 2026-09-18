@@ -13,6 +13,7 @@ struct CapturedDAG {
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, @witness.LimitClaim)]]
   aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]]
+  analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]]
   inputs : Array[Array[@execution.ProducerRead?]]
   mut running : (Int, TaskExecution)?
   executions : Array[TaskExecution?]
@@ -72,6 +73,30 @@ fn aggregate_output_limits_satisfied(
 }
 
 ///|
+fn analytic_envelopes_satisfied(
+  required : Array[@connector.AnalyticEnvelope],
+  declared : (Int) -> @connector.AnalyticEnvelope?,
+) -> Bool {
+  for selected in required {
+    let step = @connector.analytic_envelope_step(selected)
+    guard declared(step) is Some(actual) else { return false }
+    if @connector.analytic_envelope_input_wire_bytes(actual) >
+      @connector.analytic_envelope_input_wire_bytes(selected) ||
+      @connector.analytic_envelope_output_wire_bytes(actual) >
+      @connector.analytic_envelope_output_wire_bytes(selected) ||
+      @connector.analytic_envelope_partition_wire_bytes(actual) >
+      @connector.analytic_envelope_partition_wire_bytes(selected) ||
+      @connector.analytic_envelope_frame_memberships(actual) >
+      @connector.analytic_envelope_frame_memberships(selected) ||
+      @connector.analytic_envelope_output_rows(actual) >
+      @connector.analytic_envelope_output_rows(selected) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Initial profile: one captured acquisition at unit zero, one or two checked
 /// data inputs per task and one final output. No fresh
 /// reads are synthesized. Bindings are indexed by checked receiving port.
@@ -97,6 +122,10 @@ pub fn open_captured_dag(
     _ => [],
   )
   let aggregate_limits : Array[Array[@connector.AggregateOutputCeiling]] = Array::makei(
+    count,
+    _ => [],
+  )
+  let analytic_envelopes : Array[Array[@connector.AnalyticEnvelope]] = Array::makei(
     count,
     _ => [],
   )
@@ -198,6 +227,39 @@ pub fn open_captured_dag(
         }
         aggregate_limits[index].push(ceiling)
       }
+      if requirement.disposition is ExecutionCheck(AnalyticEnvelope(check)) {
+        let envelope = @connector.analytic_envelope(
+          @context.analytic_envelope_step(check),
+          @context.analytic_envelope_input_wire_bytes(check),
+          @context.analytic_envelope_output_wire_bytes(check),
+          @context.analytic_envelope_partition_wire_bytes(check),
+          @context.analytic_envelope_frame_memberships(check),
+          @context.analytic_envelope_output_rows(check),
+        )
+        guard envelope is Ok(envelope) else { return Err(UnsupportedGraph) }
+        let mut duplicate = false
+        for previous in analytic_envelopes[index] {
+          if @connector.analytic_envelope_step(previous) ==
+            @connector.analytic_envelope_step(envelope) {
+            if @connector.analytic_envelope_input_wire_bytes(previous) !=
+              @connector.analytic_envelope_input_wire_bytes(envelope) ||
+              @connector.analytic_envelope_output_wire_bytes(previous) !=
+              @connector.analytic_envelope_output_wire_bytes(envelope) ||
+              @connector.analytic_envelope_partition_wire_bytes(previous) !=
+              @connector.analytic_envelope_partition_wire_bytes(envelope) ||
+              @connector.analytic_envelope_frame_memberships(previous) !=
+              @connector.analytic_envelope_frame_memberships(envelope) ||
+              @connector.analytic_envelope_output_rows(previous) !=
+              @connector.analytic_envelope_output_rows(envelope) {
+              return Err(UnsupportedGraph)
+            }
+            duplicate = true
+          }
+        }
+        if !duplicate {
+          analytic_envelopes[index].push(envelope)
+        }
+      }
     }
   }
   // This bounded execution profile exposes one final output per Compute.
@@ -234,6 +296,7 @@ pub fn open_captured_dag(
     resources,
     join_limits,
     aggregate_limits,
+    analytic_envelopes,
     inputs: Array::makei(count, task => {
       Array::make(
         if task == 0 {
@@ -745,6 +808,11 @@ pub fn execute_captured_synchronous_task(
     }) {
     return Err(ForeignCandidate)
   }
+  if !analytic_envelopes_satisfied(run.analytic_envelopes[task], step => {
+      @connector.synchronous_compute_analytic_envelope(compute, step)
+    }) {
+    return Err(ForeignCandidate)
+  }
   let capacity = @connector.synchronous_compute_capacity(compute)
   if strategy_task_envelope(run, task) is Some(selected) &&
     (
@@ -1061,4 +1129,21 @@ pub fn captured_task_aggregate_output_limit(
     }
   }
   None
+}
+
+///|
+pub fn captured_task_analytic_envelope_count(
+  run : CapturedDAG,
+  task : Int,
+) -> Int? {
+  run.analytic_envelopes.get(task).map(items => items.length())
+}
+
+///|
+pub fn captured_task_analytic_envelope_at(
+  run : CapturedDAG,
+  task : Int,
+  index : Int,
+) -> @connector.AnalyticEnvelope? {
+  run.analytic_envelopes.get(task).bind(items => items.get(index))
 }

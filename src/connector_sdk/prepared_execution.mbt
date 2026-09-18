@@ -40,6 +40,7 @@ struct PreparedExecution[T, E, P] {
   capacity : ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[AggregateOutputCeiling]
+  analytic_envelopes : Array[AnalyticEnvelope]
   prepare : () -> Result[(T, ExecutionOperations[E, P]), E]
   retained_bytes : () -> Result[Int64, E]
   mut started : Bool
@@ -56,6 +57,7 @@ pub fn[T, E, P, U] bind_prepared_execution(
   prepare : (U) -> Result[(T, ExecutionOperations[E, P]), E],
   retained_bytes? : () -> Result[Int64, E],
   aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[AnalyticEnvelope] = [],
 ) -> Result[PreparedExecution[T, E, P], FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
@@ -76,11 +78,16 @@ pub fn[T, E, P, U] bind_prepared_execution(
     is Some(aggregate_ceilings) else {
     return Err(InvalidLimits)
   }
+  guard snapshot_analytic_envelopes(analytic_envelopes, steps)
+    is Some(analytic_envelopes) else {
+    return Err(InvalidLimits)
+  }
   Ok({
     candidate: prepared.candidate,
     capacity,
     join_output_ceilings: ceilings,
     aggregate_output_ceilings: aggregate_ceilings,
+    analytic_envelopes,
     prepare: fn() { prepare(payload) },
     retained_bytes: retained_bytes.unwrap_or(fn() {
       Ok(capacity.retained_bytes)
@@ -145,6 +152,14 @@ pub fn[T, E, P] prepared_execution_aggregate_output_ceiling(
     aggregate,
     unit,
   )
+}
+
+///|
+pub fn[T, E, P] prepared_execution_analytic_envelope(
+  prepared : PreparedExecution[T, E, P],
+  step : Int,
+) -> AnalyticEnvelope? {
+  find_analytic_envelope(prepared.analytic_envelopes, step)
 }
 
 ///|

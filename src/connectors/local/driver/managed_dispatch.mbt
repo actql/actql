@@ -13,6 +13,7 @@ struct LocalManagedDispatchConfiguration[T] {
   capacity : @connector.ExecutionCapacity
   join_output_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[@connector.AggregateOutputCeiling]
+  analytic_envelopes : Array[@connector.AnalyticEnvelope]
 }
 
 ///|
@@ -176,6 +177,22 @@ pub fn[T] prepare_local_managed_dispatch(
     }
     aggregate_output_ceilings.push(ceiling)
   }
+  let analytic_envelopes = []
+  guard @strategy.captured_task_analytic_envelope_count(installed.run, task)
+    is Some(analytic_count) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  for index in 0..<analytic_count {
+    guard @strategy.captured_task_analytic_envelope_at(
+        installed.run,
+        task,
+        index,
+      )
+      is Some(envelope) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    analytic_envelopes.push(envelope)
+  }
   Ok(
     Some({
       run: installed.run,
@@ -198,6 +215,7 @@ pub fn[T] prepare_local_managed_dispatch(
       },
       join_output_ceilings,
       aggregate_output_ceilings,
+      analytic_envelopes,
     }),
   )
 }
@@ -301,6 +319,7 @@ pub fn[T] start_local_managed_dispatch(
         Ok(((), operations))
       },
       aggregate_output_ceilings=setup.aggregate_output_ceilings,
+      analytic_envelopes=setup.analytic_envelopes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))

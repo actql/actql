@@ -57,6 +57,18 @@ import {
 }
 
 // Values
+pub fn analytic_envelope_frame_memberships(AnalyticEnvelopeCheck) -> Int64
+
+pub fn analytic_envelope_input_wire_bytes(AnalyticEnvelopeCheck) -> Int64
+
+pub fn analytic_envelope_output_rows(AnalyticEnvelopeCheck) -> Int64
+
+pub fn analytic_envelope_output_wire_bytes(AnalyticEnvelopeCheck) -> Int64
+
+pub fn analytic_envelope_partition_wire_bytes(AnalyticEnvelopeCheck) -> Int64
+
+pub fn analytic_envelope_step(AnalyticEnvelopeCheck) -> Int
+
 pub fn analytic_numeric_slot_at(ProgramAnalyticNumericSlots, Int) -> AnalyticNumericSlot?
 
 pub fn analytic_numeric_slot_count(ProgramAnalyticNumericSlots) -> Int

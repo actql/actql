@@ -76,6 +76,10 @@ pub fn captured_task_aggregate_output_count(CapturedDAG, Int) -> Int?
 
 pub fn captured_task_aggregate_output_limit(CapturedDAG, Int, Int, String, @connector_sdk.AggregateOutputUnit) -> Int64?
 
+pub fn captured_task_analytic_envelope_at(CapturedDAG, Int, Int) -> @connector_sdk.AnalyticEnvelope?
+
+pub fn captured_task_analytic_envelope_count(CapturedDAG, Int) -> Int?
+
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]

@@ -22,6 +22,7 @@ struct SynchronousCompute {
   capacity : SynchronousComputeCapacity
   join_output_ceilings : Array[(Int, Int64)]
   aggregate_output_ceilings : Array[AggregateOutputCeiling]
+  analytic_envelopes : Array[AnalyticEnvelope]
   execute : () -> Result[@execution.CompletedOutput, SynchronousComputeFailure]
   mut started : Bool
 }
@@ -37,6 +38,7 @@ pub fn[T] bind_synchronous_compute(
   join_output_ceilings : Array[(Int, Int64)],
   execute : (T) -> Result[@execution.CompletedOutput, SynchronousComputeFailure],
   aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
+  analytic_envelopes? : Array[AnalyticEnvelope] = [],
 ) -> Result[SynchronousCompute, FixedComputeIssue] {
   guard fixed_compute_choice_payload(choice, prepared) is Some(payload) else {
     return Err(NotSelected)
@@ -54,11 +56,16 @@ pub fn[T] bind_synchronous_compute(
     is Some(aggregate_ceilings) else {
     return Err(InvalidLimits)
   }
+  guard snapshot_analytic_envelopes(analytic_envelopes, steps)
+    is Some(analytic_envelopes) else {
+    return Err(InvalidLimits)
+  }
   Ok({
     candidate: prepared.candidate,
     capacity,
     join_output_ceilings: ceilings,
     aggregate_output_ceilings: aggregate_ceilings,
+    analytic_envelopes,
     execute: fn() { execute(payload) },
     started: false,
   })
@@ -99,6 +106,14 @@ pub fn synchronous_compute_aggregate_output_ceiling(
     aggregate,
     unit,
   )
+}
+
+///|
+pub fn synchronous_compute_analytic_envelope(
+  compute : SynchronousCompute,
+  step : Int,
+) -> AnalyticEnvelope? {
+  find_analytic_envelope(compute.analytic_envelopes, step)
 }
 
 ///|

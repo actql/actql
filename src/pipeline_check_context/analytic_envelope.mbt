@@ -16,6 +16,44 @@ pub struct AnalyticEnvelopeCheck {
 }
 
 ///|
+pub fn analytic_envelope_step(check : AnalyticEnvelopeCheck) -> Int {
+  check.site.step
+}
+
+///|
+pub fn analytic_envelope_input_wire_bytes(
+  check : AnalyticEnvelopeCheck,
+) -> Int64 {
+  @policy.ceiling_value(check.input_wire_bytes)
+}
+
+///|
+pub fn analytic_envelope_output_wire_bytes(
+  check : AnalyticEnvelopeCheck,
+) -> Int64 {
+  @policy.ceiling_value(check.output_wire_bytes)
+}
+
+///|
+pub fn analytic_envelope_partition_wire_bytes(
+  check : AnalyticEnvelopeCheck,
+) -> Int64 {
+  @policy.ceiling_value(check.partition_wire_bytes)
+}
+
+///|
+pub fn analytic_envelope_frame_memberships(
+  check : AnalyticEnvelopeCheck,
+) -> Int64 {
+  @policy.ceiling_value(check.frame_memberships)
+}
+
+///|
+pub fn analytic_envelope_output_rows(check : AnalyticEnvelopeCheck) -> Int64 {
+  @policy.ceiling_value(check.output_rows)
+}
+
+///|
 fn analytic_envelope_check(
   site : OperationRequirementSite,
   policy : @policy.Policy,

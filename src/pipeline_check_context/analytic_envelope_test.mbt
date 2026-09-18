@@ -114,6 +114,12 @@ test "analytic envelope binds distinct policy scopes through imported producer v
       )
       assert_eq(@relation.analytic_partition_count(check.analytic), 2)
       assert_eq(@relation.analytic_call_count(check.analytic), 1)
+      assert_eq(analytic_envelope_step(check), site.step)
+      assert_eq(analytic_envelope_frame_memberships(check), 2L)
+      assert_eq(analytic_envelope_input_wire_bytes(check), 3L)
+      assert_eq(analytic_envelope_output_wire_bytes(check), 4L)
+      assert_eq(analytic_envelope_partition_wire_bytes(check), 5L)
+      assert_eq(analytic_envelope_output_rows(check), 1L)
       for
         (ceiling, name, value) in [
           (check.frame_memberships, "max_analytic_frame_memberships", 2L),
