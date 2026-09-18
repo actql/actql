@@ -6,6 +6,10 @@ import {
 }
 
 // Values
+pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
+
+pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
+
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
@@ -28,7 +32,9 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
-pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
@@ -115,6 +121,20 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 // Errors
 
 // Types and methods
+type CapturedResultSnapshot
+
+pub(all) enum CapturedRunIssuanceIssue {
+  CaptureIssuanceWrongContract(String)
+  CaptureIssuanceReferenceMismatch(String)
+  CaptureIssuanceInventoryMismatch(String)
+  CaptureIssuanceInvalidRows(String)
+  CaptureIssuanceInvalidFields(String)
+  CaptureIssuanceInvalidSourceAdvance
+  CaptureIssuanceEncoding
+  CaptureIssuanceContract(PublicationContractIssue)
+  CaptureIssuanceChain(RunEvidenceChainIssue)
+} derive(Eq, @debug.Debug)
+
 type CheckedPublicationInventory
 
 pub(all) enum DeliveryTransitionIssue {
@@ -125,6 +145,8 @@ pub(all) enum DeliveryTransitionIssue {
   DeliveryStateMismatch
   ConfirmedBytesDecreased
 } derive(Eq, @debug.Debug)
+
+type PendingSourceStateAdvance
 
 pub(all) enum PublicationCommitIssuanceIssue {
   CommitIssuanceWrongContract

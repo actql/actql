@@ -98,6 +98,40 @@ fn receipt_test_journal() -> RunEvidenceValue {
 }
 
 ///|
+fn receipt_test_model_evidence(
+  artifact : PublicationContract,
+) -> RunEvidenceValue {
+  seal_run_evidence_value(
+    "model_invocation_evidence",
+    "{\"version\":\"actql-model-invocation-evidence/0.1\"," +
+    "\"model_task_contract_cid\":\"" +
+    ordering_test_cid("0") +
+    "\",\"semantic_request_cid\":\"" +
+    ordering_test_cid("1") +
+    "\",\"model_call_slot_cid\":\"" +
+    ordering_test_cid("2") +
+    "\",\"input_result_artifact_cid\":\"" +
+    publication_contract_identity(artifact) +
+    "\",\"input_row_identity_cid\":\"" +
+    ordering_test_cid("3") +
+    "\",\"input_row_identity\":\"row-1\"," +
+    "\"authored_model_selector\":\"primary\"," +
+    "\"provider_reported_model_id\":\"model-1\"," +
+    "\"provider_request_id\":\"request-1\",\"attempt\":1," +
+    "\"structured_response_artifact_cid\":\"" +
+    ordering_test_cid("4") +
+    "\",\"validated_structured_output_cid\":\"" +
+    ordering_test_cid("5") +
+    "\",\"input_tokens\":1,\"output_tokens\":1," +
+    "\"finish_reason\":\"stop\"," +
+    "\"observed_at\":\"2026-09-18T00:00:00.000Z\"}",
+    65536,
+    1024,
+    12,
+  ).unwrap()
+}
+
+///|
 test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
@@ -148,6 +182,7 @@ test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
     ordering_test_cid("b"),
     ["program"],
     ["c".repeat(64)],
+    [],
     [],
     [],
     65536,
@@ -226,6 +261,7 @@ test "Run Receipt issuer rejects a foreign captured ObservationSet" {
       "aoa-ir-0.1",
       ordering_test_cid("a"),
       ordering_test_cid("b"),
+      [],
       [],
       [],
       [],

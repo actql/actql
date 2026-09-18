@@ -47,6 +47,10 @@ pub fn reference_compute_managed_start(@actql/actql/connectors/reference_compute
 
 pub fn reference_compute_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
+pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
+
+pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
+
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
@@ -183,7 +187,9 @@ pub fn strategy_host_transfer_settle(@connectors_builtin.ConfiguredComputeHost[@
 
 pub fn strategy_host_usage(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int64]
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, String, String, String, String, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

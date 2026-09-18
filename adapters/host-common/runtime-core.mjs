@@ -54,6 +54,8 @@ function publicationControl(moon) {
   const tokens = new WeakMap();
   const evidenceTokens = new WeakMap();
   const admissionTokens = new WeakMap();
+  const snapshotTokens = new WeakMap();
+  const sourceAdvanceTokens = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -94,6 +96,30 @@ function publicationControl(moon) {
     const result = admissionTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign Run publication admission');
+    }
+    return result;
+  };
+  const inspectSnapshot = snapshot => {
+    const value = Object.freeze({kind: 'captured-result-snapshot'});
+    snapshotTokens.set(value, snapshot);
+    return value;
+  };
+  const snapshotToken = value => {
+    const result = snapshotTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign captured Result snapshot');
+    }
+    return result;
+  };
+  const inspectSourceAdvance = advance => {
+    const value = Object.freeze({kind: 'pending-source-state-advance'});
+    sourceAdvanceTokens.set(value, advance);
+    return value;
+  };
+  const sourceAdvanceToken = value => {
+    const result = sourceAdvanceTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign pending source-state advance');
     }
     return result;
   };
@@ -189,6 +215,7 @@ function publicationControl(moon) {
           !Array.isArray(chain.artifacts) ||
           !Array.isArray(provenance.bindings) ||
           !Array.isArray(provenance.sourceEvidence) ||
+          !Array.isArray(provenance.modelEvidence) ||
           !Array.isArray(provenance.barrierAttemptReceiptCids)) {
         throw new TypeError('Invalid Run Receipt request');
       }
@@ -208,7 +235,69 @@ function publicationControl(moon) {
         provenance.bindings.map(binding => binding.name),
         provenance.bindings.map(binding => binding.sha256),
         provenance.sourceEvidence.map(evidenceToken),
+        provenance.modelEvidence.map(evidenceToken),
         provenance.barrierAttemptReceiptCids,
+        limits.maxWireBytes,
+        limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
+    admitCapturedResultSnapshot(definition, artifact, rowsWire, fields,
+      limits) {
+      issuanceLimits(limits, 'Captured Result snapshot');
+      if (typeof rowsWire !== 'string' || !Array.isArray(fields) ||
+          fields.some(field => typeof field !== 'string')) {
+        throw new TypeError('Invalid Captured Result snapshot');
+      }
+      return inspectSnapshot(checked(
+        moon.strategyAdmitCapturedResultSnapshot(
+          token(definition),
+          token(artifact),
+          rowsWire,
+          fields,
+          limits.maxWireBytes,
+          limits.maxNodes,
+          limits.maxDepth,
+        ),
+      ));
+    },
+    admitPendingSourceStateAdvance(completeWire, observation, limits) {
+      issuanceLimits(limits, 'pending source-state advance');
+      if (typeof completeWire !== 'string') {
+        throw new TypeError('Invalid pending source-state advance');
+      }
+      return inspectSourceAdvance(checked(
+        moon.strategyAdmitPendingSourceStateAdvance(
+          completeWire,
+          evidenceToken(observation),
+          limits.maxWireBytes,
+          limits.maxNodes,
+          limits.maxDepth,
+        ),
+      ));
+    },
+    issueEffectFreeCapturedRun(chain, evidence, limits) {
+      issuanceLimits(limits, 'Captured Run');
+      if (chain === null || typeof chain !== 'object' ||
+          evidence === null || typeof evidence !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          !Array.isArray(evidence.snapshots) ||
+          !Array.isArray(evidence.pendingSourceStateAdvances) ||
+          !Array.isArray(evidence.modelEvidence)) {
+        throw new TypeError('Invalid Captured Run request');
+      }
+      return inspect(checked(moon.strategyIssueEffectFreeCapturedRun(
+        token(chain.runDefinition),
+        token(chain.invocation),
+        chain.definitions.map(token),
+        chain.artifacts.map(token),
+        token(chain.manifest),
+        token(chain.receipt),
+        evidence.snapshots.map(snapshotToken),
+        evidence.pendingSourceStateAdvances.map(sourceAdvanceToken),
+        evidenceToken(evidence.authoringContext),
+        evidence.modelEvidence.map(evidenceToken),
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,

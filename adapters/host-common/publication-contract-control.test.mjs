@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -17,22 +16,6 @@ const limits = Object.freeze({
   maxNodes: 4096,
   maxDepth: 64,
 });
-const protocolSchemas = JSON.parse(readFileSync(new URL(
-  '../../spec/contracts/actql-protocol-schemas.json', import.meta.url,
-), 'utf8')).artifact_schemas;
-const embeddedIdentity = Object.freeze({
-  'actql-prepared-invocation/0.1': 'prepared_invocation_cid',
-  'actql-run-authorization/0.1': 'run_authorization_cid',
-  'actql-observation-set/0.1': 'observation_set_cid',
-  'actql-result-artifact/0.1': 'result_artifact_cid',
-  'actql-result-manifest/0.1': 'result_manifest_cid',
-  'actql-source-evidence/0.1': 'source_evidence_cid',
-  'actql-authoring-context/0.1': 'authoring_context_cid',
-  'actql-model-invocation-evidence/0.1':
-    'model_invocation_evidence_cid',
-  'actql-run-effect-context/0.1': 'effect_context_cid',
-});
-
 const canonical = value => Array.isArray(value)
   ? value.map(canonical)
   : value !== null && typeof value === 'object'
@@ -41,45 +24,6 @@ const canonical = value => Array.isArray(value)
     : value;
 const canonicalCid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(canonical(value))).digest('hex')}`;
-function sealEmbedded(value) {
-  if (Array.isArray(value)) return value.map(sealEmbedded);
-  if (value === null || typeof value !== 'object') return value;
-  const result = Object.fromEntries(Object.entries(value)
-    .map(([name, child]) => [name, sealEmbedded(child)]));
-  const identity = embeddedIdentity[result.version];
-  if (identity !== undefined) {
-    delete result[identity];
-    result[identity] = canonicalCid(result);
-  }
-  return result;
-}
-function minimumValue(schema) {
-  if (schema.oneOf !== undefined) return minimumValue(schema.oneOf[0]);
-  if (schema.const !== undefined) return schema.const;
-  if (schema.enum !== undefined) return schema.enum[0];
-  if (schema.type === undefined) return null;
-  if (schema.type === 'null') return null;
-  if (schema.type === 'boolean') return false;
-  if (schema.type === 'integer') return schema.minimum ?? 0;
-  if (schema.type === 'array') {
-    return Array.from({length: schema.minItems ?? 0}, () =>
-      minimumValue(schema.items ?? {}));
-  }
-  if (schema.type === 'object') {
-    return Object.fromEntries((schema.required ?? []).map(name => [
-      name, minimumValue(schema.properties[name]),
-    ]));
-  }
-  if (schema.type === 'string') {
-    if (schema.format === 'date-time' || schema.pattern?.includes('\\d{4}')) {
-      return '2026-09-18T00:00:00.000Z';
-    }
-    if (schema.pattern?.startsWith('^sha256:')) return cid('c');
-    if (schema.pattern === '^[0-9a-f]{64}$') return 'd'.repeat(64);
-    return 'x'.repeat(Math.max(1, schema.minLength ?? 0));
-  }
-  throw new TypeError(`Unsupported fixture schema: ${schema.type}`);
-}
 
 function invocation(control) {
   return control.seal('run_invocation', JSON.stringify({
@@ -289,7 +233,10 @@ test('portable control validates the exact Run Result publication chain', () => 
     producer_contract_cid: definition.identity,
     computation_contract_cid: cid('3'),
     input_relation_cids: [],
-    logical_value_cid: cid('7'),
+    logical_value_cid: canonicalCid({
+      sort: 'relation',
+      value: [{value: 7}],
+    }),
     relation_schema_cid: cid('8'),
     scope_cid: cid('5'),
     effective_data_policy_cid: cid('a'),
@@ -304,11 +251,13 @@ test('portable control validates the exact Run Result publication chain', () => 
     terms: [],
     witness_evidence: [{kind: 'derivation', cid: derivation.identity}],
   }), limits);
+  const resultRows = [{value: 7}];
+  const logicalResultCid = canonicalCid({sort: 'relation', value: resultRows});
   const artifact = control.seal('result_artifact', JSON.stringify({
     version: 'actql-result-artifact/0.1',
     result_definition_cid: definition.identity,
     invocation_cid: invoked.identity,
-    logical_result_cid: cid('7'),
+    logical_result_cid: logicalResultCid,
     result_schema_cid: cid('8'),
     ordering_evidence_cid: ordering.identity,
     actual_row_count: 1,
@@ -421,7 +370,10 @@ test('portable control validates Receipt and Captured Run references',
     producer_contract_cid: definition.identity,
     computation_contract_cid: cid('3'),
     input_relation_cids: [],
-    logical_value_cid: cid('7'),
+    logical_value_cid: canonicalCid({
+      sort: 'relation',
+      value: [{value: 7}],
+    }),
     relation_schema_cid: cid('8'),
     scope_cid: cid('5'),
     effective_data_policy_cid: cid('a'),
@@ -436,11 +388,13 @@ test('portable control validates Receipt and Captured Run references',
     terms: [],
     witness_evidence: [{kind: 'derivation', cid: derivation.identity}],
   }), limits);
+  const resultRows = [{value: 7}];
+  const logicalResultCid = canonicalCid({sort: 'relation', value: resultRows});
   const artifact = control.seal('result_artifact', JSON.stringify({
     version: 'actql-result-artifact/0.1',
     result_definition_cid: definition.identity,
     invocation_cid: invoked.identity,
-    logical_result_cid: cid('7'),
+    logical_result_cid: logicalResultCid,
     result_schema_cid: cid('8'),
     ordering_evidence_cid: ordering.identity,
     actual_row_count: 1,
@@ -449,7 +403,6 @@ test('portable control validates Receipt and Captured Run references',
     effective_retention_policy_cid: retention.identity,
     provenance_evidence_cids: [derivation.identity],
   }), limits);
-  const artifactValue = JSON.parse(artifact.wire);
   const manifest = control.issueResultManifest(
     run, invoked, [definition], [artifact], limits,
   );
@@ -478,26 +431,38 @@ test('portable control validates Receipt and Captured Run references',
     aoaLogicalCid: cid('f'),
     bindings: [],
     sourceEvidence: [],
+    modelEvidence: [],
     barrierAttemptReceiptCids: [],
   }, limits);
-  const capturedValue = minimumValue(protocolSchemas.captured_run);
-  capturedValue.receipt = JSON.parse(receipt.wire);
-  const effect = capturedValue.effect_context;
-  effect.effects = {};
-  effect.effect_plans = {};
-  effect.effect_plan_logical_cids = {};
-  effect.result_values = {answer: null};
-  effect.result_artifacts = {answer: artifactValue};
-  effect.result_fields = {answer: []};
-  effect.authoring_context.program_definition_cid = cid('6');
-  effect.authoring_context = sealEmbedded(effect.authoring_context);
-  effect.model_invocation_evidence = [];
-  effect.model_invocation_evidence_cids = [];
-  capturedValue.effect_context = sealEmbedded(effect);
-  delete capturedValue.captured_run_cid;
-  const captured = control.seal(
-    'captured_run', JSON.stringify(capturedValue), limits,
+  const authoringContext = control.sealRunEvidence(
+    'authoring_context',
+    JSON.stringify({
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: cid('6'),
+      annotations: [],
+    }),
+    limits,
   );
+  const snapshot = control.admitCapturedResultSnapshot(
+    definition,
+    artifact,
+    JSON.stringify(resultRows),
+    ['value'],
+    limits,
+  );
+  const captured = control.issueEffectFreeCapturedRun({
+    runDefinition: run,
+    invocation: invoked,
+    definitions: [definition],
+    artifacts: [artifact],
+    manifest,
+    receipt,
+  }, {
+    snapshots: [snapshot],
+    pendingSourceStateAdvances: [],
+    authoringContext,
+    modelEvidence: [],
+  }, limits);
   const request = control.issuePublicationRequest(run, [definition], {
     tenantId: 'tenant-a',
     authorityScopeCid: cid('d'),

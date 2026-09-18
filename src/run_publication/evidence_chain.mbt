@@ -366,6 +366,27 @@ pub fn validate_effect_free_run_evidence_chain(
   if embedded_source_cids is None || embedded_source_cids != listed_source_cids {
     return Err(EvidenceReferenceMismatch("source_evidence_cids"))
   }
+  guard @json.object_field(receipt_value, "external_observation_evidence")
+    is Some(@json.Array(external_frozen)) else {
+    return Err(EvidenceMissingField("external_observation_evidence"))
+  }
+  let external_source_cids : Array[String] = []
+  let external_model_cids : Array[String] = []
+  for item in @json.array_values(external_frozen) {
+    guard evidence_string(item, "kind") is Some(kind) &&
+      evidence_string(item, "evidence_cid") is Some(identity) else {
+      return Err(EvidenceReferenceMismatch("external_observation_evidence"))
+    }
+    match kind {
+      "source_lookup" => external_source_cids.push(identity)
+      "model_invocation" => external_model_cids.push(identity)
+      _ =>
+        return Err(EvidenceReferenceMismatch("external_observation_evidence"))
+    }
+  }
+  if Some(external_source_cids) != listed_source_cids {
+    return Err(EvidenceReferenceMismatch("external_source_evidence"))
+  }
   let captured_value = captured_run.value
   let captured_receipt = match evidence_object(captured_value, "receipt") {
     Ok(value) => value
@@ -437,6 +458,12 @@ pub fn validate_effect_free_run_evidence_chain(
   let listed_model_cids = evidence_string_array(model_evidence_cids)
   if embedded_model_cids is None || embedded_model_cids != listed_model_cids {
     return Err(EvidenceReferenceMismatch("model_invocation_evidence_cids"))
+  }
+  let captured_model_cids = embedded_model_cids.unwrap()
+  captured_model_cids.sort_by(@canonical.compare_utf16)
+  external_model_cids.sort_by(@canonical.compare_utf16)
+  if captured_model_cids != external_model_cids {
+    return Err(EvidenceReferenceMismatch("external_model_evidence"))
   }
   Ok(())
 }

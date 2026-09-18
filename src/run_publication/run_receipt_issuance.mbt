@@ -79,6 +79,24 @@ fn receipt_source_identities(
 }
 
 ///|
+fn receipt_model_identities(
+  models : Array[RunEvidenceValue],
+) -> Result[Array[String], RunReceiptIssuanceIssue] {
+  let output : Array[String] = []
+  for model in models {
+    if model.name != "model_invocation_evidence" {
+      return Err(ReceiptIssuanceWrongContract("model_invocation_evidence"))
+    }
+    if output.contains(model.identity) {
+      return Err(ReceiptIssuanceInventoryMismatch("model_invocation_evidence"))
+    }
+    output.push(model.identity)
+  }
+  output.sort_by(@canonical.compare_utf16)
+  Ok(output)
+}
+
+///|
 fn receipt_derivation_identities(
   artifacts : Array[PublicationContract],
 ) -> Result[Array[String], RunReceiptIssuanceIssue] {
@@ -131,6 +149,7 @@ pub fn issue_effect_free_run_receipt(
   binding_names : Array[String],
   binding_digests : Array[String],
   source_evidence : Array[RunEvidenceValue],
+  model_evidence : Array[RunEvidenceValue],
   barrier_attempt_receipt_cids : Array[String],
   max_wire_bytes : Int,
   max_nodes : Int,
@@ -203,6 +222,10 @@ pub fn issue_effect_free_run_receipt(
   if source_cids != observation_source_cids {
     return Err(ReceiptIssuanceReferenceMismatch("source_evidence_cids"))
   }
+  let model_cids = match receipt_model_identities(model_evidence) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let bindings = match receipt_bindings(binding_names, binding_digests) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -252,6 +275,14 @@ pub fn issue_effect_free_run_receipt(
     @encode.string_value(writer, cross_source_consistency)
     @encode.key(writer, "external_observation_evidence")
     @encode.begin_array(writer)
+    for identity in model_cids {
+      @encode.begin_object(writer)
+      @encode.key(writer, "evidence_cid")
+      @encode.string_value(writer, identity)
+      @encode.key(writer, "kind")
+      @encode.string_value(writer, "model_invocation")
+      @encode.end_object(writer)
+    }
     for identity in source_cids {
       @encode.begin_object(writer)
       @encode.key(writer, "evidence_cid")

@@ -621,6 +621,7 @@ pub fn strategy_issue_effect_free_run_receipt(
   binding_names : Array[String],
   binding_digests : Array[String],
   source_evidence : Array[@publication.RunEvidenceValue],
+  model_evidence : Array[@publication.RunEvidenceValue],
   barrier_attempt_receipt_cids : Array[String],
   max_wire_bytes : Int,
   max_nodes : Int,
@@ -630,8 +631,73 @@ pub fn strategy_issue_effect_free_run_receipt(
     @publication.issue_effect_free_run_receipt(
       admission, run_definition, invocation, observation, definitions, artifacts,
       manifest, normalization_journal, compiler_version, aoa_ir_version, program_semantics_cid,
-      aoa_logical_cid, binding_names, binding_digests, source_evidence, barrier_attempt_receipt_cids,
-      max_wire_bytes, max_nodes, max_depth,
+      aoa_logical_cid, binding_names, binding_digests, source_evidence, model_evidence,
+      barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitCapturedResultSnapshot")
+pub fn strategy_admit_captured_result_snapshot(
+  definition : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  match
+    @publication.admit_captured_result_snapshot(
+      definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitPendingSourceStateAdvance")
+pub fn strategy_admit_pending_source_state_advance(
+  complete_wire : String,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PendingSourceStateAdvance raise NodeHostFailure {
+  match
+    @publication.admit_pending_source_state_advance(
+      complete_wire, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectFreeCapturedRun")
+pub fn strategy_issue_effect_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match
+    @publication.issue_effect_free_captured_run(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
+      advances, authoring, models, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
