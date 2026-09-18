@@ -33,6 +33,7 @@ pub enum Payload {
   Limit(@relation.CheckedOperation)
   TopK(@relation.CheckedOperation)
   TopKBy(@relation.CheckedOperation)
+  Pivot(@relation.CheckedOperation)
   Unnest(@relation.CheckedOperation)
   Unpivot(@relation.CheckedOperation)
   Distinct(@relation.CheckedOperation)
@@ -142,6 +143,7 @@ pub fn operation(value : PreparedNode) -> String {
     Limit(_) => "REL.limit"
     TopK(_) => "REL.topk"
     TopKBy(_) => "REL.topk_partitioned"
+    Pivot(_) => "REL.pivot"
     Unnest(_) => "REL.unnest"
     Unpivot(_) => "REL.unpivot"
     Distinct(_) => "REL.distinct"
@@ -172,6 +174,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Take => Some(Limit(v))
         TopK => Some(TopK(v))
         TopKBy => Some(TopKBy(v))
+        Pivot => Some(Pivot(v))
         Unnest => Some(Unnest(v))
         Unpivot => Some(Unpivot(v))
         Distinct => Some(Distinct(v))
@@ -180,7 +183,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         Group => Some(CountGroup(v))
         AssertRows => Some(AssertRows(v))
         JsonPick => Some(JsonPick(v))
-        Pivot | Analytic | Lag | WatermarkRows => None
+        Analytic | Lag | WatermarkRows => None
       }
     Join(checked~, ..) =>
       if @join.kind(checked) == @join.Inner {
@@ -286,6 +289,7 @@ pub fn prepare(
       Limit(_) => ("limit", 1)
       TopK(_) => ("top_k", 1)
       TopKBy(_) => ("top_k_by", 1)
+      Pivot(_) => ("pivot", 1)
       Unnest(_) => ("unnest", 1)
       Unpivot(_) => ("unpivot", 1)
       Distinct(_) => ("distinct", 1)
@@ -355,6 +359,7 @@ pub fn prepare(
       | Limit(_)
       | TopK(_)
       | TopKBy(_)
+      | Pivot(_)
       | Unnest(_)
       | Unpivot(_)
       | Dedupe(_)

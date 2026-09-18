@@ -430,6 +430,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
         @lower.Limit(_, _, _) => return Err(InvalidRows)
         @lower.TopK(_, _) => return Err(InvalidRows)
         @lower.PartitionedTopK(_, _) => return Err(InvalidRows)
+        @lower.Pivot(_) => return Err(InvalidRows)
         @lower.Unnest(_, _, _, _, _) => return Err(InvalidRows)
         @lower.Unpivot(_, _, _, _) => return Err(InvalidRows)
         @lower.DistinctRows => return Err(InvalidRows)

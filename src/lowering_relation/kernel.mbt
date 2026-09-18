@@ -21,6 +21,7 @@ pub enum KernelBody {
   Limit(Int64, Int64, @pipeline.LogicalOrder)
   TopK(Int64, @pipeline.LogicalOrder)
   PartitionedTopK(Int64, @pipeline.LogicalOrder)
+  Pivot(PreparedPivot)
   Unnest(@schema.FieldName, String, String?, Bool, Int64?)
   Unpivot(Array[@schema.FieldName], Array[@schema.FieldName], String, String)
   DistinctRows
@@ -41,6 +42,7 @@ pub(all) enum KernelIssue {
   PendingTakeOrder
   PendingTopKOrder
   PendingSortOrder
+  PivotFailure(PivotIssue)
   CountGroupFailure(CountGroupIssue)
 }
 
@@ -74,6 +76,15 @@ pub fn kernel_count_group(kernel : PreparedKernel) -> PreparedCountGroup? {
 }
 
 ///|
+/// Allocation-free pivot dispatch view bound to this exact checked owner.
+pub fn kernel_pivot(kernel : PreparedKernel) -> PreparedPivot? {
+  match kernel.body {
+    Pivot(value) => Some(value)
+    _ => None
+  }
+}
+
+///|
 /// Allocation-free batch selection view; the order remains owned by preparation.
 pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
   match kernel.body {
@@ -87,6 +98,7 @@ pub fn kernel_take(kernel : PreparedKernel) -> (Int64, Int64)? {
     | Select(_)
     | TopK(_, _)
     | PartitionedTopK(_, _)
+    | Pivot(_)
     | Unnest(_, _, _, _, _)
     | Unpivot(_, _, _, _)
     | DistinctRows
@@ -113,6 +125,7 @@ pub fn ordered_binding_at(
     | Limit(_, _, _)
     | TopK(_, _)
     | PartitionedTopK(_, _)
+    | Pivot(_)
     | Unnest(_, _, _, _, _)
     | Unpivot(_, _, _, _)
     | DistinctRows
@@ -135,6 +148,7 @@ pub fn kernel_body(kernel : PreparedKernel) -> KernelBody {
     Limit(count, offset, order) => Limit(count, offset, order)
     TopK(count, order) => TopK(count, order)
     PartitionedTopK(count, order) => PartitionedTopK(count, order)
+    Pivot(value) => Pivot(value)
     Unnest(column, element, index, outer, max_items) =>
       Unnest(column, element, index, outer, max_items)
     Unpivot(columns, keep, name_column, value_column) =>
@@ -159,6 +173,7 @@ pub fn kernel_view_entries(kernel : PreparedKernel) -> Int {
     | Limit(_, _, _)
     | TopK(_, _)
     | PartitionedTopK(_, _)
+    | Pivot(_)
     | Unnest(_, _, _, _, _)
     | Unpivot(_, _, _, _)
     | DistinctRows
@@ -212,6 +227,7 @@ fn prepare_kernel_measured(
     | Limit(op)
     | TopK(op)
     | TopKBy(op)
+    | Pivot(op)
     | Unnest(op)
     | Unpivot(op)
     | Distinct(op)
@@ -636,6 +652,21 @@ fn prepare_kernel_measured(
       }
       Limit(count, offset, order)
     }
+    Aggregation if @relation.operation(checked) == @relation.Pivot => {
+      let (pivot, name_bytes, entries) = match
+        prepare_pivot(
+          owner,
+          checked,
+          Int::min(max_bindings, remaining.max_work),
+          names_remaining,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(PivotFailure(issue))
+      }
+      names_remaining -= name_bytes
+      remaining = { ..remaining, max_work: remaining.max_work - entries, }
+      Pivot(pivot)
+    }
     Aggregation => {
       let group = match
         prepare_count_group(
@@ -691,6 +722,7 @@ fn prepare_kernel_measured(
   }
   let binding_count = match body {
     CountGroups(group) => group.keys.length() + group.counts.length()
+    Pivot(value) => pivot_index_count(value) + pivot_axis_count(value) + 2
     SnapshotMap(bindings) | OrderedBindings(bindings) => bindings.length()
     Filter(_) | AssertAll(_) => 1
     AssertUnique(keys) => keys.length()

@@ -95,6 +95,7 @@ pub fn local_managed_sequence_supported(
           | DistinctRows
           | DedupeRows
           | CountGroups(_) => true
+          Pivot(_) => false
         }
       @lower.AppendStep(_) => true
       @lower.JoinStep(_) => false

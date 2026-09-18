@@ -118,6 +118,7 @@ pub fn prepare_sequence(
       | Limit(_)
       | TopK(_)
       | TopKBy(_)
+      | Pivot(_)
       | Unnest(_)
       | Unpivot(_)
       | Distinct(_)

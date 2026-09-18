@@ -93,6 +93,7 @@ pub fn emit_fragment_request(
     | Limit(_, _, _)
     | TopK(_, _)
     | PartitionedTopK(_, _)
+    | Pivot(_)
     | Unnest(_, _, _, _, _)
     | Unpivot(_, _, _, _)
     | DistinctRows
@@ -121,6 +122,7 @@ pub fn emit_fragment_request(
       | Limit(_, _, _)
       | TopK(_, _)
       | PartitionedTopK(_, _)
+      | Pivot(_)
       | Unnest(_, _, _, _, _)
       | Unpivot(_, _, _, _)
       | DistinctRows

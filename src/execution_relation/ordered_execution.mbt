@@ -84,6 +84,7 @@ fn prepare_ordered_budgets(
           | @lower.Limit(_, _, _)
           | @lower.TopK(_, _)
           | @lower.PartitionedTopK(_, _)
+          | @lower.Pivot(_)
           | @lower.Unnest(_, _, _, _, _)
           | @lower.Unpivot(_, _, _, _)
           | @lower.DistinctRows

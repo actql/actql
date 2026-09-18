@@ -67,6 +67,7 @@ pub fn emit_kernel_node(
       Limit(_, _, _) => "REL.limit"
       TopK(_, _) => "REL.topk"
       PartitionedTopK(_, _) => "REL.topk_partitioned"
+      Pivot(_) => "REL.pivot"
       Unnest(_, _, _, _, _) => "REL.unnest"
       Unpivot(_, _, _, _) => "REL.unpivot"
       DistinctRows => "REL.distinct"
@@ -127,6 +128,47 @@ pub fn emit_kernel_node(
         }
         @encode.end_array(out)
       }
+    }
+    Pivot(pivot) => {
+      @encode.key(out, "aggregate")
+      @encode.string_value(
+        out,
+        match pivot_function(pivot) {
+          @relation.Sum => "sum"
+          @relation.Avg => "avg"
+          @relation.Count => "count"
+          @relation.Min => "min"
+          @relation.Max => "max"
+          @relation.First => "first"
+          _ => raise @encode.InvalidStructure
+        },
+      )
+      if pivot_fill(pivot) is Some(fill) {
+        @encode.key(out, "fill")
+        match fill {
+          Null => @encode.null_value(out)
+          Value(value) => emit_wire_value(value.value, out)
+        }
+      }
+      @encode.key(out, "index")
+      @encode.begin_array(out)
+      for i = 0; i < pivot_index_count(pivot); i = i + 1 {
+        @encode.string_value(
+          out,
+          @schema.reference_name(pivot_index_at(pivot, i).unwrap()),
+        )
+      }
+      @encode.end_array(out)
+      @encode.key(out, "pivot")
+      @encode.string_value(out, @schema.reference_name(pivot_column(pivot)))
+      @encode.key(out, "value")
+      @encode.string_value(out, @schema.reference_name(pivot_value(pivot)))
+      @encode.key(out, "values")
+      @encode.begin_array(out)
+      for i = 0; i < pivot_axis_count(pivot); i = i + 1 {
+        @encode.string_value(out, pivot_axis_at(pivot, i).unwrap())
+      }
+      @encode.end_array(out)
     }
     Unnest(column, element, index, outer, _) => {
       @encode.key(out, "as")
