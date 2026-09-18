@@ -2150,7 +2150,8 @@
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
-              "Local managed collection aggregates reach two independent consumers"
+              "Local managed collection aggregates reach two independent consumers",
+              "Local managed nested distinct count reaches two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2173,7 +2174,8 @@
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
-              "Local managed collection aggregates reach two independent consumers"
+              "Local managed collection aggregates reach two independent consumers",
+              "Local managed nested distinct count reaches two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2242,6 +2244,23 @@
           {
             "operation": "group",
             "layer": "conformance",
+            "path": "src/execution_relation/group_nested_distinct_wbtest.mbt",
+            "fixtures": [
+              "count distinct accepts admitted values deeper than four containers",
+              "count distinct compares complete nested objects after identity bucketing",
+              "count distinct keeps empty and all null global group laws",
+              "runtime identity uses configured depth node work and frame ceilings"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "group",
+            "layer": "conformance",
             "path": "src/execution_relation/group_statistics_wbtest.mbt",
             "fixtures": [
               "direct percentiles use their closed discrete and interpolation laws",
@@ -2271,7 +2290,8 @@
               "Local managed group distinguishes row and field counts",
               "Local managed direct aggregates reach two independent consumers",
               "Local managed ordered aggregates reach two independent consumers",
-              "Local managed collection aggregates reach two independent consumers"
+              "Local managed collection aggregates reach two independent consumers",
+              "Local managed nested distinct count reaches two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2313,7 +2333,7 @@
         ]
       },
       "gaps": [
-        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, structured selected values, exact collection limits, deterministic statistical folds, nonfinite failures, two consumers for the earlier managed variants, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, exact Decimal sum, direct first/last, direct-field array/string aggregates, percentiles, variance, and standard deviation cover NULL-first groups, empty global input, independent aggregate orders, deep arrays and objects, exact identity and collection limits, deterministic statistical folds, nonfinite failures, two consumers for implemented managed variants, exact work boundaries, and indexed scaling. Expression and filtered arguments, binary64 observation folds, managed statistical two-consumer coverage, broader percentile domains, and remaining formal key domains remain."
       ]
     },
     {
