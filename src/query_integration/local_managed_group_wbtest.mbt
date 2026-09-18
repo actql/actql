@@ -15,15 +15,53 @@ fn run_local_managed_test_task(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let setup = @local_driver.prepare_local_managed_dispatch(
+  let setup = match
+    @local_driver.prepare_local_managed_dispatch(
       installed,
       inputs,
       @execution.process_managed_obligations(owner),
       0L,
-    )
-    .unwrap()
-    .unwrap()
-  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => fail("Local managed candidate was not applicable")
+    Err(Configuration(_)) => fail("Local managed configuration failed")
+    Err(Preparation(_)) => fail("Local managed preparation failed")
+    Err(Dispatch(_)) => fail("Local managed dispatch setup failed")
+    Err(Execution(_)) => fail("Local managed input setup failed")
+    Err(Search(_)) => fail("Local managed search failed")
+    Err(ManagedValues(_)) => fail("Local managed value setup failed")
+    Err(ManagedCopy(_)) => fail("Local managed copy setup failed")
+    Err(ManagedRetention(_)) => fail("Local managed retention setup failed")
+    Err(ManagedCompletion(_)) => fail("Local managed completion setup failed")
+  }
+  let operations = match
+    @local_driver.start_local_managed_dispatch_node(setup) {
+    Ok(value) => value
+    Err(Configuration(_)) => fail("Local managed start configuration failed")
+    Err(Preparation(_)) => fail("Local managed start preparation failed")
+    Err(Dispatch(_)) => fail("Local managed start dispatch failed")
+    Err(Execution(NotReady)) => fail("Local managed start was not ready")
+    Err(Execution(Stopped)) => fail("Local managed run was stopped")
+    Err(Execution(MissingOutput)) => fail("Local managed start missed output")
+    Err(Execution(ForeignCandidate)) =>
+      fail("Local managed start had a foreign candidate")
+    Err(Execution(UnsupportedGraph)) =>
+      fail("Local managed start had an unsupported graph")
+    Err(Execution(ForeignCapture)) =>
+      fail("Local managed start had a foreign capture")
+    Err(Execution(Capture(_))) => fail("Local managed start capture failed")
+    Err(Execution(Binding(_))) => fail("Local managed start binding failed")
+    Err(Execution(Read(_))) => fail("Local managed start read failed")
+    Err(Execution(Compute(_))) => fail("Local managed start compute failed")
+    Err(Execution(Implementation(_))) =>
+      fail("Local managed start implementation failed")
+    Err(Execution(Physical(_))) => fail("Local managed start physical failed")
+    Err(Search(_)) => fail("Local managed start search failed")
+    Err(ManagedValues(_)) => fail("Local managed start value setup failed")
+    Err(ManagedCopy(_)) => fail("Local managed start copy setup failed")
+    Err(ManagedRetention(_)) => fail("Local managed start retention failed")
+    Err(ManagedCompletion(_)) => fail("Local managed start completion failed")
+  }
   assert_eq(operations.inputs.length(), rows.length())
   for index, transfer in operations.inputs {
     for row in rows[index] {

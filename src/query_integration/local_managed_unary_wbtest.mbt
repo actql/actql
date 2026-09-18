@@ -1,6 +1,7 @@
 ///|
 fn local_managed_unary_expected(kind : String) -> Array[String] {
   match kind {
+    "select" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
     "filter_text" | "filter_structured" => ["{\"id\":2,\"amount\":null}"]
     "assert_where" | "assert_unique" =>
       ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
@@ -218,10 +219,158 @@ fn run_local_managed_unary_case(kind : String) -> Unit raise {
 test "Local managed unary source forms feed two downstream Computes" {
   for
     kind in [
-      "filter_text", "filter_structured", "derive_map", "derive_ordered", "rename",
-      "drop", "json_pick", "assert_where", "assert_unique", "sort", "take", "distinct",
-      "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot", "pivot", "pivot_decimal_sum",
+      "select", "filter_text", "filter_structured", "derive_map", "derive_ordered",
+      "rename", "drop", "json_pick", "assert_where", "assert_unique", "sort", "take",
+      "distinct", "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot", "pivot",
+      "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
+}
+
+///|
+test "Local qualified select feeds two downstream Computes" {
+  let ledger_limits : @resources.LedgerLimits = {
+    planning_work: 10000,
+    attempts: 20,
+    holdings: 20,
+    transfer_bytes: 300000L,
+    retained_bytes: 134217728L,
+    execution_bytes: 536870912L,
+  }
+  let (run, issuer) = captured_graph_fixture(
+    local_select_qualified_chain=true,
+    ledger_limits=Some(ledger_limits),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        max_bytes: 1000,
+        max_nodes: 200,
+        max_depth: 4,
+        max_columns: 4,
+        max_order_work: 100,
+      },
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+
+  let left_live = Ref(true)
+  let (left_ops, left) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    left_live,
+  )
+  let left_rows = local_managed_test_rows(left_ops)
+  assert_eq(left_rows, ["{\"id\":1,\"l\":\"l1\"}", "{\"id\":2,\"l\":\"l2\"}"])
+
+  let right_live = Ref(true)
+  let (right_ops, right) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    right_live,
+  )
+  let right_rows = local_managed_test_rows(right_ops)
+  assert_eq(right_rows, [
+    "{\"id\":1,\"r\":\"r1\"}", "{\"id\":3,\"r\":\"r3\"}", "{\"id\":4,\"r\":\"r4\"}",
+  ])
+
+  let selected_live = Ref(true)
+  let (selected_ops, selected) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [left, right],
+    [left_rows, right_rows],
+    3,
+    selected_live,
+  )
+  let selected_rows = local_managed_test_rows(selected_ops)
+  assert_eq(selected_rows, [
+    "{\"right_value\":\"r1\",\"left_value\":\"l1\",\"id\":1}",
+  ])
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [selected],
+    [selected_rows],
+    4,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [selected],
+    [selected_rows],
+    5,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops), [
+    "{\"id\":1,\"left_value\":\"l1\",\"right_value\":\"r1\"}",
+  ])
+  assert_eq(local_managed_test_rows(second_ops), [
+    "{\"right_value\":\"r1\",\"id\":1,\"left_value\":\"l1\"}",
+  ])
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(selected))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  selected_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (selected_ops.close)()
+  (selected_ops.cleanup_refresh)() |> ignore
+  left_live.val = false
+  right_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 2)
+  (left_ops.close)()
+  (right_ops.close)()
+  (left_ops.cleanup_refresh)() |> ignore
+  (right_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }

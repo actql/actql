@@ -87,6 +87,7 @@ fn captured_graph_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_unary_chain? : String? = None,
+  local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
   nullable? : Bool = false,
   rows? : Array[String]? = None,
@@ -114,6 +115,7 @@ fn captured_graph_fixture(
     local_values_join_chain~,
     local_values_join_kind~,
     local_values_unary_chain~,
+    local_select_qualified_chain~,
     join_steps~,
     compute_filter~,
   )

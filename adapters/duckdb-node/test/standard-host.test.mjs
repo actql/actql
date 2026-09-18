@@ -1572,6 +1572,32 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     items: {literal: [{name: 'a', score: 1}, {name: 'b', score: 2}]},
     meta: {literal: {active: true}},
   }], ['items', 'meta'], ['meta', 'items']);
+  const selectProgram = structuredClone(zeroInputProgram);
+  selectProgram.stages.splice(1, 3, {
+    id: 'select_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: true},
+      },
+      rows: [{id: 1, amount: 10}, {id: 2, amount: null}],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'amount']}},
+  }, {
+    id: 'selected',
+    inputs: {x: {result: {stage: 'select_values', result: 'r'}}},
+    steps: [{select: [{total: 'amount'}, 'id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['total', 'id']}},
+  }, ...['a', 'b'].map(id => ({
+    id: `select_consumer_${id}`,
+    inputs: {x: {result: {stage: 'selected', result: 'r'}}},
+    steps: [{select: id === 'a' ? ['total', 'id'] : ['id', 'total'],
+      as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a' ? ['total', 'id'] : ['id', 'total'],
+    }},
+  })));
   const groupProgram = structuredClone(zeroInputProgram);
   groupProgram.stages.splice(1, 3, {
     id: 'group_values',
@@ -1598,6 +1624,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['values', zeroInputProgram, [1, 2, 3]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
+    ['select', selectProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3]],
     ['group count', groupProgram, [1, 2, 3, 4]],
   ]) {

@@ -49,6 +49,24 @@ test "row operations consume raw join schemas on every join kind" {
 }
 
 ///|
+test "select flattens qualified join fields in authored order" {
+  let p = join_pipeline(
+    "[{\"join\":{\"left\":\"l\",\"with\":\"r\",\"kind\":\"inner\",\"on\":\"id\"}},{\"select\":[{\"right_amount\":\"right.amount\"},{\"left_id\":\"left.id\"}],\"as\":\"out\"}]",
+  ).unwrap()
+  let output = @pipeline_typing.output_schema(p).unwrap()
+  assert_eq(@schema.field_count(output), 2)
+  assert_true(
+    @schema.lookup(output, @schema.Unqualified("right_amount")) is Some(_),
+  )
+  assert_true(@schema.lookup(output, @schema.Unqualified("left_id")) is Some(_))
+  let projection = @relation.projection(
+    unary(@pipeline_typing.step_at(p, 1).unwrap().operation),
+  )
+  assert_true(projection[0].output == @schema.Unqualified("right_amount"))
+  assert_true(projection[1].output == @schema.Unqualified("left_id"))
+}
+
+///|
 test "empty sort cannot discharge take ordering and branch changes retain obligations" {
   let p = join_pipeline(
     "[{\"sort\":[],\"from\":\"l\"},{\"take\":1,\"as\":\"first\"},{\"select\":[\"id\"],\"from\":\"r\"}]",

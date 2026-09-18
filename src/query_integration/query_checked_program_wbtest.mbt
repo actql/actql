@@ -20,6 +20,7 @@ fn query_checked_program_fixture(
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_unary_chain? : String? = None,
+  local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
   acquisition_filter? : String = "id > $minimum",
   compute_filter? : String = "id > 2",
@@ -187,6 +188,11 @@ fn query_checked_program_fixture(
     None => text
     Some(kind) => local_values_unary_program(kind)
   }
+  let text = if local_select_qualified_chain {
+    local_select_qualified_program()
+  } else {
+    text
+  }
   let text = if sort_take {
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
@@ -323,6 +329,38 @@ fn query_checked_program_fixture(
         environment,
         "crossed",
         steps=[4],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
+  } else if local_select_qualified_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      6L,
+      "{\"op\":\"source\"}",
+      inputs=[
+        @wire.cid(@wire.program_proof_witness(left)),
+        @wire.cid(@wire.program_proof_witness(right)),
+      ],
+      step=0,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "selected",
+        steps=[0],
         proofs=[left, right, joined],
         candidates=[joined],
       ),
@@ -498,6 +536,7 @@ fn local_values_unary_program(kind : String) -> String {
     return local_ordered_set_program(kind)
   }
   let operation = match kind {
+    "select" => "{\"select\":[{\"total\":\"amount\"},\"id\"],\"as\":\"out\"}"
     "filter_text" => "{\"filter\":\"id > $minimum\",\"as\":\"out\"}"
     "filter_structured" =>
       "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
@@ -512,6 +551,7 @@ fn local_values_unary_program(kind : String) -> String {
     _ => abort("unknown Local unary fixture")
   }
   let fields = match kind {
+    "select" => "[\"total\",\"id\"]"
     "derive_map" => "[\"id\",\"amount\",\"next\"]"
     "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
     "rename" => "[\"id\",\"total\"]"
@@ -535,6 +575,13 @@ fn local_values_unary_program(kind : String) -> String {
   consumer +
   fields +
   "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+fn local_select_qualified_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":2,"l":"l2"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"selected","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}]},"as":"joined"},{"from":"joined","select":[{"right_value":"right.r"},{"left_value":"left.l"},{"id":"left.id"}],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","left_value","id"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["id","left_value","right_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","left_value","right_value"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"selected","result":"r"}}},"steps":[{"select":["right_value","id","left_value"],"as":"out"}],"results":{"r":{"from":"out","fields":["right_value","id","left_value"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
 }
 
 ///|
