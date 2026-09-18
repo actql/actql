@@ -2345,7 +2345,7 @@
       "canonical_operations": [
         "REL.except_rows"
       ],
-      "machine_registry": "target-requirement-only",
+      "machine_registry": "registered",
       "variant_scope": [
         "row equality",
         "NULL equality",
@@ -2355,22 +2355,83 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
         "performance": "missing"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
+        "source_connection": [
+          {
+            "operation": "except",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "except",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "except",
+            "layer": "conformance",
+            "path": "src/execution_relation/set_rows_wbtest.mbt",
+            "fixtures": [
+              "row set variants preserve complete-value multiplicity and left order",
+              "row set lowering emits registered operation and checked duplicate mode",
+              "row set output ceiling fails atomically"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "except",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
         "performance": []
       },
       "gaps": [
-        "The target contract requires REL.except_rows but the pinned pipeline registry and Local path are missing it."
+        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets; empty sides, full relation_value types including references, detailed failure evidence, and performance remain."
       ]
     },
     {
@@ -2380,7 +2441,7 @@
       "canonical_operations": [
         "REL.intersect_rows"
       ],
-      "machine_registry": "target-requirement-only",
+      "machine_registry": "registered",
       "variant_scope": [
         "row equality",
         "NULL equality",
@@ -2390,22 +2451,83 @@
       ],
       "layers": {
         "checker": "complete",
-        "lowering": "missing",
-        "kernel": "missing",
-        "managed": "missing",
-        "source_connection": "missing",
-        "two_consumer_e2e": "missing",
-        "three_target_conformance": "missing",
+        "lowering": "complete",
+        "kernel": "partial",
+        "managed": "partial",
+        "source_connection": "partial",
+        "two_consumer_e2e": "partial",
+        "three_target_conformance": "partial",
         "performance": "missing"
       },
       "evidence": {
-        "source_connection": [],
-        "two_consumer_e2e": [],
-        "conformance": [],
+        "source_connection": [
+          {
+            "operation": "intersect",
+            "layer": "source_connection",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "two_consumer_e2e": [
+          {
+            "operation": "intersect",
+            "layer": "two_consumer_e2e",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
+        "conformance": [
+          {
+            "operation": "intersect",
+            "layer": "conformance",
+            "path": "src/execution_relation/set_rows_wbtest.mbt",
+            "fixtures": [
+              "row set variants preserve complete-value multiplicity and left order",
+              "row set lowering emits registered operation and checked duplicate mode",
+              "row set output ceiling fails atomically"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "intersect",
+            "layer": "conformance",
+            "path": "src/query_integration/local_managed_set_wbtest.mbt",
+            "fixtures": [
+              "Local managed row sets preserve variants and two consumers"
+            ],
+            "suite": "moon:query_integration",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          }
+        ],
         "performance": []
       },
       "gaps": [
-        "The target contract requires REL.intersect_rows but the pinned pipeline registry and Local path are missing it."
+        "All/distinct scalar rows with NULL, left order, two managed consumers, and final reclamation pass on three targets; empty sides, full relation_value types including references, detailed failure evidence, and performance remain."
       ]
     },
     {

@@ -13,8 +13,6 @@ the implementation.
 | Gap | Evidence | Required resolution |
 | --- | --- | --- |
 | `nest` has no canonical AoA mapping | It appears in the normative RelA inventory, but not the normative canonical mapping table | Define the common typed operation and register it before Local lowering |
-| `REL.except_rows` is absent from the pinned pipeline registry | The target contract lists it as required | Add the shared registry operation and preserve row equality, duplicate, and order rules |
-| `REL.intersect_rows` is absent from the pinned pipeline registry | The target contract lists it as required | Add the shared registry operation and preserve row equality, duplicate, and order rules |
 | `REL.cross_join` is absent from the pinned pipeline registry | The target contract lists it as required | Add the shared registry operation, output order, and capacity contract |
 | `REL.analytic` is absent from both the pinned registry and target requirements | The normative mapping requires it | Complete the shared machine contract before lowering or execution |
 
@@ -53,8 +51,8 @@ standard-Host candidate and execution support, not a direct kernel call.
 | assert_rows | C | C | C | P | Compound keys, Host failure locations, and performance evidence |
 | append | C | - | - | - | Common two-input lowering |
 | values | C | C | C | P | Genuine zero-input Host path and two managed consumers; empty/nested variants remain |
-| except | C | - | - | - | Registry, lowering, and execution |
-| intersect | C | - | - | - | Registry, lowering, and execution |
+| except | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
+| intersect | C | C | P | P | Complete empty-side, reference-value, failure, and performance evidence |
 | cross_join | C | - | - | - | Registry, lowering, and execution |
 | analytic | C | - | - | - | Machine contract, lowering, and execution |
 

@@ -12,6 +12,8 @@ fn query_checked_program_fixture(
   local_values_two_consumer_chain? : Bool = false,
   local_values_group_chain? : Bool = false,
   local_values_append_chain? : Bool = false,
+  local_values_set_operation? : String = "",
+  local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
   local_values_unary_chain? : String? = None,
@@ -48,6 +50,15 @@ fn query_checked_program_fixture(
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]},"as":"right_rows"},{"from":"left_rows","append":{"with":"right_rows"},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["id"],"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     )
+  } else {
+    text
+  }
+  let text = if local_values_set_operation != "" {
+    let set_text =
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"set_rows","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":1,"label":"a"},{"id":1,"label":"a"},{"id":2,"label":"b"},{"id":null,"label":"n"}]},"as":"left_rows"},{"values":{"schema":{"label":{"type":"string","nullable":false},"id":{"type":"number","nullable":true}},"rows":[{"label":"a","id":1},{"label":"c","id":3}]},"as":"right_rows"},{"from":"left_rows","__set_operation__":{"with":"right_rows","duplicates":"__set_duplicates__"},"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"set_rows","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"set_rows","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    set_text
+    .replace(old="__set_operation__", new=local_values_set_operation)
+    .replace(old="__set_duplicates__", new=local_values_set_duplicates)
   } else {
     text
   }
