@@ -1,0 +1,460 @@
+///|
+priv struct AggregateGroupRange {
+  representative : Int?
+  start : Int
+  end : Int
+}
+
+///|
+/// Exact initial Local capability for complete group descriptors. A false
+/// result is a candidate-selection decision, never permission to reinterpret
+/// the checked aggregate through another physical law.
+pub fn group_execution_supported(group : @lower.PreparedGroup) -> Bool {
+  let input = @lower.group_input_schema(group)
+  for i = 0; i < @lower.group_key_count(group); i = i + 1 {
+    guard @schema.lookup(input, @lower.group_key_at(group, i).unwrap())
+      is Some(contract) else {
+      return false
+    }
+    if !supported_comparison(contract, contract) {
+      return false
+    }
+  }
+  for i = 0; i < @lower.group_aggregate_count(group); i = i + 1 {
+    let aggregate = @lower.group_aggregate_at(group, i).unwrap()
+    if @lower.group_aggregate_filter(aggregate) is Some(_) ||
+      @lower.group_aggregate_argument(aggregate)
+      is @lower.AggregateExpression(_) ||
+      @lower.group_aggregate_requires_numeric_observation(aggregate) {
+      return false
+    }
+    match
+      (
+        @lower.group_aggregate_function(aggregate),
+        @lower.group_aggregate_argument(aggregate),
+      ) {
+      (@relation.Count, @lower.AggregateRows)
+      | (@relation.Count, @lower.AggregateField(_))
+      | (@relation.CountIf, @lower.AggregateField(_)) => ()
+      (@relation.Min, @lower.AggregateField(_))
+      | (@relation.Max, @lower.AggregateField(_)) => {
+        let result = @lower.group_aggregate_result(aggregate)
+        if !supported_comparison(result, result) {
+          return false
+        }
+      }
+      (@relation.Sum, @lower.AggregateField(_)) =>
+        if !(@lower.group_aggregate_result(aggregate).shape
+          is @contract.Decimal(precision=38, ..)) {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+fn runtime_value_identity(
+  value : Value,
+  control : ControlBudget,
+) -> Result[String, RowIssue] {
+  try {
+    let writer = @encode.hashing_writer(control.remaining, control.remaining, 4)
+    emit_runtime_value(value, writer)
+    let (cid, bytes, _) = @encode.finish_hash_usage(writer)
+    if !spend_control(control, bytes) {
+      return Err(RowLimit)
+    }
+    Ok(cid)
+  } catch {
+    _ => Err(RowLimit)
+  }
+}
+
+///|
+fn distinct_aggregate_values(
+  values : Array[Value],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[Value], RowIssue] {
+  let buckets : Map[String, Array[Value]] = Map([])
+  let output : Array[Value] = []
+  for value in values {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    let cid = match runtime_value_identity(value, control) {
+      Ok(cid) => cid
+      Err(issue) => return Err(issue)
+    }
+    let bucket = match buckets.get(cid) {
+      Some(bucket) => bucket
+      None => {
+        if !reserve_slots(workspace, 1) || !spend_control_text(control, cid) {
+          return Err(RowLimit)
+        }
+        let bucket : Array[Value] = []
+        buckets[cid] = bucket
+        bucket
+      }
+    }
+    let mut duplicate = false
+    for previous in bucket {
+      let comparison = match compare_complete_value(previous, value, control) {
+        Ok(comparison) => comparison
+        Err(InvalidInput) => return Err(InvalidRows)
+        Err(Limit) => return Err(RowLimit)
+        Err(Scalar(issue)) => return Err(Comparison(issue))
+      }
+      if comparison == 0 {
+        duplicate = true
+        break
+      }
+    }
+    if !duplicate {
+      if !reserve_slots(workspace, 2) {
+        return Err(RowLimit)
+      }
+      bucket.push(value)
+      output.push(value)
+    }
+  }
+  Ok(output)
+}
+
+///|
+fn[T : IndexedRows] aggregate_group_ranges(
+  input : T,
+  indices : Array[Int],
+  order : Array[ColumnOrder],
+  max_groups : Int,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Array[AggregateGroupRange], RowIssue] {
+  let groups : Array[AggregateGroupRange] = []
+  if indices.is_empty() {
+    if order.is_empty() {
+      if max_groups == 0 ||
+        !spend_control(control, 1) ||
+        !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      groups.push({ representative: None, start: 0, end: 0, })
+    }
+    return Ok(groups)
+  }
+  let mut start = 0
+  for position = 1; position <= indices.length(); position = position + 1 {
+    let boundary = if position == indices.length() {
+      true
+    } else {
+      match
+        compare_row_indices(
+          input,
+          indices[position - 1],
+          indices[position],
+          order,
+          control,
+        ) {
+        Ok(comparison) => comparison != 0
+        Err(InvalidInput) => return Err(InvalidRows)
+        Err(Limit) => return Err(RowLimit)
+        Err(Scalar(issue)) => return Err(Comparison(issue))
+      }
+    }
+    if boundary {
+      if groups.length() == max_groups ||
+        !spend_control(control, 1) ||
+        !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      groups.push({
+        representative: Some(indices[start]),
+        start,
+        end: position,
+      })
+      start = position
+    }
+  }
+  Ok(groups)
+}
+
+///|
+fn[T : IndexedRows] evaluate_direct_aggregate(
+  aggregate : @lower.PreparedAggregate,
+  input : T,
+  indices : Array[Int],
+  range : AggregateGroupRange,
+  argument : Int?,
+  control : ControlBudget,
+  workspace : RowWorkspace,
+) -> Result[Value, RowIssue] {
+  let function = @lower.group_aggregate_function(aggregate)
+  let values : Array[Value] = []
+  let mut count = 0
+  for position = range.start; position < range.end; position = position + 1 {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    let value = match argument {
+      None => Null
+      Some(column) => IndexedRows::read_cell(input, indices[position], column)
+    }
+    match function {
+      @relation.Count =>
+        if argument is None {
+          count += 1
+        } else if !(value is Null) {
+          if !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
+          values.push(value)
+        }
+      @relation.CountIf =>
+        match value {
+          Boolean(true) => count += 1
+          Boolean(false) | Null => ()
+          _ => return Err(InvalidRows)
+        }
+      @relation.Sum | @relation.Min | @relation.Max =>
+        if !(value is Null) {
+          if !reserve_slots(workspace, 1) {
+            return Err(RowLimit)
+          }
+          values.push(value)
+        }
+      _ => return Err(InvalidRows)
+    }
+  }
+  let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
+    match distinct_aggregate_values(values, control, workspace) {
+      Ok(values) => values
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    values
+  }
+  match function {
+    @relation.Count => {
+      let total = if argument is None { count } else { values.length() }
+      Ok(Number(total.to_double()))
+    }
+    @relation.CountIf => Ok(Number(count.to_double()))
+    @relation.Min | @relation.Max => {
+      if values.is_empty() {
+        return Ok(Null)
+      }
+      let mut selected = values[0]
+      for i = 1; i < values.length(); i = i + 1 {
+        let comparison = match
+          compare_complete_value(values[i], selected, control) {
+          Ok(comparison) => comparison
+          Err(InvalidInput) => return Err(InvalidRows)
+          Err(Limit) => return Err(RowLimit)
+          Err(Scalar(issue)) => return Err(Comparison(issue))
+        }
+        if (function is @relation.Min && comparison < 0) ||
+          (function is @relation.Max && comparison > 0) {
+          selected = values[i]
+        }
+      }
+      Ok(selected)
+    }
+    @relation.Sum => {
+      if values.is_empty() {
+        return Ok(Null)
+      }
+      guard @lower.group_aggregate_result(aggregate).shape
+        is @contract.Decimal(precision~, scale~) else {
+        return Err(InvalidRows)
+      }
+      let mut coefficient = "0"
+      for value in values {
+        guard value is Captured(@admitted.Decimal(decimal)) &&
+          decimal.scale == scale else {
+          return Err(InvalidRows)
+        }
+        coefficient = match
+          add_decimal_coefficients(
+            coefficient,
+            decimal.coefficient,
+            control,
+            workspace,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      }
+      match @admitted.decimal_from_coefficient(coefficient, precision, scale) {
+        Some(value) => Ok(Captured(value))
+        None => Err(Aggregation(ArithmeticFailure))
+      }
+    }
+    _ => Err(InvalidRows)
+  }
+}
+
+///|
+fn[T : RelationRows] evaluate_group_into(
+  group : @lower.PreparedGroup,
+  input : T,
+  max_rows : Int,
+  control : ControlBudget,
+  output : ValueBudget,
+  workspace : RowWorkspace,
+  accept_row : (Array[Value], Int, Array[String], Array[Int]?) -> Result[
+    Unit,
+    RowIssue,
+  ],
+) -> Result[Array[String], RowIssue] {
+  if !group_execution_supported(group) {
+    return Err(InvalidRows)
+  }
+  let names = input.field_names()
+  let ordinals : Map[String, Int] = Map([])
+  for i in 0..<names.length() {
+    if !spend_control(control, 1) ||
+      !spend_control_text(control, names[i]) ||
+      !reserve_slots(workspace, 1) {
+      return Err(RowLimit)
+    }
+    if ordinals.contains(names[i]) {
+      return Err(InvalidRows)
+    }
+    ordinals[names[i]] = i
+  }
+  let resolve = fn(field : @schema.FieldName) -> Result[Int, RowIssue] {
+    let name = @schema.reference_name(field)
+    if !spend_control(control, 1) || !spend_control_text(control, name) {
+      return Err(RowLimit)
+    }
+    match ordinals.get(name) {
+      Some(index) => Ok(index)
+      None => Err(InvalidRows)
+    }
+  }
+  let key_count = @lower.group_key_count(group)
+  let aggregate_count = @lower.group_aggregate_count(group)
+  if !reserve_slots(workspace, key_count) ||
+    !reserve_slots(workspace, aggregate_count) ||
+    !reserve_slots(workspace, aggregate_count) {
+    return Err(RowLimit)
+  }
+  let order : Array[ColumnOrder] = []
+  let key_by_name : Map[String, Int] = Map([])
+  for i in 0..<key_count {
+    let field = @lower.group_key_at(group, i).unwrap()
+    let column = match resolve(field) {
+      Ok(column) => column
+      Err(issue) => return Err(issue)
+    }
+    order.push({ column, descending: false, nulls_first: true, })
+    let name = @schema.reference_name(field)
+    if !key_by_name.contains(name) {
+      key_by_name[name] = column
+    }
+  }
+  let aggregate_by_name : Map[String, Int] = Map([])
+  let arguments : Array[Int?] = []
+  for i in 0..<aggregate_count {
+    let aggregate = @lower.group_aggregate_at(group, i).unwrap()
+    let name = @lower.group_aggregate_name(aggregate)
+    if !spend_control(control, 1) || !spend_control_text(control, name) {
+      return Err(RowLimit)
+    }
+    aggregate_by_name[name] = i
+    arguments.push(
+      match @lower.group_aggregate_argument(aggregate) {
+        @lower.AggregateRows => None
+        @lower.AggregateField(field) =>
+          match resolve(field) {
+            Ok(column) => Some(column)
+            Err(issue) => return Err(issue)
+          }
+        @lower.AggregateExpression(_) => return Err(InvalidRows)
+      },
+    )
+  }
+  let schema = @lower.group_output_schema(group)
+  let width = @schema.field_count(schema)
+  if !reserve_slots(workspace, width) || !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
+  let output_names : Array[String] = []
+  let projection : Array[(Bool, Int)] = []
+  for i in 0..<width {
+    let name = @schema.reference_name(@schema.field_at(schema, i).unwrap().name)
+    if !spend_control(control, 1) || !spend_control_text(control, name) {
+      return Err(RowLimit)
+    }
+    output_names.push(name)
+    match aggregate_by_name.get(name) {
+      Some(index) => projection.push((true, index))
+      None =>
+        match key_by_name.get(name) {
+          Some(column) => projection.push((false, column))
+          None => return Err(InvalidRows)
+        }
+    }
+  }
+  let indices = match stable_order_indices(input, order, control, workspace) {
+    Ok(indices) => indices
+    Err(InvalidInput) => return Err(InvalidRows)
+    Err(Limit) => return Err(RowLimit)
+    Err(Scalar(issue)) => return Err(Comparison(issue))
+  }
+  let groups = match
+    aggregate_group_ranges(input, indices, order, max_rows, control, workspace) {
+    Ok(groups) => groups
+    Err(issue) => return Err(issue)
+  }
+  for range in groups {
+    if !spend_control(control, 1) ||
+      !reserve_slots(workspace, aggregate_count) ||
+      !reserve_slots(workspace, 1) ||
+      !reserve_slots(workspace, width) {
+      return Err(RowLimit)
+    }
+    let aggregate_values : Array[Value] = []
+    for i in 0..<aggregate_count {
+      let baseline = workspace.live
+      let value = match
+        evaluate_direct_aggregate(
+          @lower.group_aggregate_at(group, i).unwrap(),
+          input,
+          indices,
+          range,
+          arguments[i],
+          control,
+          workspace,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      release_slots(workspace, workspace.live - baseline)
+      aggregate_values.push(value)
+    }
+    let row : Array[Value] = []
+    for (aggregate, index) in projection {
+      if aggregate {
+        row.push(aggregate_values[index])
+      } else {
+        guard range.representative is Some(source) else {
+          return Err(InvalidRows)
+        }
+        row.push(IndexedRows::read_cell(input, source, index))
+      }
+    }
+    if !retain_row(row, output_names, output) {
+      return Err(RowLimit)
+    }
+    match
+      accept_row(row, range.representative.unwrap_or(-1), output_names, None) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    release_slots(workspace, aggregate_count)
+  }
+  Ok(output_names)
+}

@@ -773,6 +773,14 @@ fn local_values_group_program(variant : String) -> String {
         "[\"id\"]", "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
         "[\"id\"]", "[\"id\",\"n\",\"present\"]", "[\"present\",\"n\",\"id\"]",
       )
+    "direct" =>
+      (
+        "{\"k\":{\"type\":\"number\",\"nullable\":true},\"flag\":{\"type\":\"boolean\",\"nullable\":true},\"amount\":{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true},\"label\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"k\":2,\"flag\":true,\"amount\":\"1.25\",\"label\":\"b\"},{\"k\":null,\"flag\":true,\"amount\":\"-0.25\",\"label\":\"a\"},{\"k\":1,\"flag\":null,\"amount\":null,\"label\":null},{\"k\":2,\"flag\":false,\"amount\":\"2.00\",\"label\":\"a\"},{\"k\":null,\"flag\":false,\"amount\":\"0.50\",\"label\":\"c\"}]",
+        "[\"k\"]", "{\"distinct_labels\":{\"fn\":\"count\",\"field\":\"label\",\"distinct\":true},\"hits\":{\"fn\":\"count_if\",\"field\":\"flag\"},\"highest\":{\"fn\":\"max\",\"field\":\"label\"},\"lowest\":{\"fn\":\"min\",\"field\":\"label\"},\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}",
+        "[\"amount\",\"flag\",\"k\",\"label\"]", "[\"distinct_labels\",\"highest\",\"hits\",\"k\",\"lowest\",\"total\"]",
+        "[\"total\",\"lowest\",\"k\",\"hits\",\"highest\",\"distinct_labels\"]",
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =

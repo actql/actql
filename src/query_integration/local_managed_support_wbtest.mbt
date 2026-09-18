@@ -58,6 +58,26 @@ test "Local managed support is a finite checked surface" {
       task_test_generated(values),
     ),
   )
+  for
+    (aggregate, expected) in [
+      ("{\"n\":{\"fn\":\"sum\",\"field\":\"exact\"}}", true),
+      ("{\"n\":{\"fn\":\"sum\",\"field\":\"amount\"}}", false),
+      ("{\"n\":{\"fn\":\"avg\",\"field\":\"amount\"}}", false),
+      ("{\"n\":{\"fn\":\"count\",\"filter\":\"flag\"}}", false),
+      ("{\"n\":{\"fn\":\"max\",\"expr\":\"amount\"}}", false),
+    ] {
+    let grouped = local_managed_support_owner(
+      "[{\"values\":{\"schema\":{\"amount\":{\"type\":\"number\",\"nullable\":true},\"exact\":{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":true},\"flag\":{\"type\":\"boolean\",\"nullable\":true}},\"rows\":[]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":" +
+      aggregate +
+      "}}]",
+    )
+    assert_eq(
+      @local_connector.local_managed_sequence_supported(
+        task_test_generated(grouped),
+      ),
+      expected,
+    )
+  }
   for (aggregate, expected) in [("count", true), ("sum", false), ("avg", false)] {
     let pivot = local_managed_support_owner(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"id\":1,\"status\":\"open\",\"amount\":2}]},\"as\":\"seed\"},{\"from\":\"seed\",\"pivot\":{\"index\":[\"id\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"" +

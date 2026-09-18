@@ -32,6 +32,22 @@ fn task_test_generated(
       match @lower.kernel_body(kernel) {
         SnapshotMap(_) | OrderedBindings(_) | Filter(_) | AssertAll(_) =>
           contexts.push(sequence_fragment_context(sequence, step, 10L))
+        Groups(group) => {
+          let mut required = false
+          for aggregate = 0
+              aggregate < @lower.group_aggregate_count(group)
+              aggregate = aggregate + 1 {
+            let value = @lower.group_aggregate_at(group, aggregate).unwrap()
+            if @lower.group_aggregate_filter(value) is Some(_) ||
+              @lower.group_aggregate_argument(value)
+              is @lower.AggregateExpression(_) {
+              required = true
+            }
+          }
+          if required {
+            contexts.push(sequence_fragment_context(sequence, step, 10L))
+          }
+        }
         _ => ()
       }
     }

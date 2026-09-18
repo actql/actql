@@ -418,6 +418,11 @@ fn[T : RelationRows] evaluate_row_body_impl(
       group, input, max_rows, control, output, workspace, accept_row,
     )
   }
+  if body is PreparedBody(kernel) && @lower.kernel_group(kernel) is Some(group) {
+    return evaluate_group_into(
+      group, input, max_rows, control, output, workspace, accept_row,
+    )
+  }
   let view_entries = match body {
     PreparedBody(kernel) => @lower.kernel_view_entries(kernel)
     Projection(view) => @lower.projection_field_count(view)

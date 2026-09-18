@@ -75,10 +75,26 @@ fn prepare_ordered_budgets(
         }
         let body = @lower.kernel_body(kernel)
         match body {
-          @lower.OrderedBindings(_) | @lower.Groups(_) =>
+          @lower.OrderedBindings(_) =>
             if !budgets.contains(i) {
               return Err(Rows(i, MissingOrderedResourceContext))
             }
+          @lower.Groups(group) => {
+            let mut required = false
+            for aggregate = 0
+                aggregate < @lower.group_aggregate_count(group)
+                aggregate = aggregate + 1 {
+              let value = @lower.group_aggregate_at(group, aggregate).unwrap()
+              if @lower.group_aggregate_filter(value) is Some(_) ||
+                @lower.group_aggregate_argument(value)
+                is @lower.AggregateExpression(_) {
+                required = true
+              }
+            }
+            if required && !budgets.contains(i) {
+              return Err(Rows(i, MissingOrderedResourceContext))
+            }
+          }
           @lower.SnapshotMap(_)
           | @lower.Filter(_)
           | @lower.AssertAll(_)

@@ -65,7 +65,24 @@ fn run_local_managed_test_task(
   assert_eq(operations.inputs.length(), rows.length())
   for index, transfer in operations.inputs {
     for row in rows[index] {
-      (transfer.append)(row).unwrap()
+      match (transfer.append)(row) {
+        Ok(_) => ()
+        Err(Configuration(_)) => fail("Local managed row configuration failed")
+        Err(Preparation(_)) => fail("Local managed row preparation failed")
+        Err(Dispatch(_)) => fail("Local managed row dispatch failed")
+        Err(Execution(Physical(_))) =>
+          fail("Local managed row transfer capacity failed")
+        Err(Execution(NotReady)) => fail("Local managed row was not ready")
+        Err(Execution(Stopped)) => fail("Local managed row was stopped")
+        Err(Execution(_)) => fail("Local managed row execution failed")
+        Err(Search(_)) => fail("Local managed row search failed")
+        Err(ManagedValues(_)) => fail("Local managed row value setup failed")
+        Err(ManagedCopy(_)) => fail("Local managed row copy setup failed")
+        Err(ManagedRetention(_)) =>
+          fail("Local managed row retention setup failed")
+        Err(ManagedCompletion(_)) =>
+          fail("Local managed row completion setup failed")
+      }
     }
     (transfer.finish)().unwrap()
   }
@@ -217,9 +234,47 @@ fn run_local_managed_group_case(
     {
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
-      wire: { ..retained_attempt_wire_limits(), max_columns: 4, },
-      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
-      max_batch_bytes: 64,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: if variant == "direct" {
+          512
+        } else {
+          100
+        },
+        max_nodes: if variant == "direct" {
+          100
+        } else {
+          20
+        },
+        max_columns: if variant == "direct" {
+          6
+        } else {
+          4
+        },
+      },
+      row: {
+        max_bytes: if variant == "direct" {
+          1000
+        } else {
+          100
+        },
+        max_nodes: if variant == "direct" {
+          100
+        } else {
+          20
+        },
+        max_depth: 4,
+        max_text_bytes: if variant == "direct" {
+          1000
+        } else {
+          100
+        },
+      },
+      max_batch_bytes: if variant == "direct" {
+        512
+      } else {
+        64
+      },
     },
     None,
   ).unwrap()
@@ -350,5 +405,27 @@ test "Local managed group distinguishes row and field counts" {
     ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
     ["{\"id\":null,\"n\":1,\"present\":0}", "{\"id\":1,\"n\":2,\"present\":2}"],
     ["{\"present\":0,\"n\":1,\"id\":null}", "{\"present\":2,\"n\":2,\"id\":1}"],
+  )
+}
+
+///|
+test "Local managed direct aggregates reach two independent consumers" {
+  run_local_managed_group_case(
+    "direct",
+    [
+      "{\"amount\":\"1.25\",\"flag\":true,\"k\":2,\"label\":\"b\"}", "{\"amount\":\"-0.25\",\"flag\":true,\"k\":null,\"label\":\"a\"}",
+      "{\"amount\":null,\"flag\":null,\"k\":1,\"label\":null}", "{\"amount\":\"2.00\",\"flag\":false,\"k\":2,\"label\":\"a\"}",
+      "{\"amount\":\"0.50\",\"flag\":false,\"k\":null,\"label\":\"c\"}",
+    ],
+    [
+      "{\"distinct_labels\":2,\"highest\":\"c\",\"hits\":1,\"k\":null,\"lowest\":\"a\",\"total\":\"0.25\"}",
+      "{\"distinct_labels\":0,\"highest\":null,\"hits\":0,\"k\":1,\"lowest\":null,\"total\":null}",
+      "{\"distinct_labels\":2,\"highest\":\"b\",\"hits\":1,\"k\":2,\"lowest\":\"a\",\"total\":\"3.25\"}",
+    ],
+    [
+      "{\"total\":\"0.25\",\"lowest\":\"a\",\"k\":null,\"hits\":1,\"highest\":\"c\",\"distinct_labels\":2}",
+      "{\"total\":null,\"lowest\":null,\"k\":1,\"hits\":0,\"highest\":null,\"distinct_labels\":0}",
+      "{\"total\":\"3.25\",\"lowest\":\"a\",\"k\":2,\"hits\":1,\"highest\":\"b\",\"distinct_labels\":2}",
+    ],
   )
 }

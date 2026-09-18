@@ -2102,10 +2102,24 @@
         "source_connection": "partial",
         "two_consumer_e2e": "partial",
         "three_target_conformance": "partial",
-        "performance": "missing"
+        "performance": "partial"
       },
       "evidence": {
         "source_connection": [
+          {
+            "operation": "group",
+            "layer": "source_connection",
+            "path": "src/lowering_relation/fragment_pipeline_test.mbt",
+            "fixtures": [
+              "group fragment retains source roots and canonical order expansion"
+            ],
+            "suite": "moon:lowering_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
           {
             "operation": "group",
             "layer": "source_connection",
@@ -2133,7 +2147,8 @@
               "Local managed group count preserves compound canonical order",
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
-              "Local managed group distinguishes row and field counts"
+              "Local managed group distinguishes row and field counts",
+              "Local managed direct aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2153,7 +2168,8 @@
               "Local managed group count preserves compound canonical order",
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
-              "Local managed group distinguishes row and field counts"
+              "Local managed group distinguishes row and field counts",
+              "Local managed direct aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2184,7 +2200,13 @@
             "fixtures": [
               "checked group count runs through generated sequence without expression contexts",
               "empty global count publishes zero and feeds an independently completed consumer",
-              "group count enforces its cumulative result ceiling"
+              "group count enforces its cumulative result ceiling",
+              "complete direct aggregates preserve group order and exact values",
+              "empty direct aggregates retain the global group laws",
+              "direct decimal sum checks only its final public precision",
+              "direct group capability rejects work owned by other contracts",
+              "direct group accepts exact shared work and rejects one-short execution",
+              "direct group stays within indexed aggregation scaling floors"
             ],
             "suite": "moon:execution_relation",
             "targets": [
@@ -2202,7 +2224,8 @@
               "Local managed group count preserves compound canonical order",
               "Local managed keyed group emits no group for empty input",
               "Local managed global group emits zero for empty input",
-              "Local managed group distinguishes row and field counts"
+              "Local managed group distinguishes row and field counts",
+              "Local managed direct aggregates reach two independent consumers"
             ],
             "suite": "moon:query_integration",
             "targets": [
@@ -2226,11 +2249,25 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "group",
+            "layer": "performance",
+            "path": "src/execution_relation/group_rows_wbtest.mbt",
+            "fixtures": [
+              "direct group stays within indexed aggregation scaling floors"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
           }
         ]
       },
       "gaps": [
-        "Count-group covers empty and compound keys, NULL-first order, row and field counts, two consumers, result limits, and subquadratic work; non-count aggregates and the remaining formal key domains remain."
+        "Count, count-distinct, count-if, direct min/max, and exact Decimal sum cover NULL-first groups, empty global input, two consumers, exact work boundaries, and indexed scaling. Expression and filtered arguments, ordered aggregates, binary64 observation folds, statistical aggregates, array/string aggregates, and remaining formal key domains remain."
       ]
     },
     {
