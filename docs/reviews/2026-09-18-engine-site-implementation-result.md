@@ -1,6 +1,7 @@
 # Common Engine and Site Architecture Implementation Result
 
-Date: 2026-09-18. Implementation commit: `120cd1dc`.
+Date: 2026-09-18. Initial implementation commit: `120cd1dc`.
+Lifecycle follow-up commit: `fad218f3`.
 Baseline: `5a305f3ce5cdac421985fb9a71878bc22af51237`.
 
 This report closes E0 through E3 of
@@ -95,6 +96,27 @@ holding release, and cleanup retry. It does not complete while a holding,
 operation, or reclamation responsibility remains. Site revocation does not
 return unconfirmed retained or execution bytes.
 
+The lifecycle follow-up closes three integration gaps found after the initial
+implementation review. Legacy contributions now receive a Host-owned final
+completion permit and must pass it immediately before common Core completion.
+Forced Site revocation therefore prevents legacy completion, while graceful
+teardown still permits an already admitted operation to finish. This is wired
+through the Local, reference, and DuckDB product bridges rather than applied
+only to the JavaScript return value.
+
+Transfer commit now rechecks the exact source and destination Site identities,
+generations, and forced-revocation state after the provider copy and before
+issuing a success record or destination holding. A failed check leaves no
+Transfer success, retains cleanup ownership for the provisional destination,
+and does not invalidate an otherwise trusted source. A committed independent
+destination remains valid if its source Site is lost later.
+
+Early managed-output release and full Host close now use the same owner-aware
+release path. A synchronous or asynchronous close failure installs the Site
+holding cleanup observer before propagating the failure. Successful explicit
+retry therefore releases the holding and its retained-byte charge exactly
+once; failures without a retry contract remain explicitly unconfirmed.
+
 Local, reference, DuckDB, Node, and Workers paths use the common Site surface.
 The Local-only Node path does not require the DuckDB SDK, and Workers execute
 their existing standard conformance path through the Site bridge.
@@ -104,7 +126,7 @@ their existing standard conformance path through the Site bridge.
 The implementation tree passed:
 
 - MoonBit tests: JS 4,522/4,522; Wasm 4,521/4,521; native 4,521/4,521.
-- Retained boundary: 168/168.
+- Retained boundary: 171/171.
 - DuckDB Node: 127/127.
 - Workers conformance: 7/7.
 - Process capacity and accounting: 15/15.
