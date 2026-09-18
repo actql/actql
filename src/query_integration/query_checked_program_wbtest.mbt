@@ -457,6 +457,8 @@ fn local_json_pick_program() -> String {
 fn local_ordered_set_program(kind : String) -> String {
   let operation = match kind {
     "sort" => "{\"sort\":[{\"id\":\"asc\"}],\"as\":\"out\"}"
+    "sort_compound" =>
+      "{\"sort\":[{\"field\":\"amount\",\"dir\":\"desc\",\"nulls\":\"first\"},{\"id\":\"asc\"}],\"as\":\"out\"}"
     "take" => "{\"take\":{\"count\":2,\"offset\":1},\"as\":\"out\"}"
     "top_k" =>
       "{\"distinct\":[\"id\",\"amount\"],\"as\":\"unique\"},{\"from\":\"unique\",\"top_k\":{\"k\":2,\"by\":[{\"amount\":\"desc\"}]},\"as\":\"out\"}"
@@ -469,6 +471,19 @@ fn local_ordered_set_program(kind : String) -> String {
   }
   let prefix =
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":2,"amount":20},{"id":1,"amount":10},{"id":2,"amount":20},{"id":2,"amount":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[
+  let prefix = if kind == "sort_compound" {
+    prefix
+    .replace(
+      old="\"amount\":{\"type\":\"number\",\"nullable\":false}",
+      new="\"amount\":{\"type\":\"number\",\"nullable\":true}",
+    )
+    .replace(
+      old="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":10},{\"id\":2,\"amount\":20},{\"id\":2,\"amount\":30}",
+      new="{\"id\":2,\"amount\":20},{\"id\":1,\"amount\":null},{\"id\":1,\"amount\":30},{\"id\":2,\"amount\":null}",
+    )
+  } else {
+    prefix
+  }
   let consumer =
     #|,"as":"out"}],"results":{"r":{"from":"out","fields":["id","amount"]}}}
   prefix +
@@ -526,6 +541,7 @@ fn local_values_unary_program(kind : String) -> String {
     return local_json_pick_program()
   }
   if kind == "sort" ||
+    kind == "sort_compound" ||
     kind == "take" ||
     kind == "top_k" ||
     kind == "top_k_by" ||

@@ -29,6 +29,11 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}", "{\"id\":2,\"amount\":20}",
         "{\"id\":2,\"amount\":30}",
       ]
+    "sort_compound" =>
+      [
+        "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":1,\"amount\":30}",
+        "{\"id\":2,\"amount\":20}",
+      ]
     "take" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
     "top_k" => ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
     "top_k_by" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
@@ -81,6 +86,11 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
   } else if kind == "json_pick" {
     [
       "{\"id\":1,\"payload\":{\"inner\":{\"leaf\":3}}}", "{\"id\":2,\"payload\":null}",
+    ]
+  } else if kind == "sort_compound" {
+    [
+      "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":30,\"id\":1}",
+      "{\"amount\":null,\"id\":2}",
     ]
   } else if kind == "sort" ||
     kind == "take" ||
@@ -233,8 +243,8 @@ test "Local managed unary source forms feed two downstream Computes" {
       "select", "filter_text", "filter_structured", "filter_null", "derive_map",
       "derive_empty", "derive_ordered", "rename", "rename_swap", "rename_empty",
       "drop", "drop_empty", "drop_repeated", "json_pick", "assert_where", "assert_unique",
-      "sort", "take", "distinct", "top_k", "top_k_by", "dedupe_rows", "unnest", "unpivot",
-      "pivot", "pivot_decimal_sum",
+      "sort", "sort_compound", "take", "distinct", "top_k", "top_k_by", "dedupe_rows",
+      "unnest", "unpivot", "pivot", "pivot_decimal_sum",
     ] {
     run_local_managed_unary_case(kind)
   }
