@@ -1979,6 +1979,23 @@
           {
             "operation": "join",
             "layer": "conformance",
+            "path": "src/execution_relation/join_rows_wbtest.mbt",
+            "fixtures": [
+              "equality join kinds preserve unmatched and single-left row order",
+              "join cardinality and null obligations run even when no pair can be emitted",
+              "compound nullable join keys match only complete equal tuples",
+              "self join retains both checked operand occurrences"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ]
+          },
+          {
+            "operation": "join",
+            "layer": "conformance",
             "path": "src/execution_relation/retained_join_validation_wbtest.mbt",
             "fixtures": [
               "shape-only join preflight accepts exact retained inputs with unchanged work limits",
@@ -2025,7 +2042,7 @@
         ]
       },
       "gaps": [
-        "All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. The equality path has fixed indexed lookup work outside result multiplicity and linear retained coordinates. Cross-stage full-join identity transfer, compound nullable match keys, cardinality assertions, self join, broader types and diagnostics, and multi-join invocation support remain."
+        "All five equality join kinds reach two managed consumers and reclaim each holding. Inner, left, semi, and anti bind imported producer ports; full uses checked non-null compound identities established inside its zero-input producer pipeline and a stable publication order. Compound nullable keys, cardinality and NULL obligations, self joins, and indexed lookup work are covered from checked source through Local execution. Cross-stage full-join identity transfer, broader types and diagnostics, and multi-join invocation support remain."
       ]
     },
     {

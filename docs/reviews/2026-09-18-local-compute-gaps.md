@@ -42,7 +42,7 @@ standard-Host candidate and execution support, not a direct kernel call.
 | unpivot | C | C | P | P | Empty and repeated-column managed paths and linear scaling are covered; type matrix and native layout writer remain |
 | json_pick | C | C | C | P | Standard-Host evidence, opaque-json shapes, parameter paths, exact budget boundaries, and the shared owned-reference runtime boundary; direct leaf domains, malformed retained values, NULL, and linear scaling are covered |
 | unnest | C | C | P | P | Inner/outer managed paths and linear scaling are covered; nested-value matrix and native layout writer remain |
-| join | C | P | P | P | All five equality kinds are managed end-to-end with indexed scaling; cross-stage full identity transfer, compound/self joins, types, and diagnostics remain |
+| join | C | P | P | P | Equality kinds, compound nullable keys, self joins, cardinality, and indexed scaling are covered; cross-stage full identity transfer, broader types, and diagnostics remain |
 | nest | C | - | - | - | Canonical common contract is missing |
 | group | C | P | P | P | Count is managed for empty, nullable, and compound keys with two consumers, result limits, and subquadratic work; non-count aggregates and remaining key domains remain |
 | distinct | C | C | C | P | Standard-Host evidence, the broader whole-row domain matrix, and shared owned-reference comparison; keyed nullable projection, first occurrence, two consumers, and indexed scaling are covered |
