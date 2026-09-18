@@ -84,9 +84,12 @@ pub fn ${name}_registration(setup : ${host}) -> @connector.CapabilityRegistratio
 
 ///|
 #export_name("strategyModule_${name}_Dispatch")
-pub fn ${name}_dispatch(setup : ${host}, task : @host_driver.PreparedTaskDispatch) -> ${result} raise NodeHostFailure {
-  match @builtin.dispatch_${name}(@builtin.configured_host_modules(setup),
-    @host_driver.compute_host_dispatch(@builtin.configured_host_runtime(setup)), task) {
+pub fn ${name}_dispatch(
+  setup : ${host},
+  task : @host_driver.PreparedTaskDispatch,${c.completion_dispatch ? '\n  completion_ready : () -> Bool,' : ''}
+) -> ${result} raise NodeHostFailure {
+  match @builtin.dispatch_${name}${c.completion_dispatch ? '_with_completion_admission' : ''}(@builtin.configured_host_modules(setup),
+    @host_driver.compute_host_dispatch(@builtin.configured_host_runtime(setup)), task${c.completion_dispatch ? ', completion_ready' : ''}) {
     Ok(value) => value
     Err(MissingImplementation) => raise InvalidCommand
     Err(Implementation(issue)) => raise Execution(issue)

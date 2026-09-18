@@ -171,7 +171,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         );
       }
     },
-    async run(task, signal) {
+    async run(task, signal, completionPermit) {
       signal?.throwIfAborted();
       const operations = checked(moon.strategyModule_local_Dispatch(setup, task));
       let settled = false;
@@ -190,6 +190,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         settled = true;
+        completionPermit?.assertAvailable?.();
         checked(operations.complete());
         return {diagnostic: {realization: 'local', importedRows, importedBytes: String(importedBytes), ...exported},
           close: output ? async () => {

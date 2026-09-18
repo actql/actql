@@ -267,6 +267,24 @@ export async function runInstalledStrategy(
     failed = true;
     rememberCleanup(error, releaseOwner);
   };
+  const rememberOwnedReleaseFailure = (error, owner) => {
+    rememberCleanup(error, owner);
+    owner?.afterFailure?.(error, rememberCleanup);
+  };
+  const releaseOwnedResult = owner => {
+    try {
+      const result = owner?.close?.();
+      return result != null && typeof result.then === 'function'
+        ? Promise.resolve(result).catch(error => {
+          rememberOwnedReleaseFailure(error, owner);
+          throw error;
+        })
+        : result;
+    } catch (error) {
+      rememberOwnedReleaseFailure(error, owner);
+      throw error;
+    }
+  };
   const cleanupPending = () => {
     if (pendingCloses.size) return true;
     if (unconfirmedRelease.size) return true;
@@ -423,6 +441,14 @@ export async function runInstalledStrategy(
       };
       const siteCompletionReady = () => siteInputsResolved &&
         executionSiteOperationAvailable(siteOperation);
+      const siteCompletionPermit = Object.freeze({
+        isAvailable: siteCompletionReady,
+        assertAvailable() {
+          if (!siteCompletionReady()) {
+            throw new StrategyHostError('ExecutionSiteCompletionNotReady');
+          }
+        },
+      });
       const siteTask = managed ? Object.freeze({
         ...task,
         executionSite: siteCandidate.site,
@@ -433,10 +459,8 @@ export async function runInstalledStrategy(
       try {
         result = await (managed
           ? entry.runPrepared(siteTask, signal)
-          : entry.run(task, signal));
-        if (managed && !siteCompletionReady()) {
-          throw new StrategyHostError('ExecutionSiteCompletionNotReady');
-        }
+          : entry.run(task, signal, siteCompletionPermit));
+        siteCompletionPermit.assertAvailable();
         if (!core.completed(setup, index)) {
           throw new StrategyHostError('TaskNotCompleted');
         }
@@ -471,6 +495,7 @@ export async function runInstalledStrategy(
           siteMaterial: result.siteMaterial ?? result.material,
           materialGeneration: result.materialGeneration ?? result.material,
           close: siteResult?.close,
+          releaseOwner: siteResult,
         }));
       }
       completed.push(Object.freeze({
@@ -495,7 +520,11 @@ export async function runInstalledStrategy(
           if (output?.siteMaterial) {
             await transfers.releaseSource(output);
           }
-          if (output?.close) await output.close();
+          if (output?.releaseOwner) {
+            await releaseOwnedResult(output.releaseOwner);
+          } else if (output?.close) {
+            await output.close();
+          }
           task.outputs?.delete(producer);
           managedOutputs.delete(producer);
         }
@@ -575,8 +604,7 @@ export async function runInstalledStrategy(
       const releaseFailed = (error, owner) => {
         if (!closeFailed) closeFailure = error;
         closeFailed = true;
-        rememberCleanup(error, owner);
-        owner?.afterFailure?.(error, rememberCleanup);
+        rememberOwnedReleaseFailure(error, owner);
       };
       try {
         const result = transfers.close();
@@ -589,7 +617,7 @@ export async function runInstalledStrategy(
       } catch (error) { releaseFailed(error, transfers); }
       for (const output of outputs) {
         try {
-          const result = output.close();
+          const result = releaseOwnedResult(output);
           if (result != null && typeof result.then === 'function') {
             const pending = Promise.resolve(result).then(
               () => {}, error => releaseFailed(error, output),

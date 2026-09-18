@@ -175,8 +175,12 @@ export function numericStrategyContribution(moon, setup, checked) {
         );
       }
     },
-    async run(task) {
-      checked(moon.strategyModule_reference_compute_Dispatch(setup, task));
+    async run(task, _signal, completionPermit) {
+      checked(moon.strategyModule_reference_compute_Dispatch(
+        setup,
+        task,
+        () => completionPermit?.isAvailable?.() !== false,
+      ));
       return {diagnostic: {realization: 'reference-numeric'}};
     },
   });

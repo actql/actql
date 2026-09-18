@@ -84,6 +84,34 @@ pub fn[C, E, T] execute_compute_author_work(
   ],
   execute : (T) -> Result[Unit, @strategy.RunIssue],
 ) -> Result[Unit, @strategy.RunIssue] {
+  execute_compute_author_work_with_completion_admission(
+    context,
+    host,
+    task,
+    channel,
+    execute,
+    fn() { true },
+  )
+}
+
+///|
+/// Execute synchronous work while preserving a Host-owned final completion
+/// admission. The callback is checked only after execution has stopped and
+/// settled, immediately before common completion is committed.
+pub fn[C, E, T] execute_compute_author_work_with_completion_admission(
+  context : ComputeAuthorContext,
+  host : DispatchHost[C, E],
+  task : PreparedTaskDispatch,
+  channel : DispatchChannel[
+    @connector.PreparedExecution[
+      T,
+      @strategy.RunIssue,
+      @strategy.TaskPublication,
+    ],
+  ],
+  execute : (T) -> Result[Unit, @strategy.RunIssue],
+  completion_ready : () -> Bool,
+) -> Result[Unit, @strategy.RunIssue] {
   if !physical_equal(context.driver, host.owner.driver) {
     return Err(ForeignCandidate)
   }
@@ -107,7 +135,12 @@ pub fn[C, E, T] execute_compute_author_work(
   }
   let result = match result {
     Err(issue) => Err(issue)
-    Ok(_) => @strategy.complete_task_execution(run, execution)
+    Ok(_) =>
+      if completion_ready() {
+        @strategy.complete_task_execution(run, execution)
+      } else {
+        Err(@strategy.RunIssue::Stopped)
+      }
   }
   if result is Err(_) {
     @strategy.close_task_execution(run, execution)

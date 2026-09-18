@@ -33,7 +33,7 @@ pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDisp
 
 pub fn local_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
-pub fn reference_compute_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> Unit raise NodeHostFailure
+pub fn reference_compute_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch, () -> Bool) -> Unit raise NodeHostFailure
 
 pub fn reference_compute_managed_capacity(@actql/actql/connectors/reference_compute/driver.NumericManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 

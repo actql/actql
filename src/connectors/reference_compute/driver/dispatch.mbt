@@ -210,7 +210,19 @@ fn[C, E] execute_numeric_dispatch(
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
 ) -> Result[Unit, @strategy.RunIssue] {
-  @host.execute_compute_author_work(
+  execute_numeric_dispatch_with_completion_admission(installed, host, task, fn() {
+    true
+  })
+}
+
+///|
+fn[C, E] execute_numeric_dispatch_with_completion_admission(
+  installed : NumericDispatchModule,
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+  completion_ready : () -> Bool,
+) -> Result[Unit, @strategy.RunIssue] {
+  @host.execute_compute_author_work_with_completion_admission(
     installed.context,
     host,
     task,
@@ -218,5 +230,6 @@ fn[C, E] execute_numeric_dispatch(
     attempt => {
       @numeric.execute_numeric_attempt(attempt).map_err(numeric_dispatch_issue)
     },
+    completion_ready,
   )
 }

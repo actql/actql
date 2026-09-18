@@ -34,8 +34,10 @@ export function generateComputeAssembly(entries) {
     const managedCapacity = Object.hasOwn(m, 'managed_capacity');
     const managedOptional = m.managed_dispatch_optional === true;
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(Object.hasOwn(m, 'completion_dispatch') ? ['completion_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
+        (Object.hasOwn(m, 'completion_dispatch') &&
+          (m.dispatch_result !== 'Unit' || !identifier(m.completion_dispatch))) ||
         (Object.hasOwn(m, 'managed_dispatch_optional') &&
           (!managed || typeof m.managed_dispatch_optional !== 'boolean')) ||
         (managed && (!identifier(m.managed_dispatch) ||
@@ -138,7 +140,13 @@ function configurationAssembly(entries, alias, typed, resultType) {
     `  match value.installed_${name} {\n` +
     `    None => Err(MissingImplementation)\n` +
     `    Some((installed, project, _)) => @${alias(m.package)}.${m.dispatch}(installed, host, task).map_err(issue => Implementation(project(issue)))\n` +
-    `  }\n}\n`).join('');
+    `  }\n}\n` + (m.completion_dispatch ?
+      `\n///|\n/// Invoke an installed implementation with a Host-owned final completion admission.\n` +
+      `pub fn[C, E] dispatch_${name}_with_completion_admission(value : ConfiguredComputeModules[E], host : @host.DispatchHost[C, E], task : @host.PreparedTaskDispatch, completion_ready : () -> Bool) -> Result[${resultType(m.dispatch_result)}, ConfiguredDispatchIssue[E]] {\n` +
+      `  match value.installed_${name} {\n` +
+      `    None => Err(MissingImplementation)\n` +
+      `    Some((installed, project, _)) => @${alias(m.package)}.${m.completion_dispatch}(installed, host, task, completion_ready).map_err(issue => Implementation(project(issue)))\n` +
+      `  }\n}\n` : '')).join('');
   const managedDispatches = entries.filter(({manifest:m}) => m.managed_dispatch)
     .map(({name, manifest:m}) =>
       `\n///|\n/// Prepare one managed task through the configured implementation.\n` +

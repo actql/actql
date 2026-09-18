@@ -697,14 +697,16 @@ pub fn reference_compute_registration(
 pub fn reference_compute_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
+  completion_ready : () -> Bool,
 ) -> Unit raise NodeHostFailure {
   match
-    @builtin.dispatch_reference_compute(
+    @builtin.dispatch_reference_compute_with_completion_admission(
       @builtin.configured_host_modules(setup),
       @host_driver.compute_host_dispatch(
         @builtin.configured_host_runtime(setup),
       ),
       task,
+      completion_ready,
     ) {
     Ok(value) => value
     Err(MissingImplementation) => raise InvalidCommand

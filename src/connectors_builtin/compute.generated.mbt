@@ -306,6 +306,23 @@ pub fn[C, E] dispatch_reference_compute(
 }
 
 ///|
+/// Invoke an installed implementation with a Host-owned final completion admission.
+pub fn[C, E] dispatch_reference_compute_with_completion_admission(
+  value : ConfiguredComputeModules[E],
+  host : @host.DispatchHost[C, E],
+  task : @host.PreparedTaskDispatch,
+  completion_ready : () -> Bool,
+) -> Result[Unit, ConfiguredDispatchIssue[E]] {
+  match value.installed_reference_compute {
+    None => Err(MissingImplementation)
+    Some((installed, project, _)) =>
+      @binding5.execute_numeric_contribution_with_completion_admission(
+        installed, host, task, completion_ready,
+      ).map_err(issue => Implementation(project(issue)))
+  }
+}
+
+///|
 /// Prepare one managed task through the configured implementation.
 pub fn[E] dispatch_managed_duckdb(
   value : ConfiguredComputeModules[E],

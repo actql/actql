@@ -7,6 +7,7 @@ import {
   executionSiteStatus,
   installExecutionSites,
   prepareExecutionSitePolicy,
+  revokeExecutionSite,
 } from './execution-sites.mjs';
 import {createManagedSiteTransferCoordinator} from
   './managed-site-transfer.mjs';
@@ -265,6 +266,90 @@ test('delayed source stop retains its exact pin but not destination cleanup', as
   assert.equal(beginExecutionSiteTeardown(
     context.sourceSite).teardownComplete, true);
   assert.deepEqual(events.filter(([name]) => name === 'abort'), [['abort']]);
+  await source.close();
+});
+
+test('Transfer commit rejects forced loss of either admitted Site generation', async () => {
+  for (const lost of ['sourceSite', 'destinationSite']) {
+    const input = {}, logicalMaterial = {}, sourceMaterial = {};
+    let context;
+    const source = registerManagedMemoryInput(
+      sourceMaterial,
+      value => value === input,
+      () => true,
+      Object.freeze({
+        async read(_file, emit) {
+          await emit('{"id":1}');
+          revokeExecutionSite(context[lost]);
+        },
+      }),
+      () => {},
+      estimate,
+    );
+    context = setup(createManagedMemoryTransferProvider({
+      maxBatchRows: 1,
+      maxBatchBytes: 64,
+    }));
+    const {candidate} = candidateFor(
+      context, sourceMaterial, logicalMaterial,
+    );
+    const events = [];
+    const coordinator = createManagedSiteTransferCoordinator(
+      {}, coreFor(input, logicalMaterial, events), context.installation,
+    );
+    let failure;
+    try { await coordinator.resolve(candidate, [input]); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.code, 'ExecutionSiteTransferCommitRejected');
+    assert.equal(events.some(([name]) => name === 'complete'), false);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
+    assert.deepEqual(events.filter(([name]) => name === 'abort'), [['abort']]);
+    await source.close();
+  }
+});
+
+test('graceful teardown permits admitted Transfer and committed copy survives source loss', async () => {
+  const input = {}, logicalMaterial = {}, sourceMaterial = {};
+  let context;
+  const source = registerManagedMemoryInput(
+    sourceMaterial,
+    value => value === input,
+    () => true,
+    Object.freeze({
+      async read(_file, emit) {
+        await emit('{"id":1}');
+        beginExecutionSiteTeardown(context.sourceSite);
+      },
+    }),
+    () => {},
+    estimate,
+  );
+  context = setup(createManagedMemoryTransferProvider({
+    maxBatchRows: 1,
+    maxBatchBytes: 64,
+  }));
+  const {candidate} = candidateFor(
+    context, sourceMaterial, logicalMaterial,
+  );
+  const events = [];
+  const coordinator = createManagedSiteTransferCoordinator(
+    {}, coreFor(input, logicalMaterial, events), context.installation,
+  );
+  const first = await coordinator.resolve(candidate, [input]);
+  assert.equal(first.records.length, 1);
+  assert.equal(events.filter(([name]) => name === 'complete').length, 1);
+  revokeExecutionSite(context.sourceSite);
+  const second = await coordinator.resolve(candidate, [input]);
+  assert.equal(second.materials[0], first.materials[0]);
+  assert.equal(second.records[0].transferAttempt,
+    first.records[0].transferAttempt);
+  await coordinator.close();
+  assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
   await source.close();
 });
 

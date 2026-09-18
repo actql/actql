@@ -4,7 +4,8 @@ import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {finalizerCase, asynchronousCloseCase} from './finalizer-fixture.mjs';
 import {installCompletionObserver, completionObserver} from '../host-common/completion-observer.mjs';
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
-  executionSiteStatus, prepareExecutionSitePolicy} from
+  executionSiteStatus, prepareExecutionSitePolicy,
+  revokeExecutionSite} from
   '../host-common/execution-sites.mjs';
 import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
@@ -567,6 +568,42 @@ test('legacy dispatch enforces Site bytes and retains Core-owned output', async 
   assert.equal(executionSiteStatus(retainedSite).teardownComplete, true);
 });
 
+test('legacy completion permit rejects forced revocation but not graceful teardown', async () => {
+  for (const forced of [true, false]) {
+    const registration = {};
+    const selectedSite = createInProcessExecutionSite({
+      key: forced ? 'legacy-forced-loss' : 'legacy-graceful-stop',
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+    });
+    const f = fixture([registration]);
+    let observed = 0;
+    const result = await runInstalledStrategy(
+      f.setup,
+      f.core,
+      [{
+        registration,
+        run(task, _signal, permit) {
+          if (forced) revokeExecutionSite(selectedSite);
+          else beginExecutionSiteTeardown(selectedSite);
+          permit.assertAvailable();
+          f.complete.add(task.index);
+        },
+      }],
+      undefined,
+      () => { observed++; },
+      prepareExecutionSitePolicy({sites: [selectedSite]}),
+    );
+    assert.equal(result.status,
+      forced ? 'host-tasks-failed' : 'host-tasks-completed');
+    assert.equal(f.complete.has(1), !forced);
+    assert.equal(result.completed.length, forced ? 0 : 1);
+    assert.equal(observed, forced ? 0 : 1);
+    result.close();
+    assert.equal(executionSiteStatus(selectedSite).teardownComplete, true);
+  }
+});
+
 test('cleanup advances a stopped reader before awaiting its retained output close', async () => {
   const registration = {};
   const f = fixture([registration, registration]);
@@ -601,6 +638,147 @@ test('cleanup advances a stopped reader before awaiting its retained output clos
   assert.equal(await result.cleanup(), true);
   await closing;
   assert.equal(retries, 1);
+});
+
+test('early managed release recovery also releases its Site holding', async () => {
+  for (const asynchronous of [false, true]) {
+    const selectedSite = createInProcessExecutionSite({
+      key: asynchronous ? 'early-async-release' : 'early-sync-release',
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+    });
+    const registration = {};
+    let next = 1, pending = true, closes = 0, retries = 0;
+    const completedTasks = new Set();
+    const cleanupHandle = Object.freeze({
+      status: () => Object.freeze({pending}),
+      async retry() {
+        retries++;
+        pending = false;
+        return this.status();
+      },
+    });
+    const closeFailure = Object.assign(new Error('release failed'), {
+      cleanupPending: true,
+      cleanupHandle,
+    });
+    const core = {
+      count: () => 3,
+      taskCapacity: () => [0n, 0n],
+      nextTask: () => next,
+      managedProducers: () => [],
+      selectManaged: () => true,
+      managedMatches: () => true,
+      completed: (_, task) => completedTasks.has(task),
+      finished: () => completedTasks.size === 2,
+      stop() {}, closeOutputs() {}, output() {},
+      usage: () => ({}), explain: () => ({}),
+    };
+    const contribution = {
+      registration,
+      managedSelectionKey: 'local',
+      run() { assert.fail('unexpected legacy dispatch'); },
+      prepareNext(outputs) {
+        return {
+          task: next,
+          inputs: [],
+          durationMilliseconds: 0n,
+          siteCapacity: {retainedBytes: 10n, executionBytes: 0n},
+          outputs,
+          releasableProducers: next === 2 ? [1] : [],
+        };
+      },
+      runPrepared() {
+        const task = next++;
+        completedTasks.add(task);
+        return {
+          completed: {},
+          material: {},
+          close() {
+            if (task !== 1) return;
+            closes++;
+            if (asynchronous) return Promise.reject(closeFailure);
+            throw closeFailure;
+          },
+        };
+      },
+    };
+    const result = await runInstalledStrategy(
+      {}, core, [contribution], undefined, undefined,
+      prepareExecutionSitePolicy({sites: [selectedSite]}),
+    );
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.cleanupPending(), true);
+    const closing = result.close();
+    if (asynchronous) await assert.rejects(closing, /release failed/);
+    else await closing;
+    assert.equal(await result.cleanup(), true);
+    assert.equal(closes, 1);
+    assert.equal(retries, 1);
+    assert.equal(executionSiteStatus(selectedSite).holdings, 0);
+    assert.equal(executionSiteStatus(selectedSite).heldBytes, 0n);
+    assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete,
+      true);
+  }
+});
+
+test('early managed release without recovery remains explicitly unconfirmed', async () => {
+  for (const reason of [undefined, null, false, 0, '']) {
+    const selectedSite = createInProcessExecutionSite({
+      key: `early-unconfirmed-${String(reason)}`,
+      generation: 1,
+      runtimeRevision: 'test-runtime/1',
+    });
+    const registration = {};
+    let next = 1;
+    const completedTasks = new Set();
+    const core = {
+      count: () => 3,
+      taskCapacity: () => [0n, 0n],
+      nextTask: () => next,
+      managedProducers: () => [],
+      selectManaged: () => true,
+      managedMatches: () => true,
+      completed: (_, task) => completedTasks.has(task),
+      finished: () => completedTasks.size === 2,
+      stop() {}, closeOutputs() {}, output() {},
+      usage: () => ({}), explain: () => ({}),
+    };
+    const contribution = {
+      registration,
+      managedSelectionKey: 'local',
+      run() { assert.fail('unexpected legacy dispatch'); },
+      prepareNext(outputs) {
+        return {
+          task: next,
+          inputs: [],
+          durationMilliseconds: 0n,
+          siteCapacity: {retainedBytes: 10n, executionBytes: 0n},
+          outputs,
+          releasableProducers: next === 2 ? [1] : [],
+        };
+      },
+      runPrepared() {
+        const task = next++;
+        completedTasks.add(task);
+        return {
+          completed: {}, material: {},
+          close() { if (task === 1) throw reason; },
+        };
+      },
+    };
+    const result = await runInstalledStrategy(
+      {}, core, [contribution], undefined, undefined,
+      prepareExecutionSitePolicy({sites: [selectedSite]}),
+    );
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.cleanupPending(), true);
+    await result.close();
+    assert.equal(await result.cleanup(), false);
+    assert.equal(executionSiteStatus(selectedSite).holdings, 1);
+    assert.equal(beginExecutionSiteTeardown(selectedSite).teardownComplete,
+      false);
+  }
 });
 
 test('reasonless and non-Error failures preserve the first payload across every execution phase', async () => {
