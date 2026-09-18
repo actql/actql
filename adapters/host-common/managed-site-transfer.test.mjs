@@ -269,7 +269,145 @@ test('delayed source stop retains its exact pin but not destination cleanup', as
   await source.close();
 });
 
-test('Transfer commit rejects forced loss of either admitted Site generation', async () => {
+test('Transfer authorization rejects forced loss without releasing an active source', async () => {
+  for (const lost of ['sourceSite', 'destinationSite']) {
+    const input = {}, logicalMaterial = {}, sourceMaterial = {};
+    let context, sourcePending = true, retries = 0;
+    const cleanupHandle = Object.freeze({
+      status: () => Object.freeze({pending: sourcePending}),
+      async retry() {
+        retries++;
+        sourcePending = false;
+        return this.status();
+      },
+    });
+    const provider = Object.freeze({
+      estimate: () => estimate,
+      async copy({authorize}) {
+        assert.equal(authorize(input), true);
+        revokeExecutionSite(context[lost]);
+        assert.equal(authorize(input), false);
+        throw Object.assign(new Error('TransferAuthorizationRejected'), {
+          code: 'TransferAuthorizationRejected',
+          cleanupPending: true,
+          cleanupHandle,
+        });
+      },
+    });
+    context = setup(provider);
+    const {candidate} = candidateFor(
+      context, sourceMaterial, logicalMaterial,
+    );
+    const events = [];
+    const coordinator = createManagedSiteTransferCoordinator(
+      {}, coreFor(input, logicalMaterial, events), context.installation,
+    );
+    let failure;
+    try { await coordinator.resolve(candidate, [input]); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.code, 'TransferAuthorizationRejected');
+    assert.equal(events.some(([name]) => name === 'complete'), false);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 1);
+    assert.equal(events.some(([name]) => name === 'abort'), false);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(retries, 1);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
+    assert.deepEqual(events.filter(([name]) => name === 'abort'), [['abort']]);
+  }
+});
+
+test('Transfer commit independently rejects forced loss after provider access', async () => {
+  for (const lost of ['sourceSite', 'destinationSite']) {
+    const input = {}, logicalMaterial = {}, sourceMaterial = {};
+    let context, closed = false;
+    const provider = Object.freeze({
+      estimate: () => estimate,
+      async copy({authorize}) {
+        assert.equal(authorize(input), true);
+        revokeExecutionSite(context[lost]);
+        return Object.freeze({
+          material: {},
+          generation: {},
+          rows: 1,
+          batches: 1,
+          maxBatchRows: 1,
+          maxBatchBytes: 64,
+          bytes: 0n,
+          retainedBytes: 8n,
+          status: () => Object.freeze({released: closed}),
+          async close() { closed = true; },
+        });
+      },
+    });
+    context = setup(provider);
+    const {candidate} = candidateFor(
+      context, sourceMaterial, logicalMaterial,
+    );
+    const events = [];
+    const coordinator = createManagedSiteTransferCoordinator(
+      {}, coreFor(input, logicalMaterial, events), context.installation,
+    );
+    let failure;
+    try { await coordinator.resolve(candidate, [input]); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.code, 'ExecutionSiteTransferCommitRejected');
+    assert.equal(events.some(([name]) => name === 'complete'), false);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(closed, true);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
+    assert.deepEqual(events.filter(([name]) => name === 'abort'), [['abort']]);
+  }
+});
+
+test('Transfer authorization permits graceful teardown of admitted Sites', async () => {
+  for (const stopped of ['sourceSite', 'destinationSite']) {
+    const input = {}, logicalMaterial = {}, sourceMaterial = {};
+    let context, closed = false;
+    const provider = Object.freeze({
+      estimate: () => estimate,
+      async copy({authorize}) {
+        assert.equal(authorize(input), true);
+        beginExecutionSiteTeardown(context[stopped]);
+        assert.equal(authorize(input), true);
+        return Object.freeze({
+          material: {},
+          generation: {},
+          rows: 1,
+          batches: 1,
+          maxBatchRows: 1,
+          maxBatchBytes: 64,
+          bytes: 0n,
+          retainedBytes: 8n,
+          status: () => Object.freeze({released: closed}),
+          async close() { closed = true; },
+        });
+      },
+    });
+    context = setup(provider);
+    const {candidate} = candidateFor(
+      context, sourceMaterial, logicalMaterial,
+    );
+    const events = [];
+    const coordinator = createManagedSiteTransferCoordinator(
+      {}, coreFor(input, logicalMaterial, events), context.installation,
+    );
+    const result = await coordinator.resolve(candidate, [input]);
+    assert.equal(result.records.length, 1);
+    assert.equal(events.filter(([name]) => name === 'complete').length, 1);
+    await coordinator.close();
+    assert.equal(closed, true);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
+  }
+});
+
+test('forced loss during the adopted memory copy cannot publish a Transfer', async () => {
   for (const lost of ['sourceSite', 'destinationSite']) {
     const input = {}, logicalMaterial = {}, sourceMaterial = {};
     let context;
@@ -300,11 +438,9 @@ test('Transfer commit rejects forced loss of either admitted Site generation', a
     let failure;
     try { await coordinator.resolve(candidate, [input]); }
     catch (error) { failure = error; }
-    assert.equal(failure?.code, 'ExecutionSiteTransferCommitRejected');
+    assert.equal(failure?.code, 'ManagedInputUnavailable');
     assert.equal(events.some(([name]) => name === 'complete'), false);
     assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
-    assert.equal(failure.cleanupPending, true);
-    assert.equal((await failure.cleanupHandle.retry()).pending, false);
     assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
     assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
     assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);

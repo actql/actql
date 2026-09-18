@@ -310,7 +310,8 @@ export function createManagedSiteTransferCoordinator(
         sourceMaterial: occurrence.siteMaterial,
         input,
         authorize: value =>
-          core.managedInputMatches(value, occurrence.material) === true,
+          core.managedInputMatches(value, occurrence.material) === true &&
+          executionSiteTransferOperationAvailable(siteOperation),
         charge: bytes => core.transferCharge(setup, transfer, bytes),
         signal,
         estimate,
