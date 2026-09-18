@@ -1940,6 +1940,50 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         : [...unpivotFields].reverse(),
     }},
   })));
+  const pivotProgram = structuredClone(zeroInputProgram);
+  const pivotFields = ['id', 'open', 'won'];
+  pivotProgram.stages.splice(1, 3, {
+    id: 'pivot_values',
+    inputs: {},
+    steps: [{values: {
+      schema: {
+        amount: {type: 'number', nullable: true},
+        id: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: true},
+      },
+      rows: [
+        {amount: 20, id: 2, status: 'open'},
+        {amount: 10, id: 1, status: 'won'},
+        {amount: 30, id: 2, status: 'open'},
+        {amount: null, id: 1, status: 'open'},
+        {amount: 99, id: 1, status: 'other'},
+        {amount: 5, id: 1, status: null},
+      ],
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: ['amount', 'id', 'status']}},
+  }, {
+    id: 'pivoted',
+    inputs: {x: {result: {stage: 'pivot_values', result: 'r'}}},
+    steps: [{pivot: {
+      index: ['id', 'id'],
+      column: 'status',
+      values: ['won', 'open'],
+      value: 'amount',
+      aggregate: 'count',
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: pivotFields}},
+  }, ...['a', 'b'].map(id => ({
+    id: `pivot_consumer_${id}`,
+    inputs: {x: {result: {stage: 'pivoted', result: 'r'}}},
+    steps: [{select: id === 'a'
+      ? pivotFields
+      : [...pivotFields].reverse(), as: 'out'}],
+    results: {r: {
+      from: 'out', fields: id === 'a'
+        ? pivotFields
+        : [...pivotFields].reverse(),
+    }},
+  })));
   const unnestProgram = structuredClone(zeroInputProgram);
   const unnestFields = ['id', 'item', 'items', 'position'];
   unnestProgram.stages.splice(1, 3, {
@@ -2134,6 +2178,7 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
     ['parameter lag', lagProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
+    ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['full join', joinProgram, [1, 2, 3]],
@@ -2198,6 +2243,13 @@ async function exerciseStrategyGraph(fixture, args, path, grant, suppliedLimits)
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 6, 6, 6],
+          `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'pivot') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [6, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }

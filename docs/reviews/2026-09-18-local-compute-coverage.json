@@ -2496,6 +2496,19 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "pivot",
+            "layer": "two_consumer_e2e",
+            "path": "adapters/duckdb-node/test/standard-host.test.mjs",
+            "fixtures": [
+              "standard native and broad Node Hosts own verification through real capture and consumer"
+            ],
+            "suite": "node:standard-host",
+            "targets": [
+              "node"
+            ],
+            "standard_host": true
           }
         ],
         "conformance": [
@@ -2518,6 +2531,36 @@
               "wasm",
               "native"
             ]
+          },
+          {
+            "operation": "pivot",
+            "layer": "conformance",
+            "path": "src/execution_relation/pivot_domains_wbtest.mbt",
+            "fixtures": [
+              "pivot min and max cover every AuthorOrderable value domain"
+            ],
+            "suite": "moon:execution_relation",
+            "targets": [
+              "js",
+              "wasm",
+              "native"
+            ],
+            "covers": {
+              "variants": [
+                "aggregate bindings",
+                "fill policy"
+              ],
+              "types": [
+                "author_orderable"
+              ],
+              "obligations": [
+                "failure_atomicity",
+                "logical_order",
+                "null_semantics",
+                "schema",
+                "value_validation"
+              ]
+            }
           },
           {
             "operation": "pivot",
@@ -2552,7 +2595,7 @@
         ]
       },
       "gaps": [
-        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, typed fill, final Decimal overflow checks, and exact/one-short work. Count, min with fill, empty axes, and Decimal sum reach two managed consumers on three targets. Indexed grouping and stable ordering have a fixed N-log-N work and linear workspace floor. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; full type/parameter conformance, native layout aggregation, and remaining managed variants remain."
+        "Count, min, max, first, and exact precision-38 Decimal sum preserve canonical index order, empty-axis first occurrence, global empty groups, generated-column order, NULL buckets, literal and Parameter fill, every AuthorOrderable min/max domain, final Decimal overflow checks, and exact/one-short work. These variants reach two managed consumers on three targets, and count also traverses the standard Host. Indexed grouping and stable ordering have a fixed N-log-N work and linear workspace floor. Binary64 sum/avg still require the shared attempt-bound durable numeric-observation path; native layout aggregation and its observation-aware standard-Host path remain."
       ]
     },
     {

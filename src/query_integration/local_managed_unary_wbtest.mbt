@@ -69,6 +69,16 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       ["{\"id\":1,\"open\":0,\"won\":1}", "{\"id\":2,\"open\":2,\"won\":0}"]
     "pivot_min_fill" =>
       ["{\"id\":1,\"open\":0,\"won\":10}", "{\"id\":2,\"open\":20,\"won\":0}"]
+    "pivot_parameter_fill" =>
+      ["{\"id\":1,\"open\":1,\"won\":10}", "{\"id\":2,\"open\":20,\"won\":1}"]
+    "pivot_max" =>
+      [
+        "{\"id\":1,\"open\":null,\"won\":10}", "{\"id\":2,\"open\":30,\"won\":null}",
+      ]
+    "pivot_first" =>
+      [
+        "{\"id\":1,\"open\":null,\"won\":10}", "{\"id\":2,\"open\":20,\"won\":null}",
+      ]
     "pivot_empty_axis" => ["{\"id\":2}", "{\"id\":1}"]
     "pivot_decimal_sum" =>
       [
@@ -103,6 +113,9 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
     []
   } else if kind == "pivot" ||
     kind == "pivot_min_fill" ||
+    kind == "pivot_parameter_fill" ||
+    kind == "pivot_max" ||
+    kind == "pivot_first" ||
     kind == "pivot_empty_axis" {
     [
       "{\"amount\":20,\"id\":2,\"status\":\"open\"}", "{\"amount\":10,\"id\":1,\"status\":\"won\"}",
@@ -319,7 +332,7 @@ test "Local managed unary source forms feed two downstream Computes" {
       "top_k_compound", "top_k_by", "top_k_by_parameter", "top_k_by_nullable", "dedupe_rows",
       "distinct_keyed_nullable", "dedupe_compound_nullable", "unnest", "unpivot",
       "unnest_inner", "unpivot_empty", "pivot", "pivot_min_fill", "pivot_empty_axis",
-      "pivot_decimal_sum",
+      "pivot_decimal_sum", "pivot_parameter_fill", "pivot_max", "pivot_first",
     ] {
     run_local_managed_unary_case(kind)
   }

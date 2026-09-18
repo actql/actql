@@ -684,6 +684,30 @@ fn local_pivot_min_fill_program() -> String {
 }
 
 ///|
+fn local_pivot_parameter_fill_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"min\",\"fill\":{\"$param\":\"minimum\"}",
+  )
+}
+
+///|
+fn local_pivot_max_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"max\"",
+  )
+}
+
+///|
+fn local_pivot_first_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"first\"",
+  )
+}
+
+///|
 fn local_empty_axis_pivot_program() -> String {
   local_pivot_program()
   .replace(old="\"values\":[\"won\",\"open\"]", new="\"values\":[]")
@@ -716,6 +740,15 @@ fn local_values_unary_program(kind : String) -> String {
   }
   if kind == "pivot_min_fill" {
     return local_pivot_min_fill_program()
+  }
+  if kind == "pivot_parameter_fill" {
+    return local_pivot_parameter_fill_program()
+  }
+  if kind == "pivot_max" {
+    return local_pivot_max_program()
+  }
+  if kind == "pivot_first" {
+    return local_pivot_first_program()
   }
   if kind == "pivot_empty_axis" {
     return local_empty_axis_pivot_program()
