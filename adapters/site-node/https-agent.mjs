@@ -146,6 +146,10 @@ export async function startHttpsRemoteSiteAgent({
             cid: evidence.execution_evidence_cid,
             wire: evidence.execution_evidence_json,
           },
+          subject: evidence === undefined ? null : {
+            cid: evidence.managed_output_subject_cid,
+            wire: evidence.managed_output_subject_json,
+          },
         });
         return;
       }

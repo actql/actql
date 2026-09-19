@@ -3,7 +3,11 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
-import {admitRemoteDispatchJson, admitRemoteExecutionEvidenceJson} from
+import {
+  admitRemoteDispatchJson,
+  admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputSubjectJson,
+} from
   './remote-dispatch-wire.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -157,5 +161,41 @@ test('evidence decoding recomputes identity and exact dispatch binding', () => {
       other,
     ),
     {code: 'NonCanonicalRemoteExecutionEvidenceWire'},
+  );
+});
+
+test('managed output decoding binds canonical physical and logical facts', () => {
+  const request = prepared();
+  const subject = control.prepareManagedOutputSubject(request, Object.freeze({
+    materialGeneration: 'material-generation-a',
+    holdingEvidenceCid: cid('c'),
+    managedProfileCid: cid('3'),
+    resultSchemaCid: cid('5'),
+    logicalViewCid: cid('6'),
+    representationCodecCid: cid('7'),
+    physicalManifestCid: cid('8'),
+    rowCount: 2,
+    retainedBytes: 8n,
+  }));
+  const body = control.managedOutputSubjectJson(subject);
+  const admitted = admitRemoteManagedOutputSubjectJson(
+    control,
+    body,
+    control.managedOutputSubjectIdentity(subject),
+    request,
+  );
+  assert.equal(
+    control.managedOutputSubjectIdentity(admitted),
+    control.managedOutputSubjectIdentity(subject),
+  );
+  const altered = body.replace('"row_count":2', '"row_count":3');
+  assert.throws(
+    () => admitRemoteManagedOutputSubjectJson(
+      control,
+      altered,
+      control.managedOutputSubjectIdentity(subject),
+      request,
+    ),
+    {code: 'InvalidRemoteManagedOutputSubjectWire'},
   );
 });

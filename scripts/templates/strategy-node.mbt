@@ -2813,6 +2813,36 @@ pub fn strategy_remote_coordinator_prepare_observation_with_evidence(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorPrepareManagedOutputObservation")
+pub fn strategy_remote_coordinator_prepare_managed_output_observation(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  site_revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  admitted_evidence : @remote.RemoteExecutionEvidence,
+  admitted_subject : @remote.RemoteManagedOutputSubject,
+) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
+  let result = @remote.prepare_coordinator_managed_output_observation(
+    record,
+    site_revision,
+    execution,
+    evidence,
+    cleanup,
+    material_available,
+    quarantined_capacity,
+    admitted_evidence,
+    admitted_subject,
+  )
+  match result {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteCoordinatorTransitionProjection")
 pub fn strategy_remote_coordinator_transition_projection(
   transition : @remote.CoordinatorDispatchTransition,
@@ -2869,6 +2899,7 @@ pub fn strategy_remote_coordinator_record_restore(
   material_available : Bool,
   quarantined_capacity : Bool,
   evidence_cid : String,
+  subject_cid : String,
 ) -> Unit raise NodeHostFailure {
   let result = @remote.restore_coordinator_dispatch_record(
     record,
@@ -2881,6 +2912,7 @@ pub fn strategy_remote_coordinator_record_restore(
     material_available,
     quarantined_capacity,
     evidence_cid,
+    subject_cid,
   )
   match result {
     Ok(_) => ()
@@ -3120,6 +3152,132 @@ pub fn strategy_remote_issue_execution_evidence(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectPrepare")
+pub fn strategy_remote_managed_output_subject_prepare(
+  dispatch_request_cid : String,
+  material_generation : String,
+  holding_evidence_cid : String,
+  managed_profile_cid : String,
+  result_schema_cid : String,
+  logical_view_cid : String,
+  representation_codec_cid : String,
+  physical_manifest_cid : String,
+  row_count : Int,
+  retained_bytes : Int64,
+) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
+  match
+    @remote.prepare_remote_managed_output_subject(
+      dispatch_request_cid,
+      material_generation,
+      holding_evidence_cid,
+      managed_profile_cid,
+      result_schema_cid,
+      logical_view_cid,
+      representation_codec_cid,
+      physical_manifest_cid,
+      row_count,
+      retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputEvidenceKind")
+pub fn strategy_remote_managed_output_evidence_kind() -> String {
+  @remote.remote_managed_output_evidence_kind()
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectAdmit")
+pub fn strategy_remote_managed_output_subject_admit(
+  dispatch_request_cid : String,
+  material_generation : String,
+  holding_evidence_cid : String,
+  managed_profile_cid : String,
+  result_schema_cid : String,
+  logical_view_cid : String,
+  representation_codec_cid : String,
+  physical_manifest_cid : String,
+  row_count : Int,
+  retained_bytes : Int64,
+  claimed_subject_cid : String,
+) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
+  match
+    @remote.admit_remote_managed_output_subject(
+      dispatch_request_cid,
+      material_generation,
+      holding_evidence_cid,
+      managed_profile_cid,
+      result_schema_cid,
+      logical_view_cid,
+      representation_codec_cid,
+      physical_manifest_cid,
+      row_count,
+      retained_bytes,
+      claimed_subject_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectIdentity")
+pub fn strategy_remote_managed_output_subject_identity(
+  subject : @remote.RemoteManagedOutputSubject,
+) -> String {
+  @remote.remote_managed_output_subject_cid(subject)
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectJson")
+pub fn strategy_remote_managed_output_subject_json(
+  subject : @remote.RemoteManagedOutputSubject,
+) -> String raise NodeHostFailure {
+  match @remote.remote_managed_output_subject_json(subject) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectProjection")
+pub fn strategy_remote_managed_output_subject_projection(
+  subject : @remote.RemoteManagedOutputSubject,
+) -> Array[String] {
+  @remote.remote_managed_output_subject_projection(subject)
+}
+
+///|
+#export_name("strategyRemoteIssueManagedOutputEvidence")
+pub fn strategy_remote_issue_managed_output_evidence(
+  issuer : @remote.RemoteEvidenceIssuer,
+  record : @remote.DispatchRecord,
+  subject : @remote.RemoteManagedOutputSubject,
+) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
+  match @remote.issue_remote_managed_output_evidence(issuer, record, subject) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectMatchesEvidence")
+pub fn strategy_remote_managed_output_subject_matches_evidence(
+  subject : @remote.RemoteManagedOutputSubject,
+  evidence : @remote.RemoteExecutionEvidence,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.remote_managed_output_subject_matches_evidence(
+    subject,
+    evidence,
+    request,
+  )
 }
 
 ///|

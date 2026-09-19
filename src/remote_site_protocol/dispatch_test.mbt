@@ -67,6 +67,28 @@ fn issuer(state : SiteDispatchJournal) -> RemoteEvidenceIssuer {
 }
 
 ///|
+fn managed_output_issuer() -> RemoteEvidenceIssuer {
+  let site = @site.create_site(
+    "site-a",
+    1,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  register_remote_evidence_issuer(
+    site,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    "local",
+    "local/1",
+    "strategy/1",
+    remote_managed_output_evidence_kind(),
+    cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+  ).unwrap()
+}
+
+///|
 fn execution_capability() -> RemoteExecutionCapability {
   let site = @site.create_site(
     "site-a",
@@ -360,6 +382,123 @@ test "registered issuer binds evidence to exact dispatch and material" {
       wrong,
       record,
       cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    )
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
+test "managed output subject has an independent canonical identity" {
+  let dispatch = request(
+    "dispatch-a",
+    1,
+    1,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  let subject = prepare_remote_managed_output_subject(
+    dispatch_request_identity(dispatch),
+    "material-generation-a",
+    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("4444444444444444444444444444444444444444444444444444444444444444"),
+    cid("5555555555555555555555555555555555555555555555555555555555555555"),
+    cid("6666666666666666666666666666666666666666666666666666666666666666"),
+    cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    2,
+    8L,
+  ).unwrap()
+  assert_eq(
+    remote_managed_output_subject_json(subject).unwrap(),
+    "{\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.1\"}",
+  )
+  assert_eq(
+    remote_managed_output_subject_cid(subject),
+    "sha256:4f051d6c935e9c22f0c9ebf8dcbf9afcc5a018eca01fc9874442f691413a525b",
+  )
+  assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
+  assert_true(
+    admit_remote_managed_output_subject(
+      dispatch_request_identity(dispatch),
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+      cid("3333333333333333333333333333333333333333333333333333333333333333"),
+      cid("4444444444444444444444444444444444444444444444444444444444444444"),
+      cid("5555555555555555555555555555555555555555555555555555555555555555"),
+      cid("6666666666666666666666666666666666666666666666666666666666666666"),
+      cid("7777777777777777777777777777777777777777777777777777777777777777"),
+      3,
+      8L,
+      remote_managed_output_subject_cid(subject),
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+}
+
+///|
+test "managed output evidence accepts only its typed retained subject" {
+  let state = journal()
+  let dispatch = request(
+    "dispatch-a",
+    1,
+    1,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  let (_, record) = accept(state, dispatch)
+  provision(record)
+  execute(record)
+  settle(record)
+  commit_dispatch_transition(
+    prepare_retain_remote_output(
+      record,
+      "material-generation-a",
+      cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let subject = prepare_remote_managed_output_subject(
+    dispatch_request_identity(dispatch),
+    "material-generation-a",
+    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("4444444444444444444444444444444444444444444444444444444444444444"),
+    cid("5555555555555555555555555555555555555555555555555555555555555555"),
+    cid("6666666666666666666666666666666666666666666666666666666666666666"),
+    cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    2,
+    8L,
+  ).unwrap()
+  let evidence = issue_remote_managed_output_evidence(
+    managed_output_issuer(),
+    record,
+    subject,
+  ).unwrap()
+  assert_eq(
+    remote_execution_evidence_cid(evidence),
+    "sha256:43a0fbc47790d6cdf49c299f34ca9402a00d1641c566c736351ae6c471f87985",
+  )
+  assert_true(
+    remote_managed_output_subject_matches_evidence(subject, evidence, dispatch),
+  )
+  let foreign = prepare_remote_managed_output_subject(
+    dispatch_request_identity(dispatch),
+    "material-generation-b",
+    cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    cid("3333333333333333333333333333333333333333333333333333333333333333"),
+    cid("4444444444444444444444444444444444444444444444444444444444444444"),
+    cid("5555555555555555555555555555555555555555555555555555555555555555"),
+    cid("6666666666666666666666666666666666666666666666666666666666666666"),
+    cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    2,
+    8L,
+  ).unwrap()
+  assert_false(
+    remote_managed_output_subject_matches_evidence(foreign, evidence, dispatch),
+  )
+  assert_true(
+    issue_remote_managed_output_evidence(
+      managed_output_issuer(),
+      record,
+      foreign,
     )
     is Err(InvalidDispatch),
   )

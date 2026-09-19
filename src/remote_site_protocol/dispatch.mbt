@@ -79,6 +79,26 @@ struct RemoteExecutionEvidence {
 }
 
 ///|
+/// Canonical subject for one retained managed output. This is the typed claim
+/// referenced by execution evidence, not the logical Result identity and not a
+/// read grant. The physical manifest binds the ordered encoded representation;
+/// the schema, view and profile keep that representation attached to the exact
+/// managed-output contract that a common completion will later verify.
+struct RemoteManagedOutputSubject {
+  dispatch_request_cid : String
+  material_generation : String
+  holding_evidence_cid : String
+  managed_profile_cid : String
+  result_schema_cid : String
+  logical_view_cid : String
+  representation_codec_cid : String
+  physical_manifest_cid : String
+  row_count : Int
+  retained_bytes : Int64
+  subject_cid : String
+}
+
+///|
 /// Physical execution observations and common completion are different facts.
 pub(all) enum RemoteExecutionState {
   Accepted
@@ -514,6 +534,192 @@ pub fn remote_execution_capability_scope(
 }
 
 ///|
+pub fn remote_managed_output_evidence_kind() -> String {
+  "actql.remote.managed-output/0.1"
+}
+
+///|
+fn emit_remote_managed_output_subject_body(
+  subject : RemoteManagedOutputSubject,
+) -> Result[String, DispatchIssue] {
+  let writer = @encode.writer(65536, 32, 2) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, subject.dispatch_request_cid)
+    @encode.key(writer, "holding_evidence_cid")
+    @encode.string_value(writer, subject.holding_evidence_cid)
+    @encode.key(writer, "logical_view_cid")
+    @encode.string_value(writer, subject.logical_view_cid)
+    @encode.key(writer, "managed_profile_cid")
+    @encode.string_value(writer, subject.managed_profile_cid)
+    @encode.key(writer, "material_generation")
+    @encode.string_value(writer, subject.material_generation)
+    @encode.key(writer, "physical_manifest_cid")
+    @encode.string_value(writer, subject.physical_manifest_cid)
+    @encode.key(writer, "representation_codec_cid")
+    @encode.string_value(writer, subject.representation_codec_cid)
+    @encode.key(writer, "result_schema_cid")
+    @encode.string_value(writer, subject.result_schema_cid)
+    @encode.key(writer, "retained_bytes")
+    @encode.string_value(writer, subject.retained_bytes.to_string())
+    @encode.key(writer, "row_count")
+    @encode.number_value(writer, subject.row_count.to_double())
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-managed-output-subject/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+fn remote_managed_output_subject_identity(
+  subject : RemoteManagedOutputSubject,
+) -> Result[String, DispatchIssue] {
+  let body = match emit_remote_managed_output_subject_body(subject) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
+fn valid_remote_managed_output_subject_fields(
+  subject : RemoteManagedOutputSubject,
+) -> Bool {
+  valid_cid(subject.dispatch_request_cid) &&
+  !subject.material_generation.is_empty() &&
+  valid_cid(subject.holding_evidence_cid) &&
+  valid_cid(subject.managed_profile_cid) &&
+  valid_cid(subject.result_schema_cid) &&
+  valid_cid(subject.logical_view_cid) &&
+  valid_cid(subject.representation_codec_cid) &&
+  valid_cid(subject.physical_manifest_cid) &&
+  subject.row_count >= 0 &&
+  subject.retained_bytes >= 0L
+}
+
+///|
+pub fn prepare_remote_managed_output_subject(
+  dispatch_request_cid : String,
+  material_generation : String,
+  holding_evidence_cid : String,
+  managed_profile_cid : String,
+  result_schema_cid : String,
+  logical_view_cid : String,
+  representation_codec_cid : String,
+  physical_manifest_cid : String,
+  row_count : Int,
+  retained_bytes : Int64,
+) -> Result[RemoteManagedOutputSubject, DispatchIssue] {
+  let pending : RemoteManagedOutputSubject = {
+    dispatch_request_cid,
+    material_generation,
+    holding_evidence_cid,
+    managed_profile_cid,
+    result_schema_cid,
+    logical_view_cid,
+    representation_codec_cid,
+    physical_manifest_cid,
+    row_count,
+    retained_bytes,
+    subject_cid: "pending",
+  }
+  if !valid_remote_managed_output_subject_fields(pending) {
+    return Err(InvalidDispatch)
+  }
+  let identity = match remote_managed_output_subject_identity(pending) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..pending, subject_cid: identity, })
+}
+
+///|
+pub fn admit_remote_managed_output_subject(
+  dispatch_request_cid : String,
+  material_generation : String,
+  holding_evidence_cid : String,
+  managed_profile_cid : String,
+  result_schema_cid : String,
+  logical_view_cid : String,
+  representation_codec_cid : String,
+  physical_manifest_cid : String,
+  row_count : Int,
+  retained_bytes : Int64,
+  claimed_subject_cid : String,
+) -> Result[RemoteManagedOutputSubject, DispatchIssue] {
+  let subject = match
+    prepare_remote_managed_output_subject(
+      dispatch_request_cid, material_generation, holding_evidence_cid, managed_profile_cid,
+      result_schema_cid, logical_view_cid, representation_codec_cid, physical_manifest_cid,
+      row_count, retained_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if subject.subject_cid != claimed_subject_cid {
+    Err(DispatchIdentityMismatch)
+  } else {
+    Ok(subject)
+  }
+}
+
+///|
+pub fn remote_managed_output_subject_json(
+  subject : RemoteManagedOutputSubject,
+) -> Result[String, DispatchIssue] {
+  if !valid_remote_managed_output_subject_fields(subject) ||
+    remote_managed_output_subject_identity(subject) != Ok(subject.subject_cid) {
+    return Err(InvalidDispatch)
+  }
+  emit_remote_managed_output_subject_body(subject)
+}
+
+///|
+pub fn remote_managed_output_subject_cid(
+  subject : RemoteManagedOutputSubject,
+) -> String {
+  subject.subject_cid
+}
+
+///|
+pub fn remote_managed_output_subject_projection(
+  subject : RemoteManagedOutputSubject,
+) -> Array[String] {
+  [
+    subject.dispatch_request_cid,
+    subject.material_generation,
+    subject.holding_evidence_cid,
+    subject.managed_profile_cid,
+    subject.result_schema_cid,
+    subject.logical_view_cid,
+    subject.representation_codec_cid,
+    subject.physical_manifest_cid,
+    subject.row_count.to_string(),
+    subject.retained_bytes.to_string(),
+    subject.subject_cid,
+  ]
+}
+
+///|
+pub fn remote_managed_output_subject_matches_dispatch(
+  subject : RemoteManagedOutputSubject,
+  request : DispatchRequest,
+) -> Bool {
+  valid_remote_managed_output_subject_fields(subject) &&
+  subject.dispatch_request_cid == request.dispatch_request_cid &&
+  remote_managed_output_subject_identity(subject) == Ok(subject.subject_cid)
+}
+
+///|
 fn emit_remote_execution_evidence_body(
   evidence : RemoteExecutionEvidence,
 ) -> Result[String, DispatchIssue] {
@@ -691,6 +897,40 @@ pub fn issue_remote_execution_evidence(
     Err(issue) => return Err(issue)
   }
   Ok({ ..pending, evidence_cid: identity, })
+}
+
+///|
+pub fn issue_remote_managed_output_evidence(
+  issuer : RemoteEvidenceIssuer,
+  record : DispatchRecord,
+  subject : RemoteManagedOutputSubject,
+) -> Result[RemoteExecutionEvidence, DispatchIssue] {
+  let request = record.request
+  let (material_generation, holding_evidence_cid) = match record.evidence {
+    OutputRetained(material, holding) => (material, holding)
+    _ => return Err(InvalidTransition)
+  }
+  if issuer.evidence_kind != remote_managed_output_evidence_kind() ||
+    !remote_managed_output_subject_matches_dispatch(subject, request) ||
+    subject.material_generation != material_generation ||
+    subject.holding_evidence_cid != holding_evidence_cid {
+    return Err(InvalidDispatch)
+  }
+  issue_remote_execution_evidence(issuer, record, subject.subject_cid)
+}
+
+///|
+pub fn remote_managed_output_subject_matches_evidence(
+  subject : RemoteManagedOutputSubject,
+  evidence : RemoteExecutionEvidence,
+  request : DispatchRequest,
+) -> Bool {
+  evidence.evidence_kind == remote_managed_output_evidence_kind() &&
+  remote_execution_evidence_matches_dispatch(evidence, request) &&
+  remote_managed_output_subject_matches_dispatch(subject, request) &&
+  evidence.evidence_subject_cid == subject.subject_cid &&
+  evidence.material_generation == subject.material_generation &&
+  evidence.holding_evidence_cid == subject.holding_evidence_cid
 }
 
 ///|

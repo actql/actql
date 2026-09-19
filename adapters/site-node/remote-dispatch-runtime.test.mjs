@@ -12,6 +12,8 @@ import {createRemoteDispatchRuntime, prepareRemoteRuntimeRegistration} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
+const managedOutputEvidenceKind =
+  runtime.remoteSiteControl.managedOutputEvidenceKind;
 const dispatchBudget = runtime.remoteSiteControl.prepareBudget({
   retainedBytes: 64n,
   executionBytes: 16n,
@@ -53,6 +55,22 @@ function request(overrides = {}) {
   }));
 }
 
+function managedOutput(overrides = {}) {
+  return Object.freeze({
+    materialGeneration: 'material-generation-a',
+    holdingEvidenceCid: cid('c'),
+    managedProfileCid: cid('3'),
+    resultSchemaCid: cid('5'),
+    logicalViewCid: cid('6'),
+    representationCodecCid: cid('7'),
+    physicalManifestCid: cid('8'),
+    rowCount: 2,
+    retainedBytes: 8n,
+    async close() {},
+    ...overrides,
+  });
+}
+
 async function fixture(t, execute, {autoClose = true} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-remote-runtime-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -72,7 +90,7 @@ async function fixture(t, execute, {autoClose = true} = {}) {
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
     operationCapabilityCid: cid('4'),
-    evidenceKind: 'actql.remote.physical-output/0.1',
+    evidenceKind: managedOutputEvidenceKind,
     issuerCapabilityCid: cid('b'),
     execute,
   });
@@ -96,11 +114,7 @@ test('registered runtime durably executes, evidences, and releases output',
     let closes = 0;
     const f = await fixture(t, async () => {
       executions++;
-      return Object.freeze({
-        materialGeneration: 'material-generation-a',
-        holdingEvidenceCid: cid('c'),
-        evidenceSubjectCid: cid('d'),
-        retainedBytes: 8n,
+      return managedOutput({
         async close() { closes++; },
       });
     });
@@ -204,10 +218,8 @@ test('executor failure is durably failed without completion evidence',
 test('output above retained reservation fails and releases Site capacity',
   async t => {
     let closes = 0;
-    const f = await fixture(t, async () => Object.freeze({
+    const f = await fixture(t, async () => managedOutput({
       materialGeneration: 'oversized-material',
-      holdingEvidenceCid: cid('c'),
-      evidenceSubjectCid: cid('d'),
       retainedBytes: 65n,
       async close() { closes++; },
     }));

@@ -228,23 +228,38 @@ test('evidence and cleanup planes persist independently', async t => {
     connectorRegistration: 'local',
     connectorRevision: 'local/1',
     strategyRevision: 'strategy/1',
-    evidenceKind: 'actql.remote.physical-output/0.1',
+    evidenceKind: control.managedOutputEvidenceKind,
     issuerCapabilityCid: cid('b'),
   }));
-  const evidence = control.issueExecutionEvidence(issuer, record, cid('d'));
-  assert.equal(
-    control.evidenceIdentity(evidence),
-    'sha256:83266c6b43c6ad0c1c4e4a4cafcdf593852c97110d48a1d8691ea7b38406f250',
+  const subject = control.prepareManagedOutputSubject(prepared, Object.freeze({
+    materialGeneration: 'material-generation-a',
+    holdingEvidenceCid: cid('c'),
+    managedProfileCid: cid('3'),
+    resultSchemaCid: cid('5'),
+    logicalViewCid: cid('6'),
+    representationCodecCid: cid('7'),
+    physicalManifestCid: cid('8'),
+    rowCount: 2,
+    retainedBytes: 8n,
+  }));
+  const evidence = control.issueManagedOutputEvidence(
+    issuer,
+    record,
+    subject,
   );
   store.advanceEvidence(
     control.prepareEvidence(record, evidence),
     evidence,
+    subject,
     record,
     control,
   );
   assert.deepEqual(store.inspectEvidence(prepared, control), {
     execution_evidence_cid: control.evidenceIdentity(evidence),
     execution_evidence_json: control.evidenceJson(evidence),
+    managed_output_subject_cid:
+      control.managedOutputSubjectIdentity(subject),
+    managed_output_subject_json: control.managedOutputSubjectJson(subject),
   });
   store.advance(control.prepareRelease(record), record, control);
   assert.deepEqual(control.status(record), [3, 2, 1, 1, 0]);

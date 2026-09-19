@@ -11,6 +11,7 @@ import {join} from 'node:path';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputSubjectJson,
 } from
   '../host-common/remote-dispatch-wire.mjs';
 
@@ -89,6 +90,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         site_quarantined_capacity INTEGER NOT NULL DEFAULT 0,
         accepted_evidence_cid TEXT NOT NULL DEFAULT '',
         accepted_evidence_json TEXT NOT NULL DEFAULT '',
+        accepted_subject_cid TEXT NOT NULL DEFAULT '',
+        accepted_subject_json TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (
           coordinator_authority,
           site_key,
@@ -112,7 +115,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
         );
-        insert.run('schema_version', 'actql-remote-coordinator-journal/0.2');
+        insert.run('schema_version', 'actql-remote-coordinator-journal/0.3');
         insert.run('coordinator_authority', coordinatorAuthority);
       } else if (version.value ===
           'actql-remote-coordinator-journal/0.1') {
@@ -137,12 +140,27 @@ export function openSqliteCoordinatorDispatchJournal(root, {
             NOT NULL DEFAULT '';
           ALTER TABLE dispatch_intents ADD COLUMN accepted_evidence_json TEXT
             NOT NULL DEFAULT '';
+          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_cid TEXT
+            NOT NULL DEFAULT '';
+          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_json TEXT
+            NOT NULL DEFAULT '';
         `);
         database.prepare(
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
-        ).run('actql-remote-coordinator-journal/0.2', 'schema_version');
-      } else if (version.value !==
+        ).run('actql-remote-coordinator-journal/0.3', 'schema_version');
+      } else if (version.value ===
           'actql-remote-coordinator-journal/0.2') {
+        database.exec(`
+          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_cid TEXT
+            NOT NULL DEFAULT '';
+          ALTER TABLE dispatch_intents ADD COLUMN accepted_subject_json TEXT
+            NOT NULL DEFAULT '';
+        `);
+        database.prepare(
+          'UPDATE journal_metadata SET value = ? WHERE key = ?',
+        ).run('actql-remote-coordinator-journal/0.3', 'schema_version');
+      } else if (version.value !==
+          'actql-remote-coordinator-journal/0.3') {
         fail('UnsupportedCoordinatorJournalVersion');
       }
       const authority = database.prepare(
@@ -162,7 +180,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     SELECT dispatch_request_cid, request_json, revision, progress_state,
       site_revision, site_execution, site_evidence, site_cleanup,
       site_material_available, site_quarantined_capacity,
-      accepted_evidence_cid, accepted_evidence_json
+      accepted_evidence_cid, accepted_evidence_json,
+      accepted_subject_cid, accepted_subject_json
     FROM dispatch_intents
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
@@ -177,7 +196,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     SELECT dispatch_request_cid, request_json, revision, progress_state,
       site_revision, site_execution, site_evidence, site_cleanup,
       site_material_available, site_quarantined_capacity,
-      accepted_evidence_cid, accepted_evidence_json
+      accepted_evidence_cid, accepted_evidence_json,
+      accepted_subject_cid, accepted_subject_json
     FROM dispatch_intents
     ORDER BY run_definition_cid, task_key, task_attempt
   `);
@@ -191,21 +211,26 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       request_json, revision, progress_state, site_revision, site_execution,
       site_evidence, site_cleanup, site_material_available,
       site_quarantined_capacity, accepted_evidence_cid,
-      accepted_evidence_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, -1, -1, -1, -1, 0, 0, '', '')
+      accepted_evidence_json, accepted_subject_cid, accepted_subject_json
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, -1, -1, -1, -1, 0, 0,
+      '', '', '', ''
+    )
   `);
   const updateDispatch = database.prepare(`
     UPDATE dispatch_intents SET
       revision = ?, progress_state = ?, site_revision = ?,
       site_execution = ?, site_evidence = ?, site_cleanup = ?,
       site_material_available = ?, site_quarantined_capacity = ?,
-      accepted_evidence_cid = ?, accepted_evidence_json = ?
+      accepted_evidence_cid = ?, accepted_evidence_json = ?,
+      accepted_subject_cid = ?, accepted_subject_json = ?
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
       AND revision = ? AND progress_state = ? AND site_revision = ?
       AND site_execution = ? AND site_evidence = ? AND site_cleanup = ?
       AND site_material_available = ? AND site_quarantined_capacity = ?
       AND accepted_evidence_cid = ? AND accepted_evidence_json = ?
+      AND accepted_subject_cid = ? AND accepted_subject_json = ?
   `);
 
   const ensureOpen = () => {
@@ -223,13 +248,15 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     row.site_material_available,
     row.site_quarantined_capacity,
     row.accepted_evidence_cid,
+    row.accepted_subject_cid,
   ]);
   const restoredState = row => {
     const state = rowState(row);
     if (state.slice(0, 6).some(value => !integer(value)) ||
         !bit(state[6]) || !bit(state[7]) ||
-        typeof state[8] !== 'string' ||
-        typeof row.accepted_evidence_json !== 'string') {
+        typeof state[8] !== 'string' || typeof state[9] !== 'string' ||
+        typeof row.accepted_evidence_json !== 'string' ||
+        typeof row.accepted_subject_json !== 'string') {
       fail('InvalidCoordinatorJournalState');
     }
     return Object.freeze([
@@ -237,10 +264,11 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       state[6] === 1,
       state[7] === 1,
       state[8],
+      state[9],
     ]);
   };
   const parseProjection = value => {
-    if (!Array.isArray(value) || value.length !== 18 ||
+    if (!Array.isArray(value) || value.length !== 20 ||
         value.some(item => typeof item !== 'string')) {
       fail('InvalidCoordinatorJournalTransition');
     }
@@ -268,8 +296,9 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       parseBit(value[offset + 6]),
       parseBit(value[offset + 7]),
       value[offset + 8],
+      value[offset + 9],
     ]);
-    return Object.freeze({expected: state(0), next: state(9)});
+    return Object.freeze({expected: state(0), next: state(10)});
   };
   const sameState = (left, right) => left.length === right.length &&
     left.every((value, index) => value === right[index]);
@@ -296,7 +325,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     }
     return Object.freeze({key, generation, states});
   };
-  const persistTransition = (prepared, evidenceJson) => {
+  const persistTransition = (prepared, evidenceJson, subjectJson) => {
     const {key, generation, states} = prepared;
     const found = selectDispatch.get(key[0], key[1], generation, key[3]);
     if (found === undefined) fail('CoordinatorJournalRecordMissing');
@@ -304,6 +333,10 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     if (sameState(current, states.next)) {
       if (evidenceJson !== undefined &&
           found.accepted_evidence_json !== evidenceJson) {
+        fail('CoordinatorDispatchStateCollision');
+      }
+      if (subjectJson !== undefined &&
+          found.accepted_subject_json !== subjectJson) {
         fail('CoordinatorDispatchStateCollision');
       }
       return states;
@@ -322,18 +355,38 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     } else if (states.next[8] !== states.expected[8]) {
       fail('RemoteExecutionEvidenceMissing');
     }
+    let nextSubjectJson = found.accepted_subject_json;
+    if (subjectJson !== undefined) {
+      if (!text(subjectJson) ||
+          Buffer.byteLength(subjectJson, 'utf8') > maxEvidenceBytes ||
+          !text(states.next[9]) || evidenceJson === undefined) {
+        fail('InvalidRemoteManagedOutputSubject');
+      }
+      nextSubjectJson = subjectJson;
+    } else if (states.next[9] !== states.expected[9]) {
+      fail('RemoteManagedOutputSubjectMissing');
+    }
     const result = updateDispatch.run(
-      ...states.next, nextEvidenceJson,
+      ...states.next.slice(0, 9), nextEvidenceJson,
+      states.next[9], nextSubjectJson,
       key[0], key[1], generation, key[3],
-      ...states.expected, found.accepted_evidence_json,
+      ...states.expected.slice(0, 9), found.accepted_evidence_json,
+      states.expected[9], found.accepted_subject_json,
     );
     if (result.changes !== 1) fail('CoordinatorDispatchStateCollision');
     return states;
   };
-  const advanceTransition = (transition, evidence, record, control) => {
+  const advanceTransition = (
+    transition,
+    evidence,
+    subject,
+    record,
+    control,
+  ) => {
     ensureOpen();
     const prepared = prepareTransition(transition, record, control);
     let evidenceJson;
+    let subjectJson;
     if (evidence !== undefined) {
       if (typeof control.evidenceIdentity !== 'function' ||
           typeof control.evidenceJson !== 'function' ||
@@ -342,7 +395,21 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       }
       evidenceJson = control.evidenceJson(evidence);
     }
-    transaction(database, () => persistTransition(prepared, evidenceJson));
+    if (subject !== undefined) {
+      if (evidence === undefined ||
+          typeof control.managedOutputSubjectIdentity !== 'function' ||
+          typeof control.managedOutputSubjectJson !== 'function' ||
+          control.managedOutputSubjectIdentity(subject) !==
+            prepared.states.next[9]) {
+        fail('RemoteManagedOutputEvidenceMismatch');
+      }
+      subjectJson = control.managedOutputSubjectJson(subject);
+    }
+    transaction(database, () => persistTransition(
+      prepared,
+      evidenceJson,
+      subjectJson,
+    ));
     control.commitCoordinatorTransition(transition, true);
     if (control.coordinatorRecordRevision(record) !==
         prepared.states.next[0]) {
@@ -437,11 +504,39 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         } else if (row.accepted_evidence_json !== '') {
           fail('InvalidCoordinatorJournalEvidence');
         }
+        let subject;
+        if (text(row.accepted_subject_cid)) {
+          if (evidence === undefined || !text(row.accepted_subject_json)) {
+            fail('InvalidCoordinatorJournalSubject');
+          }
+          try {
+            subject = admitRemoteManagedOutputSubjectJson(
+              control,
+              row.accepted_subject_json,
+              row.accepted_subject_cid,
+              request,
+              maxEvidenceBytes,
+            );
+            if (!control.managedOutputSubjectMatchesEvidence(
+              subject,
+              evidence,
+              request,
+            )) {
+              fail('InvalidCoordinatorJournalSubject');
+            }
+          } catch (error) {
+            fail('InvalidCoordinatorJournalSubject', error);
+          }
+        } else if (row.accepted_subject_json !== '') {
+          fail('InvalidCoordinatorJournalSubject');
+        }
         recovered.push(Object.freeze({
           request,
           record,
           evidence,
           evidenceWire: row.accepted_evidence_json || undefined,
+          subject,
+          subjectWire: row.accepted_subject_json || undefined,
         }));
       }
       return Object.freeze(recovered);
@@ -466,10 +561,22 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       return record;
     },
     advance(transition, record, control) {
-      return advanceTransition(transition, undefined, record, control);
+      return advanceTransition(
+        transition,
+        undefined,
+        undefined,
+        record,
+        control,
+      );
     },
-    advanceEvidence(transition, evidence, record, control) {
-      return advanceTransition(transition, evidence, record, control);
+    advanceEvidence(transition, evidence, subject, record, control) {
+      return advanceTransition(
+        transition,
+        evidence,
+        subject,
+        record,
+        control,
+      );
     },
     contains(request, control) {
       ensureOpen();
@@ -500,6 +607,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       return Object.freeze({
         evidenceCid: row.accepted_evidence_cid,
         evidenceWire: row.accepted_evidence_json,
+        subjectCid: row.accepted_subject_cid || undefined,
+        subjectWire: row.accepted_subject_json || undefined,
       });
     },
     close() {

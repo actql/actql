@@ -73,9 +73,9 @@ test "Coordinator restart restores intent without creating a Site fact" {
 }
 
 ///|
-fn evidence_for_coordinator(
+fn managed_output_for_coordinator(
   request : DispatchRequest,
-) -> RemoteExecutionEvidence {
+) -> (RemoteExecutionEvidence, RemoteManagedOutputSubject) {
   let site = @site.create_site(
     "site-a", 1, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     4, 4, 1048576L, 1048576L,
@@ -106,12 +106,30 @@ fn evidence_for_coordinator(
     true,
   ).unwrap()
   let issuer = register_remote_evidence_issuer(
-    site, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "local", "local/1", "strategy/1", "actql.remote.physical-output/0.1", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    site,
+    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "local",
+    "local/1",
+    "strategy/1",
+    remote_managed_output_evidence_kind(),
+    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   ).unwrap()
-  issue_remote_execution_evidence(
-    issuer, site_record, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  let subject = prepare_remote_managed_output_subject(
+    dispatch_request_identity(request),
+    "material-generation-a",
+    "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+    "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+    2,
+    8L,
   ).unwrap()
+  (
+    issue_remote_managed_output_evidence(issuer, site_record, subject).unwrap(),
+    subject,
+  )
 }
 
 ///|
@@ -132,7 +150,8 @@ test "Site status alone cannot authorize Coordinator completion" {
   ).unwrap()
   commit_coordinator_dispatch_transition(claimed, true).unwrap()
   assert_false(coordinator_completion_evidence_available(record))
-  let admitted = prepare_coordinator_site_observation(
+  let (evidence, subject) = managed_output_for_coordinator(request)
+  let evidence_only = prepare_coordinator_site_observation(
     record,
     5,
     3,
@@ -140,7 +159,12 @@ test "Site status alone cannot authorize Coordinator completion" {
     0,
     true,
     false,
-    Some(evidence_for_coordinator(request)),
+    Some(evidence),
+  ).unwrap()
+  commit_coordinator_dispatch_transition(evidence_only, true).unwrap()
+  assert_false(coordinator_completion_evidence_available(record))
+  let admitted = prepare_coordinator_managed_output_observation(
+    record, 5, 3, 2, 0, true, false, evidence, subject,
   ).unwrap()
   commit_coordinator_dispatch_transition(admitted, true).unwrap()
   assert_true(coordinator_completion_evidence_available(record))
@@ -169,7 +193,7 @@ test "Coordinator rejects stale or altered Site observations" {
       0,
       true,
       false,
-      Some(evidence_for_coordinator(request)),
+      Some(managed_output_for_coordinator(request).0),
     )
     is Err(StateCollision),
   )
@@ -182,7 +206,9 @@ test "Coordinator rejects stale or altered Site observations" {
       0,
       true,
       false,
-      Some(evidence_for_coordinator(coordinator_request("dispatch-b", 2))),
+      Some(
+        managed_output_for_coordinator(coordinator_request("dispatch-b", 2)).0,
+      ),
     )
     is Err(InvalidDispatch),
   )
@@ -202,7 +228,7 @@ test "Coordinator unknown state restores without inventing a Site fact" {
   let restored_journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
   let restored = restore_coordinator_dispatch_intent(restored_journal, request).unwrap()
   restore_coordinator_dispatch_record(
-    restored, 1, 1, -1, -1, -1, -1, false, false, "",
+    restored, 1, 1, -1, -1, -1, -1, false, false, "", "",
   ).unwrap()
   assert_eq(coordinator_dispatch_record_state_codes(restored), state)
   assert_false(coordinator_completion_evidence_available(restored))

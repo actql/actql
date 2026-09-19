@@ -157,6 +157,6 @@ test('Coordinator journal migration preserves durable intent state', async t => 
   );
   assert.equal(recovered.length, 1);
   assert.deepEqual(store.inspectState(dispatch, control), [
-    0, 0, -1, -1, -1, -1, false, false, '',
+    0, 0, -1, -1, -1, -1, false, false, '', '',
   ]);
 });

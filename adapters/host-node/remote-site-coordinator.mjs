@@ -61,10 +61,19 @@ export function createRemoteSiteCoordinator({
       record,
       response,
     );
-    if (response.evidence === undefined) {
+    if (response.evidence === undefined && response.subject === undefined) {
       store.advance(transition, record, control);
+    } else if (response.evidence !== undefined &&
+        response.subject !== undefined) {
+      store.advanceEvidence(
+        transition,
+        response.evidence,
+        response.subject,
+        record,
+        control,
+      );
     } else {
-      store.advanceEvidence(transition, response.evidence, record, control);
+      fail('RemoteManagedOutputEvidenceIncomplete');
     }
     return response;
   };

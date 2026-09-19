@@ -40,6 +40,7 @@ export function prepareRemoteRuntimeRegistration({
       typeof control.registerExecutionCapability !== 'function' ||
       typeof control.executionCapabilityScope !== 'function' ||
       typeof control.registerEvidenceIssuer !== 'function' ||
+      typeof control.managedOutputEvidenceKind !== 'string' ||
       typeof execute !== 'function') {
     fail('InvalidRemoteRuntimeRegistration');
   }
@@ -60,6 +61,9 @@ export function prepareRemoteRuntimeRegistration({
     evidenceKind,
     issuerCapabilityCid,
   });
+  if (evidenceKind !== control.managedOutputEvidenceKind) {
+    fail('UnsupportedRemoteEvidenceKind');
+  }
   return Object.freeze({
     key: keyOf(control.executionCapabilityScope(capability)),
     capability,
@@ -72,12 +76,20 @@ export function prepareRemoteRuntimeRegistration({
 function checkedOutput(value) {
   if (!exactKeys(value, [
     'close',
-    'evidenceSubjectCid',
     'holdingEvidenceCid',
+    'logicalViewCid',
+    'managedProfileCid',
     'materialGeneration',
+    'physicalManifestCid',
+    'representationCodecCid',
     'retainedBytes',
+    'resultSchemaCid',
+    'rowCount',
   ]) || !text(value.materialGeneration) ||
-      !text(value.holdingEvidenceCid) || !text(value.evidenceSubjectCid) ||
+      !text(value.holdingEvidenceCid) || !text(value.logicalViewCid) ||
+      !text(value.managedProfileCid) || !text(value.physicalManifestCid) ||
+      !text(value.representationCodecCid) || !text(value.resultSchemaCid) ||
+      !Number.isSafeInteger(value.rowCount) || value.rowCount < 0 ||
       typeof value.retainedBytes !== 'bigint' || value.retainedBytes < 0n ||
       typeof value.close !== 'function') {
     fail('InvalidRemoteExecutionOutput');
@@ -105,7 +117,8 @@ export function createRemoteDispatchRuntime({
       typeof control.prepareReconciledCancellation !== 'function' ||
       typeof control.prepareUnknown !== 'function' ||
       typeof control.prepareRetained !== 'function' ||
-      typeof control.issueExecutionEvidence !== 'function' ||
+      typeof control.prepareManagedOutputSubject !== 'function' ||
+      typeof control.issueManagedOutputEvidence !== 'function' ||
       typeof control.prepareEvidence !== 'function' ||
       typeof control.prepareEvidenceRejection !== 'function' ||
       typeof control.prepareRelease !== 'function' ||
@@ -415,20 +428,23 @@ export function createRemoteDispatchRuntime({
         output.materialGeneration,
         output.holdingEvidenceCid,
       ), record, control);
-      const evidence = control.issueExecutionEvidence(
+      const subject = control.prepareManagedOutputSubject(dispatch, output);
+      const evidence = control.issueManagedOutputEvidence(
         registration.issuer,
         record,
-        output.evidenceSubjectCid,
+        subject,
       );
       store.advanceEvidence(
         control.prepareEvidence(record, evidence),
         evidence,
+        subject,
         record,
         control,
       );
       return Object.freeze({
         dispatchRequestCid: identity,
         evidence,
+        subject,
         revision: control.revision(record),
         state: Object.freeze([...control.status(record)]),
       });

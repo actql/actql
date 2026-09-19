@@ -1,5 +1,8 @@
 import {request as httpsRequest} from 'node:https';
-import {admitRemoteExecutionEvidenceJson} from
+import {
+  admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputSubjectJson,
+} from
   '../host-common/remote-dispatch-wire.mjs';
 
 const fail = (code, cause, details = {}) => {
@@ -85,11 +88,12 @@ async function exchangeRemoteDispatch({
         const expectedVersion = query
           ? 'actql-remote-dispatch-status/0.1'
           : 'actql-remote-dispatch-response/0.1';
-        const evidenceValid = !query || payload?.evidence === null ||
-          (payload?.evidence !== null &&
-          typeof payload?.evidence === 'object' &&
-          typeof payload.evidence.cid === 'string' &&
-          typeof payload.evidence.wire === 'string');
+        const wireRecord = value => value !== null &&
+          typeof value === 'object' && typeof value.cid === 'string' &&
+          typeof value.wire === 'string';
+        const evidenceValid = !query ||
+          (payload?.evidence === null && payload?.subject === null) ||
+          (wireRecord(payload?.evidence) && wireRecord(payload?.subject));
         if (payload?.version !== expectedVersion ||
             payload.dispatch_request_cid !== control.identity(dispatch) ||
             !Number.isSafeInteger(payload.revision) ||
@@ -101,6 +105,7 @@ async function exchangeRemoteDispatch({
           return;
         }
         let evidence;
+        let subject;
         if (query && payload.evidence !== null) {
           try {
             evidence = admitRemoteExecutionEvidenceJson(
@@ -110,6 +115,22 @@ async function exchangeRemoteDispatch({
               dispatch,
               maxResponseBytes,
             );
+            subject = admitRemoteManagedOutputSubjectJson(
+              control,
+              payload.subject.wire,
+              payload.subject.cid,
+              dispatch,
+              maxResponseBytes,
+            );
+            if (!control.managedOutputSubjectMatchesEvidence(
+              subject,
+              evidence,
+              dispatch,
+            )) {
+              throw Object.assign(new Error('Remote evidence mismatch'), {
+                code: 'RemoteManagedOutputEvidenceMismatch',
+              });
+            }
           } catch (error) {
             reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
               cause: error,
@@ -125,6 +146,9 @@ async function exchangeRemoteDispatch({
             evidence,
             evidenceCid: payload.evidence?.cid,
             evidenceWire: payload.evidence?.wire,
+            subject,
+            subjectCid: payload.subject?.cid,
+            subjectWire: payload.subject?.wire,
           } : {}),
         }));
       });

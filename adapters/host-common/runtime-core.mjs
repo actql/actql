@@ -142,6 +142,10 @@ function remoteSiteControl(moon) {
       }
       const [execution, evidence, cleanup, available, quarantined] =
         observation.state;
+      if (observation.subject !== undefined &&
+          observation.evidence === undefined) {
+        throw new TypeError('Remote output subject requires evidence');
+      }
       if (observation.evidence === undefined) {
         return checked(
           moon.strategyRemoteCoordinatorPrepareObservationWithoutEvidence(
@@ -152,6 +156,21 @@ function remoteSiteControl(moon) {
             cleanup,
             available === 1,
             quarantined === 1,
+          ),
+        );
+      }
+      if (observation.subject !== undefined) {
+        return checked(
+          moon.strategyRemoteCoordinatorPrepareManagedOutputObservation(
+            record,
+            observation.revision,
+            execution,
+            evidence,
+            cleanup,
+            available === 1,
+            quarantined === 1,
+            observation.evidence,
+            observation.subject,
           ),
         );
       }
@@ -177,7 +196,7 @@ function remoteSiteControl(moon) {
     coordinatorRecordStatus: moon.strategyRemoteCoordinatorRecordStatus,
     coordinatorRecordRevision: moon.strategyRemoteCoordinatorRecordRevision,
     restoreCoordinatorRecord: (record, state) => {
-      if (!Array.isArray(state) || state.length !== 9) {
+      if (!Array.isArray(state) || state.length !== 10) {
         throw new TypeError('Invalid remote Coordinator state');
       }
       return checked(
@@ -250,6 +269,53 @@ function remoteSiteControl(moon) {
         evidenceSubjectCid,
       ),
     ),
+    prepareManagedOutputSubject: (dispatch, output) => checked(
+      moon.strategyRemoteManagedOutputSubjectPrepare(
+        control.identity(dispatch),
+        output.materialGeneration,
+        output.holdingEvidenceCid,
+        output.managedProfileCid,
+        output.resultSchemaCid,
+        output.logicalViewCid,
+        output.representationCodecCid,
+        output.physicalManifestCid,
+        output.rowCount,
+        output.retainedBytes,
+      ),
+    ),
+    managedOutputEvidenceKind:
+      moon.strategyRemoteManagedOutputEvidenceKind(),
+    admitManagedOutputSubject: subject => checked(
+      moon.strategyRemoteManagedOutputSubjectAdmit(
+        subject.dispatchRequestCid,
+        subject.materialGeneration,
+        subject.holdingEvidenceCid,
+        subject.managedProfileCid,
+        subject.resultSchemaCid,
+        subject.logicalViewCid,
+        subject.representationCodecCid,
+        subject.physicalManifestCid,
+        subject.rowCount,
+        subject.retainedBytes,
+        subject.subjectCid,
+      ),
+    ),
+    managedOutputSubjectIdentity:
+      moon.strategyRemoteManagedOutputSubjectIdentity,
+    managedOutputSubjectJson: value => checked(
+      moon.strategyRemoteManagedOutputSubjectJson(value),
+    ),
+    managedOutputSubjectProjection:
+      moon.strategyRemoteManagedOutputSubjectProjection,
+    issueManagedOutputEvidence: (issuer, record, subject) => checked(
+      moon.strategyRemoteIssueManagedOutputEvidence(
+        issuer,
+        record,
+        subject,
+      ),
+    ),
+    managedOutputSubjectMatchesEvidence:
+      moon.strategyRemoteManagedOutputSubjectMatchesEvidence,
     admitExecutionEvidence: evidence => checked(
       moon.strategyRemoteExecutionEvidenceAdmit(
         evidence.connectorRegistration,
