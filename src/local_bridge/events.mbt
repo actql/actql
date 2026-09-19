@@ -264,6 +264,11 @@ pub fn cleanup_rows_to_events(
 }
 
 ///|
+pub fn rows_to_events_cleanup_pending(value : RowsToEventsExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
+}
+
+///|
 fn events_to_rows_step(
   state : EventsToRowsState,
   quantum : Int,
@@ -489,4 +494,9 @@ pub fn cleanup_events_to_rows(
   value : EventsToRowsExecution,
 ) -> Result[Bool, EventsBridgeIssue] {
   @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+}
+
+///|
+pub fn events_to_rows_cleanup_pending(value : EventsToRowsExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }

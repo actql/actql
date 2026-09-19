@@ -79,6 +79,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/local_bridge",
   "actql/actql/local_tea",
+  "actql/actql/local_tea_provider",
   "actql/actql/managed_record_runtime" @records,
   "actql/actql/managed_record_storage" @record_storage,
 } for "wbtest"

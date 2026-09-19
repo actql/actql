@@ -19,6 +19,10 @@ pub fn cleanup_events_to_rows(EventsToRowsExecution) -> Result[Bool, EventsBridg
 
 pub fn cleanup_rows_to_events(RowsToEventsExecution) -> Result[Bool, EventsBridgeIssue]
 
+pub fn events_to_rows_cleanup_pending(EventsToRowsExecution) -> Bool
+
+pub fn rows_to_events_cleanup_pending(RowsToEventsExecution) -> Bool
+
 pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
 pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]

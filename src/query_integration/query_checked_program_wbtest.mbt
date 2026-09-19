@@ -22,6 +22,7 @@ fn query_checked_program_fixture(
   local_values_lag_variant? : String = "literal",
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
+  local_carrier_events_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
@@ -74,6 +75,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_watermark_chain {
     local_values_watermark_program(local_values_watermark_variant)
+  } else {
+    text
+  }
+  let text = if local_carrier_events_chain {
+    local_carrier_events_program()
   } else {
     text
   }
@@ -496,7 +502,7 @@ fn query_checked_program_fixture(
         {
           rela: true,
           sga: false,
-          tea: false,
+          tea: local_carrier_events_chain,
           calendar: false,
           text_rank: false,
         },
