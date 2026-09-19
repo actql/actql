@@ -190,8 +190,16 @@ on JS, Wasm, and native. The registered Events provider now selects either
 watermark or dedupe from the checked occurrence. Dedupe reaches two downstream
 Relation computations through the standard Host and releases the final ledger.
 Standalone Events output lifetime, environment cancellation delivery, and
-publication remain open, so dedupe is not complete. The other six TEA
-operations still lack portable Local kernels.
+publication remain open, so dedupe is not complete. Time series now lowers
+literal and exact bound endpoints to a zero-input canonical
+occurrence, validates its complete finite cardinality before execution, and
+emits canonical UTC timestamp rows through a bounded-step Relation kernel. A
+registered provider runs it through the standard Host, keeps two real
+downstream consumers live together, releases them independently, and reclaims
+the final ledger. The same affected suites pass on JS, Wasm, and native.
+Environment cancellation delivery and Named Result publication remain open,
+so time series is not complete. The other five TEA operations still lack
+portable Local kernels.
 
 ### Bridges
 
@@ -218,6 +226,13 @@ adapter passes eleven,
 and the retained boundary passes 231. Portable dependency and dependency-free
 Node subset checks pass. This is local evidence, not a replacement for final
 same-SHA Linux CI.
+
+At `efb1b6de`, value admission, lowering, Local TEA, its registered provider,
+and query integration pass 656 tests on each of JS, Wasm, and native. That
+fixed SHA includes the bounded time-series standard Host path and its two
+retained consumers. Public interfaces agree across the three targets. This is
+focused local evidence; final same-SHA Linux CI and the remaining required
+layers are still open.
 
 At `b42ad703`, the lowering and Relation execution packages pass 868 tests on
 each of JS, Wasm, and native. JS checking, formatting, and the tracked portable

@@ -319,21 +319,8 @@
       "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
       "status": "partial",
       "owner": "local-tea",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "resources",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/event_test.mbt",
-        "src/local_tea/dedupe_wbtest.mbt",
-        "src/query_integration/local_carrier_events_wbtest.mbt"
-      ]
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
     },
     {
       "family": "TEA",
@@ -342,8 +329,24 @@
       "output": "relation",
       "canonical": ["TEA.time_series"],
       "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/time_series_test.mbt",
+        "src/value_admission/execution_values_wbtest.mbt",
+        "src/query_integration/local_time_series_wbtest.mbt"
+      ]
     },
     {
       "family": "TEA",
@@ -364,8 +367,21 @@
       "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
       "status": "partial",
       "owner": "local-tea",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/dedupe_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ]
     },
     {
       "family": "TEA",
