@@ -40,6 +40,8 @@ const controlMethods = [
   'failedOperationAction',
   'retainedHoldingAction',
   'hostCleanupAction',
+  'hostCleanupPending',
+  'hostTaskRunOutcome',
   'hostTaskSuccessAction',
 ];
 
@@ -574,6 +576,39 @@ export function executionSiteHostCleanupAction(
     fail('InvalidExecutionSiteHostCleanupAction');
   }
   return action;
+}
+
+export function executionSiteHostCleanupPending(
+  installation,
+  closesPending,
+  knownCleanupPending,
+  unconfirmedOwnership,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const pending = state.control.hostCleanupPending(
+    closesPending,
+    knownCleanupPending,
+    unconfirmedOwnership,
+  );
+  if (typeof pending !== 'boolean') {
+    fail('InvalidExecutionSiteHostCleanupStatus');
+  }
+  return pending;
+}
+
+export function executionSiteHostTaskRunOutcome(
+  installation,
+  failed,
+  runFinished,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  const outcome = state.control.hostTaskRunOutcome(failed, runFinished);
+  if (!Number.isSafeInteger(outcome) || outcome < 0 || outcome > 2) {
+    fail('InvalidExecutionSiteHostTaskRunOutcome');
+  }
+  return outcome;
 }
 
 export function executionSiteHostTaskSuccessAction(

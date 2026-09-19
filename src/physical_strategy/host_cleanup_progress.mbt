@@ -50,3 +50,14 @@ pub fn host_cleanup_runtime_action_code(
     HostCleanupFinished => 4
   }
 }
+
+///|
+/// Current physical responsibility, not historical diagnostic errors,
+/// determines whether Host cleanup remains pending.
+pub fn host_cleanup_pending(
+  closes_pending : Bool,
+  known_cleanup_pending : Bool,
+  unconfirmed_ownership : Bool,
+) -> Bool {
+  closes_pending || known_cleanup_pending || unconfirmed_ownership
+}

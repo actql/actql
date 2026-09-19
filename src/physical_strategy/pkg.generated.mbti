@@ -169,7 +169,11 @@ pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
+pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
+
 pub fn host_cleanup_runtime_action_code(HostCleanupRuntimeAction) -> Int
+
+pub fn host_task_run_outcome_code(HostTaskRunOutcome) -> Int
 
 pub fn host_task_success_action_code(HostTaskSuccessAction) -> Int
 
@@ -190,6 +194,8 @@ pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relati
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
 pub fn prepare_host_cleanup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostCleanupRuntimeAction
+
+pub fn prepare_host_task_run_outcome(Bool, Bool) -> HostTaskRunOutcome
 
 pub fn prepare_host_task_success_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> HostTaskSuccessAction
 
@@ -401,6 +407,12 @@ pub(all) enum HostCleanupRuntimeAction {
   HostCleanupPending
   HostCleanupFailed
   HostCleanupFinished
+} derive(Eq, @debug.Debug)
+
+pub(all) enum HostTaskRunOutcome {
+  HostTasksCompleted
+  HostTasksFailed
+  HostTaskRunInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum HostTaskSuccessAction {

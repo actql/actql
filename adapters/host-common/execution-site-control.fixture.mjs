@@ -263,6 +263,16 @@ export function createExecutionSiteControlFixture() {
       }
       return 4;
     },
+    hostCleanupPending: (
+      closesPending,
+      knownCleanupPending,
+      unconfirmedOwnership,
+    ) => closesPending || knownCleanupPending || unconfirmedOwnership,
+    hostTaskRunOutcome(failed, runFinished) {
+      if (failed) return 1;
+      if (runFinished) return 0;
+      return 2;
+    },
     hostTaskSuccessAction(
       siteCompletionChecked,
       siteCompletionReady,

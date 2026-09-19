@@ -2722,6 +2722,31 @@ pub fn strategy_host_cleanup_action(
 }
 
 ///|
+#export_name("strategyHostCleanupPending")
+pub fn strategy_host_cleanup_pending(
+  closes_pending : Bool,
+  known_cleanup_pending : Bool,
+  unconfirmed_ownership : Bool,
+) -> Bool {
+  @strategy.host_cleanup_pending(
+    closes_pending,
+    known_cleanup_pending,
+    unconfirmed_ownership,
+  )
+}
+
+///|
+#export_name("strategyHostTaskRunOutcome")
+pub fn strategy_host_task_run_outcome(
+  failed : Bool,
+  run_finished : Bool,
+) -> Int {
+  @strategy.host_task_run_outcome_code(
+    @strategy.prepare_host_task_run_outcome(failed, run_finished),
+  )
+}
+
+///|
 #export_name("strategyHostTaskSuccessAction")
 pub fn strategy_host_task_success_action(
   site_completion_checked : Bool,

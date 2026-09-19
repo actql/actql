@@ -25,3 +25,11 @@ test "Host cleanup retries around closes before deciding terminal state" {
     HostCleanupFinished,
   )
 }
+
+///|
+test "Host cleanup pending follows current responsibility only" {
+  assert_false(host_cleanup_pending(false, false, false))
+  assert_true(host_cleanup_pending(true, false, false))
+  assert_true(host_cleanup_pending(false, true, false))
+  assert_true(host_cleanup_pending(false, false, true))
+}

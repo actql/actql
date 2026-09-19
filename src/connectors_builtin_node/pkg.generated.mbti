@@ -68,6 +68,8 @@ pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer
 
 pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
+
 pub fn strategy_host_close_outputs(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
 pub fn strategy_host_configure_managed_identity(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Bool, Bool, Bool, Bool) -> Bool
@@ -191,6 +193,8 @@ pub fn strategy_host_task(@physical_host.PreparedTaskDispatch) -> Int
 pub fn strategy_host_task_capacity(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Array[Int64] raise NodeHostFailure
 
 pub fn strategy_host_task_completed(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
+pub fn strategy_host_task_run_outcome(Bool, Bool) -> Int
 
 pub fn strategy_host_task_success_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 

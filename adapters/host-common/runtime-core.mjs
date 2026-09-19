@@ -70,6 +70,8 @@ function siteControl(moon) {
     failedOperationAction: moon.strategySiteFailedOperationAction,
     retainedHoldingAction: moon.strategySiteRetainedHoldingAction,
     hostCleanupAction: moon.strategyHostCleanupAction,
+    hostCleanupPending: moon.strategyHostCleanupPending,
+    hostTaskRunOutcome: moon.strategyHostTaskRunOutcome,
     hostTaskSuccessAction: moon.strategyHostTaskSuccessAction,
   });
   siteControls.set(moon, control);

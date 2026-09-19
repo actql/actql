@@ -4,6 +4,7 @@
 import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   executionSiteCandidate,
   executionSiteDescription, executionSiteHostCleanupAction,
+  executionSiteHostCleanupPending, executionSiteHostTaskRunOutcome,
   executionSiteHostTaskSuccessAction,
   executionSiteOperationAvailable,
   executionSitePlacements, failedExecutionSiteOperationAction,
@@ -475,16 +476,19 @@ export async function runInstalledStrategy(
       throw error;
     }
   };
-  const cleanupPending = () => {
-    if (pendingCloses.size) return true;
-    if (unconfirmedRelease.size) return true;
-    if (unconfirmedSiteOperations.size) return true;
+  const knownCleanupPending = () => {
     for (const handle of pendingCleanup) {
       try { if (handle.status().pending) return true; }
       catch { return true; }
     }
     return false;
   };
+  const cleanupPending = () => executionSiteHostCleanupPending(
+    siteInstallation,
+    pendingCloses.size !== 0,
+    knownCleanupPending(),
+    unconfirmedRelease.size !== 0 || unconfirmedSiteOperations.size !== 0,
+  );
   try {
     const count = core.count(setup);
     for (let step = 1; step < count; step++) {
@@ -834,10 +838,17 @@ export async function runInstalledStrategy(
     }
     active.delete(setup);
   }
+  const runFinished = failed ? false : core.finished(setup);
+  const outcome = executionSiteHostTaskRunOutcome(
+    siteInstallation,
+    failed,
+    runFinished,
+  );
+  if (outcome === 2) throw new StrategyHostError('InvalidStrategyOutcome');
   let execution;
   execution = Object.freeze({
     // Internal task records only, not Program/Run publication or partial success.
-    status: failed ? 'host-tasks-failed' : 'host-tasks-completed',
+    status: outcome === 1 ? 'host-tasks-failed' : 'host-tasks-completed',
     failure,
     completed: Object.freeze(completed),
     candidateExclusions: Object.freeze(candidateExclusions),
@@ -928,16 +939,6 @@ export async function runInstalledStrategy(
         let initialRetryDone = false;
         let closesAwaited = false;
         let finalRetryDone = false;
-        const knownCleanupPending = () => {
-          for (const handle of pendingCleanup) {
-            try {
-              if (handle.status().pending) return true;
-            } catch {
-              return true;
-            }
-          }
-          return false;
-        };
         const retryKnown = async () => {
           for (const handle of [...pendingCleanup]) {
             if (attempted.has(handle)) continue;
