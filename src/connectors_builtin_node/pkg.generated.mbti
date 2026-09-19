@@ -512,6 +512,8 @@ pub fn strategy_site_capacity_supports(@execution_site.ExecutionSite, Int64, Int
 
 pub fn strategy_site_create(String, Int, String, Int, Int, Int64, Int64) -> @execution_site.ExecutionSite?
 
+pub fn strategy_site_failed_operation_action(Bool, Bool, Bool) -> Int
+
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool

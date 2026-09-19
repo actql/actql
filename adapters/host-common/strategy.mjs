@@ -3,7 +3,8 @@
 // Installed entries are implementation code, not user-supplied success proofs.
 import {bindExecutionSiteCandidate, executionSiteCandidate,
   executionSiteDescription, executionSiteOperationAvailable,
-  executionSitePlacements, installExecutionSites,
+  executionSitePlacements, failedExecutionSiteOperationAction,
+  installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
@@ -291,13 +292,31 @@ export async function runInstalledStrategy(
   // must remain visible.
   const unconfirmedSiteOperations = new Set();
   const settleSiteAfterFailure = (operation, error) => {
-    if (failureMember(error, 'cleanupPending') !== true) {
-      settleExecutionSiteOperation(operation);
+    const cleanupRequired = failureMember(error, 'cleanupPending') === true;
+    const upstream = failureMember(error, 'cleanupHandle');
+    let operationSettled = false;
+    const progress = cleanupStopped => failedExecutionSiteOperationAction(
+      operation,
+      cleanupRequired,
+      cleanupStopped,
+      operationSettled,
+    );
+    const drive = cleanupStopped => {
+      const action = progress(cleanupStopped);
+      if (action === 1) {
+        settleExecutionSiteOperation(operation);
+        operationSettled = true;
+        return progress(cleanupStopped);
+      }
+      return action;
+    };
+    if (!cleanupRequired) {
+      drive(true);
       return error;
     }
-    const upstream = failureMember(error, 'cleanupHandle');
     const failure = ownedStrategyFailure(error, 'StrategyExecutionFailed');
     if (typeof failureMember(upstream, 'status') !== 'function') {
+      drive(false);
       unconfirmedSiteOperations.add(operation);
       failure.cleanupPending = true;
       return failure;
@@ -309,11 +328,16 @@ export async function runInstalledStrategy(
         catch (failure) {
           return Object.freeze({pending: true, errors: Object.freeze([failure])});
         }
-        if (state?.pending === false) settleExecutionSiteOperation(operation);
+        const errors = Array.isArray(state?.errors) ? [...state.errors] : [];
+        let action;
+        try { action = drive(state?.pending === false); }
+        catch (error) {
+          errors.push(error);
+          action = 0;
+        }
         return Object.freeze({
-          pending: state?.pending !== false,
-          errors: Object.freeze(Array.isArray(state?.errors)
-            ? [...state.errors] : []),
+          pending: action !== 2,
+          errors: Object.freeze(errors),
         });
       },
       async retry() {

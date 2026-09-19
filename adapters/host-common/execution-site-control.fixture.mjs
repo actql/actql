@@ -186,5 +186,10 @@ export function createExecutionSiteControlFixture() {
       }
       return selected;
     },
+    failedOperationAction(cleanupRequired, cleanupStopped, settled) {
+      if (settled) return 2;
+      if (cleanupRequired && !cleanupStopped) return 0;
+      return 1;
+    },
   });
 }

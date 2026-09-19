@@ -2562,6 +2562,22 @@ pub fn strategy_site_select_candidate(
 }
 
 ///|
+#export_name("strategySiteFailedOperationAction")
+pub fn strategy_site_failed_operation_action(
+  cleanup_required : Bool,
+  cleanup_stopped : Bool,
+  operation_settled : Bool,
+) -> Int {
+  @site.failed_site_operation_action_code(
+    @site.prepare_failed_site_operation_step(
+      cleanup_required,
+      cleanup_stopped,
+      operation_settled,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRemoteDispatchPrepare")
 pub fn strategy_remote_dispatch_prepare(
   coordinator_authority : String,

@@ -36,6 +36,7 @@ const controlMethods = [
   'retainTransferHolding', 'retainHolding', 'releaseHolding',
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
   'selectCandidate',
+  'failedOperationAction',
 ];
 
 function checkedControl(control) {
@@ -441,6 +442,24 @@ export function startExecutionSiteOperation(binding) {
 export function settleExecutionSiteOperation(operation) {
   const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
   return state.control.settleOperation(state.handle);
+}
+
+export function failedExecutionSiteOperationAction(
+  operation,
+  cleanupRequired,
+  cleanupStopped,
+  operationSettled,
+) {
+  const state = operations.get(operation) ?? fail('ForeignExecutionSiteOperation');
+  const action = state.control.failedOperationAction(
+    cleanupRequired,
+    cleanupStopped,
+    operationSettled,
+  );
+  if (!Number.isSafeInteger(action) || action < 0 || action > 2) {
+    fail('InvalidExecutionSiteFailureAction');
+  }
+  return action;
 }
 
 export function retainExecutionSiteOperationHolding(operation, value, valueBytes) {

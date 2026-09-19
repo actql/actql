@@ -1,10 +1,18 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/execution_site"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn begin_site_teardown(ExecutionSite) -> Unit
 
 pub fn create_site(String, Int, String, Int, Int, Int64, Int64) -> ExecutionSite?
+
+pub fn failed_site_operation_action_code(FailedSiteOperationAction) -> Int
+
+pub fn prepare_failed_site_operation_step(Bool, Bool, Bool) -> FailedSiteOperationAction
 
 pub fn release_site_cleanup(SiteCleanup) -> Bool
 
@@ -56,6 +64,12 @@ pub fn start_site_transfer(ExecutionSite, ExecutionSite, Int64, Int64) -> SiteTr
 
 // Types and methods
 type ExecutionSite
+
+pub(all) enum FailedSiteOperationAction {
+  FailedSiteAwaitStop
+  FailedSiteSettle
+  FailedSiteFinished
+} derive(Eq, @debug.Debug)
 
 type SiteCleanup
 

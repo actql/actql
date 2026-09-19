@@ -49,6 +49,7 @@ function siteControl(moon) {
     revoke: moon.strategySiteRevoke,
     status: moon.strategySiteStatus,
     selectCandidate: moon.strategySiteSelectCandidate,
+    failedOperationAction: moon.strategySiteFailedOperationAction,
   });
   siteControls.set(moon, control);
   return control;
