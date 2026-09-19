@@ -32,6 +32,10 @@ pub fn boolean_value(Bool) -> Value
 
 pub fn cancel_vector_value(VectorBuilder) -> Bool
 
+pub fn checked_number_value(Double, @value_contract.Contract) -> CheckedValue?
+
+pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
@@ -106,6 +110,12 @@ pub(all) enum IssueKind {
   InvalidReference
   UnauthorizedReference
   BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum KeyOrderIssue {
+  InvalidKey
+  UnavailableReference
+  DifferentReferenceDomain
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
