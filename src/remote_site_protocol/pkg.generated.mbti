@@ -9,15 +9,25 @@ import {
 // Values
 pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
+pub fn admit_dispatch_request_json(String, String) -> Result[DispatchRequest, DispatchIssue]
+
+pub fn admit_durable_coordinator_dispatch_record(Bytes) -> Result[DurableCoordinatorDispatchRecord, DispatchIssue]
+
 pub fn admit_durable_dispatch_record(Bytes) -> Result[DurableDispatchRecord, DispatchIssue]
 
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
+pub fn admit_remote_execution_evidence_json(String, String, DispatchRequest) -> Result[RemoteExecutionEvidence, DispatchIssue]
+
 pub fn admit_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
 
+pub fn admit_remote_managed_output_measurement_json(String, String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
+
 pub fn admit_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> Result[RemoteManagedOutputSubject, DispatchIssue]
+
+pub fn admit_remote_managed_output_subject_json(String, String, DispatchRequest) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
@@ -35,6 +45,8 @@ pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int
 
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 
+pub fn coordinator_dispatch_admission_durable_json(CoordinatorDispatchIntentAdmission) -> Result[String, DispatchIssue]
+
 pub fn coordinator_dispatch_intent_json(CoordinatorDispatchIntentAdmission) -> Result[String, DispatchIssue]
 
 pub fn coordinator_dispatch_intent_kind(CoordinatorDispatchIntentAdmission) -> DispatchAcceptance
@@ -44,6 +56,12 @@ pub fn coordinator_dispatch_intent_matches_request(CoordinatorDispatchIntentReco
 pub fn coordinator_dispatch_record_revision(CoordinatorDispatchIntentRecord) -> Int
 
 pub fn coordinator_dispatch_record_state_codes(CoordinatorDispatchIntentRecord) -> Array[String]
+
+pub fn coordinator_dispatch_transition_attempt_identity(CoordinatorDispatchTransition) -> Result[String, DispatchIssue]
+
+pub fn coordinator_dispatch_transition_durable_json(DurableCoordinatorDispatchRecord, CoordinatorDispatchTransition, evidence? : RemoteExecutionEvidence?, subject? : RemoteManagedOutputSubject?, measurement? : RemoteManagedOutputMeasurement?) -> Result[String, DispatchIssue]
+
+pub fn coordinator_dispatch_transition_expected_revision(CoordinatorDispatchTransition) -> Int
 
 pub fn coordinator_dispatch_transition_journal_key(CoordinatorDispatchTransition) -> Array[String]
 
@@ -94,6 +112,20 @@ pub fn dispatch_transition_journal_key(DispatchTransition) -> Array[String]
 pub fn dispatch_transition_projection(DispatchTransition) -> Array[String]
 
 pub fn dispatch_transition_request_identity(DispatchTransition) -> String
+
+pub fn durable_coordinator_dispatch_record_attempt_identity(DurableCoordinatorDispatchRecord) -> Result[String, DispatchIssue]
+
+pub fn durable_coordinator_dispatch_record_evidence(DurableCoordinatorDispatchRecord) -> RemoteExecutionEvidence?
+
+pub fn durable_coordinator_dispatch_record_json(DurableCoordinatorDispatchRecord) -> String
+
+pub fn durable_coordinator_dispatch_record_measurement(DurableCoordinatorDispatchRecord) -> RemoteManagedOutputMeasurement?
+
+pub fn durable_coordinator_dispatch_record_request_identity(DurableCoordinatorDispatchRecord) -> String
+
+pub fn durable_coordinator_dispatch_record_revision(DurableCoordinatorDispatchRecord) -> Int
+
+pub fn durable_coordinator_dispatch_record_subject(DurableCoordinatorDispatchRecord) -> RemoteManagedOutputSubject?
 
 pub fn durable_dispatch_record_attempt_identity(DurableDispatchRecord) -> Result[String, DispatchIssue]
 
@@ -231,6 +263,8 @@ pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int,
 
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
+pub fn restore_durable_coordinator_dispatch_record(CoordinatorDispatchJournal, DurableCoordinatorDispatchRecord) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
+
 pub fn restore_durable_dispatch_record(SiteDispatchJournal, DurableDispatchRecord) -> Result[DispatchRecord, DispatchIssue]
 
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
@@ -293,6 +327,8 @@ type DispatchRecord
 type DispatchRequest
 
 type DispatchTransition
+
+type DurableCoordinatorDispatchRecord
 
 type DurableDispatchRecord
 

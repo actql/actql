@@ -58,6 +58,83 @@ fn test_capability(
 }
 
 ///|
+fn test_managed_output(
+  request : @remote.DispatchRequest,
+) -> (
+  @remote.RemoteExecutionEvidence,
+  @remote.RemoteManagedOutputSubject,
+  @remote.RemoteManagedOutputMeasurement,
+) {
+  let site = test_site()
+  let journal = test_control(site)
+  let (_, record) = @remote.commit_dispatch_acceptance(
+    @remote.prepare_dispatch_acceptance(journal, request).unwrap(),
+    true,
+  ).unwrap()
+  @remote.commit_dispatch_transition(
+    @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+    true,
+  ).unwrap()
+  @remote.commit_dispatch_transition(
+    @remote.prepare_begin_remote_execution(record).unwrap(),
+    true,
+  ).unwrap()
+  @remote.commit_dispatch_transition(
+    @remote.prepare_confirm_native_settled(record).unwrap(),
+    true,
+  ).unwrap()
+  @remote.commit_dispatch_transition(
+    @remote.prepare_retain_remote_output(
+      record,
+      "native-material",
+      test_cid(
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      ),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  let measurement = @remote.prepare_remote_managed_output_measurement(
+    1,
+    1,
+    1,
+    1,
+    [1],
+    [1],
+    [1],
+    [1],
+    [0],
+    [1],
+  ).unwrap()
+  let subject = @remote.prepare_remote_managed_output_subject(
+    @remote.dispatch_request_identity(request),
+    "native-material",
+    test_cid("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+    test_cid("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+    test_cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+    test_cid("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+    test_cid("1111111111111111111111111111111111111111111111111111111111111111"),
+    test_cid("2222222222222222222222222222222222222222222222222222222222222222"),
+    @remote.remote_managed_output_measurement_cid(measurement),
+    1,
+    1L,
+  ).unwrap()
+  let issuer = @remote.register_remote_evidence_issuer(
+    site,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    "local",
+    "local/1",
+    "strategy/1",
+    @remote.remote_managed_output_evidence_kind(),
+    test_cid("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+  ).unwrap()
+  (
+    @remote.issue_remote_managed_output_evidence(issuer, record, subject).unwrap(),
+    subject,
+    measurement,
+  )
+}
+
+///|
 test "native remote journal durably accepts reconciles and fences transitions" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     return
@@ -155,4 +232,113 @@ test "native remote recovery rejects a durable key alias" {
     fail("durable record under a foreign key was restored")
   }
   assert_true(journal.close())
+}
+
+///|
+test "native Coordinator journal restores intent and uncertainty" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/coordinator-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let first = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let request = test_request("coordinator-dispatch")
+  let (kind, record) = first.accept(request).unwrap()
+  assert_eq(kind, @remote.NewDispatch)
+  assert_true(
+    first.accept(test_request("competing-dispatch")) is Err(StateCollision),
+  )
+  first
+  .commit_transition(
+    @remote.prepare_coordinator_outcome_unknown(record).unwrap(),
+  )
+  .unwrap()
+  assert_true(first.close())
+  let reopened = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let recovered = reopened.recover_after("").unwrap().unwrap()
+  let recovered_record = recovered_coordinator_dispatch_record(recovered)
+  assert_eq(@remote.coordinator_dispatch_record_revision(recovered_record), 1)
+  assert_eq(
+    @remote.coordinator_dispatch_record_state_codes(recovered_record)[1],
+    "1",
+  )
+  assert_true(recovered_coordinator_dispatch_evidence(recovered) is None)
+  assert_true(
+    reopened
+    .recover_after(recovered_coordinator_dispatch_key(recovered))
+    .unwrap()
+    is None,
+  )
+  let (retry_kind, retry_record) = reopened.accept(request).unwrap()
+  assert_eq(retry_kind, @remote.ExistingDispatch)
+  assert_eq(@remote.coordinator_dispatch_record_revision(retry_record), 1)
+  assert_true(reopened.close())
+}
+
+///|
+test "native Coordinator journal restores typed completion evidence" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/coordinator-evidence-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let coordinator = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let request = test_request("coordinator-evidence")
+  let (_, record) = coordinator.accept(request).unwrap()
+  let (evidence, subject, measurement) = test_managed_output(request)
+  let transition = @remote.prepare_coordinator_managed_output_observation(
+    record, 5, 3, 2, 0, true, false, evidence, subject, measurement,
+  ).unwrap()
+  coordinator
+  .commit_transition(
+    transition,
+    evidence=Some(evidence),
+    subject=Some(subject),
+    measurement=Some(measurement),
+  )
+  .unwrap()
+  assert_true(coordinator.close())
+  let reopened = open_coordinator_journal(
+    library,
+    database_path,
+    1048576L,
+    @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
+  ).unwrap()
+  let recovered = reopened.recover_after("").unwrap().unwrap()
+  assert_true(
+    @remote.coordinator_completion_evidence_available(
+      recovered_coordinator_dispatch_record(recovered),
+    ),
+  )
+  assert_true(recovered_coordinator_dispatch_evidence(recovered) is Some(_))
+  assert_true(recovered_coordinator_dispatch_subject(recovered) is Some(_))
+  assert_true(recovered_coordinator_dispatch_measurement(recovered) is Some(_))
+  assert_true(reopened.close())
 }

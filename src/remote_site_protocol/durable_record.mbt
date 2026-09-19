@@ -123,6 +123,24 @@ fn admit_dispatch_request_body(
 }
 
 ///|
+/// Re-admits one canonical dispatch request body and its claimed identity.
+/// Transport adapters must not reconstruct the request field by field.
+pub fn admit_dispatch_request_json(
+  body : String,
+  claimed_cid : String,
+) -> Result[DispatchRequest, DispatchIssue] {
+  try {
+    let request = admit_dispatch_request_body(body)
+    if request.dispatch_request_cid != claimed_cid {
+      return Err(DispatchIdentityMismatch)
+    }
+    Ok(request)
+  } catch {
+    DurableRecordStop => Err(InvalidDispatch)
+  }
+}
+
+///|
 fn emit_durable_dispatch_record(
   request : DispatchRequest,
   revision : Int,

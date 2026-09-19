@@ -7,11 +7,29 @@ import {
 }
 
 // Values
+pub fn open_coordinator_journal(@sqlite.Library, String, Int64, @remote_site_protocol.CoordinatorDispatchJournal) -> Result[CoordinatorJournal, NativeRemoteJournalIssue]
+
 pub fn open_journal(@sqlite.Library, String, Int64, @remote_site_protocol.SiteDispatchJournal) -> Result[Journal, NativeRemoteJournalIssue]
+
+pub fn recovered_coordinator_dispatch_evidence(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?
+
+pub fn recovered_coordinator_dispatch_key(RecoveredCoordinatorDispatch) -> String
+
+pub fn recovered_coordinator_dispatch_measurement(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteManagedOutputMeasurement?
+
+pub fn recovered_coordinator_dispatch_record(RecoveredCoordinatorDispatch) -> @remote_site_protocol.CoordinatorDispatchIntentRecord
+
+pub fn recovered_coordinator_dispatch_subject(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteManagedOutputSubject?
 
 // Errors
 
 // Types and methods
+type CoordinatorJournal
+pub fn CoordinatorJournal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.CoordinatorDispatchIntentRecord), NativeRemoteJournalIssue]
+pub fn CoordinatorJournal::close(Self) -> Bool
+pub fn CoordinatorJournal::commit_transition(Self, @remote_site_protocol.CoordinatorDispatchTransition, evidence? : @remote_site_protocol.RemoteExecutionEvidence?, subject? : @remote_site_protocol.RemoteManagedOutputSubject?, measurement? : @remote_site_protocol.RemoteManagedOutputMeasurement?) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn CoordinatorJournal::recover_after(Self, String) -> Result[RecoveredCoordinatorDispatch?, NativeRemoteJournalIssue]
+
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
@@ -25,6 +43,8 @@ pub(all) enum NativeRemoteJournalIssue {
   Protocol(@remote_site_protocol.DispatchIssue)
   StateCollision
 }
+
+type RecoveredCoordinatorDispatch
 
 // Type aliases
 

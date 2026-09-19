@@ -116,6 +116,13 @@ derives the stored key, checks the revision, and restores the common state.
 An alias key or malformed body stops recovery instead of acquiring execution
 or cleanup authority.
 
+The native Coordinator journal uses the same transaction substrate but a
+separate namespace and common Coordinator state machine. Its durable MoonBit
+record carries canonical dispatch intent plus any admitted evidence, subject,
+and measurement bodies needed after restart. Physical SQLite rows therefore
+cannot manufacture evidence from CID strings or turn transport uncertainty
+into a Site observation.
+
 ## Supported native profiles
 
 The initial native product profiles are:
