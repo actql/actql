@@ -11,6 +11,8 @@ import {
   "actql/actql/value_admission" @value,
   "actql/actql/vector_numeric" @numeric,
   "actql/actql/value_contract" @contract,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/decode_scalar" @scalar,
 }
 
 import {

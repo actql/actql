@@ -14,6 +14,7 @@ priv enum PoolSortMode {
 
 ///|
 priv enum PoolPhase {
+  EncodeRelationIdentity
   BeginRecord
   InitializeGroups
   InitializeIdentities
@@ -42,16 +43,21 @@ priv enum PoolPhase {
 
 ///|
 priv struct PoolState {
-  input : @records.ProducerRead
-  source : @storage.Storage
+  input : @records.ProducerRead?
+  relation_input : @execution.ProducerRead?
+  source : @storage.Storage?
   vectors : @carrier.Vectors
   output_vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
+  value_limits : @value.Limits
   mut output : @records.OutputBuilder?
   reduction : @numeric.PoolMethod
   dimensions : Int
   group_count : Int
   identity_count : Int
+  source_identity_count : Int
+  encode_member_identity : Bool
+  member_identity_contract : @contract.Contract?
   component_name : String
   output_component_contract : @contract.Contract
   member_count_contract : @contract.Contract
@@ -61,6 +67,8 @@ priv struct PoolState {
   mut field : Int
   mut group_probe : Int
   mut identity_probe : Int
+  mut identity_builder : StringBuilder?
+  mut identity_bytes : Int
   mut current_field : (@schema.FieldName, @value.CheckedValue)?
   mut source_vector : @value.CheckedValue?
   mut group_values : Array[@value.CheckedValue?]
@@ -163,19 +171,80 @@ fn pool_workspace(
 }
 
 ///|
+fn pool_input_available(state : PoolState) -> Bool {
+  match (state.input, state.relation_input) {
+    (Some(input), None) => @records.producer_read_available(input)
+    (None, Some(input)) => @execution.producer_read_available(input)
+    _ => false
+  }
+}
+
+///|
+fn pool_record_count(state : PoolState) -> Int? {
+  match (state.source, state.relation_input) {
+    (Some(source), None) => Some(@storage.record_count(source))
+    (None, Some(input)) => Some(@execution.producer_read_row_count(input))
+    _ => None
+  }
+}
+
+///|
+fn pool_record_field_count(state : PoolState, record : Int) -> Int? {
+  match (state.source, state.relation_input) {
+    (Some(source), None) => @storage.record_field_count(source, record)
+    (None, Some(input)) =>
+      if record >= 0 && record < @execution.producer_read_row_count(input) {
+        Some(@schema.field_count(@execution.producer_read_schema(input)))
+      } else {
+        None
+      }
+    _ => None
+  }
+}
+
+///|
+fn pool_record_field_at(
+  state : PoolState,
+  record : Int,
+  field : Int,
+) -> (@schema.FieldName, @value.CheckedValue)? {
+  match (state.source, state.relation_input) {
+    (Some(source), None) => @storage.record_field_at(source, record, field)
+    (None, Some(input)) => {
+      guard @schema.field_at(@execution.producer_read_schema(input), field)
+        is Some(expected) &&
+        @execution.producer_read_checked_cell(
+          input,
+          record,
+          field,
+          state.value_limits,
+        )
+        is Some(checked) else {
+        return None
+      }
+      Some((expected.name, checked))
+    }
+    _ => None
+  }
+}
+
+///|
 fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
-  guard @storage.record_field_count(state.source, state.record) is Some(_) else {
+  guard pool_record_field_count(state, state.record) is Some(_) else {
     return Err(InvalidPoolRecord(state.record))
   }
   state.field = 0
   state.group_probe = 0
   state.identity_probe = 0
+  state.identity_builder = None
+  state.identity_bytes = 0
   state.current_field = None
   state.source_vector = None
   state.group_values = []
   state.identity_values = []
   state.collected_groups = []
   state.collected_identities = []
+  state.identity_builder = None
   state.component = 0
   state.phase = InitializeGroups
   Ok(())
@@ -183,7 +252,7 @@ fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
 
 ///|
 fn load_pool_field(state : PoolState) -> Result[Unit, PoolIssue] {
-  guard @storage.record_field_at(state.source, state.record, state.field)
+  guard pool_record_field_at(state, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidPoolRecord(state.record))
   }
@@ -222,19 +291,27 @@ fn match_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
 
 ///|
 fn match_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
-  guard state.current_field is Some((name, checked)) &&
-    @carrier.vector_identity_at(state.vectors, state.identity_probe)
-    is Some(identity) else {
+  guard state.current_field is Some((name, checked)) else {
     return Err(InvalidPoolRecord(state.record))
   }
-  if @schema.reference_name(name) == @schema.reference_name(identity.name) {
+  let expected = if state.relation_input is Some(_) {
+    @lower.vector_pool_identity_at(state.prepared, state.identity_probe)
+  } else {
+    @carrier.vector_identity_at(state.vectors, state.identity_probe).map(identity => {
+      @schema.reference_name(identity.name)
+    })
+  }
+  guard expected is Some(expected) else {
+    return Err(InvalidPoolRecord(state.record))
+  }
+  if @schema.reference_name(name) == expected {
     if state.identity_values[state.identity_probe] is Some(_) {
       return Err(InvalidPoolIdentity(state.record))
     }
     state.identity_values[state.identity_probe] = Some(checked)
   }
   state.identity_probe += 1
-  if state.identity_probe >= state.identity_count {
+  if state.identity_probe >= state.source_identity_count {
     state.current_field = None
     state.field += 1
     state.phase = ReadField
@@ -281,12 +358,67 @@ fn validate_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
     Ok(_) => ()
     Err(issue) => return Err(PoolKeyOrder(issue))
   }
-  state.collected_identities.push(value)
+  if !state.encode_member_identity {
+    state.collected_identities.push(value)
+  }
   state.identity_probe += 1
-  if state.identity_probe >= state.identity_count {
+  if state.identity_probe >= state.source_identity_count {
+    if state.encode_member_identity {
+      state.identity_probe = 0
+      state.identity_builder = Some(StringBuilder())
+      state.identity_bytes = 0
+      state.phase = EncodeRelationIdentity
+    } else {
+      state.component = 0
+      state.phase = ValidateComponents
+    }
+  }
+  Ok(())
+}
+
+///|
+fn encode_pool_identity_component(state : PoolState) -> Result[Unit, PoolIssue] {
+  guard state.identity_builder is Some(output) else {
+    return Err(InvalidPoolKernel)
+  }
+  if state.identity_probe >= state.source_identity_count {
+    guard state.member_identity_contract is Some(contract) &&
+      @value.checked_text_value(output.to_string(), contract) is Some(value) else {
+      return Err(InvalidPoolIdentity(state.record))
+    }
+    state.identity_builder = None
+    state.collected_identities.push(value)
     state.component = 0
     state.phase = ValidateComponents
+    return Ok(())
   }
+  let value = state.identity_values[state.identity_probe].unwrap()
+  guard @value.canonical_scalar_text(value, state.value_limits.max_text_bytes)
+    is Some(text) &&
+    @scalar.unicode_scalar_count(text) is Some(codepoints) &&
+    @scalar.admit_utf8_length(text, state.value_limits.max_text_bytes)
+    is Ok(text_bytes) else {
+    return Err(InvalidPoolIdentity(state.record))
+  }
+  let prefix = codepoints.to_string() + ":"
+  let suffix = "|"
+  guard @scalar.admit_utf8_length(prefix, state.value_limits.max_text_bytes)
+    is Ok(prefix_bytes) &&
+    prefix_bytes <= state.value_limits.max_text_bytes - state.identity_bytes &&
+    text_bytes <=
+    state.value_limits.max_text_bytes - state.identity_bytes - prefix_bytes &&
+    suffix.length() <=
+    state.value_limits.max_text_bytes -
+    state.identity_bytes -
+    prefix_bytes -
+    text_bytes else {
+    return Err(InvalidPoolIdentity(state.record))
+  }
+  output.write_string(prefix)
+  output.write_string(text)
+  output.write_string(suffix)
+  state.identity_bytes += prefix_bytes + text_bytes + suffix.length()
+  state.identity_probe += 1
   Ok(())
 }
 
@@ -699,12 +831,12 @@ fn pool_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@records.producer_read_available(state.input) {
+    if !pool_input_available(state) {
       return @bounded.Failed(PoolInputUnavailable, progress, used)
     }
     match state.phase {
       BeginRecord =>
-        if state.record < @storage.record_count(state.source) {
+        if state.record < pool_record_count(state).unwrap_or(-1) {
           match begin_pool_record(state) {
             Ok(_) => used += 1
             Err(issue) => return @bounded.Failed(issue, progress, used)
@@ -720,16 +852,14 @@ fn pool_step(
           state.phase = InitializeIdentities
         }
       InitializeIdentities =>
-        if state.identity_values.length() < state.identity_count {
+        if state.identity_values.length() < state.source_identity_count {
           state.identity_values.push(None)
           used += 1
         } else {
           state.phase = ReadField
         }
       ReadField => {
-        let count = @storage.record_field_count(state.source, state.record).unwrap_or(
-          -1,
-        )
+        let count = pool_record_field_count(state, state.record).unwrap_or(-1)
         if state.field < count {
           match load_pool_field(state) {
             Ok(_) => used += 1
@@ -766,6 +896,13 @@ fn pool_step(
       ValidateIdentities => {
         used += 1
         match validate_pool_identity(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      EncodeRelationIdentity => {
+        used += 1
+        match encode_pool_identity_component(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
@@ -934,6 +1071,7 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
   state.identity_values = []
   state.collected_groups = []
   state.collected_identities = []
+  state.identity_builder = None
   state.records = []
   state.scratch = []
   state.output_fields = []
@@ -1012,16 +1150,25 @@ pub fn start_pool(
     Err(issue) => return Err(PoolOutput(issue))
   }
   let state : PoolState = {
-    input,
-    source,
+    input: Some(input),
+    relation_input: None,
+    source: Some(source),
     vectors,
     output_vectors,
     prepared,
+    value_limits: {
+      max_nodes: limits.max_value_nodes,
+      max_depth: limits.max_value_depth,
+      max_text_bytes: limits.max_value_bytes,
+    },
     output: Some(output),
     reduction,
     dimensions,
     group_count,
     identity_count,
+    source_identity_count: identity_count,
+    encode_member_identity: false,
+    member_identity_contract: None,
     component_name: @schema.reference_name(
       @carrier.vector_components(vectors).name,
     ),
@@ -1033,6 +1180,178 @@ pub fn start_pool(
     field: 0,
     group_probe: 0,
     identity_probe: 0,
+    identity_builder: None,
+    identity_bytes: 0,
+    current_field: None,
+    source_vector: None,
+    group_values: [],
+    identity_values: [],
+    collected_groups: [],
+    collected_identities: [],
+    component: 0,
+    records: [],
+    scratch: [],
+    sort_mode: IdentityOrder,
+    width: 1,
+    run_start: 0,
+    left_index: 0,
+    middle: 0,
+    right_index: 0,
+    run_end: 0,
+    merge_index: 0,
+    compare_index: 0,
+    copy_index: 0,
+    duplicate_index: 1,
+    group_start: 0,
+    group_end: 1,
+    member_index: 0,
+    fold: None,
+    output_vector: None,
+    pooled_vector: None,
+    output_field: 0,
+    output_fields: [],
+  }
+  let (session, token) = @bounded.start(
+    control, state, pool_step, cleanup_pool_state, @records.discard_completed,
+  )
+  Ok({
+    session,
+    token: Some(token),
+    max_noninterruptible_value_nodes: limits.max_value_nodes,
+    max_noninterruptible_value_bytes: limits.max_value_bytes,
+  })
+}
+
+///|
+/// Execute the registered Relation-to-Vectors expansion as one bounded local
+/// occurrence. The intermediate member view remains private: it is not a
+/// completion, publication, or substitute input binding.
+pub fn start_relation_pool(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @execution.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[PoolExecution, PoolIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.VectorStep(prepared)) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.operation(node) == "VEC.pool" &&
+    @execution.producer_read_matches_operation_input(input, owner, step, 0) else {
+    return Err(InvalidPoolKernel)
+  }
+  guard @lower.vector_pool_member_vectors(prepared) is Some(vectors) &&
+    @lower.vector_output_carrier(prepared)
+    is @carrier.VectorValue(output_vectors) &&
+    @lower.vector_pool_group_count(prepared) is Some(group_count) &&
+    @lower.vector_pool_identity_count(prepared) is Some(source_identity_count) &&
+    @lower.vector_pool_encodes_member_identity(prepared)
+    is Some(encode_member_identity) &&
+    @lower.vector_pool_method(prepared) is Some(pool_method) &&
+    @lower.vector_pool_vector_role(prepared) is Some(component_name) else {
+    return Err(PoolInputUnavailable)
+  }
+  let raw_dimensions = @carrier.vector_dimensions(vectors)
+  guard raw_dimensions >= 1.0 && raw_dimensions <= 2147483647.0 else {
+    return Err(InvalidPoolLimits)
+  }
+  let dimensions = raw_dimensions.to_int()
+  let identity_count = if encode_member_identity {
+    1
+  } else {
+    source_identity_count
+  }
+  guard pool_checked_add(
+      source_identity_count,
+      if encode_member_identity {
+        1
+      } else {
+        0
+      },
+    )
+    is Some(workspace_identities) else {
+    return Err(PoolWorkspaceLimit)
+  }
+  let output_rows = @carrier.vector_records(output_vectors)
+  let output_fields = @carrier.field_count(output_rows)
+  let component = @carrier.vector_components(output_vectors)
+  guard dimensions.to_double() == raw_dimensions &&
+    group_count > 0 &&
+    source_identity_count > 0 &&
+    identity_count > 0 &&
+    component.contract is Some(component_contract) &&
+    @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
+    is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
+    pool_workspace(
+      @execution.producer_read_row_count(input),
+      dimensions,
+      group_count,
+      workspace_identities,
+      output_fields,
+    )
+    is Some(workspace) &&
+    workspace <= limits.max_workspace_slots else {
+    return Err(PoolWorkspaceLimit)
+  }
+  let reduction = match pool_method {
+    @lower.PoolMean => @numeric.Mean
+    @lower.PoolSum => @numeric.Sum
+    @lower.PoolMax => @numeric.Max
+  }
+  let output = match
+    @records.prepare_output(
+      owner,
+      @pipeline.Step(step),
+      limits,
+      storage_bytes,
+      available,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PoolOutput(issue))
+  }
+  let member_identity_contract = if encode_member_identity {
+    @contract.string_contract(nullable=false)
+  } else {
+    None
+  }
+  guard !encode_member_identity || member_identity_contract is Some(_) else {
+    @records.cancel_output(output) |> ignore
+    return Err(InvalidPoolKernel)
+  }
+  let state : PoolState = {
+    input: None,
+    relation_input: Some(input),
+    source: None,
+    vectors,
+    output_vectors,
+    prepared,
+    value_limits: {
+      max_nodes: limits.max_value_nodes,
+      max_depth: limits.max_value_depth,
+      max_text_bytes: limits.max_value_bytes,
+    },
+    output: Some(output),
+    reduction,
+    dimensions,
+    group_count,
+    identity_count,
+    source_identity_count,
+    encode_member_identity,
+    member_identity_contract,
+    component_name,
+    output_component_contract: component_contract,
+    member_count_contract,
+    output_id: @lower.vector_pool_output_id(prepared),
+    phase: BeginRecord,
+    record: 0,
+    field: 0,
+    group_probe: 0,
+    identity_probe: 0,
+    identity_builder: None,
+    identity_bytes: 0,
     current_field: None,
     source_vector: None,
     group_values: [],

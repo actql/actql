@@ -28,6 +28,7 @@ priv struct Execution {
   max_rows : Int
   max_value_bytes : Int
   projection_step : Int
+  relation_pool : Bool
   mut phase : Phase
   mut rows : @bridge.RowsToVectorsExecution?
   mut kernel_step : Int
@@ -61,7 +62,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
-  if count < 3 {
+  if count < 2 {
     return false
   }
   let index = Ref(0)
@@ -72,8 +73,14 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       return false
     }
     match step {
-      @lower.VectorStep(_) if current == 0 =>
-        @lower.operation(node) == "BRIDGE.rows.to_vectors"
+      @lower.VectorStep(vector) if current == 0 =>
+        @lower.operation(node) == "BRIDGE.rows.to_vectors" ||
+        (
+          count == 2 &&
+          @lower.operation(node) == "VEC.pool" &&
+          @lower.vector_pool_identity_count(vector).unwrap_or(0) > 0 &&
+          @lower.vector_pool_member_vectors(vector) is Some(_)
+        )
       @lower.VectorStep(_) if current < count - 1 => {
         let operation = @lower.operation(node)
         operation == "VEC.normalize_l2" ||
@@ -196,6 +203,25 @@ fn advance_execution(
     match value.phase {
       StartRows => {
         guard value.inputs.length() == 1 else { return fail_execution(value) }
+        if value.relation_pool {
+          let started = match
+            @veca.start_relation_pool(
+              value.control,
+              value.sequence,
+              0,
+              value.inputs[0],
+              value.limits,
+              value.storage_bytes,
+              fn() { true },
+            ) {
+            Ok(execution) => execution
+            Err(_) => return fail_execution(value)
+          }
+          value.kernel = Some(Pool(started))
+          value.phase = Kernel
+          reset_stage(value)
+          continue
+        }
         let started = match
           @bridge.start_rows_to_vectors(
             value.control,
@@ -585,6 +611,7 @@ pub fn provider(
       let count = @lower.sequence_count(
         @execution.generated_prepared_sequence(sequence),
       )
+      let relation_pool = count == 2
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
@@ -595,9 +622,14 @@ pub fn provider(
         max_rows,
         max_value_bytes,
         projection_step: count - 1,
+        relation_pool,
         phase: StartRows,
         rows: None,
-        kernel_step: 1,
+        kernel_step: if relation_pool {
+          0
+        } else {
+          1
+        },
         kernel: None,
         transformed: None,
         pending_transformed: None,

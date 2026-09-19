@@ -173,6 +173,28 @@ pub fn producer_read_has_cell_access(value : ProducerRead) -> Bool {
 }
 
 ///|
+/// Match an external Relation read against one exact checked operation edge.
+/// Internal step reads use the managed Carrier lifecycle instead; an external
+/// input occurrence cannot stand in for an internal producer with equal rows.
+pub fn producer_read_matches_operation_input(
+  value : ProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  edge_index : Int,
+) -> Bool {
+  if !physical_equal(value.bound.receiver, receiver) ||
+    !producer_read_available(value) {
+    return false
+  }
+  let prepared = @lower.bound_preparation(receiver)
+  guard @lower.node_at(prepared, consumer_step) is Some(node) &&
+    @lower.node_input_target(node, edge_index) is Some(@pipeline.Input(index)) else {
+    return false
+  }
+  value.bound.input_index == index
+}
+
+///|
 pub fn producer_read_schema(value : ProducerRead) -> @schema.Schema {
   value.schema
 }

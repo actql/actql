@@ -623,6 +623,8 @@ pub fn producer_read_has_cell_access(ProducerRead) -> Bool
 
 pub fn producer_read_input_index(ProducerRead) -> Int
 
+pub fn producer_read_matches_operation_input(ProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
 pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
 
 pub fn producer_read_retained_material(ProducerRead) -> RetainedOutputMaterial?

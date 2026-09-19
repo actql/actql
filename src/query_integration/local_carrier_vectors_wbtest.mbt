@@ -1,7 +1,9 @@
 ///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
-  let pooled = variant == "pool" || variant == "pool_normalize"
-  let source_fields = "[\"id\",\"group\",\"embedding\"]"
+  let relation_pool = variant == "relation_pool" ||
+    variant == "relation_pool_composite"
+  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
+  let source_fields = "[\"id\",\"code\",\"group\",\"embedding\"]"
   let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
   } else {
@@ -22,6 +24,32 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   } else {
     "{\"normalize_vectors\":true}"
   }
+  let source_tail = if relation_pool {
+    let keys = if variant == "relation_pool_composite" {
+      "[\"id\",\"code\"]"
+    } else {
+      "[\"id\"]"
+    }
+    ", {\"from\":\"out\",\"assert_rows\":{\"unique_by\":" +
+    keys +
+    "}," +
+    "\"as\":\"keyed\"}"
+  } else {
+    ""
+  }
+  let source_result = if relation_pool { "keyed" } else { "out" }
+  let vector_prefix = if relation_pool {
+    ""
+  } else {
+    "{\"from\":\"rows\",\"to_vectors\":{" +
+    "\"id\":\"id\",\"vector\":\"embedding\"}},"
+  }
+  let relation_vector = if relation_pool {
+    "{\"pool_vectors\":{\"vector\":\"embedding\"," +
+    "\"by\":[\"group\"],\"method\":\"sum\"}}"
+  } else {
+    kernel
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
   "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -31,19 +59,25 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
   "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+  "\"code\":{\"type\":\"string\",\"nullable\":false}," +
   "\"group\":{\"type\":\"number\",\"nullable\":false}," +
   "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
-  "\"nullable\":false}},\"rows\":[{\"id\":1,\"group\":1," +
-  "\"embedding\":[3,4]},{\"id\":2,\"group\":1," +
+  "\"nullable\":false}},\"rows\":[{\"id\":1,\"code\":\"😀\"," +
+  "\"group\":1,\"embedding\":[3,4]},{\"id\":2,\"code\":\"é\"," +
+  "\"group\":1," +
   "\"embedding\":[0,5]}]}," +
-  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"as\":\"out\"}" +
+  source_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\"," +
   "\"fields\":" +
   source_fields +
   "}}},{\"id\":\"vectors\",\"inputs\":{" +
   "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
-  "\"steps\":[{\"from\":\"rows\",\"to_vectors\":{" +
-  "\"id\":\"id\",\"vector\":\"embedding\"}}," +
-  kernel +
+  "\"steps\":[" +
+  vector_prefix +
+  relation_vector +
   ",{\"vectors\":true,\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
   result_fields +
@@ -126,7 +160,9 @@ fn carrier_vectors_storage_limits() -> @record_storage.Limits {
 
 ///|
 fn run_standard_vectors_provider(variant : String) -> Unit raise {
-  let pooled = variant == "pool" || variant == "pool_normalize"
+  let relation_pool = variant == "relation_pool" ||
+    variant == "relation_pool_composite"
+  let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
@@ -223,6 +259,10 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
       ),
     )
   }
+  if relation_pool {
+    assert_true(vector_rows[0].contains("\"embedding\":[3,9]"))
+    assert_true(vector_rows[0].contains("\"member_count\":2"))
+  }
   assert_true(
     vector_rows[0].contains(if pooled { "\"group\":1" } else { "\"id\":1" }),
   )
@@ -301,4 +341,14 @@ test "standard Host runs bounded vector pooling provider" {
 ///|
 test "standard Host composes pooling and normalization" {
   run_standard_vectors_provider("pool_normalize")
+}
+
+///|
+test "standard Host pools author-visible Relation input" {
+  run_standard_vectors_provider("relation_pool")
+}
+
+///|
+test "standard Host encodes composite Relation pool identity" {
+  run_standard_vectors_provider("relation_pool_composite")
 }

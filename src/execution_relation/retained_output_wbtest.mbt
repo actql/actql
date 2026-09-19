@@ -96,6 +96,17 @@ test "retained completion and producer admission do not require cell storage" {
     execute_fixed_producer_input(generated, read, compute_test_limits())
     is Err(InputRepresentationRequired(0)),
   )
+  assert_true(producer_read_matches_operation_input(read, receiver, 0, 0))
+  assert_false(producer_read_matches_operation_input(read, receiver, 0, 1))
+  assert_false(producer_read_matches_operation_input(read, receiver, 1, 0))
+  assert_false(
+    producer_read_matches_operation_input(
+      read,
+      typed_receiver(owner, "[{\"select\":[\"n\"]}]"),
+      0,
+      0,
+    ),
+  )
   let (_, other) = retained_fixture(owner, Ref(true))
   assert_true(retained_producer_payload(other, read) is None)
   live.val = false

@@ -3,6 +3,7 @@ package "actql/actql/local_veca"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_record_runtime",
   "actql/actql/managed_record_storage",
@@ -49,6 +50,8 @@ pub fn score_stopped(ScoreExecution) -> Bool
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
+
+pub fn start_relation_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
 pub fn start_score(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[ScoreExecution, ScoreIssue]
 
