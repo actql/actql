@@ -33,6 +33,14 @@ pub fn record_projection(RemoteTransferRecord) -> Array[Int]
 
 pub fn record_revision(RemoteTransferRecord) -> Int
 
+pub fn request_active_at(RemoteTransferRequest, Int64) -> Bool
+
+pub fn request_chunk_byte_lengths(RemoteTransferRequest) -> Array[Int64]
+
+pub fn request_chunk_cids(RemoteTransferRequest) -> Array[String]
+
+pub fn request_chunk_row_counts(RemoteTransferRequest) -> Array[Int]
+
 pub fn request_cid(RemoteTransferRequest) -> String
 
 pub fn request_journal_key(RemoteTransferRequest) -> Array[String]

@@ -530,7 +530,15 @@ pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeSt
 
 pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
+
 pub fn strategy_remote_transfer_admit_json(String, String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
+
+pub fn strategy_remote_transfer_chunk_cids(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_chunk_row_counts(@remote_transfer.RemoteTransferRequest) -> Array[Int]
 
 pub fn strategy_remote_transfer_cleanup_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 

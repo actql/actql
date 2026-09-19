@@ -66,6 +66,11 @@ test('Remote Transfer canonical wire is admitted by common control', () => {
   assert.equal(control.identity(restored), control.identity(original));
   assert.equal(control.requestJson(restored), wire);
   assert.equal(control.manifestJson(restored), manifest);
+  assert.deepEqual(control.chunks(restored), [
+    {cid: cid('a'), byteLength: 5n, rowCount: 1},
+  ]);
+  assert.equal(control.activeAt(restored, 1_999_999_999_999n), true);
+  assert.equal(control.activeAt(restored, 2_000_000_000_000n), false);
   assert.throws(() => control.admitJson(
     `${wire} `,
     manifest,

@@ -497,6 +497,33 @@ pub fn request_journal_key(request : RemoteTransferRequest) -> Array[String] {
 }
 
 ///|
+pub fn request_chunk_cids(request : RemoteTransferRequest) -> Array[String] {
+  request.physical.chunks.map(chunk => chunk.cid)
+}
+
+///|
+pub fn request_chunk_byte_lengths(
+  request : RemoteTransferRequest,
+) -> Array[Int64] {
+  request.physical.chunks.map(chunk => chunk.byte_length)
+}
+
+///|
+pub fn request_chunk_row_counts(request : RemoteTransferRequest) -> Array[Int] {
+  request.physical.chunks.map(chunk => chunk.row_count)
+}
+
+///|
+/// The trusted clock is an environment observation. Expiry remains a portable
+/// request decision and never becomes transport-owned policy.
+pub fn request_active_at(
+  request : RemoteTransferRequest,
+  trusted_now_ms : Int64,
+) -> Bool {
+  trusted_now_ms >= 0L && trusted_now_ms < request.expires_unix_ms
+}
+
+///|
 pub fn request_projection(request : RemoteTransferRequest) -> Array[String] {
   [
     request.request_cid,

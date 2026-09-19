@@ -619,6 +619,25 @@ function remoteTransferControl(moon) {
     },
     requestProjection: moon.strategyRemoteTransferProjection,
     journalKey: moon.strategyRemoteTransferJournalKey,
+    chunks: request => {
+      const cids = moon.strategyRemoteTransferChunkCids(request);
+      const byteLengths = moon.strategyRemoteTransferChunkByteLengths(request);
+      const rowCounts = moon.strategyRemoteTransferChunkRowCounts(request);
+      if (cids.length !== byteLengths.length ||
+          cids.length !== rowCounts.length) {
+        throw new Error('Remote Transfer projection mismatch');
+      }
+      return Object.freeze(cids.map((cid, index) => Object.freeze({
+        cid,
+        byteLength: byteLengths[index],
+        rowCount: rowCounts[index],
+      })));
+    },
+    activeAt: (request, trustedNowMilliseconds) =>
+      moon.strategyRemoteTransferActiveAt(
+        request,
+        int64(trustedNowMilliseconds, 'trusted clock'),
+      ),
     open: moon.strategyRemoteTransferOpen,
     prepareStart: value => checked(
       moon.strategyRemoteTransferStartPrepare(value),

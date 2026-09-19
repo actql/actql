@@ -4371,6 +4371,39 @@ pub fn strategy_remote_transfer_journal_key(
 }
 
 ///|
+#export_name("strategyRemoteTransferChunkCids")
+pub fn strategy_remote_transfer_chunk_cids(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
+  @transfer.request_chunk_cids(request)
+}
+
+///|
+#export_name("strategyRemoteTransferChunkByteLengths")
+pub fn strategy_remote_transfer_chunk_byte_lengths(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[Int64] {
+  @transfer.request_chunk_byte_lengths(request)
+}
+
+///|
+#export_name("strategyRemoteTransferChunkRowCounts")
+pub fn strategy_remote_transfer_chunk_row_counts(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[Int] {
+  @transfer.request_chunk_row_counts(request)
+}
+
+///|
+#export_name("strategyRemoteTransferActiveAt")
+pub fn strategy_remote_transfer_active_at(
+  request : @transfer.RemoteTransferRequest,
+  trusted_now_ms : Int64,
+) -> Bool {
+  @transfer.request_active_at(request, trusted_now_ms)
+}
+
+///|
 #export_name("strategyRemoteTransferOpen")
 pub fn strategy_remote_transfer_open(
   request : @transfer.RemoteTransferRequest,
