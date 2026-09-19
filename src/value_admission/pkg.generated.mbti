@@ -9,7 +9,6 @@ import {
   "actql/actql/source_value",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
-  "moonbitlang/core/ref",
 }
 
 // Values
@@ -41,7 +40,11 @@ pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.En
 
 pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, ReferenceLimits) -> Result[CheckedValue, ReferenceIssue]
 
+pub fn null_value() -> Value
+
 pub fn number_value(Double) -> Value?
+
+pub fn object_value(Array[(String, Value)]) -> Value?
 
 pub fn reference_available(ReferenceValue) -> Bool
 
@@ -116,9 +119,11 @@ pub(all) enum ReferenceIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct ReferenceIssuer {
-  identity : @ref.Ref[Unit]
+  identity : ReferenceIssuerIdentity
   mode : ReferenceIssuerMode
 }
+
+type ReferenceIssuerIdentity
 
 type ReferenceIssuerMode
 
@@ -130,7 +135,7 @@ pub(all) struct ReferenceLimits {
 } derive(Eq, @debug.Debug)
 
 pub struct ReferenceValue {
-  issuer : @ref.Ref[Unit]
+  issuer : ReferenceIssuerIdentity
   identity_cid : String
   domain : ReferenceDomain
   envelope : @canonical_json.CanonicalValue

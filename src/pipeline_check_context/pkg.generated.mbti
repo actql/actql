@@ -509,6 +509,10 @@ pub fn nest_item_candidate_at(NestItemLimit, Int) -> @capacity_graph_preflight.T
 
 pub fn nest_item_candidate_count(NestItemLimit) -> Int
 
+pub fn nest_item_limit_maximum(NestItemLimit) -> Int64
+
+pub fn nest_item_limit_output_name(NestItemLimit) -> String
+
 pub fn nest_parent_candidate_at(NestValueEnvelope, Int) -> @capacity_graph_preflight.TargetMembership?
 
 pub fn nest_parent_candidate_count(NestValueEnvelope) -> Int
@@ -516,6 +520,12 @@ pub fn nest_parent_candidate_count(NestValueEnvelope) -> Int
 pub fn nest_value_rule_at(NestValueEnvelope, Int) -> NestValueRule?
 
 pub fn nest_value_rule_count(NestValueEnvelope) -> Int
+
+pub fn nest_values_byte_ceiling(NestValuesCheck) -> Int64
+
+pub fn nest_values_output_name(NestValuesCheck) -> String
+
+pub fn nest_values_step(NestValuesCheck) -> Int
 
 pub fn numeric_slot_at(ProgramNumericSlots, Int) -> NumericSlot?
 

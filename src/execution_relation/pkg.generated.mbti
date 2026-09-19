@@ -37,6 +37,8 @@ pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage
 
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
+pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
+
 pub fn append_admitted_input(AdmittedInput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
 
 pub fn append_admitted_output(AdmittedOutput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
@@ -200,6 +202,8 @@ pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, Aggr
 pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_join_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
+pub fn constrain_generated_nest_items(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
 
@@ -433,9 +437,15 @@ pub fn[T] managed_view_selection_measurements(ManagedViewPlan[T], Array[Int], In
 
 pub fn[T] managed_view_selection_row(ManagedViewSelection[T], Int) -> Int?
 
+pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit
+
+pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
+
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
 pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
+
+pub fn numeric_aggregate_execution_with_seal((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?, (Int, String, Int) -> Bool) -> NumericAggregateExecution
 
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
@@ -452,6 +462,10 @@ pub fn output_stream_schema(AdmittedOutputStreamReceipt) -> @relation_schema.Sch
 pub fn output_stream_target(AdmittedOutputStreamReceipt) -> @pipeline_typing.Target
 
 pub fn output_stream_value_usage(AdmittedOutputStreamReceipt) -> ValueUsage
+
+pub fn pivot_execution_supported(@lowering_relation.PreparedPivot) -> Bool
+
+pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) -> Bool
 
 pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
@@ -659,6 +673,8 @@ type AdmittedOutputStreamReceipt
 pub enum AggregateOutputUnit {
   ArrayItems
   StringBytes
+  NestGroupedBytes
+  NestAttachedBytes
 } derive(Eq, @debug.Debug)
 
 pub(all) enum AnalyticEnvelopeScope {
@@ -1133,6 +1149,12 @@ pub(all) enum ManagedViewRows {
 
 type ManagedViewSelection[T]
 
+pub(all) enum NestEnvelopeScope {
+  GroupedBytes
+  AttachedBytes
+  Measurement
+} derive(Eq, @debug.Debug)
+
 type NumericAggregateExecution
 
 pub(all) enum OrderedContractIssue {
@@ -1313,6 +1335,9 @@ pub(all) enum RowIssue {
   WindowTime(Int)
   WindowArithmetic(Int)
   AnalyticEnvelope(AnalyticEnvelopeScope)
+  NestItemLimitRequired
+  NestItemLimit(Int)
+  NestEnvelope(NestEnvelopeScope)
 }
 
 type RowWireIdentity

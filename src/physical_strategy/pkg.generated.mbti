@@ -235,7 +235,9 @@ pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.Le
 
 pub fn revise_strategy(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyDecision, SearchIssue]
 
-pub fn seal_task_numeric_reductions(CapturedDAG, TaskExecution, Int) -> Bool
+pub fn seal_task_numeric_reduction_slot(CapturedDAG, TaskExecution, Int, String, Int) -> Bool
+
+pub fn seal_task_numeric_reductions(CapturedDAG, TaskExecution) -> Bool
 
 pub fn select_captured_managed_registration(CapturedDAG, Int, @connector_sdk.CapabilityRegistration) -> Result[Unit, RunIssue]
 

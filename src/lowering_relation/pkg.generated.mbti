@@ -11,6 +11,7 @@ import {
   "actql/actql/relation_append",
   "actql/actql/relation_evidence",
   "actql/actql/relation_join_shape",
+  "actql/actql/relation_nest",
   "actql/actql/relation_schema",
   "actql/actql/relation_set",
   "actql/actql/relation_typing",
@@ -55,6 +56,8 @@ pub fn analytic_peer_term_count(PreparedAnalytic) -> Int
 pub fn analytic_position_term_at(PreparedAnalytic, Int) -> (@relation_schema.FieldName, Bool, Bool)?
 
 pub fn analytic_position_term_count(PreparedAnalytic) -> Int
+
+pub fn analytic_requires_expression_context(PreparedAnalytic) -> Bool
 
 pub fn analytic_uses_retained_position_order(PreparedAnalytic) -> Bool
 
@@ -152,6 +155,8 @@ pub fn emit_join_kernel(PreparedJoinKernel, @encode_core.Writer) -> Unit raise @
 
 pub fn emit_kernel_node(PreparedKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_nest_kernel(PreparedNestKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_ordered_references(OrderedReferences, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -221,6 +226,8 @@ pub fn group_aggregate_order_at(PreparedAggregate, Int) -> @relation_typing.Orde
 pub fn group_aggregate_order_count(PreparedAggregate) -> Int
 
 pub fn group_aggregate_order_term_at(PreparedAggregate, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn group_aggregate_requires_expression_context(PreparedAggregate) -> Bool
 
 pub fn group_aggregate_requires_numeric_observation(PreparedAggregate) -> Bool
 
@@ -354,6 +361,36 @@ pub fn kernel_watermark(PreparedKernel) -> (@relation_schema.FieldName, Bool, @r
 
 pub fn lower_expression(BoundPrepared, Int, Int, ExpressionLimits) -> Result[Expression, ExpressionIssue]
 
+pub fn nest_kernel_checked(PreparedNestKernel) -> @relation_nest.CheckedNest
+
+pub fn nest_kernel_field_at(PreparedNestKernel, Int) -> PreparedNestField?
+
+pub fn nest_kernel_field_count(PreparedNestKernel) -> Int
+
+pub fn nest_kernel_inherits_order(PreparedNestKernel) -> Bool
+
+pub fn nest_kernel_input(PreparedNestKernel, Bool) -> String
+
+pub fn nest_kernel_input_schema(PreparedNestKernel, Bool) -> @relation_schema.Schema
+
+pub fn nest_kernel_into(PreparedNestKernel) -> String
+
+pub fn nest_kernel_item_limit(PreparedNestKernel) -> Int64?
+
+pub fn nest_kernel_key_at(PreparedNestKernel, Int) -> PreparedNestKey?
+
+pub fn nest_kernel_key_count(PreparedNestKernel) -> Int
+
+pub fn nest_kernel_order_at(PreparedNestKernel, Int) -> PreparedNestOrder?
+
+pub fn nest_kernel_order_count(PreparedNestKernel) -> Int
+
+pub fn nest_kernel_output_schema(PreparedNestKernel) -> @relation_schema.Schema
+
+pub fn nest_kernel_owner(PreparedNestKernel) -> BoundPrepared
+
+pub fn nest_kernel_step(PreparedNestKernel) -> Int
+
 pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_count(Prepared) -> Int
@@ -453,6 +490,8 @@ pub fn prepare_join_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedJoinK
 pub fn prepare_kernel(BoundPrepared, Int, max_bindings~ : Int, max_name_bytes~ : Int, ExpressionLimits) -> Result[PreparedKernel, KernelIssue]
 
 pub fn prepare_kernel_roots(PreparedSequence, Int, RootLimits) -> Result[RootIndex, RootIssue]
+
+pub fn prepare_nest_kernel(BoundPrepared, Int, max_entries~ : Int, max_name_bytes~ : Int, max_work~ : Int) -> Result[(PreparedNestKernel, Int, Int, Int), NestIssue]
 
 pub fn prepare_ordered_references(PreparedKernel, OrderedReferenceLimits) -> Result[OrderedReferences, OrderedReferenceIssue]
 
@@ -841,6 +880,16 @@ pub(all) enum ManyOperator {
   Coalesce
 } derive(Eq, @debug.Debug)
 
+pub(all) enum NestIssue {
+  InvalidNestLimits
+  MissingNestNode
+  InvalidNestWiring
+  NestPreparationLimit
+  NestOrderFailure(@pipeline_typing.IssueKind)
+  MissingNestParameter(String)
+  InvalidNestParameter(String)
+} derive(Eq, @debug.Debug)
+
 pub struct OrderedReference {
   at : String
   target : @relation_typing.ReferenceTarget
@@ -887,6 +936,7 @@ pub enum Payload {
   CrossJoinRows(@relation_join_shape.CheckedCrossJoin)
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
+  NestRows(@relation_nest.CheckedNest)
 }
 
 pub(all) enum PivotIssue {
@@ -951,6 +1001,25 @@ type PreparedJoinKernel
 
 type PreparedKernel
 
+pub struct PreparedNestField {
+  output : String
+  input : @relation_schema.FieldName
+}
+
+type PreparedNestKernel
+
+pub struct PreparedNestKey {
+  left : @relation_schema.FieldName
+  right : @relation_schema.FieldName
+}
+
+pub struct PreparedNestOrder {
+  field : @relation_schema.FieldName
+  descending : Bool
+  nulls_first : Bool
+  authored : Bool
+}
+
 type PreparedNode
 
 type PreparedPivot
@@ -979,6 +1048,7 @@ pub enum PreparedStep {
   CrossJoinStep(PreparedCrossJoinKernel)
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
+  NestStep(PreparedNestKernel)
 }
 
 type PreparedValues
@@ -1031,6 +1101,7 @@ pub(all) enum SequenceIssue {
   CrossJoinFailure(Int, CrossJoinIssue)
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
+  NestFailure(Int, NestIssue)
 }
 
 pub(all) struct SequenceLimits {
