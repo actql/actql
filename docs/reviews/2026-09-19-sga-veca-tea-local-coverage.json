@@ -43,8 +43,10 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
     },
     {
       "family": "SGA",
@@ -123,8 +125,10 @@
       "output": "relation",
       "canonical": ["SGA.degree_metrics"],
       "variants": ["incoming", "outgoing", "both", "typed edges"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_basic_test.mbt"]
     },
     {
       "family": "SGA",

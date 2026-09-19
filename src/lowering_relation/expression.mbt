@@ -406,6 +406,7 @@ fn lower_expression_measured(
       | AppendRows(_)
       | SetRows(_)
       | NestRows(_)
+      | BasicGraph(_)
       | StructuralGraph(_)
       | GraphUnion(_) => expression_fail(step.source, MissingCheckedBinding)
     }

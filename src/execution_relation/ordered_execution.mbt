@@ -70,6 +70,7 @@ fn prepare_ordered_budgets(
       | @lower.AppendStep(_)
       | @lower.SetStep(_)
       | @lower.NestStep(_) => ()
+      @lower.GraphBasicStep(_) => return Err(InputSet)
       @lower.GraphStructuralStep(_) => return Err(InputSet)
       @lower.GraphUnionStep(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {

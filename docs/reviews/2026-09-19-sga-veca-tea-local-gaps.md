@@ -10,7 +10,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | `union_graphs` now reaches one typed canonical finite-list occurrence; the remaining family operations are rejected as unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | Five SGA operations now reach typed canonical occurrences; the remaining family operations are rejected as unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Managed output is Relation-shaped | One Carrier-aware lifecycle with typed Carrier views |
 | Runtime material | Only relation sequences and tables are accepted | Add managed Carrier views and registered providers without forced copies |
@@ -48,13 +48,15 @@ canonical binary fold tree.
 ### SGA
 
 All 17 author-visible operations are accepted by frontend typing.
-`graft_graph`, `union_graphs`, and `subtract_graphs` now have typed canonical
-lowering. Union preserves its ordered finite input list, including repeated
-positions, as one operation occurrence. All three preserve checked property
-merge laws. They still lack their Carrier provider, managed execution,
-two-consumer connection, and publication connection. The other SGA operations
-still lack portable Local lowering as well. Graph projection already defines
-evidence laws; execution must consume rather than recreate them.
+`normalize_graph`, `degree`, `graft_graph`, `union_graphs`, and
+`subtract_graphs` now have typed canonical lowering. Union preserves its
+ordered finite input list, including repeated positions, as one operation
+occurrence. Structural operations preserve checked property merge laws, and
+degree preserves its checked direction. They still lack their Carrier
+provider, managed execution, two-consumer connection, and publication
+connection. The other SGA operations still lack portable Local lowering as
+well. Graph projection already defines evidence laws; execution must consume
+rather than recreate them.
 
 ### VecA
 

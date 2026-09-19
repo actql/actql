@@ -55,6 +55,7 @@ pub enum Payload {
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
+  BasicGraph(@graph.CheckedGraph)
   StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
 }
@@ -185,6 +186,13 @@ pub fn operation(value : PreparedNode) -> String {
     // Nest lowers to a registered multi-node expansion whose final node is a
     // projection. There is no REL.nest operation in the AoA registry.
     NestRows(_) => "REL.select"
+    BasicGraph(value) =>
+      match @graph.operation(value) {
+        @graph.NormalizeGraph => "SGA.normalize"
+        @graph.Degree => "SGA.degree_metrics"
+        @graph.Components => "SGA.components"
+        @graph.GraphBounds => "SGA.bounds_check"
+      }
     StructuralGraph(value) =>
       match @graph.structural_operation(value) {
         @graph.Graft => "SGA.graft"
@@ -237,9 +245,13 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | Sequence(_)
     | TimeSeries(_)
     | Calendar(_)
-    | Projection(_)
-    | Graph(_)
-    | GraphMatch(_)
+    | Projection(_) => None
+    Graph(value) =>
+      match @graph.operation(value) {
+        @graph.NormalizeGraph | @graph.Degree => Some(BasicGraph(value))
+        _ => None
+      }
+    GraphMatch(_)
     | Reach(_)
     | Subgraph(..)
     | Traverse(..)
@@ -354,6 +366,16 @@ pub fn prepare(
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
+      BasicGraph(value) =>
+        (
+          match @graph.operation(value) {
+            @graph.NormalizeGraph => "normalize_graph"
+            @graph.Degree => "degree"
+            @graph.Components => "components"
+            @graph.GraphBounds => "graph_bounds"
+          },
+          1,
+        )
       StructuralGraph(value) =>
         (
           match @graph.structural_operation(value) {
@@ -481,6 +503,7 @@ pub fn prepare(
       SetRows(_) => None
       CrossJoinRows(_) => None
       NestRows(_) => None
+      BasicGraph(_) => None
       StructuralGraph(_) => None
       GraphUnion(_) => None
     }

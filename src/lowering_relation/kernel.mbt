@@ -305,6 +305,7 @@ fn prepare_kernel_measured(
     | AppendRows(_)
     | SetRows(_)
     | NestRows(_)
+    | BasicGraph(_)
     | StructuralGraph(_)
     | GraphUnion(_) => return Err(MissingKernelNode)
   }
