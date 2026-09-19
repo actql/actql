@@ -119,9 +119,15 @@ lowering. Runtime work must preserve finite event-time observation semantics
 across transport page splits and bind checkpoint advancement to the existing
 successful commit boundary. No long-lived streaming state is required by TEA
 0.1. Common immutable record storage preserves typed event roles, open payload
-evidence, semantic identity uniqueness, and bounded allocation. Events now pass
-through the common managed generation and exact producer-read lifecycle on all
-three targets; TEA kernels and standard Host integration remain open.
+evidence, semantic identity uniqueness, and bounded allocation. Watermarking
+now executes as a bounded-step kernel for numeric and canonical UTC clocks. It
+implements both policies, preserves the exact late boundary and retained order,
+admits record workspace before construction, and publishes a distinct managed
+Events generation. Its portable tests cover kernel cancellation observation and
+two exact downstream reads on JS, Wasm, and native. Environment cancellation
+delivery, independent consumer release, and standard Host selection remain
+open, so watermarking is not complete. The other seven TEA operations still
+lack portable Local kernels.
 
 ### Bridges
 

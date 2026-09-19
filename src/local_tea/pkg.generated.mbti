@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_tea"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_record_runtime",
+  "actql/actql/managed_record_storage",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
+
+pub fn cleanup_watermark(WatermarkExecution) -> Result[Bool, WatermarkIssue]
+
+pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[WatermarkExecution, WatermarkIssue]
+
+pub fn watermark_cleanup_pending(WatermarkExecution) -> Bool
+
+pub fn watermark_max_noninterruptible_value_nodes(WatermarkExecution) -> Int
+
+pub fn watermark_stopped(WatermarkExecution) -> Bool
+
+// Errors
+
+// Types and methods
+type WatermarkExecution
+
+pub(all) enum WatermarkIssue {
+  InvalidKernel
+  InvalidLimits
+  InputUnavailable
+  InvalidRecord(Int)
+  InvalidTime(Int)
+  WorkspaceLimit
+  Output(@managed_record_runtime.Issue)
+  Execution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum WatermarkPoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  Failed(WatermarkIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+// Type aliases
+
+// Traits

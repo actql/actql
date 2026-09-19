@@ -199,6 +199,10 @@ pub fn event_session_time(PreparedEvent) -> @relation_schema.FieldName?
 
 pub fn event_session_uses_timestamp(PreparedEvent) -> Bool?
 
+pub fn event_watermark(PreparedEvent) -> Double?
+
+pub fn event_watermark_drops_late(PreparedEvent) -> Bool?
+
 pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract

@@ -190,6 +190,22 @@ pub fn event_output_carrier(value : PreparedEvent) -> @carrier.Carrier {
 }
 
 ///|
+pub fn event_watermark(value : PreparedEvent) -> Double? {
+  match value.params {
+    EventWatermarkParams(watermark, _) => Some(watermark)
+    _ => None
+  }
+}
+
+///|
+pub fn event_watermark_drops_late(value : PreparedEvent) -> Bool? {
+  match value.params {
+    EventWatermarkParams(_, policy) => Some(policy == @event.Drop)
+    _ => None
+  }
+}
+
+///|
 pub fn event_dedupe_key_count(value : PreparedEvent) -> Int? {
   match value.params {
     EventDedupeParams(spec) => Some(@event.dedupe_key_count(spec))

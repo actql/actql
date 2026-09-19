@@ -1,76 +1,6 @@
 ///|
-fn window_digits(text : String, start : Int, end : Int) -> Int? {
-  if start < 0 || end < start || end > text.length() {
-    return None
-  }
-  let mut value = 0
-  for i in start..<end {
-    if text[i] < '0' || text[i] > '9' {
-      return None
-    }
-    value = value * 10 + text[i].to_int() - 48
-  }
-  Some(value)
-}
-
-///|
-// Admission has already checked the canonical fixed-width UTC spelling. This
-// defensive reader still rejects malformed physical values and uses the Unix
-// epoch required by the window grid rather than the year-zero duration origin.
-fn window_timestamp_milliseconds64(text : String) -> Int64? {
-  if text.length() != 24 ||
-    text[4] != '-' ||
-    text[7] != '-' ||
-    text[10] != 'T' ||
-    text[13] != ':' ||
-    text[16] != ':' ||
-    text[19] != '.' ||
-    text[23] != 'Z' {
-    return None
-  }
-  guard window_digits(text, 0, 4) is Some(year) &&
-    window_digits(text, 5, 7) is Some(month) &&
-    window_digits(text, 8, 10) is Some(day) &&
-    window_digits(text, 11, 13) is Some(hour) &&
-    window_digits(text, 14, 16) is Some(minute) &&
-    window_digits(text, 17, 19) is Some(second) &&
-    window_digits(text, 20, 23) is Some(millisecond) else {
-    return None
-  }
-  if month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31 ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59 ||
-    millisecond > 999 {
-    return None
-  }
-  let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-  let before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-  let leap_day = if leap && month > 2 { 1 } else { 0 }
-  let days = 365 * year +
-    (year + 3) / 4 -
-    (year + 99) / 100 +
-    (year + 399) / 400 +
-    before_month[month - 1] +
-    day -
-    1 +
-    leap_day -
-    719528
-  Some(
-    days.to_int64() * 86400000L +
-    hour.to_int64() * 3600000L +
-    minute.to_int64() * 60000L +
-    second.to_int64() * 1000L +
-    millisecond.to_int64(),
-  )
-}
-
-///|
 fn window_timestamp_milliseconds(text : String) -> Double? {
-  match window_timestamp_milliseconds64(text) {
+  match @admitted.timestamp_epoch_milliseconds(text) {
     Some(value) => Some(value.to_double())
     None => None
   }
@@ -135,7 +65,7 @@ fn window_time_coordinate(
   if timestamp {
     guard value is Captured(@admitted.Timestamp(text)) &&
       spend_control_text(control, text) &&
-      window_timestamp_milliseconds64(text) is Some(milliseconds) else {
+      @admitted.timestamp_epoch_milliseconds(text) is Some(milliseconds) else {
       return None
     }
     Some(ExactFloor(milliseconds))

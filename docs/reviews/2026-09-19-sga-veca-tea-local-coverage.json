@@ -288,8 +288,19 @@
       "variants": ["drop", "mark", "late boundary", "stable retained order"],
       "status": "partial",
       "owner": "local-tea",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/watermark_wbtest.mbt"
+      ]
     },
     {
       "family": "TEA",

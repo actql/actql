@@ -32,7 +32,11 @@ pub fn boolean_value(Bool) -> Value
 
 pub fn cancel_vector_value(VectorBuilder) -> Bool
 
+pub fn checked_boolean_value(Bool, @value_contract.Contract) -> CheckedValue?
+
 pub fn checked_number_value(Double, @value_contract.Contract) -> CheckedValue?
+
+pub fn checked_text_value(String, @value_contract.Contract) -> CheckedValue?
 
 pub fn compare_key_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]
 
@@ -45,6 +49,8 @@ pub fn[T] element_count(FrozenArray[T]) -> Int
 pub fn[T] elements(FrozenArray[T]) -> Array[T]
 
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn event_time_milliseconds(CheckedValue, Bool) -> Double?
 
 pub fn finish_checked_vector_value(VectorBuilder, @value_contract.Contract) -> CheckedValue?
 
@@ -71,6 +77,8 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 pub fn reference_wire(ReferenceValue) -> String
 
 pub fn text_value(String, Int) -> Value?
+
+pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 // Errors
 
