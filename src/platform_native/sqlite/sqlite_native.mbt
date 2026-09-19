@@ -83,6 +83,50 @@ extern "C" fn database_compare_exchange_ffi(
 ) -> Int = "actql_native_sqlite_database_compare_exchange"
 
 ///|
+#borrow(database, scope, key)
+extern "C" fn database_reserve_capacity_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Int = "actql_native_sqlite_database_reserve_capacity"
+
+///|
+#borrow(database, scope, key)
+extern "C" fn database_release_capacity_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Int = "actql_native_sqlite_database_release_capacity"
+
+///|
+#borrow(database, scope)
+extern "C" fn database_capacity_usage_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+) -> Int = "actql_native_sqlite_database_capacity_usage"
+
+///|
+#borrow(database)
+extern "C" fn database_result_capacity_bytes_ffi(database : Database) -> Int64 = "actql_native_sqlite_database_result_capacity_bytes"
+
+///|
+#borrow(database)
+extern "C" fn database_result_capacity_objects_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_capacity_objects"
+
+///|
 #borrow(database)
 extern "C" fn database_result_revision_ffi(database : Database) -> Int64 = "actql_native_sqlite_database_result_revision"
 
@@ -116,6 +160,7 @@ fn operation_issue(database : Database, code : Int) -> NativeSqliteIssue {
     3 => Busy
     4 => BodyTooLarge
     5 => DatabaseClosed
+    6 => CapacityExceeded
     _ => Physical(decode_message(database_error_ffi(database)))
   }
 }
@@ -276,6 +321,105 @@ pub fn Database::compare_exchange(
   )
   if code == 0 {
     Ok(database_result_revision_ffi(self))
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Atomically installs one exact reservation when both scope limits permit it.
+/// Repeating the same key and quantities is idempotent and returns false.
+pub fn Database::reserve_capacity(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  if reserved_bytes < 0L ||
+    reserved_objects < 0L ||
+    max_bytes < 0L ||
+    max_objects < 0L {
+    return Err(InvalidLimit)
+  }
+  match
+    database_reserve_capacity_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      reserved_bytes,
+      reserved_objects,
+      max_bytes,
+      max_objects,
+    ) {
+    0 => Ok(true)
+    7 => Ok(false)
+    code => Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Atomically releases only the exact reservation. A missing reservation is
+/// idempotent and returns false; a mismatched reservation is a collision.
+pub fn Database::release_capacity(
+  self : Database,
+  scope : String,
+  key : String,
+  reserved_bytes : Int64,
+  reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  if reserved_bytes < 0L || reserved_objects < 0L {
+    return Err(InvalidLimit)
+  }
+  match
+    database_release_capacity_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      reserved_bytes,
+      reserved_objects,
+    ) {
+    0 => Ok(true)
+    7 => Ok(false)
+    code => Err(operation_issue(self, code))
+  }
+}
+
+///|
+pub fn Database::capacity_usage(
+  self : Database,
+  scope : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  if !valid_name(scope_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_capacity_usage_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+  )
+  if code == 0 {
+    Ok({
+      reserved_bytes: database_result_capacity_bytes_ffi(self),
+      reserved_objects: database_result_capacity_objects_ffi(self),
+    })
   } else {
     Err(operation_issue(self, code))
   }

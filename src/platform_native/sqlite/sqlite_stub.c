@@ -73,6 +73,8 @@ typedef struct {
   unsigned char *result_key;
   int32_t result_key_length;
   int64_t result_revision;
+  int64_t result_capacity_bytes;
+  int64_t result_capacity_objects;
   int64_t max_body_bytes;
   bool opened;
 } actql_native_sqlite_database;
@@ -118,6 +120,8 @@ static void actql_clear_result(actql_native_sqlite_database *database) {
   database->result_body_length = 0;
   database->result_key_length = 0;
   database->result_revision = 0;
+  database->result_capacity_bytes = 0;
+  database->result_capacity_objects = 0;
   actql_replace_error(&database->error, NULL);
 }
 
@@ -246,7 +250,7 @@ static bool actql_initialize_schema(
   }
   int version = actql_user_version(database);
   if (version < 0) return false;
-  if (version > 1) {
+  if (version > 2) {
     actql_replace_error(&database->error, "unsupported SQLite schema version");
     return false;
   }
@@ -259,7 +263,14 @@ static bool actql_initialize_schema(
     "body BLOB NOT NULL,"
     "PRIMARY KEY(namespace, record_key)"
     ") STRICT;"
-    "PRAGMA user_version=1;"
+    "CREATE TABLE IF NOT EXISTS actql_capacity("
+    "namespace TEXT NOT NULL,"
+    "reservation_key TEXT NOT NULL,"
+    "reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),"
+    "reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),"
+    "PRIMARY KEY(namespace, reservation_key)"
+    ") STRICT;"
+    "PRAGMA user_version=2;"
     "COMMIT;";
   if (actql_exec(database, schema) != SQLITE_OK) {
     database->library->exec(database->database, "ROLLBACK", NULL, NULL, NULL);
@@ -765,6 +776,363 @@ int32_t actql_native_sqlite_database_compare_exchange(
     return actql_operation_code(finalize_code);
   }
   return result;
+}
+
+static void actql_capacity_rollback(
+  actql_native_sqlite_database *database
+) {
+  database->library->exec(database->database, "ROLLBACK", NULL, NULL, NULL);
+}
+
+static int32_t actql_capacity_begin(
+  actql_native_sqlite_database *database
+) {
+  int code = actql_exec(database, "BEGIN IMMEDIATE");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
+static int32_t actql_capacity_commit(
+  actql_native_sqlite_database *database
+) {
+  int code = actql_exec(database, "COMMIT");
+  if (code == SQLITE_OK) return 0;
+  actql_capacity_rollback(database);
+  return actql_operation_code(code);
+}
+
+static int32_t actql_capacity_existing(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t *reserved_bytes,
+  int64_t *reserved_objects
+) {
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "SELECT reserved_bytes, reserved_objects FROM actql_capacity "
+    "WHERE namespace = ?1 AND reservation_key = ?2",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare capacity lookup failed");
+    return actql_operation_code(code);
+  }
+  int32_t result = actql_bind_key(
+    database,
+    statement,
+    1,
+    namespace_bytes,
+    namespace_length,
+    2,
+    key,
+    key_length
+  );
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_ROW) {
+      *reserved_bytes = (int64_t)database->library->column_int64(statement, 0);
+      *reserved_objects = (int64_t)database->library->column_int64(statement, 1);
+      result = 0;
+    } else if (code == SQLITE_DONE) {
+      result = 1;
+    } else {
+      actql_database_error(database, "read capacity reservation failed");
+      result = actql_operation_code(code);
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  if (result >= 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize capacity lookup failed");
+    return actql_operation_code(finalize_code);
+  }
+  return result;
+}
+
+static int32_t actql_capacity_sum(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  int64_t *reserved_bytes,
+  int64_t *reserved_objects
+) {
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "SELECT COALESCE(SUM(reserved_bytes), 0), "
+    "COALESCE(SUM(reserved_objects), 0) FROM actql_capacity "
+    "WHERE namespace = ?1",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare capacity sum failed");
+    return actql_operation_code(code);
+  }
+  code = database->library->bind_text(
+    statement,
+    1,
+    (const char *)namespace_bytes,
+    namespace_length,
+    SQLITE_TRANSIENT
+  );
+  int32_t result = 0;
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "bind capacity scope failed");
+    result = actql_operation_code(code);
+  } else {
+    code = database->library->step(statement);
+    if (code == SQLITE_ROW) {
+      *reserved_bytes = (int64_t)database->library->column_int64(statement, 0);
+      *reserved_objects = (int64_t)database->library->column_int64(statement, 1);
+    } else {
+      actql_database_error(database, "read capacity sum failed");
+      result = actql_operation_code(code);
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize capacity sum failed");
+    return actql_operation_code(finalize_code);
+  }
+  return result;
+}
+
+int32_t actql_native_sqlite_database_reserve_capacity(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t reserved_bytes,
+  int64_t reserved_objects,
+  int64_t max_bytes,
+  int64_t max_objects
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  if (reserved_bytes < 0 || reserved_objects < 0 || max_bytes < 0 ||
+      max_objects < 0 || reserved_bytes > max_bytes ||
+      reserved_objects > max_objects) {
+    return 6;
+  }
+  int32_t result = actql_capacity_begin(database);
+  if (result != 0) return result;
+  int64_t existing_bytes = 0;
+  int64_t existing_objects = 0;
+  result = actql_capacity_existing(
+    database,
+    namespace_bytes,
+    namespace_length,
+    key,
+    key_length,
+    &existing_bytes,
+    &existing_objects
+  );
+  if (result == 0) {
+    if (existing_bytes != reserved_bytes ||
+        existing_objects != reserved_objects) {
+      actql_capacity_rollback(database);
+      return 2;
+    }
+    result = actql_capacity_commit(database);
+    return result == 0 ? 7 : result;
+  }
+  if (result != 1) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  int64_t used_bytes = 0;
+  int64_t used_objects = 0;
+  result = actql_capacity_sum(
+    database,
+    namespace_bytes,
+    namespace_length,
+    &used_bytes,
+    &used_objects
+  );
+  if (result != 0) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  if (used_bytes < 0 || used_objects < 0 || used_bytes > max_bytes ||
+      used_objects > max_objects || reserved_bytes > max_bytes - used_bytes ||
+      reserved_objects > max_objects - used_objects) {
+    actql_capacity_rollback(database);
+    return 6;
+  }
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "INSERT INTO actql_capacity("
+    "namespace, reservation_key, reserved_bytes, reserved_objects"
+    ") VALUES(?1, ?2, ?3, ?4)",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare capacity reservation failed");
+    actql_capacity_rollback(database);
+    return actql_operation_code(code);
+  }
+  result = actql_bind_key(
+    database,
+    statement,
+    1,
+    namespace_bytes,
+    namespace_length,
+    2,
+    key,
+    key_length
+  );
+  if (result == 0) {
+    code = database->library->bind_int64(statement, 3, reserved_bytes);
+    if (code == SQLITE_OK) {
+      code = database->library->bind_int64(statement, 4, reserved_objects);
+    }
+    if (code != SQLITE_OK) {
+      actql_database_error(database, "bind capacity reservation failed");
+      result = actql_operation_code(code);
+    }
+  }
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code != SQLITE_DONE) {
+      actql_database_error(database, "insert capacity reservation failed");
+      result = actql_operation_code(code);
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize capacity reservation failed");
+    result = actql_operation_code(finalize_code);
+  }
+  if (result != 0) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  return actql_capacity_commit(database);
+}
+
+int32_t actql_native_sqlite_database_release_capacity(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t reserved_bytes,
+  int64_t reserved_objects
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  if (reserved_bytes < 0 || reserved_objects < 0) return 2;
+  int32_t result = actql_capacity_begin(database);
+  if (result != 0) return result;
+  int64_t existing_bytes = 0;
+  int64_t existing_objects = 0;
+  result = actql_capacity_existing(
+    database,
+    namespace_bytes,
+    namespace_length,
+    key,
+    key_length,
+    &existing_bytes,
+    &existing_objects
+  );
+  if (result == 1) {
+    result = actql_capacity_commit(database);
+    return result == 0 ? 7 : result;
+  }
+  if (result != 0 || existing_bytes != reserved_bytes ||
+      existing_objects != reserved_objects) {
+    actql_capacity_rollback(database);
+    return result == 0 ? 2 : result;
+  }
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "DELETE FROM actql_capacity WHERE namespace = ?1 "
+    "AND reservation_key = ?2",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare capacity release failed");
+    actql_capacity_rollback(database);
+    return actql_operation_code(code);
+  }
+  result = actql_bind_key(
+    database,
+    statement,
+    1,
+    namespace_bytes,
+    namespace_length,
+    2,
+    key,
+    key_length
+  );
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code != SQLITE_DONE ||
+        database->library->changes64(database->database) != 1) {
+      if (code != SQLITE_DONE) {
+        actql_database_error(database, "release capacity reservation failed");
+      }
+      result = code == SQLITE_DONE ? 2 : actql_operation_code(code);
+    }
+  }
+  int finalize_code = database->library->finalize(statement);
+  if (result == 0 && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize capacity release failed");
+    result = actql_operation_code(finalize_code);
+  }
+  if (result != 0) {
+    actql_capacity_rollback(database);
+    return result;
+  }
+  return actql_capacity_commit(database);
+}
+
+int32_t actql_native_sqlite_database_capacity_usage(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  int64_t reserved_bytes = 0;
+  int64_t reserved_objects = 0;
+  int32_t result = actql_capacity_sum(
+    database,
+    namespace_bytes,
+    namespace_length,
+    &reserved_bytes,
+    &reserved_objects
+  );
+  if (result == 0) {
+    database->result_capacity_bytes = reserved_bytes;
+    database->result_capacity_objects = reserved_objects;
+  }
+  return result;
+}
+
+int64_t actql_native_sqlite_database_result_capacity_bytes(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL ? 0 : database->result_capacity_bytes;
+}
+
+int64_t actql_native_sqlite_database_result_capacity_objects(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL ? 0 : database->result_capacity_objects;
 }
 
 int64_t actql_native_sqlite_database_result_revision(

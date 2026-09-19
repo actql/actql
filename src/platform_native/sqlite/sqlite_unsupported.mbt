@@ -76,6 +76,38 @@ pub fn Database::compare_exchange(
 }
 
 ///|
+pub fn Database::reserve_capacity(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _reserved_bytes : Int64,
+  _reserved_objects : Int64,
+  _max_bytes : Int64,
+  _max_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::release_capacity(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _reserved_bytes : Int64,
+  _reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::capacity_usage(
+  _self : Database,
+  _scope : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::close(_self : Database) -> Unit {
 
 }

@@ -10,7 +10,14 @@ pub(all) enum NativeSqliteIssue {
   Collision
   Busy
   BodyTooLarge
+  CapacityExceeded
   Physical(String)
+}
+
+///|
+pub(all) struct NativeCapacityUsage {
+  reserved_bytes : Int64
+  reserved_objects : Int64
 }
 
 ///|

@@ -63,3 +63,50 @@ test "native SQLite journal persists and fences competing revisions" {
   assert_eq(retained.body, b"running")
   reopened.close()
 }
+
+///|
+test "native SQLite capacity reservations are atomic and restart safe" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = load_library(path).unwrap()
+  let database_path = root + "/capacity-" + @env.now().to_string() + ".sqlite3"
+  let first = library.open_database(database_path, 64L).unwrap()
+  let second = library.open_database(database_path, 64L).unwrap()
+  assert_true(
+    first.reserve_capacity("publication", "one", 600L, 1L, 1024L, 2L).unwrap(),
+  )
+  assert_false(
+    second.reserve_capacity("publication", "one", 600L, 1L, 1024L, 2L).unwrap(),
+  )
+  guard second.reserve_capacity("publication", "one", 601L, 1L, 1024L, 2L)
+    is Err(Collision) else {
+    fail("mismatched repeated capacity reservation was accepted")
+  }
+  guard second.reserve_capacity("publication", "two", 600L, 1L, 1024L, 2L)
+    is Err(CapacityExceeded) else {
+    fail("concurrent capacity limit was not enforced")
+  }
+  let usage = second.capacity_usage("publication").unwrap()
+  assert_eq(usage.reserved_bytes, 600L)
+  assert_eq(usage.reserved_objects, 1L)
+  first.close()
+  second.close()
+  let reopened = library.open_database(database_path, 64L).unwrap()
+  let retained = reopened.capacity_usage("publication").unwrap()
+  assert_eq(retained.reserved_bytes, 600L)
+  assert_eq(retained.reserved_objects, 1L)
+  assert_true(
+    reopened.release_capacity("publication", "one", 600L, 1L).unwrap(),
+  )
+  assert_false(
+    reopened.release_capacity("publication", "one", 600L, 1L).unwrap(),
+  )
+  let released = reopened.capacity_usage("publication").unwrap()
+  assert_eq(released.reserved_bytes, 0L)
+  assert_eq(released.reserved_objects, 0L)
+  reopened.close()
+}
