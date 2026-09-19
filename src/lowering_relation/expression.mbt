@@ -508,8 +508,8 @@ fn lower_expression_measured(
       | GraphReachRows(_)
       | GraphEqualityRows(_)
       | GraphDiffRows(_)
-      | GraphApplyValue(_) =>
-        expression_fail(step.source, MissingCheckedBinding)
+      | GraphApplyValue(_)
+      | VectorValue(_) => expression_fail(step.source, MissingCheckedBinding)
     }
     let syntax = @typing.expression(typed)
     let root = @syntax.tree(syntax)

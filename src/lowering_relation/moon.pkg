@@ -8,6 +8,8 @@ import {
   "actql/actql/relation_set" @set,
   "actql/actql/relation_nest" @nest,
   "actql/actql/graph_typing" @graph,
+  "actql/actql/vector_typing" @vector,
+  "actql/actql/vector_checking",
   "actql/actql/order_key" @order,
   "actql/actql/relation_values" @values,
   "actql/actql/temporal_window" @window,

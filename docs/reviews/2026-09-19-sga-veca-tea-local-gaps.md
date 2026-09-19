@@ -10,7 +10,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | All seventeen SGA operations now reach typed canonical occurrences; TEA, VecA, Bridges, and VecA expressions remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | All seventeen SGA operations and the vector bridge, normalization, and scoring forms reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Common lifecycle and exact producer reads now own typed Relation and Graph generations; Graph construction installs retention before accepting values | Connect Events and Vectors views without separate lifecycle state machines, then join every Carrier to physical task completion |
 | Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage now preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to common lifecycle and registered providers without forced copies |
@@ -79,14 +79,16 @@ consume rather than recreate them.
 
 ### VecA
 
-All five operations lack portable Local execution. `vector_score` and
-`vector_concat` are accepted by expression typing but rejected by shared
-lowering and have no evaluator implementation. The prescribed binary32 and
-binary64 operation sequence needs a portable conforming kernel and independent
-vectors before optimized implementations can be selected. Common immutable
-record storage now preserves composite vector identities, admitted dimensions,
-exact UTF-8 value usage, work, and workspace bounds; managed lifecycle and
-VecA kernels remain open.
+All five operations lack portable Local execution. Checked typed lowering now
+emits `VEC.normalize_l2` and `VEC.score_sort`, including bound query values,
+without reading frontend syntax again. `vector_score` and `vector_concat` are
+accepted by expression typing but still rejected by shared expression lowering
+and have no evaluator implementation. The prescribed binary32 and binary64
+operation sequence needs a portable conforming kernel and independent vectors
+before optimized implementations can be selected. Common immutable record
+storage now preserves composite vector identities, admitted dimensions, exact
+UTF-8 value usage, work, and workspace bounds; managed lifecycle and VecA
+kernels remain open.
 
 ### TEA
 
@@ -97,6 +99,14 @@ long-lived streaming state is required by TEA 0.1. Common immutable record
 storage now preserves typed event roles, open payload evidence, semantic
 identity uniqueness, and bounded allocation; managed lifecycle and TEA kernels
 remain open.
+
+### Bridges
+
+`to_vectors` now lowers its checked identity and component roles to
+`BRIDGE.rows.to_vectors`. Its runtime conversion and the other six Bridge
+operations remain open. Bridge implementations must retain their source and
+target Carrier contracts and create an independently managed generation; a
+Relation-shaped buffer alone is not evidence of a completed conversion.
 
 ## Current verification boundary
 

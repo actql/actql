@@ -354,8 +354,10 @@
       "output": "vectors",
       "canonical": ["VEC.normalize_l2"],
       "variants": ["zero vector", "finite components", "rounding boundary"],
-      "status": "missing",
-      "owner": "local-veca"
+      "status": "partial",
+      "owner": "local-veca",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/vector_test.mbt"]
     },
     {
       "family": "VecA",
@@ -364,8 +366,10 @@
       "output": "vectors",
       "canonical": ["VEC.score_sort"],
       "variants": ["literal/parameter query", "cosine/dot/l2", "score ties"],
-      "status": "missing",
-      "owner": "local-veca"
+      "status": "partial",
+      "owner": "local-veca",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/vector_test.mbt"]
     },
     {
       "family": "VecA",
@@ -454,8 +458,10 @@
       "output": "vectors",
       "canonical": ["BRIDGE.rows.to_vectors"],
       "variants": ["single/composite semantic id", "dimension", "finite component failure"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/vector_test.mbt"]
     },
     {
       "family": "Bridge",

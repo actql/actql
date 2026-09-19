@@ -21,6 +21,7 @@ import {
   "actql/actql/temporal_window",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
+  "actql/actql/vector_typing",
   "moonbitlang/core/debug",
 }
 
@@ -1017,6 +1018,7 @@ pub enum Payload {
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
+  VectorValue(@vector_typing.CheckedVector)
 }
 
 pub(all) enum PivotIssue {
@@ -1159,9 +1161,12 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
+  VectorStep(PreparedVector)
 }
 
 type PreparedValues
+
+type PreparedVector
 
 pub enum PreparedWatermarkThreshold {
   FixedWatermark(Double)
@@ -1220,6 +1225,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
+  VectorFailure(Int, VectorIssue)
 }
 
 pub(all) struct SequenceLimits {
@@ -1275,6 +1281,14 @@ pub(all) enum ValuesIssue {
   MissingValuesParameter(String)
   InvalidValuesRow
 }
+
+pub(all) enum VectorIssue {
+  InvalidVectorLimits
+  InvalidVectorWiring
+  VectorPreparationLimit
+  MissingVectorParameter(String)
+  InvalidVectorParameter(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum WindowIssue {
   InvalidWindowLimits

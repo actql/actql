@@ -316,7 +316,8 @@ fn prepare_kernel_measured(
     | GraphShortestRows(_)
     | GraphEqualityRows(_)
     | GraphDiffRows(_)
-    | GraphApplyValue(_) => return Err(MissingKernelNode)
+    | GraphApplyValue(_)
+    | VectorValue(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)

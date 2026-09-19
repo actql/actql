@@ -26,6 +26,7 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
+  VectorStep(PreparedVector)
 }
 
 ///|
@@ -58,6 +59,7 @@ pub(all) enum SequenceIssue {
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphShortestFailure(Int, GraphShortestIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
+  VectorFailure(Int, VectorIssue)
 }
 
 ///|
@@ -299,6 +301,26 @@ pub fn prepare_sequence(
         }
         GraphRelationStep(prepared)
       }
+      VectorValue(_) => {
+        let (prepared, used_bindings, used_names, used_work) = match
+          prepare_vector_node(
+            owner,
+            owner.prepared.nodes[i],
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(VectorFailure(i, issue))
+        }
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        VectorStep(prepared)
+      }
       BasicGraph(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_graph_basic_node(
@@ -427,6 +449,7 @@ pub fn emit_sequence_steps(
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
+      VectorStep(v) => emit_vector_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

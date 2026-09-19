@@ -184,7 +184,8 @@ pub fn prepare_kernel_roots(
     | GraphSubgraphStep(_)
     | GraphTraverseStep(_)
     | GraphShortestStep(_)
-    | GraphRelationStep(_) => return Err(NotExpressionKernel)
+    | GraphRelationStep(_)
+    | VectorStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -250,7 +251,8 @@ fn prepare_root_range(
       | GraphSubgraphStep(_)
       | GraphTraverseStep(_)
       | GraphShortestStep(_)
-      | GraphRelationStep(_) => continue
+      | GraphRelationStep(_)
+      | VectorStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {
           Select(_)

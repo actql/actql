@@ -67,6 +67,7 @@ pub enum Payload {
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
+  VectorValue(@vector.CheckedVector)
 }
 
 ///|
@@ -222,6 +223,12 @@ pub fn operation(value : PreparedNode) -> String {
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
+    VectorValue(value) =>
+      match @vector.operation(value) {
+        @vector.ToVectors => "BRIDGE.rows.to_vectors"
+        @vector.NormalizeVectors => "VEC.normalize_l2"
+        @vector.ScoreVectors => "VEC.score_sort"
+      }
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -287,12 +294,12 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
     GraphConstruction(..)
-    | Vector(_)
     | Nearest(..)
     | Pool(_)
     | Ranking(_)
     | TextRank(..)
     | Event(_) => None
+    Vector(value) => Some(VectorValue(value))
   }
 }
 
@@ -457,6 +464,15 @@ pub fn prepare(
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
+      VectorValue(value) =>
+        (
+          match @vector.operation(value) {
+            @vector.ToVectors => "to_vectors"
+            @vector.NormalizeVectors => "normalize_vectors"
+            @vector.ScoreVectors => "score_vectors"
+          },
+          1,
+        )
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -586,6 +602,7 @@ pub fn prepare(
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
+      VectorValue(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {
