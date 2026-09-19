@@ -363,7 +363,8 @@ export function createRemoteDispatchRuntime({
     signal,
   ) => {
     const cleanupPending = member(error, 'cleanupPending') === true;
-    const entry = {
+    const retainedOwner = owners.get(identity);
+    const entry = retainedOwner ?? {
       record,
       handle: member(error, 'cleanupHandle'),
       stopAuthorityRequired: cleanupPending,
@@ -378,20 +379,37 @@ export function createRemoteDispatchRuntime({
       siteHolding: operationState.siteHolding,
       holdingReleased: operationState.siteHolding === undefined,
     };
-    applyFailurePlan(entry, control.prepareRuntimeFailure(
-      record,
-      entry.cancelled,
-      entry.stopConfirmed,
-    ));
-    operationState.settled = entry.operationSettled;
+    if (retainedOwner !== undefined) {
+      entry.handle = member(error, 'cleanupHandle');
+      entry.stopAuthorityRequired = cleanupPending;
+      entry.stopConfirmed = !cleanupPending;
+      entry.cancelled = signal?.aborted === true;
+      entry.primary = error;
+      owners.delete(identity);
+    }
+    pendingCleanup.set(identity, entry);
+    try {
+      applyFailurePlan(entry, control.prepareRuntimeFailure(
+        record,
+        entry.cancelled,
+        entry.stopConfirmed,
+      ));
+    } catch (persistenceError) {
+      entry.diagnostics.push(persistenceError);
+      throw new AggregateError(
+        [error, persistenceError],
+        `Remote failure journal persistence failed: ${
+          member(persistenceError, 'message') ?? 'unknown error'}`,
+      );
+    } finally {
+      operationState.settled = entry.operationSettled;
+    }
     if (cleanupPending) {
-      pendingCleanup.set(identity, entry);
       throw error;
     }
-    if (output !== undefined) owners.set(identity, entry);
     try {
       await driveCleanup(entry);
-      owners.delete(identity);
+      pendingCleanup.delete(identity);
     } catch (cleanupError) {
       throw new AggregateError(
         [error, cleanupError],

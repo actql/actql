@@ -84,7 +84,11 @@ function managedOutput(overrides = {}) {
   });
 }
 
-async function fixture(t, execute, {autoClose = true} = {}) {
+async function fixture(
+  t,
+  execute,
+  {autoClose = true, wrapStore = value => value} = {},
+) {
   const root = await mkdtemp(join(tmpdir(), 'actql-remote-runtime-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const selectedSite = site();
@@ -110,7 +114,7 @@ async function fixture(t, execute, {autoClose = true} = {}) {
   const dispatchRuntime = createRemoteDispatchRuntime({
     control,
     siteControl: runtime.siteControl,
-    store,
+    store: wrapStore(store),
     registrations: [registration],
     budgets: [dispatchBudget],
   });
@@ -456,11 +460,12 @@ test('cancelled unknown execution reconciles as cancellation after stop',
 
 test('cleanup status errors remain unknown until a later observation',
   async t => {
-    let statusFails = true;
+    let statusMode = 'throws';
     const statusFailure = new Error('status unavailable');
     const cleanupHandle = Object.freeze({
       status() {
-        if (statusFails) throw statusFailure;
+        if (statusMode === 'throws') throw statusFailure;
+        if (statusMode === 'malformed') return {pending: 'unknown'};
         return Object.freeze({pending: false});
       },
     });
@@ -478,7 +483,10 @@ test('cleanup status errors remain unknown until a later observation',
     await assert.rejects(f.dispatchRuntime.start(dispatch, record));
     assert.equal(await f.dispatchRuntime.cleanup(dispatch), false);
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
-    statusFails = false;
+    statusMode = 'malformed';
+    assert.equal(await f.dispatchRuntime.cleanup(dispatch), false);
+    assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
+    statusMode = 'stopped';
     assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
     assert.deepEqual(f.control.status(record), [4, 0, 2, 0, 0]);
   });
@@ -507,4 +515,102 @@ test('missing cleanup authority keeps runtime close explicitly pending',
         error.cleanupHandle.status().pending === true,
     );
     assert.deepEqual(f.control.status(record), [6, 0, 3, 0, 0]);
+  });
+
+test('failure journal errors retain delayed native cleanup ownership',
+  async t => {
+    for (const commitBeforeFailure of [false, true]) {
+      let stopPending = true;
+      let retries = 0;
+      let advances = 0;
+      const nativeFailure = Object.assign(new Error('native pending'), {
+        cleanupPending: true,
+        cleanupHandle: Object.freeze({
+          status: () => Object.freeze({pending: stopPending, errors: []}),
+          async retry() {
+            retries++;
+            stopPending = false;
+          },
+        }),
+      });
+      const persistenceFailure = new Error('injected failure journal EIO');
+      const f = await fixture(t, async () => { throw nativeFailure; }, {
+        autoClose: false,
+        wrapStore: store => ({
+          ...store,
+          advance(...arguments_) {
+            advances++;
+            if (advances !== 3) return store.advance(...arguments_);
+            if (commitBeforeFailure) store.advance(...arguments_);
+            throw persistenceFailure;
+          },
+        }),
+      });
+      const dispatch = request({
+        dispatchId: `journal-${commitBeforeFailure}`,
+        taskAttempt: commitBeforeFailure ? 3 : 2,
+      });
+      const record = f.store.accept(
+        f.control.prepareAdmission(f.journal, dispatch),
+        dispatch,
+        f.control,
+      );
+      await assert.rejects(
+        f.dispatchRuntime.start(dispatch, record),
+        error => error instanceof AggregateError &&
+          error.errors[0] === nativeFailure &&
+          error.errors[1] === persistenceFailure,
+      );
+      assert.equal(stopPending, true);
+      assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
+      assert.equal(retries, 1);
+      assert.equal(stopPending, false);
+      assert.equal(await f.dispatchRuntime.close(), true);
+    }
+  });
+
+test('output and holding survive failure journal errors until cleanup',
+  async t => {
+    let closes = 0;
+    let advances = 0;
+    const primary = new Error('retained transition failed');
+    const persistenceFailure = new Error('failure transition failed');
+    const f = await fixture(t, async () => managedOutput({
+      async close() { closes++; },
+    }), {
+      autoClose: false,
+      wrapStore: store => ({
+        ...store,
+        advance(...arguments_) {
+          advances++;
+          if (advances === 4) throw primary;
+          if (advances === 5) throw persistenceFailure;
+          return store.advance(...arguments_);
+        },
+      }),
+    });
+    const dispatch = request({dispatchId: 'output-journal-failure'});
+    const record = f.store.accept(
+      f.control.prepareAdmission(f.journal, dispatch),
+      dispatch,
+      f.control,
+    );
+    await assert.rejects(
+      f.dispatchRuntime.start(dispatch, record),
+      error => error instanceof AggregateError &&
+        error.errors[0] === primary &&
+        error.errors[1] === persistenceFailure,
+    );
+    assert.equal(closes, 0);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 1n, 0n, 8n, 0n, 0n],
+    );
+    assert.equal(await f.dispatchRuntime.cleanup(dispatch), true);
+    assert.equal(closes, 1);
+    assert.deepEqual(
+      runtime.siteControl.status(f.selectedSite).slice(2, 9),
+      [0n, 0n, 0n, 0n, 0n, 0n, 0n],
+    );
+    assert.equal(await f.dispatchRuntime.close(), true);
   });
