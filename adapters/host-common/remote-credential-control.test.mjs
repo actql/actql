@@ -55,6 +55,16 @@ test('Remote Credential use admits only the exact active scope', () => {
   ]);
   assert.equal(JSON.parse(control.useJson(first)).grant_cid,
     control.identity(grant));
+  assert.doesNotThrow(() => control.authorizeUse(first, Object.freeze({
+    trustedNowMilliseconds: 1_999_999_999_999n,
+    revoked: false,
+    scope,
+  })));
+  assert.throws(() => control.authorizeUse(first, Object.freeze({
+    trustedNowMilliseconds: 2_000_000_000_000n,
+    revoked: false,
+    scope,
+  })));
   assert.throws(() => control.prepareUse(grant, Object.freeze({
     useId: 'credential-use-b',
     trustedNowMilliseconds: 2_000_000_000_000n,

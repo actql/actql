@@ -4321,6 +4321,37 @@ pub fn strategy_remote_credential_use_json(
 }
 
 ///|
+#export_name("strategyRemoteCredentialUseAuthorize")
+pub fn strategy_remote_credential_use_authorize(
+  credential_use : @credential.RemoteCredentialUse,
+  trusted_now_ms : Int64,
+  revoked : Bool,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+) -> Unit raise NodeHostFailure {
+  match
+    @credential.authorize_credential_use(
+      credential_use, trusted_now_ms, revoked, principal, tenant, environment, site_key,
+      site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteCredentialUseProjection")
 pub fn strategy_remote_credential_use_projection(
   credential_use : @credential.RemoteCredentialUse,

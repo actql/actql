@@ -838,6 +838,18 @@ function remoteCredentialControl(moon) {
     },
     useIdentity: moon.strategyRemoteCredentialUseIdentity,
     useJson: value => checked(moon.strategyRemoteCredentialUseJson(value)),
+    authorizeUse(value, request) {
+      if (request === null || typeof request !== 'object') {
+        throw new TypeError('Invalid Remote Credential authorization');
+      }
+      const scope = grantFields(request.scope);
+      checked(moon.strategyRemoteCredentialUseAuthorize(
+        value,
+        BigInt(request.trustedNowMilliseconds),
+        request.revoked,
+        ...scope.slice(1, 15),
+      ));
+    },
     useProjection: moon.strategyRemoteCredentialUseProjection,
   });
   remoteCredentialControls.set(moon, control);

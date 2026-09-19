@@ -362,6 +362,8 @@ pub fn strategy_remote_credential_grant_prepare(String, String, String, String, 
 
 pub fn strategy_remote_credential_grant_projection(@remote_credential.RemoteCredentialGrant) -> Array[String]
 
+pub fn strategy_remote_credential_use_authorize(@remote_credential.RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Unit raise NodeHostFailure
+
 pub fn strategy_remote_credential_use_identity(@remote_credential.RemoteCredentialUse) -> String
 
 pub fn strategy_remote_credential_use_json(@remote_credential.RemoteCredentialUse) -> String raise NodeHostFailure

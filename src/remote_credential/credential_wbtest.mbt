@@ -73,6 +73,27 @@ test "credential use binds exact scope expiry revocation and ordinal" {
     credential_cid("c"),
   ).unwrap()
   assert_eq(credential_use_projection(first)[3], "1")
+  assert_eq(
+    authorize_credential_use(
+      first,
+      1999999999999L,
+      false,
+      "principal-a",
+      "tenant-a",
+      "production",
+      "site-a",
+      4,
+      credential_cid("a"),
+      "http-source",
+      "http-source/1",
+      "https://resource.example",
+      "records:read",
+      credential_cid("b"),
+      2,
+      credential_cid("c"),
+    ),
+    Ok(()),
+  )
   assert_true(
     prepare_credential_use(
       grant,

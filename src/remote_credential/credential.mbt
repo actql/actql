@@ -496,6 +496,51 @@ pub fn credential_use_json(
 }
 
 ///|
+pub fn authorize_credential_use(
+  credential_use : RemoteCredentialUse,
+  trusted_now_ms : Int64,
+  revoked : Bool,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+) -> Result[Unit, RemoteCredentialIssue] {
+  let grant = credential_use.grant
+  if credential_use_json(credential_use) is Err(_) ||
+    trusted_now_ms < 0L ||
+    trusted_now_ms >= grant.expires_unix_ms ||
+    credential_use.use_ordinal <= 0 ||
+    credential_use.use_ordinal > grant.max_uses ||
+    revoked ||
+    principal != grant.principal ||
+    tenant != grant.tenant ||
+    environment != grant.environment ||
+    site_key != grant.site_key ||
+    site_generation != grant.site_generation ||
+    runtime_bundle_cid != grant.runtime_bundle_cid ||
+    connector_registration != grant.connector_registration ||
+    connector_revision != grant.connector_revision ||
+    resource_origin != grant.resource_origin ||
+    operation != grant.operation ||
+    run_invocation_cid != grant.run_invocation_cid ||
+    task_attempt != grant.task_attempt ||
+    dispatch_request_cid != grant.dispatch_request_cid {
+    Err(CredentialGrantInactive)
+  } else {
+    Ok(())
+  }
+}
+
+///|
 pub fn credential_use_projection(
   credential_use : RemoteCredentialUse,
 ) -> Array[String] {
