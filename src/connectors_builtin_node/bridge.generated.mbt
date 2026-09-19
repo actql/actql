@@ -876,6 +876,39 @@ pub fn strategy_delivery_record_retry_action(
 }
 
 ///|
+#export_name("strategyPublicationPreparedReleaseAction")
+pub fn strategy_publication_prepared_release_action(
+  current_index : Int,
+  owner_count : Int,
+  status_checked : Bool,
+  pending : Bool,
+  release_attempted : Bool,
+) -> Int {
+  @publication.publication_prepared_release_action_code(
+    @publication.prepare_publication_prepared_release_step(
+      current_index, owner_count, status_checked, pending, release_attempted,
+    ),
+  )
+}
+
+///|
+#export_name("strategyPublicationCleanupOwnerAction")
+pub fn strategy_publication_cleanup_owner_action(
+  current_index : Int,
+  owner_count : Int,
+  status_checked : Bool,
+  pending : Bool,
+  retry_available : Bool,
+  retry_attempted : Bool,
+) -> Int {
+  @publication.publication_cleanup_owner_action_code(
+    @publication.prepare_publication_cleanup_owner_step(
+      current_index, owner_count, status_checked, pending, retry_available, retry_attempted,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRunPublicationChainValid")
 pub fn strategy_run_publication_chain_valid(
   run_definition : @publication.PublicationContract,

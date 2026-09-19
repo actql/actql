@@ -2756,7 +2756,12 @@ test('complete publication reclaims prepared payloads after a later export fails
         });
       },
     });
+    const progress = runtimeCore(moon).publicationControl;
     const control = Object.freeze({
+      publicationPreparedReleaseAction:
+        progress.publicationPreparedReleaseAction,
+      publicationCleanupOwnerAction:
+        progress.publicationCleanupOwnerAction,
       issueResultManifest() { assert.fail('Manifest must not be issued'); },
       issueEffectFreeRunReceipt() { assert.fail('Receipt must not be issued'); },
       issueEffectFreeCapturedRun() {
@@ -2869,7 +2874,12 @@ test('complete publication composes every unresolved cleanup owner',
         });
       },
     });
+    const progress = runtimeCore(moon).publicationControl;
     const control = Object.freeze({
+      publicationPreparedReleaseAction:
+        progress.publicationPreparedReleaseAction,
+      publicationCleanupOwnerAction:
+        progress.publicationCleanupOwnerAction,
       issueResultManifest() { assert.fail('Manifest must not be issued'); },
       issueEffectFreeRunReceipt() { assert.fail('Receipt must not be issued'); },
       issueEffectFreeCapturedRun() {

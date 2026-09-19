@@ -803,6 +803,38 @@ function publicationControl(moon) {
     deliveryRecordRetryAction(nextRecord, recordCount) {
       return moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount);
     },
+    publicationPreparedReleaseAction(
+      currentIndex,
+      ownerCount,
+      statusChecked,
+      pending,
+      releaseAttempted,
+    ) {
+      return moon.strategyPublicationPreparedReleaseAction(
+        currentIndex,
+        ownerCount,
+        statusChecked,
+        pending,
+        releaseAttempted,
+      );
+    },
+    publicationCleanupOwnerAction(
+      currentIndex,
+      ownerCount,
+      statusChecked,
+      pending,
+      retryAvailable,
+      retryAttempted,
+    ) {
+      return moon.strategyPublicationCleanupOwnerAction(
+        currentIndex,
+        ownerCount,
+        statusChecked,
+        pending,
+        retryAvailable,
+        retryAttempted,
+      );
+    },
     runChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, limits) {
       return moon.strategyRunPublicationChainValid(

@@ -282,6 +282,8 @@ pub fn strategy_publication_attempt_action(@run_publication.PublicationContract?
 
 pub fn strategy_publication_cancellation_action(@run_publication.PublicationContract?) -> Int
 
+pub fn strategy_publication_cleanup_owner_action(Int, Int, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_publication_commit_failure_action(Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String
@@ -293,6 +295,8 @@ pub fn strategy_publication_contract_json(@run_publication.PublicationContract) 
 pub fn strategy_publication_contract_name(@run_publication.PublicationContract) -> String
 
 pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
+
+pub fn strategy_publication_prepared_release_action(Int, Int, Bool, Bool, Bool) -> Int
 
 pub fn strategy_publication_record_allows_commit(@run_publication.PublicationContract) -> Bool
 

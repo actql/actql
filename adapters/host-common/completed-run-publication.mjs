@@ -44,7 +44,8 @@ function validateExecution(execution) {
 function validateControl(control) {
   if (control === null || typeof control !== 'object' ||
       !['issueResultManifest', 'issueEffectFreeRunReceipt',
-        'issueEffectFreeCapturedRun']
+        'issueEffectFreeCapturedRun', 'publicationPreparedReleaseAction',
+        'publicationCleanupOwnerAction']
         .every(name => typeof control[name] === 'function')) {
     fail('InvalidCompletedRunPublicationControl');
   }
@@ -95,18 +96,48 @@ function uniqueContracts(values) {
   });
 }
 
-async function releasePreparedResults(exported, primary) {
+async function releasePreparedResults(exported, primary, control) {
   const prepared = [...new Set(exported
     .map(value => value?.prepared)
     .filter(value => value !== undefined))];
   const errors = [];
-  for (let index = prepared.length - 1; index >= 0; index--) {
-    let pending = true;
-    try { pending = prepared[index].status()?.pending !== false; }
-    catch (error) { errors.push(error); }
-    if (!pending) continue;
-    try { await prepared[index].release(); }
-    catch (error) { errors.push(error); }
+  let currentPrepared = prepared.length - 1;
+  let preparedStatusChecked = false;
+  let preparedPending = false;
+  let preparedReleaseAttempted = false;
+  while (true) {
+    const action = control.publicationPreparedReleaseAction(
+      currentPrepared,
+      prepared.length,
+      preparedStatusChecked,
+      preparedPending,
+      preparedReleaseAttempted,
+    );
+    if (action === 0) {
+      try {
+        preparedPending = prepared[currentPrepared].status()?.pending !== false;
+      } catch (error) {
+        errors.push(error);
+        preparedPending = true;
+      }
+      preparedStatusChecked = true;
+      continue;
+    }
+    if (action === 1) {
+      preparedReleaseAttempted = true;
+      try { await prepared[currentPrepared].release(); }
+      catch (error) { errors.push(error); }
+      continue;
+    }
+    if (action === 2) {
+      currentPrepared--;
+      preparedStatusChecked = false;
+      preparedPending = false;
+      preparedReleaseAttempted = false;
+      continue;
+    }
+    if (action === 3) break;
+    fail('InvalidCompletedRunPublicationReleaseProgress');
   }
   const owners = [];
   const ownerHandles = new Set();
@@ -154,11 +185,44 @@ async function releasePreparedResults(exported, primary) {
   failure.cleanupHandle = Object.freeze({
     status,
     async retry() {
-      for (const owner of owners) {
-        if (!ownerState(owner).pending ||
-            typeof member(owner.handle, 'retry') !== 'function') continue;
-        try { await owner.handle.retry(); }
-        catch (error) { errors.push(error); }
+      let currentOwner = 0;
+      let ownerStatusChecked = false;
+      let ownerPending = false;
+      let retryAvailable = false;
+      let retryAttempted = false;
+      while (true) {
+        const action = control.publicationCleanupOwnerAction(
+          currentOwner,
+          owners.length,
+          ownerStatusChecked,
+          ownerPending,
+          retryAvailable,
+          retryAttempted,
+        );
+        if (action === 0) {
+          ownerPending = ownerState(owners[currentOwner]).pending;
+          retryAvailable = typeof member(
+            owners[currentOwner].handle, 'retry',
+          ) === 'function';
+          ownerStatusChecked = true;
+          continue;
+        }
+        if (action === 1) {
+          retryAttempted = true;
+          try { await owners[currentOwner].handle.retry(); }
+          catch (error) { errors.push(error); }
+          continue;
+        }
+        if (action === 2) {
+          currentOwner++;
+          ownerStatusChecked = false;
+          ownerPending = false;
+          retryAvailable = false;
+          retryAttempted = false;
+          continue;
+        }
+        if (action === 3) break;
+        fail('InvalidCompletedRunPublicationCleanupProgress');
       }
       failure.cleanupPending = status().pending;
       failure.cleanupErrors = status().errors;
@@ -291,6 +355,6 @@ export async function publishCompletedEffectFreeRun(options) {
       results: Object.freeze(exported),
     });
   } catch (error) {
-    await releasePreparedResults(exported, error);
+    await releasePreparedResults(exported, error, control);
   }
 }
