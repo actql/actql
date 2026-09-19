@@ -7,6 +7,11 @@ pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
 // Errors
 
 // Types and methods
+pub(all) struct NativeFileChunk {
+  bytes : Bytes
+  eof : Bool
+}
+
 pub(all) struct NativeFileGeneration {
   device : UInt64
   inode : UInt64
@@ -24,12 +29,22 @@ pub(all) enum NativeFilesystemIssue {
   Write(String)
   Conflict
   GenerationMismatch
+  InvalidReadSize
+  IncompleteRead
+  ReaderClosed
+  Read(String)
   Seal(String)
   Cleanup(String)
 }
 
+type Reader
+pub fn Reader::close(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn Reader::finish(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
+
 type Root
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
+pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer

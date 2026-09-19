@@ -25,6 +25,10 @@ fn valid_object_name(name : String) -> Bool {
 type Writer
 
 ///|
+/// Descriptor-pinned reader for one exact physical generation.
+type Reader
+
+///|
 #borrow(path)
 extern "C" fn open_root_ffi(path : Bytes, length : Int) -> Root = "actql_native_filesystem_open_root"
 
@@ -103,6 +107,45 @@ extern "C" fn verify_generation_ffi(
   inode : UInt64,
   size : Int64,
 ) -> Bool = "actql_native_filesystem_verify_generation"
+
+///|
+#borrow(root, name)
+extern "C" fn open_reader_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+  size : Int64,
+) -> Reader = "actql_native_filesystem_open_reader"
+
+///|
+#borrow(reader)
+extern "C" fn reader_ready_ffi(reader : Reader) -> Bool = "actql_native_filesystem_reader_ready"
+
+///|
+#borrow(reader)
+extern "C" fn reader_error_ffi(reader : Reader) -> Bytes = "actql_native_filesystem_reader_error"
+
+///|
+#borrow(reader)
+extern "C" fn reader_next_ffi(reader : Reader, max_bytes : Int) -> Int = "actql_native_filesystem_reader_next"
+
+///|
+#borrow(reader)
+extern "C" fn reader_chunk_ffi(reader : Reader) -> Bytes = "actql_native_filesystem_reader_chunk"
+
+///|
+#borrow(reader)
+extern "C" fn reader_eof_ffi(reader : Reader) -> Bool = "actql_native_filesystem_reader_eof"
+
+///|
+#borrow(reader)
+extern "C" fn reader_finish_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_finish"
+
+///|
+#borrow(reader)
+extern "C" fn reader_close_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_close"
 
 ///|
 fn decode_message(bytes : Bytes) -> String {
@@ -224,4 +267,73 @@ pub fn Root::verify_generation(
     generation.inode,
     generation.size,
   )
+}
+
+///|
+pub fn Root::open_reader(
+  self : Root,
+  name : String,
+  generation : NativeFileGeneration,
+) -> Result[Reader, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  if generation.size < 0L {
+    return Err(GenerationMismatch)
+  }
+  let encoded = @utf8.encode(name)
+  let reader = open_reader_ffi(
+    self,
+    encoded,
+    encoded.length(),
+    generation.device,
+    generation.inode,
+    generation.size,
+  )
+  if reader_ready_ffi(reader) {
+    Ok(reader)
+  } else {
+    let message = decode_message(reader_error_ffi(reader))
+    if message == "generation mismatch" {
+      Err(GenerationMismatch)
+    } else {
+      Err(Read(message))
+    }
+  }
+}
+
+///|
+pub fn Reader::next(
+  self : Reader,
+  max_bytes : Int,
+) -> Result[NativeFileChunk, NativeFilesystemIssue] {
+  if max_bytes <= 0 || max_bytes > 1048576 {
+    return Err(InvalidReadSize)
+  }
+  match reader_next_ffi(self, max_bytes) {
+    0 => Ok({ bytes: reader_chunk_ffi(self), eof: reader_eof_ffi(self), })
+    1 => Err(GenerationMismatch)
+    2 => Err(ReaderClosed)
+    _ => Err(Read(decode_message(reader_error_ffi(self))))
+  }
+}
+
+///|
+pub fn Reader::finish(self : Reader) -> Result[Unit, NativeFilesystemIssue] {
+  match reader_finish_ffi(self) {
+    0 => Ok(())
+    1 => Err(GenerationMismatch)
+    2 => Err(IncompleteRead)
+    3 => Err(ReaderClosed)
+    _ => Err(Read(decode_message(reader_error_ffi(self))))
+  }
+}
+
+///|
+pub fn Reader::close(self : Reader) -> Result[Unit, NativeFilesystemIssue] {
+  if reader_close_ffi(self) == 0 {
+    Ok(())
+  } else {
+    Err(Read(decode_message(reader_error_ffi(self))))
+  }
 }

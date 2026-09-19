@@ -36,6 +36,21 @@ typedef struct {
   bool cancelled;
 } actql_native_filesystem_writer;
 
+typedef struct {
+  actql_native_filesystem_root *root;
+  int fd;
+  char *error;
+  unsigned char *chunk;
+  int32_t chunk_length;
+  int64_t offset;
+  uint64_t device;
+  uint64_t inode;
+  int64_t size;
+  bool ready;
+  bool eof;
+  bool finished;
+} actql_native_filesystem_reader;
+
 static void actql_replace_error(char **target, const char *message) {
   free(*target);
   *target = NULL;
@@ -236,6 +251,22 @@ static void actql_native_filesystem_writer_finalize(void *value) {
   if (writer->root != NULL) {
     moonbit_decref(writer->root);
     writer->root = NULL;
+  }
+}
+
+static void actql_native_filesystem_reader_finalize(void *value) {
+  actql_native_filesystem_reader *reader = value;
+  if (reader->fd >= 0) {
+    close(reader->fd);
+    reader->fd = -1;
+  }
+  free(reader->error);
+  free(reader->chunk);
+  reader->error = NULL;
+  reader->chunk = NULL;
+  if (reader->root != NULL) {
+    moonbit_decref(reader->root);
+    reader->root = NULL;
   }
 }
 
@@ -595,4 +626,185 @@ int32_t actql_native_filesystem_verify_generation(
                  actql_exact_generation(&status, device, inode, size);
   free(name_text);
   return matches;
+}
+
+void *actql_native_filesystem_open_reader(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length,
+  uint64_t device,
+  uint64_t inode,
+  int64_t size
+) {
+  actql_native_filesystem_reader *reader = moonbit_make_external_object(
+    actql_native_filesystem_reader_finalize,
+    sizeof(actql_native_filesystem_reader)
+  );
+  memset(reader, 0, sizeof(*reader));
+  reader->fd = -1;
+  reader->root = root;
+  if (root != NULL) moonbit_incref(root);
+  reader->device = device;
+  reader->inode = inode;
+  reader->size = size;
+  if (root == NULL || root->fd < 0) {
+    actql_replace_error(&reader->error, "Store root is unavailable");
+    return reader;
+  }
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&reader->error, "object name allocation failed");
+    return reader;
+  }
+  if (!actql_valid_name(name_text, (size_t)length) || size < 0) {
+    free(name_text);
+    actql_replace_error(&reader->error, "invalid object generation");
+    return reader;
+  }
+  reader->fd = openat(root->fd, name_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  int open_error = errno;
+  free(name_text);
+  if (reader->fd < 0) {
+    actql_replace_errno_error(&reader->error, "open committed file", open_error);
+    return reader;
+  }
+  struct stat status;
+  if (fstat(reader->fd, &status) != 0) {
+    int stat_error = errno;
+    close(reader->fd);
+    reader->fd = -1;
+    actql_replace_errno_error(&reader->error, "inspect committed file", stat_error);
+    return reader;
+  }
+  if (!S_ISREG(status.st_mode) ||
+      !actql_exact_generation(&status, device, inode, size)) {
+    close(reader->fd);
+    reader->fd = -1;
+    actql_replace_error(&reader->error, "generation mismatch");
+    return reader;
+  }
+  reader->ready = true;
+  return reader;
+}
+
+int32_t actql_native_filesystem_reader_ready(
+  actql_native_filesystem_reader *reader
+) {
+  return reader != NULL && reader->ready && reader->fd >= 0;
+}
+
+moonbit_bytes_t actql_native_filesystem_reader_error(
+  actql_native_filesystem_reader *reader
+) {
+  return actql_copy_bytes(reader == NULL ? "invalid reader" : reader->error);
+}
+
+int32_t actql_native_filesystem_reader_next(
+  actql_native_filesystem_reader *reader,
+  int32_t max_bytes
+) {
+  if (reader == NULL || !reader->ready || reader->fd < 0 ||
+      reader->finished) {
+    return 2;
+  }
+  if (max_bytes <= 0 || max_bytes > 1048576) {
+    actql_replace_error(&reader->error, "invalid read size");
+    return -1;
+  }
+  actql_replace_error(&reader->error, NULL);
+  free(reader->chunk);
+  reader->chunk = NULL;
+  reader->chunk_length = 0;
+  reader->eof = false;
+  unsigned char *chunk = malloc((size_t)max_bytes);
+  if (chunk == NULL) {
+    actql_replace_error(&reader->error, "read buffer allocation failed");
+    return -1;
+  }
+  ssize_t count;
+  do {
+    count = read(reader->fd, chunk, (size_t)max_bytes);
+  } while (count < 0 && errno == EINTR);
+  if (count < 0) {
+    int read_error = errno;
+    free(chunk);
+    actql_replace_errno_error(&reader->error, "read committed file", read_error);
+    return -1;
+  }
+  if (count == 0) {
+    free(chunk);
+    reader->eof = true;
+    return 0;
+  }
+  if (reader->offset > reader->size ||
+      count > reader->size - reader->offset) {
+    free(chunk);
+    actql_replace_error(&reader->error, "generation mismatch");
+    return 1;
+  }
+  reader->chunk = chunk;
+  reader->chunk_length = (int32_t)count;
+  reader->offset += (int64_t)count;
+  return 0;
+}
+
+moonbit_bytes_t actql_native_filesystem_reader_chunk(
+  actql_native_filesystem_reader *reader
+) {
+  int32_t length = reader == NULL ? 0 : reader->chunk_length;
+  moonbit_bytes_t bytes = moonbit_make_bytes_raw(length);
+  if (length > 0) memcpy(bytes, reader->chunk, (size_t)length);
+  return bytes;
+}
+
+int32_t actql_native_filesystem_reader_eof(
+  actql_native_filesystem_reader *reader
+) {
+  return reader != NULL && reader->eof;
+}
+
+int32_t actql_native_filesystem_reader_finish(
+  actql_native_filesystem_reader *reader
+) {
+  if (reader == NULL || !reader->ready) return 3;
+  if (reader->finished) return 0;
+  if (reader->fd < 0) return 3;
+  actql_replace_error(&reader->error, NULL);
+  if (reader->offset != reader->size) return 2;
+  struct stat status;
+  if (fstat(reader->fd, &status) != 0) {
+    actql_replace_errno_error(&reader->error, "recheck committed file", errno);
+    return -1;
+  }
+  if (!S_ISREG(status.st_mode) || !actql_exact_generation(
+        &status,
+        reader->device,
+        reader->inode,
+        reader->size
+      )) {
+    actql_replace_error(&reader->error, "generation mismatch");
+    return 1;
+  }
+  int descriptor = reader->fd;
+  reader->fd = -1;
+  if (close(descriptor) != 0) {
+    actql_replace_errno_error(&reader->error, "close reader", errno);
+    return -1;
+  }
+  reader->finished = true;
+  return 0;
+}
+
+int32_t actql_native_filesystem_reader_close(
+  actql_native_filesystem_reader *reader
+) {
+  if (reader == NULL || reader->fd < 0) return 0;
+  actql_replace_error(&reader->error, NULL);
+  int descriptor = reader->fd;
+  reader->fd = -1;
+  if (close(descriptor) != 0) {
+    actql_replace_errno_error(&reader->error, "close reader", errno);
+    return -1;
+  }
+  return 0;
 }

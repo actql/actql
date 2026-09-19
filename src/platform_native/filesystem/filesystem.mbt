@@ -10,6 +10,10 @@ pub(all) enum NativeFilesystemIssue {
   Write(String)
   Conflict
   GenerationMismatch
+  InvalidReadSize
+  IncompleteRead
+  ReaderClosed
+  Read(String)
   Seal(String)
   Cleanup(String)
 }
@@ -19,4 +23,10 @@ pub(all) struct NativeFileGeneration {
   device : UInt64
   inode : UInt64
   size : Int64
+}
+
+///|
+pub(all) struct NativeFileChunk {
+  bytes : Bytes
+  eof : Bool
 }

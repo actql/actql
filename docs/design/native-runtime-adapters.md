@@ -66,6 +66,14 @@ generation. A failed synchronization or cleanup retains enough physical state
 for the same operation to retry without rewriting the payload. Replacement of
 an owned generation is rejected rather than unlinked.
 
+Readers open the exact committed device, inode, and size without following a
+symbolic link. They return bounded byte chunks and require the caller to reach
+the expected length before a final descriptor check can succeed. The open
+descriptor pins the physical generation even if its directory name changes.
+The portable caller still verifies the expected payload digest while
+streaming; device, inode, and size are not a logical identity or a substitute
+for content integrity.
+
 These calls report physical observations only. MoonBit control code owns the
 reservation, publication, retry, completion, and reclamation decisions. A C
 finalizer is only a best-effort safeguard for abandoned uncommitted resources;
