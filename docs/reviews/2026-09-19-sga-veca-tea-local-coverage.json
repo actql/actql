@@ -54,9 +54,11 @@
       "input": "graph",
       "output": "relation",
       "canonical": ["SGA.match_nodes"],
-      "variants": ["literal predicate", "typed property predicate", "missing property"],
-      "status": "missing",
-      "owner": "local-sga"
+      "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_match_test.mbt"]
     },
     {
       "family": "SGA",
@@ -64,9 +66,11 @@
       "input": "graph",
       "output": "relation",
       "canonical": ["SGA.match_edges"],
-      "variants": ["literal predicate", "typed property predicate", "missing property"],
-      "status": "missing",
-      "owner": "local-sga"
+      "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_match_test.mbt"]
     },
     {
       "family": "SGA",

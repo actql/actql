@@ -23,6 +23,7 @@ struct CheckedMatch {
   source : @decode.Cursor
   output : @carrier.Carrier
   predicate : CheckedPredicate?
+  fields : Array[@row.FieldName]
   ids : Array[@value.CheckedValue]
   types : Array[String]?
   usage : PredicateUsage
@@ -203,6 +204,7 @@ pub fn check_match(
       source,
       output: @carrier.relation(rows),
       predicate,
+      fields: output.map(value => value.0),
       ids,
       types,
       usage: {
@@ -242,6 +244,16 @@ pub fn match_source(c : CheckedMatch) -> @decode.Cursor {
 ///|
 pub fn match_predicate(c : CheckedMatch) -> CheckedPredicate? {
   c.predicate
+}
+
+///|
+pub fn match_field_count(c : CheckedMatch) -> Int {
+  c.fields.length()
+}
+
+///|
+pub fn match_field_at(c : CheckedMatch, index : Int) -> @row.FieldName? {
+  c.fields.get(index)
 }
 
 ///|

@@ -30,6 +30,7 @@ pub enum PredicateIssue {
 ///|
 struct CheckedPredicate {
   typed : @typing.TypedExpression
+  references : Array[(String, @row.FieldName)]
   usage : PredicateUsage
 }
 
@@ -94,6 +95,7 @@ pub fn check_predicate(
   }
   let groups : Array[Array[(String, @contract.Contract)]] = [[], [], []]
   let seen : Map[String, Bool] = Map([])
+  let references : Array[(String, @row.FieldName)] = []
   let count = @syntax.relation_reference_count(expression)
   if count > work {
     return Err(PredicateBudget(source))
@@ -109,6 +111,7 @@ pub fn check_predicate(
       Some(c) => c
       None => return Err(UntypedPredicateField(occurrence))
     }
+    references.push((occurrence.name, field.name))
     if !seen.contains(occurrence.name) {
       seen[occurrence.name] = true
       match field.name {
@@ -171,6 +174,7 @@ pub fn check_predicate(
   let usage = @typing.usage(typed)
   Ok({
     typed,
+    references,
     usage: {
       work: limits.max_work - work + usage.work,
       nodes: limits.max_nodes - nodes + usage.nodes,
@@ -183,6 +187,24 @@ pub fn check_predicate(
 ///|
 pub fn predicate_expression(c : CheckedPredicate) -> @typing.TypedExpression {
   c.typed
+}
+
+///|
+pub fn predicate_reference_count(c : CheckedPredicate) -> Int {
+  c.references.length()
+}
+
+///|
+pub fn predicate_reference_name(c : CheckedPredicate, index : Int) -> String? {
+  c.references.get(index).map(value => value.0)
+}
+
+///|
+pub fn predicate_reference_field(
+  c : CheckedPredicate,
+  index : Int,
+) -> @row.FieldName? {
+  c.references.get(index).map(value => value.1)
 }
 
 ///|

@@ -59,6 +59,7 @@ pub enum Payload {
   StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
   GraphMeanValue(@graph.CheckedMean)
+  GraphMatchRows(@graph.CheckedMatch)
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
@@ -205,6 +206,11 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphUnion(_) => "SGA.union_structural"
     GraphMeanValue(_) => "SGA.mean_structural"
+    GraphMatchRows(value) =>
+      match @graph.match_entity(value) {
+        @graph.Nodes => "SGA.match_nodes"
+        @graph.Edges => "SGA.match_edges"
+      }
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
@@ -261,8 +267,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | @graph.Components
         | @graph.GraphBounds => Some(BasicGraph(value))
       }
-    GraphMatch(_) | Reach(_) | Subgraph(..) | Traverse(..) | Shortest(..) =>
-      None
+    GraphMatch(value) => Some(GraphMatchRows(value))
+    Reach(_) | Subgraph(..) | Traverse(..) | Shortest(..) => None
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
     GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
@@ -395,6 +401,14 @@ pub fn prepare(
       GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
       GraphMeanValue(value) =>
         ("mean_graphs", @graph.mean_sample_count(@graph.mean_options(value)))
+      GraphMatchRows(value) =>
+        (
+          match @graph.match_entity(value) {
+            @graph.Nodes => "match_nodes"
+            @graph.Edges => "match_edges"
+          },
+          1,
+        )
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
@@ -519,6 +533,7 @@ pub fn prepare(
       StructuralGraph(_) => None
       GraphUnion(_) => None
       GraphMeanValue(_) => None
+      GraphMatchRows(_) => None
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None

@@ -379,13 +379,39 @@ fn lower_expression_measured(
     guard bound.prepared.nodes.get(step_index) is Some(step) else {
       expression_fail(source, MissingCheckedBinding)
     }
-    let op = match step.payload {
+    let (typed, resolved_fields) = match step.payload {
       Derive(op)
       | Where(op)
       | CountGroup(op)
       | WindowGroup(op)
       | Analytic(op)
-      | AssertRows(op) => op
+      | AssertRows(op) => {
+        guard @relation.binding_at(op, binding_index) is Some(binding) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        let references : Array[(String, @relation.ReferenceTarget)] = []
+        for ref_ in @relation.references(binding) {
+          references.push((ref_.occurrence.name, ref_.target))
+        }
+        (binding.expression, references)
+      }
+      GraphMatchRows(checked) => {
+        if binding_index != 0 {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard @graph.match_predicate(checked) is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        let references : Array[(String, @relation.ReferenceTarget)] = []
+        for index in 0..<@graph.predicate_reference_count(predicate) {
+          guard @graph.predicate_reference_name(predicate, index) is Some(name) &&
+            @graph.predicate_reference_field(predicate, index) is Some(field) else {
+            expression_fail(step.source, MissingResolvedField(""))
+          }
+          references.push((name, @relation.InputField(field)))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
       Values(_)
       | RowWindow(_)
       | Select(_)
@@ -415,10 +441,6 @@ fn lower_expression_measured(
       | GraphApplyValue(_) =>
         expression_fail(step.source, MissingCheckedBinding)
     }
-    guard @relation.binding_at(op, binding_index) is Some(binding) else {
-      expression_fail(step.source, MissingCheckedBinding)
-    }
-    let typed = binding.expression
     let syntax = @typing.expression(typed)
     let root = @syntax.tree(syntax)
     let budget : ExpressionBudget = {
@@ -456,9 +478,9 @@ fn lower_expression_measured(
       )
     }
     let fields : Map[String, @relation.ReferenceTarget] = Map([])
-    for ref_ in @relation.references(binding) {
+    for (name, target) in resolved_fields {
       expression_spend(budget, root)
-      fields[ref_.occurrence.name] = ref_.target
+      fields[name] = target
     }
     let completed : Map[Int, Expression] = Map([])
     let todo = [(root, 0, false)]

@@ -141,6 +141,10 @@ pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
 
 pub fn match_entity(CheckedMatch) -> EntityKind
 
+pub fn match_field_at(CheckedMatch, Int) -> @relation_schema.FieldName?
+
+pub fn match_field_count(CheckedMatch) -> Int
+
 pub fn match_id_at(CheckedMatch, Int) -> @value_admission.CheckedValue?
 
 pub fn match_id_count(CheckedMatch) -> Int
@@ -218,6 +222,12 @@ pub fn pending_validation_count(CheckedGraph) -> Int
 pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
 pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
+
+pub fn predicate_reference_count(CheckedPredicate) -> Int
+
+pub fn predicate_reference_field(CheckedPredicate, Int) -> @relation_schema.FieldName?
+
+pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 

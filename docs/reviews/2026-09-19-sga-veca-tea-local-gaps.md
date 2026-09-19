@@ -10,7 +10,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | Eleven SGA operations now reach typed canonical occurrences; the remaining family operations are rejected as unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | Thirteen SGA operations now reach typed canonical occurrences; the remaining family operations are rejected as unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Managed output is Relation-shaped | One Carrier-aware lifecycle with typed Carrier views |
 | Runtime material | Only relation sequences and tables are accepted | Add managed Carrier views and registered providers without forced copies |
@@ -48,10 +48,12 @@ canonical binary fold tree.
 ### SGA
 
 All 17 author-visible operations are accepted by frontend typing.
-Eleven SGA operations now have typed canonical lowering: `normalize_graph`,
-`components`, `graph_bounds`, `degree`, `graph_diff`, `graft_graph`,
-`union_graphs`, `subtract_graphs`, `graphs_equal`, `apply_graph_delta`, and
-`mean_graphs`. Union and mean preserve their ordered finite input lists,
+Thirteen SGA operations now have typed canonical lowering: `normalize_graph`,
+`match_nodes`, `match_edges`, `components`, `graph_bounds`, `degree`,
+`graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `graphs_equal`,
+`apply_graph_delta`, and `mean_graphs`. Match lowering retains checked predicate
+field bindings and authored projection order without frontend rediscovery.
+Union and mean preserve their ordered finite input lists,
 including repeated positions, as one operation occurrence. Structural
 operations retain checked property laws. Basic operations preserve direction,
 component policy, resolved guards, and bounds. Delta application retains its

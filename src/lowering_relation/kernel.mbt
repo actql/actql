@@ -309,6 +309,7 @@ fn prepare_kernel_measured(
     | StructuralGraph(_)
     | GraphUnion(_)
     | GraphMeanValue(_)
+    | GraphMatchRows(_)
     | GraphEqualityRows(_)
     | GraphDiffRows(_)
     | GraphApplyValue(_) => return Err(MissingKernelNode)
