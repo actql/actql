@@ -40,7 +40,9 @@ function validateControl(control) {
         'resultReadGrantAllowsBytes', 'resultReadGrantValidAt',
         'issueDeliveryRecord', 'issueResultDeliveryReceipt',
         'prepareResultDeliverySerializer', 'beginResultDelivery',
-        'nextResultDeliveryRow', 'finishResultDelivery']
+        'nextResultDeliveryRow', 'finishResultDelivery',
+        'existingDeliveryAttemptAction', 'deliveryFailureTerminalAction',
+        'deliveryRecordRetryAction']
         .every(name => typeof control[name] === 'function')) {
     fail('InvalidResultDeliveryControl');
   }
@@ -141,6 +143,7 @@ function pendingRecordFailure(
   code,
   reason,
   store,
+  control,
   records,
   recordFailure,
 ) {
@@ -161,7 +164,15 @@ function pendingRecordFailure(
   failure.cleanupHandle = Object.freeze({
     status,
     async retry() {
-      while (pending && nextRecord < records.length) {
+      while (true) {
+        const action = control.deliveryRecordRetryAction(
+          nextRecord, records.length,
+        );
+        if (action === 1) {
+          pending = false;
+          break;
+        }
+        if (action !== 0) fail('InvalidResultDeliveryRecordRetry');
         try {
           await appendExactRecord(store, records[nextRecord]);
           nextRecord++;
@@ -178,9 +189,11 @@ function pendingRecordFailure(
   return failure;
 }
 
-function pendingTerminalFailure(reason, store, terminal, recordFailure) {
+function pendingTerminalFailure(
+  reason, store, control, terminal, recordFailure,
+) {
   return pendingRecordFailure(
-    'ResultDeliveryFailed', reason, store, [terminal], recordFailure,
+    'ResultDeliveryFailed', reason, store, control, [terminal], recordFailure,
   );
 }
 
@@ -240,14 +253,16 @@ export async function deliverPublishedResult(options) {
       attempt.identity,
     );
     if (existing !== undefined) {
+      const action = control.existingDeliveryAttemptAction(existing);
       const value = JSON.parse(existing.wire);
-      if (value.state === 'succeeded') {
+      if (action === 0) {
         try { await store.confirmDeliveryRecord(existing.wire); }
         catch (recordFailure) {
           throw pendingRecordFailure(
             'ResultDeliveryDurabilityPending',
             recordFailure,
             store,
+            control,
             [existing],
             recordFailure,
           );
@@ -271,9 +286,9 @@ export async function deliverPublishedResult(options) {
           idempotent: true,
         });
       }
-      fail(value.state === 'streaming'
-        ? 'ResultDeliveryAttemptUnresolved'
-        : 'ResultDeliveryAttemptTerminal');
+      if (action === 1) fail('ResultDeliveryAttemptUnresolved');
+      if (action === 2) fail('ResultDeliveryAttemptTerminal');
+      fail('InvalidResultDeliveryAttemptState');
     }
   }
 
@@ -310,6 +325,7 @@ export async function deliverPublishedResult(options) {
         'ResultDeliveryFailed',
         recordFailure,
         store,
+        control,
         [streaming, terminal],
         recordFailure,
       );
@@ -462,6 +478,7 @@ export async function deliverPublishedResult(options) {
         'ResultDeliveryDurabilityPending',
         recordFailure,
         store,
+        control,
         [succeeded],
         recordFailure,
       );
@@ -477,8 +494,14 @@ export async function deliverPublishedResult(options) {
   } catch (reason) {
     if (reason instanceof DeliveryRecordDurabilityFailure) throw reason;
     if (!ownsStreaming) throw reason;
+    const terminalAction = control.deliveryFailureTerminalAction(
+      signal?.aborted === true,
+    );
+    if (terminalAction !== 0 && terminalAction !== 1) {
+      fail('InvalidResultDeliveryTerminalAction');
+    }
     const terminal = control.issueDeliveryRecord(attempt, streaming, {
-      state: signal?.aborted ? 'cancelled' : 'failed',
+      state: terminalAction === 1 ? 'cancelled' : 'failed',
       confirmedByteCount,
       exposure: writeFailure?.exposure ?? 'exact',
       possibleUnconfirmedMaxBytes:
@@ -491,7 +514,9 @@ export async function deliverPublishedResult(options) {
     }, limits);
     try { await appendExactRecord(store, terminal); }
     catch (recordFailure) {
-      throw pendingTerminalFailure(reason, store, terminal, recordFailure);
+      throw pendingTerminalFailure(
+        reason, store, control, terminal, recordFailure,
+      );
     }
     throw reason;
   }

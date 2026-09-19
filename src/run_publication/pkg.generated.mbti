@@ -32,7 +32,13 @@ pub fn checked_publication_inventory_program_cid(CheckedPublicationInventory) ->
 
 pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> Result[Int, PublicationInventoryIssue]
 
+pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> Int
+
+pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
+
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
@@ -89,6 +95,12 @@ pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[Stri
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
 pub fn prepare_committed_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
+
+pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
+
+pub fn prepare_delivery_record_retry_step(Int, Int) -> DeliveryRecordRetryAction
+
+pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
 pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
 
@@ -223,6 +235,11 @@ pub(all) enum CapturedRunIssuanceIssue {
 
 type CheckedPublicationInventory
 
+pub(all) enum DeliveryFailureTerminalAction {
+  DeliveryAppendFailed
+  DeliveryAppendCancelled
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceWrongContract(String)
   DeliveryIssuanceReferenceMismatch(String)
@@ -235,6 +252,12 @@ pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceEncoding
   DeliveryIssuanceContract(PublicationContractIssue)
   DeliveryIssuanceTransition(DeliveryTransitionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeliveryRecordRetryAction {
+  DeliveryAppendNextRecord
+  DeliveryRecordRetryFinished
+  DeliveryRecordRetryInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DeliverySerializationIssue {
@@ -264,6 +287,13 @@ pub(all) enum DurableResultBindingIssue {
   DurableBindingInvalidPhysicalIdentity
   DurableBindingEncoding
   DurableBindingContract(PublicationContractIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExistingDeliveryAttemptAction {
+  DeliveryConfirmSucceededRecord
+  DeliveryRejectUnresolvedAttempt
+  DeliveryRejectTerminalAttempt
+  ExistingDeliveryAttemptInvalid
 } derive(Eq, @debug.Debug)
 
 type PendingSourceStateAdvance

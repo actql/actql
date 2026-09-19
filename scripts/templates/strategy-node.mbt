@@ -883,6 +883,40 @@ pub fn strategy_publication_unknown_retry_action(
 }
 
 ///|
+#export_name("strategyExistingDeliveryAttemptAction")
+pub fn strategy_existing_delivery_attempt_action(
+  record : @publication.PublicationContract?,
+) -> Int {
+  @publication.existing_delivery_attempt_action_code(
+    @publication.prepare_existing_delivery_attempt(record),
+  )
+}
+
+///|
+#export_name("strategyDeliveryFailureTerminalAction")
+pub fn strategy_delivery_failure_terminal_action(
+  cancellation_observed : Bool,
+) -> Int {
+  @publication.delivery_failure_terminal_action_code(
+    @publication.prepare_delivery_failure_terminal(cancellation_observed),
+  )
+}
+
+///|
+#export_name("strategyDeliveryRecordRetryAction")
+pub fn strategy_delivery_record_retry_action(
+  next_record : Int,
+  record_count : Int,
+) -> Int {
+  @publication.delivery_record_retry_action_code(
+    @publication.prepare_delivery_record_retry_step(
+      next_record,
+      record_count,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRunPublicationChainValid")
 pub fn strategy_run_publication_chain_valid(
   run_definition : @publication.PublicationContract,

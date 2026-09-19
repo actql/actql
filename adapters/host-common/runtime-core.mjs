@@ -790,6 +790,19 @@ function publicationControl(moon) {
         upstreamRetryAttempted,
       );
     },
+    existingDeliveryAttemptAction(record) {
+      return moon.strategyExistingDeliveryAttemptAction(
+        record === undefined ? undefined : token(record),
+      );
+    },
+    deliveryFailureTerminalAction(cancellationObserved) {
+      return moon.strategyDeliveryFailureTerminalAction(
+        cancellationObserved,
+      );
+    },
+    deliveryRecordRetryAction(nextRecord, recordCount) {
+      return moon.strategyDeliveryRecordRetryAction(nextRecord, recordCount);
+    },
     runChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, limits) {
       return moon.strategyRunPublicationChainValid(

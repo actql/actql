@@ -56,6 +56,10 @@ pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer)
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
+pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
+
+pub fn strategy_delivery_record_retry_action(Int, Int) -> Int
+
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
 pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContract, @run_publication.PublicationContract) -> String raise NodeHostFailure
@@ -65,6 +69,8 @@ pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @ru
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
