@@ -123,6 +123,23 @@ and measurement bodies needed after restart. Physical SQLite rows therefore
 cannot manufacture evidence from CID strings or turn transport uncertainty
 into a Site observation.
 
+The native publication payload Store also uses this transaction substrate.
+Its portable MoonBit request binds the Store authority, publication attempt,
+material generation, Result definition, logical relation, schema, ordering
+evidence, durable codec, row count, and admitted byte limit. The lifecycle
+separates intent, capacity reservation, physical writing, sealing,
+reclamation, and confirmed release. SQLite compare-and-exchange makes each
+transition durable before the portable state commits.
+
+One Store root has one deterministic SQLite journal, so opening the same root
+from multiple processes cannot split its byte or object authority. Capacity is
+reserved before a physical writer is created and is released only after the
+exact owned generation is reclaimed. Sealed payloads survive process restart;
+recovery verifies their exact generation and reclaims unfinished payloads one
+record at a time. The physical digest is checked while a bounded reader emits
+the stored bytes. It remains distinct from the logical relation CID and from
+any delivery-format digest.
+
 ## HTTPS integration
 
 The native HTTPS adapter uses the maintained libcurl easy API through a thin C
@@ -217,9 +234,9 @@ logical identity from a physical digest.
 - The DuckDB C API provides database execution.
 - Operating-system filesystem primitives provide the local durable Store
   adapter, with durability claims limited to the selected filesystem profile.
-- SQLite remains the first candidate for native durable journals. Its
-  transaction and crash behavior must be verified by an integration slice
-  before it is selected for the product journal.
+- SQLite provides native durable journals and shared local capacity
+  reservations. Its selected synchronization and filesystem profile bounds
+  the durability claim.
 - libcurl provides the native HTTPS and TLS implementation. The selected
   library, trust roots, and client credential paths are runtime-bundle inputs;
   their admission and grant scope remain common Host decisions.
