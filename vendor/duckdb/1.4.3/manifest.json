@@ -1,0 +1,9 @@
+{
+  "version": "1.4.3",
+  "source": "https://github.com/duckdb/duckdb/releases/tag/v1.4.3",
+  "license": "MIT",
+  "files": {
+    "duckdb.h": "sha256:bf840147dc70bb8238631023e95fa99c987a7744605a008bbb5b53a0446ae6ea",
+    "LICENSE": "sha256:7e17fd31249fa875cb3b1c5e05c6c3e99b75509f6a2804ca176c217834de1dcb"
+  }
+}

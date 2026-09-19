@@ -1,0 +1,19 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  "native-stub": [ "duckdb_stub.c" ],
+  targets: {
+    "duckdb_native.mbt": [ "native" ],
+    "duckdb_unsupported.mbt": [ "not", "native" ],
+    "duckdb_wbtest.mbt": [ "native" ],
+    "duckdb_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)

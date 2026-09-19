@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/duckdb"
+
+// Values
+pub fn load_library(String) -> Result[Library, NativeDuckDBIssue]
+
+// Errors
+
+// Types and methods
+type Database
+pub fn Database::close(Self) -> Unit
+pub fn Database::query_i64(Self, String) -> Result[Int64, NativeDuckDBIssue]
+
+type Library
+pub fn Library::open_database(Self, path? : String) -> Result[Database, NativeDuckDBIssue]
+pub fn Library::version(Self) -> String
+
+pub(all) enum NativeDuckDBIssue {
+  UnsupportedTarget
+  LibraryLoad(String)
+  DatabaseOpen(String)
+  Query(String)
+}
+
+// Type aliases
+
+// Traits
