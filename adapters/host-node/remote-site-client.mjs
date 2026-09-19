@@ -1,10 +1,4 @@
 import {request as httpsRequest} from 'node:https';
-import {
-  admitRemoteExecutionEvidenceJson,
-  admitRemoteManagedOutputMeasurementJson,
-  admitRemoteManagedOutputSubjectJson,
-} from
-  '../host-common/remote-dispatch-wire.mjs';
 
 const fail = (code, cause, details = {}) => {
   throw Object.assign(new Error(code, {cause}), {code, ...details});
@@ -28,6 +22,11 @@ async function exchangeRemoteDispatch({
       typeof control.requestJson !== 'function' ||
       typeof control.journalKey !== 'function' ||
       typeof control.identity !== 'function' ||
+      typeof control.admitResponseJson !== 'function' ||
+      typeof control.responseProjection !== 'function' ||
+      typeof control.responseEvidence !== 'function' ||
+      typeof control.responseSubject !== 'function' ||
+      typeof control.responseMeasurement !== 'function' ||
       dispatch === undefined || !Number.isSafeInteger(maxResponseBytes) ||
       maxResponseBytes <= 0) {
     fail('InvalidRemoteSiteClientConfiguration');
@@ -70,14 +69,6 @@ async function exchangeRemoteDispatch({
       });
       response.on('error', reject);
       response.on('end', () => {
-        let payload;
-        try { payload = JSON.parse(Buffer.concat(chunks, length)); }
-        catch (error) {
-          reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
-            cause: error,
-          }), {code: 'InvalidRemoteSiteResponse'}));
-          return;
-        }
         if (response.statusCode !== 200) {
           reject(Object.assign(new Error('RemoteSiteRejected'), {
             code: 'RemoteSiteRejected',
@@ -86,85 +77,48 @@ async function exchangeRemoteDispatch({
           return;
         }
         const query = operation === 'query';
-        const expectedVersion = query
-          ? 'actql-remote-dispatch-status/0.1'
-          : 'actql-remote-dispatch-response/0.1';
-        const wireRecord = value => value !== null &&
-          typeof value === 'object' && typeof value.cid === 'string' &&
-          typeof value.wire === 'string';
-        const evidenceValid = !query ||
-          (payload?.evidence === null && payload?.subject === null &&
-            payload?.measurement === null) ||
-          (wireRecord(payload?.evidence) && wireRecord(payload?.subject) &&
-            wireRecord(payload?.measurement));
-        if (payload?.version !== expectedVersion ||
-            payload.dispatch_request_cid !== control.identity(dispatch) ||
-            !Number.isSafeInteger(payload.revision) ||
-            !Array.isArray(payload.state) || payload.state.length !== 5 ||
-            !evidenceValid) {
-          reject(Object.assign(new Error('InvalidRemoteSiteResponse'), {
-            code: 'InvalidRemoteSiteResponse',
-          }));
+        let admitted;
+        try {
+          const bodyText = new TextDecoder('utf-8', {fatal: true}).decode(
+            Buffer.concat(chunks, length),
+          );
+          admitted = control.admitResponseJson(bodyText, dispatch, query);
+        } catch (error) {
+          reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
+            cause: error,
+          }), {code: 'InvalidRemoteSiteResponse'}));
           return;
         }
-        let evidence;
-        let measurement;
-        let subject;
-        if (query && payload.evidence !== null) {
-          try {
-            evidence = admitRemoteExecutionEvidenceJson(
-              control,
-              payload.evidence.wire,
-              payload.evidence.cid,
-              dispatch,
-              maxResponseBytes,
-            );
-            subject = admitRemoteManagedOutputSubjectJson(
-              control,
-              payload.subject.wire,
-              payload.subject.cid,
-              dispatch,
-              maxResponseBytes,
-            );
-            measurement = admitRemoteManagedOutputMeasurementJson(
-              control,
-              payload.measurement.wire,
-              payload.measurement.cid,
-              maxResponseBytes,
-            );
-            if (!control.managedOutputSubjectMatchesEvidence(
-              subject,
-              evidence,
-              dispatch,
-            ) || !control.managedOutputSubjectMatchesMeasurement(
-              subject,
-              measurement,
-            )) {
-              throw Object.assign(new Error('Remote evidence mismatch'), {
-                code: 'RemoteManagedOutputEvidenceMismatch',
-              });
-            }
-          } catch (error) {
-            reject(Object.assign(new Error('InvalidRemoteSiteResponse', {
-              cause: error,
-            }), {code: 'InvalidRemoteSiteResponse'}));
-            return;
-          }
-        }
+        const projection = control.responseProjection(admitted);
+        const evidence = control.responseEvidence(admitted);
+        const subject = control.responseSubject(admitted);
+        const measurement = control.responseMeasurement(admitted);
         resolve(Object.freeze({
-          dispatchRequestCid: payload.dispatch_request_cid,
-          revision: payload.revision,
-          state: Object.freeze([...payload.state]),
+          dispatchRequestCid: control.identity(dispatch),
+          revision: projection[0],
+          state: Object.freeze(projection.slice(1)),
           ...(query ? {
             evidence,
-            evidenceCid: payload.evidence?.cid,
-            evidenceWire: payload.evidence?.wire,
+            evidenceCid: evidence === undefined
+              ? undefined
+              : control.evidenceIdentity(evidence),
+            evidenceWire: evidence === undefined
+              ? undefined
+              : control.evidenceJson(evidence),
             measurement,
-            measurementCid: payload.measurement?.cid,
-            measurementWire: payload.measurement?.wire,
+            measurementCid: measurement === undefined
+              ? undefined
+              : control.managedOutputMeasurementIdentity(measurement),
+            measurementWire: measurement === undefined
+              ? undefined
+              : control.managedOutputMeasurementJson(measurement),
             subject,
-            subjectCid: payload.subject?.cid,
-            subjectWire: payload.subject?.wire,
+            subjectCid: subject === undefined
+              ? undefined
+              : control.managedOutputSubjectIdentity(subject),
+            subjectWire: subject === undefined
+              ? undefined
+              : control.managedOutputSubjectJson(subject),
           } : {}),
         }));
       });

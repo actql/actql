@@ -139,6 +139,17 @@ function remoteSiteControl(moon) {
     admitJson: (body, claimedRequestCid) => checked(
       moon.strategyRemoteDispatchAdmitJson(body, claimedRequestCid),
     ),
+    admitResponseJson: (body, request, statusReply) => checked(
+      moon.strategyRemoteDispatchResponseAdmitJson(
+        body,
+        request,
+        statusReply,
+      ),
+    ),
+    responseProjection: moon.strategyRemoteDispatchResponseProjection,
+    responseEvidence: moon.strategyRemoteDispatchResponseEvidence,
+    responseSubject: moon.strategyRemoteDispatchResponseSubject,
+    responseMeasurement: moon.strategyRemoteDispatchResponseMeasurement,
     journalKey: moon.strategyRemoteDispatchJournalKey,
     executionScope: moon.strategyRemoteDispatchExecutionScope,
     managedRuntimeRegistrationScope: (capability, issuer) => checked(

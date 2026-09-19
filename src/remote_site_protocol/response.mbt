@@ -286,3 +286,46 @@ pub fn remote_dispatch_response_revision(
 ) -> Int {
   response.revision
 }
+
+///|
+pub fn remote_dispatch_response_projection(
+  response : RemoteDispatchResponse,
+) -> Array[Int] {
+  [
+    response.revision,
+    response.execution,
+    response.evidence_state,
+    response.cleanup,
+    if response.material_available {
+      1
+    } else {
+      0
+    },
+    if response.quarantined_capacity {
+      1
+    } else {
+      0
+    },
+  ]
+}
+
+///|
+pub fn remote_dispatch_response_evidence(
+  response : RemoteDispatchResponse,
+) -> RemoteExecutionEvidence? {
+  response.evidence
+}
+
+///|
+pub fn remote_dispatch_response_subject(
+  response : RemoteDispatchResponse,
+) -> RemoteManagedOutputSubject? {
+  response.subject
+}
+
+///|
+pub fn remote_dispatch_response_measurement(
+  response : RemoteDispatchResponse,
+) -> RemoteManagedOutputMeasurement? {
+  response.measurement
+}

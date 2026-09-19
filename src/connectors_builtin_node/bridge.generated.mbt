@@ -2939,6 +2939,56 @@ pub fn strategy_remote_dispatch_admit_json(
 }
 
 ///|
+#export_name("strategyRemoteDispatchResponseAdmitJson")
+pub fn strategy_remote_dispatch_response_admit_json(
+  body : String,
+  request : @remote.DispatchRequest,
+  status_reply : Bool,
+) -> @remote.RemoteDispatchResponse raise NodeHostFailure {
+  let kind = if status_reply {
+    @remote.StatusReply
+  } else {
+    @remote.DispatchReply
+  }
+  match @remote.admit_remote_dispatch_response_json(body, request, kind) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDispatchResponseProjection")
+pub fn strategy_remote_dispatch_response_projection(
+  response : @remote.RemoteDispatchResponse,
+) -> Array[Int] {
+  @remote.remote_dispatch_response_projection(response)
+}
+
+///|
+#export_name("strategyRemoteDispatchResponseEvidence")
+pub fn strategy_remote_dispatch_response_evidence(
+  response : @remote.RemoteDispatchResponse,
+) -> @remote.RemoteExecutionEvidence? {
+  @remote.remote_dispatch_response_evidence(response)
+}
+
+///|
+#export_name("strategyRemoteDispatchResponseSubject")
+pub fn strategy_remote_dispatch_response_subject(
+  response : @remote.RemoteDispatchResponse,
+) -> @remote.RemoteManagedOutputSubject? {
+  @remote.remote_dispatch_response_subject(response)
+}
+
+///|
+#export_name("strategyRemoteDispatchResponseMeasurement")
+pub fn strategy_remote_dispatch_response_measurement(
+  response : @remote.RemoteDispatchResponse,
+) -> @remote.RemoteManagedOutputMeasurement? {
+  @remote.remote_dispatch_response_measurement(response)
+}
+
+///|
 #export_name("strategyRemoteDispatchJournalKey")
 pub fn strategy_remote_dispatch_journal_key(
   request : @remote.DispatchRequest,
