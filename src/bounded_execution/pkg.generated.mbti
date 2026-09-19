@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/bounded_execution"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[S, T, E] advance(Session[S, T, E], Token, Int) -> Result[Observation[T, E], Issue]
+
+pub fn[S, T, E] cleanup(Session[S, T, E]) -> Result[Bool, Issue]
+
+pub fn[S, T, E] cleanup_pending(Session[S, T, E]) -> Bool
+
+pub fn control() -> Control
+
+pub fn request_cancel(Control) -> Bool
+
+pub fn request_deadline(Control) -> Bool
+
+pub fn[S, T, E] session_stopped(Session[S, T, E]) -> Bool
+
+pub fn[S, T, E] start(Control, S, (S, Int, Reader) -> KernelStep[T, E], (S) -> Bool) -> (Session[S, T, E], Token)
+
+pub fn stop_requested(Reader) -> StopReason?
+
+// Errors
+
+// Types and methods
+type Control
+
+pub(all) enum Issue {
+  InvalidQuantum
+  ForeignToken
+  ConcurrentResume
+  Terminal
+  InvalidKernelReport
+  CounterOverflow
+  NotStopped
+} derive(Eq, @debug.Debug)
+
+pub(all) enum KernelStep[T, E] {
+  Continue(Int, Int)
+  Complete(T, Int, Int)
+  Failed(E, Int, Int)
+  Stopped(StopReason, Int, Int)
+}
+
+pub enum Observation[T, E] {
+  ContinueWith(Token, progress~ : Int64, work~ : Int64)
+  Completed(T, progress~ : Int64, work~ : Int64)
+  FailedWith(E, progress~ : Int64, work~ : Int64)
+  StoppedWith(StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type Reader
+
+type Session[S, T, E]
+
+pub(all) enum StopReason {
+  Cancelled
+  Deadline
+} derive(Eq, @debug.Debug)
+
+type Token
+
+// Type aliases
+
+// Traits
