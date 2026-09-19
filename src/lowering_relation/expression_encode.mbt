@@ -135,6 +135,11 @@ fn emit_frames(
             pending.push(VectorScoreRest(metric, right))
             pending.push(Expr(left))
           }
+          VectorConcat(children) => {
+            pending.push(Op("vector_concat"))
+            @encode.begin_array(output)
+            pending.push(Expressions(children, 0))
+          }
           Many(op, args) => {
             pending.push(
               Op(

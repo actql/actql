@@ -17,6 +17,7 @@ pub enum ExpressionBody {
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)
+  VectorConcat(Array[Expression])
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
@@ -99,6 +100,7 @@ priv suberror ExpressionStop {
 ///|
 pub fn expression_body(value : Expression) -> ExpressionBody {
   match value.body {
+    VectorConcat(children) => VectorConcat(children.copy())
     Many(op, children) => Many(op, children.copy())
     Case(clauses, otherwise) => Case(clauses.copy(), otherwise)
     other => other
@@ -109,6 +111,7 @@ pub fn expression_body(value : Expression) -> ExpressionBody {
 /// O(1), allocation-free number of entries copied by expression_body.
 pub fn expression_view_entries(value : Expression) -> Int {
   match value.body {
+    VectorConcat(children) => children.length()
     Many(_, children) => children.length()
     Case(clauses, _) => clauses.length()
     Field(_, _)
@@ -176,6 +179,7 @@ fn expression_tag(
     | "or"
     | "coalesce"
     | "vector_score"
+    | "vector_concat"
     | "if"
     | "case" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -676,6 +680,7 @@ fn lower_expression_measured(
           }
           VectorScore(metric, args[0], args[1])
         }
+        "vector_concat" => VectorConcat(args)
         "and" => Many(And, args)
         "or" => Many(Or, args)
         "coalesce" => Many(Coalesce, args)

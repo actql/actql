@@ -140,6 +140,14 @@ pub fn prepare_ordered_references(
                 return Err(ReferenceLimit)
               }
             }
+            VectorConcat(children) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(Children(children, 0, body)) {
+                return Err(ReferenceLimit)
+              }
+            }
             Many(_, children) => {
               guard append_path(path, "/body") is Some(body) else {
                 return Err(ReferenceLimit)

@@ -182,6 +182,36 @@ test "vector score lowering requires explicit VecA profile admission" {
 }
 
 ///|
+test "vector concat lowering preserves ordered children and canonical wire" {
+  let owner = vector_expression_pipeline(
+    "{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}",
+  )
+  let expr = @lowering_relation.lower_expression(
+    owner,
+    0,
+    0,
+    expression_limits(),
+  ).unwrap()
+  guard @lowering_relation.expression_body(expr)
+    is @lowering_relation.VectorConcat(children) else {
+    fail("expected vector concat")
+  }
+  assert_eq(children.length(), 2)
+  assert_true(
+    @lowering_relation.expression_body(children[0])
+    is @lowering_relation.Field("right", @relation.InputField(_)),
+  )
+  assert_true(
+    @lowering_relation.expression_body(children[1])
+    is @lowering_relation.Field("left", @relation.InputField(_)),
+  )
+  assert_eq(
+    expression_wire(expr),
+    "{\"body\":[{\"body\":\"right\",\"op\":\"field\"},{\"body\":\"left\",\"op\":\"field\"}],\"op\":\"vector_concat\"}",
+  )
+}
+
+///|
 test "fixed expression wire vector retains failed constants inside unselected if branch" {
   let p = expression_pipeline(
     ",{\"derive\":{\"v\":{\"if\":[{\"literal\":true},{\"literal\":7},{\"divide\":[{\"literal\":1},{\"literal\":0}]}]}}}",

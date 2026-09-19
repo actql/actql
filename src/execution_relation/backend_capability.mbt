@@ -75,6 +75,7 @@ fn check_backend_capabilities(
         Unary(_, _) => 1
         Binary(_, _, _) => 2
         VectorScore(_, _, _) => 2
+        VectorConcat(children) => children.length()
         Conditional(_, _, _) => 3
         Many(_, children) => children.length()
         Case(clauses, _) => {
@@ -120,6 +121,10 @@ fn check_backend_capabilities(
           pending.push(right)
           pending.push(left)
         }
+        VectorConcat(children) =>
+          for j = children.length() - 1; j >= 0; j = j - 1 {
+            pending.push(children[j])
+          }
         Many(_, children) =>
           for j = children.length() - 1; j >= 0; j = j - 1 {
             pending.push(children[j])

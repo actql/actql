@@ -110,6 +110,28 @@ test "vector score references retain the structured operand paths" {
 }
 
 ///|
+test "vector concat references retain authored child order" {
+  let owner = vector_expression_pipeline(
+    "{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}",
+  )
+  let kernel = @lowering_relation.prepare_kernel(
+    owner,
+    0,
+    max_bindings=100,
+    max_name_bytes=10000,
+    expression_limits(),
+  ).unwrap()
+  let index = @lowering_relation.prepare_ordered_references(
+    kernel,
+    reference_limits(),
+  ).unwrap()
+  assert_eq(
+    references_wire(index),
+    "[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"right\"}},{\"at\":\"/bindings/0/expr/body/1\",\"target\":{\"input_field\":\"left\"}}]",
+  )
+}
+
+///|
 test "reference table never interprets expression shaped literal business data" {
   let kernel = ordered_kernel(
     ",{\"derive\":[{\"payload\":{\"literal\":{\"op\":\"field\",\"body\":\"missing\",\"$param\":\"business\",\"prior_slot\":99}}}]}",

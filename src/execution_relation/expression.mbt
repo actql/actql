@@ -54,6 +54,15 @@ priv enum Continuation {
     Value,
     ExpressionRootLease?
   )
+  VectorConcat(
+    @lower.Expression,
+    Array[@lower.Expression],
+    Int,
+    Array[@admitted.FrozenArray[Double]?],
+    Array[ExpressionRootLease?],
+    Bool,
+    Int
+  )
   Choose(@lower.Expression, @lower.Expression, @lower.Expression)
   Many(
     @lower.Expression,
@@ -76,6 +85,7 @@ priv enum Evaluation {
   Enter(@lower.Expression)
   Return(Value)
   Score(VectorScoreState)
+  Concat(VectorConcatState)
 }
 
 ///|
@@ -87,6 +97,17 @@ priv struct VectorScoreState {
   left_root : ExpressionRootLease?
   right_root : ExpressionRootLease?
   mut index : Int
+}
+
+///|
+priv struct VectorConcatState {
+  expression : @lower.Expression
+  builder : @admitted.VectorBuilder
+  vectors : Array[@admitted.FrozenArray[Double]?]
+  roots : Array[ExpressionRootLease?]
+  expected_dimension : Int
+  mut child : Int
+  mut component : Int
 }
 
 ///|
@@ -172,6 +193,7 @@ priv struct ExpressionFrame {
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
+  workspace_baseline : Int
   mut closed : Bool
 }
 
@@ -202,6 +224,7 @@ fn expression_frame(
     state: Enter(root),
     active: root,
     current_root: None,
+    workspace_baseline: workspace.live,
     closed: false,
   })
 }
@@ -215,6 +238,16 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   }
   frame.stack.clear()
   frame.current_root = None
+  match frame.state {
+    Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
+    _ => ()
+  }
+  if frame.workspace.live > frame.workspace_baseline {
+    release_slots(
+      frame.workspace,
+      frame.workspace.live - frame.workspace_baseline,
+    )
+  }
   frame.state = Return(Null)
   frame.closed = true
 }
@@ -324,6 +357,7 @@ fn advance_expression_frame_impl(
           Unary(_, _)
           | Binary(_, _, _)
           | VectorScore(_, _, _)
+          | VectorConcat(_)
           | Many(_, _)
           | Conditional(_, _, _)
           | Case(_, _) => false
@@ -361,6 +395,33 @@ fn advance_expression_frame_impl(
           VectorScore(metric, left, right) => {
             frame.stack.push(VectorLeft(expr, metric, right))
             frame.state = Enter(left)
+          }
+          VectorConcat(children) => {
+            guard children.length() >= 2 &&
+              @lower.expression_contract(expr).shape
+              is @contract.Vector(dimensions~) &&
+              dimensions >= 1.0 &&
+              dimensions <= 2147483647.0 else {
+              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            let expected_dimension = dimensions.to_int()
+            guard expected_dimension.to_double() == dimensions &&
+              children.length() <= (workspace.limit - workspace.live) / 2 &&
+              reserve_slots(workspace, children.length() * 2) else {
+              return Err({ kind: WorkspaceLimit, expression: expr, })
+            }
+            frame.stack.push(
+              VectorConcat(
+                expr,
+                children,
+                0,
+                Array::make(children.length(), None),
+                Array::make(children.length(), None),
+                false,
+                expected_dimension,
+              ),
+            )
+            frame.state = Enter(children[0])
           }
           Conditional(condition, yes, no) => {
             frame.stack.push(Choose(expr, yes, no))
@@ -523,6 +584,78 @@ fn advance_expression_frame_impl(
               })
             }
           }
+          VectorConcat(
+            expr,
+            children,
+            index,
+            vectors,
+            roots,
+            null_seen,
+            expected_dimension
+          ) => {
+            frame.active = expr
+            if charge_value(value) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            let mut next_null = null_seen
+            match value {
+              Null => {
+                next_null = true
+                if release(frame.current_root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+              }
+              Captured(@admitted.Vector(vector)) => {
+                vectors[index] = Some(vector)
+                roots[index] = frame.current_root
+              }
+              _ =>
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            frame.current_root = None
+            if children.get(index + 1) is Some(next) {
+              frame.stack.push(
+                VectorConcat(
+                  expr,
+                  children,
+                  index + 1,
+                  vectors,
+                  roots,
+                  next_null,
+                  expected_dimension,
+                ),
+              )
+              frame.state = Enter(next)
+            } else if next_null {
+              for root in roots {
+                if release(root) is Some(issue) {
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+              }
+              release_slots(workspace, children.length() * 3 + 1)
+              frame.state = Return(Null)
+            } else {
+              let tail_overhead = children.length() + 2
+              if tail_overhead > budget.remaining ||
+                expected_dimension > budget.remaining - tail_overhead {
+                return Err({ kind: ControlLimit, expression: expr, })
+              }
+              guard reserve_slots(workspace, expected_dimension) &&
+                @admitted.prepare_vector_value(expected_dimension)
+                is Some(builder) else {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = Concat({
+                expression: expr,
+                builder,
+                vectors,
+                roots,
+                expected_dimension,
+                child: 0,
+                component: 0,
+              })
+            }
+          }
           Choose(expr, yes, no) => {
             let selected = match
               expression_event_choice(
@@ -664,6 +797,54 @@ fn advance_expression_frame_impl(
           }
           release_slots(workspace, 1)
           frame.state = Return(Number(result))
+        }
+      }
+      Concat(concat) => {
+        frame.active = concat.expression
+        if concat.vectors.get(concat.child) is Some(Some(vector)) {
+          if @admitted.element_at(vector, concat.component) is Some(component) {
+            if !@admitted.append_vector_component(concat.builder, component) {
+              return Err({
+                kind: Scalar(InvalidOperand),
+                expression: concat.expression,
+              })
+            }
+            concat.component += 1
+          } else {
+            concat.child += 1
+            concat.component = 0
+          }
+        } else if concat.child < concat.vectors.length() {
+          return Err({
+            kind: Scalar(InvalidOperand),
+            expression: concat.expression,
+          })
+        } else {
+          guard @contract.vector_contract(
+              concat.expected_dimension.to_double(),
+              nullable=false,
+            )
+            is Some(contract) &&
+            @admitted.finish_checked_vector_value(concat.builder, contract)
+            is Some(checked) else {
+            return Err({
+              kind: Scalar(InvalidOperand),
+              expression: concat.expression,
+            })
+          }
+          for root in concat.roots {
+            if release(root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: concat.expression,
+              })
+            }
+          }
+          release_slots(
+            workspace,
+            concat.vectors.length() * 3 + 1 + concat.expected_dimension,
+          )
+          frame.state = Return(Captured(checked.value))
         }
       }
     }

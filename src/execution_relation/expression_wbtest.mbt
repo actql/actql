@@ -27,7 +27,7 @@ fn lowered(text : String) -> @lower.Expression {
 }
 
 ///|
-fn lowered_vector_score(metric : String) -> @lower.Expression {
+fn lowered_vector_expression(body : String) -> @lower.Expression {
   let vectors = @carrier.relation(
     @carrier.rows(
       [
@@ -46,11 +46,7 @@ fn lowered_vector_score(metric : String) -> @lower.Expression {
     ).unwrap(),
   )
   let checked = @pipeline.check_carriers(
-    input_cursor(
-      "[{\"from\":\"rows\",\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"" +
-      metric +
-      "\"}}}}]",
-    ),
+    input_cursor("[{\"from\":\"rows\",\"derive\":{\"result\":" + body + "}}]"),
     [("rows", vectors)],
     None,
     None,
@@ -82,6 +78,22 @@ fn lowered_vector_score(metric : String) -> @lower.Expression {
     max_literal_nodes: 100,
     max_literal_text_bytes: 1000,
   }).unwrap()
+}
+
+///|
+fn lowered_vector_score(metric : String) -> @lower.Expression {
+  lowered_vector_expression(
+    "{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"" +
+    metric +
+    "\"}}",
+  )
+}
+
+///|
+fn lowered_vector_concat() -> @lower.Expression {
+  lowered_vector_expression(
+    "{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}",
+  )
 }
 
 ///|
@@ -228,6 +240,134 @@ test "vector score failure releases its continuation workspace" {
     }
   }
   assert_eq(workspace.live, 5)
+}
+
+///|
+test "vector concat is eager, ordered, bounded, and resumable" {
+  let expression = lowered_vector_concat()
+  let values : Map[String, Value] = {
+    "left": runtime_vector([1.0, 2.0, 3.0, 4.0]),
+    "right": runtime_vector([5.0, 6.0, 7.0, 8.0]),
+  }
+  let workspace = { limit: 100, live: 5, peak: 5, }
+  let frame = expression_frame(
+    expression,
+    values,
+    [],
+    { remaining: 1000, max_frames: 10, },
+    workspace,
+    None,
+  ).unwrap()
+  let mut yielded = 0
+  let mut result : EvaluatedValue? = None
+  while result is None {
+    match advance_expression_frame(frame) {
+      Ok(None) => yielded += 1
+      Ok(Some(value)) => result = Some(value)
+      Err(_) => fail("vector concat frame failed")
+    }
+  }
+  guard result.unwrap().value is Captured(@admitted.Vector(vector)) else {
+    fail("expected concatenated vector")
+  }
+  assert_eq(@admitted.elements(vector), [5.0, 6.0, 7.0, 8.0, 1.0, 2.0, 3.0, 4.0])
+  assert_true(yielded >= 8)
+  assert_eq(workspace.live, 5)
+
+  let missing : Map[String, Value] = { "right": Null }
+  assert_true(
+    evaluate_expression(expression, missing, [], {
+      remaining: 1000,
+      max_frames: 10,
+    })
+    is Err({ kind: MissingValue, .. }),
+  )
+  let nulls : Map[String, Value] = { "right": Null, "left": values["left"] }
+  assert_true(
+    evaluate_expression(expression, nulls, [], {
+      remaining: 1000,
+      max_frames: 10,
+    }).unwrap()
+    is Null,
+  )
+
+  let short_workspace = { limit: 19, live: 5, peak: 5, }
+  let short = expression_frame(
+    expression,
+    values,
+    [],
+    { remaining: 1000, max_frames: 10, },
+    short_workspace,
+    None,
+  ).unwrap()
+  let mut rejected = false
+  while !rejected {
+    match advance_expression_frame(short) {
+      Ok(None) => ()
+      Ok(Some(_)) => fail("short vector workspace was accepted")
+      Err(issue) => {
+        assert_true(issue.kind is WorkspaceLimit)
+        rejected = true
+      }
+    }
+  }
+  assert_eq(short_workspace.live, 5)
+
+  let short_control_workspace = { limit: 100, live: 5, peak: 5, }
+  let short_control = expression_frame(
+    expression,
+    values,
+    [],
+    { remaining: 16, max_frames: 10, },
+    short_control_workspace,
+    None,
+  ).unwrap()
+  let mut control_rejected = false
+  while !control_rejected {
+    match advance_expression_frame(short_control) {
+      Ok(None) => ()
+      Ok(Some(_)) => fail("short vector work budget was accepted")
+      Err(issue) => {
+        assert_true(issue.kind is ControlLimit)
+        control_rejected = true
+      }
+    }
+  }
+  assert_eq(short_control_workspace.peak, 12)
+  assert_eq(short_control_workspace.live, 5)
+
+  let cancelled_workspace = { limit: 100, live: 5, peak: 5, }
+  let cancelled = expression_frame(
+    expression,
+    values,
+    [],
+    { remaining: 1000, max_frames: 10, },
+    cancelled_workspace,
+    None,
+  ).unwrap()
+  while cancelled_workspace.live < 20 {
+    assert_true(advance_expression_frame(cancelled) is Ok(None))
+  }
+  close_expression_frame(cancelled)
+  assert_eq(cancelled_workspace.live, 5)
+  assert_true(
+    advance_expression_frame(cancelled)
+    is Err({ kind: InvalidControlLimits, .. }),
+  )
+
+  let repeated = lowered_vector_expression(
+    "{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"},{\"field\":\"right\"}]}",
+  )
+  guard evaluate_expression(repeated, values, [], {
+      remaining: 1000,
+      max_frames: 10,
+    }).unwrap()
+    is Captured(@admitted.Vector(repeated_vector)) else {
+    fail("expected repeated concatenated vector")
+  }
+  assert_eq(@admitted.elements(repeated_vector), [
+    5.0, 6.0, 7.0, 8.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+  ])
 }
 
 ///|

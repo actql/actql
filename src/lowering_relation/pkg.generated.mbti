@@ -783,6 +783,7 @@ pub enum ExpressionBody {
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)
+  VectorConcat(Array[Expression])
   Many(ManyOperator, Array[Expression])
   Conditional(Expression, Expression, Expression)
   Case(Array[(Expression, Expression)], Expression)
