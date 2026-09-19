@@ -13,6 +13,7 @@ priv enum Phase {
 priv enum VectorExecution {
   Normalize(@veca.NormalizeExecution)
   Score(@veca.ScoreExecution)
+  Pool(@veca.PoolExecution)
 }
 
 ///|
@@ -66,7 +67,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "BRIDGE.rows.to_vectors"
       (1, @lower.VectorStep(_)) => {
         let operation = @lower.operation(node)
-        operation == "VEC.normalize_l2" || operation == "VEC.score_sort"
+        operation == "VEC.normalize_l2" ||
+        operation == "VEC.score_sort" ||
+        operation == "VEC.pool"
       }
       (2, @lower.CarrierProjectionStep(projection)) =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
@@ -269,6 +272,20 @@ fn advance_execution(
             Ok(execution) => Score(execution)
             Err(_) => return fail_execution(value)
           }
+        } else if @lower.operation(node) == "VEC.pool" {
+          match
+            @veca.start_pool(
+              value.control,
+              value.sequence,
+              1,
+              input,
+              value.limits,
+              value.storage_bytes,
+              fn() { true },
+            ) {
+            Ok(execution) => Pool(execution)
+            Err(_) => return fail_execution(value)
+          }
         } else {
           return fail_execution(value)
         }
@@ -300,6 +317,18 @@ fn advance_execution(
               Ok(@veca.ScoreFailed(_, progress~, work~)) =>
                 Some((2, None, progress, work))
               Ok(@veca.ScoreStopped(_, progress~, work~)) =>
+                Some((3, None, progress, work))
+              Err(_) => None
+            }
+          Pool(execution) =>
+            match @veca.advance_pool(execution, quantum) {
+              Ok(@veca.PoolContinue(progress~, work~)) =>
+                Some((0, None, progress, work))
+              Ok(@veca.PoolComplete(output, progress~, work~)) =>
+                Some((1, Some(output), progress, work))
+              Ok(@veca.PoolFailed(_, progress~, work~)) =>
+                Some((2, None, progress, work))
+              Ok(@veca.PoolStopped(_, progress~, work~)) =>
                 Some((3, None, progress, work))
               Err(_) => None
             }
@@ -459,6 +488,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      Pool(execution) =>
+        match @veca.cleanup_pool(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   if value.projection is Some(active) {
@@ -478,6 +512,7 @@ fn cleanup_execution(
   let kernel_pending = match value.kernel {
     Some(Normalize(active)) => @veca.normalize_cleanup_pending(active)
     Some(Score(active)) => @veca.score_cleanup_pending(active)
+    Some(Pool(active)) => @veca.pool_cleanup_pending(active)
     None => false
   }
   let projection_pending = match value.projection {

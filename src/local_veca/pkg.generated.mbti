@@ -14,9 +14,13 @@ import {
 // Values
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
+pub fn advance_pool(PoolExecution, Int) -> Result[PoolPoll, PoolIssue]
+
 pub fn advance_score(ScoreExecution, Int) -> Result[ScorePoll, ScoreIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
+pub fn cleanup_pool(PoolExecution) -> Result[Bool, PoolIssue]
 
 pub fn cleanup_score(ScoreExecution) -> Result[Bool, ScoreIssue]
 
@@ -25,6 +29,14 @@ pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
 
 pub fn normalize_stopped(NormalizeExecution) -> Bool
+
+pub fn pool_cleanup_pending(PoolExecution) -> Bool
+
+pub fn pool_max_noninterruptible_value_bytes(PoolExecution) -> Int
+
+pub fn pool_max_noninterruptible_value_nodes(PoolExecution) -> Int
+
+pub fn pool_stopped(PoolExecution) -> Bool
 
 pub fn score_cleanup_pending(ScoreExecution) -> Bool
 
@@ -35,6 +47,8 @@ pub fn score_max_noninterruptible_value_nodes(ScoreExecution) -> Int
 pub fn score_stopped(ScoreExecution) -> Bool
 
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
+
+pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
 
 pub fn start_score(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[ScoreExecution, ScoreIssue]
 
@@ -60,6 +74,31 @@ pub enum NormalizePoll {
   Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
   Failed(NormalizeIssue, progress~ : Int64, work~ : Int64)
   Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type PoolExecution
+
+pub(all) enum PoolIssue {
+  InvalidPoolKernel
+  InvalidPoolLimits
+  PoolInputUnavailable
+  InvalidPoolRecord(Int)
+  InvalidPoolVector(Int)
+  InvalidPoolGroup(Int)
+  InvalidPoolIdentity(Int)
+  DuplicatePoolIdentity(Int, Int)
+  PoolWorkspaceLimit
+  PoolNumeric(@vector_numeric.Issue)
+  PoolKeyOrder(@value_admission.KeyOrderIssue)
+  PoolOutput(@managed_record_runtime.Issue)
+  PoolExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum PoolPoll {
+  PoolContinue(progress~ : Int64, work~ : Int64)
+  PoolComplete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  PoolFailed(PoolIssue, progress~ : Int64, work~ : Int64)
+  PoolStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type ScoreExecution
