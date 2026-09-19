@@ -3,6 +3,7 @@ package "actql/actql/lowering_relation"
 
 import {
   "actql/actql/carrier_contract",
+  "actql/actql/carrier_projection",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/event_typing",
@@ -88,6 +89,10 @@ pub fn bind_parameters(Prepared, @parameter_binding.BoundValues?, max_parameters
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
+
+pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
+
+pub fn carrier_projection_output_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
 
 pub fn count_group_aggregate_at(PreparedCountGroup, Int) -> PreparedCount?
 
@@ -706,6 +711,10 @@ pub struct CanonicalOccurrence {
   operation : String
 }
 
+pub(all) enum CarrierProjectionIssue {
+  InvalidCarrierProjection
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CountGroupIssue {
   NotGroup
   UnsupportedAggregate(Int)
@@ -1061,6 +1070,7 @@ pub enum Payload {
   GraphApplyValue(@graph_typing.CheckedApply)
   VectorValue(@vector_typing.CheckedVector)
   EventValue(@event_typing.CheckedEvent)
+  CarrierProjection(@carrier_projection.CheckedProjection)
 }
 
 pub(all) enum PivotIssue {
@@ -1096,6 +1106,8 @@ pub enum PreparedAnalyticFunction {
 }
 
 type PreparedAppendKernel
+
+type PreparedCarrierProjection
 
 pub struct PreparedCount {
   name : String
@@ -1207,6 +1219,7 @@ pub enum PreparedStep {
   GraphRelationStep(PreparedGraphRelation)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
+  CarrierProjectionStep(PreparedCarrierProjection)
 }
 
 type PreparedValues
@@ -1278,6 +1291,7 @@ pub(all) enum SequenceIssue {
   GraphRelationFailure(Int, GraphRelationIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
+  CarrierProjectionFailure(Int, CarrierProjectionIssue)
 }
 
 pub(all) struct SequenceLimits {

@@ -28,6 +28,7 @@ pub enum PreparedStep {
   GraphRelationStep(PreparedGraphRelation)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
+  CarrierProjectionStep(PreparedCarrierProjection)
 }
 
 ///|
@@ -62,6 +63,7 @@ pub(all) enum SequenceIssue {
   GraphRelationFailure(Int, GraphRelationIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
+  CarrierProjectionFailure(Int, CarrierProjectionIssue)
 }
 
 ///|
@@ -343,6 +345,14 @@ pub fn prepare_sequence(
         }
         EventStep(prepared)
       }
+      CarrierProjection(_) => {
+        let prepared = match
+          prepare_carrier_projection_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(CarrierProjectionFailure(i, issue))
+        }
+        CarrierProjectionStep(prepared)
+      }
       BasicGraph(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_graph_basic_node(
@@ -473,6 +483,7 @@ pub fn emit_sequence_steps(
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
       EventStep(v) => emit_event_node(v, out)
+      CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

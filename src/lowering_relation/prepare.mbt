@@ -69,6 +69,7 @@ pub enum Payload {
   GraphApplyValue(@graph.CheckedApply)
   VectorValue(@vector.CheckedVector)
   EventValue(@event.CheckedEvent)
+  CarrierProjection(@projection.CheckedProjection)
 }
 
 ///|
@@ -237,6 +238,13 @@ pub fn operation(value : PreparedNode) -> String {
         @event.Dedupe(_) => "TEA.dedupe"
         @event.Session(_) => "TEA.window.session_assign"
       }
+    CarrierProjection(value) =>
+      match @projection.operation(value) {
+        @projection.Events => "BRIDGE.events.to_rows"
+        @projection.Vectors => "BRIDGE.vectors.to_rows"
+        @projection.NodeRows => "BRIDGE.graph.to_node_rows"
+        @projection.EdgeRows => "BRIDGE.graph.to_edge_rows"
+      }
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -281,8 +289,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | AsOfJoin(..)
     | Sequence(_)
     | TimeSeries(_)
-    | Calendar(_)
-    | Projection(_) => None
+    | Calendar(_) => None
+    Projection(value) => Some(CarrierProjection(value))
     Graph(value) =>
       match @graph.operation(value) {
         @graph.NormalizeGraph
@@ -494,6 +502,16 @@ pub fn prepare(
           },
           1,
         )
+      CarrierProjection(value) =>
+        (
+          match @projection.operation(value) {
+            @projection.Events => "events"
+            @projection.Vectors => "vectors"
+            @projection.NodeRows => "node_rows"
+            @projection.EdgeRows => "edge_rows"
+          },
+          1,
+        )
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -625,6 +643,7 @@ pub fn prepare(
       GraphApplyValue(_) => None
       VectorValue(_) => None
       EventValue(_) => None
+      CarrierProjection(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

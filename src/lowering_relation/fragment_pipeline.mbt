@@ -37,7 +37,8 @@ pub fn prepare_fragment_pipeline(
     | GraphShortestStep(_)
     | GraphRelationStep(_)
     | VectorStep(_)
-    | EventStep(_) => Err(NotExpressionKernel)
+    | EventStep(_)
+    | CarrierProjectionStep(_) => Err(NotExpressionKernel)
   }
 }
 

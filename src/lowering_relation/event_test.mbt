@@ -64,6 +64,53 @@ test "checked event bridge and watermark lower without source rediscovery" {
 }
 
 ///|
+test "event projection lowers back to a typed Relation occurrence" {
+  let checked = @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"watermark_events\":{\"watermark_ms\":12.5,\"policy\":\"mark\"}},{\"events\":true}]",
+    ),
+    [("rows", event_relation())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 2)
+    is Some(@lowering_relation.CarrierProjectionStep(projection)) else {
+    fail("expected event projection")
+  }
+  assert_eq(
+    @lowering_relation.carrier_projection_operation(projection),
+    @projection.Events,
+  )
+  assert_eq(
+    @carrier.kind(
+      @lowering_relation.carrier_projection_output_carrier(projection),
+    ),
+    @carrier.RelationKind,
+  )
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"to_events_0\",\"in\":[\"input_0\"],\"op\":\"BRIDGE.rows.to_events\",\"params\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"id\":\"watermark_events_1\",\"in\":[\"to_events_0\"],\"op\":\"TEA.watermark.label\",\"params\":{\"policy\":\"mark\",\"watermark_ms\":12.5}},{\"id\":\"events_2\",\"in\":[\"watermark_events_1\"],\"op\":\"BRIDGE.events.to_rows\",\"params\":{}}]",
+  )
+}
+
+///|
 test "event lowering admits role metadata before emission" {
   let exact = { ..sequence_limits(), max_bindings: 2, max_name_bytes: 19, }
   assert_true(

@@ -318,7 +318,8 @@ fn prepare_kernel_measured(
     | GraphDiffRows(_)
     | GraphApplyValue(_)
     | VectorValue(_)
-    | EventValue(_) => return Err(MissingKernelNode)
+    | EventValue(_)
+    | CarrierProjection(_) => return Err(MissingKernelNode)
   }
   if node.inputs.length() != 1 {
     return Err(InvalidKernelWiring)
