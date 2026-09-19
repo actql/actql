@@ -3,8 +3,15 @@
 /// capability; a Host binds its evidence validator and current authorization
 /// check before admitting any opaque reference value.
 pub struct ReferenceIssuer {
-  identity : Ref[Unit]
+  identity : ReferenceIssuerIdentity
   mode : ReferenceIssuerMode
+}
+
+///|
+/// Package-owned identity token. The public issuer and value stay opaque
+/// without exposing the runtime reference representation in their API.
+struct ReferenceIssuerIdentity {
+  token : Ref[Unit]
 }
 
 ///|
@@ -24,7 +31,7 @@ enum ReferenceDomain {
 /// wire emission while equality and canonical key ordering use only the
 /// specification-selected identity CID.
 pub struct ReferenceValue {
-  issuer : Ref[Unit]
+  issuer : ReferenceIssuerIdentity
   identity_cid : String
   domain : ReferenceDomain
   envelope : @identity.CanonicalValue
@@ -62,7 +69,7 @@ pub fn bind_reference_issuer(
   validate : (@contract.Contract, String) -> Bool,
   authorize : (String) -> Bool,
 ) -> ReferenceIssuer {
-  { identity: Ref(()), mode: Issue(validate, authorize), }
+  { identity: { token: Ref(()), }, mode: Issue(validate, authorize), }
 }
 
 ///|
@@ -72,7 +79,7 @@ pub fn bind_reference_issuer(
 pub fn bind_reference_reissuer(
   resolve : (@contract.Contract, String) -> ReferenceValue?,
 ) -> ReferenceIssuer {
-  { identity: Ref(()), mode: Reissue(resolve), }
+  { identity: { token: Ref(()), }, mode: Reissue(resolve), }
 }
 
 ///|
@@ -404,7 +411,7 @@ pub fn reference_same_issuer(
   left : ReferenceValue,
   right : ReferenceValue,
 ) -> Bool {
-  physical_equal(left.issuer, right.issuer)
+  physical_equal(left.issuer.token, right.issuer.token)
 }
 
 ///|
