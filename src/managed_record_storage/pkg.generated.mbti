@@ -1,0 +1,81 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/managed_record_storage"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/relation_schema",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append(Builder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[Unit, Issue]
+
+pub fn cancel(Builder) -> Bool
+
+pub fn carrier(Storage) -> @carrier_contract.Carrier
+
+pub fn construction_work(Storage) -> Int
+
+pub fn finish(Builder) -> Result[Storage, Issue]
+
+pub fn identity_count(Storage) -> Int
+
+pub fn identity_name_at(Storage, Int) -> String?
+
+pub fn input_record_count(Storage) -> Int
+
+pub fn measured_input_value_bytes(Storage) -> Int
+
+pub fn prepare(@carrier_contract.Carrier, Limits) -> Result[Builder, Issue]
+
+pub fn record_count(Storage) -> Int
+
+pub fn record_field_at(Storage, Int, Int) -> (@relation_schema.FieldName, @value_admission.CheckedValue)?
+
+pub fn record_field_count(Storage, Int) -> Int?
+
+pub fn retained_value_bytes(Storage) -> Int
+
+pub fn retained_workspace_slots(Storage) -> Int
+
+// Errors
+
+// Types and methods
+type Builder
+
+pub(all) enum Issue {
+  InvalidLimits
+  WrongCarrier
+  InvalidRecord
+  InvalidIdentity
+  InputRecordLimit
+  RecordLimit
+  FieldLimit
+  ValueLimit
+  RetainedValueLimit
+  WorkLimit
+  WorkspaceLimit
+  DuplicateIdentity
+  Closed
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_input_records : Int
+  max_records : Int
+  max_fields_per_record : Int
+  max_value_bytes : Int
+  max_total_value_bytes : Int
+  max_retained_value_bytes : Int
+  max_value_nodes : Int
+  max_value_depth : Int
+  max_contract_work : Int
+  max_work : Int
+  max_workspace_slots : Int
+} derive(Eq, @debug.Debug)
+
+type Storage
+
+// Type aliases
+
+// Traits

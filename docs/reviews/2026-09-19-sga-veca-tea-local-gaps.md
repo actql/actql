@@ -13,7 +13,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Lowering | All seventeen SGA operations now reach typed canonical occurrences; TEA, VecA, Bridges, and VecA expressions remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Common lifecycle and exact producer reads now own typed Relation and Graph generations; Graph construction installs retention before accepting values | Connect Events and Vectors views without separate lifecycle state machines, then join every Carrier to physical task completion |
-| Runtime material | Bounded immutable Graph storage now enforces typed identities, properties, endpoint closure, duplicate laws, and pre-allocation admission; normalize uses it through managed Graph completion, but no standard Host Graph provider is connected yet | Connect Graph storage to registered providers, then add Events and Vectors without forced copies |
+| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage now preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to common lifecycle and registered providers without forced copies |
 | Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
@@ -83,14 +83,20 @@ All five operations lack portable Local execution. `vector_score` and
 `vector_concat` are accepted by expression typing but rejected by shared
 lowering and have no evaluator implementation. The prescribed binary32 and
 binary64 operation sequence needs a portable conforming kernel and independent
-vectors before optimized implementations can be selected.
+vectors before optimized implementations can be selected. Common immutable
+record storage now preserves composite vector identities, admitted dimensions,
+exact UTF-8 value usage, work, and workspace bounds; managed lifecycle and
+VecA kernels remain open.
 
 ### TEA
 
 All eight operations lack portable Local execution. Runtime work must preserve
 finite event-time observation semantics across transport page splits and bind
 checkpoint advancement to the existing successful commit boundary. No
-long-lived streaming state is required by TEA 0.1.
+long-lived streaming state is required by TEA 0.1. Common immutable record
+storage now preserves typed event roles, open payload evidence, semantic
+identity uniqueness, and bounded allocation; managed lifecycle and TEA kernels
+remain open.
 
 ## Current verification boundary
 

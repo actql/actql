@@ -36,6 +36,7 @@
     "ordered_typed_task_inputs",
     "carrier_lifecycle_core",
     "bounded_immutable_graph_storage",
+    "bounded_immutable_event_vector_storage",
     "managed_graph_lifecycle",
     "bounded_step_session_core"
   ],
