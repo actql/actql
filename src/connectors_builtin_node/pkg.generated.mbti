@@ -544,6 +544,16 @@ pub fn strategy_remote_transfer_cleanup_prepare(@remote_transfer.RemoteTransferR
 
 pub fn strategy_remote_transfer_destination_commit_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
+pub fn strategy_remote_transfer_destination_receipt_admit_json(String, @remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_identity(@remote_transfer.RemoteTransferDestinationReceipt) -> String
+
+pub fn strategy_remote_transfer_destination_receipt_json(@remote_transfer.RemoteTransferDestinationReceipt) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
+
 pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
 pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String

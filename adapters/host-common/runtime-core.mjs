@@ -617,6 +617,25 @@ function remoteTransferControl(moon) {
         int64(limits.maxReferencedBytes, 'referenced-byte limit'),
       ));
     },
+    prepareDestinationReceipt: (request, materialGeneration) => checked(
+      moon.strategyRemoteTransferDestinationReceiptPrepare(
+        request,
+        materialGeneration,
+      ),
+    ),
+    destinationReceiptJson: receipt => checked(
+      moon.strategyRemoteTransferDestinationReceiptJson(receipt),
+    ),
+    destinationReceiptIdentity:
+      moon.strategyRemoteTransferDestinationReceiptIdentity,
+    admitDestinationReceiptJson: (body, request, claimedReceiptCid) =>
+      checked(moon.strategyRemoteTransferDestinationReceiptAdmitJson(
+        body,
+        request,
+        claimedReceiptCid,
+      )),
+    destinationReceiptProjection:
+      moon.strategyRemoteTransferDestinationReceiptProjection,
     requestProjection: moon.strategyRemoteTransferProjection,
     journalKey: moon.strategyRemoteTransferJournalKey,
     chunks: request => {

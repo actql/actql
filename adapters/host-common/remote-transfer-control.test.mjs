@@ -103,6 +103,36 @@ test('Remote Transfer durable state is restored by common control', () => {
   ));
 });
 
+test('destination receipt is canonical evidence for the exact Store request',
+  () => {
+    const requestValue = control.prepare(request('store'));
+    const receipt = control.prepareDestinationReceipt(
+      requestValue,
+      'destination-material-a',
+    );
+    const wire = control.destinationReceiptJson(receipt);
+    const identity = control.destinationReceiptIdentity(receipt);
+    const restored = control.admitDestinationReceiptJson(
+      wire,
+      requestValue,
+      identity,
+    );
+    assert.deepEqual(
+      control.destinationReceiptProjection(restored),
+      control.destinationReceiptProjection(receipt),
+    );
+    assert.throws(() => control.admitDestinationReceiptJson(
+      wire,
+      control.prepare(request('direct')),
+      identity,
+    ));
+    assert.throws(() => control.admitDestinationReceiptJson(
+      `${wire} `,
+      requestValue,
+      identity,
+    ));
+  });
+
 test('direct Transfer commits only after durable stop and integrity', () => {
   const record = control.open(control.prepare(request('direct')));
   commit(control.prepareStart(record));

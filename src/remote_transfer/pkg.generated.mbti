@@ -7,17 +7,27 @@ import {
 }
 
 // Values
+pub fn admit_destination_receipt_json(String, RemoteTransferRequest, String) -> Result[RemoteTransferDestinationReceipt, RemoteTransferIssue]
+
 pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn admit_request_json(String, String, String, String, Int, Int, Int64) -> Result[RemoteTransferRequest, RemoteTransferIssue]
 
 pub fn commit_transition(RemoteTransferTransition, Bool) -> Result[RemoteTransferRecord, RemoteTransferIssue]
 
+pub fn destination_receipt_cid(RemoteTransferDestinationReceipt) -> String
+
+pub fn destination_receipt_json(RemoteTransferDestinationReceipt) -> Result[String, RemoteTransferIssue]
+
+pub fn destination_receipt_projection(RemoteTransferDestinationReceipt) -> Array[String]
+
 pub fn open_record(RemoteTransferRequest) -> RemoteTransferRecord
 
 pub fn prepare_cleanup(RemoteTransferRecord, Bool, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
 
 pub fn prepare_destination_commit(RemoteTransferRecord) -> Result[RemoteTransferTransition, RemoteTransferIssue]
+
+pub fn prepare_destination_receipt(RemoteTransferRequest, String) -> Result[RemoteTransferDestinationReceipt, RemoteTransferIssue]
 
 pub fn prepare_failure(RemoteTransferRecord, Bool, Bool) -> Result[RemoteTransferTransition, RemoteTransferIssue]
 
@@ -78,6 +88,8 @@ pub(all) enum RemoteTransferCleanupState {
   TransferCleanupForceLost
   TransferCleanupRecoveredAfterLoss
 } derive(Eq, @debug.Debug)
+
+type RemoteTransferDestinationReceipt
 
 pub(all) enum RemoteTransferIntegrityState {
   TransferIntegrityPending

@@ -4355,6 +4355,62 @@ pub fn strategy_remote_transfer_admit_json(
 }
 
 ///|
+#export_name("strategyRemoteTransferDestinationReceiptPrepare")
+pub fn strategy_remote_transfer_destination_receipt_prepare(
+  request : @transfer.RemoteTransferRequest,
+  destination_material_generation : String,
+) -> @transfer.RemoteTransferDestinationReceipt raise NodeHostFailure {
+  match
+    @transfer.prepare_destination_receipt(
+      request, destination_material_generation,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferDestinationReceiptJson")
+pub fn strategy_remote_transfer_destination_receipt_json(
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> String raise NodeHostFailure {
+  match @transfer.destination_receipt_json(receipt) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferDestinationReceiptIdentity")
+pub fn strategy_remote_transfer_destination_receipt_identity(
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> String {
+  @transfer.destination_receipt_cid(receipt)
+}
+
+///|
+#export_name("strategyRemoteTransferDestinationReceiptAdmitJson")
+pub fn strategy_remote_transfer_destination_receipt_admit_json(
+  body : String,
+  request : @transfer.RemoteTransferRequest,
+  claimed_receipt_cid : String,
+) -> @transfer.RemoteTransferDestinationReceipt raise NodeHostFailure {
+  match
+    @transfer.admit_destination_receipt_json(body, request, claimed_receipt_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferDestinationReceiptProjection")
+pub fn strategy_remote_transfer_destination_receipt_projection(
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+) -> Array[String] {
+  @transfer.destination_receipt_projection(receipt)
+}
+
+///|
 #export_name("strategyRemoteTransferProjection")
 pub fn strategy_remote_transfer_projection(
   request : @transfer.RemoteTransferRequest,
