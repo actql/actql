@@ -56,6 +56,7 @@ const extra = [
   ['actql/actql/remote_site_protocol','remote'],
   ['actql/actql/physical_manifest','manifest'],
   ['actql/actql/remote_transfer','transfer'],
+  ['actql/actql/remote_credential','credential'],
   ['actql/actql/connectors_workers_async','probe'],
   ['actql/actql/connectors/reference_compute/driver','numeric_driver'],
   ['actql/actql/connectors/local/driver','local_driver'],

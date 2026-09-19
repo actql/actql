@@ -1,0 +1,145 @@
+///|
+fn credential_cid(unit : String) -> String {
+  "sha256:" + unit.repeat(64)
+}
+
+///|
+fn credential_grant() -> RemoteCredentialGrant {
+  prepare_grant(
+    "credential-authority-a",
+    "principal-a",
+    "tenant-a",
+    "production",
+    "site-a",
+    4,
+    credential_cid("a"),
+    "http-source",
+    "http-source/1",
+    "https://resource.example",
+    "records:read",
+    credential_cid("b"),
+    2,
+    credential_cid("c"),
+    2000000000000L,
+    2,
+  ).unwrap()
+}
+
+///|
+test "credential grant has a canonical identity without secret material" {
+  let grant = credential_grant()
+  let body = credential_grant_json(grant).unwrap()
+  assert_eq(
+    body, "{\"connector_registration\":\"http-source\",\"connector_revision\":\"http-source/1\",\"dispatch_request_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"environment\":\"production\",\"expires_unix_ms\":\"2000000000000\",\"issuer_authority\":\"credential-authority-a\",\"max_uses\":2,\"operation\":\"records:read\",\"principal\":\"principal-a\",\"resource_origin\":\"https://resource.example\",\"run_invocation_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":4,\"site_key\":\"site-a\",\"task_attempt\":2,\"tenant\":\"tenant-a\",\"version\":\"actql-remote-credential-grant/0.1\"}",
+  )
+  assert_false(body.contains("secret"))
+  assert_eq(
+    credential_grant_cid(grant),
+    "sha256:fe76811ca6a170b6f8085c5ddce32e99391e1fd71bfb7229920dc80ab4fdc297",
+  )
+  assert_eq(
+    credential_grant_cid(
+      admit_grant_json(body, credential_grant_cid(grant)).unwrap(),
+    ),
+    credential_grant_cid(grant),
+  )
+  assert_true(
+    admit_grant_json(body + " ", credential_grant_cid(grant))
+    is Err(InvalidCredentialGrant),
+  )
+}
+
+///|
+test "credential use binds exact scope expiry revocation and ordinal" {
+  let grant = credential_grant()
+  let first = prepare_credential_use(
+    grant,
+    "use-a",
+    1999999999999L,
+    0,
+    false,
+    "principal-a",
+    "tenant-a",
+    "production",
+    "site-a",
+    4,
+    credential_cid("a"),
+    "http-source",
+    "http-source/1",
+    "https://resource.example",
+    "records:read",
+    credential_cid("b"),
+    2,
+    credential_cid("c"),
+  ).unwrap()
+  assert_eq(credential_use_projection(first)[3], "1")
+  assert_true(
+    prepare_credential_use(
+      grant,
+      "use-b",
+      2000000000000L,
+      1,
+      false,
+      "principal-a",
+      "tenant-a",
+      "production",
+      "site-a",
+      4,
+      credential_cid("a"),
+      "http-source",
+      "http-source/1",
+      "https://resource.example",
+      "records:read",
+      credential_cid("b"),
+      2,
+      credential_cid("c"),
+    )
+    is Err(CredentialGrantInactive),
+  )
+  assert_true(
+    prepare_credential_use(
+      grant,
+      "use-b",
+      1999999999999L,
+      1,
+      true,
+      "principal-a",
+      "tenant-a",
+      "production",
+      "site-a",
+      4,
+      credential_cid("a"),
+      "http-source",
+      "http-source/1",
+      "https://resource.example",
+      "records:read",
+      credential_cid("b"),
+      2,
+      credential_cid("c"),
+    )
+    is Err(CredentialGrantInactive),
+  )
+  assert_true(
+    prepare_credential_use(
+      grant,
+      "use-b",
+      1999999999999L,
+      1,
+      false,
+      "principal-a",
+      "tenant-a",
+      "production",
+      "site-a",
+      4,
+      credential_cid("a"),
+      "http-source",
+      "http-source/1",
+      "https://other.example",
+      "records:read",
+      credential_cid("b"),
+      2,
+      credential_cid("c"),
+    )
+    is Err(CredentialGrantInactive),
+  )
+}

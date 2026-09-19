@@ -9,7 +9,11 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_host",
+  "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
+  "actql/actql/remote_credential",
+  "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "actql/actql/run_publication",
 }
 
@@ -26,11 +30,21 @@ pub fn local_managed_start(@driver.LocalManagedDispatchConfiguration[Int]) -> @d
 
 pub fn local_registration(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @connector_sdk.CapabilityRegistration
 
+pub fn physical_manifest_admit(String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64) -> Array[String]
+
+pub fn physical_representation_contracts(String, Array[Int], Int) -> Array[String]
+
 pub fn strategy_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
+
+pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
+
+pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
+
+pub fn strategy_delivery_record_retry_action(Int, Int) -> Int
 
 pub fn strategy_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
 
@@ -38,11 +52,19 @@ pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContr
 
 pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
+pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
+pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
+
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
+
+pub fn strategy_host_cleanup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
 pub fn strategy_host_close_outputs(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
@@ -53,6 +75,8 @@ pub fn strategy_host_count(@connectors_workers.ConfiguredComputeHost[@physical_s
 pub fn strategy_host_explain(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn strategy_host_managed_failure_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_host_managed_input_count(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
@@ -166,17 +190,29 @@ pub fn strategy_host_task_capacity(@connectors_workers.ConfiguredComputeHost[@ph
 
 pub fn strategy_host_task_completed(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
 
+pub fn strategy_host_task_run_outcome(Bool, Bool) -> Int
+
+pub fn strategy_host_task_success_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_host_transfer_abort(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Bool) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_transfer_begin(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int64, Int64, Int64) -> @physical_strategy.ManagedTransfer raise NodeHostFailure
 
 pub fn strategy_host_transfer_charge(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
 
+pub fn strategy_host_transfer_cleanup_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+
+pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+
 pub fn strategy_host_transfer_complete(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
+
+pub fn strategy_host_transfer_destination_admitted(Bool, Bool, Int, Int, Int, Int, Int64, Int64, Int64, Int64) -> Bool
 
 pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool
 
 pub fn strategy_host_transfer_receipt(@physical_strategy.ManagedTransferReceipt) -> Array[Int64]
+
+pub fn strategy_host_transfer_receipt_matches(@physical_strategy.ManagedTransferReceipt, @physical_strategy.ManagedTransfer, Int, Int64, Int64) -> Bool
 
 pub fn strategy_host_transfer_release(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransferReceipt) -> Bool raise NodeHostFailure
 
@@ -230,6 +266,14 @@ pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String]
 
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_publication_attempt_action(@run_publication.PublicationContract?, Bool, Bool) -> Int
+
+pub fn strategy_publication_cancellation_action(@run_publication.PublicationContract?) -> Int
+
+pub fn strategy_publication_cleanup_owner_action(Int, Int, Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_publication_commit_failure_action(Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_publication_contract_identity(@run_publication.PublicationContract) -> String
 
 pub fn strategy_publication_contract_identity_field(@run_publication.PublicationContract) -> String
@@ -240,11 +284,343 @@ pub fn strategy_publication_contract_name(@run_publication.PublicationContract) 
 
 pub fn strategy_publication_preflight_valid(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], Array[Array[String]], Array[String], Array[String], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Bool
 
+pub fn strategy_publication_prepared_release_action(Int, Int, Bool, Bool, Bool) -> Int
+
 pub fn strategy_publication_record_allows_commit(@run_publication.PublicationContract) -> Bool
 
 pub fn strategy_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Bool
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+
+pub fn strategy_publication_setup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
+
+pub fn strategy_remote_admission_json(@remote_site_protocol.DispatchAdmission) -> String raise NodeHostFailure
+
+pub fn strategy_remote_admission_prepare(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchAdmission raise NodeHostFailure
+
+pub fn strategy_remote_budget_admit(Int64, Int64, String) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
+
+pub fn strategy_remote_budget_capacity(@remote_site_protocol.RemoteDispatchBudget) -> (Int64, Int64)
+
+pub fn strategy_remote_budget_identity(@remote_site_protocol.RemoteDispatchBudget) -> String
+
+pub fn strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -> String raise NodeHostFailure
+
+pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
+
+pub fn strategy_remote_coordinator_intent_commit(@remote_site_protocol.CoordinatorDispatchIntentAdmission, Bool) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
+
+pub fn strategy_remote_coordinator_intent_json(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_matches(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_coordinator_intent_prepare(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentAdmission raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_restore(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protocol.CoordinatorDispatchJournal raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_prepare_managed_output_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_prepare_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_prepare_observation_with_evidence(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_prepare_observation_without_evidence(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_prepare_unknown(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_record_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Int
+
+pub fn strategy_remote_coordinator_record_status(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
+
+pub fn strategy_remote_coordinator_transition_commit(@remote_site_protocol.CoordinatorDispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_key(@remote_site_protocol.CoordinatorDispatchTransition) -> Array[String]
+
+pub fn strategy_remote_coordinator_transition_projection(@remote_site_protocol.CoordinatorDispatchTransition) -> Array[String]
+
+pub fn strategy_remote_credential_grant_admit_json(String, String) -> @remote_credential.RemoteCredentialGrant raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_identity(@remote_credential.RemoteCredentialGrant) -> String
+
+pub fn strategy_remote_credential_grant_json(@remote_credential.RemoteCredentialGrant) -> String raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_prepare(String, String, String, String, String, Int, String, String, String, String, String, String, Int, String, Int64, Int) -> @remote_credential.RemoteCredentialGrant raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_projection(@remote_credential.RemoteCredentialGrant) -> Array[String]
+
+pub fn strategy_remote_credential_use_identity(@remote_credential.RemoteCredentialUse) -> String
+
+pub fn strategy_remote_credential_use_json(@remote_credential.RemoteCredentialUse) -> String raise NodeHostFailure
+
+pub fn strategy_remote_credential_use_prepare(@remote_credential.RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> @remote_credential.RemoteCredentialUse raise NodeHostFailure
+
+pub fn strategy_remote_credential_use_projection(@remote_credential.RemoteCredentialUse) -> Array[String]
+
+pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_admit_json(String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_budget_identity(@remote_site_protocol.DispatchRequest) -> String
+
+pub fn strategy_remote_dispatch_execution_scope(@remote_site_protocol.DispatchRequest) -> Array[String]
+
+pub fn strategy_remote_dispatch_identity(@remote_site_protocol.DispatchRequest) -> String
+
+pub fn strategy_remote_dispatch_journal_key(@remote_site_protocol.DispatchRequest) -> Array[String]
+
+pub fn strategy_remote_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_reply_json(@remote_site_protocol.DispatchRecord) -> String raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_response_admit_json(String, @remote_site_protocol.DispatchRequest, Bool) -> @remote_site_protocol.RemoteDispatchResponse raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_response_evidence(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteExecutionEvidence?
+
+pub fn strategy_remote_dispatch_response_measurement(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteManagedOutputMeasurement?
+
+pub fn strategy_remote_dispatch_response_projection(@remote_site_protocol.RemoteDispatchResponse) -> Array[Int]
+
+pub fn strategy_remote_dispatch_response_subject(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteManagedOutputSubject?
+
+pub fn strategy_remote_dispatch_status_json(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> String raise NodeHostFailure
+
+pub fn strategy_remote_execution_capability_scope(@remote_site_protocol.RemoteExecutionCapability) -> Array[String]
+
+pub fn strategy_remote_execution_evidence_admit(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
+pub fn strategy_remote_execution_evidence_admit_json(String, String, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
+pub fn strategy_remote_execution_evidence_identity(@remote_site_protocol.RemoteExecutionEvidence) -> String
+
+pub fn strategy_remote_execution_evidence_json(@remote_site_protocol.RemoteExecutionEvidence) -> String raise NodeHostFailure
+
+pub fn strategy_remote_execution_evidence_matches_dispatch(@remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_force_loss_commit(@remote_site_protocol.ForceLossTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_force_loss_key(@remote_site_protocol.ForceLossTransition) -> Array[String]
+
+pub fn strategy_remote_force_loss_projection(@remote_site_protocol.ForceLossTransition) -> Array[String]
+
+pub fn strategy_remote_historical_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_issue_execution_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
+pub fn strategy_remote_issue_managed_output_evidence(@remote_site_protocol.RemoteEvidenceIssuer, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteManagedOutputSubject) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
+pub fn strategy_remote_journal_create(@execution_site.ExecutionSite) -> @remote_site_protocol.SiteDispatchJournal raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_evidence_kind() -> String
+
+pub fn strategy_remote_managed_output_measurement_admit(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], String) -> @remote_site_protocol.RemoteManagedOutputMeasurement raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_measurement_admit_json(String, String) -> @remote_site_protocol.RemoteManagedOutputMeasurement raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_measurement_identity(@remote_site_protocol.RemoteManagedOutputMeasurement) -> String
+
+pub fn strategy_remote_managed_output_measurement_json(@remote_site_protocol.RemoteManagedOutputMeasurement) -> String raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_measurement_prepare(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> @remote_site_protocol.RemoteManagedOutputMeasurement raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_measurement_projection(@remote_site_protocol.RemoteManagedOutputMeasurement) -> Array[Array[Int]]
+
+pub fn strategy_remote_managed_output_subject_admit(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> @remote_site_protocol.RemoteManagedOutputSubject raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_subject_admit_json(String, String, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.RemoteManagedOutputSubject raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_subject_identity(@remote_site_protocol.RemoteManagedOutputSubject) -> String
+
+pub fn strategy_remote_managed_output_subject_json(@remote_site_protocol.RemoteManagedOutputSubject) -> String raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_subject_matches_evidence(@remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_managed_output_subject_matches_measurement(@remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> Bool
+
+pub fn strategy_remote_managed_output_subject_prepare(String, String, String, String, String, String, String, String, String, Int, Int64) -> @remote_site_protocol.RemoteManagedOutputSubject raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_subject_projection(@remote_site_protocol.RemoteManagedOutputSubject) -> Array[String]
+
+pub fn strategy_remote_managed_runtime_registration_scope(@remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_remote_poll_dispatch_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_prepare_cancelled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_evidence(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_evidence_rejection(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_execution(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_failed(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_force_loss(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DispatchRecord, Bool) -> @remote_site_protocol.ForceLossTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_loss_recovery(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_managed_provisioning(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionCapability, @remote_site_protocol.RemoteEvidenceIssuer) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_provisioning(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionCapability) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_reconciled_cancellation(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_reconciled_failure(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_release(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_released(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_restart(@remote_site_protocol.SiteDispatchJournal, @execution_site.ExecutionSite) -> @remote_site_protocol.SiteRestartTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_retained(@remote_site_protocol.DispatchRecord, String, String) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_settled(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_prepare_unknown(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_record_matches_dispatch(@remote_site_protocol.DispatchRecord, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_record_restore(@remote_site_protocol.DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_record_revision(@remote_site_protocol.DispatchRecord) -> Int
+
+pub fn strategy_remote_record_status(@remote_site_protocol.DispatchRecord) -> Array[Int]
+
+pub fn strategy_remote_register_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String, String) -> @remote_site_protocol.RemoteEvidenceIssuer raise NodeHostFailure
+
+pub fn strategy_remote_register_execution_capability(@execution_site.ExecutionSite, String, String, String, String, String) -> @remote_site_protocol.RemoteExecutionCapability raise NodeHostFailure
+
+pub fn strategy_remote_restart_at(@remote_site_protocol.SiteRestartTransition, Int) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_restart_commit(@remote_site_protocol.SiteRestartTransition, Bool) -> Int raise NodeHostFailure
+
+pub fn strategy_remote_restart_count(@remote_site_protocol.SiteRestartTransition) -> Int
+
+pub fn strategy_remote_restart_metadata(@remote_site_protocol.SiteRestartTransition) -> Array[String]
+
+pub fn strategy_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
+pub fn strategy_remote_runtime_cleanup_plan(@remote_site_protocol.DispatchRecord, Bool, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_failure_plan(@remote_site_protocol.DispatchRecord, Bool, Bool) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
+
+pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
+
+pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
+
+pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
+
+pub fn strategy_remote_transfer_admit_json(String, String, String, String, Int, Int, Int64) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
+
+pub fn strategy_remote_transfer_chunk_cids(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_chunk_row_counts(@remote_transfer.RemoteTransferRequest) -> Array[Int]
+
+pub fn strategy_remote_transfer_cleanup_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_commit_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_admit_json(String, @remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_identity(@remote_transfer.RemoteTransferDestinationReceipt) -> String
+
+pub fn strategy_remote_transfer_destination_receipt_json(@remote_transfer.RemoteTransferDestinationReceipt) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferDestinationReceipt raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_receipt_projection(@remote_transfer.RemoteTransferDestinationReceipt) -> Array[String]
+
+pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
+
+pub fn strategy_remote_transfer_journal_key(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_manifest_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_open(@remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord
+
+pub fn strategy_remote_transfer_prepare(String, String, Int, String, Int, String, Int, String, String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64, Int64, Int64, String, String, String) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
+
+pub fn strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
+
+pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_cleanup_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_complete_prepare(@remote_transfer.RemoteTransferStoreUseRecord, @remote_transfer.RemoteTransferDestinationReceipt) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_failure_prepare(@remote_transfer.RemoteTransferStoreUseRecord, Bool) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_identity(@remote_transfer.RemoteTransferStoreUse) -> String
+
+pub fn strategy_remote_transfer_store_use_open(@remote_transfer.RemoteTransferStoreUse) -> @remote_transfer.RemoteTransferStoreUseRecord
+
+pub fn strategy_remote_transfer_store_use_prepare(@remote_transfer.RemoteTransferRequest, String) -> @remote_transfer.RemoteTransferStoreUse raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_progress_prepare(@remote_transfer.RemoteTransferStoreUseRecord, Int, Int64) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_projection(@remote_transfer.RemoteTransferStoreUse) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_record_projection(@remote_transfer.RemoteTransferStoreUseRecord) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_record_restore(@remote_transfer.RemoteTransferStoreUse, Int, Int, Int, Int, Int64, Bool, String) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_start_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_transition_commit(@remote_transfer.RemoteTransferStoreUseTransition, Bool) -> @remote_transfer.RemoteTransferStoreUseRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_store_use_transition_journal_key(@remote_transfer.RemoteTransferStoreUseTransition) -> Array[String]
+
+pub fn strategy_remote_transfer_store_use_transition_projection(@remote_transfer.RemoteTransferStoreUseTransition) -> (Array[String], Array[String])
+
+pub fn strategy_remote_transfer_store_use_unknown_prepare(@remote_transfer.RemoteTransferStoreUseRecord) -> @remote_transfer.RemoteTransferStoreUseTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_transition_commit(@remote_transfer.RemoteTransferTransition, Bool) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_transition_journal_key(@remote_transfer.RemoteTransferTransition) -> Array[String]
+
+pub fn strategy_remote_transfer_transition_projection(@remote_transfer.RemoteTransferTransition) -> (Array[Int], Array[Int])
+
+pub fn strategy_remote_transfer_unknown_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
+
+pub fn strategy_remote_transition_projection(@remote_site_protocol.DispatchTransition) -> Array[String]
 
 pub fn strategy_result_metadata_retention_state(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
 
@@ -290,7 +666,13 @@ pub fn strategy_site_capacity_supports(@execution_site.ExecutionSite, Int64, Int
 
 pub fn strategy_site_create(String, Int, String, Int, Int, Int64, Int64) -> @execution_site.ExecutionSite?
 
+pub fn strategy_site_failed_operation_action(Bool, Bool, Bool) -> Int
+
+pub fn strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
+
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
+
+pub fn strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
 
 pub fn strategy_site_release_cleanup(@execution_site.SiteCleanup) -> Bool
 
@@ -304,9 +686,13 @@ pub fn strategy_site_retain_operation_holding(@execution_site.SiteOperation, Int
 
 pub fn strategy_site_retain_transfer_holding(@execution_site.SiteTransfer, Int64) -> @execution_site.SiteHolding?
 
+pub fn strategy_site_retained_holding_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_site_revoke(@execution_site.ExecutionSite) -> Unit
 
 pub fn strategy_site_revoked(@execution_site.ExecutionSite) -> Bool
+
+pub fn strategy_site_select_candidate(Array[Int64], Array[String]) -> Int
 
 pub fn strategy_site_settle_operation(@execution_site.SiteOperation) -> Bool
 
@@ -322,6 +708,8 @@ pub fn strategy_site_status(@execution_site.ExecutionSite) -> Array[Int64]
 
 pub fn strategy_site_transfer_available(@execution_site.SiteTransfer) -> Bool
 
+pub fn strategy_superseded_publication_finalization_action(@run_publication.PublicationContract?) -> Int
+
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
@@ -334,6 +722,10 @@ pub(all) suberror NodeHostFailure {
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
+  RemoteDispatch(@remote_site_protocol.DispatchIssue)
+  RemoteTransfer(@remote_transfer.RemoteTransferIssue)
+  RemoteCredential(@remote_credential.RemoteCredentialIssue)
+  PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
 }
 
 // Types and methods

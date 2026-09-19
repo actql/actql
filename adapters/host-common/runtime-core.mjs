@@ -14,6 +14,7 @@ const tuplePair = value => Array.isArray(value)
 const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
+const remoteCredentialControls = new WeakMap();
 const publicationControls = new WeakMap();
 
 function siteControl(moon) {
@@ -782,6 +783,64 @@ function remoteTransferControl(moon) {
     },
   });
   remoteTransferControls.set(moon, control);
+  return control;
+}
+
+function remoteCredentialControl(moon) {
+  let control = remoteCredentialControls.get(moon);
+  if (control !== undefined) return control;
+  const grantFields = grant => {
+    if (grant === null || typeof grant !== 'object') {
+      throw new TypeError('Invalid Remote Credential grant');
+    }
+    return [
+      grant.issuerAuthority,
+      grant.principal,
+      grant.tenant,
+      grant.environment,
+      grant.siteKey,
+      grant.siteGeneration,
+      grant.runtimeBundleCid,
+      grant.connectorRegistration,
+      grant.connectorRevision,
+      grant.resourceOrigin,
+      grant.operation,
+      grant.runInvocationCid,
+      grant.taskAttempt,
+      grant.dispatchRequestCid,
+      BigInt(grant.expiresUnixMilliseconds),
+      grant.maxUses,
+    ];
+  };
+  control = Object.freeze({
+    prepare: grant => checked(
+      moon.strategyRemoteCredentialGrantPrepare(...grantFields(grant)),
+    ),
+    identity: moon.strategyRemoteCredentialGrantIdentity,
+    json: grant => checked(moon.strategyRemoteCredentialGrantJson(grant)),
+    admitJson: (body, claimedGrantCid) => checked(
+      moon.strategyRemoteCredentialGrantAdmitJson(body, claimedGrantCid),
+    ),
+    projection: moon.strategyRemoteCredentialGrantProjection,
+    prepareUse(grant, request) {
+      if (request === null || typeof request !== 'object') {
+        throw new TypeError('Invalid Remote Credential use');
+      }
+      const scope = grantFields(request.scope);
+      return checked(moon.strategyRemoteCredentialUsePrepare(
+        grant,
+        request.useId,
+        BigInt(request.trustedNowMilliseconds),
+        request.usedCount,
+        request.revoked,
+        ...scope.slice(1, 15),
+      ));
+    },
+    useIdentity: moon.strategyRemoteCredentialUseIdentity,
+    useJson: value => checked(moon.strategyRemoteCredentialUseJson(value)),
+    useProjection: moon.strategyRemoteCredentialUseProjection,
+  });
+  remoteCredentialControls.set(moon, control);
   return control;
 }
 
@@ -1873,6 +1932,7 @@ export function runtimeCore(moon) {
     siteControl: siteControl(moon),
     remoteSiteControl: remoteSiteControl(moon),
     remoteTransferControl: remoteTransferControl(moon),
+    remoteCredentialControl: remoteCredentialControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,

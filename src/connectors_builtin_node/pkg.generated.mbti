@@ -10,6 +10,7 @@ import {
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
+  "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
@@ -372,6 +373,24 @@ pub fn strategy_remote_coordinator_transition_key(@remote_site_protocol.Coordina
 
 pub fn strategy_remote_coordinator_transition_projection(@remote_site_protocol.CoordinatorDispatchTransition) -> Array[String]
 
+pub fn strategy_remote_credential_grant_admit_json(String, String) -> @remote_credential.RemoteCredentialGrant raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_identity(@remote_credential.RemoteCredentialGrant) -> String
+
+pub fn strategy_remote_credential_grant_json(@remote_credential.RemoteCredentialGrant) -> String raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_prepare(String, String, String, String, String, Int, String, String, String, String, String, String, Int, String, Int64, Int) -> @remote_credential.RemoteCredentialGrant raise NodeHostFailure
+
+pub fn strategy_remote_credential_grant_projection(@remote_credential.RemoteCredentialGrant) -> Array[String]
+
+pub fn strategy_remote_credential_use_identity(@remote_credential.RemoteCredentialUse) -> String
+
+pub fn strategy_remote_credential_use_json(@remote_credential.RemoteCredentialUse) -> String raise NodeHostFailure
+
+pub fn strategy_remote_credential_use_prepare(@remote_credential.RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> @remote_credential.RemoteCredentialUse raise NodeHostFailure
+
+pub fn strategy_remote_credential_use_projection(@remote_credential.RemoteCredentialUse) -> Array[String]
+
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_admit_json(String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
@@ -726,6 +745,7 @@ pub(all) suberror NodeHostFailure {
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)
+  RemoteCredential(@remote_credential.RemoteCredentialIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
 }
 

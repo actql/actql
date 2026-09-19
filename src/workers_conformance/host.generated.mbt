@@ -12,6 +12,7 @@ pub(all) suberror NodeHostFailure {
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
+  RemoteCredential(@credential.RemoteCredentialIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
 }
 
@@ -4197,6 +4198,137 @@ pub fn strategy_remote_historical_restore(
 }
 
 ///|
+#export_name("strategyRemoteCredentialGrantPrepare")
+pub fn strategy_remote_credential_grant_prepare(
+  issuer_authority : String,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+  expires_unix_ms : Int64,
+  max_uses : Int,
+) -> @credential.RemoteCredentialGrant raise NodeHostFailure {
+  match
+    @credential.prepare_grant(
+      issuer_authority, principal, tenant, environment, site_key, site_generation,
+      runtime_bundle_cid, connector_registration, connector_revision, resource_origin,
+      operation, run_invocation_cid, task_attempt, dispatch_request_cid, expires_unix_ms,
+      max_uses,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialGrantIdentity")
+pub fn strategy_remote_credential_grant_identity(
+  grant : @credential.RemoteCredentialGrant,
+) -> String {
+  @credential.credential_grant_cid(grant)
+}
+
+///|
+#export_name("strategyRemoteCredentialGrantJson")
+pub fn strategy_remote_credential_grant_json(
+  grant : @credential.RemoteCredentialGrant,
+) -> String raise NodeHostFailure {
+  match @credential.credential_grant_json(grant) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialGrantAdmitJson")
+pub fn strategy_remote_credential_grant_admit_json(
+  body : String,
+  claimed_grant_cid : String,
+) -> @credential.RemoteCredentialGrant raise NodeHostFailure {
+  match @credential.admit_grant_json(body, claimed_grant_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialGrantProjection")
+pub fn strategy_remote_credential_grant_projection(
+  grant : @credential.RemoteCredentialGrant,
+) -> Array[String] {
+  @credential.credential_grant_projection(grant)
+}
+
+///|
+#export_name("strategyRemoteCredentialUsePrepare")
+pub fn strategy_remote_credential_use_prepare(
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  trusted_now_ms : Int64,
+  used_count : Int,
+  revoked : Bool,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+) -> @credential.RemoteCredentialUse raise NodeHostFailure {
+  match
+    @credential.prepare_credential_use(
+      grant, use_id, trusted_now_ms, used_count, revoked, principal, tenant, environment,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialUseIdentity")
+pub fn strategy_remote_credential_use_identity(
+  credential_use : @credential.RemoteCredentialUse,
+) -> String {
+  @credential.credential_use_cid(credential_use)
+}
+
+///|
+#export_name("strategyRemoteCredentialUseJson")
+pub fn strategy_remote_credential_use_json(
+  credential_use : @credential.RemoteCredentialUse,
+) -> String raise NodeHostFailure {
+  match @credential.credential_use_json(credential_use) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCredentialUseProjection")
+pub fn strategy_remote_credential_use_projection(
+  credential_use : @credential.RemoteCredentialUse,
+) -> Array[String] {
+  @credential.credential_use_projection(credential_use)
+}
+
+///|
 /// Portable physical-manifest admission. The string projection keeps the JS
 /// adapter independent from MoonBit object layout while retaining MoonBit as
 /// the only product authority for canonical identity and aggregate limits.
@@ -4870,6 +5002,7 @@ pub(all) suberror AsyncHostFailure {
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
+  RemoteCredential(@credential.RemoteCredentialIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
 }
 
@@ -9060,6 +9193,137 @@ pub fn async_strategy_remote_historical_restore(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialGrantPrepare")
+pub fn async_strategy_remote_credential_grant_prepare(
+  issuer_authority : String,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+  expires_unix_ms : Int64,
+  max_uses : Int,
+) -> @credential.RemoteCredentialGrant raise AsyncHostFailure {
+  match
+    @credential.prepare_grant(
+      issuer_authority, principal, tenant, environment, site_key, site_generation,
+      runtime_bundle_cid, connector_registration, connector_revision, resource_origin,
+      operation, run_invocation_cid, task_attempt, dispatch_request_cid, expires_unix_ms,
+      max_uses,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialGrantIdentity")
+pub fn async_strategy_remote_credential_grant_identity(
+  grant : @credential.RemoteCredentialGrant,
+) -> String {
+  @credential.credential_grant_cid(grant)
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialGrantJson")
+pub fn async_strategy_remote_credential_grant_json(
+  grant : @credential.RemoteCredentialGrant,
+) -> String raise AsyncHostFailure {
+  match @credential.credential_grant_json(grant) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialGrantAdmitJson")
+pub fn async_strategy_remote_credential_grant_admit_json(
+  body : String,
+  claimed_grant_cid : String,
+) -> @credential.RemoteCredentialGrant raise AsyncHostFailure {
+  match @credential.admit_grant_json(body, claimed_grant_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialGrantProjection")
+pub fn async_strategy_remote_credential_grant_projection(
+  grant : @credential.RemoteCredentialGrant,
+) -> Array[String] {
+  @credential.credential_grant_projection(grant)
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialUsePrepare")
+pub fn async_strategy_remote_credential_use_prepare(
+  grant : @credential.RemoteCredentialGrant,
+  use_id : String,
+  trusted_now_ms : Int64,
+  used_count : Int,
+  revoked : Bool,
+  principal : String,
+  tenant : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  operation : String,
+  run_invocation_cid : String,
+  task_attempt : Int,
+  dispatch_request_cid : String,
+) -> @credential.RemoteCredentialUse raise AsyncHostFailure {
+  match
+    @credential.prepare_credential_use(
+      grant, use_id, trusted_now_ms, used_count, revoked, principal, tenant, environment,
+      site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+      resource_origin, operation, run_invocation_cid, task_attempt, dispatch_request_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialUseIdentity")
+pub fn async_strategy_remote_credential_use_identity(
+  credential_use : @credential.RemoteCredentialUse,
+) -> String {
+  @credential.credential_use_cid(credential_use)
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialUseJson")
+pub fn async_strategy_remote_credential_use_json(
+  credential_use : @credential.RemoteCredentialUse,
+) -> String raise AsyncHostFailure {
+  match @credential.credential_use_json(credential_use) {
+    Ok(value) => value
+    Err(issue) => raise RemoteCredential(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCredentialUseProjection")
+pub fn async_strategy_remote_credential_use_projection(
+  credential_use : @credential.RemoteCredentialUse,
+) -> Array[String] {
+  @credential.credential_use_projection(credential_use)
 }
 
 ///|

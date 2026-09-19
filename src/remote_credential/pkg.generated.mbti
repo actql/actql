@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_credential"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_grant_json(String, String) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
+
+pub fn credential_grant_cid(RemoteCredentialGrant) -> String
+
+pub fn credential_grant_json(RemoteCredentialGrant) -> Result[String, RemoteCredentialIssue]
+
+pub fn credential_grant_projection(RemoteCredentialGrant) -> Array[String]
+
+pub fn credential_use_cid(RemoteCredentialUse) -> String
+
+pub fn credential_use_json(RemoteCredentialUse) -> Result[String, RemoteCredentialIssue]
+
+pub fn credential_use_projection(RemoteCredentialUse) -> Array[String]
+
+pub fn prepare_credential_use(RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
+
+pub fn prepare_grant(String, String, String, String, String, Int, String, String, String, String, String, String, Int, String, Int64, Int) -> Result[RemoteCredentialGrant, RemoteCredentialIssue]
+
+// Errors
+
+// Types and methods
+type RemoteCredentialGrant
+
+pub(all) enum RemoteCredentialIssue {
+  InvalidCredentialGrant
+  CredentialGrantIdentityMismatch
+  CredentialGrantInactive
+  CredentialUseCollision
+} derive(Eq, @debug.Debug)
+
+type RemoteCredentialUse
+
+// Type aliases
+
+// Traits
