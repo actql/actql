@@ -32,6 +32,30 @@ struct PayloadReader {
 }
 
 ///|
+struct PayloadDelivery {
+  reader : PayloadReader
+  frames : @publication.DurableResultRowFrames
+  serializer : @publication.ResultDeliverySerializer
+  input_chunk_bytes : Int
+  expected_rows : Int64
+  max_delivery_bytes : Int64
+  hash : @sha.Hasher
+  mut queued_rows : Array[String]
+  mut queued_index : Int
+  mut pending : Bytes
+  mut pending_offset : Int
+  mut source_eof : Bool
+  mut input_finished : Bool
+  mut serializer_finished : Bool
+  mut terminal : Bool
+  mut produced_bytes : Int64
+  mut emitted_bytes : Int64
+  mut emitted_rows : Int64
+  mut delivery_digest : String?
+  mut closed : Bool
+}
+
+///|
 fn[T] protocol(
   result : Result[T, @payload.PublicationPayloadIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
@@ -660,6 +684,267 @@ pub fn PayloadReader::close(
     Err(issue) => return Err(issue)
   }
   self.release_pin()
+  Ok(())
+}
+
+///|
+fn delivery(
+  result : Result[String, @publication.DeliverySerializationIssue],
+) -> Result[String, NativePublicationStoreIssue] {
+  match result {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Delivery(issue))
+  }
+}
+
+///|
+fn queue_delivery_output(
+  stream : PayloadDelivery,
+  output : String,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let bytes = @utf8.encode(output)
+  let size = bytes.length().to_int64()
+  if size > stream.max_delivery_bytes - stream.produced_bytes {
+    return Err(DeliveryLimit)
+  }
+  stream.produced_bytes += size
+  stream.pending = bytes
+  stream.pending_offset = 0
+  Ok(())
+}
+
+///|
+pub fn Store::open_payload_delivery(
+  self : Store,
+  material_generation_cid : String,
+  format : String,
+  schema_wire : String,
+  fields : Array[String],
+  input_chunk_bytes : Int,
+  max_row_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_delivery_bytes : Int64,
+) -> Result[PayloadDelivery, NativePublicationStoreIssue] {
+  if input_chunk_bytes < 1 ||
+    input_chunk_bytes > 16777216 ||
+    max_row_bytes < 1 ||
+    max_row_bytes > 16777216 ||
+    max_delivery_bytes < 0L {
+    return Err(InvalidConfiguration)
+  }
+  let info = match self.inspect_payload(material_generation_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if info.generation.size < 0L ||
+    info.generation.size > 2147483647L ||
+    info.row_count < 0L ||
+    info.row_count > 2147483647L {
+    return Err(InvalidConfiguration)
+  }
+  let serializer = match
+    @publication.prepare_result_delivery_serializer(
+      format, schema_wire, fields, max_row_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Delivery(issue))
+  }
+  let frames = match
+    @publication.prepare_durable_result_row_frames(
+      info.generation.size.to_int(),
+      info.row_count.to_int(),
+      max_row_bytes,
+      max_depth,
+      input_chunk_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RowFrame(issue))
+  }
+  let prefix = match delivery(@publication.begin_result_delivery(serializer)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let prefix_bytes = @utf8.encode(prefix)
+  if prefix_bytes.length().to_int64() > max_delivery_bytes {
+    return Err(DeliveryLimit)
+  }
+  let reader = match self.open_payload_reader(material_generation_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    reader,
+    frames,
+    serializer,
+    input_chunk_bytes,
+    expected_rows: info.row_count,
+    max_delivery_bytes,
+    hash: @sha.hasher(),
+    queued_rows: [],
+    queued_index: 0,
+    pending: prefix_bytes,
+    pending_offset: 0,
+    source_eof: false,
+    input_finished: false,
+    serializer_finished: false,
+    terminal: false,
+    produced_bytes: prefix_bytes.length().to_int64(),
+    emitted_bytes: 0L,
+    emitted_rows: 0L,
+    delivery_digest: None,
+    closed: false,
+  })
+}
+
+///|
+fn fill_delivery_pending(
+  stream : PayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  while stream.pending_offset == stream.pending.length() && !stream.terminal {
+    stream.pending = b""
+    stream.pending_offset = 0
+    if stream.queued_index < stream.queued_rows.length() {
+      let row = stream.queued_rows[stream.queued_index]
+      stream.queued_index += 1
+      let output = match
+        delivery(@publication.next_result_delivery_row(stream.serializer, row)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      stream.emitted_rows += 1L
+      match queue_delivery_output(stream, output) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      continue
+    }
+    stream.queued_rows = []
+    stream.queued_index = 0
+    if stream.source_eof {
+      if !stream.input_finished {
+        let summary = match
+          @publication.finish_durable_result_row_frames(stream.frames) {
+          Ok(value) => value
+          Err(issue) => return Err(RowFrame(issue))
+        }
+        match stream.reader.finish() {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        if summary.rows.to_int64() != stream.expected_rows ||
+          stream.emitted_rows != stream.expected_rows {
+          return Err(DeliveryIncomplete)
+        }
+        stream.input_finished = true
+      }
+      if !stream.serializer_finished {
+        let suffix = match
+          delivery(@publication.finish_result_delivery(stream.serializer)) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        stream.serializer_finished = true
+        match queue_delivery_output(stream, suffix) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        if stream.pending.length() == 0 {
+          stream.terminal = true
+        }
+        continue
+      }
+      stream.terminal = true
+      continue
+    }
+    let physical = match stream.reader.next(stream.input_chunk_bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let rows = match
+      @publication.feed_durable_result_row_frames(stream.frames, physical.bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(RowFrame(issue))
+    }
+    stream.queued_rows = rows
+    stream.source_eof = physical.eof
+  }
+  Ok(())
+}
+
+///|
+pub fn PayloadDelivery::next(
+  self : PayloadDelivery,
+  max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if max_bytes < 1 || max_bytes > 16777216 {
+    return Err(InvalidConfiguration)
+  }
+  match fill_delivery_pending(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if self.pending_offset == self.pending.length() {
+    return Ok({ bytes: b"", eof: self.terminal, })
+  }
+  let end = Int::min(self.pending.length(), self.pending_offset + max_bytes)
+  let bytes = self.pending[self.pending_offset:end].to_owned()
+  self.pending_offset = end
+  self.emitted_bytes += bytes.length().to_int64()
+  @sha.update(self.hash, bytes) catch {
+    _ => return Err(StateCollision)
+  }
+  if self.serializer_finished && self.pending_offset == self.pending.length() {
+    self.terminal = true
+  }
+  Ok({ bytes, eof: self.terminal, })
+}
+
+///|
+pub fn PayloadDelivery::finish(
+  self : PayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  if self.closed ||
+    !self.terminal ||
+    self.pending_offset != self.pending.length() ||
+    self.emitted_bytes != self.produced_bytes {
+    return Err(DeliveryIncomplete)
+  }
+  let digest = match self.delivery_digest {
+    Some(value) => value
+    None => {
+      let value = "sha256:" +
+        (@sha.finish_hex(self.hash) catch { _ => return Err(StateCollision) })
+      self.delivery_digest = Some(value)
+      value
+    }
+  }
+  self.closed = true
+  Ok({
+    bytes: self.emitted_bytes,
+    rows: self.emitted_rows,
+    delivery_digest: digest,
+  })
+}
+
+///|
+pub fn PayloadDelivery::close(
+  self : PayloadDelivery,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  if !self.input_finished {
+    match self.reader.close() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    @publication.cancel_durable_result_row_frames(self.frames)
+  }
+  self.closed = true
   Ok(())
 }
 

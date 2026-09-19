@@ -8,6 +8,7 @@ fn native_payload_request(
   authority : String,
   token : String,
   max_bytes : Int64,
+  row_count? : Int64 = 2L,
 ) -> @payload.PublicationPayloadRequest {
   @payload.prepare_publication_payload_request(
     authority,
@@ -19,8 +20,27 @@ fn native_payload_request(
     native_payload_cid(token + "-ordering"),
     native_payload_cid(token + "-codec"),
     max_bytes,
-    2L,
+    row_count,
   ).unwrap()
+}
+
+///|
+fn native_delivery_all(
+  stream : PayloadDelivery,
+  chunk_bytes : Int,
+) -> (String, NativePublicationDeliverySummary) {
+  let output : Array[Byte] = []
+  while true {
+    let chunk = stream.next(chunk_bytes).unwrap()
+    for byte in chunk.bytes {
+      output.push(byte)
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  let summary = stream.finish().unwrap()
+  (@utf8.decode_lossy(Bytes::from_array(output)), summary)
 }
 
 ///|
@@ -165,4 +185,121 @@ test "native publication capacity is shared by every handle for one root" {
   assert_eq(second.capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(first.close().unwrap())
   assert_true(second.close().unwrap())
+}
+
+///|
+test "native publication delivers JSON JSONL and CSV without Node" {
+  guard native_payload_fixture("delivery", 1024L) is Some((store, authority, _)) else {
+    return
+  }
+  let token = "delivery-" + @env.now().to_string()
+  let payload = "[{\"n\":1,\"t\":\"x\"},{\"n\":null,\"t\":\"日本語\"}]"
+  let request = native_payload_request(authority, token, 256L)
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(@utf8.encode(payload)).unwrap()
+  let info = writer.seal().unwrap()
+  let schema = "{\"n\":{\"nullable\":true,\"type\":\"integer\"}," +
+    "\"t\":{\"nullable\":false,\"type\":\"string\"}}"
+  let expected = [
+    ("json", payload),
+    ("jsonl", "{\"n\":1,\"t\":\"x\"}\n{\"n\":null,\"t\":\"日本語\"}\n"),
+    ("csv", "\"n\",\"t\"\n1,\"x\"\n\\N,\"日本語\"\n"),
+  ]
+  for entry in expected {
+    let stream = store
+      .open_payload_delivery(
+        info.material_generation_cid,
+        entry.0,
+        schema,
+        ["n", "t"],
+        5,
+        256,
+        32,
+        8,
+        1024L,
+      )
+      .unwrap()
+    let (actual, summary) = native_delivery_all(stream, 3)
+    assert_eq(actual, entry.1)
+    assert_eq(summary.rows, 2L)
+    assert_eq(summary.bytes, @utf8.encode(entry.1).length().to_int64())
+    assert_eq(
+      summary.delivery_digest,
+      "sha256:" + @sha.text_hex(entry.1).unwrap(),
+    )
+  }
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "empty native JSONL still reaches an explicit delivery end" {
+  guard native_payload_fixture("empty-delivery", 128L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let token = "empty-delivery-" + @env.now().to_string()
+  let request = native_payload_request(authority, token, 16L, row_count=0L)
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"[]").unwrap()
+  let info = writer.seal().unwrap()
+  let stream = store
+    .open_payload_delivery(
+      info.material_generation_cid,
+      "jsonl",
+      "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
+      ["n"],
+      2,
+      64,
+      8,
+      4,
+      0L,
+    )
+    .unwrap()
+  let terminal = stream.next(1).unwrap()
+  assert_true(terminal.eof)
+  assert_eq(terminal.bytes, b"")
+  let summary = stream.finish().unwrap()
+  assert_eq(summary.bytes, 0L)
+  assert_eq(summary.rows, 0L)
+  assert_eq(
+    summary.delivery_digest,
+    "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  )
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native delivery limit failure keeps its reader until explicit close" {
+  guard native_payload_fixture("delivery-limit", 128L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let token = "delivery-limit-" + @env.now().to_string()
+  let request = native_payload_request(authority, token, 64L, row_count=1L)
+  let writer = store.begin_payload(request).unwrap()
+  writer.append(b"[{\"n\":123}]").unwrap()
+  let info = writer.seal().unwrap()
+  let stream = store
+    .open_payload_delivery(
+      info.material_generation_cid,
+      "json",
+      "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
+      ["n"],
+      4,
+      64,
+      8,
+      4,
+      2L,
+    )
+    .unwrap()
+  assert_eq(stream.next(1).unwrap().bytes, b"[")
+  assert_true(stream.next(1) is Err(DeliveryLimit))
+  assert_true(
+    store.reclaim_payload(info.material_generation_cid) is Err(ReaderBusy),
+  )
+  stream.close().unwrap()
+  store.reclaim_payload(info.material_generation_cid).unwrap()
+  assert_true(store.close().unwrap())
 }

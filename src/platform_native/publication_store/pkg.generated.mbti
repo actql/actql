@@ -5,6 +5,7 @@ import {
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload",
+  "actql/actql/run_publication",
 }
 
 // Values
@@ -13,6 +14,17 @@ pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Resul
 // Errors
 
 // Types and methods
+pub(all) struct NativePublicationDeliveryChunk {
+  bytes : Bytes
+  eof : Bool
+}
+
+pub(all) struct NativePublicationDeliverySummary {
+  bytes : Int64
+  rows : Int64
+  delivery_digest : String
+}
+
 pub(all) struct NativePublicationPayloadInfo {
   material_generation_cid : String
   publication_attempt_cid : String
@@ -43,9 +55,18 @@ pub(all) enum NativePublicationStoreIssue {
   RecoveryRequired
   ExistingPayload
   DigestMismatch
+  Delivery(@run_publication.DeliverySerializationIssue)
+  RowFrame(@run_publication.DurableResultRowFrameIssue)
+  DeliveryLimit
+  DeliveryIncomplete
   CleanupPending
   ReaderBusy
 }
+
+type PayloadDelivery
+pub fn PayloadDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn PayloadDelivery::finish(Self) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue]
+pub fn PayloadDelivery::next(Self, Int) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue]
 
 type PayloadReader
 pub fn PayloadReader::close(Self) -> Result[Unit, NativePublicationStoreIssue]
@@ -62,6 +83,7 @@ pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest
 pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]
 pub fn Store::close(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
+pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]

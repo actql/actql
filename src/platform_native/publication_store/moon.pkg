@@ -4,6 +4,7 @@ import {
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload" @payload,
+  "actql/actql/run_publication" @publication,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
 }

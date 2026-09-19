@@ -8,6 +8,9 @@ type PayloadWriter
 type PayloadReader
 
 ///|
+type PayloadDelivery
+
+///|
 pub fn open_store(
   _library : @sqlite.Library,
   _root_path : String,
@@ -83,6 +86,44 @@ pub fn PayloadReader::finish(
 ///|
 pub fn PayloadReader::close(
   _self : PayloadReader,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Store::open_payload_delivery(
+  _self : Store,
+  _material_generation_cid : String,
+  _format : String,
+  _schema_wire : String,
+  _fields : Array[String],
+  _input_chunk_bytes : Int,
+  _max_row_bytes : Int,
+  _max_nodes : Int,
+  _max_depth : Int,
+  _max_delivery_bytes : Int64,
+) -> Result[PayloadDelivery, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn PayloadDelivery::next(
+  _self : PayloadDelivery,
+  _max_bytes : Int,
+) -> Result[NativePublicationDeliveryChunk, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn PayloadDelivery::finish(
+  _self : PayloadDelivery,
+) -> Result[NativePublicationDeliverySummary, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn PayloadDelivery::close(
+  _self : PayloadDelivery,
 ) -> Result[Unit, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }

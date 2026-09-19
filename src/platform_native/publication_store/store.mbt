@@ -10,6 +10,10 @@ pub(all) enum NativePublicationStoreIssue {
   RecoveryRequired
   ExistingPayload
   DigestMismatch
+  Delivery(@publication.DeliverySerializationIssue)
+  RowFrame(@publication.DurableResultRowFrameIssue)
+  DeliveryLimit
+  DeliveryIncomplete
   CleanupPending
   ReaderBusy
 }
@@ -33,4 +37,17 @@ pub(all) struct NativePublicationPayloadInfo {
 pub(all) struct NativePublicationRecovery {
   retained : Int
   reclaimed : Int
+}
+
+///|
+pub(all) struct NativePublicationDeliveryChunk {
+  bytes : Bytes
+  eof : Bool
+}
+
+///|
+pub(all) struct NativePublicationDeliverySummary {
+  bytes : Int64
+  rows : Int64
+  delivery_digest : String
 }

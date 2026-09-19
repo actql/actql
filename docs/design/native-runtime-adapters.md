@@ -140,6 +140,15 @@ record at a time. The physical digest is checked while a bounded reader emits
 the stored bytes. It remains distinct from the logical relation CID and from
 any delivery-format digest.
 
+Native delivery composes that verified reader with the portable durable-row
+framer and canonical JSON, JSONL, and CSV serializers. Input chunks, row
+frames, and caller-visible output chunks are independently bounded. The
+delivery digest covers the exact emitted format bytes and is not reused as the
+payload digest or logical CID. An empty JSONL delivery still produces an
+explicit terminal observation before its zero-byte digest can be finalized.
+Failure before terminal delivery keeps the payload reader pinned until the
+caller closes it or a later cleanup owner confirms release.
+
 ## HTTPS integration
 
 The native HTTPS adapter uses the maintained libcurl easy API through a thin C

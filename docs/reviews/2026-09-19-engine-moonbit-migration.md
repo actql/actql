@@ -10,7 +10,7 @@ owner and the superseded decision implementation has been removed.
 | Boundary | Product owner | Adapter responsibility | Current removal condition |
 | --- | --- | --- | --- |
 | Publication contract identity and admission | `run_publication` | Persist and retrieve admitted wire | Complete for current publication callers; the independent JavaScript fixture remains test-only. |
-| Publication and delivery progression | `run_publication` | Perform bounded Store, clock, and sink operations | Product callers use MoonBit actions; continue auditing failure and cleanup branches as native publication is connected. |
+| Publication and delivery progression | `run_publication` | Perform bounded Store, clock, and sink operations | Product callers and native payload delivery use MoonBit actions. Standard native Host publication admission and delivery receipts are still open. |
 | Durable publication payload lifecycle | `publication_payload` | Stream bounded bytes, persist exact transitions, and reclaim exact generations | Native filesystem and SQLite adapters use the portable owner. Standard native Host publication and delivery are still open. |
 | Durable Result row framing | `run_publication` | Supply bounded byte chunks and await emitted rows | Formal publication delivery uses the MoonBit parser. Remove `store-local/row-frames.mjs` after Local import, DuckDB import, and retained examples use the same owner. |
 | Execution Site and Transfer lifecycle | `execution_site` and `remote_transfer` | Stream bytes, observe stop, persist exact transitions | Remote paths use MoonBit transitions. The in-process Host orchestration audit remains open. |
