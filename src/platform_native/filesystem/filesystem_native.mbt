@@ -110,6 +110,17 @@ extern "C" fn verify_generation_ffi(
 
 ///|
 #borrow(root, name)
+extern "C" fn reclaim_generation_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+  size : Int64,
+) -> Int = "actql_native_filesystem_reclaim_generation"
+
+///|
+#borrow(root, name)
 extern "C" fn open_reader_ffi(
   root : Root,
   name : Bytes,
@@ -267,6 +278,36 @@ pub fn Root::verify_generation(
     generation.inode,
     generation.size,
   )
+}
+
+///|
+/// Durably removes one exact committed generation. A missing name is
+/// idempotent success, while a replacement generation is never removed.
+pub fn Root::reclaim_generation(
+  self : Root,
+  name : String,
+  generation : NativeFileGeneration,
+) -> Result[Unit, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  if generation.size < 0L {
+    return Err(GenerationMismatch)
+  }
+  let encoded = @utf8.encode(name)
+  match
+    reclaim_generation_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      generation.device,
+      generation.inode,
+      generation.size,
+    ) {
+    0 => Ok(())
+    1 => Err(GenerationMismatch)
+    _ => Err(Cleanup(decode_message(root_error_ffi(self))))
+  }
 }
 
 ///|

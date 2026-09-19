@@ -628,6 +628,62 @@ int32_t actql_native_filesystem_verify_generation(
   return matches;
 }
 
+int32_t actql_native_filesystem_reclaim_generation(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length,
+  uint64_t device,
+  uint64_t inode,
+  int64_t size
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&root->error, "object name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(name_text, (size_t)length) || size < 0) {
+    free(name_text);
+    actql_replace_error(&root->error, "invalid object generation");
+    return 1;
+  }
+  struct stat status;
+  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+    int stat_error = errno;
+    free(name_text);
+    if (stat_error == ENOENT) return 0;
+    actql_replace_errno_error(
+      &root->error,
+      "inspect committed file for reclamation",
+      stat_error
+    );
+    return -1;
+  }
+  if (!S_ISREG(status.st_mode) ||
+      !actql_exact_generation(&status, device, inode, size)) {
+    free(name_text);
+    actql_replace_error(&root->error, "generation mismatch");
+    return 1;
+  }
+  if (unlinkat(root->fd, name_text, 0) != 0) {
+    int unlink_error = errno;
+    free(name_text);
+    actql_replace_errno_error(
+      &root->error,
+      "remove committed generation",
+      unlink_error
+    );
+    return -1;
+  }
+  free(name_text);
+  if (fsync(root->fd) != 0) {
+    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    return -1;
+  }
+  return 0;
+}
+
 void *actql_native_filesystem_open_reader(
   actql_native_filesystem_root *root,
   moonbit_bytes_t name,

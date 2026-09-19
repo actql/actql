@@ -97,3 +97,22 @@ test "native filesystem reader requires exact generation and full read" {
   complete_reader.finish().unwrap()
   writer.cancel().unwrap()
 }
+
+///|
+test "native filesystem reclaims only the exact durable generation" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let token = @env.now().to_string()
+  let name = "reclaim-object-" + token
+  let writer = root.create_writer("reclaim-stage-" + token, 3L).unwrap()
+  writer.append(b"abc").unwrap()
+  let generation = writer.seal(name).unwrap()
+  let wrong = { ..generation, inode: generation.inode + 1UL, }
+  assert_true(root.reclaim_generation(name, wrong) is Err(GenerationMismatch))
+  assert_true(root.verify_generation(name, generation))
+  root.reclaim_generation(name, generation).unwrap()
+  assert_false(root.verify_generation(name, generation))
+  root.reclaim_generation(name, generation).unwrap()
+}
