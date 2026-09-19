@@ -496,6 +496,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         ? complete.has(2) ? complete.has(3) ? -1 : 3 : 2
         : 1;
       const core = {
+        siteControl,
         count: () => 4,
         next: () => assert.fail('managed fixture used the legacy path'),
         nextTask: current,
