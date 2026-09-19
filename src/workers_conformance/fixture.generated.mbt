@@ -22,14 +22,19 @@ fn captured_graph_fixture(
   local_values_lag_variant? : String = "literal",
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
+  local_values_analytic_chain? : Bool = false,
+  local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
   local_values_cross_singleton? : Bool = false,
+  local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
+  local_values_join_imported_full? : Bool = false,
+  local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
@@ -61,14 +66,19 @@ fn captured_graph_fixture(
     local_values_lag_variant~,
     local_values_watermark_chain~,
     local_values_watermark_variant~,
+    local_values_analytic_chain~,
+    local_values_analytic_variant~,
     local_values_append_chain~,
     local_values_append_variant~,
     local_values_cross_chain~,
     local_values_cross_singleton~,
+    local_values_cross_output_guard~,
     local_values_set_operation~,
     local_values_set_duplicates~,
     local_values_join_chain~,
     local_values_join_kind~,
+    local_values_join_imported_full~,
+    local_values_nest_chain~,
     local_values_unary_chain~,
     local_select_qualified_chain~,
     join_steps~,
@@ -291,6 +301,15 @@ fn local_json_pick_program() -> String {
 
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_numeric_pivot_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"sum\"",
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_ordered_set_program(kind : String) -> String {
   let operation = match kind {
     "sort" => "{\"sort\":[{\"id\":\"asc\"}],\"as\":\"out\"}"
@@ -408,10 +427,37 @@ fn local_ordered_set_program(kind : String) -> String {
 
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_pivot_first_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"first\"",
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_pivot_max_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"max\"",
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_pivot_min_fill_program() -> String {
   local_pivot_program().replace(
     old="\"aggregate\":\"count\"",
     new="\"aggregate\":\"min\",\"fill\":0",
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_pivot_parameter_fill_program() -> String {
+  local_pivot_program().replace(
+    old="\"aggregate\":\"count\"",
+    new="\"aggregate\":\"min\",\"fill\":{\"$param\":\"minimum\"}",
   )
 }
 
@@ -445,6 +491,137 @@ fn local_unpivot_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"jan":{"type":"number","nullable":true},"feb":{"type":"number","nullable":true}},"rows":[{"id":1,"jan":10,"feb":null},{"id":2,"jan":null,"feb":20}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","jan","feb"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"unpivot":{"columns":["jan","feb","jan"],"keep":["id","jan"],"name_column":"metric","value_column":"amount"},"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}},{"id":"compute_d","inputs":{"x":{"result":{"stage":"compute_b","result":"r"}}},"steps":[{"select":["amount","id","jan","metric"],"as":"out"}],"results":{"r":{"from":"out","fields":["amount","id","jan","metric"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
   )
+}
+
+///|
+/// Fixture owner: query_integration/local_managed_analytic_wbtest.mbt
+fn local_values_analytic_program(variant : String) -> String {
+  let (schema, rows, functions, fields, reordered) = match variant {
+    "baseline" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3},{\"amount\":20,\"group\":null,\"id\":2},{\"amount\":10,\"group\":\"a\",\"id\":1},{\"amount\":null,\"group\":null,\"id\":4},{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"n\":{\"fn\":\"count\",\"field\":\"amount\"},\"position\":{\"fn\":\"row_number\"},\"previous\":{\"fn\":\"lag\",\"expr\":\"amount\"}}",
+        "[\"amount\",\"group\",\"id\",\"n\",\"position\",\"previous\"]",
+        "[\"previous\",\"position\",\"n\",\"id\",\"group\",\"amount\"]",
+      )
+    "filtered_expression" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3},{\"amount\":20,\"group\":null,\"id\":2},{\"amount\":10,\"group\":\"a\",\"id\":1},{\"amount\":0,\"group\":null,\"id\":4},{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"lowest\":{\"fn\":\"min\",\"expr\":\"amount + 1\",\"filter\":\"amount > 0\"}}",
+        "[\"amount\",\"group\",\"id\",\"lowest\"]",
+        "[\"lowest\",\"id\",\"group\",\"amount\"]",
+      )
+    "numeric" | "numeric_take" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":10000000000000000,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":1,\"group\":\"a\",\"id\":2}," +
+        "{\"amount\":-10000000000000000,\"group\":\"a\",\"id\":3}]",
+        "{\"mean\":{\"fn\":\"avg\",\"field\":\"amount\"}," +
+        "\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}",
+        "[\"amount\",\"group\",\"id\",\"mean\",\"total\"]",
+        "[\"total\",\"mean\",\"id\",\"group\",\"amount\"]",
+      )
+    "navigation" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":20,\"group\":null,\"id\":2}," +
+        "{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":null,\"group\":null,\"id\":4}," +
+        "{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"dense\":{\"fn\":\"dense_rank\"}," +
+        "\"first\":{\"fn\":\"first_value\",\"expr\":\"amount\"}," +
+        "\"last\":{\"fn\":\"last_value\",\"expr\":\"amount\"}," +
+        "\"next\":{\"fn\":\"lead\",\"expr\":\"amount\"}," +
+        "\"position\":{\"fn\":\"row_number\"}," +
+        "\"previous\":{\"fn\":\"lag\",\"expr\":\"amount\"}," +
+        "\"ranked\":{\"fn\":\"rank\"}}",
+        "[\"amount\",\"dense\",\"first\",\"group\",\"id\"," +
+        "\"last\",\"next\",\"position\",\"previous\",\"ranked\"]",
+        "[\"ranked\",\"previous\",\"position\",\"next\",\"last\"," +
+        "\"id\",\"group\",\"first\",\"dense\",\"amount\"]",
+      )
+    "collections" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":30,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":20,\"group\":null,\"id\":2}," +
+        "{\"amount\":10,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":null,\"group\":null,\"id\":4}," +
+        "{\"amount\":30,\"group\":\"a\",\"id\":5}]",
+        "{\"items\":{\"fn\":\"array_agg\",\"field\":\"amount\"," +
+        "\"distinct\":true,\"max_items\":3}," +
+        "\"text\":{\"fn\":\"string_agg\",\"field\":\"group\"," +
+        "\"delimiter\":\"|\",\"max_bytes\":10}}",
+        "[\"amount\",\"group\",\"id\",\"items\",\"text\"]",
+        "[\"text\",\"items\",\"id\",\"group\",\"amount\"]",
+      )
+    "statistics" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":true}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":3,\"group\":\"a\",\"id\":3}," +
+        "{\"amount\":1,\"group\":\"a\",\"id\":1}," +
+        "{\"amount\":2,\"group\":\"a\",\"id\":2}]",
+        "{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"amount\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\"," +
+        "\"field\":\"amount\",\"fraction\":0.5}," +
+        "\"population\":{\"fn\":\"var_pop\",\"field\":\"amount\"}," +
+        "\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"amount\"},\"sample\":{\"fn\":\"var_samp\"," +
+        "\"field\":\"amount\"},\"sample_deviation\":{" +
+        "\"fn\":\"stddev_samp\",\"field\":\"amount\"}}",
+        "[\"amount\",\"continuous\",\"discrete\",\"group\",\"id\"," +
+        "\"population\",\"population_deviation\",\"sample\"," +
+        "\"sample_deviation\"]",
+        "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
+        "\"population\",\"id\",\"group\",\"discrete\"," +
+        "\"continuous\",\"amount\"]",
+      )
+    _ => abort("unknown Local analytic fixture")
+  }
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
+  "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
+  "{\"id\":\"analytic_rows\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
+  schema +
+  ",\"rows\":" +
+  rows +
+  "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":" +
+  functions +
+  "},\"as\":\"analytic_out\"}" +
+  (if variant == "numeric_take" {
+    ",{\"from\":\"analytic_out\",\"take\":1,\"as\":\"out\"}"
+  } else {
+    ",{\"from\":\"analytic_out\",\"select\":" + fields + ",\"as\":\"out\"}"
+  }) +
+  "],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"analytic_rows\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}}," +
+  "{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"analytic_rows\",\"result\":\"r\"}}},\"steps\":[{\"select\":" +
+  reordered +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  reordered +
+  "}}}],\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -580,6 +757,51 @@ fn local_values_group_program(variant : String) -> String {
         "[]", "{\"n\":{\"fn\":\"count\",\"field\":\"v\",\"distinct\":true}}", "[\"v\"]",
         "[\"n\"]", "[\"n\"]",
       )
+    "filtered_expression" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":false},\"k\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"id\":0,\"k\":1},{\"id\":1,\"k\":1},{\"id\":2,\"k\":1},{\"id\":2,\"k\":1}]",
+        "[\"k\"]", "{\"lowest\":{\"fn\":\"min\",\"expr\":\"10 / id\",\"filter\":\"id > 0\"}}",
+        "[\"id\",\"k\"]", "[\"k\",\"lowest\"]", "[\"lowest\",\"k\"]",
+      )
+    "statistics" =>
+      (
+        "{\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"n\":1},{\"n\":2},{\"n\":3},{\"n\":null}]",
+        "[]",
+        "{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"population\":{\"fn\":\"var_pop\",\"field\":\"n\"}," +
+        "\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"n\"},\"sample\":{\"fn\":\"var_samp\"," +
+        "\"field\":\"n\"},\"sample_deviation\":{" +
+        "\"fn\":\"stddev_samp\",\"field\":\"n\"}}",
+        "[\"n\"]",
+        "[\"continuous\",\"discrete\",\"population\"," +
+        "\"population_deviation\",\"sample\",\"sample_deviation\"]",
+        "[\"sample_deviation\",\"sample\",\"population_deviation\"," +
+        "\"population\",\"discrete\",\"continuous\"]",
+      )
+    "numeric" | "numeric_filter" | "numeric_regroup" =>
+      (
+        "{\"k\":{\"type\":\"number\",\"nullable\":true},\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"k\":1,\"n\":10000000000000000},{\"k\":1,\"n\":1},{\"k\":1,\"n\":-10000000000000000},{\"k\":null,\"n\":null}]",
+        "[\"k\"]",
+        "{\"mean\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}",
+        "[\"k\",\"n\"]",
+        if variant == "numeric_regroup" {
+          "[\"mean\",\"total\"]"
+        } else {
+          "[\"k\",\"mean\",\"total\"]"
+        },
+        if variant == "numeric_regroup" {
+          "[\"total\",\"mean\"]"
+        } else {
+          "[\"total\",\"mean\",\"k\"]"
+        },
+      )
     _ => abort("unknown Local group fixture")
   }
   let remote =
@@ -593,13 +815,26 @@ fn local_values_group_program(variant : String) -> String {
     selected +
     "}}}"
   }
-  let group_alias = "out"
+  let group_alias = if variant == "numeric_filter" ||
+    variant == "numeric_regroup" {
+    "grouped"
+  } else {
+    "out"
+  }
   let group_open = if variant == "collections" {
     "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"group\":{\"by\":"
   } else {
     "{\"group\":{\"by\":"
   }
-  let group_tail = ""
+  let group_tail = match variant {
+    "numeric_filter" =>
+      ",{\"from\":\"grouped\",\"filter\":\"total >= 0\",\"as\":\"out\"}"
+    "numeric_regroup" =>
+      ",{\"from\":\"grouped\",\"group\":{\"by\":[],\"aggregates\":{" +
+      "\"mean\":{\"fn\":\"avg\",\"field\":\"mean\"}," +
+      "\"total\":{\"fn\":\"sum\",\"field\":\"total\"}}},\"as\":\"out\"}"
+    _ => ""
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   remote +
   "," +
@@ -677,6 +912,14 @@ fn local_values_lag_program(variant : String) -> String {
 
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_values_nest_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"parents","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true}},"rows":[{"id":1,"key":1},{"id":2,"key":1},{"id":3,"key":null},{"id":4,"key":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key"]}}},{"id":"children","inputs":{},"steps":[{"values":{"schema":{"child_id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"value":{"type":"number","nullable":true}},"rows":[{"child_id":2,"key":1,"value":null},{"child_id":1,"key":1,"value":10},{"child_id":3,"key":null,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["child_id","key","value"]}}},{"id":"nested","inputs":{"parents":{"result":{"stage":"parents","result":"r"}},"children":{"result":{"stage":"children","result":"r"}}},"steps":[{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["id","key","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["items","id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["items","id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_unary_program(kind : String) -> String {
   if kind == "unnest" {
     return local_unnest_program()
@@ -693,8 +936,20 @@ fn local_values_unary_program(kind : String) -> String {
   if kind == "pivot" {
     return local_pivot_program()
   }
+  if kind == "pivot_numeric" {
+    return local_numeric_pivot_program()
+  }
   if kind == "pivot_min_fill" {
     return local_pivot_min_fill_program()
+  }
+  if kind == "pivot_parameter_fill" {
+    return local_pivot_parameter_fill_program()
+  }
+  if kind == "pivot_max" {
+    return local_pivot_max_program()
+  }
+  if kind == "pivot_first" {
+    return local_pivot_first_program()
   }
   if kind == "pivot_empty_axis" {
     return local_empty_axis_pivot_program()
@@ -851,6 +1106,19 @@ fn local_values_window_group_program(variant : String) -> String {
         "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}", "[\"n\",\"window_end\",\"window_start\"]",
         "[\"window_start\",\"n\",\"window_end\"]",
       )
+    "numeric" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"at\":1,\"n\":10000000000000000},{\"at\":2," +
+        "\"n\":1},{\"at\":3,\"n\":-10000000000000000}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"mean\":{\"fn\":\"avg\"," +
+        "\"field\":\"n\"},\"total\":{\"fn\":\"sum\"," +
+        "\"field\":\"n\"}}}",
+        "[\"mean\",\"total\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"total\",\"mean\",\"window_end\"]",
+      )
     "decimal_sum" =>
       (
         "{\"amount\":{\"type\":\"decimal\",\"precision\":38,\"scale\":2,\"nullable\":true},\"at\":{\"type\":\"number\",\"nullable\":false}}",
@@ -858,15 +1126,102 @@ fn local_values_window_group_program(variant : String) -> String {
         "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"total\":{\"fn\":\"sum\",\"field\":\"amount\"}}}",
         "[\"total\",\"window_end\",\"window_start\"]", "[\"window_start\",\"total\",\"window_end\"]",
       )
+    "filtered_expression" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":false},\"at\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":0,\"at\":1},{\"amount\":10,\"at\":2},{\"amount\":20,\"at\":11}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}", "{\"by\":[],\"aggregates\":{\"lowest\":{\"fn\":\"min\",\"expr\":\"100 / amount\",\"filter\":\"amount > 0\"}}}",
+        "[\"lowest\",\"window_end\",\"window_start\"]", "[\"window_start\",\"lowest\",\"window_end\"]",
+      )
+    "direct_aggregates" =>
+      (
+        "{\"amount\":{\"type\":\"decimal\",\"precision\":38," +
+        "\"scale\":2,\"nullable\":true},\"at\":{\"type\":\"number\"," +
+        "\"nullable\":false},\"flag\":{\"type\":\"boolean\"," +
+        "\"nullable\":true},\"id\":{\"type\":\"number\"," +
+        "\"nullable\":false},\"label\":{\"type\":\"string\"," +
+        "\"nullable\":true}}",
+        "[{\"amount\":\"1.25\",\"at\":1,\"flag\":true,\"id\":1," +
+        "\"label\":\"b\"},{\"amount\":\"2.00\",\"at\":2," +
+        "\"flag\":null,\"id\":2,\"label\":null},{\"amount\":null," +
+        "\"at\":3,\"flag\":false,\"id\":3,\"label\":\"a\"}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"distinct_labels\":{\"fn\":\"count\"," +
+        "\"field\":\"label\",\"distinct\":true}," +
+        "\"first\":{\"fn\":\"first\",\"field\":\"label\"," +
+        "\"order_by\":[{\"id\":\"asc\"}]},\"highest\":{\"fn\":\"max\"," +
+        "\"field\":\"label\"},\"hits\":{\"fn\":\"count_if\"," +
+        "\"field\":\"flag\"},\"last\":{\"fn\":\"last\",\"field\":\"label\"," +
+        "\"order_by\":[{" +
+        "\"id\":\"asc\"}]},\"lowest\":{\"fn\":\"min\"," +
+        "\"field\":\"label\"},\"total\":{\"fn\":\"sum\"," +
+        "\"field\":\"amount\"}}}",
+        "[\"distinct_labels\",\"first\",\"highest\",\"hits\",\"last\"," +
+        "\"lowest\",\"total\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"total\",\"lowest\",\"last\",\"hits\"," +
+        "\"highest\",\"first\",\"distinct_labels\",\"window_end\"]",
+      )
+    "collection_aggregates" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"label\":{\"type\":\"string\",\"nullable\":true}}",
+        "[{\"at\":1,\"id\":1,\"label\":\"b\"},{\"at\":2," +
+        "\"id\":2,\"label\":null},{\"at\":3,\"id\":3," +
+        "\"label\":\"a\"},{\"at\":4,\"id\":4,\"label\":\"b\"}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\"," +
+        "\"field\":\"label\",\"distinct\":true,\"order_by\":[{" +
+        "\"id\":\"asc\"}],\"max_items\":3},\"text\":{\"fn\":\"string_agg\"," +
+        "\"field\":\"label\"," +
+        "\"distinct\":true,\"order_by\":[{\"id\":\"desc\"}]," +
+        "\"delimiter\":\"|\",\"max_bytes\":10}}}",
+        "[\"items\",\"text\",\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"text\",\"items\",\"window_end\"]",
+      )
+    "statistical_aggregates" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"n\":{\"type\":\"number\",\"nullable\":true}}",
+        "[{\"at\":1,\"n\":1},{\"at\":2,\"n\":2},{\"at\":3," +
+        "\"n\":3},{\"at\":4,\"n\":null}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+        "{\"by\":[],\"aggregates\":{\"continuous\":{\"fn\":\"percentile_cont\"," +
+        "\"field\":\"n\",\"fraction\":0.5}," +
+        "\"discrete\":{\"fn\":\"percentile_disc\",\"field\":\"n\"," +
+        "\"fraction\":0.5},\"population\":{\"fn\":\"var_pop\"," +
+        "\"field\":\"n\"},\"population_deviation\":{\"fn\":\"stddev_pop\"," +
+        "\"field\":\"n\"},\"sample\":{\"fn\":\"var_samp\",\"field\":\"n\"}," +
+        "\"sample_deviation\":{\"fn\":\"stddev_samp\",\"field\":\"n\"}}}",
+        "[\"continuous\",\"discrete\",\"population\"," +
+        "\"population_deviation\",\"sample\",\"sample_deviation\"," +
+        "\"window_end\",\"window_start\"]",
+        "[\"window_start\",\"sample_deviation\",\"sample\"," +
+        "\"population_deviation\",\"population\",\"discrete\"," +
+        "\"continuous\",\"window_end\"]",
+      )
     _ => abort("unknown Local window group fixture")
   }
+  let ordered = variant == "direct_aggregates" ||
+    variant == "collection_aggregates"
+  let order_evidence = if ordered {
+    ",{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+    "\"as\":\"unique\"}"
+  } else {
+    ""
+  }
+  let window_input = if ordered { "unique" } else { "seed" }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
   "{\"id\":\"windowed\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
   schema +
   ",\"rows\":" +
   rows +
-  "},\"as\":\"seed\"},{\"from\":\"seed\",\"row_window\":" +
+  "},\"as\":\"seed\"}" +
+  order_evidence +
+  ",{\"from\":\"" +
+  window_input +
+  "\",\"row_window\":" +
   window +
   ",\"as\":\"windowed\"},{\"from\":\"windowed\",\"window_group\":" +
   group +
@@ -909,6 +1264,11 @@ fn local_values_window_program(variant : String) -> String {
       (
         "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
         "[{\"at\":2,\"id\":1}]", "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":3,\"offset\":-9007199254740991}",
+      )
+    "parameter" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"at\":-1,\"id\":1},{\"at\":2,\"id\":2},{\"at\":12,\"id\":3}]", "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":{\"$param\":\"minimum\"},\"step\":{\"$param\":\"minimum\"}}",
       )
     _ => abort("unknown Local window fixture")
   }
@@ -1072,7 +1432,30 @@ fn query_capture_limits() -> @planning.QueryEvidenceLimits {
 fn query_catalog_from_wire(
   wire : String,
   expected? : String = "sha256:8b7d6e867b4078f8ec1440aff53de9c73e980058b65827ec9a28707fcf5106d3",
+  analytic? : Bool = false,
 ) -> @environment.SourceRequestContracts {
+  let expected = if analytic {
+    "sha256:bab3f460743379f098af60441c3f95ef75dfaea2caf462c4115792a1141d1c19"
+  } else {
+    expected
+  }
+  let wire = if analytic {
+    wire
+    .replace(
+      old="\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\"",
+      new="\"evidence_bundle_cid\":\"" + expected + "\"",
+    )
+    .replace(
+      old="\"max_aggregate_array_items\":10000,",
+      new="\"max_aggregate_array_items\":10000," +
+        "\"max_analytic_frame_memberships\":10000," +
+        "\"max_analytic_input_wire_bytes\":10000," +
+        "\"max_analytic_output_wire_bytes\":10000," +
+        "\"max_analytic_partition_wire_bytes\":10000,",
+    )
+  } else {
+    wire
+  }
   let caps : @environment.Limits = {
     max_bytes: 1000000,
     max_nodes: 100000,
@@ -1167,14 +1550,19 @@ fn query_checked_program_fixture(
   local_values_lag_variant? : String = "literal",
   local_values_watermark_chain? : Bool = false,
   local_values_watermark_variant? : String = "fixed_mark",
+  local_values_analytic_chain? : Bool = false,
+  local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
   local_values_cross_singleton? : Bool = false,
+  local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
   local_values_set_duplicates? : String = "all",
   local_values_join_chain? : Bool = false,
   local_values_join_kind? : String = "inner",
+  local_values_join_imported_full? : Bool = false,
+  local_values_nest_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   join_steps? : Array[Int] = [0],
@@ -1214,6 +1602,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_watermark_chain {
     local_values_watermark_program(local_values_watermark_variant)
+  } else {
+    text
+  }
+  let text = if local_values_analytic_chain {
+    local_values_analytic_program(local_values_analytic_variant)
   } else {
     text
   }
@@ -1274,7 +1667,7 @@ fn query_checked_program_fixture(
   }
   let text = if local_values_cross_chain {
     let cross =
-      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE____OUTPUT_GUARD__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     cross
     .replace(
       old="__RIGHT_EXTRA__",
@@ -1286,6 +1679,13 @@ fn query_checked_program_fixture(
         ",\"right_rows\":\"one\""
       } else {
         ""
+      },
+    )
+    .replace(
+      old="__OUTPUT_GUARD__",
+      new=match local_values_cross_output_guard {
+        Some(value) => ",\"max_output_rows\":" + value.to_string()
+        None => ""
       },
     )
   } else {
@@ -1307,14 +1707,30 @@ fn query_checked_program_fixture(
   } else {
     text
   }
-  let text = if local_values_join_chain && local_values_join_kind == "full" {
+  let text = if local_values_join_imported_full {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]} ,"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","r"]}}},{"id":"joined","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    )
+  } else {
+    text
+  }
+  let text = if local_values_join_chain &&
+    local_values_join_kind == "full" &&
+    !local_values_join_imported_full {
     (
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"joined","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"l":{"type":"string","nullable":false}},"rows":[{"id":1,"l":"l1"},{"id":1,"l":"l2"},{"id":2,"l":"l3"}]},"as":"left_raw"},{"from":"left_raw","distinct":["id","l"],"as":"left_rows"},{"values":{"schema":{"id":{"type":"number","nullable":false},"r":{"type":"string","nullable":false}},"rows":[{"id":1,"r":"r1"},{"id":1,"r":"r2"},{"id":3,"r":"r3"},{"id":4,"r":"r4"}]},"as":"right_raw"},{"from":"right_raw","distinct":["id","r"],"as":"right_rows"},{"from":"left_rows","join":{"with":"right_rows","kind":"full","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","l":"left.l","r":"right.r"}},"as":"joined_raw"},{"from":"joined_raw","distinct":true,"as":"unique"},{"from":"unique","sort":[{"id":"asc"},{"l":"asc"},{"r":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["id","l","r"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","l","r"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"joined","result":"r"}}},"steps":[{"select":["r","l","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["r","l","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
     )
   } else {
     text
   }
-  let text = if local_values_join_chain && local_values_join_kind == "full" {
+  let text = if local_values_nest_chain {
+    local_values_nest_program()
+  } else {
+    text
+  }
+  let text = if local_values_join_chain &&
+    local_values_join_kind == "full" &&
+    !local_values_join_imported_full {
     text.replace(
       old="{\"select\":[\"r\",\"l\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"r\",\"l\",\"id\"]}}}",
       new="{\"select\":[\"id\",\"l\",\"r\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"l\",\"r\"]}}}",
@@ -1457,7 +1873,9 @@ fn query_checked_program_fixture(
             } else if nullable {
               query_nullable_catalog_fixture()
             } else {
-              query_program_catalog_fixture()
+              query_program_catalog_fixture(
+                analytic=local_values_analytic_chain,
+              )
             },
           ),
         ),
@@ -1546,10 +1964,12 @@ fn query_checked_program_fixture(
       ),
     ]
   } else if local_values_join_chain {
-    let full = local_values_join_kind == "full"
+    let same_stage_full = local_values_join_kind == "full" &&
+      !local_values_join_imported_full
+    let imported_full = local_values_join_imported_full
     let left = query_capacity_proof(
       "actql.bound.values",
-      if full {
+      if same_stage_full || imported_full {
         3L
       } else {
         4L
@@ -1559,19 +1979,19 @@ fn query_checked_program_fixture(
     )
     let right = query_capacity_proof(
       "actql.bound.values",
-      if full {
+      if same_stage_full || imported_full {
         4L
       } else {
         5L
       },
       "{\"op\":\"source\"}",
-      step=if full { 2 } else { 0 },
+      step=if same_stage_full { 2 } else { 0 },
     )
     let left_cid = @wire.cid(@wire.program_proof_witness(left))
     let right_cid = @wire.cid(@wire.program_proof_witness(right))
     let joined = query_capacity_proof(
       "actql.bound.join-output",
-      if full {
+      if same_stage_full || imported_full {
         12L
       } else if local_values_join_kind == "semi" ||
         local_values_join_kind == "anti" {
@@ -1581,13 +2001,13 @@ fn query_checked_program_fixture(
       },
       "{\"op\":\"source\"}",
       inputs=[left_cid, right_cid],
-      step=if full { 4 } else { 0 },
+      step=if same_stage_full { 4 } else { 0 },
     )
     [
       join_graph_capacity_material(
         environment,
         "joined",
-        steps=if full { [4] } else { [0] },
+        steps=if same_stage_full { [4] } else { [0] },
         proofs=[left, right, joined],
         candidates=[joined],
       ),
@@ -1607,6 +2027,30 @@ fn query_checked_program_fixture(
           tea: false,
           calendar: false,
           text_rank: false,
+        },
+        numeric_profile=if (
+            local_values_group_chain &&
+            (
+              local_values_group_variant == "numeric" ||
+              local_values_group_variant == "numeric_filter" ||
+              local_values_group_variant == "numeric_regroup"
+            )
+          ) ||
+          (
+            local_values_window_group_chain &&
+            local_values_window_group_variant == "numeric"
+          ) ||
+          (
+            local_values_analytic_chain &&
+            (
+              local_values_analytic_variant == "numeric" ||
+              local_values_analytic_variant == "numeric_take"
+            )
+          ) ||
+          local_values_unary_chain == Some("pivot_numeric") {
+          Some(@numeric.builtin_profile())
+        } else {
+          None
         },
       ),
       Some(input_cursor(parameter_json)),
@@ -1772,10 +2216,13 @@ fn query_nullable_catalog_fixture() -> @environment.SourceRequestContracts {
 ///|
 /// Fixture owner: query_integration/query_program_catalog_wbtest.mbt
 // Fixed scan catalog with explicit Host capacity. No execution success evidence.
-fn query_program_catalog_fixture() -> @environment.SourceRequestContracts {
+fn query_program_catalog_fixture(
+  analytic? : Bool = false,
+) -> @environment.SourceRequestContracts {
   query_catalog_from_wire(
     "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:0fc7ba404624b0490f013122e852411fbd111d41cd61bb49545589c674285f7f\",\"commands\":[],\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contracts\":[{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}]}],\"contract_registry\":[{\"body\":{},\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{},\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"kind\":\"pushdown\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"kind\":\"request_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"kind\":\"carrier_schema\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"},{\"body\":{\"classification\":\"unknown\",\"source_ref\":\"connector://crm/main/r#v\",\"version\":\"actql-source-data-policy/0.1\"},\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"kind\":\"data_policy\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}],\"evidence_bundle_cid\":\"sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":10000,\"max_artifact_bytes\":10000,\"max_artifact_rows\":10000,\"max_effect_items\":10000,\"max_graph_input_edges\":10000,\"max_graph_input_nodes\":10000,\"max_graph_output_rows\":10000,\"max_graph_paths\":10000,\"max_infer_items\":10000,\"max_model_input_tokens_per_item\":10000,\"max_model_request_bytes_per_item\":10000,\"max_model_total_duration_ms\":10000,\"max_nested_value_bytes\":10000,\"max_nested_value_depth\":10000,\"max_relation_output_rows\":10000,\"max_temporal_matches_per_key\":10000,\"max_temporal_output_rows\":10000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[{\"acquisition\":{\"authority\":\"read_metadata\",\"default_mode\":\"snapshot\",\"kind\":\"scan\",\"modes\":[{\"bounded\":true,\"mode\":\"snapshot\"}],\"request_schema\":{\"cid\":\"sha256:bcb09919b8eef2947328d975739353f2717a7781b6ae42617da071a54930aa74\",\"id\":\"fixture-0\",\"version\":\"fixture\"}},\"connector_id\":\"crm/main\",\"connector_version\":\"fixture\",\"contract_cid\":\"sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f\",\"output\":{\"carrier\":\"relation\",\"data_policy\":{\"cid\":\"sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf\",\"id\":\"fixture-2\",\"version\":\"fixture\"},\"facts\":{\"cid\":\"sha256:804b56a824b1f2249b87fefa25e45e7e327d3aaf519b264df52bc6296d86c905\",\"id\":\"fixture-3\",\"version\":\"fixture\"},\"schema\":{\"cid\":\"sha256:19f617653f557bcc5e2d851a889101df45e60326a4192a6fe5b109ccef4d0a1e\",\"id\":\"fixture-1\",\"version\":\"fixture\"}},\"pushdown\":{\"contract\":{\"cid\":\"sha256:b1632a74e9ccd886ba08fb5082e7e053fe9cc1b141e8a48da7fec928a2e9fc24\",\"id\":\"fixture-4\",\"version\":\"fixture\"},\"operations\":[]},\"request_processing\":{\"mutates_business_state\":false},\"resource_kind\":\"record\",\"schema\":\"actql.source_view/0.1\",\"view_id\":\"v\",\"view_version\":\"fixture\"}],\"version\":\"actql-check-environment/0.1\"}",
     expected="sha256:059b3d209d1c7577146bcd078a7b369186bf425ead03fd661b1cd216ddac0b74",
+    analytic~,
   )
 }
 
@@ -1800,7 +2247,7 @@ fn query_retention_limits() -> @mock.MockRetentionLimits {
 fn registered_body() -> @identity.CanonicalValue raise {
   @identity.from_json(
     @json.parse(
-      "{\"REL.select\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.where\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_all\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_unique\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.derive\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_extensions\":{\"ordered_bindings\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.derive.ordered\",\"cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}},\"REL.orderByStable\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.limit\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.fixed\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.sliding\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.project\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.lag\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.watermark\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.pivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unpivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unnest\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.dedupeRows\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.json.pick\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.groupBy\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.distinct\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unionAll\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.except_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.intersect_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.cross_join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.topk_partitioned\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"SGA.normalize\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.reachable\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.bounds_check\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.degree_metrics\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.apply_delta\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.diff\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.graft\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.union_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.diff_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.match_nodes\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.match_edges\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.traverse\":{\"inputs\":[\"graph\",\"relation\"],\"output\":\"relation\"},\"SGA.shortest_path\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.components\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"TEA.window.fixed_label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.sliding_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.watermark.label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.session_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.dedupe\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.join.asof\":{\"inputs\":[\"event_stream\",\"relation\"],\"output\":\"relation\"},\"TEA.sequence.match\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"VEC.normalize_l2\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.score_sort\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.knn_join\":{\"inputs\":[\"vector_set\",\"vector_set\"],\"output\":\"relation\"},\"VEC.pool\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.merge_rankings\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"BRIDGE.graph.to_edge_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.graph.to_node_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.rows.to_graph\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"graph\"},\"BRIDGE.events.to_rows\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"BRIDGE.rows.to_events\":{\"inputs\":[\"relation\"],\"output\":\"event_stream\"},\"BRIDGE.vectors.to_rows\":{\"inputs\":[\"vector_set\"],\"output\":\"relation\"},\"BRIDGE.rows.to_vectors\":{\"inputs\":[\"relation\"],\"output\":\"vector_set\"},\"EFFECT.plan\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.values\":{\"inputs\":[],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.values\",\"cid\":\"sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44\"}},\"ACTQL.expression_fragment/0.1\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/ACTQL.expression_fragment~10.1\",\"cid\":\"sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60\"}}}",
+      "{\"REL.select\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.where\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_all\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.assert_unique\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.derive\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_extensions\":{\"ordered_bindings\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.derive.ordered\",\"cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}},\"REL.orderByStable\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.limit\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.topk\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.fixed\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.sliding\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.project\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.window.lag\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.watermark\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.pivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unpivot\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unnest\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.dedupeRows\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.json.pick\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.groupBy\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.distinct\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.unionAll\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.except_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.intersect_rows\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.cross_join\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"REL.topk_partitioned\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.analytic\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"SGA.normalize\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.reachable\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.bounds_check\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.degree_metrics\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.apply_delta\":{\"inputs\":[\"graph\"],\"output\":\"graph\"},\"SGA.diff\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"relation\"},\"SGA.graft\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.union_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.diff_structural\":{\"inputs\":[\"graph\",\"graph\"],\"output\":\"graph\"},\"SGA.match_nodes\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.match_edges\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.traverse\":{\"inputs\":[\"graph\",\"relation\"],\"output\":\"relation\"},\"SGA.shortest_path\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"SGA.components\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"TEA.window.fixed_label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.sliding_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.watermark.label\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.window.session_assign\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.dedupe\":{\"inputs\":[\"event_stream\"],\"output\":\"event_stream\"},\"TEA.join.asof\":{\"inputs\":[\"event_stream\",\"relation\"],\"output\":\"relation\"},\"TEA.sequence.match\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"VEC.normalize_l2\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.score_sort\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.knn_join\":{\"inputs\":[\"vector_set\",\"vector_set\"],\"output\":\"relation\"},\"VEC.pool\":{\"inputs\":[\"vector_set\"],\"output\":\"vector_set\"},\"VEC.merge_rankings\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"relation\"},\"BRIDGE.graph.to_edge_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.graph.to_node_rows\":{\"inputs\":[\"graph\"],\"output\":\"relation\"},\"BRIDGE.rows.to_graph\":{\"inputs\":[\"relation\",\"relation\"],\"output\":\"graph\"},\"BRIDGE.events.to_rows\":{\"inputs\":[\"event_stream\"],\"output\":\"relation\"},\"BRIDGE.rows.to_events\":{\"inputs\":[\"relation\"],\"output\":\"event_stream\"},\"BRIDGE.vectors.to_rows\":{\"inputs\":[\"vector_set\"],\"output\":\"relation\"},\"BRIDGE.rows.to_vectors\":{\"inputs\":[\"relation\"],\"output\":\"vector_set\"},\"EFFECT.plan\":{\"inputs\":[\"relation\"],\"output\":\"relation\"},\"REL.values\":{\"inputs\":[],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/REL.values\",\"cid\":\"sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44\"}},\"ACTQL.expression_fragment/0.1\":{\"inputs\":[\"relation\"],\"output\":\"relation\",\"execution_contract\":{\"file\":\"spec/contracts/actql-aoa.json\",\"pointer\":\"/execution_contracts/ACTQL.expression_fragment~10.1\",\"cid\":\"sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60\"}}}",
     ),
     10000,
     100,
@@ -1991,9 +2438,7 @@ fn task_test_generated(
               aggregate < @lower.group_aggregate_count(group)
               aggregate = aggregate + 1 {
             let value = @lower.group_aggregate_at(group, aggregate).unwrap()
-            if @lower.group_aggregate_filter(value) is Some(_) ||
-              @lower.group_aggregate_argument(value)
-              is @lower.AggregateExpression(_) {
+            if @lower.group_aggregate_requires_expression_context(value) {
               required = true
             }
           }
@@ -2001,6 +2446,10 @@ fn task_test_generated(
             contexts.push(sequence_fragment_context(sequence, step, 10L))
           }
         }
+        AnalyticRows(analytic) =>
+          if @lower.analytic_requires_expression_context(analytic) {
+            contexts.push(sequence_fragment_context(sequence, step, 10L))
+          }
         _ => ()
       }
     }

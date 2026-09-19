@@ -28,6 +28,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/execution_query" @query,
   "actql/actql/sourceview_resolution" @acquisition,
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/connectors_workers" @builtin,
   "actql/actql/physical_host" @host_driver,
   "actql/actql/connector_sdk" @connector,
