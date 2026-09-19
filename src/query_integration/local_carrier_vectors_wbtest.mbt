@@ -1,12 +1,13 @@
 ///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  let pooled = variant == "pool" || variant == "pool_normalize"
   let source_fields = "[\"id\",\"group\",\"embedding\"]"
-  let result_fields = if variant == "pool" {
+  let result_fields = if pooled {
     "[\"group\",\"embedding\",\"member_count\"]"
   } else {
     "[\"id\",\"embedding\"]"
   }
-  let second_fields = if variant == "pool" {
+  let second_fields = if pooled {
     "[\"member_count\",\"embedding\",\"group\"]"
   } else {
     "[\"embedding\",\"id\"]"
@@ -15,6 +16,9 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
   } else if variant == "pool" {
     "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
+  } else if variant == "pool_normalize" {
+    "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}," +
+    "{\"normalize_vectors\":true}"
   } else {
     "{\"normalize_vectors\":true}"
   }
@@ -122,6 +126,7 @@ fn carrier_vectors_storage_limits() -> @record_storage.Limits {
 
 ///|
 fn run_standard_vectors_provider(variant : String) -> Unit raise {
+  let pooled = variant == "pool" || variant == "pool_normalize"
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
@@ -209,16 +214,17 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     vectors_live,
   )
   let vector_rows = local_managed_test_rows(vectors_ops)
-  let expected_rows = if variant == "pool" { 1 } else { 2 }
+  let expected_rows = if pooled { 1 } else { 2 }
   assert_eq(vector_rows.length(), expected_rows)
+  if variant == "pool_normalize" {
+    assert_true(
+      vector_rows[0].contains(
+        "\"embedding\":[0.3162277638912201,0.9486833214759827]",
+      ),
+    )
+  }
   assert_true(
-    vector_rows[0].contains(
-      if variant == "pool" {
-        "\"group\":1"
-      } else {
-        "\"id\":1"
-      },
-    ),
+    vector_rows[0].contains(if pooled { "\"group\":1" } else { "\"id\":1" }),
   )
   assert_true(vector_rows[0].contains("\"embedding\""))
 
@@ -290,4 +296,9 @@ test "standard Host runs bounded vector scoring provider" {
 ///|
 test "standard Host runs bounded vector pooling provider" {
   run_standard_vectors_provider("pool")
+}
+
+///|
+test "standard Host composes pooling and normalization" {
+  run_standard_vectors_provider("pool_normalize")
 }

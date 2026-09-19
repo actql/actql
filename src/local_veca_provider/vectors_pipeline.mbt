@@ -4,6 +4,7 @@ priv enum Phase {
   Rows
   StartKernel
   Kernel
+  CleanupKernel
   StartProjection
   Projection
   Terminal
@@ -26,11 +27,13 @@ priv struct Execution {
   storage_bytes : Int64
   max_rows : Int
   max_value_bytes : Int
+  projection_step : Int
   mut phase : Phase
   mut rows : @bridge.RowsToVectorsExecution?
-  mut row_vectors : @records.Completed?
+  mut kernel_step : Int
   mut kernel : VectorExecution?
   mut transformed : @records.Completed?
+  mut pending_transformed : @records.Completed?
   mut projection : @bridge.VectorsToRowsExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
@@ -55,6 +58,12 @@ fn fail_execution(
 ///|
 fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let owner = @execution.generated_sequence_owner(sequence)
+  let count = @lower.sequence_count(
+    @execution.generated_prepared_sequence(sequence),
+  )
+  if count < 3 {
+    return false
+  }
   let index = Ref(0)
   let accepted = @execution.generated_sequence_all_steps(sequence, fn(step) {
     let current = index.val
@@ -62,34 +71,39 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     guard @lower.node_at(@lower.bound_preparation(owner), current) is Some(node) else {
       return false
     }
-    match (current, step) {
-      (0, @lower.VectorStep(_)) =>
+    match step {
+      @lower.VectorStep(_) if current == 0 =>
         @lower.operation(node) == "BRIDGE.rows.to_vectors"
-      (1, @lower.VectorStep(_)) => {
+      @lower.VectorStep(_) if current < count - 1 => {
         let operation = @lower.operation(node)
         operation == "VEC.normalize_l2" ||
         operation == "VEC.score_sort" ||
         operation == "VEC.pool"
       }
-      (2, @lower.CarrierProjectionStep(projection)) =>
+      @lower.CarrierProjectionStep(projection) if current == count - 1 =>
         @lower.operation(node) == "BRIDGE.vectors.to_rows" &&
         @lower.carrier_projection_operation(projection) ==
         @carrier_projection.Vectors
       _ => false
     }
   })
-  accepted && index.val == 3
+  accepted && index.val == count
 }
 
 ///|
 fn provider_capacity(
   base : @execution.ExecutionCapacity,
   storage_bytes : Int64,
+  intermediate_count : Int,
 ) -> @execution.ExecutionCapacity? {
-  if storage_bytes < 0L || storage_bytes > 4611686018427387903L {
+  if storage_bytes < 0L || intermediate_count < 1 {
     return None
   }
-  let extra = storage_bytes * 2L
+  let count = intermediate_count.to_int64()
+  if storage_bytes != 0L && count > 9223372036854775807L / storage_bytes {
+    return None
+  }
+  let extra = storage_bytes * count
   let execution = @execution.execution_capacity_execution_bytes(base)
   if execution > 9223372036854775807L - extra {
     return None
@@ -159,6 +173,18 @@ fn discard(value : @records.Completed?) -> Bool {
 }
 
 ///|
+fn cleanup_kernel_execution(
+  value : VectorExecution,
+) -> Result[Bool, @connector.FixedComputeIssue] {
+  match value {
+    Normalize(execution) =>
+      @veca.cleanup_normalize(execution).map_err(_ => issue())
+    Score(execution) => @veca.cleanup_score(execution).map_err(_ => issue())
+    Pool(execution) => @veca.cleanup_pool(execution).map_err(_ => issue())
+  }
+}
+
+///|
 fn advance_execution(
   value : Execution,
   quantum : Int,
@@ -201,7 +227,7 @@ fn advance_execution(
             guard continue_poll(value, progress, work) is Some(poll) else {
               return fail_execution(value)
             }
-            value.row_vectors = Some(output)
+            value.transformed = Some(output)
             value.phase = StartKernel
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
               return Ok(poll)
@@ -222,13 +248,13 @@ fn advance_execution(
         }
       }
       StartKernel => {
-        guard value.row_vectors is Some(output) else {
+        guard value.transformed is Some(output) else {
           return fail_execution(value)
         }
         let input = match
           @records.prepare_step_read(
             @execution.generated_sequence_owner(value.generated),
-            1,
+            value.kernel_step,
             0,
             output,
           ) {
@@ -239,7 +265,7 @@ fn advance_execution(
             @lower.bound_preparation(
               @execution.generated_sequence_owner(value.generated),
             ),
-            1,
+            value.kernel_step,
           )
           is Some(node) else {
           return fail_execution(value)
@@ -249,7 +275,7 @@ fn advance_execution(
             @veca.start_normalize(
               value.control,
               value.sequence,
-              1,
+              value.kernel_step,
               input,
               value.limits,
               value.storage_bytes,
@@ -263,7 +289,7 @@ fn advance_execution(
             @veca.start_score(
               value.control,
               value.sequence,
-              1,
+              value.kernel_step,
               input,
               value.limits,
               value.storage_bytes,
@@ -277,7 +303,7 @@ fn advance_execution(
             @veca.start_pool(
               value.control,
               value.sequence,
-              1,
+              value.kernel_step,
               input,
               value.limits,
               value.storage_bytes,
@@ -350,10 +376,8 @@ fn advance_execution(
             guard output is Some(completed) else {
               return fail_execution(value)
             }
-            value.transformed = Some(completed)
-            discard(value.row_vectors) |> ignore
-            value.row_vectors = None
-            value.phase = StartProjection
+            value.pending_transformed = Some(completed)
+            value.phase = CleanupKernel
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
               return Ok(poll)
             }
@@ -373,6 +397,26 @@ fn advance_execution(
           _ => return fail_execution(value)
         }
       }
+      CleanupKernel => {
+        guard value.kernel is Some(active) &&
+          value.pending_transformed is Some(completed) else {
+          return fail_execution(value)
+        }
+        match cleanup_kernel_execution(active) {
+          Ok(true) => ()
+          Ok(false) | Err(_) => return fail_execution(value)
+        }
+        value.kernel = None
+        discard(value.transformed) |> ignore
+        value.transformed = Some(completed)
+        value.pending_transformed = None
+        value.kernel_step += 1
+        if value.kernel_step < value.projection_step {
+          value.phase = StartKernel
+        } else {
+          value.phase = StartProjection
+        }
+      }
       StartProjection => {
         guard value.transformed is Some(output) else {
           return fail_execution(value)
@@ -380,7 +424,7 @@ fn advance_execution(
         let input = match
           @records.prepare_step_read(
             @execution.generated_sequence_owner(value.generated),
-            2,
+            value.projection_step,
             0,
             output,
           ) {
@@ -392,7 +436,7 @@ fn advance_execution(
             value.control,
             @execution.generated_completion_preparation(value.generated),
             value.sequence,
-            2,
+            value.projection_step,
             input,
             value.max_rows,
             {
@@ -477,22 +521,9 @@ fn cleanup_execution(
     }
   }
   if value.kernel is Some(active) {
-    match active {
-      Normalize(execution) =>
-        match @veca.cleanup_normalize(execution) {
-          Ok(_) => ()
-          Err(_) => failed = true
-        }
-      Score(execution) =>
-        match @veca.cleanup_score(execution) {
-          Ok(_) => ()
-          Err(_) => failed = true
-        }
-      Pool(execution) =>
-        match @veca.cleanup_pool(execution) {
-          Ok(_) => ()
-          Err(_) => failed = true
-        }
+    match cleanup_kernel_execution(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
     }
   }
   if value.projection is Some(active) {
@@ -501,10 +532,10 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
-  discard(value.row_vectors) |> ignore
-  value.row_vectors = None
   discard(value.transformed) |> ignore
   value.transformed = None
+  discard(value.pending_transformed) |> ignore
+  value.pending_transformed = None
   let rows_pending = match value.rows {
     Some(active) => @bridge.rows_to_vectors_cleanup_pending(active)
     None => false
@@ -539,7 +570,10 @@ pub fn provider(
     accepts,
     fn(sequence) {
       if accepts(sequence) {
-        provider_capacity(capacity, storage_bytes)
+        let count = @lower.sequence_count(
+          @execution.generated_prepared_sequence(sequence),
+        )
+        provider_capacity(capacity, storage_bytes, count - 1)
       } else {
         None
       }
@@ -548,6 +582,9 @@ pub fn provider(
       if !accepts(sequence) || storage_bytes < 0L {
         return Err(@connector.InvalidLimits)
       }
+      let count = @lower.sequence_count(
+        @execution.generated_prepared_sequence(sequence),
+      )
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
@@ -557,11 +594,13 @@ pub fn provider(
         storage_bytes,
         max_rows,
         max_value_bytes,
+        projection_step: count - 1,
         phase: StartRows,
         rows: None,
-        row_vectors: None,
+        kernel_step: 1,
         kernel: None,
         transformed: None,
+        pending_transformed: None,
         projection: None,
         stage_progress: 0L,
         stage_work: 0L,
