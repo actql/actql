@@ -39,6 +39,11 @@ priv struct TaskNumericCapture {
 }
 
 ///|
+fn numeric_reduction_slot_open(counts : Array[Int?], index : Int) -> Bool {
+  counts.get(index).map(value => value is None).unwrap_or(false)
+}
+
+///|
 fn select_declared_numeric_member(
   profile : @numeric.Profile,
   declarations : Array[@connector.NumericReductionSupport],
@@ -502,6 +507,9 @@ pub fn execute_task_numeric_reduction_for_slot(
     }
   }
   guard selected_index is Some(index) else { return None }
+  if !numeric_reduction_slot_open(execution.numeric_occurrence_counts, index) {
+    return None
+  }
   if execution.numeric_captures.any(capture => {
       capture.selected == index && capture.occurrence == occurrence
     }) {

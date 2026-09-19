@@ -22,3 +22,13 @@ test "numeric selection requires one exact member for the checked profile" {
   ).unwrap()
   assert_true(select_declared_numeric_member(profile, [unknown]) is None)
 }
+
+///|
+test "numeric occurrence slots become immutable when sealed" {
+  let counts : Array[Int?] = [None, Some(0), Some(2)]
+  assert_true(numeric_reduction_slot_open(counts, 0))
+  assert_false(numeric_reduction_slot_open(counts, 1))
+  assert_false(numeric_reduction_slot_open(counts, 2))
+  assert_false(numeric_reduction_slot_open(counts, 3))
+  assert_eq(counts, [None, Some(0), Some(2)])
+}
