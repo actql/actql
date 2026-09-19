@@ -33,6 +33,15 @@ struct FrozenArray[T] {
 }
 
 ///|
+/// Package-owned construction prevents mutation after the final value is
+/// exposed without requiring a second whole-vector copy.
+struct VectorBuilder {
+  values : Array[Double]
+  expected : Int
+  mut open : Bool
+}
+
+///|
 /// Build an immutable array from values that have already been admitted.
 /// The detached backing prevents later mutation of the caller's collection.
 pub fn array_value(values : Array[Value]) -> Value {
@@ -78,6 +87,68 @@ pub fn number_value(value : Double) -> Value? {
   } else {
     Some(Number(value))
   }
+}
+
+///|
+pub fn prepare_vector_value(dimensions : Int) -> VectorBuilder? {
+  if dimensions < 1 {
+    None
+  } else {
+    Some({ values: [], expected: dimensions, open: true, })
+  }
+}
+
+///|
+pub fn append_vector_component(
+  builder : VectorBuilder,
+  component : Double,
+) -> Bool {
+  if !builder.open || builder.values.length() >= builder.expected {
+    return false
+  }
+  if component.is_nan() ||
+    component.is_inf() ||
+    (component == 0.0 && 1.0 / component < 0.0) {
+    builder.open = false
+    builder.values.clear()
+    return false
+  }
+  builder.values.push(component)
+  true
+}
+
+///|
+fn finish_vector_value(builder : VectorBuilder) -> Value? {
+  if !builder.open || builder.values.length() != builder.expected {
+    return None
+  }
+  builder.open = false
+  Some(Vector({ values: builder.values, }))
+}
+
+///|
+/// Finish a vector and bind it only to its exact checked vector contract.
+pub fn finish_checked_vector_value(
+  builder : VectorBuilder,
+  contract : @contract.Contract,
+) -> CheckedValue? {
+  guard contract.shape is @contract.Vector(dimensions~) &&
+    !contract.nullable &&
+    dimensions == builder.expected.to_double() &&
+    finish_vector_value(builder) is Some(value) else {
+    return None
+  }
+  Some({ contract, value, })
+}
+
+///|
+pub fn cancel_vector_value(builder : VectorBuilder) -> Bool {
+  if !builder.open {
+    return false
+  }
+  builder.open = false
+  builder.values.clear()
+  true
 }
 
 ///|

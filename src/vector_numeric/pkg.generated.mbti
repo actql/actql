@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/vector_numeric"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn normalization_divisor(Double) -> Result[Double, Issue]
+
+pub fn normalize_component(Double, Double) -> Result[Double, Issue]
+
+pub fn quantize(Double) -> Result[Double, Issue]
+
+pub fn squared_norm_step(Double, Double) -> Result[Double, Issue]
+
+// Errors
+
+// Types and methods
+pub(all) enum Issue {
+  NonFinite
+  ZeroVector
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

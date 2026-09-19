@@ -400,6 +400,12 @@ pub fn cancel(builder : Builder) -> Bool {
 }
 
 ///|
+/// Structural slots already retained by records accepted into this builder.
+pub fn builder_workspace_slots(builder : Builder) -> Int {
+  builder.workspace_slots
+}
+
+///|
 pub fn carrier(value : Storage) -> @carrier.Carrier {
   value.carrier
 }

@@ -20,6 +20,8 @@ pub fn admit_host_usage(ReferenceIssuer, @value_contract.Contract, @decode_core.
 
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn append_vector_component(VectorBuilder, Double) -> Bool
+
 pub fn array_value(Array[Value]) -> Value
 
 pub fn bind_reference_issuer((@value_contract.Contract, String) -> Bool, (String) -> Bool) -> ReferenceIssuer
@@ -27,6 +29,8 @@ pub fn bind_reference_issuer((@value_contract.Contract, String) -> Bool, (String
 pub fn bind_reference_reissuer((@value_contract.Contract, String) -> ReferenceValue?) -> ReferenceIssuer
 
 pub fn boolean_value(Bool) -> Value
+
+pub fn cancel_vector_value(VectorBuilder) -> Bool
 
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
@@ -38,6 +42,8 @@ pub fn[T] elements(FrozenArray[T]) -> Array[T]
 
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn finish_checked_vector_value(VectorBuilder, @value_contract.Contract) -> CheckedValue?
+
 pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, ReferenceLimits) -> Result[CheckedValue, ReferenceIssue]
 
 pub fn null_value() -> Value
@@ -45,6 +51,8 @@ pub fn null_value() -> Value
 pub fn number_value(Double) -> Value?
 
 pub fn object_value(Array[(String, Value)]) -> Value?
+
+pub fn prepare_vector_value(Int) -> VectorBuilder?
 
 pub fn reference_available(ReferenceValue) -> Bool
 
@@ -156,6 +164,8 @@ pub enum Value {
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
 }
+
+type VectorBuilder
 
 // Type aliases
 

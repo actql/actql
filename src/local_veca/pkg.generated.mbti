@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_veca"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_record_runtime",
+  "actql/actql/managed_record_storage",
+  "actql/actql/vector_numeric",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
+
+pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
+pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
+
+pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
+
+pub fn normalize_stopped(NormalizeExecution) -> Bool
+
+pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
+
+// Errors
+
+// Types and methods
+type NormalizeExecution
+
+pub(all) enum NormalizeIssue {
+  InvalidKernel
+  InvalidLimits
+  InputUnavailable
+  InvalidRecord(Int)
+  InvalidVector(Int)
+  WorkspaceLimit
+  Numeric(@vector_numeric.Issue)
+  Output(@managed_record_runtime.Issue)
+  Execution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum NormalizePoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  Failed(NormalizeIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+// Type aliases
+
+// Traits

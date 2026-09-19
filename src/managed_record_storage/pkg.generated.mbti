@@ -11,6 +11,8 @@ import {
 // Values
 pub fn append(Builder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[Unit, Issue]
 
+pub fn builder_workspace_slots(Builder) -> Int
+
 pub fn cancel(Builder) -> Bool
 
 pub fn carrier(Storage) -> @carrier_contract.Carrier

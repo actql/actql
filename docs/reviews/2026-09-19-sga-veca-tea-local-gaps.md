@@ -79,17 +79,20 @@ consume rather than recreate them.
 
 ### VecA
 
-All five operations lack portable Local execution. Checked typed lowering now
-emits `VEC.normalize_l2` and `VEC.score_sort`, including bound query values,
-without reading frontend syntax again. `vector_score` and `vector_concat` are
-accepted by expression typing but still rejected by shared expression lowering
-and have no evaluator implementation. The prescribed binary32 and binary64
-operation sequence needs a portable conforming kernel and independent vectors
-before optimized implementations can be selected. Common immutable record
-storage now preserves composite vector identities, admitted dimensions, exact
-UTF-8 value usage, work, and workspace bounds. Vectors now pass through the
-common managed generation and exact producer-read lifecycle on all three
-targets; VecA kernels and standard Host integration remain open.
+Normalization now executes as a portable bounded-step kernel over exact managed
+Vectors input. It applies binary32 input and output quantization, preserves the
+specified dimension-order binary64 norm fold, rejects zero vectors, admits
+record workspace before temporary construction, and publishes a distinct
+managed generation. Its tests cover cancellation observation and two exact
+downstream producer reads on JS, Wasm, and native. Environment cancellation
+delivery, independent consumer release, and standard Host selection remain
+open, so normalization is not complete. Checked typed lowering also emits
+`VEC.score_sort`, including bound query values, without reading frontend syntax
+again. The other four VecA operations still lack portable Local kernels.
+`vector_score` and `vector_concat` are accepted by expression typing but still
+rejected by shared expression lowering and have no evaluator implementation.
+Common immutable record storage preserves composite vector identities,
+admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 

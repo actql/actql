@@ -124,6 +124,12 @@ pub fn append_record(
 }
 
 ///|
+/// Structural slots already retained by the unpublished output generation.
+pub fn output_workspace_slots(output : OutputBuilder) -> Int {
+  @storage.builder_workspace_slots(output.records)
+}
+
+///|
 pub fn cancel_output(output : OutputBuilder) -> Bool {
   if !output.open {
     return false
