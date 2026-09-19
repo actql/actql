@@ -341,6 +341,24 @@ fn valid_site_observation(
 }
 
 ///|
+/// Accepted evidence identities are historical Coordinator facts. A later
+/// observation may fill a fact that was not delivered with the first status
+/// response, but it cannot replace an already accepted identity for the same
+/// dispatch.
+fn merge_coordinator_evidence_identity(
+  current : String,
+  observed : String,
+) -> Result[String, DispatchIssue] {
+  if current.is_empty() {
+    return Ok(observed)
+  }
+  if observed.is_empty() || observed == current {
+    return Ok(current)
+  }
+  Err(StateCollision)
+}
+
+///|
 fn prepare_coordinator_observation(
   record : CoordinatorDispatchIntentRecord,
   site_revision : Int,
@@ -379,9 +397,16 @@ fn prepare_coordinator_observation(
         !remote_execution_evidence_matches_dispatch(value, record.request) {
         return Err(InvalidDispatch)
       }
-      remote_execution_evidence_cid(value)
+      match
+        merge_coordinator_evidence_identity(
+          record.accepted_evidence_cid,
+          remote_execution_evidence_cid(value),
+        ) {
+        Ok(cid) => cid
+        Err(issue) => return Err(issue)
+      }
     }
-    None => if site_evidence == 2 { record.accepted_evidence_cid } else { "" }
+    None => record.accepted_evidence_cid
   }
   let accepted_subject_cid = match subject {
     Some(value) => {
@@ -397,14 +422,16 @@ fn prepare_coordinator_observation(
         ) {
         return Err(InvalidDispatch)
       }
-      remote_managed_output_subject_cid(value)
-    }
-    None =>
-      if site_evidence == 2 && evidence is None {
-        record.accepted_subject_cid
-      } else {
-        ""
+      match
+        merge_coordinator_evidence_identity(
+          record.accepted_subject_cid,
+          remote_managed_output_subject_cid(value),
+        ) {
+        Ok(cid) => cid
+        Err(issue) => return Err(issue)
       }
+    }
+    None => record.accepted_subject_cid
   }
   let accepted_measurement_cid = match measurement {
     Some(value) => {
@@ -418,14 +445,16 @@ fn prepare_coordinator_observation(
         ) {
         return Err(InvalidDispatch)
       }
-      remote_managed_output_measurement_cid(value)
-    }
-    None =>
-      if site_evidence == 2 && evidence is None && subject is None {
-        record.accepted_measurement_cid
-      } else {
-        ""
+      match
+        merge_coordinator_evidence_identity(
+          record.accepted_measurement_cid,
+          remote_managed_output_measurement_cid(value),
+        ) {
+        Ok(cid) => cid
+        Err(issue) => return Err(issue)
       }
+    }
+    None => record.accepted_measurement_cid
   }
   Ok(
     coordinator_prepare_transition(

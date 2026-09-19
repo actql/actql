@@ -75,6 +75,7 @@ test "Coordinator restart restores intent without creating a Site fact" {
 ///|
 fn managed_output_for_coordinator(
   request : DispatchRequest,
+  column_bytes? : Int = 2,
 ) -> (
   RemoteExecutionEvidence,
   RemoteManagedOutputSubject,
@@ -124,7 +125,7 @@ fn managed_output_for_coordinator(
     0,
     0,
     [2],
-    [2],
+    [column_bytes],
     [2],
     [1],
     [0],
@@ -230,6 +231,48 @@ test "Coordinator rejects stale or altered Site observations" {
     )
     is Err(InvalidDispatch),
   )
+}
+
+///|
+test "Coordinator evidence identity is monotonic across reconciliation" {
+  let request = coordinator_request("dispatch-a", 1)
+  let journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let admission = prepare_coordinator_dispatch_intent(journal, request).unwrap()
+  let (_, record) = commit_coordinator_dispatch_intent(admission, true).unwrap()
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_managed_output_observation(
+      record, 5, 3, 2, 0, true, false, evidence, subject, measurement,
+    ).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(coordinator_completion_evidence_available(record))
+  commit_coordinator_dispatch_transition(
+    prepare_coordinator_site_observation(
+      record,
+      5,
+      3,
+      2,
+      0,
+      true,
+      false,
+      Some(evidence),
+    ).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(coordinator_completion_evidence_available(record))
+  let (conflicting_evidence, conflicting_subject, conflicting_measurement) = managed_output_for_coordinator(
+    request,
+    column_bytes=3,
+  )
+  assert_true(
+    prepare_coordinator_managed_output_observation(
+      record, 5, 3, 2, 0, true, false, conflicting_evidence, conflicting_subject,
+      conflicting_measurement,
+    )
+    is Err(StateCollision),
+  )
+  assert_true(coordinator_completion_evidence_available(record))
 }
 
 ///|
