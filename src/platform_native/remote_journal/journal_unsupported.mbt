@@ -78,6 +78,14 @@ pub fn CoordinatorJournal::accept(
 }
 
 ///|
+pub fn CoordinatorJournal::require(
+  _self : CoordinatorJournal,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.CoordinatorDispatchIntentRecord, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn CoordinatorJournal::commit_transition(
   _self : CoordinatorJournal,
   transition : @remote.CoordinatorDispatchTransition,

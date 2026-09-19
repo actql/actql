@@ -152,6 +152,22 @@ disconnected exchange, and enforces the response bound. Node.js is used only
 to host the test HTTPS endpoint. It is not spawned or linked by the native
 adapter or its product runtime.
 
+The native Remote Site client composes this physical exchange with the native
+Coordinator journal. A dispatch intent is durable before its first send.
+Query and cancellation require that exact existing intent and cannot create
+execution authority. Responses pass through the portable MoonBit envelope,
+state, dispatch-binding, and evidence admission before the resulting
+Coordinator observation is installed. A transport failure, non-success HTTP
+status, malformed response, or foreign binding first advances the durable
+intent to outcome-unknown. Failure to persist that uncertainty is reported as
+a compound error rather than hiding either fact.
+
+The current operation is synchronous and accepts an already admitted endpoint
+URL. Endpoint discovery, reachability comparison, and authorization remain
+Host planning responsibilities. The client does not retry, select another
+Site, infer native stop from HTTP cancellation, or turn a response into common
+task completion.
+
 ## Supported native profiles
 
 The initial native product profiles are:

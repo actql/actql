@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_client"
+
+import {
+  "actql/actql/platform_native/http_client",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/remote_site_protocol",
+}
+
+// Values
+pub fn cancel(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
+
+pub fn dispatch(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
+
+pub fn query(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeRemoteClientIssue {
+  UnsupportedTarget
+  Closed
+  Http(@http_client.NativeHttpIssue)
+  Journal(@remote_journal.NativeRemoteJournalIssue)
+  Protocol(@remote_site_protocol.DispatchIssue)
+  HttpStatus(Int)
+  InvalidUtf8
+  OutcomeUnknownPersistence(@remote_journal.NativeRemoteJournalIssue, NativeRemoteClientIssue)
+}
+
+// Type aliases
+
+// Traits

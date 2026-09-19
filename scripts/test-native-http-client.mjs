@@ -1,4 +1,5 @@
 import {execFileSync, spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {once} from 'node:events';
 import {createServer} from 'node:https';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
@@ -65,7 +66,9 @@ try {
       request.socket.destroy();
       return;
     }
-    if (request.method !== 'POST' || request.url !== '/probe') {
+    if (request.method !== 'POST' ||
+        !['/probe', '/remote/dispatch', '/remote/query', '/remote/foreign']
+          .includes(request.url)) {
       response.writeHead(404).end();
       return;
     }
@@ -80,12 +83,41 @@ try {
       chunks.push(chunk);
     }
     const body = Buffer.concat(chunks).toString('utf8');
-    if (body !== '{"probe":true}' && body !== '{}') {
+    if (request.url === '/probe' &&
+        body !== '{"probe":true}' && body !== '{}') {
       response.writeHead(400).end();
       return;
     }
+    if (request.url === '/probe') {
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end('{"accepted":true}');
+      return;
+    }
+    let dispatchCid;
+    try {
+      JSON.parse(body);
+      dispatchCid = `sha256:${createHash('sha256').update(body).digest('hex')}`;
+    } catch {
+      response.writeHead(400).end();
+      return;
+    }
+    if (request.url === '/remote/foreign') {
+      dispatchCid = `sha256:${'f'.repeat(64)}`;
+    }
     response.writeHead(200, {'content-type': 'application/json'});
-    response.end('{"accepted":true}');
+    response.end(JSON.stringify({
+      version: request.url === '/remote/query' ||
+          request.url === '/remote/foreign'
+        ? 'actql-remote-dispatch-status/0.1'
+        : 'actql-remote-dispatch-response/0.1',
+      dispatch_request_cid: dispatchCid,
+      revision: 0,
+      state: [0, 0, 0, 0, 0],
+      ...(request.url === '/remote/query' ||
+          request.url === '/remote/foreign'
+        ? {evidence: null, subject: null, measurement: null}
+        : {}),
+    }));
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -102,27 +134,35 @@ try {
     (process.platform === 'darwin'
       ? '/usr/lib/libcurl.4.dylib'
       : 'libcurl.so.4');
-  const child = spawn(
-    moon,
-    ['test', 'src/platform_native/http_client', '--target', 'native'],
-    {
+  const testEnvironment = {
+    ...process.env,
+    ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+    ACTQL_TEST_NATIVE_HTTP_URL: `https://127.0.0.1:${address.port}`,
+    ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+    ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+    ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+    ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
+    ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
+    ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
+      process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
+      (process.platform === 'darwin'
+        ? '/usr/lib/libsqlite3.dylib'
+        : 'libsqlite3.so.0'),
+    ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
+  };
+  for (const packagePath of [
+    'src/platform_native/http_client',
+    'src/platform_native/remote_client',
+  ]) {
+    const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
-      env: {
-        ...process.env,
-        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
-        ACTQL_TEST_NATIVE_HTTP_URL: `https://127.0.0.1:${address.port}`,
-        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
-        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
-        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
-        ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
-        ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
-      },
+      env: testEnvironment,
       stdio: 'inherit',
-    },
-  );
-  const [code, signal] = await once(child, 'exit');
-  if (code !== 0) {
-    throw new Error(`native HTTP test failed: ${code ?? signal}`);
+    });
+    const [code, signal] = await once(child, 'exit');
+    if (code !== 0) {
+      throw new Error(`native HTTP test failed: ${code ?? signal}`);
+    }
   }
 } finally {
   if (server !== undefined) {

@@ -321,6 +321,38 @@ pub fn CoordinatorJournal::accept(
 }
 
 ///|
+/// Resolve an already durable intent without creating a new one. Query and
+/// cancellation operations use this boundary so they cannot admit execution.
+pub fn CoordinatorJournal::require(
+  self : CoordinatorJournal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.CoordinatorDispatchIntentRecord, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let value = match self.database.read("coordinator_dispatch", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(StateCollision)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let recovered = match self.restore_entry(key, value) {
+    Ok(item) => item
+    Err(issue) => return Err(issue)
+  }
+  if !@remote.coordinator_dispatch_intent_matches_request(
+      recovered.record,
+      request,
+    ) {
+    return Err(StateCollision)
+  }
+  Ok(recovered.record)
+}
+
+///|
 pub fn CoordinatorJournal::commit_transition(
   self : CoordinatorJournal,
   transition : @remote.CoordinatorDispatchTransition,

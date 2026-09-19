@@ -29,6 +29,7 @@ pub fn CoordinatorJournal::accept(Self, @remote_site_protocol.DispatchRequest) -
 pub fn CoordinatorJournal::close(Self) -> Bool
 pub fn CoordinatorJournal::commit_transition(Self, @remote_site_protocol.CoordinatorDispatchTransition, evidence? : @remote_site_protocol.RemoteExecutionEvidence?, subject? : @remote_site_protocol.RemoteManagedOutputSubject?, measurement? : @remote_site_protocol.RemoteManagedOutputMeasurement?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::recover_after(Self, String) -> Result[RecoveredCoordinatorDispatch?, NativeRemoteJournalIssue]
+pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, NativeRemoteJournalIssue]
 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
