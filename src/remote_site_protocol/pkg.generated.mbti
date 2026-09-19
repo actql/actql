@@ -237,6 +237,8 @@ pub fn remote_dispatch_response_revision(RemoteDispatchResponse) -> Int
 
 pub fn remote_dispatch_response_subject(RemoteDispatchResponse) -> RemoteManagedOutputSubject?
 
+pub fn remote_dispatch_status_json(DispatchRecord, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?) -> Result[String, DispatchIssue]
+
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
 pub fn remote_execution_evidence_cid(RemoteExecutionEvidence) -> String

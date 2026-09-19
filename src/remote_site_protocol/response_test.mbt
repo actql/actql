@@ -22,6 +22,28 @@ test "remote dispatch response admits exact state and request binding" {
 }
 
 ///|
+test "remote dispatch status encoder round trips an evidence-free record" {
+  let request = coordinator_request("dispatch-status-encoder", 25)
+  let site = @site.create_site(
+    "site-a",
+    1,
+    cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  let journal = create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap()
+  let (_, record) = commit_dispatch_acceptance(
+    prepare_dispatch_acceptance(journal, request).unwrap(),
+    true,
+  ).unwrap()
+  let body = remote_dispatch_status_json(record, None, None, None).unwrap()
+  let response = admit_remote_dispatch_response_json(body, request, StatusReply).unwrap()
+  assert_eq(remote_dispatch_response_revision(response), 0)
+}
+
+///|
 test "remote status response admits the complete managed evidence tuple" {
   let request = coordinator_request("dispatch-status", 22)
   let (evidence, subject, measurement) = managed_output_for_coordinator(request)

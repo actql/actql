@@ -59,6 +59,118 @@ pub fn remote_dispatch_reply_json(
 }
 
 ///|
+fn emit_response_wire_record(
+  writer : @encode.Writer,
+  cid : String,
+  wire : String,
+) -> Unit raise {
+  @encode.begin_object(writer)
+  @encode.key(writer, "cid")
+  @encode.string_value(writer, cid)
+  @encode.key(writer, "wire")
+  @encode.string_value(writer, wire)
+  @encode.end_object(writer)
+}
+
+///|
+/// Emit a complete status observation. Durable evidence must be transported
+/// as one exact typed tuple; CID-only or partial evidence is never emitted.
+pub fn remote_dispatch_status_json(
+  record : DispatchRecord,
+  evidence : RemoteExecutionEvidence?,
+  subject : RemoteManagedOutputSubject?,
+  measurement : RemoteManagedOutputMeasurement?,
+) -> Result[String, DispatchIssue] {
+  let state = dispatch_record_state_codes(record)
+  let complete = evidence is Some(_) &&
+    subject is Some(_) &&
+    measurement is Some(_)
+  if (state[1] == 2) != complete {
+    return Err(InvalidDispatch)
+  }
+  let evidence_values = match (evidence, subject, measurement) {
+    (Some(execution), Some(output), Some(measured)) => {
+      if !remote_managed_output_subject_matches_evidence(
+          output,
+          execution,
+          record.request,
+        ) ||
+        !remote_managed_output_subject_matches_measurement(output, measured) {
+        return Err(InvalidDispatch)
+      }
+      let execution_wire = match remote_execution_evidence_json(execution) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let subject_wire = match remote_managed_output_subject_json(output) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let measurement_wire = match
+        remote_managed_output_measurement_json(measured) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Some(
+        (
+          execution, execution_wire, output, subject_wire, measured, measurement_wire,
+        ),
+      )
+    }
+    (None, None, None) => None
+    _ => return Err(InvalidDispatch)
+  }
+  let writer = @encode.writer(524288, 64, 3) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "dispatch_request_cid")
+    @encode.string_value(writer, record.request.dispatch_request_cid)
+    @encode.key(writer, "evidence")
+    match evidence_values {
+      Some(values) =>
+        emit_response_wire_record(
+          writer,
+          remote_execution_evidence_cid(values.0),
+          values.1,
+        )
+      None => @encode.null_value(writer)
+    }
+    @encode.key(writer, "measurement")
+    match evidence_values {
+      Some(values) =>
+        emit_response_wire_record(
+          writer,
+          remote_managed_output_measurement_cid(values.4),
+          values.5,
+        )
+      None => @encode.null_value(writer)
+    }
+    @encode.key(writer, "revision")
+    @encode.number_value(writer, record.revision.to_double())
+    @encode.key(writer, "state")
+    emit_response_state(writer, record)
+    @encode.key(writer, "subject")
+    match evidence_values {
+      Some(values) =>
+        emit_response_wire_record(
+          writer,
+          remote_managed_output_subject_cid(values.2),
+          values.3,
+        )
+      None => @encode.null_value(writer)
+    }
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-dispatch-status/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
 priv suberror ResponseJsonStop {
   ResponseJsonStop
 }

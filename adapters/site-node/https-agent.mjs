@@ -1,4 +1,9 @@
 import {createServer} from 'node:https';
+import {
+  admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputMeasurementJson,
+  admitRemoteManagedOutputSubjectJson,
+} from '../host-common/remote-dispatch-wire.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -25,6 +30,16 @@ async function readBounded(request, maxBytes) {
 function reply(response, status, body) {
   const bytes = Buffer.from(JSON.stringify(body), 'utf8');
   response.writeHead(status, {
+    'content-type': 'application/json',
+    'content-length': String(bytes.byteLength),
+    'cache-control': 'no-store',
+  });
+  response.end(bytes);
+}
+
+function replyCanonical(response, body) {
+  const bytes = Buffer.from(body, 'utf8');
+  response.writeHead(200, {
     'content-type': 'application/json',
     'content-length': String(bytes.byteLength),
     'cache-control': 'no-store',
@@ -119,47 +134,40 @@ export async function startHttpsRemoteSiteAgent({
           reply(response, 404, {error: 'not_found'});
           return;
         }
+        const record = control.restoreHistorical(journal, dispatch);
         if (cancelRequest) {
           dispatchRuntime.cancel(dispatch);
-          reply(response, 200, {
-            version: 'actql-remote-dispatch-response/0.1',
-            dispatch_request_cid: control.identity(dispatch),
-            revision: state[0],
-            state: [
-              state[1],
-              state[2],
-              state[3],
-              state[4] ? 1 : 0,
-              state[5] ? 1 : 0,
-            ],
-          });
+          replyCanonical(response, control.replyJson(record));
           return;
         }
-        const evidence = store.inspectEvidence(dispatch, control);
-        reply(response, 200, {
-          version: 'actql-remote-dispatch-status/0.1',
-          dispatch_request_cid: control.identity(dispatch),
-          revision: state[0],
-          state: [
-            state[1],
-            state[2],
-            state[3],
-            state[4] ? 1 : 0,
-            state[5] ? 1 : 0,
-          ],
-          evidence: evidence === undefined ? null : {
-            cid: evidence.execution_evidence_cid,
-            wire: evidence.execution_evidence_json,
-          },
-          subject: evidence === undefined ? null : {
-            cid: evidence.managed_output_subject_cid,
-            wire: evidence.managed_output_subject_json,
-          },
-          measurement: evidence === undefined ? null : {
-            cid: evidence.managed_output_measurement_cid,
-            wire: evidence.managed_output_measurement_json,
-          },
-        });
+        const stored = store.inspectEvidence(dispatch, control);
+        const evidence = stored === undefined
+          ? undefined
+          : admitRemoteExecutionEvidenceJson(
+            control,
+            stored.execution_evidence_json,
+            stored.execution_evidence_cid,
+            dispatch,
+          );
+        const subject = stored === undefined
+          ? undefined
+          : admitRemoteManagedOutputSubjectJson(
+            control,
+            stored.managed_output_subject_json,
+            stored.managed_output_subject_cid,
+            dispatch,
+          );
+        const measurement = stored === undefined
+          ? undefined
+          : admitRemoteManagedOutputMeasurementJson(
+            control,
+            stored.managed_output_measurement_json,
+            stored.managed_output_measurement_cid,
+          );
+        replyCanonical(
+          response,
+          control.statusJson(record, evidence, subject, measurement),
+        );
         return;
       }
       if (admissionClosed) {
@@ -175,12 +183,7 @@ export async function startHttpsRemoteSiteAgent({
       if (control.runtimeStartable(record)) {
         dispatchRuntime.start(dispatch, record);
       }
-      reply(response, 200, {
-        version: 'actql-remote-dispatch-response/0.1',
-        dispatch_request_cid: control.identity(dispatch),
-        revision: control.revision(record),
-        state: control.status(record),
-      });
+      replyCanonical(response, control.replyJson(record));
     } catch (error) {
       if (!response.headersSent) {
         const conflict = error?.code === 'RemoteDispatchCollision' ||

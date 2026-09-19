@@ -138,6 +138,14 @@ function remoteSiteControl(moon) {
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
     pollJson: value => checked(moon.strategyRemotePollDispatchJson(value)),
     replyJson: value => checked(moon.strategyRemoteDispatchReplyJson(value)),
+    statusJson: (record, evidence, subject, measurement) => checked(
+      moon.strategyRemoteDispatchStatusJson(
+        record,
+        evidence,
+        subject,
+        measurement,
+      ),
+    ),
     admitJson: (body, claimedRequestCid) => checked(
       moon.strategyRemoteDispatchAdmitJson(body, claimedRequestCid),
     ),

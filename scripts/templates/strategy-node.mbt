@@ -3171,6 +3171,25 @@ pub fn strategy_remote_dispatch_reply_json(
 }
 
 ///|
+#export_name("strategyRemoteDispatchStatusJson")
+pub fn strategy_remote_dispatch_status_json(
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence?,
+  subject : @remote.RemoteManagedOutputSubject?,
+  measurement : @remote.RemoteManagedOutputMeasurement?,
+) -> String raise NodeHostFailure {
+  match @remote.remote_dispatch_status_json(
+    record,
+    evidence,
+    subject,
+    measurement,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteDispatchAdmitJson")
 pub fn strategy_remote_dispatch_admit_json(
   body : String,

@@ -394,6 +394,8 @@ pub fn strategy_remote_dispatch_response_projection(@remote_site_protocol.Remote
 
 pub fn strategy_remote_dispatch_response_subject(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteManagedOutputSubject?
 
+pub fn strategy_remote_dispatch_status_json(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> String raise NodeHostFailure
+
 pub fn strategy_remote_execution_capability_scope(@remote_site_protocol.RemoteExecutionCapability) -> Array[String]
 
 pub fn strategy_remote_execution_evidence_admit(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
