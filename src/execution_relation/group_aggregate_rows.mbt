@@ -1061,6 +1061,9 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
       numeric_occurrence >= 0 else {
       return Err(InvalidRows)
     }
+    if !reserve_slots(workspace, values.length()) {
+      return Err(RowLimit)
+    }
     let contributors : Array[Double] = []
     for value in values {
       guard value is Number(number) else { return Err(InvalidRows) }
@@ -1381,6 +1384,20 @@ fn[T : RelationRows] evaluate_group_into(
       Err(issue) => return Err(issue)
     }
     release_slots(workspace, aggregate_count)
+  }
+  if numeric is Some(execution) {
+    for i in 0..<aggregate_count {
+      let aggregate = @lower.group_aggregate_at(group, i).unwrap()
+      if @lower.group_aggregate_requires_numeric_observation(aggregate) &&
+        !seal_numeric_aggregate(
+          execution,
+          step,
+          @lower.group_aggregate_name(aggregate),
+          groups.length(),
+        ) {
+        return Err(InvalidRows)
+      }
+    }
   }
   Ok(output_names)
 }

@@ -226,6 +226,94 @@ fn[T : IndexedRows] analytic_expression_value(
 }
 
 ///|
+/// Fold one frame from call-local source values that were evaluated once in
+/// canonical failure order. Frame membership still controls aggregation and
+/// numeric observation occurrences; it no longer replays filter or argument
+/// expressions.
+fn evaluate_precomputed_analytic_aggregate(
+  aggregate : @lower.PreparedAggregate,
+  sorted : Array[Int],
+  range : AggregateGroupRange,
+  arguments : Array[Value?],
+  included : Array[Bool],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  selected : Array[SelectedAggregateOutput],
+  identity_limits : ValueLimits,
+  numeric : NumericAggregateExecution?,
+  numeric_step : Int,
+  numeric_occurrence : Int,
+) -> Result[Value, RowIssue] {
+  if range.start < 0 || range.end < range.start || range.end > sorted.length() {
+    return Err(InvalidRows)
+  }
+  if !reserve_slots(workspace, range.end - range.start) {
+    return Err(RowLimit)
+  }
+  let values : Array[Value] = []
+  for position in range.start..<range.end {
+    if !spend_control(control, 1) {
+      return Err(RowLimit)
+    }
+    let source = sorted[position]
+    if source < 0 || source >= included.length() {
+      return Err(InvalidRows)
+    }
+    if included[source] {
+      guard arguments[source] is Some(value) else { return Err(InvalidRows) }
+      values.push(value)
+    }
+  }
+  if !reserve_slots(workspace, values.length()) ||
+    !spend_control(control, values.length()) {
+    return Err(RowLimit)
+  }
+  let rows : DynamicAggregateRows = { values, }
+  let indices = Array::makei(values.length(), i => i)
+  let ordered = match @lower.group_aggregate_function(aggregate) {
+    @relation.First
+    | @relation.Last
+    | @relation.ArrayAgg
+    | @relation.StringAgg => true
+    _ => false
+  }
+  if ordered && !reserve_slots(workspace, 1) {
+    return Err(RowLimit)
+  }
+  evaluate_direct_aggregate(
+    aggregate,
+    rows,
+    indices,
+    {
+      representative: if indices.is_empty() {
+        None
+      } else {
+        Some(0)
+      },
+      start: 0,
+      end: indices.length(),
+    },
+    if @lower.group_aggregate_argument(aggregate) is @lower.AggregateRows {
+      None
+    } else {
+      Some(0)
+    },
+    if ordered {
+      [{ column: 1, descending: false, nulls_first: true, }]
+    } else {
+      []
+    },
+    control,
+    workspace,
+    selected,
+    identity_limits,
+    numeric~,
+    numeric_step~,
+    numeric_occurrence~,
+  )
+}
+
+///|
 fn[T : RelationRows] evaluate_analytic_into(
   analytic : @lower.PreparedAnalytic,
   input : T,
@@ -256,6 +344,9 @@ fn[T : RelationRows] evaluate_analytic_into(
     return Err(AnalyticEnvelope(OutputRows))
   }
   if envelope is Some(value) {
+    if !reserve_slots(workspace, count) {
+      return Err(RowLimit)
+    }
     let input_order = Array::makei(count, i => i)
     match
       measure_analytic_row_array(
@@ -271,6 +362,7 @@ fn[T : RelationRows] evaluate_analytic_into(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
+    release_slots(workspace, count)
   }
   let ordinals : Map[String, Int] = Map([])
   for column in 0..<names.length() {
@@ -411,13 +503,13 @@ fn[T : RelationRows] evaluate_analytic_into(
     }
   }
   let call_count = @lower.analytic_call_count(analytic)
+  if !reserve_slots(workspace, call_count) {
+    return Err(RowLimit)
+  }
   let aggregate_arguments : Array[AggregateInput?] = Array::make(
     call_count,
     None,
   )
-  if !reserve_slots(workspace, call_count) {
-    return Err(RowLimit)
-  }
   for call_index in 0..<call_count {
     guard @lower.analytic_call_function(
         @lower.analytic_call_at(analytic, call_index).unwrap(),
@@ -438,10 +530,10 @@ fn[T : RelationRows] evaluate_analytic_into(
       },
     )
   }
-  let count_indices : Array[AnalyticCountIndex?] = Array::make(call_count, None)
   if !reserve_slots(workspace, call_count) {
     return Err(RowLimit)
   }
+  let count_indices : Array[AnalyticCountIndex?] = Array::make(call_count, None)
   for call_index in 0..<call_count {
     guard @lower.analytic_call_function(
         @lower.analytic_call_at(analytic, call_index).unwrap(),
@@ -465,10 +557,10 @@ fn[T : RelationRows] evaluate_analytic_into(
     guard aggregate_arguments[call_index] is Some(AggregateInputField(column)) else {
       continue
     }
-    let prefix = Array::make(count + 1, 0)
     if !reserve_slots(workspace, count + 1) {
       return Err(RowLimit)
     }
+    let prefix = Array::make(count + 1, 0)
     for range in ranges {
       for position in range.start..<range.end {
         if !spend_control(control, 1) {
@@ -493,6 +585,14 @@ fn[T : RelationRows] evaluate_analytic_into(
     }
     count_indices[call_index] = Some(CountPrefix(prefix))
   }
+  for _ in 0..<5 {
+    if !reserve_slots(workspace, count) {
+      return Err(RowLimit)
+    }
+  }
+  if !reserve_matrix_slots(workspace, call_count, count) {
+    return Err(RowLimit)
+  }
   let position_by_row = Array::make(count, -1)
   let partition_start = Array::make(count, -1)
   let partition_by_row = Array::make(count, -1)
@@ -501,16 +601,12 @@ fn[T : RelationRows] evaluate_analytic_into(
   let references : Array[Array[Int]] = Array::makei(call_count, _ => {
     Array::make(count, -1)
   })
-  for _ in 0..<5 {
-    if !reserve_slots(workspace, count) {
-      return Err(RowLimit)
-    }
+  if !reserve_matrix_slots(workspace, call_count, count) {
+    return Err(RowLimit)
   }
-  for _ in 0..<call_count {
-    if !reserve_slots(workspace, count) {
-      return Err(RowLimit)
-    }
-  }
+  let demanded : Array[Array[Bool]] = Array::makei(call_count, _ => {
+    Array::make(count, false)
+  })
   let mut frame_memberships = 0L
   for range_index in 0..<ranges.length() {
     let range = ranges[range_index]
@@ -585,6 +681,18 @@ fn[T : RelationRows] evaluate_analytic_into(
           PreparedFrameAggregate(_) => -1
         }
         references[call_index][source] = reference
+        if @lower.analytic_call_function(call) is PreparedFrameAggregate(_) {
+          guard @lower.analytic_frame(analytic) is Some(frame) else {
+            return Err(InvalidRows)
+          }
+          match analytic_frame_range(frame, relative, length) {
+            None => ()
+            Some((first, end)) =>
+              for offset in first..<end {
+                demanded[call_index][sorted[range.start + offset]] = true
+              }
+          }
+        }
         if envelope is Some(value) {
           let memberships = match @lower.analytic_call_function(call) {
             PreparedLag(_, _)
@@ -610,17 +718,20 @@ fn[T : RelationRows] evaluate_analytic_into(
       }
     }
   }
+  if !reserve_matrix_slots(workspace, call_count, count) ||
+    !reserve_matrix_slots(workspace, call_count, count) ||
+    !reserve_matrix_slots(workspace, call_count, count) {
+    return Err(RowLimit)
+  }
   let evaluated : Array[Array[Value?]] = Array::makei(call_count, _ => {
     Array::make(count, None)
   })
-  let demanded : Array[Array[Bool]] = Array::makei(call_count, _ => {
+  let arguments : Array[Array[Value?]] = Array::makei(call_count, _ => {
+    Array::make(count, None)
+  })
+  let included : Array[Array[Bool]] = Array::makei(call_count, _ => {
     Array::make(count, false)
   })
-  for _ in 0..<call_count {
-    if !reserve_slots(workspace, count) || !reserve_slots(workspace, count) {
-      return Err(RowLimit)
-    }
-  }
   for call_index in 0..<call_count {
     for source in 0..<count {
       let reference = references[call_index][source]
@@ -629,12 +740,12 @@ fn[T : RelationRows] evaluate_analytic_into(
       }
     }
   }
-  let failure_sources : Array[Array[Int]] = Array::makei(ranges.length(), _ => {
-    []
-  })
   if !reserve_slots(workspace, ranges.length()) {
     return Err(RowLimit)
   }
+  let failure_sources : Array[Array[Int]] = Array::makei(ranges.length(), _ => {
+    []
+  })
   for source in 0..<count {
     let range_index = partition_by_row[source]
     if range_index < 0 ||
@@ -644,10 +755,10 @@ fn[T : RelationRows] evaluate_analytic_into(
     }
     failure_sources[range_index].push(source)
   }
-  let call_order = Array::makei(call_count, i => i)
   if !reserve_slots(workspace, call_count) {
     return Err(RowLimit)
   }
+  let call_order = Array::makei(call_count, i => i)
   for i in 1..<call_order.length() {
     let mut cursor = i
     while cursor > 0 {
@@ -678,80 +789,43 @@ fn[T : RelationRows] evaluate_analytic_into(
         let call = @lower.analytic_call_at(analytic, call_index).unwrap()
         if @lower.analytic_call_function(call)
           is PreparedFrameAggregate(aggregate) {
-          guard @lower.analytic_frame(analytic) is Some(frame) else {
+          if !demanded[call_index][source] ||
+            count_indices[call_index] is Some(_) {
+            continue
+          }
+          if @lower.group_aggregate_filter(aggregate) is Some(filter) {
+            let accepted = match
+              analytic_expression_value(
+                filter, input, names, source, call_index, control, workspace, scope,
+              ) {
+              Ok(Boolean(true)) => true
+              Ok(Boolean(false) | Null) => false
+              Ok(_) => return Err(InvalidRows)
+              Err(issue) => return Err(issue)
+            }
+            if !accepted {
+              continue
+            }
+          }
+          guard aggregate_arguments[call_index] is Some(argument) else {
             return Err(InvalidRows)
           }
-          let position = position_by_row[source] - ranges[range_index].start
-          let length = ranges[range_index].end - ranges[range_index].start
-          let (first, end) = match
-            analytic_frame_range(frame, position, length) {
-            Some((first, end)) =>
-              (
-                ranges[range_index].start + first,
-                ranges[range_index].start + end,
-              )
-            None => (ranges[range_index].start, ranges[range_index].start)
-          }
-          let value = match count_indices[call_index] {
-            Some(CountRows) => Number((end - first).to_double())
-            Some(CountPrefix(prefix)) =>
-              Number((prefix[end] - prefix[first]).to_double())
-            None => {
-              let baseline = workspace.live
-              guard aggregate_arguments[call_index] is Some(argument) else {
-                return Err(InvalidRows)
-              }
-              let dynamic = @lower.group_aggregate_filter(aggregate) is Some(_) ||
-                argument is AggregateInputExpression(_)
-              let computed = if dynamic {
-                evaluate_dynamic_aggregate(
-                  aggregate,
-                  input,
-                  names,
-                  sorted,
-                  { representative: Some(source), start: first, end, },
-                  argument,
-                  complete,
-                  call_index,
-                  control,
-                  workspace,
-                  aggregate_outputs,
-                  identity_limits,
+          let value = match argument {
+            AggregateInputRows => Null
+            AggregateInputField(column) =>
+              IndexedRows::read_cell(input, source, column)
+            AggregateInputExpression(expression) =>
+              match
+                analytic_expression_value(
+                  expression, input, names, source, call_index, control, workspace,
                   scope,
-                  numeric~,
-                  numeric_step=step,
-                  numeric_occurrence=source,
-                )
-              } else {
-                evaluate_direct_aggregate(
-                  aggregate,
-                  input,
-                  sorted,
-                  { representative: Some(source), start: first, end, },
-                  match argument {
-                    AggregateInputRows => None
-                    AggregateInputField(column) => Some(column)
-                    AggregateInputExpression(_) => None
-                  },
-                  complete,
-                  control,
-                  workspace,
-                  aggregate_outputs,
-                  identity_limits,
-                  numeric~,
-                  numeric_step=step,
-                  numeric_occurrence=source,
-                )
-              }
-              let value = match computed {
+                ) {
                 Ok(value) => value
                 Err(issue) => return Err(issue)
               }
-              release_slots(workspace, workspace.live - baseline)
-              value
-            }
           }
-          evaluated[call_index][source] = Some(value)
+          included[call_index][source] = true
+          arguments[call_index][source] = Some(value)
           continue
         }
         if demanded[call_index][source] {
@@ -769,8 +843,58 @@ fn[T : RelationRows] evaluate_analytic_into(
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
-          evaluated[call_index][source] = Some(value)
+          arguments[call_index][source] = Some(value)
         }
+      }
+    }
+  }
+  for range_index in 0..<ranges.length() {
+    for source in failure_sources[range_index] {
+      for call_index in call_order {
+        let call = @lower.analytic_call_at(analytic, call_index).unwrap()
+        guard @lower.analytic_call_function(call)
+          is PreparedFrameAggregate(aggregate) else {
+          continue
+        }
+        guard @lower.analytic_frame(analytic) is Some(frame) else {
+          return Err(InvalidRows)
+        }
+        let position = position_by_row[source] - ranges[range_index].start
+        let length = ranges[range_index].end - ranges[range_index].start
+        let (first, end) = match analytic_frame_range(frame, position, length) {
+          Some((first, end)) =>
+            (ranges[range_index].start + first, ranges[range_index].start + end)
+          None => (ranges[range_index].start, ranges[range_index].start)
+        }
+        let value = match count_indices[call_index] {
+          Some(CountRows) => Number((end - first).to_double())
+          Some(CountPrefix(prefix)) =>
+            Number((prefix[end] - prefix[first]).to_double())
+          None => {
+            let baseline = workspace.live
+            let computed = evaluate_precomputed_analytic_aggregate(
+              aggregate,
+              sorted,
+              { representative: Some(source), start: first, end, },
+              arguments[call_index],
+              included[call_index],
+              control,
+              workspace,
+              aggregate_outputs,
+              identity_limits,
+              numeric,
+              step,
+              source,
+            )
+            let value = match computed {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            release_slots(workspace, workspace.live - baseline)
+            value
+          }
+        }
+        evaluated[call_index][source] = Some(value)
       }
     }
   }
@@ -845,7 +969,7 @@ fn[T : RelationRows] evaluate_analytic_into(
               if reference < 0 {
                 Null
               } else {
-                evaluated[index][reference].unwrap()
+                arguments[index][reference].unwrap()
               }
             }
             PreparedFrameAggregate(_) =>
@@ -884,6 +1008,24 @@ fn[T : RelationRows] evaluate_analytic_into(
       @encode.finish_measurement(writer) |> ignore
     } catch {
       _ => return Err(AnalyticEnvelope(OutputWireBytes))
+    }
+  }
+  if numeric is Some(execution) {
+    for call_index in 0..<call_count {
+      let call = @lower.analytic_call_at(analytic, call_index).unwrap()
+      guard @lower.analytic_call_function(call)
+        is PreparedFrameAggregate(aggregate) else {
+        continue
+      }
+      if @lower.group_aggregate_requires_numeric_observation(aggregate) &&
+        !seal_numeric_aggregate(
+          execution,
+          step,
+          @lower.analytic_call_name(call),
+          count,
+        ) {
+        return Err(InvalidRows)
+      }
     }
   }
   Ok(output_names)

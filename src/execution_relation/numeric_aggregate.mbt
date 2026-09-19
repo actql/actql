@@ -6,6 +6,7 @@ struct NumericAggregateExecution {
     @numeric.Outcome,
     @numeric.ReductionIssue,
   ]?
+  seal : (Int, String, Int) -> Bool
 }
 
 ///|
@@ -17,7 +18,21 @@ pub fn numeric_aggregate_execution(
     @numeric.ReductionIssue,
   ]?,
 ) -> NumericAggregateExecution {
-  { reduce, }
+  { reduce, seal: fn(_step, _name, _count) { true }, }
+}
+
+///|
+/// Install the selected reduction together with its attempt-owned slot seal.
+/// Product execution uses this form; the simpler constructor remains useful
+/// for evaluator conformance tests that have no common Host attempt.
+pub fn numeric_aggregate_execution_with_seal(
+  reduce : (Int, String, Int, Array[Double], Int, Int) -> Result[
+    @numeric.Outcome,
+    @numeric.ReductionIssue,
+  ]?,
+  seal : (Int, String, Int) -> Bool,
+) -> NumericAggregateExecution {
+  { reduce, seal, }
 }
 
 ///|
@@ -33,4 +48,17 @@ fn run_numeric_aggregate(
   (execution.reduce)(
     step, name, occurrence, contributors, expected_count, max_work,
   )
+}
+
+///|
+/// Close one exact operation-owned slot after the evaluator has completed the
+/// occurrence domain. This is separate from task completion because later
+/// relational operations may change the task's final row count.
+fn seal_numeric_aggregate(
+  execution : NumericAggregateExecution,
+  step : Int,
+  name : String,
+  occurrence_count : Int,
+) -> Bool {
+  (execution.seal)(step, name, occurrence_count)
 }

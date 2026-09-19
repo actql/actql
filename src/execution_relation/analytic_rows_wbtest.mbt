@@ -348,6 +348,52 @@ test "analytic expression failure follows partition source and call order" {
 }
 
 ///|
+test "analytic frame arguments fail in source then call order" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"frame\":{" +
+    "\"start\":\"unbounded_preceding\"," +
+    "\"end\":\"unbounded_following\"},\"functions\":{" +
+    "\"a\":{\"fn\":\"min\",\"expr\":\"1 / amount\"}," +
+    "\"b\":{\"fn\":\"min\",\"expr\":\"1 / (id - 1)\"}}}",
+  )
+  let template = analytic_execution_input(owner)
+  let input : Table = {
+    ..template,
+    rows: [
+      template.names.map(name => {
+        match name {
+          "amount" | "id" => Number(1)
+          "group" => Text("g")
+          _ => abort("unexpected analytic failure field")
+        }
+      }),
+      template.names.map(name => {
+        match name {
+          "amount" => Number(0)
+          "id" => Number(2)
+          "group" => Text("g")
+          _ => abort("unexpected analytic failure field")
+        }
+      }),
+    ],
+  }
+  guard evaluate_rows(
+      row_kernel(owner, 0),
+      input,
+      2,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+    )
+    is Err(Evaluation(row, call, _)) else {
+    fail("analytic frame expression failure expected")
+  }
+  // Source 0 / call b fails before source 1 / call a even though both full
+  // frames consume both rows.
+  assert_eq((row, call), (0, 1))
+}
+
+///|
 test "analytic execution has an exact control work boundary" {
   let owner = analytic_execution_owner(
     "\"analytic\":{\"partition_by\":[\"group\"]," +

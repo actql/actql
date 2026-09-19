@@ -133,3 +133,79 @@ test "window group accepts exact work and storage boundaries" {
     is Err(RowLimit),
   )
 }
+
+///|
+fn numeric_window_group_workspace_attempt(
+  limit : Int,
+) -> (Result[Table, RowIssue], Int) {
+  let owner = bound_pipeline(
+    (
+      #|[{"values":{"schema":{"at":{"type":"number","nullable":false},"id":{"type":"number","nullable":false},"n":{"type":"number","nullable":true}},"rows":[{"at":0,"id":0,"n":1}]} ,"as":"seed"},{"row_window":{"kind":"fixed","time":"at","size":10},"as":"windowed"},{"from":"windowed","window_group":{"by":[],"aggregates":{"mean":{"fn":"avg","field":"n"},"total":{"fn":"sum","field":"n"}}}}]
+    ),
+  )
+  let input : Table = {
+    owner,
+    id: @lower.kernel_input(row_kernel(owner, 2)),
+    names: ["at", "id", "n", "window_end", "window_start"],
+    rows: [
+      [Number(0), Number(0), Number(1), Number(10), Number(0)],
+      [Number(1), Number(1), Number(2), Number(10), Number(0)],
+      [Number(11), Number(2), Number(3), Number(20), Number(10)],
+    ],
+  }
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let numeric = numeric_aggregate_execution((
+    _step,
+    name,
+    _occurrence,
+    contributors,
+    expected_count,
+    max_work,
+  ) => {
+    Some(
+      @numeric.execute(
+        reduction,
+        if name == "mean" {
+          @numeric.Average
+        } else {
+          @numeric.Sum
+        },
+        contributors,
+        expected_count,
+        max_work,
+      ),
+    )
+  })
+  let workspace = { limit, live: 0, peak: 0, }
+  let result = evaluate_rows_with_workspace(
+    row_kernel(owner, 2),
+    input,
+    3,
+    { remaining: 100000, max_frames: 100, },
+    value_budget({
+      max_nodes: 100000,
+      max_text_bytes: 100000,
+      max_depth: 10,
+      max_work: 100000,
+    }).unwrap(),
+    workspace,
+    numeric=Some(numeric),
+  )
+  (result, workspace.peak)
+}
+
+///|
+test "numeric window group arrays respect the exact workspace boundary" {
+  let (baseline, peak) = numeric_window_group_workspace_attempt(10000)
+  assert_true(baseline is Ok(_))
+  let (exact, exact_peak) = numeric_window_group_workspace_attempt(peak)
+  assert_true(exact is Ok(_))
+  assert_eq(exact_peak, peak)
+  let (short, short_peak) = numeric_window_group_workspace_attempt(peak - 1)
+  assert_true(short is Err(RowLimit))
+  assert_true(short_peak <= peak - 1)
+}

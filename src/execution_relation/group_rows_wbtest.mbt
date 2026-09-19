@@ -400,6 +400,71 @@ test "selected numeric reductions execute every group occurrence exactly once" {
 }
 
 ///|
+fn numeric_group_workspace_attempt(
+  limit : Int,
+) -> (Result[Table, RowIssue], Int) {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"k\":{\"type\":\"number\"," +
+    "\"nullable\":false},\"n\":{\"type\":\"number\"," +
+    "\"nullable\":true}},\"rows\":[{\"k\":1,\"n\":1}," +
+    "{\"k\":1,\"n\":2},{\"k\":2,\"n\":3}]},\"as\":\"seed\"}," +
+    "{\"group\":{\"by\":[\"k\"],\"aggregates\":{" +
+    "\"mean\":{\"fn\":\"avg\",\"field\":\"n\"}," +
+    "\"total\":{\"fn\":\"sum\",\"field\":\"n\"}}}}]",
+  )
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let numeric = numeric_aggregate_execution((
+    _step,
+    name,
+    _occurrence,
+    contributors,
+    expected_count,
+    max_work,
+  ) => {
+    Some(
+      @numeric.execute(
+        reduction,
+        if name == "mean" {
+          @numeric.Average
+        } else {
+          @numeric.Sum
+        },
+        contributors,
+        expected_count,
+        max_work,
+      ),
+    )
+  })
+  let workspace = { limit, live: 0, peak: 0, }
+  let result = evaluate_rows_with_workspace(
+    row_kernel(owner, 1),
+    row_capture(owner),
+    3,
+    { remaining: 100000, max_frames: 100, },
+    row_output(),
+    workspace,
+    numeric=Some(numeric),
+  )
+  (result, workspace.peak)
+}
+
+///|
+test "numeric group temporary arrays respect the exact workspace boundary" {
+  let (baseline, peak) = numeric_group_workspace_attempt(10000)
+  assert_true(baseline is Ok(_))
+  let (exact, exact_peak) = numeric_group_workspace_attempt(peak)
+  assert_true(exact is Ok(_))
+  assert_eq(exact_peak, peak)
+  let (short, short_peak) = numeric_group_workspace_attempt(peak - 1)
+  assert_true(short is Err(RowLimit))
+  assert_true(short_peak <= peak - 1)
+}
+
+///|
 test "aggregate filters gate expression demand before ordered distinct folds" {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":0},{\"id\":1},{\"id\":2},{\"id\":2}]},\"as\":\"seed\"},{\"group\":{\"by\":[],\"aggregates\":{\"items\":{\"fn\":\"array_agg\",\"expr\":\"10 / id\",\"filter\":\"id > 0\",\"distinct\":true,\"order_by\":[{\"id\":\"desc\"}],\"max_items\":4}}}}]",

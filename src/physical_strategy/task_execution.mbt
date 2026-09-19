@@ -16,6 +16,7 @@ struct TaskExecution {
   attempt : @execution.ManagedExecutionAttempt
   numeric : Array[TaskNumericReduction]
   numeric_captures : Array[TaskNumericCapture]
+  numeric_occurrence_counts : Array[Int?]
   mut numeric_sealed : Bool
 }
 
@@ -286,6 +287,7 @@ pub fn[I, T] start_captured_managed_execution(
         attempt: @execution.issue_managed_execution_attempt(),
         numeric,
         numeric_captures: [],
+        numeric_occurrence_counts: Array::make(numeric.length(), None),
         numeric_sealed: false,
       }
       run.executions[task] = Some(execution)
@@ -432,6 +434,7 @@ fn[T] start_task_execution(
         attempt: @execution.issue_managed_execution_attempt(),
         numeric: [],
         numeric_captures: [],
+        numeric_occurrence_counts: [],
         numeric_sealed: true,
       }
       run.executions[task] = Some(execution)
@@ -522,11 +525,14 @@ pub fn execute_task_numeric_reduction_for_slot(
 }
 
 ///|
-/// Seal the exact attempt after its evaluator has emitted every occurrence.
-/// Completion refuses an unsealed numeric execution.
-pub fn seal_task_numeric_reductions(
+/// Seal one exact operation-owned slot after its evaluator has emitted the
+/// complete occurrence domain. Expected cardinality never comes from captured
+/// outcomes, so a missing occurrence remains observable.
+pub fn seal_task_numeric_reduction_slot(
   run : CapturedDAG,
   execution : TaskExecution,
+  step : Int,
+  name : String,
   occurrence_count : Int,
 ) -> Bool {
   if !task_execution_matches(run, execution) ||
@@ -535,17 +541,46 @@ pub fn seal_task_numeric_reductions(
     occurrence_count < 0 {
     return false
   }
-  let counts = Array::make(execution.numeric.length(), 0)
-  for capture in execution.numeric_captures {
-    if capture.selected < 0 ||
-      capture.selected >= counts.length() ||
-      capture.occurrence < 0 ||
-      capture.occurrence >= occurrence_count {
-      return false
+  let mut selected_index = None
+  for index, selected in execution.numeric {
+    if selected.observation.step == step && selected.observation.name == name {
+      if selected_index is Some(_) {
+        return false
+      }
+      selected_index = Some(index)
     }
-    counts[capture.selected] = counts[capture.selected] + 1
   }
-  if counts.any(count => count != occurrence_count) {
+  guard selected_index is Some(selected) &&
+    execution.numeric_occurrence_counts[selected] is None else {
+    return false
+  }
+  let mut count = 0
+  for capture in execution.numeric_captures {
+    if capture.selected == selected {
+      if capture.occurrence < 0 || capture.occurrence >= occurrence_count {
+        return false
+      }
+      count += 1
+    }
+  }
+  if count != occurrence_count {
+    return false
+  }
+  execution.numeric_occurrence_counts[selected] = Some(occurrence_count)
+  true
+}
+
+///|
+/// Seal the exact attempt only after every operation-owned slot has already
+/// closed. Completion refuses an execution with an unresolved slot.
+pub fn seal_task_numeric_reductions(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Bool {
+  if !task_execution_matches(run, execution) ||
+    execution.disposed ||
+    execution.numeric_sealed ||
+    execution.numeric_occurrence_counts.any(value => value is None) {
     return false
   }
   execution.numeric_sealed = true

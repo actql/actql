@@ -487,6 +487,19 @@ fn[T : RelationRows] evaluate_pivot_rows(
     }
     result.push(row)
   }
+  if numeric_required {
+    guard numeric is Some(execution) else { return Err(InvalidRows) }
+    for index in 0..<axis_count {
+      if !seal_numeric_aggregate(
+          execution,
+          step,
+          @lower.pivot_axis_at(pivot, index).unwrap(),
+          result.length(),
+        ) {
+        return Err(InvalidRows)
+      }
+    }
+  }
   Ok({
     owner: RelationRows::checked_owner(input),
     id: output_id,
