@@ -356,9 +356,25 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
-  let fields = "[\"id\",\"embedding\"]"
+  let pooled = variant == "pool" || variant == "pool_normalize"
+  let source_fields = "[\"id\",\"group\",\"embedding\"]"
+  let result_fields = if pooled {
+    "[\"group\",\"embedding\",\"member_count\"]"
+  } else {
+    "[\"id\",\"embedding\"]"
+  }
+  let second_fields = if pooled {
+    "[\"member_count\",\"embedding\",\"group\"]"
+  } else {
+    "[\"embedding\",\"id\"]"
+  }
   let kernel = if variant == "score" {
     "{\"score_vectors\":{\"query\":[1,0],\"metric\":\"dot\"}}"
+  } else if variant == "pool" {
+    "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}"
+  } else if variant == "pool_normalize" {
+    "{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"sum\"}}," +
+    "{\"normalize_vectors\":true}"
   } else {
     "{\"normalize_vectors\":true}"
   }
@@ -371,12 +387,14 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
   "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+  "\"group\":{\"type\":\"number\",\"nullable\":false}," +
   "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
-  "\"nullable\":false}},\"rows\":[{\"id\":1," +
-  "\"embedding\":[3,4]},{\"id\":2,\"embedding\":[0,5]}]}," +
+  "\"nullable\":false}},\"rows\":[{\"id\":1,\"group\":1," +
+  "\"embedding\":[3,4]},{\"id\":2,\"group\":1," +
+  "\"embedding\":[0,5]}]}," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":" +
-  fields +
+  source_fields +
   "}}},{\"id\":\"vectors\",\"inputs\":{" +
   "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}}," +
   "\"steps\":[{\"from\":\"rows\",\"to_vectors\":{" +
@@ -384,20 +402,22 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   kernel +
   ",{\"vectors\":true,\"as\":\"out\"}]," +
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
-  fields +
+  result_fields +
   "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
   "\"select\":" +
-  fields +
+  result_fields +
   ",\"as\":\"out\"}],\"results\":{\"r\":{" +
   "\"from\":\"out\",\"fields\":" +
-  fields +
+  result_fields +
   "}}},{" +
   "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
   "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"embedding\",\"id\"],\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
-  "\"embedding\",\"id\"]}}}],\"results\":{\"source\":{\"from\":{" +
+  "\"select\":" +
+  second_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":" +
+  second_fields +
+  "}}}],\"results\":{\"source\":{\"from\":{" +
   "\"stage\":\"a\",\"result\":\"r\"}}}}"
 }
 
