@@ -6,11 +6,17 @@ import {
 }
 
 // Values
+pub fn finish_score(ScoreFold) -> Result[Double, Issue]
+
 pub fn normalization_divisor(Double) -> Result[Double, Issue]
 
 pub fn normalize_component(Double, Double) -> Result[Double, Issue]
 
+pub fn prepare_score(Metric) -> ScoreFold
+
 pub fn quantize(Double) -> Result[Double, Issue]
+
+pub fn score_step(ScoreFold, Double, Double) -> Result[Unit, Issue]
 
 pub fn squared_norm_step(Double, Double) -> Result[Double, Issue]
 
@@ -21,6 +27,14 @@ pub(all) enum Issue {
   NonFinite
   ZeroVector
 } derive(Eq, @debug.Debug)
+
+pub(all) enum Metric {
+  Cosine
+  Dot
+  L2
+} derive(Eq, @debug.Debug)
+
+type ScoreFold
 
 // Type aliases
 
