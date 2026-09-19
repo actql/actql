@@ -368,6 +368,8 @@ pub fn strategy_remote_coordinator_transition_projection(@remote_site_protocol.C
 
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
+pub fn strategy_remote_dispatch_admit_json(String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
+
 pub fn strategy_remote_dispatch_budget_identity(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn strategy_remote_dispatch_execution_scope(@remote_site_protocol.DispatchRequest) -> Array[String]
@@ -383,6 +385,8 @@ pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, Str
 pub fn strategy_remote_execution_capability_scope(@remote_site_protocol.RemoteExecutionCapability) -> Array[String]
 
 pub fn strategy_remote_execution_evidence_admit(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
+
+pub fn strategy_remote_execution_evidence_admit_json(String, String, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
 
 pub fn strategy_remote_execution_evidence_identity(@remote_site_protocol.RemoteExecutionEvidence) -> String
 
@@ -408,6 +412,8 @@ pub fn strategy_remote_managed_output_evidence_kind() -> String
 
 pub fn strategy_remote_managed_output_measurement_admit(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], String) -> @remote_site_protocol.RemoteManagedOutputMeasurement raise NodeHostFailure
 
+pub fn strategy_remote_managed_output_measurement_admit_json(String, String) -> @remote_site_protocol.RemoteManagedOutputMeasurement raise NodeHostFailure
+
 pub fn strategy_remote_managed_output_measurement_identity(@remote_site_protocol.RemoteManagedOutputMeasurement) -> String
 
 pub fn strategy_remote_managed_output_measurement_json(@remote_site_protocol.RemoteManagedOutputMeasurement) -> String raise NodeHostFailure
@@ -417,6 +423,8 @@ pub fn strategy_remote_managed_output_measurement_prepare(Int, Int, Int, Int, Ar
 pub fn strategy_remote_managed_output_measurement_projection(@remote_site_protocol.RemoteManagedOutputMeasurement) -> Array[Array[Int]]
 
 pub fn strategy_remote_managed_output_subject_admit(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> @remote_site_protocol.RemoteManagedOutputSubject raise NodeHostFailure
+
+pub fn strategy_remote_managed_output_subject_admit_json(String, String, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.RemoteManagedOutputSubject raise NodeHostFailure
 
 pub fn strategy_remote_managed_output_subject_identity(@remote_site_protocol.RemoteManagedOutputSubject) -> String
 

@@ -60,7 +60,7 @@ test('HTTP decoding rejects altered identity and noncanonical JSON', () => {
       `${body.slice(0, -1)},"extra":true}`,
       control.identity(request),
     ),
-    {code: 'NonCanonicalRemoteDispatchWire'},
+    {code: 'InvalidRemoteDispatchWire'},
   );
   assert.throws(
     () => admitRemoteDispatchJson(
@@ -163,7 +163,7 @@ test('evidence decoding recomputes identity and exact dispatch binding', () => {
       control.evidenceIdentity(evidence),
       other,
     ),
-    {code: 'NonCanonicalRemoteExecutionEvidenceWire'},
+    {code: 'InvalidRemoteExecutionEvidenceWire'},
   );
 });
 

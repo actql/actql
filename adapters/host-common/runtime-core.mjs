@@ -136,6 +136,9 @@ function remoteSiteControl(moon) {
     dispatchBudgetIdentity: moon.strategyRemoteDispatchBudgetIdentity,
     recordMatchesDispatch: moon.strategyRemoteRecordMatchesDispatch,
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
+    admitJson: (body, claimedRequestCid) => checked(
+      moon.strategyRemoteDispatchAdmitJson(body, claimedRequestCid),
+    ),
     journalKey: moon.strategyRemoteDispatchJournalKey,
     executionScope: moon.strategyRemoteDispatchExecutionScope,
     managedRuntimeRegistrationScope: (capability, issuer) => checked(
@@ -307,6 +310,15 @@ function remoteSiteControl(moon) {
         measurement.measurementCid,
       ),
     ),
+    admitManagedOutputMeasurementJson: (
+      body,
+      claimedMeasurementCid,
+    ) => checked(
+      moon.strategyRemoteManagedOutputMeasurementAdmitJson(
+        body,
+        claimedMeasurementCid,
+      ),
+    ),
     prepareManagedOutputSubject: (dispatch, output, measurement) => checked(
       moon.strategyRemoteManagedOutputSubjectPrepare(
         control.identity(dispatch),
@@ -338,6 +350,17 @@ function remoteSiteControl(moon) {
         subject.rowCount,
         subject.retainedBytes,
         subject.subjectCid,
+      ),
+    ),
+    admitManagedOutputSubjectJson: (
+      body,
+      claimedSubjectCid,
+      dispatch,
+    ) => checked(
+      moon.strategyRemoteManagedOutputSubjectAdmitJson(
+        body,
+        claimedSubjectCid,
+        dispatch,
       ),
     ),
     managedOutputSubjectIdentity:
@@ -374,6 +397,17 @@ function remoteSiteControl(moon) {
         evidence.siteKey,
         evidence.strategyRevision,
         evidence.evidenceCid,
+      ),
+    ),
+    admitExecutionEvidenceJson: (
+      body,
+      claimedEvidenceCid,
+      dispatch,
+    ) => checked(
+      moon.strategyRemoteExecutionEvidenceAdmitJson(
+        body,
+        claimedEvidenceCid,
+        dispatch,
       ),
     ),
     evidenceIdentity: moon.strategyRemoteExecutionEvidenceIdentity,

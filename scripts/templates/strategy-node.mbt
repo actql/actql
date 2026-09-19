@@ -3149,6 +3149,18 @@ pub fn strategy_remote_dispatch_json(
 }
 
 ///|
+#export_name("strategyRemoteDispatchAdmitJson")
+pub fn strategy_remote_dispatch_admit_json(
+  body : String,
+  claimed_request_cid : String,
+) -> @remote.DispatchRequest raise NodeHostFailure {
+  match @remote.admit_dispatch_request_json(body, claimed_request_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteDispatchJournalKey")
 pub fn strategy_remote_dispatch_journal_key(
   request : @remote.DispatchRequest,
@@ -3803,6 +3815,22 @@ pub fn strategy_remote_managed_output_subject_admit(
 }
 
 ///|
+#export_name("strategyRemoteManagedOutputSubjectAdmitJson")
+pub fn strategy_remote_managed_output_subject_admit_json(
+  body : String,
+  claimed_subject_cid : String,
+  request : @remote.DispatchRequest,
+) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
+  match
+    @remote.admit_remote_managed_output_subject_json(
+      body, claimed_subject_cid, request,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteManagedOutputSubjectIdentity")
 pub fn strategy_remote_managed_output_subject_identity(
   subject : @remote.RemoteManagedOutputSubject,
@@ -3889,6 +3917,21 @@ pub fn strategy_remote_managed_output_measurement_admit(
       column_null_rows,
       column_admitted_depths,
       claimed_measurement_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementAdmitJson")
+pub fn strategy_remote_managed_output_measurement_admit_json(
+  body : String,
+  claimed_measurement_cid : String,
+) -> @remote.RemoteManagedOutputMeasurement raise NodeHostFailure {
+  match
+    @remote.admit_remote_managed_output_measurement_json(
+      body, claimed_measurement_cid,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
@@ -4003,6 +4046,22 @@ pub fn strategy_remote_execution_evidence_admit(
       site_key,
       strategy_revision,
       claimed_evidence_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteExecutionEvidenceAdmitJson")
+pub fn strategy_remote_execution_evidence_admit_json(
+  body : String,
+  claimed_evidence_cid : String,
+  request : @remote.DispatchRequest,
+) -> @remote.RemoteExecutionEvidence raise NodeHostFailure {
+  match
+    @remote.admit_remote_execution_evidence_json(
+      body, claimed_evidence_cid, request,
     ) {
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
