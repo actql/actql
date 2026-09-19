@@ -20,6 +20,7 @@ pub enum PreparedStep {
   GraphStructuralStep(PreparedGraphStructural)
   GraphUnionStep(PreparedGraphUnion)
   GraphMeanStep(PreparedGraphMean)
+  GraphRelationStep(PreparedGraphRelation)
 }
 
 ///|
@@ -46,6 +47,7 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
   GraphMeanFailure(Int, GraphMeanIssue)
+  GraphRelationFailure(Int, GraphRelationIssue)
 }
 
 ///|
@@ -183,6 +185,25 @@ pub fn prepare_sequence(
         }
         GraphMeanStep(prepared)
       }
+      GraphEqualityRows(_) | GraphDiffRows(_) | GraphApplyValue(_) => {
+        let (prepared, used_entries, used_names, used_work) = match
+          prepare_graph_relation_node(
+            owner.prepared.nodes[i],
+            max_entries=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphRelationFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        GraphRelationStep(prepared)
+      }
       BasicGraph(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_graph_basic_node(
@@ -305,6 +326,7 @@ pub fn emit_sequence_steps(
       GraphStructuralStep(v) => emit_graph_structural_node(v, out)
       GraphUnionStep(v) => emit_graph_union_node(v, out)
       GraphMeanStep(v) => emit_graph_mean_node(v, out)
+      GraphRelationStep(v) => emit_graph_relation_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
         emit_kernel_node(v, out)

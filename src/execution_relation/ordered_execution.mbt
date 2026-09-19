@@ -74,6 +74,7 @@ fn prepare_ordered_budgets(
       @lower.GraphStructuralStep(_) => return Err(InputSet)
       @lower.GraphUnionStep(_) => return Err(InputSet)
       @lower.GraphMeanStep(_) => return Err(InputSet)
+      @lower.GraphRelationStep(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {

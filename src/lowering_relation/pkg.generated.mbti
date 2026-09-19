@@ -810,6 +810,12 @@ pub(all) enum GraphMeanIssue {
   GraphMeanPreparationLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphRelationIssue {
+  InvalidGraphRelationLimits
+  InvalidGraphRelationWiring
+  GraphRelationPreparationLimit
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GroupIssue {
   GroupNotFound
   InvalidGroupLimits
@@ -965,6 +971,9 @@ pub enum Payload {
   StructuralGraph(@graph_typing.CheckedStructural)
   GraphUnion(@graph_typing.CheckedUnion)
   GraphMeanValue(@graph_typing.CheckedMean)
+  GraphEqualityRows(@graph_typing.CheckedEquality)
+  GraphDiffRows(@graph_typing.CheckedDiff)
+  GraphApplyValue(@graph_typing.CheckedApply)
 }
 
 pub(all) enum PivotIssue {
@@ -1024,6 +1033,8 @@ pub(all) enum PreparedFrameBoundary {
 type PreparedGraphBasic
 
 type PreparedGraphMean
+
+type PreparedGraphRelation
 
 type PreparedGraphStructural
 
@@ -1089,6 +1100,7 @@ pub enum PreparedStep {
   GraphStructuralStep(PreparedGraphStructural)
   GraphUnionStep(PreparedGraphUnion)
   GraphMeanStep(PreparedGraphMean)
+  GraphRelationStep(PreparedGraphRelation)
 }
 
 type PreparedValues
@@ -1144,6 +1156,7 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
   GraphMeanFailure(Int, GraphMeanIssue)
+  GraphRelationFailure(Int, GraphRelationIssue)
 }
 
 pub(all) struct SequenceLimits {

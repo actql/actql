@@ -29,7 +29,8 @@ pub fn prepare_fragment_pipeline(
     | GraphBasicStep(_)
     | GraphStructuralStep(_)
     | GraphUnionStep(_)
-    | GraphMeanStep(_) => Err(NotExpressionKernel)
+    | GraphMeanStep(_)
+    | GraphRelationStep(_) => Err(NotExpressionKernel)
   }
 }
 

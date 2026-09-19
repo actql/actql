@@ -59,6 +59,9 @@ pub enum Payload {
   StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
   GraphMeanValue(@graph.CheckedMean)
+  GraphEqualityRows(@graph.CheckedEquality)
+  GraphDiffRows(@graph.CheckedDiff)
+  GraphApplyValue(@graph.CheckedApply)
 }
 
 ///|
@@ -202,6 +205,9 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphUnion(_) => "SGA.union_structural"
     GraphMeanValue(_) => "SGA.mean_structural"
+    GraphEqualityRows(_) => "SGA.equal"
+    GraphDiffRows(_) => "SGA.diff"
+    GraphApplyValue(_) => "SGA.apply_delta"
     SetRows(checked) =>
       match @set.operation(checked) {
         @set.Except => "REL.except_rows"
@@ -255,14 +261,11 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | @graph.Components
         | @graph.GraphBounds => Some(BasicGraph(value))
       }
-    GraphMatch(_)
-    | Reach(_)
-    | Subgraph(..)
-    | Traverse(..)
-    | Shortest(..)
-    | GraphEquality(..)
-    | GraphDiff(..)
-    | GraphApply(..) => None
+    GraphMatch(_) | Reach(_) | Subgraph(..) | Traverse(..) | Shortest(..) =>
+      None
+    GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
+    GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
+    GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
@@ -392,6 +395,9 @@ pub fn prepare(
       GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
       GraphMeanValue(value) =>
         ("mean_graphs", @graph.mean_sample_count(@graph.mean_options(value)))
+      GraphEqualityRows(_) => ("graphs_equal", 2)
+      GraphDiffRows(_) => ("graph_diff", 2)
+      GraphApplyValue(_) => ("apply_graph_delta", 2)
       SetRows(checked) =>
         (
           match @set.operation(checked) {
@@ -513,6 +519,9 @@ pub fn prepare(
       StructuralGraph(_) => None
       GraphUnion(_) => None
       GraphMeanValue(_) => None
+      GraphEqualityRows(_) => None
+      GraphDiffRows(_) => None
+      GraphApplyValue(_) => None
     }
     let order_id = if payload is Limit(_) &&
       take_completion(checked, i) is Some(_) {

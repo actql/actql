@@ -409,7 +409,11 @@ fn lower_expression_measured(
       | BasicGraph(_)
       | StructuralGraph(_)
       | GraphUnion(_)
-      | GraphMeanValue(_) => expression_fail(step.source, MissingCheckedBinding)
+      | GraphMeanValue(_)
+      | GraphEqualityRows(_)
+      | GraphDiffRows(_)
+      | GraphApplyValue(_) =>
+        expression_fail(step.source, MissingCheckedBinding)
     }
     guard @relation.binding_at(op, binding_index) is Some(binding) else {
       expression_fail(step.source, MissingCheckedBinding)

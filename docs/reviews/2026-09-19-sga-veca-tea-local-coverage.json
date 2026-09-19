@@ -141,8 +141,10 @@
       "output": "relation",
       "canonical": ["SGA.diff"],
       "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
     },
     {
       "family": "SGA",
@@ -197,8 +199,10 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
     },
     {
       "family": "SGA",
@@ -207,8 +211,10 @@
       "output": "graph",
       "canonical": ["SGA.apply_delta"],
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_relation_test.mbt"]
     },
     {
       "family": "SGA",
