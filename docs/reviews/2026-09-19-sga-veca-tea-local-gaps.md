@@ -165,8 +165,11 @@ their typed keys. It admits sort, key, vector, and output workspace before
 construction and reaches the standard Host through the registered Vectors
 provider. Portable tests cover exact input binding, all three reductions,
 renamed output identity, exact/short workspace, cancellation observation, and
-two exact downstream reads on JS, Wasm, and native. The author-visible Relation
-form, an actual same-Carrier consumer, environment cancellation delivery, and
+two exact downstream reads on JS, Wasm, and native. The standard provider also
+executes pooling followed by normalization before the Relation Bridge, cleans
+each intermediate generation before advancing, and verifies the normalized
+value on all three targets. The author-visible Relation form, overlapping
+independent Carrier consumer lifetime, environment cancellation delivery, and
 publication remain open, so pooling is partial. Nearest-neighbor execution and
 ranking merge still lack portable Local kernels.
 `vector_score` now requires explicit selected-profile admission, retains both
@@ -305,6 +308,14 @@ max, output identity aliases, exact input binding, resource admission, and
 kernel cancellation observation. This is not evidence for author-visible
 Relation pooling, an actual same-Carrier consumer, environment cancellation
 delivery, or publication.
+
+At `c097f5b5`, the registered provider accepts a finite typed VecA kernel chain,
+admits storage for every intermediate generation, and reclaims each predecessor
+before starting the next kernel. The standard Host executes pooling followed by
+normalization and verifies the exact normalized vector. Provider and query-
+integration suites pass 358 tests on each target. This proves an actual
+same-Carrier computation after pooling, but not two overlapping consumers of
+the same Carrier generation.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
