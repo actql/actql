@@ -23,6 +23,62 @@ fn runtime_record(state : String, sequence : Int64) -> PublicationContract {
 }
 
 ///|
+test "publication setup reconciles before creating a new attempt" {
+  assert_eq(
+    prepare_publication_setup_step(
+      false, false, false, false, false, false, false,
+    ),
+    PublicationCheckExistingCommit,
+  )
+  assert_eq(
+    prepare_publication_setup_step(
+      true, true, false, false, false, false, false,
+    ),
+    PublicationValidateExistingEvidence,
+  )
+  assert_eq(
+    prepare_publication_setup_step(true, true, true, false, false, false, false),
+    PublicationFinalizeExistingCommit,
+  )
+  assert_eq(
+    prepare_publication_setup_step(true, true, true, true, false, false, false),
+    PublicationReturnExistingCommit,
+  )
+  assert_eq(
+    prepare_publication_setup_step(
+      true, false, false, false, false, false, false,
+    ),
+    PublicationCheckInitialActive,
+  )
+  assert_eq(
+    prepare_publication_setup_step(
+      true, false, false, false, true, false, false,
+    ),
+    PublicationPersistContracts,
+  )
+  assert_eq(
+    prepare_publication_setup_step(true, false, false, false, true, true, false),
+    PublicationCreateAttempt,
+  )
+  assert_eq(
+    prepare_publication_setup_step(true, false, false, false, true, true, true),
+    PublicationEnterAttemptProgress,
+  )
+  assert_eq(
+    prepare_publication_setup_step(
+      false, true, false, false, false, false, false,
+    ),
+    PublicationSetupInvalid,
+  )
+  assert_eq(
+    prepare_publication_setup_step(
+      true, false, false, false, false, true, false,
+    ),
+    PublicationSetupInvalid,
+  )
+}
+
+///|
 test "publication attempt progression owns every record-state decision" {
   assert_eq(
     prepare_publication_attempt_step(None, false, false),

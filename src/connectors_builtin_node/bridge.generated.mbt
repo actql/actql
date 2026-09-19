@@ -785,6 +785,25 @@ pub fn strategy_publication_attempt_action(
 }
 
 ///|
+#export_name("strategyPublicationSetupAction")
+pub fn strategy_publication_setup_action(
+  existing_checked : Bool,
+  existing_found : Bool,
+  existing_evidence_validated : Bool,
+  existing_finalized : Bool,
+  initial_active_checked : Bool,
+  contracts_persisted : Bool,
+  attempt_created : Bool,
+) -> Int {
+  @publication.publication_setup_action_code(
+    @publication.prepare_publication_setup_step(
+      existing_checked, existing_found, existing_evidence_validated, existing_finalized,
+      initial_active_checked, contracts_persisted, attempt_created,
+    ),
+  )
+}
+
+///|
 #export_name("strategyPublicationCancellationAction")
 pub fn strategy_publication_cancellation_action(
   record : @publication.PublicationContract?,

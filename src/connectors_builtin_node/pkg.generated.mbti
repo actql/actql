@@ -306,6 +306,8 @@ pub fn strategy_publication_record_transition(@run_publication.PublicationContra
 
 pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
+pub fn strategy_publication_setup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure

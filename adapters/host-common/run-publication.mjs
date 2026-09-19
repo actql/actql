@@ -34,6 +34,7 @@ function validateControl(control) {
       !['issuePublicationRequest', 'issuePublicationAttempt',
         'issuePublicIndexEntry', 'issuePublicationRecord',
         'publicationAttemptAction', 'publicationCancellationAction',
+        'publicationSetupAction',
         'committedPublicationFinalizationAction',
         'supersededPublicationFinalizationAction',
         'publicationCommitFailureAction', 'publicationUnknownRetryAction',
@@ -438,27 +439,70 @@ export async function publishEffectFreeRun(options) {
     publicationRequest, evidence.runDefinition, attempt, limits,
   );
   const key = indexKey(request, evidence);
-  const existing = await validateExistingCommit(
-    store, control, evidence, publicationRequest, key, limits,
-  );
-  if (existing !== undefined) {
-    await store.validateCommittedEvidence(existing.index, evidence);
-    await finishCommittedAttempt(
-      store, control, existing.attempt, existing.index, now, limits,
+  let existingChecked = false;
+  let existing;
+  let existingEvidenceValidated = false;
+  let existingFinalized = false;
+  let initialActiveChecked = false;
+  let contractsPersisted = false;
+  let attemptCreated = false;
+  while (true) {
+    const action = control.publicationSetupAction(
+      existingChecked,
+      existing !== undefined,
+      existingEvidenceValidated,
+      existingFinalized,
+      initialActiveChecked,
+      contractsPersisted,
+      attemptCreated,
     );
-    return Object.freeze({
-      state: 'succeeded',
-      committed: false,
-      idempotent: true,
-      request: publicationRequest,
-      attempt: existing.attempt,
-      index: existing.index,
-    });
+    if (action === 0) {
+      existing = await validateExistingCommit(
+        store, control, evidence, publicationRequest, key, limits,
+      );
+      existingChecked = true;
+      continue;
+    }
+    if (action === 1) {
+      await store.validateCommittedEvidence(existing.index, evidence);
+      existingEvidenceValidated = true;
+      continue;
+    }
+    if (action === 2) {
+      await finishCommittedAttempt(
+        store, control, existing.attempt, existing.index, now, limits,
+      );
+      existingFinalized = true;
+      continue;
+    }
+    if (action === 3) {
+      return Object.freeze({
+        state: 'succeeded',
+        committed: false,
+        idempotent: true,
+        request: publicationRequest,
+        attempt: existing.attempt,
+        index: existing.index,
+      });
+    }
+    if (action === 4) {
+      signal?.throwIfAborted();
+      initialActiveChecked = true;
+      continue;
+    }
+    if (action === 5) {
+      await persistContracts(store, [...contracts, publicationRequest]);
+      contractsPersisted = true;
+      continue;
+    }
+    if (action === 6) {
+      await store.createAttempt(publicationAttempt.wire);
+      attemptCreated = true;
+      continue;
+    }
+    if (action === 7) break;
+    fail('InvalidRunPublicationSetupProgress');
   }
-
-  signal?.throwIfAborted();
-  await persistContracts(store, [...contracts, publicationRequest]);
-  await store.createAttempt(publicationAttempt.wire);
   let record = await store.latestRecordContract(publicationAttempt.identity);
   let activeChecked = false;
   let index;

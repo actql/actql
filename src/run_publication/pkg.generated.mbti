@@ -116,6 +116,8 @@ pub fn prepare_publication_commit_failure_step(Bool, Bool, Bool, Bool) -> Public
 
 pub fn prepare_publication_prepared_release_step(Int, Int, Bool, Bool, Bool) -> PublicationPreparedReleaseAction
 
+pub fn prepare_publication_setup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> PublicationSetupAction
+
 pub fn prepare_publication_unknown_retry_step(Bool, Bool, Bool, Bool) -> PublicationUnknownRetryAction
 
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
@@ -147,6 +149,8 @@ pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract,
 pub fn publication_prepared_release_action_code(PublicationPreparedReleaseAction) -> Int
 
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
+
+pub fn publication_setup_action_code(PublicationSetupAction) -> Int
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
@@ -413,6 +417,18 @@ pub(all) enum PublicationPreparedReleaseAction {
   PublicationAdvancePreparedRelease
   PublicationPreparedReleaseFinished
   PublicationPreparedReleaseInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationSetupAction {
+  PublicationCheckExistingCommit
+  PublicationValidateExistingEvidence
+  PublicationFinalizeExistingCommit
+  PublicationReturnExistingCommit
+  PublicationCheckInitialActive
+  PublicationPersistContracts
+  PublicationCreateAttempt
+  PublicationEnterAttemptProgress
+  PublicationSetupInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationTransitionIssue {

@@ -15,6 +15,79 @@ pub(all) enum PublicationAttemptRuntimeAction {
 } derive(Eq, Debug)
 
 ///|
+/// Setup progression before an attempt record is entered. An existing durable
+/// commit is always reconciled before cancellation or new writes, while a new
+/// attempt must cross its cancellation boundary before persisting contracts.
+pub(all) enum PublicationSetupAction {
+  PublicationCheckExistingCommit
+  PublicationValidateExistingEvidence
+  PublicationFinalizeExistingCommit
+  PublicationReturnExistingCommit
+  PublicationCheckInitialActive
+  PublicationPersistContracts
+  PublicationCreateAttempt
+  PublicationEnterAttemptProgress
+  PublicationSetupInvalid
+} derive(Eq, Debug)
+
+///|
+pub fn prepare_publication_setup_step(
+  existing_checked : Bool,
+  existing_found : Bool,
+  existing_evidence_validated : Bool,
+  existing_finalized : Bool,
+  initial_active_checked : Bool,
+  contracts_persisted : Bool,
+  attempt_created : Bool,
+) -> PublicationSetupAction {
+  if (existing_found && !existing_checked) ||
+    (existing_evidence_validated && !existing_found) ||
+    (existing_finalized && !existing_evidence_validated) ||
+    (initial_active_checked && (!existing_checked || existing_found)) ||
+    (contracts_persisted && !initial_active_checked) ||
+    (attempt_created && !contracts_persisted) {
+    return PublicationSetupInvalid
+  }
+  if !existing_checked {
+    return PublicationCheckExistingCommit
+  }
+  if existing_found {
+    if !existing_evidence_validated {
+      return PublicationValidateExistingEvidence
+    }
+    if !existing_finalized {
+      return PublicationFinalizeExistingCommit
+    }
+    return PublicationReturnExistingCommit
+  }
+  if !initial_active_checked {
+    return PublicationCheckInitialActive
+  }
+  if !contracts_persisted {
+    return PublicationPersistContracts
+  }
+  if !attempt_created {
+    return PublicationCreateAttempt
+  }
+  PublicationEnterAttemptProgress
+}
+
+///|
+pub fn publication_setup_action_code(action : PublicationSetupAction) -> Int {
+  match action {
+    PublicationCheckExistingCommit => 0
+    PublicationValidateExistingEvidence => 1
+    PublicationFinalizeExistingCommit => 2
+    PublicationReturnExistingCommit => 3
+    PublicationCheckInitialActive => 4
+    PublicationPersistContracts => 5
+    PublicationCreateAttempt => 6
+    PublicationEnterAttemptProgress => 7
+    PublicationSetupInvalid => 8
+  }
+}
+
+///|
 fn publication_record_state(record : PublicationContract) -> String? {
   if record.name != "publication_record" {
     return None

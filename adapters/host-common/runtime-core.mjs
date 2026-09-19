@@ -749,6 +749,25 @@ function publicationControl(moon) {
         indexIssued,
       );
     },
+    publicationSetupAction(
+      existingChecked,
+      existingFound,
+      existingEvidenceValidated,
+      existingFinalized,
+      initialActiveChecked,
+      contractsPersisted,
+      attemptCreated,
+    ) {
+      return moon.strategyPublicationSetupAction(
+        existingChecked,
+        existingFound,
+        existingEvidenceValidated,
+        existingFinalized,
+        initialActiveChecked,
+        contractsPersisted,
+        attemptCreated,
+      );
+    },
     publicationCancellationAction(record) {
       return moon.strategyPublicationCancellationAction(
         record === undefined ? undefined : token(record),
