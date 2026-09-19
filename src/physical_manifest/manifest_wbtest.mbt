@@ -92,6 +92,51 @@ test "ordered physical manifest has one portable identity" {
 }
 
 ///|
+test "canonical manifest wire is re-admitted without losing occurrences" {
+  let admitted = admit(
+    "actql-managed-physical-manifest/0.1",
+    cid("1"),
+    cid("2"),
+    cid("3"),
+    3,
+    [cid("a"), cid("b"), cid("a")],
+    [5L, 7L, 5L],
+    [1, 1, 1],
+    3,
+    1024,
+    17L,
+  ).unwrap()
+  let body = manifest_json(admitted).unwrap()
+  let expected = "{\"chunks\":[{\"byte_length\":5,\"cid\":\"" +
+    cid("a") +
+    "\",\"row_count\":1},{\"byte_length\":7,\"cid\":\"" +
+    cid("b") +
+    "\",\"row_count\":1},{\"byte_length\":5,\"cid\":\"" +
+    cid("a") +
+    "\",\"row_count\":1}],\"codec_contract_cid\":\"" +
+    cid("3") +
+    "\",\"row_count\":3,\"schema_contract_cid\":\"" +
+    cid("1") +
+    "\",\"version\":\"actql-managed-physical-manifest/0.1\"," +
+    "\"view_contract_cid\":\"" +
+    cid("2") +
+    "\"}"
+  assert_eq(body, expected)
+  let restored = admit_json(body, admitted.manifest_cid, 3, 1024, 17L).unwrap()
+  assert_eq(restored.manifest_cid, admitted.manifest_cid)
+  assert_eq(restored.chunks.length(), 3)
+  assert_eq(restored.chunks[0].cid, restored.chunks[2].cid)
+  assert_true(
+    admit_json(body + " ", admitted.manifest_cid, 3, 1024, 17L)
+    is Err(InvalidManifest),
+  )
+  assert_true(admit_json(body, cid("f"), 3, 1024, 17L) is Err(InvalidManifest))
+  assert_true(
+    admit_json(body, admitted.manifest_cid, 2, 1024, 17L) is Err(ManifestLimit),
+  )
+}
+
+///|
 test "physical manifest rejects limits counts and malformed identities" {
   let base_cids = [cid("a")]
   let base_bytes = [5L]

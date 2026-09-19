@@ -10,7 +10,11 @@ pub fn admit(String, String, String, String, Int, Array[String], Array[Int64], A
 
 pub fn admit_contracts(String, Array[Int], Int) -> Result[PhysicalContracts, PhysicalManifestIssue]
 
+pub fn admit_json(String, String, Int, Int, Int64) -> Result[PhysicalManifest, PhysicalManifestIssue]
+
 pub fn contract_projection(PhysicalContracts) -> Array[String]
+
+pub fn manifest_json(PhysicalManifest) -> Result[String, PhysicalManifestIssue]
 
 pub fn projection(PhysicalManifest) -> Array[String]
 
