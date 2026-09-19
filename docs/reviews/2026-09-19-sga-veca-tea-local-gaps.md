@@ -48,12 +48,13 @@ canonical binary fold tree.
 ### SGA
 
 All 17 author-visible operations are accepted by frontend typing.
-`union_graphs` now has typed canonical lowering that preserves its ordered
-finite input list, including repeated positions, as one operation occurrence.
-It still lacks its Carrier provider, managed execution, two-consumer
-connection, and publication connection. The other SGA operations still lack
-portable Local lowering as well. Graph projection already defines evidence
-laws; execution must consume rather than recreate them.
+`graft_graph`, `union_graphs`, and `subtract_graphs` now have typed canonical
+lowering. Union preserves its ordered finite input list, including repeated
+positions, as one operation occurrence. All three preserve checked property
+merge laws. They still lack their Carrier provider, managed execution,
+two-consumer connection, and publication connection. The other SGA operations
+still lack portable Local lowering as well. Graph projection already defines
+evidence laws; execution must consume rather than recreate them.
 
 ### VecA
 

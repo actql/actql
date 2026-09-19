@@ -175,6 +175,7 @@ pub fn prepare_kernel_roots(
     | AppendStep(_)
     | SetStep(_)
     | NestStep(_)
+    | GraphStructuralStep(_)
     | GraphUnionStep(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
@@ -232,6 +233,7 @@ fn prepare_root_range(
       | AppendStep(_)
       | SetStep(_)
       | NestStep(_)
+      | GraphStructuralStep(_)
       | GraphUnionStep(_) => continue
       RowStep(kernel) =>
         match kernel.body {

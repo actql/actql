@@ -816,6 +816,7 @@ fn[T : RelationRows] run_sequence_steps(
         evaluate(i, kernel, parent.table, child.table)
       }
       @lower.GraphUnionStep(_) => return Err(InputSet)
+      @lower.GraphStructuralStep(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]
         if route.length() != 1 {

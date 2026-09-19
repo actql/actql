@@ -221,6 +221,10 @@ pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpress
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 
+pub fn property_strategy_kind(PropertyStrategy) -> FieldStrategy
+
+pub fn property_strategy_name(PropertyStrategy) -> String
+
 pub fn reach_direction(CheckedReach) -> Direction
 
 pub fn reach_input(CheckedReach) -> @carrier_contract.Carrier

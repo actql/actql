@@ -55,6 +55,7 @@ pub enum Payload {
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
+  StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
 }
 
@@ -184,6 +185,12 @@ pub fn operation(value : PreparedNode) -> String {
     // Nest lowers to a registered multi-node expansion whose final node is a
     // projection. There is no REL.nest operation in the AoA registry.
     NestRows(_) => "REL.select"
+    StructuralGraph(value) =>
+      match @graph.structural_operation(value) {
+        @graph.Graft => "SGA.graft"
+        @graph.Union => "SGA.union_structural"
+        @graph.Subtract => "SGA.diff_structural"
+      }
     GraphUnion(_) => "SGA.union_structural"
     SetRows(checked) =>
       match @set.operation(checked) {
@@ -239,8 +246,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     | Shortest(..)
     | GraphEquality(..)
     | GraphDiff(..)
-    | GraphApply(..)
-    | GraphStructural(..) => None
+    | GraphApply(..) => None
+    GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(_)
     | GraphConstruction(..)
@@ -347,6 +354,15 @@ pub fn prepare(
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
+      StructuralGraph(value) =>
+        (
+          match @graph.structural_operation(value) {
+            @graph.Graft => "graft_graph"
+            @graph.Union => "union_graphs"
+            @graph.Subtract => "subtract_graphs"
+          },
+          2,
+        )
       GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
       SetRows(checked) =>
         (
@@ -465,6 +481,7 @@ pub fn prepare(
       SetRows(_) => None
       CrossJoinRows(_) => None
       NestRows(_) => None
+      StructuralGraph(_) => None
       GraphUnion(_) => None
     }
     let order_id = if payload is Limit(_) &&

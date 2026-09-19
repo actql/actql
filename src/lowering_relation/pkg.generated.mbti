@@ -947,6 +947,7 @@ pub enum Payload {
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
   NestRows(@relation_nest.CheckedNest)
+  StructuralGraph(@graph_typing.CheckedStructural)
   GraphUnion(@graph_typing.CheckedUnion)
 }
 
@@ -1003,6 +1004,8 @@ pub(all) enum PreparedFrameBoundary {
   PreparedFollowing(Int64)
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
+
+type PreparedGraphStructural
 
 type PreparedGraphUnion
 
@@ -1062,6 +1065,7 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
+  GraphStructuralStep(PreparedGraphStructural)
   GraphUnionStep(PreparedGraphUnion)
 }
 

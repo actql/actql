@@ -26,6 +26,7 @@ pub fn prepare_fragment_pipeline(
     | AppendStep(_)
     | SetStep(_)
     | NestStep(_)
+    | GraphStructuralStep(_)
     | GraphUnionStep(_) => Err(NotExpressionKernel)
   }
 }

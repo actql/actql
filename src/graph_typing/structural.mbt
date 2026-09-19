@@ -366,6 +366,18 @@ pub fn structural_strategy_at(
 }
 
 ///|
+/// Canonical property name retained by the checked structural operation.
+pub fn property_strategy_name(value : PropertyStrategy) -> String {
+  value.name
+}
+
+///|
+/// Typed merge law retained by the checked structural operation.
+pub fn property_strategy_kind(value : PropertyStrategy) -> FieldStrategy {
+  value.strategy
+}
+
+///|
 pub fn structural_pending(c : CheckedStructural) -> Array[StructuralObligation] {
   let out = []
   structural_pending_each(c, item => out.push(item))
