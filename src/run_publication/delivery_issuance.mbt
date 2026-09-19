@@ -20,6 +20,24 @@ priv struct GrantedResult {
 }
 
 ///|
+/// Physical facts observed by a Store adapter before one retained Result can
+/// back a formal Delivery Attempt. The portable contract owner compares these
+/// facts with the committed Manifest and durable representation binding.
+pub(all) struct DeliveryPayloadFacts {
+  store_authority_cid : String
+  material_generation_cid : String
+  logical_result_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  codec_contract_cid : String
+  result_fields : Array[String]
+  result_schema_wire : String
+  row_count : Int64
+  byte_count : Int64
+  physical_sha256 : String
+}
+
+///|
 fn delivery_format_rank(format : String) -> Int? {
   match format {
     "json" => Some(0)
@@ -804,6 +822,180 @@ pub fn delivery_result_definition_cid(
     return Err(DeliveryIssuanceReferenceMismatch("result_artifact_cid"))
   }
   Ok(result_definition_cid)
+}
+
+///|
+fn contract_string_array(
+  contract : PublicationContract,
+  field : String,
+) -> Array[String]? {
+  guard @json.object_field(contract.value, field) is Some(value) else {
+    return None
+  }
+  guard value is @json.Array(items) else { return None }
+  let result : Array[String] = []
+  for item in @json.array_values(items) {
+    guard item is @json.String(value) else { return None }
+    result.push(value)
+  }
+  Some(result)
+}
+
+///|
+fn delivery_optional_count(value : @json.CanonicalValue?) -> Int64? {
+  match value {
+    Some(@json.Number(number)) => @scalar.read_safe_integer(number)
+    _ => None
+  }
+}
+
+///|
+/// Verify that an exact retained generation is the durable representation of
+/// the committed Result selected by a Delivery Attempt. This is a semantic
+/// check; opening the generation and verifying its physical digest remain
+/// Store adapter effects.
+pub fn validate_delivery_payload_binding(
+  index : PublicationContract,
+  manifest : PublicationContract,
+  attempt : PublicationContract,
+  binding : PublicationContract,
+  facts : DeliveryPayloadFacts,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, DeliveryIssuanceIssue] {
+  match validate_public_read_root(index, manifest) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if attempt.name != "delivery_attempt" {
+    return Err(DeliveryIssuanceWrongContract("delivery_attempt"))
+  }
+  if binding.name != "durable_result_binding" {
+    return Err(DeliveryIssuanceWrongContract("durable_result_binding"))
+  }
+  if contract_string(attempt, "result_manifest_cid") != Some(manifest.identity) ||
+    contract_string(attempt, "run_definition_cid") !=
+    contract_string(index, "run_definition_cid") {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_attempt"))
+  }
+  guard contract_string(attempt, "result_name") is Some(result_name) &&
+    @json.object_field(manifest.value, "results") is Some(results) &&
+    @json.object_field(results, result_name) is Some(artifact) else {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_result"))
+  }
+  let expected_definition = optional_string(
+    @json.object_field(artifact, "result_definition_cid"),
+  )
+  let expected_logical = optional_string(
+    @json.object_field(artifact, "logical_result_cid"),
+  )
+  let expected_schema = optional_string(
+    @json.object_field(artifact, "result_schema_cid"),
+  )
+  let expected_ordering = optional_string(
+    @json.object_field(artifact, "ordering_evidence_cid"),
+  )
+  let expected_retention = optional_string(
+    @json.object_field(artifact, "effective_retention_policy_cid"),
+  )
+  let expected_rows = delivery_optional_count(
+    @json.object_field(artifact, "actual_row_count"),
+  )
+  for
+    (actual, expected, field) in [
+      (
+        contract_string(binding, "run_definition_cid"),
+        contract_string(index, "run_definition_cid"),
+        "binding.run_definition_cid",
+      ),
+      (
+        contract_string(binding, "invocation_cid"),
+        contract_string(index, "invocation_cid"),
+        "binding.invocation_cid",
+      ),
+      (
+        contract_string(binding, "result_definition_cid"),
+        expected_definition,
+        "binding.result_definition_cid",
+      ),
+      (
+        contract_string(binding, "logical_result_cid"),
+        expected_logical,
+        "binding.logical_result_cid",
+      ),
+      (
+        contract_string(binding, "result_schema_cid"),
+        expected_schema,
+        "binding.result_schema_cid",
+      ),
+      (
+        contract_string(binding, "ordering_evidence_cid"),
+        expected_ordering,
+        "binding.ordering_evidence_cid",
+      ),
+      (
+        contract_string(binding, "effective_retention_policy_cid"),
+        expected_retention,
+        "binding.effective_retention_policy_cid",
+      ),
+      (
+        contract_string(binding, "store_authority_cid"),
+        Some(facts.store_authority_cid),
+        "binding.store_authority_cid",
+      ),
+      (
+        contract_string(binding, "material_generation_cid"),
+        Some(facts.material_generation_cid),
+        "binding.material_generation_cid",
+      ),
+      (
+        contract_string(binding, "codec_contract_cid"),
+        Some(facts.codec_contract_cid),
+        "binding.codec_contract_cid",
+      ),
+      (
+        contract_string(binding, "physical_sha256"),
+        Some(facts.physical_sha256),
+        "binding.physical_sha256",
+      ),
+    ] {
+    if actual != expected {
+      return Err(DeliveryIssuanceReferenceMismatch(field))
+    }
+  }
+  if expected_logical != Some(facts.logical_result_cid) ||
+    expected_schema != Some(facts.result_schema_cid) ||
+    expected_ordering != Some(facts.ordering_evidence_cid) ||
+    expected_rows != Some(facts.row_count) ||
+    contract_count(binding, "row_count") != Some(facts.row_count) ||
+    contract_count(binding, "byte_count") != Some(facts.byte_count) ||
+    contract_string_array(binding, "result_fields") != Some(facts.result_fields) {
+    return Err(DeliveryIssuanceReferenceMismatch("binding.physical_facts"))
+  }
+  let schema = match
+    parse_contract_wire(
+      facts.result_schema_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(DeliveryIssuanceEncoding)
+  }
+  let schema_cid = @json.cid_value(schema, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  let canonical_schema = @json.stringify_value(
+    schema, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(DeliveryIssuanceEncoding)
+  }
+  if schema_cid != facts.result_schema_cid ||
+    canonical_schema != facts.result_schema_wire {
+    return Err(DeliveryIssuanceReferenceMismatch("binding.result_schema"))
+  }
+  Ok(())
 }
 
 ///|

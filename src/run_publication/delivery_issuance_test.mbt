@@ -186,6 +186,154 @@ test "read grant and attempt bind an exact committed Result" {
 }
 
 ///|
+test "delivery payload binding matches the committed logical Result" {
+  let schema_wire = "{\"answer\":{\"nullable\":false,\"type\":\"integer\"}}"
+  let schema_cid = "sha256:4b94cf57d7e0fa174c9edbdc43b22f3ca573038098f1b29ed64f39b149edc8a1"
+  let definition_cid = delivery_test_cid("a")
+  let invocation_cid = delivery_test_cid("b")
+  let logical_cid = delivery_test_cid("c")
+  let ordering_cid = delivery_test_cid("d")
+  let retention_cid = delivery_test_cid("e")
+  let artifact = delivery_test_contract(
+    "result_artifact",
+    "{\"version\":\"actql-result-artifact/0.1\"," +
+    "\"result_definition_cid\":\"" +
+    definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    logical_cid +
+    "\",\"result_schema_cid\":\"" +
+    schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    ordering_cid +
+    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    delivery_test_cid("f") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    retention_cid +
+    "\",\"provenance_evidence_cids\":[]}",
+  )
+  let run_definition_cid = delivery_test_cid("1")
+  let authority_cid = delivery_test_cid("2")
+  let manifest = delivery_test_contract(
+    "result_manifest",
+    "{\"version\":\"actql-result-manifest/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"results\":{\"answer\":" +
+    publication_contract_json(artifact) +
+    "}}",
+  )
+  let index = delivery_test_contract(
+    "public_index_entry",
+    "{\"version\":\"actql-public-index-entry/0.1\"," +
+    "\"tenant_id\":\"tenant\",\"authority_scope_cid\":\"" +
+    delivery_test_cid("3") +
+    "\",\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"result_manifest_cid\":\"" +
+    publication_contract_identity(manifest) +
+    "\",\"run_receipt_cid\":\"" +
+    delivery_test_cid("4") +
+    "\",\"captured_run_cid\":\"" +
+    delivery_test_cid("5") +
+    "\",\"durable_result_binding_cids\":[\"" +
+    delivery_test_cid("6") +
+    "\"],\"publication_request_cid\":\"" +
+    delivery_test_cid("7") +
+    "\",\"publication_attempt_cid\":\"" +
+    delivery_test_cid("8") +
+    "\",\"committed_at\":\"2026-09-18T00:00:00.000Z\"}",
+  )
+  let grant = issue_result_read_grant(
+    index,
+    manifest,
+    ["answer"],
+    ["json"],
+    "principal",
+    "download",
+    delivery_test_cid("9"),
+    1024,
+    1,
+    "2026-09-19T00:00:00.000Z",
+    delivery_test_cid("0"),
+    delivery_test_cid("9"),
+    32768,
+    256,
+    16,
+  ).unwrap()
+  let attempt = issue_delivery_attempt(
+    index, manifest, grant, "answer", "json", "attempt-binding", "2026-09-18T01:00:00.000Z",
+    32768, 256, 16,
+  ).unwrap()
+  let material_cid = delivery_test_cid("6")
+  let codec_cid = delivery_test_cid("7")
+  let physical_digest = "8".repeat(64)
+  let binding = delivery_test_contract(
+    "durable_result_binding",
+    "{\"version\":\"actql-durable-result-binding/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    run_definition_cid +
+    "\",\"result_definition_cid\":\"" +
+    definition_cid +
+    "\",\"invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"logical_result_cid\":\"" +
+    logical_cid +
+    "\",\"result_schema_cid\":\"" +
+    schema_cid +
+    "\",\"ordering_evidence_cid\":\"" +
+    ordering_cid +
+    "\",\"codec_contract_cid\":\"" +
+    codec_cid +
+    "\",\"result_fields\":[\"answer\"]," +
+    "\"material_generation_cid\":\"" +
+    material_cid +
+    "\",\"store_authority_cid\":\"" +
+    authority_cid +
+    "\",\"effective_retention_policy_cid\":\"" +
+    retention_cid +
+    "\",\"row_count\":1,\"byte_count\":12,\"physical_sha256\":\"" +
+    physical_digest +
+    "\"}",
+  )
+  let facts : DeliveryPayloadFacts = {
+    store_authority_cid: authority_cid,
+    material_generation_cid: material_cid,
+    logical_result_cid: logical_cid,
+    result_schema_cid: schema_cid,
+    ordering_evidence_cid: ordering_cid,
+    codec_contract_cid: codec_cid,
+    result_fields: ["answer"],
+    result_schema_wire: schema_wire,
+    row_count: 1L,
+    byte_count: 12L,
+    physical_sha256: physical_digest,
+  }
+  assert_eq(
+    validate_delivery_payload_binding(
+      index, manifest, attempt, binding, facts, 32768, 256, 16,
+    ),
+    Ok(()),
+  )
+  let wrong : DeliveryPayloadFacts = {
+    ..facts,
+    logical_result_cid: delivery_test_cid("f"),
+  }
+  assert_true(
+    validate_delivery_payload_binding(
+      index, manifest, attempt, binding, wrong, 32768, 256, 16,
+    )
+    is Err(DeliveryIssuanceReferenceMismatch("binding.physical_facts")),
+  )
+}
+
+///|
 test "Result availability separates guarantee expiry and deletion deadline" {
   let retention = delivery_test_contract(
     "result_retention_policy",

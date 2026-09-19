@@ -36,6 +36,8 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 
 pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> Int
 
+pub fn delivery_failure_terminal_state(DeliveryFailureTerminalAction) -> String
+
 pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
 
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
@@ -108,6 +110,8 @@ pub fn prepare_delivery_failure_terminal(Bool) -> DeliveryFailureTerminalAction
 
 pub fn prepare_delivery_record_retry_step(Int, Int) -> DeliveryRecordRetryAction
 
+pub fn prepare_delivery_sink_progress(Int64) -> Result[DeliverySinkProgress, DeliverySinkProgressIssue]
+
 pub fn prepare_durable_payload_failure_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> DurablePayloadFailureAction
 
 pub fn prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue]
@@ -133,6 +137,8 @@ pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, Res
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
 
 pub fn prepare_superseded_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
+
+pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
@@ -218,6 +224,8 @@ pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvide
 
 pub fn trusted_clock_not_before(String?, String) -> Bool
 
+pub fn validate_delivery_payload_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, DeliveryPayloadFacts, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
+
 pub fn validate_delivery_record_transition(PublicationContract?, PublicationContract) -> Result[Unit, DeliveryTransitionIssue]
 
 pub fn validate_delivery_success_evidence(PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, DeliveryIssuanceIssue]
@@ -278,6 +286,28 @@ pub(all) enum DeliveryIssuanceIssue {
   DeliveryIssuanceTransition(DeliveryTransitionIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct DeliveryPayloadFacts {
+  store_authority_cid : String
+  material_generation_cid : String
+  logical_result_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  codec_contract_cid : String
+  result_fields : Array[String]
+  result_schema_wire : String
+  row_count : Int64
+  byte_count : Int64
+  physical_sha256 : String
+}
+
+pub(all) struct DeliveryRecordProjection {
+  delivery_attempt_cid : String
+  state : String
+  confirmed_byte_count : Int64
+  delivered_sha256 : String?
+  result_delivery_receipt_cid : String?
+}
+
 pub(all) enum DeliveryRecordRetryAction {
   DeliveryAppendNextRecord
   DeliveryRecordRetryFinished
@@ -294,6 +324,31 @@ pub(all) enum DeliverySerializationIssue {
   DeliverySerializationNul
   DeliverySerializationOutputLimit
   DeliverySerializationClosed
+} derive(Eq, @debug.Debug)
+
+type DeliverySinkProgress
+pub fn DeliverySinkProgress::confirm_chunk(Self) -> Result[Int64, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::confirm_finished(Self) -> Result[DeliverySinkSummary, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::confirmed_bytes(Self) -> Int64
+pub fn DeliverySinkProgress::fail(Self) -> Result[Int64, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::fail_chunk(Self, Int) -> Result[Int64, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::offer(Self, Bytes, Bool) -> Result[Unit, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::prepare_next(Self) -> Result[Unit, DeliverySinkProgressIssue]
+
+pub(all) enum DeliverySinkProgressIssue {
+  DeliverySinkInvalidLimit
+  DeliverySinkClosed
+  DeliverySinkChunkOutstanding
+  DeliverySinkNoOutstandingChunk
+  DeliverySinkConfirmationMismatch
+  DeliverySinkLimitExceeded
+  DeliverySinkSourceIncomplete
+  DeliverySinkHashFailure
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DeliverySinkSummary {
+  confirmed_bytes : Int64
+  delivered_sha256 : String
 } derive(Eq, @debug.Debug)
 
 pub(all) enum DeliveryTransitionIssue {

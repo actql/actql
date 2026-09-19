@@ -46,6 +46,38 @@ pub fn existing_delivery_attempt_action_code(
 }
 
 ///|
+pub(all) struct DeliveryRecordProjection {
+  delivery_attempt_cid : String
+  state : String
+  confirmed_byte_count : Int64
+  delivered_sha256 : String?
+  result_delivery_receipt_cid : String?
+}
+
+///|
+pub fn project_delivery_record(
+  record : PublicationContract,
+) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue] {
+  if record.name != "delivery_record" {
+    return Err(DeliveryIssuanceWrongContract("delivery_record"))
+  }
+  guard contract_string(record, "delivery_attempt_cid") is Some(attempt_cid) &&
+    contract_string(record, "state") is Some(state) &&
+    contract_count(record, "confirmed_byte_count") is Some(confirmed) else {
+    return Err(DeliveryIssuanceReferenceMismatch("delivery_record"))
+  }
+  Ok({
+    delivery_attempt_cid: attempt_cid,
+    state,
+    confirmed_byte_count: confirmed,
+    delivered_sha256: contract_string(record, "delivered_sha256"),
+    result_delivery_receipt_cid: contract_string(
+      record, "result_delivery_receipt_cid",
+    ),
+  })
+}
+
+///|
 /// Terminal record state after a delivery failure. Cancellation is an
 /// observed request, not proof that a partially exposed prefix was retracted.
 pub(all) enum DeliveryFailureTerminalAction {
@@ -71,6 +103,16 @@ pub fn delivery_failure_terminal_action_code(
   match action {
     DeliveryAppendFailed => 0
     DeliveryAppendCancelled => 1
+  }
+}
+
+///|
+pub fn delivery_failure_terminal_state(
+  action : DeliveryFailureTerminalAction,
+) -> String {
+  match action {
+    DeliveryAppendFailed => "failed"
+    DeliveryAppendCancelled => "cancelled"
   }
 }
 
