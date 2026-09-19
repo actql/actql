@@ -168,10 +168,15 @@ renamed output identity, exact/short workspace, cancellation observation, and
 two exact downstream reads on JS, Wasm, and native. The standard provider also
 executes pooling followed by normalization before the Relation Bridge, cleans
 each intermediate generation before advancing, and verifies the normalized
-value on all three targets. The author-visible Relation form, overlapping
-independent Carrier consumer lifetime, environment cancellation delivery, and
-publication remain open, so pooling is partial. Nearest-neighbor execution and
-ranking merge still lack portable Local kernels.
+value on all three targets. The author-visible Relation form now executes its
+canonical identity completion and rows-to-Vectors expansion inside the bounded
+Local occurrence. It binds the exact external input edge, preserves singleton
+and composite member identities, verifies the pooled value, and reaches two
+downstream Relation computations with final ledger reclamation on all three
+targets. Overlapping independent consumers of one Vectors generation,
+environment cancellation delivery, and publication remain open, so pooling is
+partial. Nearest-neighbor execution and ranking merge still lack portable Local
+kernels.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -316,6 +321,19 @@ normalization and verifies the exact normalized vector. Provider and query-
 integration suites pass 358 tests on each target. This proves an actual
 same-Carrier computation after pooling, but not two overlapping consumers of
 the same Carrier generation.
+
+At `72f65404`, author-visible Relation pooling binds the exact checked input
+edge and executes the admitted canonical identity and Bridge expansion without
+publishing an intermediate completion. Both singleton and composite identities
+reach the expected sum, two downstream Relation computations, independent
+release, and final ledger reclamation. The affected execution, VecA, provider,
+and query-integration suites pass 1,064 tests on each of JS, Wasm, and native.
+The tracked public interfaces agree across targets. Commit `f26b44d1` also
+corrects computed text admission to measure real UTF-8 bytes and passes all 109
+value-admission tests on each target. Commit `688c910c` refreshes the generated
+Workers fixture; fixture freshness and all 24 Workers tests pass. These results
+do not establish overlapping direct Carrier consumers, environment
+cancellation delivery, publication, or final same-SHA Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
