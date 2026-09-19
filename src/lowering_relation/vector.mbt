@@ -14,6 +14,54 @@ priv enum PreparedVectorParams {
 }
 
 ///|
+/// Runtime score decision retained by checked lowering.
+pub(all) enum PreparedVectorMetric {
+  CosineScore
+  DotScore
+  L2Score
+} derive(Eq, Debug)
+
+///|
+/// Exact checked output Carrier for this prepared vector operation.
+pub fn vector_output_carrier(value : PreparedVector) -> @carrier.Carrier {
+  value.node.output_carrier
+}
+
+///|
+/// Resolved score metric. Non-scoring vector operations return None.
+pub fn vector_score_metric(value : PreparedVector) -> PreparedVectorMetric? {
+  match value.params {
+    VectorScoreParams(metric, _) =>
+      Some(
+        match metric {
+          @vector_checking.Cosine => CosineScore
+          @vector_checking.Dot => DotScore
+          @vector_checking.L2 => L2Score
+        },
+      )
+    _ => None
+  }
+}
+
+///|
+/// Number of resolved query components without copying their array.
+pub fn vector_score_query_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorScoreParams(_, query) => Some(query.length())
+    _ => None
+  }
+}
+
+///|
+/// One resolved query component in authored dimension order.
+pub fn vector_score_query_at(value : PreparedVector, index : Int) -> Double? {
+  match value.params {
+    VectorScoreParams(_, query) => query.get(index)
+    _ => None
+  }
+}
+
+///|
 pub(all) enum VectorIssue {
   InvalidVectorLimits
   InvalidVectorWiring

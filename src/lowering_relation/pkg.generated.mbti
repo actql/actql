@@ -591,6 +591,14 @@ pub fn source(PreparedNode) -> @decode_core.Cursor
 
 pub fn usage(Prepared) -> Usage
 
+pub fn vector_output_carrier(PreparedVector) -> @carrier_contract.Carrier
+
+pub fn vector_score_metric(PreparedVector) -> PreparedVectorMetric?
+
+pub fn vector_score_query_at(PreparedVector, Int) -> Double?
+
+pub fn vector_score_query_count(PreparedVector) -> Int?
+
 pub fn watermark_input_order(PreparedWatermarkThreshold) -> @pipeline_typing.LogicalOrder?
 
 pub fn watermark_is_prefix(PreparedWatermarkThreshold) -> Bool
@@ -1178,6 +1186,12 @@ pub enum PreparedStep {
 type PreparedValues
 
 type PreparedVector
+
+pub(all) enum PreparedVectorMetric {
+  CosineScore
+  DotScore
+  L2Score
+} derive(Eq, @debug.Debug)
 
 pub enum PreparedWatermarkThreshold {
   FixedWatermark(Double)

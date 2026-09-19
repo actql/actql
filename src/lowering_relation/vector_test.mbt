@@ -68,6 +68,26 @@ test "checked vector operations lower without source rediscovery" {
 }
 
 ///|
+test "prepared score view exposes resolved runtime inputs" {
+  let owner = vector_owner("[3,4]")
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 2)
+    is Some(@lowering_relation.VectorStep(score)) else {
+    fail("score step")
+  }
+  assert_eq(
+    @lowering_relation.vector_score_metric(score),
+    Some(@lowering_relation.CosineScore),
+  )
+  assert_eq(@lowering_relation.vector_score_query_count(score), Some(2))
+  assert_eq(@lowering_relation.vector_score_query_at(score, 0), Some(3.0))
+  assert_eq(@lowering_relation.vector_score_query_at(score, 1), Some(4.0))
+  assert_true(
+    @lowering_relation.vector_output_carrier(score) is @carrier.VectorValue(_),
+  )
+}
+
+///|
 test "vector query parameters resolve before canonical emission" {
   let declarations = @parameter.read_declarations(
     Some(
