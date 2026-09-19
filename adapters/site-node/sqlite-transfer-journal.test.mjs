@@ -170,6 +170,38 @@ test('destination commit evidence is durable before lifecycle commit',
     );
   });
 
+test('rejected integrity remains rejected after journal restart', async t => {
+  const {open} = await fixture(t);
+  const journal = open();
+  const transfer = request('transfer-rejected');
+  const accepted = journal.accept(transfer, control);
+  journal.advance(control.prepareStart(accepted.record), control);
+  journal.advance(
+    control.prepareSourceSettled(accepted.record, false, false),
+    control,
+  );
+  journal.close();
+
+  const reopened = open();
+  t.after(() => reopened.close());
+  const restored = reopened.accept(transfer, control).record;
+  assert.deepEqual(
+    control.recordProjection(restored),
+    [2, 1, 0, 2, 0, 1, 0, 1, 0],
+  );
+  assert.throws(() => control.prepareSourceSettled(restored, true, false));
+  assert.throws(() => control.prepareDestinationCommit(restored));
+  reopened.advance(control.prepareFailure(restored, false, true), control);
+  reopened.advance(
+    control.prepareCleanup(restored, true, true, true),
+    control,
+  );
+  assert.deepEqual(
+    reopened.inspect(transfer, control).state,
+    [4, 3, 0, 2, 1, 1, 1, 1, 0],
+  );
+});
+
 test('destination evidence collision cannot replace an accepted receipt',
   async t => {
     const {open} = await fixture(t);

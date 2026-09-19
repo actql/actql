@@ -215,7 +215,9 @@ pub fn prepare_source_settled(
   store_object_sealed : Bool,
 ) -> Result[RemoteTransferTransition, RemoteTransferIssue] {
   if record.attempt != TransferCopying ||
-    record.cleanup != TransferCleanupActive {
+    record.cleanup != TransferCleanupActive ||
+    record.source_access_stopped ||
+    record.integrity != TransferIntegrityPending {
     return Err(InvalidTransfer)
   }
   let object = match record.request.route {

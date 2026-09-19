@@ -197,6 +197,19 @@ test('direct Transfer commits only after durable stop and integrity', () => {
   );
 });
 
+test('rejected Transfer integrity cannot be replaced by a later report', () => {
+  const record = control.open(control.prepare(request('direct')));
+  commit(control.prepareStart(record));
+  commit(control.prepareSourceSettled(record, false, false));
+  assert.deepEqual(
+    control.recordProjection(record),
+    [2, 1, 0, 2, 0, 1, 0, 1, 0],
+  );
+  assert.throws(() => control.prepareSourceSettled(record, true, false));
+  assert.throws(() => control.prepareSourceSettled(record, false, false));
+  assert.throws(() => control.prepareDestinationCommit(record));
+});
+
 test('Store failure separates source stop from destination cleanup', () => {
   const record = control.open(control.prepare(request('store')));
   commit(control.prepareStart(record));

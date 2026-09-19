@@ -49,6 +49,24 @@ test "direct Transfer commits only after stop and integrity" {
 }
 
 ///|
+test "rejected integrity cannot be replaced within one Transfer attempt" {
+  let record = open_record(state_request(DirectStream))
+  ignore(apply(prepare_start(record).unwrap()))
+  ignore(apply(prepare_source_settled(record, false, false).unwrap()))
+  assert_eq(record_projection(record), [2, 1, 0, 2, 0, 1, 0, 1, 0])
+  assert_true(
+    prepare_source_settled(record, true, false) is Err(InvalidTransfer),
+  )
+  assert_true(
+    prepare_source_settled(record, false, false) is Err(InvalidTransfer),
+  )
+  assert_true(prepare_destination_commit(record) is Err(InvalidTransfer))
+  ignore(apply(prepare_failure(record, false, true).unwrap()))
+  ignore(apply(prepare_cleanup(record, true, true, true).unwrap()))
+  assert_eq(record_projection(record), [4, 3, 0, 2, 1, 1, 1, 1, 0])
+}
+
+///|
 test "Store failure releases source independently from destination cleanup" {
   let record = open_record(state_request(TransferStore))
   ignore(apply(prepare_start(record).unwrap()))
