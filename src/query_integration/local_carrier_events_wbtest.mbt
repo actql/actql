@@ -166,6 +166,10 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
   let source_owner = carrier_events_source_owner()
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_events_owner(source_owner)
+  let generated = task_test_generated(owner)
+  assert_true(
+    physical_equal(@execution.generated_sequence_owner(generated), owner),
+  )
   let sequence = prepared_sequence(owner)
   let external = @execution.prepare_producer_read(
     owner,
