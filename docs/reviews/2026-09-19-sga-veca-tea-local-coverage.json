@@ -599,6 +599,9 @@
         "checker",
         "lowering",
         "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
         "resources",
         "three_targets"
       ],
@@ -606,7 +609,8 @@
         "src/lowering_relation/expression_test.mbt",
         "src/lowering_relation/ordered_references_test.mbt",
         "src/execution_relation/expression_wbtest.mbt",
-        "src/vector_numeric/fixture.generated_wbtest.mbt"
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
+        "src/query_integration/local_managed_values_wbtest.mbt"
       ]
     },
     {
@@ -623,6 +627,9 @@
         "checker",
         "lowering",
         "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
         "resources",
         "cancellation",
         "three_targets"
@@ -630,7 +637,8 @@
       "layer_evidence": [
         "src/lowering_relation/expression_test.mbt",
         "src/lowering_relation/ordered_references_test.mbt",
-        "src/execution_relation/expression_wbtest.mbt"
+        "src/execution_relation/expression_wbtest.mbt",
+        "src/query_integration/local_managed_values_wbtest.mbt"
       ]
     }
   ],

@@ -142,14 +142,19 @@ structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
 temporary root and workspace custody through success or failure. The lowering,
 canonical reference, exact numeric, eager NULL, and bounded-step regressions
-pass on JS, Wasm, and native. Standard Host propagation of the selected VecA
-expression profile remains open, so this expression is partial.
+pass on JS, Wasm, and native. The checked Program carries its selected VecA
+expression profile into every generated owner, so the standard Host executes
+the expression and two downstream Compute consumers release independently.
+Environment cancellation delivery and publication remain open, so this
+expression is partial.
 `vector_concat` now preserves authored operand and component order, evaluates
 every operand eagerly once, and builds one output component per resumable step.
 It admits work and workspace before builder construction and cancels private
 output before releasing reservations. Two- and three-operand, NULL, missing
 operand, cancellation, and exact/short resource cases pass on JS, Wasm, and
-native. Standard Host profile propagation remains open, so concat is partial.
+native. The same checked-profile path reaches the standard Host, two downstream
+Compute consumers, independent release, and final ledger reclamation.
+Publication remains open, so concat is partial.
 Common immutable record storage preserves composite vector identities,
 admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
@@ -214,6 +219,14 @@ At `78ec134f`, the same packages pass 871 tests on each target, with focused
 concat cancellation coverage passing on all three. JS checking, formatting,
 and the tracked portable API gate pass. This remains expression-layer evidence,
 not standard Host completion evidence.
+
+At `d2540a9c`, the checked Program retains its exact expression profiles and
+the query integration boundary supplies them to every generated owner. The
+standard Host fixture executes `vector_score` and `vector_concat`, feeds the
+result into two downstream Compute consumers, releases them independently, and
+returns the ledger to zero. The complete program-check and query-integration
+suites pass 677 tests on each target; the portable API and family coverage
+gates pass. This is not cancellation-delivery or publication evidence.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
