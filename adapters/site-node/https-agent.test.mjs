@@ -15,6 +15,10 @@ import {
   sendRemoteDispatch,
 } from
   '../host-node/remote-site-client.mjs';
+import {createRemoteSiteCoordinator} from
+  '../host-node/remote-site-coordinator.mjs';
+import {openSqliteCoordinatorDispatchJournal} from
+  '../host-node/sqlite-coordinator-journal.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
@@ -183,9 +187,9 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
   });
 }
 
-async function terminalStatus(options) {
+async function terminalStatus(options, query = queryRemoteDispatch) {
   for (let attempt = 0; attempt < 100; attempt++) {
-    const status = await queryRemoteDispatch(options);
+    const status = await query(options);
     if (status.state[0] >= 3) return status;
     await new Promise(resolve => setTimeout(resolve, 5));
   }
@@ -199,6 +203,18 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     const material = await certificates(root);
     const fixture = await startFixture(root, material);
     t.after(() => fixture.close());
+    const coordinatorStore = openSqliteCoordinatorDispatchJournal(
+      join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'},
+    );
+    t.after(() => coordinatorStore.close());
+    const coordinator = createRemoteSiteCoordinator({
+      control: runtime.remoteSiteControl,
+      journal: runtime.remoteSiteControl.createCoordinatorJournal(
+        'coordinator-a',
+      ),
+      store: coordinatorStore,
+    });
     const request = dispatch();
     const options = {
       origin: fixture.origin,
@@ -208,9 +224,12 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       control: runtime.remoteSiteControl,
       dispatch: request,
     };
-    const first = await sendRemoteDispatch(options);
+    const first = await coordinator.dispatch(options);
     assert.equal(first.dispatchRequestCid, runtime.remoteSiteControl.identity(request));
-    const completed = await terminalStatus(options);
+    const completed = await terminalStatus(
+      options,
+      value => coordinator.query(value),
+    );
     assert.deepEqual(completed.state, [3, 2, 0, 1, 0]);
     assert.equal(completed.revision, 5);
     assert.equal(typeof completed.evidenceWire, 'string');
@@ -222,7 +241,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       JSON.parse(completed.evidenceWire).dispatch_request_cid,
       first.dispatchRequestCid,
     );
-    const retransmitted = await sendRemoteDispatch(options);
+    const retransmitted = await coordinator.dispatch(options);
     assert.deepEqual(retransmitted.state, completed.state);
     assert.equal(retransmitted.revision, completed.revision);
 

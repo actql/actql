@@ -286,6 +286,20 @@ pub fn strategy_remote_budget_json(@remote_site_protocol.RemoteDispatchBudget) -
 
 pub fn strategy_remote_budget_prepare(Int64, Int64) -> @remote_site_protocol.RemoteDispatchBudget raise NodeHostFailure
 
+pub fn strategy_remote_coordinator_intent_commit(@remote_site_protocol.CoordinatorDispatchIntentAdmission, Bool) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
+
+pub fn strategy_remote_coordinator_intent_json(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_matches(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn strategy_remote_coordinator_intent_prepare(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentAdmission raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_intent_restore(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protocol.CoordinatorDispatchJournal raise NodeHostFailure
+
 pub fn strategy_remote_dispatch_admit(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> @remote_site_protocol.DispatchRequest raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_budget_identity(@remote_site_protocol.DispatchRequest) -> String

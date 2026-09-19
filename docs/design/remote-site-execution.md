@@ -41,6 +41,13 @@ adapter persists an exact accepted dispatch before MoonBit permits execution.
 The database enforces dispatch and task-attempt uniqueness in a transaction.
 SQLite does not own the application state machine.
 
+The Coordinator persists its exact dispatch intent in a separate journal
+before starting transport. An exact retransmission reconciles that intent,
+while another dispatch occurrence for the same language-task attempt is
+rejected. Persisting Coordinator intent does not assert Site acceptance,
+execution, evidence, or completion; those facts advance through their owning
+boundaries and are reconciled separately.
+
 ## Dispatch identity and durable admission
 
 A remote dispatch separates four identities:

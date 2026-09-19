@@ -112,6 +112,24 @@ function remoteSiteControl(moon) {
     requestJson: value => checked(moon.strategyRemoteDispatchJson(value)),
     journalKey: moon.strategyRemoteDispatchJournalKey,
     executionScope: moon.strategyRemoteDispatchExecutionScope,
+    createCoordinatorJournal: authority => checked(
+      moon.strategyRemoteCoordinatorJournalCreate(authority),
+    ),
+    prepareCoordinatorIntent: (journal, request) => checked(
+      moon.strategyRemoteCoordinatorIntentPrepare(journal, request),
+    ),
+    coordinatorIntentIsNew: moon.strategyRemoteCoordinatorIntentIsNew,
+    coordinatorIntentJson: value => checked(
+      moon.strategyRemoteCoordinatorIntentJson(value),
+    ),
+    commitCoordinatorIntent: (value, durable) => checked(
+      moon.strategyRemoteCoordinatorIntentCommit(value, durable),
+    ),
+    coordinatorIntentMatches:
+      moon.strategyRemoteCoordinatorIntentMatches,
+    restoreCoordinatorIntent: (journal, request) => checked(
+      moon.strategyRemoteCoordinatorIntentRestore(journal, request),
+    ),
     createJournal: value => checked(moon.strategyRemoteJournalCreate(value)),
     prepareAdmission: (journal, request) => checked(
       moon.strategyRemoteAdmissionPrepare(journal, request),

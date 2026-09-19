@@ -120,6 +120,7 @@ pub(all) enum DispatchAcceptance {
 pub(all) enum DispatchIssue {
   InvalidJournal
   InvalidDispatch
+  ForeignCoordinator
   ForeignSite
   StaleSiteGeneration
   DispatchCollision

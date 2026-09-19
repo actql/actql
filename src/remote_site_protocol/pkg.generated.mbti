@@ -13,6 +13,8 @@ pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispat
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
+pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
+
 pub fn commit_dispatch_acceptance(DispatchAdmission, Bool) -> Result[(DispatchAcceptance, DispatchRecord), DispatchIssue]
 
 pub fn commit_dispatch_transition(DispatchTransition, Bool) -> Result[Unit, DispatchIssue]
@@ -20,6 +22,14 @@ pub fn commit_dispatch_transition(DispatchTransition, Bool) -> Result[Unit, Disp
 pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssue]
 
 pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
+
+pub fn coordinator_dispatch_intent_json(CoordinatorDispatchIntentAdmission) -> Result[String, DispatchIssue]
+
+pub fn coordinator_dispatch_intent_kind(CoordinatorDispatchIntentAdmission) -> DispatchAcceptance
+
+pub fn coordinator_dispatch_intent_matches_request(CoordinatorDispatchIntentRecord, DispatchRequest) -> Bool
+
+pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatchJournal, DispatchIssue]
 
 pub fn create_site_dispatch_journal(@execution_site.ExecutionSite, String) -> Result[SiteDispatchJournal, DispatchIssue]
 
@@ -69,6 +79,8 @@ pub fn prepare_confirm_native_settled(DispatchRecord) -> Result[DispatchTransiti
 
 pub fn prepare_confirm_remote_release(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
+pub fn prepare_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentAdmission, DispatchIssue]
+
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
@@ -113,6 +125,8 @@ pub fn remote_execution_evidence_json(RemoteExecutionEvidence) -> Result[String,
 
 pub fn remote_execution_evidence_matches_dispatch(RemoteExecutionEvidence, DispatchRequest) -> Bool
 
+pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
+
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
@@ -132,6 +146,12 @@ pub fn stop_site_admission(SiteDispatchJournal) -> Unit
 // Errors
 
 // Types and methods
+type CoordinatorDispatchIntentAdmission
+
+type CoordinatorDispatchIntentRecord
+
+type CoordinatorDispatchJournal
+
 pub(all) enum DispatchAcceptance {
   NewDispatch
   ExistingDispatch
@@ -142,6 +162,7 @@ type DispatchAdmission
 pub(all) enum DispatchIssue {
   InvalidJournal
   InvalidDispatch
+  ForeignCoordinator
   ForeignSite
   StaleSiteGeneration
   DispatchCollision

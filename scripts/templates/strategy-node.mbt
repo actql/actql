@@ -2672,6 +2672,81 @@ pub fn strategy_remote_record_matches_dispatch(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorJournalCreate")
+pub fn strategy_remote_coordinator_journal_create(
+  authority : String,
+) -> @remote.CoordinatorDispatchJournal raise NodeHostFailure {
+  match @remote.create_coordinator_dispatch_journal(authority) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentPrepare")
+pub fn strategy_remote_coordinator_intent_prepare(
+  journal : @remote.CoordinatorDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> @remote.CoordinatorDispatchIntentAdmission raise NodeHostFailure {
+  match @remote.prepare_coordinator_dispatch_intent(journal, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentIsNew")
+pub fn strategy_remote_coordinator_intent_is_new(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+) -> Bool {
+  @remote.coordinator_dispatch_intent_kind(admission) == @remote.NewDispatch
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentJson")
+pub fn strategy_remote_coordinator_intent_json(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_dispatch_intent_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentCommit")
+pub fn strategy_remote_coordinator_intent_commit(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+  durable : Bool,
+) -> @remote.CoordinatorDispatchIntentRecord raise NodeHostFailure {
+  match @remote.commit_coordinator_dispatch_intent(admission, durable) {
+    Ok((_, record)) => record
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentMatches")
+pub fn strategy_remote_coordinator_intent_matches(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.coordinator_dispatch_intent_matches_request(record, request)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorIntentRestore")
+pub fn strategy_remote_coordinator_intent_restore(
+  journal : @remote.CoordinatorDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> @remote.CoordinatorDispatchIntentRecord raise NodeHostFailure {
+  match @remote.restore_coordinator_dispatch_intent(journal, request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteJournalCreate")
 pub fn strategy_remote_journal_create(
   site : @site.ExecutionSite,
