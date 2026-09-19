@@ -12,7 +12,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, and event watermarking reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Common lifecycle and exact producer reads now own typed Relation, Graph, Events, and Vectors generations; Graph and record construction install retention before accepting values | Join every Carrier to physical task completion |
+| Completion | Common lifecycle and physical task completion now retain exact Relation, Graph, Events, and Vectors occurrences, ordered producer reads, allocations, and output lifetimes | Connect typed Carrier dispatch to the standard Host |
 | Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage and checked Events and Vectors use record storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to registered providers without forced copies |
 | Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
@@ -42,6 +42,29 @@ occurrence. A physical fold remains an implementation choice only when it
 preserves the registered order, failure, numeric, identity, and accounting
 laws. Independent vectors retain repeated input positions and reject a
 canonical binary fold tree.
+
+## Closed review findings after `4f84dec2`
+
+Commit `6d9affad` closes both ownership findings from the fixed review.
+
+- A failed Graph or record append closes further writes without discarding
+  cleanup custody. Cancellation still clears every private array and map,
+  releases live workspace and retained-value usage, and remains retry-safe.
+- A bounded session retains an unaccepted completed result when a later stop,
+  invalid report, or counter overflow rejects the step. Cleanup disposes that
+  result before its private state, and a disposal failure remains visible and
+  retryable. A result accepted by the caller transfers custody exactly once.
+
+The regressions cover duplicate, malformed, value, work, and workspace
+failures; repeated cancellation; post-step cancellation; invalid reports;
+counter overflow; disposal retry; and accepted handoff. Related tests pass on
+JS, Wasm, and native. Full JS passed 5,061 tests at that commit.
+
+Commit `2fc8defe` connects the type-erased Carrier completion occurrence to
+the common physical graph. It verifies exact ordered producer edges, retains
+the admitted output allocation, and revokes graph references with the common
+output lifetime. This does not by itself complete standard Host Carrier
+selection or environment yielding.
 
 ## Family execution gaps
 
@@ -142,6 +165,10 @@ completed conversion.
 
 The baseline passed Linux CI run `35414883771`. That proves the accepted RelA
 baseline only. It is not evidence for any missing family execution path.
+
+At `2fc8defe`, the affected execution, physical strategy, and TEA packages
+pass 697 tests on each of JS, Wasm, and native. Portable dependency tests pass.
+This is local evidence, not a replacement for final same-SHA Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
