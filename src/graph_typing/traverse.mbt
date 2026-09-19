@@ -327,6 +327,14 @@ pub fn hop_type_count(h : TraversalHop) -> Int? {
 }
 
 ///|
+pub fn hop_type_at(h : TraversalHop, index : Int) -> String? {
+  match h.types {
+    Some(types) => types.get(index)
+    None => None
+  }
+}
+
+///|
 pub fn hop_predicate(
   h : TraversalHop,
   entity : EntityKind,

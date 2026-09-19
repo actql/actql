@@ -822,6 +822,7 @@ fn[T : RelationRows] run_sequence_steps(
       @lower.GraphMatchStep(_) => return Err(InputSet)
       @lower.GraphReachStep(_) => return Err(InputSet)
       @lower.GraphSubgraphStep(_) => return Err(InputSet)
+      @lower.GraphTraverseStep(_) => return Err(InputSet)
       @lower.GraphRelationStep(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]

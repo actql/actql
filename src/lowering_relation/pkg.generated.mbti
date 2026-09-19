@@ -836,6 +836,15 @@ pub(all) enum GraphSubgraphIssue {
   GraphSubgraphExpression(ExpressionIssue)
 }
 
+pub(all) enum GraphTraverseIssue {
+  InvalidGraphTraverseLimits
+  InvalidGraphTraverseWiring
+  GraphTraversePreparationLimit
+  MissingGraphTraverseParameter(String)
+  InvalidGraphTraverseParameter(String)
+  GraphTraverseExpression(ExpressionIssue)
+}
+
 pub(all) enum GroupIssue {
   GroupNotFound
   InvalidGroupLimits
@@ -994,6 +1003,7 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphReachRows(@graph_typing.CheckedReach)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
+  GraphTraverseRows(@graph_typing.CheckedTraverse)
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
@@ -1067,6 +1077,8 @@ type PreparedGraphStructural
 
 type PreparedGraphSubgraph
 
+type PreparedGraphTraverse
+
 type PreparedGraphUnion
 
 type PreparedGroup
@@ -1132,6 +1144,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphTraverseStep(PreparedGraphTraverse)
   GraphRelationStep(PreparedGraphRelation)
 }
 
@@ -1191,6 +1204,7 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
 }
 

@@ -131,6 +131,8 @@ pub fn hop_direction(TraversalHop) -> Direction
 
 pub fn hop_predicate(TraversalHop, EntityKind) -> CheckedPredicate?
 
+pub fn hop_type_at(TraversalHop, Int) -> String?
+
 pub fn hop_type_count(TraversalHop) -> Int?
 
 pub fn hop_types(TraversalHop) -> Array[String]?

@@ -436,6 +436,33 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
+      GraphTraverseRows(checked) => {
+        let predicate = if binding_index == 0 {
+          @graph.selector_predicate(@graph.traverse_start(checked))
+        } else {
+          let adjusted = binding_index - 1
+          let hop_index = adjusted / 2
+          match @graph.traverse_hop_at(checked, hop_index) {
+            None => None
+            Some(hop) =>
+              @graph.hop_predicate(
+                hop,
+                if adjusted % 2 == 0 {
+                  @graph.Edges
+                } else {
+                  @graph.Nodes
+                },
+              )
+          }
+        }
+        guard predicate is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
       Values(_)
       | RowWindow(_)
       | Select(_)

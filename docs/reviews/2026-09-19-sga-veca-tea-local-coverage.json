@@ -79,8 +79,10 @@
       "output": "relation",
       "canonical": ["SGA.traverse"],
       "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
-      "status": "missing",
-      "owner": "local-sga"
+      "status": "partial",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/graph_traverse_test.mbt"]
     },
     {
       "family": "SGA",

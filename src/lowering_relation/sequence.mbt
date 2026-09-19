@@ -23,6 +23,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphTraverseStep(PreparedGraphTraverse)
   GraphRelationStep(PreparedGraphRelation)
 }
 
@@ -53,6 +54,7 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphRelationFailure(Int, GraphRelationIssue)
 }
 
@@ -242,6 +244,23 @@ pub fn prepare_sequence(
         expressions = remaining
         GraphSubgraphStep(prepared)
       }
+      GraphTraverseRows(_) => {
+        let (prepared, used_entries, used_names, remaining) = match
+          prepare_graph_traverse_node(
+            owner,
+            i,
+            max_entries=bindings,
+            max_name_bytes=names,
+            expressions~,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphTraverseFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = remaining
+        GraphTraverseStep(prepared)
+      }
       GraphEqualityRows(_) | GraphDiffRows(_) | GraphApplyValue(_) => {
         let (prepared, used_entries, used_names, used_work) = match
           prepare_graph_relation_node(
@@ -386,6 +405,7 @@ pub fn emit_sequence_steps(
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphReachStep(v) => emit_graph_reach_node(v, out)
       GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
+      GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
       RowStep(v) => {
         emit_kernel_prefix(v, out)
