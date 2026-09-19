@@ -7,6 +7,28 @@ pub struct ExecutionCapacity {
 }
 
 ///|
+pub fn execution_capacity(
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> ExecutionCapacity? {
+  if retained_bytes < 0L || execution_bytes < retained_bytes {
+    None
+  } else {
+    Some({ retained_bytes, execution_bytes, })
+  }
+}
+
+///|
+pub fn execution_capacity_retained_bytes(value : ExecutionCapacity) -> Int64 {
+  value.retained_bytes
+}
+
+///|
+pub fn execution_capacity_execution_bytes(value : ExecutionCapacity) -> Int64 {
+  value.execution_bytes
+}
+
+///|
 pub fn generated_sequence_capacity(
   generated : GeneratedSequence,
   limits : SequenceExecutionLimits,

@@ -48,6 +48,7 @@ pub fn prepare_local_dispatch_module(
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_work : Int,
   managed_capacity? : @connector.FixedComputeCapacity,
+  managed_providers? : Array[@local.ManagedProvider] = [],
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
   let graph = @strategy.captured_dag_graph(run)
@@ -70,6 +71,7 @@ pub fn prepare_local_dispatch_module(
       max_work,
       sequences.length(),
       managed_capacity?,
+      managed_providers~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))

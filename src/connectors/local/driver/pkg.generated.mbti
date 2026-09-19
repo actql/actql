@@ -41,7 +41,7 @@ pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration
 
 pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.StrategyRevision, @connector_sdk.FixedComputeRequest) -> Result[@physical_host.DispatchWork, LocalDispatchIssue]
 
-pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity) -> Result[LocalDispatchModule, LocalDispatchIssue]
+pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
 pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
@@ -60,6 +60,7 @@ pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int])
 // Types and methods
 pub(all) struct LocalComputeConfiguration {
   sequences : Array[@execution_relation.GeneratedSequence]
+  managed_providers : Array[@local.ManagedProvider]
   managed_capacity : @connector_sdk.FixedComputeCapacity
   execution : @execution_relation.SequenceExecutionLimits
   measurement : @execution_relation.FixedInputGuardMeasureLimits
@@ -128,11 +129,20 @@ pub struct LocalInputTransfer {
   finish : () -> Result[Unit, LocalDispatchIssue]
 }
 
+pub(all) struct LocalManagedAdvance {
+  complete : Bool
+  progress : Int64
+  work : Int64
+}
+
 type LocalManagedDispatchConfiguration[T]
 
 pub struct LocalManagedDispatchOperations[T] {
   inputs : Array[LocalManagedInputTransfer[T]]
   execute : () -> Result[Unit, LocalDispatchIssue]
+  advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  request_cancel : () -> Bool
+  execution_stopped : () -> Bool
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : (T, Int64, () -> Bool) -> Result[@execution_relation.ManagedCompletedOutput[T], LocalDispatchIssue]
   output_rows : () -> Int

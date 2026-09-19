@@ -171,6 +171,7 @@ fn strategy_fixture_duckdb_only_impl(
           @connector.capability_registration_at(registry, 1).unwrap(),
           {
             sequences: generated,
+            managed_providers: [],
             managed_capacity: capacity,
             execution: {
               rows: {

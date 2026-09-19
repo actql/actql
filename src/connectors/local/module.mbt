@@ -5,6 +5,7 @@ struct LocalComputeModule {
   registry : @connector.CapabilityRegistry
   registration : @connector.CapabilityRegistration
   sequences : Array[@execution.GeneratedSequence]
+  managed_providers : Array[ManagedProvider]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
@@ -32,6 +33,7 @@ pub fn prepare_local_compute_module(
   max_work : Int,
   max_sequences : Int,
   managed_capacity? : @connector.FixedComputeCapacity,
+  managed_providers? : Array[ManagedProvider] = [],
 ) -> Result[LocalComputeModule, @connector.FixedComputeIssue] {
   if max_work < 1 || max_sequences < 0 || sequences.length() > max_sequences {
     return Err(InvalidLimits)
@@ -42,10 +44,22 @@ pub fn prepare_local_compute_module(
   if !@connector.capability_description(registration).fixed_compute {
     return Err(ComputeUnsupported)
   }
+  for sequence in sequences {
+    let mut matches = 0
+    for provider in managed_providers {
+      if managed_provider_accepts(provider, sequence) {
+        matches += 1
+        if matches > 1 || managed_provider_capacity(provider, sequence) is None {
+          return Err(ForeignPreparation)
+        }
+      }
+    }
+  }
   Ok({
     registry,
     registration,
     sequences: sequences.copy(),
+    managed_providers: managed_providers.copy(),
     managed_capacity: managed_capacity.unwrap_or({
       contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
       max_rows: execution.rows.max_rows,
@@ -99,6 +113,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   guard installed.sequences.get(slot) is Some(sequence) else {
     return Err(Candidate(ComputeUnsupported))
   }
+  let provider = local_module_managed_provider(installed, sequence)
   let candidate = match
     local_managed_fixed_compute_candidate(
       installed.registration,
@@ -107,6 +122,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
       estimates,
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       installed.max_work,
+      provider_supported=provider is Some(_),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
@@ -124,6 +140,19 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
     Err(issue) => return Err(Candidate(issue))
   }
   Ok((candidate, choice))
+}
+
+///|
+pub fn local_module_managed_provider(
+  installed : LocalComputeModule,
+  sequence : @execution.GeneratedSequence,
+) -> ManagedProvider? {
+  for provider in installed.managed_providers {
+    if managed_provider_accepts(provider, sequence) {
+      return Some(provider)
+    }
+  }
+  None
 }
 
 ///|

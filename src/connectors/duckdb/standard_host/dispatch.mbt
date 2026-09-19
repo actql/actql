@@ -84,6 +84,7 @@ pub fn configure_strategy_dispatch(
           local_registration,
           {
             sequences: generated,
+            managed_providers: [],
             managed_capacity: limits.capacity,
             execution: limits.local_execution,
             measurement: limits.guards,

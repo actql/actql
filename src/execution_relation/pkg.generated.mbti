@@ -273,6 +273,12 @@ pub fn execute_generated_sequence(GeneratedSequence, Array[CapturedRows], Sequen
 
 pub fn execute_local_compute_attempt(LocalComputeAttempt, SequenceExecutionLimits) -> Result[CompletedSequence, LocalComputeIssue]
 
+pub fn execution_capacity(Int64, Int64) -> ExecutionCapacity?
+
+pub fn execution_capacity_execution_bytes(ExecutionCapacity) -> Int64
+
+pub fn execution_capacity_retained_bytes(ExecutionCapacity) -> Int64
+
 pub fn finish_admitted_input(AdmittedInput) -> Result[CapturedRows, CaptureIssue]
 
 pub fn finish_admitted_output(AdmittedOutput) -> Result[AdmittedOutputRows, CaptureIssue]
@@ -322,6 +328,8 @@ pub fn fixed_producer_stream_measurement_matches(FixedProducerStreamMeasuredOutp
 pub fn fixed_producer_stream_measurement_usage(FixedProducerStreamMeasuredOutput) -> (Int, Int, Int)
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation
+
+pub fn generated_prepared_sequence(GeneratedSequence) -> @lowering_relation.PreparedSequence
 
 pub fn generated_retained_at(GeneratedSequence, Int) -> String?
 

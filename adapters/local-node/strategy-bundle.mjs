@@ -9,11 +9,46 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
+const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
+
 const managedSiteCapacity = value => Array.isArray(value)
   ? value
   : value !== null && typeof value === 'object'
     ? [value._0, value._1]
     : undefined;
+
+const stopBoundedExecution = (operations, checked) => {
+  if (typeof operations.request_cancel !== 'function') return;
+  if (operations.execution_stopped?.() === true) return;
+  try { operations.request_cancel(); } catch {}
+  if (typeof operations.advance === 'function' &&
+      operations.execution_stopped?.() !== true) {
+    try { checked(operations.advance(1)); } catch {}
+  }
+};
+
+const runManagedExecution = async (operations, checked, signal) => {
+  if (typeof operations.advance !== 'function') {
+    signal?.throwIfAborted();
+    checked(operations.execute());
+    return;
+  }
+  while (true) {
+    if (signal?.aborted) {
+      stopBoundedExecution(operations, checked);
+      signal.throwIfAborted();
+    }
+    const observation = checked(operations.advance(1024));
+    if (observation?.complete === true) return;
+    if (observation == null || observation.complete !== false ||
+        typeof observation.progress !== 'bigint' ||
+        typeof observation.work !== 'bigint' || observation.progress < 0n ||
+        observation.work <= 0n || observation.work > 1024n) {
+      throw new Error('InvalidLocalManagedAdvance');
+    }
+    await yieldToHost();
+  }
+};
 
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
@@ -125,7 +160,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           (index, row) => checked(transfers[index].append(row)),
           async () => {
             for (const transfer of transfers) checked(transfer.finish());
-            checked(operations.execute());
+            await runManagedExecution(operations, checked, signal);
           },
           signal,
           undefined,
@@ -192,6 +227,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         });
       } catch (error) {
         available = false;
+        stopBoundedExecution(operations, checked);
         throw settleFailedManagedOperations(
           operations, checked, error, failureProgress,
         );

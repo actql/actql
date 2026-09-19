@@ -40,11 +40,12 @@ pub fn[T] local_managed_fixed_compute_candidate(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : @connector.QueryQuantities,
   max_entries : Int,
+  provider_supported? : Bool = false,
 ) -> Result[
   @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
   @connector.FixedComputeIssue,
 ] {
-  if !local_managed_sequence_supported(sequence) {
+  if !local_managed_sequence_supported(sequence) && !provider_supported {
     return Err(UnsupportedInputShape)
   }
   if @execution.managed_obligations_require_logical_identity(

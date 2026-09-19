@@ -386,6 +386,71 @@ test('Local preparation delegates checked zero-input applicability to MoonBit', 
   assert.deepEqual(seen, [[]]);
 });
 
+test('bounded Local yields so cancellation reaches the active kernel',
+  async () => {
+    const setup = {}, registration = {}, configuration = {};
+    const events = [];
+    let cancelled = false, stopped = false, cleanupCalls = 0;
+    const operations = {
+      inputs: [],
+      execute: () => assert.fail('bounded execution used execute'),
+      advance: quantum => {
+        events.push(['advance', quantum]);
+        if (cancelled) {
+          stopped = true;
+          return failed(new Error('Stopped'));
+        }
+        return ok({complete: false, progress: 1n, work: 1n});
+      },
+      request_cancel() {
+        events.push('cancel');
+        cancelled = true;
+        return true;
+      },
+      execution_stopped: () => stopped,
+      settle() { events.push('settle'); return ok(); },
+      close() { events.push('close'); },
+      cleanup_refresh() {
+        events.push('cleanup');
+        cleanupCalls++;
+        return stopped && cleanupCalls > 1;
+      },
+    };
+    const entry = localStrategyContribution({
+      strategyModule_local_Registration: () => registration,
+      strategyHostRegistrationSelectionKey: () => 'local',
+      strategyHostNextTask: () => 1,
+      strategyHostManagedProducers: () => [],
+      strategyHostManagedInputCount: () => 0,
+      strategyHostManagedRequiresLogicalIdentity: () => ok(false),
+      strategyHostReleasableManagedProducers: () => [],
+      strategyModule_local_ManagedDispatch: () => ok(configuration),
+      strategyModule_local_ManagedDuration: () => 1n,
+      strategyModule_local_ManagedCapacity: () => [0n, 0n],
+      strategyModule_local_ManagedStart: () => ok(operations),
+    }, setup, checked);
+    const prepared = await entry.prepareNext(new Map());
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 0);
+    const failure = await entry.runPrepared(prepared, controller.signal)
+      .then(() => assert.fail('cancelled execution completed'), error => error);
+    assert.equal(failure.name, 'AbortError');
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(stopped, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    await failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.deepEqual(events, [
+      ['advance', 1024],
+      'cancel',
+      ['advance', 1],
+      'close',
+      'settle',
+      'cleanup',
+      'cleanup',
+    ]);
+  });
+
 test('standard Host runs Local with mixed memory and provider inputs',
   async () => {
     for (const memoryFirst of [true, false]) {
@@ -469,13 +534,21 @@ test('standard Host runs Local with mixed memory and provider inputs',
       const appended = [[], []];
       const outputMaterial = {};
       const outputCompleted = {};
+      let advances = 0;
       const operations = {
         inputs: orderedMaterials.map((material, index) => ({
           input: inputByMaterial.get(material),
           append: row => { appended[index].push(row); return ok(); },
           finish: () => ok(),
         })),
-        execute: () => ok(),
+        execute: () => assert.fail('bounded managed execution used execute'),
+        advance: quantum => {
+          assert.equal(quantum, 1024);
+          advances++;
+          return ok({complete: advances === 2, progress: 1n, work: 1n});
+        },
+        request_cancel: () => false,
+        execution_stopped: () => advances >= 2,
         settle: () => ok(),
         complete: () => { complete.add(3); return ok(outputCompleted); },
         material: () => outputMaterial,
@@ -525,6 +598,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
       );
       assert.equal(result.status, 'host-tasks-completed', result.failure?.stack);
       assert.equal(providerUses, 1);
+      assert.equal(advances, 2);
       assert.deepEqual(appended, orderedMaterials.map(material =>
         [rowsByMaterial.get(material)]));
       await result.close();

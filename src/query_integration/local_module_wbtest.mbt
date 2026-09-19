@@ -1,4 +1,13 @@
 ///|
+fn local_module_test_provider(
+  capacity : @execution.ExecutionCapacity?,
+) -> @local_connector.ManagedProvider {
+  @local_connector.managed_provider(_ => true, _ => capacity, fn(_, _, _, _) {
+    Err(@connector.InvalidLimits)
+  })
+}
+
+///|
 test "Local module snapshots its owned preparations without admitting or executing input" {
   let (run, _) = captured_graph_fixture()
   let (other, _) = captured_graph_fixture()
@@ -73,6 +82,55 @@ test "Local module snapshots its owned preparations without admitting or executi
   )
   // Disabling new preparation is not revocation of an independent completion.
   assert_eq(@execution.completed_row_count(output), 1)
+}
+
+///|
+test "Local module rejects ambiguous or unbounded managed providers" {
+  let (run, _) = captured_graph_fixture()
+  let (registry, _, prepared) = synchronous_test_choice(run)
+  let request = @connector.fixed_compute_candidate_request(
+    @connector.prepared_compute_candidate(prepared),
+  )
+  let sequences = [
+    query_generated(@connector.fixed_compute_request_owner(request)),
+  ]
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let limits = compute_test_limits()
+  let measurement : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let bounded = local_module_test_provider(
+    @execution.execution_capacity(0L, 0L),
+  )
+  assert_true(
+    @local_connector.prepare_local_compute_module(
+      registry,
+      registration,
+      sequences,
+      limits,
+      measurement,
+      100,
+      1,
+      managed_providers=[bounded, bounded],
+    )
+    is Err(ForeignPreparation),
+  )
+  assert_true(
+    @local_connector.prepare_local_compute_module(
+      registry,
+      registration,
+      sequences,
+      limits,
+      measurement,
+      100,
+      1,
+      managed_providers=[local_module_test_provider(None)],
+    )
+    is Err(ForeignPreparation),
+  )
 }
 
 ///|

@@ -48,6 +48,7 @@ pub fn configure_subset(
           @connector.capability_registration_at(registry, 0).unwrap(),
           {
             sequences,
+            managed_providers: [],
             managed_capacity: {
               contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
               max_rows: 100,

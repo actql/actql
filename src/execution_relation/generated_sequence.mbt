@@ -349,6 +349,15 @@ pub fn generated_sequence_owner(
 }
 
 ///|
+/// Read-only typed sequence for an installed execution provider. This remains
+/// bound to the same owner and checked operations retained by the generation.
+pub fn generated_prepared_sequence(
+  generated : GeneratedSequence,
+) -> @lower.PreparedSequence {
+  generated.sequence
+}
+
+///|
 pub fn generated_retained_count(generated : GeneratedSequence) -> Int {
   generated.retained_ids.length()
 }
