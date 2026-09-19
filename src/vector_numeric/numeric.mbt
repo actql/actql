@@ -2,6 +2,7 @@
 pub(all) enum Issue {
   NonFinite
   ZeroVector
+  InvalidMemberCount
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +19,20 @@ struct ScoreFold {
   mut left_squared : Double
   mut right_squared : Double
   mut distance_squared : Double
+}
+
+///|
+pub(all) enum PoolMethod {
+  Mean
+  Sum
+  Max
+} derive(Eq, Debug)
+
+///|
+struct PoolFold {
+  reduction : PoolMethod
+  mut value : Double
+  mut count : Int
 }
 
 ///|
@@ -114,6 +129,55 @@ fn product(left : Double, right : Double) -> Result[Double, Issue] {
 ///|
 fn add(sum : Double, value : Double) -> Result[Double, Issue] {
   rounded(sum + value)
+}
+
+///|
+/// Start one dimension of a member-identity-ordered pooling fold.
+pub fn prepare_pool(reduction : PoolMethod) -> PoolFold {
+  { reduction, value: 0.0, count: 0, }
+}
+
+///|
+/// Consume one component after binary32 input quantization.
+pub fn pool_step(fold : PoolFold, component : Double) -> Result[Unit, Issue] {
+  let admitted = match quantize(component) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if fold.count == 2147483647 {
+    return Err(InvalidMemberCount)
+  }
+  if fold.count == 0 {
+    fold.value = admitted
+  } else {
+    fold.value = match fold.reduction {
+      Mean | Sum =>
+        match add(fold.value, admitted) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      Max => if admitted > fold.value { admitted } else { fold.value }
+    }
+  }
+  fold.count += 1
+  Ok(())
+}
+
+///|
+/// Complete one pooled component and quantize the output to binary32.
+pub fn finish_pool(fold : PoolFold) -> Result[Double, Issue] {
+  if fold.count <= 0 {
+    return Err(InvalidMemberCount)
+  }
+  let value = match fold.reduction {
+    Mean =>
+      match rounded(fold.value / fold.count.to_double()) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    Sum | Max => fold.value
+  }
+  quantize(value)
 }
 
 ///|
