@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   beginExecutionSiteTeardown,
   bindExecutionSiteCandidate,
+  classifyManagedExecutionSiteFallback,
   createInProcessExecutionSite,
   executionSiteCandidate,
   executionSitePlacements,
@@ -211,6 +212,29 @@ test('Site candidate facts fit the portable signed 64-bit boundary', () => {
     durationMilliseconds: 1n,
     acceptsSiteTransfer: true,
   }), {code: 'InvalidTransferEstimate'});
+});
+
+test('portable Site control classifies managed fallback precedence', () => {
+  const value = site('fallback-site');
+  const implementation = contribution('fallback-implementation');
+  const installation = installExecutionSites(prepareExecutionSitePolicy({
+    sites: [value],
+  }), [implementation]);
+  assert.equal(classifyManagedExecutionSiteFallback(
+    installation, 0, [1, 3],
+  ), 0);
+  assert.equal(classifyManagedExecutionSiteFallback(
+    installation, 1, [3, 6],
+  ), 1);
+  assert.equal(classifyManagedExecutionSiteFallback(
+    installation, 1, [8, 4],
+  ), 2);
+  assert.equal(classifyManagedExecutionSiteFallback(
+    installation, 1, [2, 8],
+  ), 3);
+  assert.throws(() => classifyManagedExecutionSiteFallback(
+    installation, 1, [0],
+  ), {code: 'InvalidManagedCandidateFallback'});
 });
 
 test('binding rechecks Site state and teardown waits for live owners', () => {

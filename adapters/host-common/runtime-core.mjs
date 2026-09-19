@@ -66,6 +66,7 @@ function siteControl(moon) {
         value.executionBytes,
       ),
     ),
+    managedCandidateFallback: moon.strategySiteManagedCandidateFallback,
     failedOperationAction: moon.strategySiteFailedOperationAction,
   });
   siteControls.set(moon, control);

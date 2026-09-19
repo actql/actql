@@ -145,3 +145,63 @@ pub fn site_candidate_plan_projection(
     SiteCandidateInvalid => (7, 0L)
   }
 }
+
+///|
+/// Common outcome when no managed placement remains for a task. A retained
+/// producer forbids silent legacy reconstruction, while a task with only
+/// legacy producers may continue through the already selected legacy path.
+pub(all) enum ManagedCandidateFallbackResult {
+  ManagedCandidateLegacyAllowed
+  ManagedCandidateEstimateUnavailable
+  ManagedCandidateTransferUnavailable
+  ManagedCandidateNoCompatibleStrategy
+  ManagedCandidateFallbackInvalid
+} derive(Eq, Debug)
+
+///|
+/// Classify managed-placement exclusions without making environment wrappers
+/// reproduce the precedence of missing estimates and unavailable Transfers.
+/// Codes 1 through 6 are the stable projection of SiteCandidatePlanResult;
+/// code 8 means that a placement was unavailable before a plan was produced.
+pub fn classify_managed_candidate_fallback(
+  retained_input_count : Int,
+  exclusion_codes : Array[Int],
+) -> ManagedCandidateFallbackResult {
+  if retained_input_count < 0 {
+    return ManagedCandidateFallbackInvalid
+  }
+  if retained_input_count == 0 {
+    return ManagedCandidateLegacyAllowed
+  }
+  let mut estimate_unavailable = false
+  let mut transfer_unavailable = false
+  for code in exclusion_codes {
+    match code {
+      1 | 6 => estimate_unavailable = true
+      3 | 4 | 5 => transfer_unavailable = true
+      2 | 8 => ()
+      _ => return ManagedCandidateFallbackInvalid
+    }
+  }
+  if estimate_unavailable {
+    ManagedCandidateEstimateUnavailable
+  } else if transfer_unavailable {
+    ManagedCandidateTransferUnavailable
+  } else {
+    ManagedCandidateNoCompatibleStrategy
+  }
+}
+
+///|
+/// Stable adapter projection for managed fallback classification.
+pub fn managed_candidate_fallback_projection(
+  result : ManagedCandidateFallbackResult,
+) -> Int {
+  match result {
+    ManagedCandidateLegacyAllowed => 0
+    ManagedCandidateEstimateUnavailable => 1
+    ManagedCandidateTransferUnavailable => 2
+    ManagedCandidateNoCompatibleStrategy => 3
+    ManagedCandidateFallbackInvalid => 4
+  }
+}

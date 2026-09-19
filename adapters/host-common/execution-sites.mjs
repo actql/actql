@@ -36,7 +36,7 @@ const controlMethods = [
   'settleTransferSource', 'settleTransferDestination',
   'retainTransferHolding', 'retainHolding', 'releaseHolding',
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
-  'selectCandidate', 'planCandidate',
+  'selectCandidate', 'planCandidate', 'managedCandidateFallback',
   'failedOperationAction',
 ];
 
@@ -223,6 +223,27 @@ export function executionSitePlacements(installation, contribution) {
   return placed;
 }
 
+export function classifyManagedExecutionSiteFallback(
+  installation,
+  retainedInputCount,
+  exclusionCodes,
+) {
+  const state = installations.get(installation) ??
+    fail('ForeignExecutionSiteInstallation');
+  if (!count(retainedInputCount) || !Array.isArray(exclusionCodes) ||
+      exclusionCodes.some(code => !Number.isSafeInteger(code))) {
+    fail('InvalidManagedCandidateFallback');
+  }
+  const result = state.control.managedCandidateFallback(
+    retainedInputCount,
+    exclusionCodes,
+  );
+  if (!Number.isSafeInteger(result) || result < 0 || result > 3) {
+    fail('InvalidManagedCandidateFallback');
+  }
+  return result;
+}
+
 // Candidate facts are produced by environment placement adapters, while the
 // portable Site control owns the cost and stable-key decision.
 export function selectExecutionSiteCandidateIndex(
@@ -390,10 +411,11 @@ export function executionSiteCandidate({
   if (plan[0] !== 0) {
     const excluded = exclusions[plan[0]];
     if (excluded === undefined) fail('InvalidExecutionSiteCandidate');
-    return Object.freeze({excluded});
+    return Object.freeze({excluded, exclusionCode: plan[0]});
   }
   return Object.freeze({
     excluded: undefined,
+    exclusionCode: 0,
     installation,
     contribution,
     site,

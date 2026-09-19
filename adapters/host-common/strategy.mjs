@@ -1,7 +1,8 @@
 // Trusted JavaScript coordination only. Checked readiness, selected ownership,
 // reservations and atomic completion are enforced by the common MoonBit core.
 // Installed entries are implementation code, not user-supplied success proofs.
-import {bindExecutionSiteCandidate, executionSiteCandidate,
+import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
+  executionSiteCandidate,
   executionSiteDescription, executionSiteOperationAvailable,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
@@ -420,7 +421,7 @@ export async function runInstalledStrategy(
       signal?.throwIfAborted();
       const managedInputs = core.managedProducers?.(setup) ?? [];
       const prepared = [];
-      const excludedManagedCandidates = [];
+      const excludedManagedCandidateCodes = [];
       for (const entry of installed.values()) {
         const task = await entry.prepareNext?.(managedOutputs);
         if (task == null) continue;
@@ -446,7 +447,9 @@ export async function runInstalledStrategy(
             }));
           } else {
             const reason = siteCandidate?.excluded ?? 'ExecutionSiteUnavailable';
-            excludedManagedCandidates.push(reason);
+            excludedManagedCandidateCodes.push(
+              siteCandidate?.exclusionCode ?? 8,
+            );
             candidateExclusions.push(Object.freeze({
               task: task.task,
               registrationKey: entry.managedSelectionKey,
@@ -479,16 +482,17 @@ export async function runInstalledStrategy(
         // dispatcher. Once any exact managed producer is selected, silently
         // dropping it or mixing it with a legacy reconstruction is forbidden.
         if (retainedInputs.length !== 0) {
-          const code = excludedManagedCandidates.some(value =>
-            ['MissingDurationEstimate', 'MissingTransferEstimate']
-              .includes(value))
-            ? 'ManagedCandidateEstimateUnavailable'
-            : excludedManagedCandidates.some(value =>
-              ['MissingTransferProvider',
-                'UnsupportedTransferRepresentation',
-                'SourceSiteRevoked'].includes(value))
-              ? 'ManagedSiteTransferUnavailable'
-              : 'NoCompatibleManagedStrategy';
+          const outcome = classifyManagedExecutionSiteFallback(
+            siteInstallation,
+            retainedInputs.length,
+            excludedManagedCandidateCodes,
+          );
+          const code = [undefined, 'ManagedCandidateEstimateUnavailable',
+            'ManagedSiteTransferUnavailable',
+            'NoCompatibleManagedStrategy'][outcome];
+          if (code === undefined) {
+            throw new StrategyHostError('InvalidManagedCandidateFallback');
+          }
           throw new StrategyHostError(code);
         }
       }

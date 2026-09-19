@@ -210,6 +210,16 @@ export function createExecutionSiteControlFixture() {
       }
       return [0, duration];
     },
+    managedCandidateFallback(retainedInputCount, exclusionCodes) {
+      if (!Number.isSafeInteger(retainedInputCount) || retainedInputCount < 0 ||
+          !Array.isArray(exclusionCodes)) return 4;
+      if (retainedInputCount === 0) return 0;
+      if (exclusionCodes.some(code => ![1, 2, 3, 4, 5, 6, 8]
+        .includes(code))) return 4;
+      if (exclusionCodes.some(code => code === 1 || code === 6)) return 1;
+      if (exclusionCodes.some(code => [3, 4, 5].includes(code))) return 2;
+      return 3;
+    },
     failedOperationAction(cleanupRequired, cleanupStopped, settled) {
       if (settled) return 2;
       if (cleanupRequired && !cleanupStopped) return 0;

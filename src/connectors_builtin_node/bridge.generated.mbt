@@ -2500,6 +2500,19 @@ pub fn strategy_site_plan_candidate(
 }
 
 ///|
+#export_name("strategySiteManagedCandidateFallback")
+pub fn strategy_site_managed_candidate_fallback(
+  retained_input_count : Int,
+  exclusion_codes : Array[Int],
+) -> Int {
+  @site.managed_candidate_fallback_projection(
+    @site.classify_managed_candidate_fallback(
+      retained_input_count, exclusion_codes,
+    ),
+  )
+}
+
+///|
 #export_name("strategySiteFailedOperationAction")
 pub fn strategy_site_failed_operation_action(
   cleanup_required : Bool,

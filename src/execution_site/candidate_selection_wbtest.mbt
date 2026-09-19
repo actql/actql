@@ -128,3 +128,27 @@ test "Site candidate plan rejects malformed facts and duration overflow" {
     SiteCandidateInvalid,
   )
 }
+
+///|
+test "managed candidate fallback is owned by portable Site control" {
+  assert_eq(
+    classify_managed_candidate_fallback(0, [1, 3]),
+    ManagedCandidateLegacyAllowed,
+  )
+  assert_eq(
+    classify_managed_candidate_fallback(1, [3, 6]),
+    ManagedCandidateEstimateUnavailable,
+  )
+  assert_eq(
+    classify_managed_candidate_fallback(2, [8, 5]),
+    ManagedCandidateTransferUnavailable,
+  )
+  assert_eq(
+    classify_managed_candidate_fallback(1, [2, 8]),
+    ManagedCandidateNoCompatibleStrategy,
+  )
+  assert_eq(
+    classify_managed_candidate_fallback(1, [0]),
+    ManagedCandidateFallbackInvalid,
+  )
+}
