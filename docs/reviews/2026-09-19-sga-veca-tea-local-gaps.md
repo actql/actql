@@ -12,10 +12,10 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, and event watermarking reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Common lifecycle and physical task completion now retain exact Relation, Graph, Events, and Vectors occurrences, ordered producer reads, allocations, and output lifetimes | Connect typed Carrier dispatch to the standard Host |
-| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage and checked Events and Vectors use record storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to registered providers without forced copies |
-| Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
-| Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
+| Completion | Common lifecycle and physical task completion retain exact Relation, Graph, Events, and Vectors occurrences; one registered Events pipeline now reaches common managed completion and two Relation consumers | Extend the registered boundary to every Carrier-producing operation and principal variant |
+| Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; the first registered provider connects rows-to-Events, watermarking, and Events-to-rows without an intermediate wire copy | Register the remaining family kernels and direct Carrier outputs without forced copies |
+| Progress | The portable session core enforces bounded reports and retryable cleanup; the Node adapter now performs a real event-loop yield between managed advances | Convert every remaining potentially long kernel and verify each compiled environment path |
+| Cancellation | The common provider boundary carries cancel, stop confirmation, and cleanup retry, and the Node adapter delivers cancellation between bounded steps | Exercise the compiled provider through each environment and connect the remaining kernels |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
 | Publication | Existing Effect-free path accepts ordered Relations | Connect every new Relation result and Carrier projection through that path |
 
@@ -65,6 +65,16 @@ the common physical graph. It verifies exact ordered producer edges, retains
 the admitted output allocation, and revokes graph references with the common
 output lifetime. This does not by itself complete standard Host Carrier
 selection or environment yielding.
+
+Commits `adfcfede` and `ce088605` connect the first provider through the common
+configuration and standard Host. Provider cleanup must confirm reclamation
+before common task cleanup proceeds; a false result remains retryable. The
+Node adapter yields through the environment event loop between bounded steps,
+then requests cancellation, observes stop, and retries cleanup separately.
+The exact rows-to-Events, watermark, and Events-to-rows sequence reaches two
+real downstream Relation computations and final ledger reclamation. These
+commits do not complete other sequences, standalone Carrier outputs, or formal
+publication.
 
 ## Family execution gaps
 
@@ -132,7 +142,7 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-All eight operations lack portable Local execution. Checked typed lowering now
+Seven operations still lack portable Local execution. Checked typed lowering
 emits `TEA.watermark.label`, `TEA.dedupe`, and
 `TEA.window.session_assign`. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
@@ -147,28 +157,36 @@ now executes as a bounded-step kernel for numeric and canonical UTC clocks. It
 implements both policies, preserves the exact late boundary and retained order,
 admits record workspace before construction, and publishes a distinct managed
 Events generation. Its portable tests cover kernel cancellation observation and
-two exact downstream reads on JS, Wasm, and native. Environment cancellation
-delivery, independent consumer release, and standard Host selection remain
-open, so watermarking is not complete. The other seven TEA operations still
-lack portable Local kernels.
+two exact downstream reads on JS, Wasm, and native. One registered standard
+Host sequence now converts Relation rows to Events, runs watermarking, converts
+back to Relation, feeds two downstream computations, releases them
+independently, and reclaims the final ledger. Standalone Events output lifetime,
+the complete cancellation artifact path, and publication remain open, so
+watermarking is not complete. The other seven TEA operations still lack
+portable Local kernels.
 
 ### Bridges
 
 `to_events` and `to_vectors` now lower their checked semantic roles to
-`BRIDGE.rows.to_events` and `BRIDGE.rows.to_vectors`. Their runtime conversions
-and the other five Bridge operations remain open. Bridge implementations must
-retain their source and target Carrier contracts and create an independently
-managed generation; a Relation-shaped buffer alone is not evidence of a
-completed conversion.
+`BRIDGE.rows.to_events` and `BRIDGE.rows.to_vectors`. Rows-to-Events and
+Events-to-rows execute inside the first registered provider and preserve an
+independently managed generation across the intermediate watermark consumer.
+Standalone Bridge selection, direct Carrier consumer lifetime, page-split
+coverage, publication, the vector conversions, and the three graph conversions
+remain open. A Relation-shaped buffer alone is not evidence of a completed
+conversion.
 
 ## Current verification boundary
 
 The baseline passed Linux CI run `35414883771`. That proves the accepted RelA
 baseline only. It is not evidence for any missing family execution path.
 
-At `2fc8defe`, the affected execution, physical strategy, and TEA packages
-pass 697 tests on each of JS, Wasm, and native. Portable dependency tests pass.
-This is local evidence, not a replacement for final same-SHA Linux CI.
+At `ce088605`, the affected Local, Bridge, TEA, provider, and query integration
+packages pass 354 tests on each of JS, Wasm, and native. The focused Carrier
+suite passes four tests on every target, the Node Local adapter passes eleven,
+and the retained boundary passes 231. Portable dependency and dependency-free
+Node subset checks pass. This is local evidence, not a replacement for final
+same-SHA Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

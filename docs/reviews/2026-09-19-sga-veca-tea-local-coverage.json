@@ -43,7 +43,9 @@
     "bounded_step_session_core",
     "carrier_aware_physical_completion",
     "failed_builder_cleanup_custody",
-    "bounded_result_cleanup_custody"
+    "bounded_result_cleanup_custody",
+    "registered_carrier_provider_boundary",
+    "environment_yield_adapter"
   ],
   "operations": [
     {
@@ -297,12 +299,15 @@
         "lowering",
         "kernel",
         "managed",
+        "standard_host",
         "resources",
         "three_targets"
       ],
       "layer_evidence": [
         "src/lowering_relation/event_test.mbt",
-        "src/local_tea/watermark_wbtest.mbt"
+        "src/local_tea/watermark_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/local-node/strategy-bundle.test.mjs"
       ]
     },
     {
@@ -491,8 +496,20 @@
       "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
       "status": "partial",
       "owner": "local-bridge",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",
@@ -501,8 +518,21 @@
       "output": "relation",
       "canonical": ["BRIDGE.events.to_rows"],
       "variants": ["identity transfer", "clock preservation", "page split invariance"],
-      "status": "missing",
-      "owner": "local-bridge"
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ]
     },
     {
       "family": "Bridge",
