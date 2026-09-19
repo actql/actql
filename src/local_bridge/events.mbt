@@ -175,7 +175,7 @@ fn cleanup_rows_to_events_state(state : RowsToEventsState) -> Bool {
 }
 
 ///|
-pub fn start_rows_to_events(
+fn start_rows_to_records(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
@@ -183,16 +183,16 @@ pub fn start_rows_to_events(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  accepts : (@lower.PreparedStep, @lower.PreparedNode) -> Bool,
 ) -> Result[RowsToEventsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
+  guard @lower.sequence_step(sequence, step) is Some(prepared) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.operation(node) == "BRIDGE.rows.to_events" &&
+    accepts(prepared, node) &&
     @lower.node_input_target(node, 0) ==
     Some(@pipeline.Input(@execution.producer_read_input_index(input))) &&
     physical_equal(@execution.producer_read_receiver(input), owner) &&
-    @execution.producer_read_available(input) &&
-    @carrier.kind(@lower.event_output_carrier(event)) == @carrier.EventsKind else {
+    @execution.producer_read_available(input) else {
     return Err(InvalidKernel)
   }
   let schema = @execution.producer_read_schema(input)
@@ -225,6 +225,36 @@ pub fn start_rows_to_events(
     control, state, rows_to_events_step, cleanup_rows_to_events_state, @records.discard_completed,
   )
   Ok({ session, token: Some(token), })
+}
+
+///|
+pub fn start_rows_to_events(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @execution.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[RowsToEventsExecution, EventsBridgeIssue] {
+  start_rows_to_records(
+    control,
+    sequence,
+    step,
+    input,
+    limits,
+    storage_bytes,
+    available,
+    fn(prepared, node) {
+      match prepared {
+        @lower.EventStep(event) =>
+          @lower.operation(node) == "BRIDGE.rows.to_events" &&
+          @carrier.kind(@lower.event_output_carrier(event)) ==
+          @carrier.EventsKind
+        _ => false
+      }
+    },
+  )
 }
 
 ///|
@@ -373,7 +403,7 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
 }
 
 ///|
-pub fn start_events_to_rows(
+fn start_records_to_rows(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
@@ -384,6 +414,8 @@ pub fn start_events_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  expected : @projection.Operation,
+  carrier_matches : (@carrier.Carrier) -> Bool,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -392,10 +424,10 @@ pub fn start_events_to_rows(
     ) &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.CarrierProjectionStep(projection)) &&
-    @lower.carrier_projection_operation(projection) == @projection.Events &&
+    @lower.carrier_projection_operation(projection) == expected &&
     @records.producer_read_matches_operation_input(input, owner, step, 0) &&
     @records.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.EventValue(_) &&
+    carrier_matches(@storage.carrier(source)) &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
       @pipeline.Step(step),
@@ -457,6 +489,35 @@ pub fn start_events_to_rows(
     },
   )
   Ok({ session, token: Some(token), accepted, })
+}
+
+///|
+pub fn start_events_to_rows(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  start_records_to_rows(
+    control,
+    preparation,
+    sequence,
+    step,
+    input,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    @projection.Events,
+    fn(carrier) { carrier is @carrier.EventValue(_) },
+  )
 }
 
 ///|

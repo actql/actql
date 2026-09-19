@@ -15,17 +15,33 @@ pub fn advance_events_to_rows(EventsToRowsExecution, Int) -> Result[EventsToRows
 
 pub fn advance_rows_to_events(RowsToEventsExecution, Int) -> Result[RowsToEventsPoll, EventsBridgeIssue]
 
+pub fn advance_rows_to_vectors(RowsToVectorsExecution, Int) -> Result[RowsToVectorsPoll, EventsBridgeIssue]
+
+pub fn advance_vectors_to_rows(VectorsToRowsExecution, Int) -> Result[VectorsToRowsPoll, EventsBridgeIssue]
+
 pub fn cleanup_events_to_rows(EventsToRowsExecution) -> Result[Bool, EventsBridgeIssue]
 
 pub fn cleanup_rows_to_events(RowsToEventsExecution) -> Result[Bool, EventsBridgeIssue]
+
+pub fn cleanup_rows_to_vectors(RowsToVectorsExecution) -> Result[Bool, EventsBridgeIssue]
+
+pub fn cleanup_vectors_to_rows(VectorsToRowsExecution) -> Result[Bool, EventsBridgeIssue]
 
 pub fn events_to_rows_cleanup_pending(EventsToRowsExecution) -> Bool
 
 pub fn rows_to_events_cleanup_pending(RowsToEventsExecution) -> Bool
 
+pub fn rows_to_vectors_cleanup_pending(RowsToVectorsExecution) -> Bool
+
 pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
 pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]
+
+pub fn start_rows_to_vectors(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToVectorsExecution, EventsBridgeIssue]
+
+pub fn start_vectors_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
+
+pub fn vectors_to_rows_cleanup_pending(VectorsToRowsExecution) -> Bool
 
 // Errors
 
@@ -55,6 +71,24 @@ type RowsToEventsExecution
 pub enum RowsToEventsPoll {
   Continue(progress~ : Int64, work~ : Int64)
   Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  Failed(EventsBridgeIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type RowsToVectorsExecution
+
+pub enum RowsToVectorsPoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@managed_record_runtime.Completed, progress~ : Int64, work~ : Int64)
+  Failed(EventsBridgeIssue, progress~ : Int64, work~ : Int64)
+  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type VectorsToRowsExecution
+
+pub enum VectorsToRowsPoll {
+  Continue(progress~ : Int64, work~ : Int64)
+  Complete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   Failed(EventsBridgeIssue, progress~ : Int64, work~ : Int64)
   Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
