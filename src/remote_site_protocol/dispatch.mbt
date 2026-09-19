@@ -981,6 +981,22 @@ pub fn remote_managed_output_subject_projection(
 }
 
 ///|
+/// Typed physical retention facts carried by the admitted output subject.
+/// These facts identify a remote generation and its charged upper bound; they
+/// are not a read capability, a logical CID or proof that the material is
+/// currently available.
+pub fn remote_managed_output_subject_retention(
+  subject : RemoteManagedOutputSubject,
+) -> (String, String, String, Int64) {
+  (
+    subject.material_generation,
+    subject.holding_evidence_cid,
+    subject.physical_manifest_cid,
+    subject.retained_bytes,
+  )
+}
+
+///|
 pub fn remote_managed_output_subject_matches_dispatch(
   subject : RemoteManagedOutputSubject,
   request : DispatchRequest,

@@ -7,11 +7,15 @@ import {
 }
 
 // Values
-pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
+pub fn admit_dispatch_request(String, String, String, Int, String, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
+
+pub fn admit_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], String) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
+
+pub fn admit_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64, String) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
 
@@ -77,6 +81,10 @@ pub fn force_loss_projection(ForceLossTransition) -> Array[String]
 
 pub fn issue_remote_execution_evidence(RemoteEvidenceIssuer, DispatchRecord, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
+pub fn issue_remote_managed_output_evidence(RemoteEvidenceIssuer, DispatchRecord, RemoteManagedOutputSubject) -> Result[RemoteExecutionEvidence, DispatchIssue]
+
+pub fn prepare_begin_managed_provisioning(DispatchRecord, RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[DispatchTransition, DispatchIssue]
+
 pub fn prepare_begin_provisioning(DispatchRecord, RemoteExecutionCapability) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_begin_remote_execution(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
@@ -93,13 +101,15 @@ pub fn prepare_confirm_remote_release(DispatchRecord) -> Result[DispatchTransiti
 
 pub fn prepare_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentAdmission, DispatchIssue]
 
+pub fn prepare_coordinator_managed_output_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[CoordinatorDispatchTransition, DispatchIssue]
+
 pub fn prepare_coordinator_outcome_unknown(CoordinatorDispatchIntentRecord) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
-pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
+pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn prepare_durable_execution_evidence(DispatchRecord, RemoteExecutionEvidence) -> Result[DispatchTransition, DispatchIssue]
 
@@ -116,6 +126,10 @@ pub fn prepare_reconcile_failed_execution(DispatchRecord) -> Result[DispatchTran
 pub fn prepare_reject_execution_evidence(DispatchRecord) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_remote_dispatch_budget(Int64, Int64) -> Result[RemoteDispatchBudget, DispatchIssue]
+
+pub fn prepare_remote_managed_output_measurement(Int, Int, Int, Int, Array[Int], Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) -> Result[RemoteManagedOutputMeasurement, DispatchIssue]
+
+pub fn prepare_remote_managed_output_subject(String, String, String, String, String, String, String, String, String, Int, Int64) -> Result[RemoteManagedOutputSubject, DispatchIssue]
 
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
@@ -141,9 +155,33 @@ pub fn remote_execution_evidence_json(RemoteExecutionEvidence) -> Result[String,
 
 pub fn remote_execution_evidence_matches_dispatch(RemoteExecutionEvidence, DispatchRequest) -> Bool
 
+pub fn remote_managed_output_evidence_kind() -> String
+
+pub fn remote_managed_output_measurement_cid(RemoteManagedOutputMeasurement) -> String
+
+pub fn remote_managed_output_measurement_json(RemoteManagedOutputMeasurement) -> Result[String, DispatchIssue]
+
+pub fn remote_managed_output_measurement_projection(RemoteManagedOutputMeasurement) -> Array[Array[Int]]
+
+pub fn remote_managed_output_subject_cid(RemoteManagedOutputSubject) -> String
+
+pub fn remote_managed_output_subject_json(RemoteManagedOutputSubject) -> Result[String, DispatchIssue]
+
+pub fn remote_managed_output_subject_matches_dispatch(RemoteManagedOutputSubject, DispatchRequest) -> Bool
+
+pub fn remote_managed_output_subject_matches_evidence(RemoteManagedOutputSubject, RemoteExecutionEvidence, DispatchRequest) -> Bool
+
+pub fn remote_managed_output_subject_matches_measurement(RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
+
+pub fn remote_managed_output_subject_projection(RemoteManagedOutputSubject) -> Array[String]
+
+pub fn remote_managed_output_subject_retention(RemoteManagedOutputSubject) -> (String, String, String, Int64)
+
+pub fn remote_managed_runtime_registration_scope(RemoteExecutionCapability, RemoteEvidenceIssuer) -> Result[Array[String], DispatchIssue]
+
 pub fn restore_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchRequest) -> Result[CoordinatorDispatchIntentRecord, DispatchIssue]
 
-pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String) -> Result[Unit, DispatchIssue]
+pub fn restore_coordinator_dispatch_record(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
 pub fn restore_dispatch_record(DispatchRecord, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Result[Unit, DispatchIssue]
 
@@ -243,6 +281,10 @@ pub(all) enum RemoteExecutionState {
   ExecutionCancelled
   ExecutionUnknown
 } derive(Eq, @debug.Debug)
+
+type RemoteManagedOutputMeasurement
+
+type RemoteManagedOutputSubject
 
 type SiteDispatchJournal
 

@@ -127,6 +127,8 @@ pub fn[P, T] cancel_managed_output_retention_port(ManagedOutputRetentionPort[P, 
 
 pub fn cancel_managed_output_values(ManagedOutputValues) -> Bool
 
+pub fn[P] cancel_managed_verified_output_port(ManagedVerifiedOutputPort[P]) -> Bool
+
 pub fn[P, T] cancel_managed_view_output_port(ManagedViewOutputPort[P, T]) -> Bool
 
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
@@ -252,6 +254,8 @@ pub fn[T] finish_managed_computed_view(ManagedComputedView[T]) -> Result[Managed
 pub fn finish_managed_output_values(ManagedOutputValues) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue]
 
 pub fn[T] finish_managed_producer_bridge(ManagedProducerBridge[T], Int, Int) -> Result[ProducerRead, ManagedProducerBridgeIssue]
+
+pub fn[P] finish_managed_verified_output(ManagedVerifiedOutputPort[P], P) -> Result[ManagedOutputValueReceipt, ManagedVerifiedOutputIssue]
 
 pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
 
@@ -508,6 +512,8 @@ pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimi
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
 pub fn[P, T] prepare_managed_selected_view_output_port(ManagedViewSelection[T], ManagedOutputValues, (P) -> Bool) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
+
+pub fn[P] prepare_managed_verified_output_port(ManagedOutputValues, (P) -> ManagedViewOutputFacts?) -> Result[ManagedVerifiedOutputPort[P], ManagedVerifiedOutputIssue]
 
 pub fn[P, T] prepare_managed_view_output_port(ManagedViewPlan[T], ManagedOutputValues, (P) -> ManagedViewOutputFacts?) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue]
 
@@ -1106,6 +1112,16 @@ pub(all) enum ManagedSelectionMeasureIssue {
   InvalidSelection
   UnsupportedColumns
 }
+
+pub(all) enum ManagedVerifiedOutputIssue {
+  Closed
+  Unverified
+  InconsistentFacts
+  OutputRepresentationRequired
+  Values(ManagedOutputValueIssue)
+}
+
+type ManagedVerifiedOutputPort[P]
 
 pub(all) struct ManagedViewColumnFacts {
   source_column : Int

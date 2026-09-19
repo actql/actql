@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/remote_site_protocol" @remote,
+}
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/execution_site" @site,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/source_value" @source,
+} for "wbtest"
