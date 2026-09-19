@@ -175,8 +175,17 @@ and composite member identities, verifies the pooled value, and reaches two
 downstream Relation computations with final ledger reclamation on all three
 targets. Overlapping independent consumers of one Vectors generation,
 environment cancellation delivery, and publication remain open, so pooling is
-partial. Nearest-neighbor execution and ranking merge still lack portable Local
-kernels.
+partial. Exact nearest now has a bounded Relation-by-Relation kernel and a
+registered provider path. It validates both complete inputs and globally unique
+typed identities, quantizes components through the shared VecA numeric profile,
+orders queries and tied candidates by typed identity, and emits the fixed
+ranking Relation schema. The standard Host fixture exercises explicit roles,
+dot scoring, `k=2`, a candidate-score tie, two overlapping downstream Relation
+computations, independent release, and final ledger reclamation on JS, Wasm,
+and native. The other three Carrier combinations, inferred roles, cosine and
+negative-L2 integration, `k` boundaries, duplicate and empty-side failures,
+environment cancellation delivery, and publication remain open. Ranking merge
+still lacks a portable Local kernel.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -334,6 +343,16 @@ value-admission tests on each target. Commit `688c910c` refreshes the generated
 Workers fixture; fixture freshness and all 24 Workers tests pass. These results
 do not establish overlapping direct Carrier consumers, environment
 cancellation delivery, publication, or final same-SHA Linux CI.
+
+At `7df8ab1a`, exact Relation-by-Relation nearest executes through the
+registered VecA provider and the standard Host. Its fixed fixture proves query
+identity ordering, score-descending and candidate-identity tie ordering,
+contiguous rank, two live downstream Relation consumers, independent release,
+and final ledger reclamation. The affected VecA and query-integration suites
+pass 23 tests on each of JS, Wasm, and native. The Workers fixture is generated
+from the same source and is fresh. This is one classified nearest slice, not
+evidence for the remaining Carrier combinations, all formal metric and boundary
+variants, publication, cancellation delivery, or final same-SHA Linux CI.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
