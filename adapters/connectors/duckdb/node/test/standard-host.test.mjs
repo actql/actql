@@ -3290,22 +3290,38 @@ async function exerciseStrategyGraph(
         }),
       },
     );
-    assert.equal(twoSiteExecution.status, 'host-tasks-completed',
-      JSON.stringify({
-        stack: twoSiteExecution.failure?.stack,
-        completed: twoSiteExecution.completed,
-        candidates: twoSiteExecution.candidateComparisons,
-        excluded: twoSiteExecution.candidateExclusions,
-        usage: twoSiteExecution.usage(),
-      }, (_, value) => typeof value === 'bigint' ? value.toString() : value));
-    assert.deepEqual(
-      twoSiteExecution.completed.map(item => item.realization),
-      ['duckdb-managed', 'duckdb-managed', 'local-managed', 'local-managed'],
-      JSON.stringify({
-        candidates: twoSiteExecution.candidateComparisons,
-        excluded: twoSiteExecution.candidateExclusions,
-      }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
-    );
+    if (twoSiteExecution.status !== 'host-tasks-completed') {
+      const failure = String(
+        twoSiteExecution.failure?.code ??
+        twoSiteExecution.failure?.message ??
+        'none',
+      ).slice(0, 256);
+      assert.fail(
+        `two-site status=${twoSiteExecution.status}; failure=${failure}; ` +
+        `completed=${twoSiteExecution.completed.length}; ` +
+        `candidates=${twoSiteExecution.candidateComparisons.length}; ` +
+        `excluded=${twoSiteExecution.candidateExclusions.length}`,
+      );
+    }
+    assert.equal(twoSiteExecution.status, 'host-tasks-completed');
+    const realizations =
+      twoSiteExecution.completed.map(item => item.realization);
+    if (realizations.join('\n') !== [
+      'duckdb-managed',
+      'duckdb-managed',
+      'local-managed',
+      'local-managed',
+    ].join('\n')) {
+      assert.fail(
+        `unexpected two-site realizations: ${realizations.slice(0, 8).join(',')}`,
+      );
+    }
+    assert.deepEqual(realizations, [
+      'duckdb-managed',
+      'duckdb-managed',
+      'local-managed',
+      'local-managed',
+    ]);
     assert.deepEqual(
       twoSiteExecution.completed.map(item => item.executionSite.key),
       ['node-site-a', 'node-site-a', 'node-site-b', 'node-site-b'],
