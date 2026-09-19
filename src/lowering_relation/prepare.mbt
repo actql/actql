@@ -306,8 +306,10 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
-        @event.ToEvents | @event.Watermark(_, _) => Some(EventValue(value))
-        @event.Dedupe(_) | @event.Session(_) => None
+        @event.ToEvents
+        | @event.Watermark(_, _)
+        | @event.Dedupe(_)
+        | @event.Session(_) => Some(EventValue(value))
       }
   }
 }

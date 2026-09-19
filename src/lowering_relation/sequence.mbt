@@ -326,6 +326,7 @@ pub fn prepare_sequence(
       EventValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_event_node(
+            owner,
             owner.prepared.nodes[i],
             max_bindings=bindings,
             max_name_bytes=names,

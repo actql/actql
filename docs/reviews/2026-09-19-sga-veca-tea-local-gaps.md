@@ -110,15 +110,18 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 ### TEA
 
 All eight operations lack portable Local execution. Checked typed lowering now
-emits `TEA.watermark.label`, while the other TEA forms remain unimplemented in
-shared lowering. Runtime work must preserve finite event-time observation
-semantics across transport page splits and bind checkpoint advancement to the
-existing successful commit boundary. No long-lived streaming state is required
-by TEA 0.1. Common immutable record storage preserves typed event roles, open
-payload evidence, semantic identity uniqueness, and bounded allocation. Events
-now pass through the common managed generation and exact producer-read
-lifecycle on all three targets; TEA kernels and standard Host integration
-remain open.
+emits `TEA.watermark.label`, `TEA.dedupe`, and
+`TEA.window.session_assign`. Dedupe retains repeated partition positions,
+stable order terms, null placement, and the mandatory tie failure. Session
+retains its exact roles, grouping positions, clock encoding, and resolved
+literal or bound gap. The other TEA forms remain unimplemented in shared
+lowering. Runtime work must preserve finite event-time observation semantics
+across transport page splits and bind checkpoint advancement to the existing
+successful commit boundary. No long-lived streaming state is required by TEA
+0.1. Common immutable record storage preserves typed event roles, open payload
+evidence, semantic identity uniqueness, and bounded allocation. Events now pass
+through the common managed generation and exact producer-read lifecycle on all
+three targets; TEA kernels and standard Host integration remain open.
 
 ### Bridges
 

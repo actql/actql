@@ -9,6 +9,14 @@ struct PreparedEvent {
 priv enum PreparedEventParams {
   EventBridgeParams(String, String)
   EventWatermarkParams(Double, @event.Policy)
+  EventDedupeParams(@event.DedupeSpec)
+  EventSessionParams(
+    Array[@schema.FieldName],
+    @schema.FieldName,
+    @schema.FieldName,
+    Bool,
+    Int64
+  )
 }
 
 ///|
@@ -16,10 +24,26 @@ pub(all) enum EventIssue {
   InvalidEventLimits
   InvalidEventWiring
   EventPreparationLimit
+  MissingEventParameter(String)
+  InvalidEventParameter(String)
 } derive(Eq, Debug)
 
 ///|
+fn add_event_name_bytes(current : Int, name : String, maximum : Int) -> Int? {
+  if current < 0 || current > maximum || name.length() > maximum - current {
+    return None
+  }
+  let bytes = @utf8.encode(name).length()
+  if bytes > maximum - current {
+    None
+  } else {
+    Some(current + bytes)
+  }
+}
+
+///|
 fn prepare_event_node(
+  owner : BoundPrepared,
   node : PreparedNode,
   max_bindings~ : Int,
   max_name_bytes~ : Int,
@@ -47,12 +71,203 @@ fn prepare_event_node(
     }
     @event.Watermark(value, policy) =>
       (EventWatermarkParams(value, policy), 0, 0, 2)
-    @event.Dedupe(_) | @event.Session(_) => return Err(InvalidEventWiring)
+    @event.Dedupe(spec) => {
+      let keys = @event.dedupe_keys(spec)
+      let order_count = @event.dedupe_order_count(spec)
+      let mut name_bytes = 0
+      for key in keys {
+        guard add_event_name_bytes(
+            name_bytes,
+            @schema.reference_name(key),
+            max_name_bytes,
+          )
+          is Some(next) else {
+          return Err(EventPreparationLimit)
+        }
+        name_bytes = next
+      }
+      for index in 0..<order_count {
+        let term = @event.dedupe_order_at(spec, index).unwrap()
+        guard add_event_name_bytes(
+            name_bytes,
+            @schema.reference_name(term.field),
+            max_name_bytes,
+          )
+          is Some(next) else {
+          return Err(EventPreparationLimit)
+        }
+        name_bytes = next
+      }
+      (
+        EventDedupeParams(spec),
+        keys.length() + order_count,
+        name_bytes,
+        keys.length() + order_count + 2,
+      )
+    }
+    @event.Session(spec) => {
+      let keys = @event.session_keys(spec)
+      let identity = @event.session_identity(spec)
+      let time = @event.session_time(spec)
+      guard add_event_name_bytes(
+          0,
+          @schema.reference_name(identity),
+          max_name_bytes,
+        )
+        is Some(identity_bytes) &&
+        add_event_name_bytes(
+          identity_bytes,
+          @schema.reference_name(time),
+          max_name_bytes,
+        )
+        is Some(time_bytes) else {
+        return Err(EventPreparationLimit)
+      }
+      let mut name_bytes = time_bytes
+      for key in keys {
+        guard add_event_name_bytes(
+            name_bytes,
+            @schema.reference_name(key),
+            max_name_bytes,
+          )
+          is Some(next) else {
+          return Err(EventPreparationLimit)
+        }
+        name_bytes = next
+      }
+      let (gap, gap_bindings, gap_names) = match @event.session_gap(spec) {
+        @window.Literal(value) => (value, 0, 0)
+        @window.Parameter(name, duration~, domain~) => {
+          guard parameter_value(owner, name) is Some(bound) else {
+            return Err(MissingEventParameter(name))
+          }
+          let value = if duration {
+            match bound.value {
+              @value.Text(text) => @scalar.read_duration_ms(text)
+              _ => None
+            }
+          } else {
+            match bound.value {
+              @value.Number(number) => @scalar.read_safe_integer(number)
+              _ => None
+            }
+          }
+          guard value is Some(value) &&
+            (domain == @window.SignedMilliseconds || value > 0L) else {
+            return Err(InvalidEventParameter(name))
+          }
+          guard add_event_name_bytes(name_bytes, name, max_name_bytes)
+            is Some(with_parameter) else {
+            return Err(EventPreparationLimit)
+          }
+          (value, 1, with_parameter - name_bytes)
+        }
+      }
+      name_bytes += gap_names
+      (
+        EventSessionParams(
+          keys,
+          identity,
+          time,
+          @event.session_timestamp(spec),
+          gap,
+        ),
+        keys.length() + 2 + gap_bindings,
+        name_bytes,
+        keys.length() + 4,
+      )
+    }
   }
   if bindings > max_bindings || names > max_name_bytes || work > max_work {
     return Err(EventPreparationLimit)
   }
   Ok(({ node, params, }, bindings, names, work))
+}
+
+///|
+pub fn event_output_carrier(value : PreparedEvent) -> @carrier.Carrier {
+  value.node.output_carrier
+}
+
+///|
+pub fn event_dedupe_key_count(value : PreparedEvent) -> Int? {
+  match value.params {
+    EventDedupeParams(spec) => Some(@event.dedupe_key_count(spec))
+    _ => None
+  }
+}
+
+///|
+pub fn event_dedupe_key_at(
+  value : PreparedEvent,
+  index : Int,
+) -> @schema.FieldName? {
+  match value.params {
+    EventDedupeParams(spec) => @event.dedupe_key_at(spec, index)
+    _ => None
+  }
+}
+
+///|
+pub fn event_dedupe_order_count(value : PreparedEvent) -> Int? {
+  match value.params {
+    EventDedupeParams(spec) => Some(@event.dedupe_order_count(spec))
+    _ => None
+  }
+}
+
+///|
+pub fn event_dedupe_order_at(
+  value : PreparedEvent,
+  index : Int,
+) -> (@schema.FieldName, Bool, Bool)? {
+  match value.params {
+    EventDedupeParams(spec) =>
+      @event.dedupe_order_at(spec, index).map(term => {
+        (term.field, term.direction == @order.Desc, term.nulls == @order.First)
+      })
+    _ => None
+  }
+}
+
+///|
+pub fn event_session_keys(value : PreparedEvent) -> Array[@schema.FieldName]? {
+  match value.params {
+    EventSessionParams(keys, _, _, _, _) => Some(keys.copy())
+    _ => None
+  }
+}
+
+///|
+pub fn event_session_identity(value : PreparedEvent) -> @schema.FieldName? {
+  match value.params {
+    EventSessionParams(_, identity, _, _, _) => Some(identity)
+    _ => None
+  }
+}
+
+///|
+pub fn event_session_time(value : PreparedEvent) -> @schema.FieldName? {
+  match value.params {
+    EventSessionParams(_, _, time, _, _) => Some(time)
+    _ => None
+  }
+}
+
+///|
+pub fn event_session_uses_timestamp(value : PreparedEvent) -> Bool? {
+  match value.params {
+    EventSessionParams(_, _, _, timestamp, _) => Some(timestamp)
+    _ => None
+  }
+}
+
+///|
+pub fn event_session_gap(value : PreparedEvent) -> Int64? {
+  match value.params {
+    EventSessionParams(_, _, _, _, gap) => Some(gap)
+    _ => None
+  }
 }
 
 ///|
@@ -91,6 +306,67 @@ fn emit_event_node(
       )
       @encode.key(out, "watermark_ms")
       @encode.number_value(out, value)
+    }
+    EventDedupeParams(spec) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for key in @event.dedupe_keys(spec) {
+        @encode.string_value(out, @schema.reference_name(key))
+      }
+      @encode.end_array(out)
+      @encode.key(out, "on_tie")
+      @encode.string_value(out, "fail")
+      @encode.key(out, "order_by")
+      @encode.begin_array(out)
+      for index in 0..<@event.dedupe_order_count(spec) {
+        let term = @event.dedupe_order_at(spec, index).unwrap()
+        @encode.begin_object(out)
+        @encode.key(out, "dir")
+        @encode.string_value(
+          out,
+          if term.direction == @order.Desc {
+            "desc"
+          } else {
+            "asc"
+          },
+        )
+        @encode.key(out, "field")
+        @encode.string_value(out, @schema.reference_name(term.field))
+        @encode.key(out, "nulls")
+        @encode.string_value(
+          out,
+          if term.nulls == @order.First {
+            "first"
+          } else {
+            "last"
+          },
+        )
+        @encode.end_object(out)
+      }
+      @encode.end_array(out)
+    }
+    EventSessionParams(keys, identity, time, timestamp, gap) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for key in keys {
+        @encode.string_value(out, @schema.reference_name(key))
+      }
+      @encode.end_array(out)
+      @encode.key(out, "gap_ms")
+      @encode.number_value(out, gap.to_double())
+      @encode.key(out, "id")
+      @encode.string_value(out, @schema.reference_name(identity))
+      @encode.key(out, "time")
+      @encode.string_value(out, @schema.reference_name(time))
+      @encode.key(out, "time_encoding")
+      @encode.string_value(
+        out,
+        if timestamp {
+          "utc_timestamp"
+        } else {
+          "epoch_ms"
+        },
+      )
     }
   }
   @encode.end_object(out)

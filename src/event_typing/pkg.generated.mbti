@@ -30,6 +30,10 @@ pub fn dedupe_keys(DedupeSpec) -> Array[@relation_schema.FieldName]
 
 pub fn dedupe_order(DedupeSpec) -> Array[OrderTerm]
 
+pub fn dedupe_order_at(DedupeSpec, Int) -> OrderTerm?
+
+pub fn dedupe_order_count(DedupeSpec) -> Int
+
 pub fn input(CheckedEvent) -> @carrier_contract.Carrier
 
 pub fn options(CheckedEvent) -> Options

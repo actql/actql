@@ -33,6 +33,16 @@ pub fn dedupe_order(spec : DedupeSpec) -> Array[OrderTerm] {
 }
 
 ///|
+pub fn dedupe_order_count(spec : DedupeSpec) -> Int {
+  spec.order.length()
+}
+
+///|
+pub fn dedupe_order_at(spec : DedupeSpec, index : Int) -> OrderTerm? {
+  spec.order.get(index)
+}
+
+///|
 fn field_contract(
   records : @carrier.Knowledge,
   name : @row.FieldName,

@@ -179,6 +179,26 @@ pub fn emit_window_node(PreparedWindow, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_wire_value(@value_admission.Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn event_dedupe_key_at(PreparedEvent, Int) -> @relation_schema.FieldName?
+
+pub fn event_dedupe_key_count(PreparedEvent) -> Int?
+
+pub fn event_dedupe_order_at(PreparedEvent, Int) -> (@relation_schema.FieldName, Bool, Bool)?
+
+pub fn event_dedupe_order_count(PreparedEvent) -> Int?
+
+pub fn event_output_carrier(PreparedEvent) -> @carrier_contract.Carrier
+
+pub fn event_session_gap(PreparedEvent) -> Int64?
+
+pub fn event_session_identity(PreparedEvent) -> @relation_schema.FieldName?
+
+pub fn event_session_keys(PreparedEvent) -> Array[@relation_schema.FieldName]?
+
+pub fn event_session_time(PreparedEvent) -> @relation_schema.FieldName?
+
+pub fn event_session_uses_timestamp(PreparedEvent) -> Bool?
+
 pub fn expression_body(Expression) -> ExpressionBody
 
 pub fn expression_contract(Expression) -> @value_contract.Contract
@@ -737,6 +757,8 @@ pub(all) enum EventIssue {
   InvalidEventLimits
   InvalidEventWiring
   EventPreparationLimit
+  MissingEventParameter(String)
+  InvalidEventParameter(String)
 } derive(Eq, @debug.Debug)
 
 type Expression

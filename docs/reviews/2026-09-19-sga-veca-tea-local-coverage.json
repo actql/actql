@@ -298,8 +298,10 @@
       "output": "same carrier",
       "canonical": ["TEA.window.session_assign"],
       "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
     },
     {
       "family": "TEA",
@@ -328,8 +330,10 @@
       "output": "events",
       "canonical": ["TEA.dedupe"],
       "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
-      "status": "missing",
-      "owner": "local-tea"
+      "status": "partial",
+      "owner": "local-tea",
+      "completed_layers": ["contract", "checker", "lowering"],
+      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
     },
     {
       "family": "TEA",
