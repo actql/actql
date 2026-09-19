@@ -248,8 +248,7 @@ pub fn start_watermark(
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.operation(node) == "TEA.watermark.label" &&
-    physical_equal(@records.producer_read_receiver(input), owner) &&
-    @records.producer_read_input_index(input) == 0 &&
+    @records.producer_read_matches_operation_input(input, owner, step, 0) &&
     @lower.event_watermark(event) is Some(watermark) &&
     @lower.event_watermark_drops_late(event) is Some(drops_late) else {
     return Err(InvalidKernel)

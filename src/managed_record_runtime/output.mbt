@@ -276,6 +276,27 @@ pub fn prepare_producer_read(
 }
 
 ///|
+/// Bind a completed record generation to one exact downstream step edge in
+/// the same checked sequence.
+pub fn prepare_step_read(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  output : Completed,
+) -> Result[ProducerRead, Issue] {
+  match
+    @lifecycle.prepare_step_producer_read(
+      receiver,
+      consumer_step,
+      input_index,
+      output.core,
+    ) {
+    Ok(value) => Ok({ core: value, })
+    Err(issue) => Err(Producer(issue))
+  }
+}
+
+///|
 pub fn producer_read_available(value : ProducerRead) -> Bool {
   @lifecycle.producer_read_available(value.core)
 }
@@ -288,6 +309,36 @@ pub fn producer_read_receiver(value : ProducerRead) -> @lower.BoundPrepared {
 ///|
 pub fn producer_read_input_index(value : ProducerRead) -> Int {
   @lifecycle.producer_read_input_index(value.core)
+}
+
+///|
+pub fn producer_read_matches_step(
+  value : ProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+) -> Bool {
+  @lifecycle.producer_read_reference_matches_step(
+    @lifecycle.producer_read_reference(value.core),
+    receiver,
+    consumer_step,
+    input_index,
+  )
+}
+
+///|
+pub fn producer_read_matches_operation_input(
+  value : ProducerRead,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  edge_index : Int,
+) -> Bool {
+  @lifecycle.producer_read_reference_matches_operation_input(
+    @lifecycle.producer_read_reference(value.core),
+    receiver,
+    consumer_step,
+    edge_index,
+  )
 }
 
 ///|

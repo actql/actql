@@ -159,6 +159,37 @@ fn event_producer_owner() -> @lower.BoundPrepared {
 }
 
 ///|
+fn event_sequence_owner() -> @lower.BoundPrepared {
+  let checked = @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"watermark_events\":{\"watermark_ms\":0,\"policy\":\"mark\"}}]",
+    ),
+    [("rows", event_relation_contract())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn event_consumer_owner(
   producer : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -304,6 +335,23 @@ test "managed Events support two exact downstream consumers" {
   assert_false(completed_available(completed))
   assert_true(producer_read_storage(first) is None)
   assert_true(producer_read_storage(second) is None)
+}
+
+///|
+test "managed Events bind an exact internal sequence edge" {
+  let owner = event_sequence_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    true
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]).unwrap()
+  let completed = finish_output(output).unwrap()
+  let read = prepare_step_read(owner, 1, 0, completed).unwrap()
+  assert_true(producer_read_matches_step(read, owner, 1, 0))
+  assert_true(producer_read_matches_operation_input(read, owner, 1, 0))
+  assert_true(prepare_step_read(owner, 0, 0, completed) is Err(Producer(_)))
 }
 
 ///|

@@ -53,7 +53,11 @@ pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lower
 
 pub fn[P, E, T] prepare_retention_port(Binding, (P) -> (Receipt, E, T, Int64, () -> Bool)?) -> RetentionPort[P, E, T]
 
+pub fn[E, T] prepare_step_producer_read(@lowering_relation.BoundPrepared, Int, Int, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
+
 pub fn[E, T] producer_read_available(ProducerRead[E, T]) -> Bool
+
+pub fn[E, T] producer_read_consumer_target(ProducerRead[E, T]) -> @pipeline_typing.Target
 
 pub fn[E, T] producer_read_input_index(ProducerRead[E, T]) -> Int
 
@@ -69,7 +73,11 @@ pub fn producer_read_reference_available(ProducerReadReference) -> Bool
 
 pub fn producer_read_reference_matches_input(ProducerReadReference, @lowering_relation.BoundPrepared, Int) -> Bool
 
+pub fn producer_read_reference_matches_operation_input(ProducerReadReference, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
 pub fn producer_read_reference_matches_output(ProducerReadReference, CompletionReference) -> Bool
+
+pub fn producer_read_reference_matches_step(ProducerReadReference, @lowering_relation.BoundPrepared, Int, Int) -> Bool
 
 pub fn producer_read_reference_same(ProducerReadReference, ProducerReadReference) -> Bool
 

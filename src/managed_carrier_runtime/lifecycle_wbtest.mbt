@@ -213,3 +213,28 @@ test "carrier lifecycle binds independent exact producer use sites" {
     is Err(ProducerUnavailable),
   )
 }
+
+///|
+test "carrier lifecycle binds an exact internal step edge" {
+  let owner = fixture_owner()
+  let binding = prepare_binding(owner, @pipeline.Step(0)).unwrap()
+  let receipt = complete_receipt(binding, RelationMeasure(rows=1, columns=1)).unwrap()
+  let retained = retain(
+    prepare_retention_port(binding, (_ : Unit) => {
+      Some((receipt, "rows", 42, 16L, fn() { true }))
+    }),
+    (),
+  ).unwrap()
+  let completed = complete(retained).unwrap()
+  let read = prepare_step_producer_read(owner, 1, 0, completed).unwrap()
+  let erased = producer_read_reference(read)
+  assert_eq(producer_read_consumer_target(read), @pipeline.Step(1))
+  assert_true(producer_read_reference_matches_step(erased, owner, 1, 0))
+  assert_true(
+    producer_read_reference_matches_operation_input(erased, owner, 1, 0),
+  )
+  assert_false(producer_read_reference_matches_input(erased, owner, 0))
+  assert_true(
+    prepare_step_producer_read(owner, 0, 0, completed) is Err(InvalidInput),
+  )
+}

@@ -84,6 +84,7 @@ struct ProducerReadReference {
   identity : Ref[Unit]
   receiver : @lower.BoundPrepared
   input_index : Int
+  consumer_target : @pipeline.Target
   output : CompletionReference
 }
 
@@ -94,6 +95,7 @@ struct ProducerRead[E, T] {
   identity : Ref[Unit]
   receiver : @lower.BoundPrepared
   input_index : Int
+  consumer_target : @pipeline.Target
   output : Completed[E, T]
 }
 
@@ -423,7 +425,50 @@ pub fn[E, T] prepare_producer_read(
   if !completed_available(output) {
     return Err(ProducerUnavailable)
   }
-  Ok({ identity: Ref(()), receiver, input_index, output, })
+  Ok({
+    identity: Ref(()),
+    receiver,
+    input_index,
+    consumer_target: @pipeline.Input(input_index),
+    output,
+  })
+}
+
+///|
+/// Bind one immutable Carrier generation to an exact edge between two steps
+/// in the same checked sequence. This is not an external pipeline input and
+/// cannot be substituted for one merely because its position is also zero.
+pub fn[E, T] prepare_step_producer_read(
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+  output : Completed[E, T],
+) -> Result[ProducerRead[E, T], ProducerReadIssue] {
+  if !completed_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  let prepared = @lower.bound_preparation(receiver)
+  guard @lower.node_at(prepared, consumer_step) is Some(node) &&
+    @lower.node_input_target(node, input_index) is Some(producer_target) else {
+    return Err(InvalidInput)
+  }
+  let binding = output.retained.receipt.binding
+  if !physical_equal(binding.owner, receiver) {
+    return Err(ProducerOwnerMismatch)
+  }
+  if binding.target != producer_target {
+    return Err(ProducerTargetMismatch)
+  }
+  if !completed_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  Ok({
+    identity: Ref(()),
+    receiver,
+    input_index,
+    consumer_target: @pipeline.Step(consumer_step),
+    output,
+  })
 }
 
 ///|
@@ -441,6 +486,13 @@ pub fn[E, T] producer_read_receiver(
 ///|
 pub fn[E, T] producer_read_input_index(value : ProducerRead[E, T]) -> Int {
   value.input_index
+}
+
+///|
+pub fn[E, T] producer_read_consumer_target(
+  value : ProducerRead[E, T],
+) -> @pipeline.Target {
+  value.consumer_target
 }
 
 ///|
@@ -479,6 +531,7 @@ pub fn[E, T] producer_read_reference(
     identity: value.identity,
     receiver: value.receiver,
     input_index: value.input_index,
+    consumer_target: value.consumer_target,
     output: completion_reference(value.output),
   }
 }
@@ -504,7 +557,47 @@ pub fn producer_read_reference_matches_input(
 ) -> Bool {
   physical_equal(value.receiver, receiver) &&
   value.input_index == input_index &&
+  value.consumer_target == @pipeline.Input(input_index) &&
   producer_read_reference_available(value)
+}
+
+///|
+pub fn producer_read_reference_matches_step(
+  value : ProducerReadReference,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  input_index : Int,
+) -> Bool {
+  physical_equal(value.receiver, receiver) &&
+  value.input_index == input_index &&
+  value.consumer_target == @pipeline.Step(consumer_step) &&
+  producer_read_reference_available(value)
+}
+
+///|
+/// Match the read against one exact operation input. External pipeline reads
+/// retain their Input target; internal reads retain the consuming Step.
+pub fn producer_read_reference_matches_operation_input(
+  value : ProducerReadReference,
+  receiver : @lower.BoundPrepared,
+  consumer_step : Int,
+  edge_index : Int,
+) -> Bool {
+  if !physical_equal(value.receiver, receiver) ||
+    !producer_read_reference_available(value) {
+    return false
+  }
+  let prepared = @lower.bound_preparation(receiver)
+  guard @lower.node_at(prepared, consumer_step) is Some(node) &&
+    @lower.node_input_target(node, edge_index) is Some(source) else {
+    return false
+  }
+  match value.consumer_target {
+    @pipeline.Input(index) =>
+      value.input_index == index && source == @pipeline.Input(index)
+    @pipeline.Step(step) =>
+      value.input_index == edge_index && step == consumer_step
+  }
 }
 
 ///|
