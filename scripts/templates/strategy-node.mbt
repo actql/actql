@@ -2278,6 +2278,58 @@ pub fn strategy_host_transfer_pending(
 }
 
 ///|
+#export_name("strategyHostTransferCommitAction")
+pub fn strategy_host_transfer_commit_action(
+  transfer : @strategy.ManagedTransfer,
+  source_access_stopped : Bool,
+  source_site_settled : Bool,
+  destination_verified : Bool,
+  destination_holding_retained : Bool,
+  destination_site_settled : Bool,
+  destination_cleanup_released : Bool,
+) -> Int raise NodeHostFailure {
+  match
+    @strategy.prepare_managed_transfer_commit_step(
+      transfer,
+      source_access_stopped,
+      source_site_settled,
+      destination_verified,
+      destination_holding_retained,
+      destination_site_settled,
+      destination_cleanup_released,
+    ) {
+    Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
+    Err(issue) => raise Execution(issue)
+  }
+}
+
+///|
+#export_name("strategyHostTransferCleanupAction")
+pub fn strategy_host_transfer_cleanup_action(
+  transfer : @strategy.ManagedTransfer,
+  source_access_stopped : Bool,
+  source_site_settled : Bool,
+  destination_reclaimed : Bool,
+  destination_site_settled : Bool,
+  destination_cleanup_released : Bool,
+  site_holding_released : Bool,
+) -> Int raise NodeHostFailure {
+  match
+    @strategy.prepare_managed_transfer_cleanup_step(
+      transfer,
+      source_access_stopped,
+      source_site_settled,
+      destination_reclaimed,
+      destination_site_settled,
+      destination_cleanup_released,
+      site_holding_released,
+    ) {
+    Ok(value) => @strategy.managed_transfer_runtime_action_code(value)
+    Err(issue) => raise Execution(issue)
+  }
+}
+
+///|
 #export_name("strategyHostTransferReceipt")
 pub fn strategy_host_transfer_receipt(
   receipt : @strategy.ManagedTransferReceipt,

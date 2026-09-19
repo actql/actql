@@ -194,6 +194,10 @@ pub fn strategy_host_transfer_begin(@connectors_builtin.ConfiguredComputeHost[@p
 
 pub fn strategy_host_transfer_charge(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> Unit raise NodeHostFailure
 
+pub fn strategy_host_transfer_cleanup_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+
+pub fn strategy_host_transfer_commit_action(@physical_strategy.ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Int raise NodeHostFailure
+
 pub fn strategy_host_transfer_complete(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_strategy.ManagedTransfer, Int64) -> @physical_strategy.ManagedTransferReceipt raise NodeHostFailure
 
 pub fn strategy_host_transfer_pending(@physical_strategy.ManagedTransfer) -> Bool

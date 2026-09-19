@@ -167,6 +167,8 @@ pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
+pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
+
 pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
@@ -176,6 +178,10 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
+
+pub fn prepare_managed_transfer_cleanup_step(ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[ManagedTransferRuntimeAction, RunIssue]
+
+pub fn prepare_managed_transfer_commit_step(ManagedTransfer, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[ManagedTransferRuntimeAction, RunIssue]
 
 pub fn[T, P] prepare_resident_execution(CapturedDAG, Int, @connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[P], ResidentInputs, Int64, Int64, (Int) -> Result[T, RunIssue], (T, @execution_relation.CompletedOutput) -> Result[@execution_relation.ProducerStorage, RunIssue], independent_retention? : Int64) -> Result[ResidentExecution, RunIssue]
 
@@ -376,6 +382,22 @@ pub(all) enum GraphIssue {
 type ManagedTransfer
 
 type ManagedTransferReceipt
+
+pub(all) enum ManagedTransferRuntimeAction {
+  TransferAwaitSourceStop
+  TransferMarkCleanupPending
+  TransferSettleSourceSite
+  TransferSettleRun
+  TransferRetainDestinationSite
+  TransferSettleDestinationSite
+  TransferReleaseDestinationCleanup
+  TransferCompleteRun
+  TransferReclaimDestination
+  TransferAbortRun
+  TransferReleaseRun
+  TransferReleaseSiteHolding
+  TransferFinished
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NumericObservationFamily {
   Group

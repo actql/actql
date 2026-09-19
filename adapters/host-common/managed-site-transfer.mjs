@@ -51,6 +51,19 @@ const validDestination = (destination, estimate, source) =>
   destination.retainedBytes <= estimate.retainedBytes &&
   typeof destination.close === 'function' &&
   typeof destination.status === 'function';
+const TRANSFER_AWAIT_SOURCE_STOP = 0;
+const TRANSFER_MARK_CLEANUP_PENDING = 1;
+const TRANSFER_SETTLE_SOURCE_SITE = 2;
+const TRANSFER_SETTLE_RUN = 3;
+const TRANSFER_RETAIN_DESTINATION_SITE = 4;
+const TRANSFER_SETTLE_DESTINATION_SITE = 5;
+const TRANSFER_RELEASE_DESTINATION_CLEANUP = 6;
+const TRANSFER_COMPLETE_RUN = 7;
+const TRANSFER_RECLAIM_DESTINATION = 8;
+const TRANSFER_ABORT_RUN = 9;
+const TRANSFER_RELEASE_RUN = 10;
+const TRANSFER_RELEASE_SITE_HOLDING = 11;
+const TRANSFER_FINISHED = 12;
 const ownedTransferFailure = reason => {
   const reasonCode = member(reason, 'code');
   const failure = Object.assign(new Error(
@@ -69,120 +82,246 @@ const ownedTransferFailure = reason => {
   return failure;
 };
 
-function transferFailure(
-  reason, core, setup, transfer, destination, siteOperation, receipt, holding,
+const transferState = ({
+  core,
+  setup,
+  transfer,
+  destination,
+  siteOperation,
+  receipt,
+  holding,
   siteCleanup,
-) {
+  reason,
+}) => {
   const upstreamRequired = member(reason, 'cleanupPending') === true;
   const upstream = upstreamRequired
     ? member(reason, 'cleanupHandle') : undefined;
-  const upstreamPending = () => upstreamRequired && pending(upstream);
-  let finalized = false, destinationClosed = destination === undefined;
-  let holdingReleased = holding === undefined;
-  let siteCleanupReleased = siteCleanup === undefined;
-  let destinationCloseAttempted = destinationClosed;
-  let destinationCleanup;
+  return {
+    core,
+    setup,
+    transfer,
+    destination,
+    siteOperation,
+    receipt,
+    holding,
+    siteCleanup,
+    upstreamRequired,
+    upstream,
+    sourceAccessStopped: !upstreamRequired || !pending(upstream),
+    sourceSiteSettled: false,
+    destinationVerified: false,
+    destinationHoldingRetained: holding !== undefined,
+    destinationReclaimed: destination == null,
+    destinationSiteSettled: false,
+    destinationCleanupReleased: siteCleanup === undefined,
+    siteHoldingReleased: holding === undefined,
+    destinationCloseAttempted: destination == null,
+    destinationFailure: undefined,
+    destinationCleanup: undefined,
+    finalized: false,
+    errors: [],
+  };
+};
+
+const observeSourceStop = async (state, retry) => {
+  if (state.sourceAccessStopped) return;
+  if (retry && pending(state.upstream) &&
+      typeof member(state.upstream, 'retry') === 'function') {
+    try { await state.upstream.retry(); }
+    catch (error) { state.errors.push(error); }
+  }
+  state.sourceAccessStopped = !pending(state.upstream);
+};
+
+const reclaimDestination = async (state, retry) => {
+  if (state.destinationReclaimed) return true;
+  if (state.destinationCleanup !== undefined) {
+    if (retry && pending(state.destinationCleanup) &&
+        typeof member(state.destinationCleanup, 'retry') === 'function') {
+      try { await state.destinationCleanup.retry(); }
+      catch (error) { state.errors.push(error); }
+    }
+    if (!pending(state.destinationCleanup)) {
+      state.destinationReclaimed = true;
+    }
+    return state.destinationReclaimed;
+  }
+  if (state.destinationCloseAttempted) return false;
+  state.destinationCloseAttempted = true;
+  try {
+    await state.destination.close();
+    state.destinationReclaimed = true;
+  } catch (error) {
+    state.errors.push(error);
+    state.destinationFailure = error;
+    if (member(error, 'cleanupPending') === true &&
+        typeof member(member(error, 'cleanupHandle'), 'status') ===
+          'function') {
+      state.destinationCleanup = member(error, 'cleanupHandle');
+    }
+  }
+  return state.destinationReclaimed;
+};
+
+const driveTransferCommit = state => {
+  for (let step = 0; step < 16; step++) {
+    const action = state.core.transferCommitAction(
+      state.transfer,
+      state.sourceAccessStopped,
+      state.sourceSiteSettled,
+      state.destinationVerified,
+      state.destinationHoldingRetained,
+      state.destinationSiteSettled,
+      state.destinationCleanupReleased,
+    );
+    if (action === TRANSFER_AWAIT_SOURCE_STOP) {
+      throw fail('ManagedSiteTransferStopUnconfirmed');
+    }
+    if (action === TRANSFER_SETTLE_SOURCE_SITE) {
+      settleExecutionSiteTransferSource(state.siteOperation);
+      state.sourceSiteSettled = true;
+      continue;
+    }
+    if (action === TRANSFER_SETTLE_RUN) {
+      state.core.transferSettle(state.setup, state.transfer, true);
+      continue;
+    }
+    if (action === TRANSFER_RETAIN_DESTINATION_SITE) {
+      state.holding = retainExecutionSiteTransferHolding(
+        state.siteOperation,
+        state.destination,
+        state.destination.retainedBytes,
+      );
+      state.destinationHoldingRetained = true;
+      state.siteHoldingReleased = false;
+      continue;
+    }
+    if (action === TRANSFER_SETTLE_DESTINATION_SITE) {
+      settleExecutionSiteTransferDestination(state.siteOperation);
+      state.destinationSiteSettled = true;
+      continue;
+    }
+    if (action === TRANSFER_RELEASE_DESTINATION_CLEANUP) {
+      releaseExecutionSiteCleanup(state.siteCleanup);
+      state.destinationCleanupReleased = true;
+      continue;
+    }
+    if (action === TRANSFER_COMPLETE_RUN) {
+      state.receipt = state.core.transferComplete(
+        state.setup,
+        state.transfer,
+        state.destination.retainedBytes,
+      );
+      continue;
+    }
+    if (action === TRANSFER_FINISHED) return state.receipt;
+    throw fail('InvalidManagedTransferCommitAction');
+  }
+  throw fail('ManagedTransferCommitDidNotConverge');
+};
+
+const driveTransferCleanup = async (
+  state,
+  {retryPhysical = false, reclaim = true} = {},
+) => {
+  await observeSourceStop(state, retryPhysical);
+  for (let step = 0; step < 20; step++) {
+    const action = state.core.transferCleanupAction(
+      state.transfer,
+      state.sourceAccessStopped,
+      state.sourceSiteSettled,
+      state.destinationReclaimed,
+      state.destinationSiteSettled,
+      state.destinationCleanupReleased,
+      state.siteHoldingReleased,
+    );
+    if (action === TRANSFER_MARK_CLEANUP_PENDING) {
+      state.core.transferSettle(state.setup, state.transfer, false);
+      continue;
+    }
+    if (action === TRANSFER_AWAIT_SOURCE_STOP) return false;
+    if (action === TRANSFER_SETTLE_SOURCE_SITE) {
+      settleExecutionSiteTransferSource(state.siteOperation);
+      state.sourceSiteSettled = true;
+      continue;
+    }
+    if (action === TRANSFER_RECLAIM_DESTINATION) {
+      if (!reclaim || !await reclaimDestination(state, retryPhysical)) {
+        return false;
+      }
+      continue;
+    }
+    if (action === TRANSFER_SETTLE_DESTINATION_SITE) {
+      settleExecutionSiteTransferDestination(state.siteOperation);
+      state.destinationSiteSettled = true;
+      continue;
+    }
+    if (action === TRANSFER_RELEASE_DESTINATION_CLEANUP) {
+      releaseExecutionSiteCleanup(state.siteCleanup);
+      state.destinationCleanupReleased = true;
+      continue;
+    }
+    if (action === TRANSFER_ABORT_RUN) {
+      state.core.transferAbort(state.setup, state.transfer, true);
+      continue;
+    }
+    if (action === TRANSFER_RELEASE_RUN) {
+      if (state.receipt === undefined) {
+        throw fail('MissingManagedTransferReceipt');
+      }
+      state.core.transferRelease(state.setup, state.receipt);
+      continue;
+    }
+    if (action === TRANSFER_RELEASE_SITE_HOLDING) {
+      releaseExecutionSiteHolding(state.holding);
+      state.siteHoldingReleased = true;
+      continue;
+    }
+    if (action === TRANSFER_FINISHED) {
+      state.finalized = true;
+      return true;
+    }
+    throw fail('InvalidManagedTransferCleanupAction');
+  }
+  throw fail('ManagedTransferCleanupDidNotConverge');
+};
+
+const transferFailure = async (reason, state) => {
   const failure = ownedTransferFailure(reason);
-  const errors = [...failure.cleanupErrors];
-  const releaseDestinationCleanup = () => {
-    if (!destinationClosed || siteCleanupReleased) return;
-    try {
-      releaseExecutionSiteCleanup(siteCleanup);
-      siteCleanupReleased = true;
-    } catch (error) { errors.push(error); }
-  };
-  const closeDestination = async retry => {
-    if (destinationClosed) return;
-    if (destinationCleanup !== undefined) {
-      if (retry && pending(destinationCleanup) &&
-          typeof member(destinationCleanup, 'retry') === 'function') {
-        try { await destinationCleanup.retry(); }
-        catch (error) { errors.push(error); }
-      }
-      if (!pending(destinationCleanup)) {
-        destinationClosed = true;
-        settleExecutionSiteTransferDestination(siteOperation);
-        releaseDestinationCleanup();
-        return;
-      }
-      return;
-    }
-    if (destinationCloseAttempted) return;
-    destinationCloseAttempted = true;
-    try {
-      await destination.close();
-      destinationClosed = true;
-      settleExecutionSiteTransferDestination(siteOperation);
-      releaseDestinationCleanup();
-    }
-    catch (error) {
-      errors.push(error);
-      if (member(error, 'cleanupPending') === true &&
-          typeof member(member(error, 'cleanupHandle'), 'status') ===
-            'function') {
-        destinationCleanup = member(error, 'cleanupHandle');
-      }
-    }
-  };
-  const finalize = () => {
-    if (finalized || upstreamPending() || !destinationClosed) return;
-    try {
-      if (receipt === undefined) {
-        core.transferAbort(setup, transfer, true);
-      } else {
-        core.transferRelease(setup, receipt);
-      }
-      finalized = true;
-    }
-    catch (error) { errors.push(error); }
-    if (finalized && !holdingReleased) {
-      try {
-        releaseExecutionSiteHolding(holding);
-        holdingReleased = true;
-      } catch (error) { errors.push(error); }
-    }
-  };
-  if (receipt === undefined && upstreamPending()) {
-    try { core.transferSettle(setup, transfer, false); }
-    catch (error) { errors.push(error); }
+  state.errors.push(...failure.cleanupErrors);
+  try {
+    await driveTransferCleanup(state, {reclaim: false});
+  } catch (error) {
+    state.errors.push(error);
   }
-  if (!upstreamPending()) {
-    settleExecutionSiteTransferSource(siteOperation);
-  }
-  if (destinationClosed) {
-    settleExecutionSiteTransferDestination(siteOperation);
-    releaseDestinationCleanup();
-  }
-  if (destinationClosed && !upstreamPending()) finalize();
   const status = () => Object.freeze({
-    pending: !finalized || !holdingReleased || !siteCleanupReleased ||
-      !destinationClosed ||
-      upstreamPending(),
-    errors: Object.freeze([...errors]),
+    pending: !state.finalized,
+    errors: Object.freeze([...state.errors]),
   });
-  failure.cleanupPending = status().pending;
-  failure.cleanupErrors = status().errors;
-  if (failure.cleanupPending) {
+  const refresh = () => {
+    const current = status();
+    failure.cleanupPending = current.pending;
+    failure.cleanupErrors = current.errors;
+    return current;
+  };
+  if (refresh().pending) {
     failure.cleanupHandle = Object.freeze({
       status,
       async retry() {
-        if (upstreamPending() &&
-            typeof member(upstream, 'retry') === 'function') {
-          try { await upstream.retry(); } catch (error) { errors.push(error); }
+        try {
+          await driveTransferCleanup(state, {
+            retryPhysical: true,
+            reclaim: true,
+          });
+        } catch (error) {
+          state.errors.push(error);
         }
-        if (!upstreamPending()) {
-          settleExecutionSiteTransferSource(siteOperation);
-        }
-        await closeDestination(true);
-        finalize();
-        failure.cleanupPending = status().pending;
-        failure.cleanupErrors = status().errors;
-        return status();
+        return refresh();
       },
     });
   }
   return failure;
-}
+};
 
 export function createManagedSiteTransferCoordinator(
   setup, core, installation,
@@ -235,39 +374,13 @@ export function createManagedSiteTransferCoordinator(
   };
   const releaseEntry = async entry => {
     if (entry.closed) return;
-    if (!entry.destinationClosed) {
-      if (entry.destinationCleanup !== undefined) {
-        if (entry.retryDestination && pending(entry.destinationCleanup) &&
-            typeof member(entry.destinationCleanup, 'retry') === 'function') {
-          await entry.destinationCleanup.retry();
-        }
-        if (pending(entry.destinationCleanup)) throw entry.destinationFailure;
-        entry.destinationClosed = true;
-      } else if (!entry.destinationCloseAttempted) {
-        entry.destinationCloseAttempted = true;
-        try {
-          await entry.destination.close();
-          entry.destinationClosed = true;
-        } catch (error) {
-          entry.destinationFailure = error;
-          if (member(error, 'cleanupPending') === true &&
-              typeof member(member(error, 'cleanupHandle'), 'status') ===
-                'function') {
-            entry.destinationCleanup = member(error, 'cleanupHandle');
-          }
-          throw error;
-        }
-      } else {
-        throw entry.destinationFailure;
-      }
-    }
-    if (!entry.receiptReleased) {
-      core.transferRelease(setup, entry.receipt);
-      entry.receiptReleased = true;
-    }
-    if (!entry.holdingReleased) {
-      releaseExecutionSiteHolding(entry.holding);
-      entry.holdingReleased = true;
+    const complete = await driveTransferCleanup(entry.state, {
+      retryPhysical: entry.retryDestination,
+      reclaim: true,
+    });
+    if (!complete) {
+      throw entry.state.destinationFailure ??
+        fail('ManagedSiteTransferCleanupPending');
     }
     entry.closed = true;
     forget(entry);
@@ -285,7 +398,7 @@ export function createManagedSiteTransferCoordinator(
       value.input === occurrence);
     if (!transferPlan) throw fail('MissingTransferPlan');
     const estimate = transferPlan.estimate;
-    let destination, transfer, receipt, holding;
+    let destination, transfer, state;
     const siteOperation = startExecutionSiteTransferOperation(
       occurrence.site,
       candidate.site,
@@ -306,6 +419,17 @@ export function createManagedSiteTransferCoordinator(
         estimate.retainedBytes,
         estimate.executionBytes,
       );
+      state = transferState({
+        core,
+        setup,
+        transfer,
+        destination: undefined,
+        siteOperation,
+        receipt: undefined,
+        holding: undefined,
+        siteCleanup,
+        reason: undefined,
+      });
       destination = await provider.copy({
         sourceMaterial: occurrence.siteMaterial,
         input,
@@ -318,26 +442,18 @@ export function createManagedSiteTransferCoordinator(
         signal,
         estimate,
       });
+      state.destination = destination;
+      state.destinationReclaimed = destination == null;
+      state.destinationCloseAttempted = destination == null;
+      state.sourceAccessStopped = true;
       if (!validDestination(destination, estimate, occurrence)) {
         throw fail('InvalidTransferDestination');
       }
       if (!executionSiteTransferOperationAvailable(siteOperation)) {
         throw fail('ExecutionSiteTransferCommitRejected');
       }
-      // Source access has returned and the provider's commit boundary has
-      // established the destination generation. Settle before retaining it.
-      settleExecutionSiteTransferSource(siteOperation);
-      core.transferSettle(setup, transfer, true);
-      holding = retainExecutionSiteTransferHolding(
-        siteOperation,
-        destination,
-        destination.retainedBytes,
-      );
-      settleExecutionSiteTransferDestination(siteOperation);
-      releaseExecutionSiteCleanup(siteCleanup);
-      receipt = core.transferComplete(
-        setup, transfer, destination.retainedBytes,
-      );
+      state.destinationVerified = true;
+      const receipt = driveTransferCommit(state);
       const receiptFields = core.transferReceipt(receipt);
       if (!Array.isArray(receiptFields) || receiptFields.length !== 5 ||
           !exactInteger(receiptFields[0], occurrence.task) ||
@@ -355,7 +471,8 @@ export function createManagedSiteTransferCoordinator(
         generation: destination.generation,
         destination,
         receipt,
-        holding,
+        holding: state.holding,
+        state,
         record: Object.freeze({
           version: 'actql-managed-site-transfer/0.1',
           transferAttempt: receiptFields[1],
@@ -393,13 +510,7 @@ export function createManagedSiteTransferCoordinator(
           ]),
         }),
         closed: false,
-        destinationClosed: false,
-        destinationCloseAttempted: false,
-        destinationFailure: undefined,
-        destinationCleanup: undefined,
         retryDestination: false,
-        receiptReleased: false,
-        holdingReleased: false,
       };
       remember(occurrence.siteMaterial, candidate.site, entry);
       return entry;
@@ -410,10 +521,23 @@ export function createManagedSiteTransferCoordinator(
         releaseExecutionSiteCleanup(siteCleanup);
         throw reason;
       }
-      throw transferFailure(
-        reason, core, setup, transfer, destination, siteOperation,
-        receipt, holding, siteCleanup,
-      );
+      state ??= transferState({
+        core,
+        setup,
+        transfer,
+        destination,
+        siteOperation,
+        receipt: undefined,
+        holding: undefined,
+        siteCleanup,
+        reason,
+      });
+      state.upstreamRequired = member(reason, 'cleanupPending') === true;
+      state.upstream = state.upstreamRequired
+        ? member(reason, 'cleanupHandle') : undefined;
+      state.sourceAccessStopped = !state.upstreamRequired ||
+        !pending(state.upstream);
+      throw await transferFailure(reason, state);
     }
   }
 

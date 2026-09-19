@@ -46,7 +46,16 @@ function coreFor(input, logicalMaterial, events = []) {
     },
     transferBegin(_setup, sourceTask, transfer, retained, execution) {
       events.push(['begin', sourceTask, transfer, retained, execution]);
-      return {attempt: ++attempt, sourceTask, transferred: 0n, settled: false};
+      return {
+        attempt: ++attempt,
+        sourceTask,
+        transferred: 0n,
+        settled: false,
+        completed: false,
+        released: false,
+        reservationOpen: true,
+        cleanupPending: false,
+      };
     },
     transferCharge(_setup, transfer, bytes) {
       transfer.transferred += bytes;
@@ -55,10 +64,13 @@ function coreFor(input, logicalMaterial, events = []) {
     transferSettle(_setup, transfer, confirmed) {
       events.push(['settle', confirmed]);
       if (confirmed) transfer.settled = true;
+      else transfer.cleanupPending = true;
     },
     transferComplete(_setup, transfer, retained) {
       assert.equal(transfer.settled, true);
       events.push(['complete', retained]);
+      transfer.completed = true;
+      transfer.reservationOpen = false;
       return {transfer, retained};
     },
     transferReceipt(receipt) {
@@ -68,10 +80,62 @@ function coreFor(input, logicalMaterial, events = []) {
     transferAbort(_setup, transfer, confirmed) {
       assert.equal(confirmed, true);
       transfer.settled = true;
+      transfer.reservationOpen = false;
       events.push(['abort']);
     },
     transferRelease(_setup, receipt) {
+      receipt.transfer.released = true;
       events.push(['release', receipt.transfer.attempt]);
+    },
+    transferCommitAction(
+      transfer,
+      sourceAccessStopped,
+      sourceSiteSettled,
+      destinationVerified,
+      destinationHoldingRetained,
+      destinationSiteSettled,
+      destinationCleanupReleased,
+    ) {
+      if (transfer.released) throw new Error('NotReady');
+      if (transfer.completed) return 12;
+      if (!sourceAccessStopped) return 0;
+      if (!sourceSiteSettled) return 2;
+      if (!destinationVerified) throw new Error('NotReady');
+      if (!transfer.settled) return 3;
+      if (!destinationHoldingRetained) return 4;
+      if (!destinationSiteSettled) return 5;
+      if (!destinationCleanupReleased) return 6;
+      return 7;
+    },
+    transferCleanupAction(
+      transfer,
+      sourceAccessStopped,
+      sourceSiteSettled,
+      destinationReclaimed,
+      destinationSiteSettled,
+      destinationCleanupReleased,
+      siteHoldingReleased,
+    ) {
+      if (!sourceAccessStopped) {
+        if (!transfer.completed && transfer.reservationOpen &&
+            !transfer.cleanupPending) {
+          return 1;
+        }
+        if (destinationReclaimed && !destinationSiteSettled) return 5;
+        if (destinationReclaimed && !destinationCleanupReleased) return 6;
+        return 0;
+      }
+      if (!sourceSiteSettled) return 2;
+      if (!destinationReclaimed) return 8;
+      if (!destinationSiteSettled) return 5;
+      if (!destinationCleanupReleased) return 6;
+      if (transfer.completed) {
+        if (!transfer.released) return 10;
+        if (!siteHoldingReleased) return 11;
+        return 12;
+      }
+      if (transfer.reservationOpen) return 9;
+      return 12;
     },
   });
 }
