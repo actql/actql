@@ -1,0 +1,89 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/managed_record_runtime"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
+  "actql/actql/managed_record_storage",
+  "actql/actql/pipeline_typing",
+  "actql/actql/relation_schema",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append_record(OutputBuilder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[Unit, Issue]
+
+pub fn cancel_output(OutputBuilder) -> Bool
+
+pub fn completed_available(Completed) -> Bool
+
+pub fn completed_evidence(Completed) -> Evidence?
+
+pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
+
+pub fn completed_reference(Completed) -> CompletionReference
+
+pub fn completed_reference_available(CompletionReference) -> Bool
+
+pub fn completed_storage(Completed) -> @managed_record_storage.Storage?
+
+pub fn completed_storage_bytes(Completed) -> Int64?
+
+pub fn evidence_carrier(Evidence) -> @carrier_contract.Kind
+
+pub fn evidence_construction_work(Evidence) -> Int
+
+pub fn evidence_identity_count(Evidence) -> Int
+
+pub fn evidence_measured_value_bytes(Evidence) -> Int
+
+pub fn evidence_records(Evidence) -> Int
+
+pub fn evidence_retained_value_bytes(Evidence) -> Int
+
+pub fn evidence_workspace_slots(Evidence) -> Int
+
+pub fn finish_output(OutputBuilder) -> Result[Completed, Issue]
+
+pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[OutputBuilder, Issue]
+
+pub fn prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed) -> Result[ProducerRead, Issue]
+
+pub fn producer_read_available(ProducerRead) -> Bool
+
+pub fn producer_read_input_index(ProducerRead) -> Int
+
+pub fn producer_read_matches_reference(ProducerRead, CompletionReference) -> Bool
+
+pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
+
+pub fn producer_read_same(ProducerRead, ProducerRead) -> Bool
+
+pub fn producer_read_storage(ProducerRead) -> @managed_record_storage.Storage?
+
+// Errors
+
+// Types and methods
+type Completed
+
+type CompletionReference
+
+type Evidence
+
+pub(all) enum Issue {
+  Lifecycle(@managed_carrier_runtime.Issue)
+  Storage(@managed_record_storage.Issue)
+  Producer(@managed_carrier_runtime.ProducerReadIssue)
+  InvalidStorageBytes
+  Closed
+} derive(Eq, @debug.Debug)
+
+type OutputBuilder
+
+type ProducerRead
+
+// Type aliases
+
+// Traits

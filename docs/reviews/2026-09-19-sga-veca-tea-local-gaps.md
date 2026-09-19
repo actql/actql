@@ -12,8 +12,8 @@ readable coverage manifest is authoritative for individual operation status.
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
 | Lowering | All seventeen SGA operations and the vector bridge, normalization, and scoring forms reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and VecA expression forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
-| Completion | Common lifecycle and exact producer reads now own typed Relation and Graph generations; Graph construction installs retention before accepting values | Connect Events and Vectors views without separate lifecycle state machines, then join every Carrier to physical task completion |
-| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage now preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to common lifecycle and registered providers without forced copies |
+| Completion | Common lifecycle and exact producer reads now own typed Relation, Graph, and Vectors generations; Graph and record construction install retention before accepting values | Connect the Events view without a separate lifecycle state machine, then join every Carrier to physical task completion |
+| Runtime material | Bounded immutable Graph storage enforces graph laws, and common finite-record storage preserves typed Events and Vectors with semantic identity uniqueness and pre-allocation admission; normalize uses Graph storage and checked Vectors use record storage through managed completion, but no standard Host Carrier provider is connected yet | Connect the typed storage to registered providers without forced copies |
 | Progress | The portable MoonBit session core enforces bounded work reports, fresh step tokens, stop confirmation, and separately retryable cleanup; normalize is the first connected kernel, but environment yield is not connected yet | Move every remaining potentially long kernel into bounded steps and add real environment yield between steps |
 | Cancellation | Pre-start and surrounding asynchronous cancellation exist, but synchronous kernels cannot receive cancellation | Connect delivery, polling, stop confirmation, and cleanup |
 | Packaging | Local execution kernels are assembled together | Produce and inspect family-selective artifacts |
@@ -87,8 +87,9 @@ and have no evaluator implementation. The prescribed binary32 and binary64
 operation sequence needs a portable conforming kernel and independent vectors
 before optimized implementations can be selected. Common immutable record
 storage now preserves composite vector identities, admitted dimensions, exact
-UTF-8 value usage, work, and workspace bounds; managed lifecycle and VecA
-kernels remain open.
+UTF-8 value usage, work, and workspace bounds. Vectors now pass through the
+common managed generation and exact producer-read lifecycle on all three
+targets; VecA kernels and standard Host integration remain open.
 
 ### TEA
 

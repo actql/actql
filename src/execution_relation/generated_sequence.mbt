@@ -392,7 +392,8 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphSubgraphStep(_)
       | @lower.GraphTraverseStep(_)
       | @lower.GraphShortestStep(_)
-      | @lower.GraphRelationStep(_) => false
+      | @lower.GraphRelationStep(_)
+      | @lower.VectorStep(_) => false
     }
   })
 }

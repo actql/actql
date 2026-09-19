@@ -38,6 +38,7 @@
     "bounded_immutable_graph_storage",
     "bounded_immutable_event_vector_storage",
     "managed_graph_lifecycle",
+    "managed_vector_lifecycle",
     "bounded_step_session_core"
   ],
   "operations": [
