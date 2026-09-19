@@ -218,3 +218,23 @@ test "graph construction rejects conflicts missing endpoints and preallocation o
     append_node(short, number(1.0), [text("a")]) is Err(RetainedValueLimit),
   )
 }
+
+///|
+test "graph storage admits exact canonical UTF-8 byte limits" {
+  let exact = prepare(graph_fixture(), DeclaredNodes, {
+    ..limits(),
+    max_total_value_bytes: 9,
+    max_retained_value_bytes: 9,
+  }).unwrap()
+  append_node(exact, number(1.0), [text("é")]).unwrap()
+  let stored = finish(exact).unwrap()
+  assert_eq(measured_input_value_bytes(stored), 9)
+  assert_eq(retained_value_bytes(stored), 9)
+
+  let short = prepare(graph_fixture(), DeclaredNodes, {
+    ..limits(),
+    max_total_value_bytes: 8,
+    max_retained_value_bytes: 9,
+  }).unwrap()
+  assert_true(append_node(short, number(1.0), [text("é")]) is Err(ValueLimit))
+}

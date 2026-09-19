@@ -199,7 +199,7 @@ fn encoded_values(
   values : Array[@value.CheckedValue],
   pending_bytes : Int,
   pending_work : Int,
-) -> Result[(String, Int), Issue] {
+) -> Result[(String, Int, Int), Issue] {
   if pending_work > builder.limits.max_work - builder.work {
     return Err(WorkLimit)
   }
@@ -225,8 +225,8 @@ fn encoded_values(
       @value.emit_wire_value(value.value, out)
     }
     @encode.end_array(out)
-    let (text, _, nodes, _) = @encode.finish_text_usage(out)
-    Ok((text, nodes))
+    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
+    Ok((text, bytes, nodes))
   } catch {
     _ =>
       if node_limit < builder.limits.max_value_nodes {
@@ -245,7 +245,7 @@ fn encoded_edge_identity(
   label : @value.CheckedValue?,
   pending_bytes : Int,
   pending_work : Int,
-) -> Result[(String, Int), Issue] {
+) -> Result[(String, Int, Int), Issue] {
   if pending_work > builder.limits.max_work - builder.work {
     return Err(WorkLimit)
   }
@@ -274,8 +274,8 @@ fn encoded_edge_identity(
       None => @encode.null_value(out)
     }
     @encode.end_array(out)
-    let (text, _, nodes, _) = @encode.finish_text_usage(out)
-    Ok((text, nodes))
+    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
+    Ok((text, bytes, nodes))
   } catch {
     _ =>
       if node_limit < builder.limits.max_value_nodes {
@@ -360,32 +360,25 @@ pub fn append_node(
     ) {
     return fail(builder, InvalidProperties)
   }
-  let (key, key_work) = match encoded_values(builder, [identity], 0, 0) {
+  let (key, key_bytes, key_work) = match
+    encoded_values(builder, [identity], 0, 0) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
-  let (payload, payload_work) = match
-    encoded_values(builder, properties, key.length(), key_work) {
+  let (payload, payload_bytes, payload_work) = match
+    encoded_values(builder, properties, key_bytes, key_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
+  let bytes = key_bytes + payload_bytes
   if builder.node_keys.get(key) is Some(_) {
     if builder.node_payloads.get(key) == Some(payload) {
       match
-        reserve(
-          builder,
-          1,
-          0,
-          0,
-          key.length() + payload.length(),
-          0,
-          key_work + payload_work + 1,
-          0,
-        ) {
+        reserve(builder, 1, 0, 0, bytes, 0, key_work + payload_work + 1, 0) {
         Some(issue) => return fail(builder, issue)
         None => {
           builder.input_rows += 1
-          builder.value_bytes += key.length() + payload.length()
+          builder.value_bytes += bytes
           builder.work += key_work + payload_work + 1
           return Ok(())
         }
@@ -395,16 +388,7 @@ pub fn append_node(
   }
   let slots = node_slots(properties.length())
   match
-    reserve(
-      builder,
-      1,
-      1,
-      0,
-      key.length() + payload.length(),
-      key.length() + payload.length(),
-      key_work + payload_work + 1,
-      slots,
-    ) {
+    reserve(builder, 1, 1, 0, bytes, bytes, key_work + payload_work + 1, slots) {
     Some(issue) => return fail(builder, issue)
     None => ()
   }
@@ -413,8 +397,8 @@ pub fn append_node(
   builder.node_keys[key] = index
   builder.node_payloads[key] = payload
   builder.input_rows += 1
-  builder.value_bytes += key.length() + payload.length()
-  builder.retained_value_bytes += key.length() + payload.length()
+  builder.value_bytes += bytes
+  builder.retained_value_bytes += bytes
   builder.work += key_work + payload_work + 1
   builder.workspace_slots += slots
   Ok(())
@@ -456,41 +440,36 @@ pub fn append_edge(
     ) {
     return fail(builder, InvalidProperties)
   }
-  let (source_key, source_work) = match
+  let (source_key, source_bytes, source_work) = match
     encoded_values(builder, [source], 0, 0) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
-  let (target_key, target_work) = match
-    encoded_values(builder, [target], source_key.length(), source_work) {
+  let (target_key, target_bytes, target_work) = match
+    encoded_values(builder, [target], source_bytes, source_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
-  let (edge_key, edge_key_work) = match
+  let (edge_key, edge_key_bytes, edge_key_work) = match
     encoded_edge_identity(
       builder,
       source,
       target,
       label,
-      source_key.length() + target_key.length(),
+      source_bytes + target_bytes,
       source_work + target_work,
     ) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
-  let prior_bytes = source_key.length() +
-    target_key.length() +
-    edge_key.length()
+  let prior_bytes = source_bytes + target_bytes + edge_key_bytes
   let prior_work = source_work + target_work + edge_key_work
-  let (payload, payload_work) = match
+  let (payload, payload_bytes, payload_work) = match
     encoded_values(builder, properties, prior_bytes, prior_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
-  let bytes = source_key.length() +
-    target_key.length() +
-    edge_key.length() +
-    payload.length()
+  let bytes = prior_bytes + payload_bytes
   let work = source_work + target_work + edge_key_work + payload_work + 1
   if builder.edge_keys.get(edge_key) is Some(_) {
     if builder.edge_payloads.get(edge_key) == Some(payload) {
@@ -522,11 +501,11 @@ pub fn append_edge(
   let node_slot_count = added_nodes * node_slots(0)
   let slots = node_slot_count +
     edge_slots(properties.length(), label is Some(_))
-  let retained_bytes = edge_key.length() +
-    payload.length() +
-    (if source_index is None { source_key.length() + 2 } else { 0 }) +
+  let retained_bytes = edge_key_bytes +
+    payload_bytes +
+    (if source_index is None { source_bytes + 2 } else { 0 }) +
     (if target_index is None && source_key != target_key {
-      target_key.length() + 2
+      target_bytes + 2
     } else {
       0
     })
