@@ -356,8 +356,13 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
-  if variant == "nearest" {
-    return local_vector_nearest_program()
+  if variant == "nearest" ||
+    variant == "nearest_cosine" ||
+    variant == "nearest_l2" ||
+    variant == "nearest_inferred" ||
+    variant == "nearest_k1" ||
+    variant == "nearest_empty" {
+    return local_vector_nearest_program(variant)
   }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
@@ -1559,11 +1564,51 @@ fn local_vector_expression_program() -> String {
 
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
-fn local_vector_nearest_program() -> String {
-  let vector_schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+fn local_vector_nearest_program(variant : String) -> String {
+  let inferred = variant == "nearest_inferred"
+  let identity_type = if inferred { "string" } else { "number" }
+  let vector_schema = "{\"id\":{\"type\":\"" +
+    identity_type +
+    "\",\"nullable\":false}," +
     "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
     "\"nullable\":false}}"
   let ranking_fields = "[\"query_id\",\"candidate_id\",\"score\",\"rank\"]"
+  let candidate_rows = if variant == "nearest_empty" {
+    "[]"
+  } else if inferred {
+    "[{\"id\":\"b\",\"embedding\":[1,0]},{\"id\":\"a\"," +
+    "\"embedding\":[1,0]},{\"id\":\"c\",\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1," +
+    "\"embedding\":[1,0]},{\"id\":3,\"embedding\":[0,1]}]"
+  }
+  let query_rows = if inferred {
+    "[{\"id\":\"t\",\"embedding\":[1,0]},{\"id\":\"q\"," +
+    "\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":20,\"embedding\":[1,0]},{\"id\":10," + "\"embedding\":[0,1]}]"
+  }
+  let roles = if inferred {
+    ""
+  } else {
+    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\"," +
+    "\"query_id\":\"id\",\"query_vector\":\"embedding\","
+  }
+  let identity_tail = if inferred {
+    ",{\"from\":\"out\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+    "\"as\":\"keyed\"}"
+  } else {
+    ""
+  }
+  let source_result = if inferred { "keyed" } else { "out" }
+  let metric = if variant == "nearest_cosine" {
+    "cosine"
+  } else if variant == "nearest_l2" {
+    "l2"
+  } else {
+    "dot"
+  }
+  let k = if variant == "nearest_k1" { "1" } else { "2" }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
   "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -1574,23 +1619,34 @@ fn local_vector_nearest_program() -> String {
   "\"id\":\"candidates\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   vector_schema +
-  ",\"rows\":[{\"id\":2,\"embedding\":[1,0]},{" +
-  "\"id\":1,\"embedding\":[1,0]},{\"id\":3," +
-  "\"embedding\":[0,1]}]},\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"embedding\"]}}},{" +
+  ",\"rows\":" +
+  candidate_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\",\"embedding\"]}}},{" +
   "\"id\":\"queries\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   vector_schema +
-  ",\"rows\":[{\"id\":20,\"embedding\":[1,0]},{" +
-  "\"id\":10,\"embedding\":[0,1]}]},\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  ",\"rows\":" +
+  query_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\"," +
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
   "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
   "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
   "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
-  "\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"id\"," +
-  "\"candidate_vector\":\"embedding\",\"query_id\":\"id\"," +
-  "\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}," +
+  "\"nearest\":{\"queries\":\"queries\"," +
+  roles +
+  "\"metric\":\"" +
+  metric +
+  "\",\"k\":" +
+  k +
+  "}," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":" +
   ranking_fields +

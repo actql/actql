@@ -1,7 +1,12 @@
 ///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
-  if variant == "nearest" {
-    return local_vector_nearest_program()
+  if variant == "nearest" ||
+    variant == "nearest_cosine" ||
+    variant == "nearest_l2" ||
+    variant == "nearest_inferred" ||
+    variant == "nearest_k1" ||
+    variant == "nearest_empty" {
+    return local_vector_nearest_program(variant)
   }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
@@ -103,11 +108,51 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
 }
 
 ///|
-fn local_vector_nearest_program() -> String {
-  let vector_schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+fn local_vector_nearest_program(variant : String) -> String {
+  let inferred = variant == "nearest_inferred"
+  let identity_type = if inferred { "string" } else { "number" }
+  let vector_schema = "{\"id\":{\"type\":\"" +
+    identity_type +
+    "\",\"nullable\":false}," +
     "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
     "\"nullable\":false}}"
   let ranking_fields = "[\"query_id\",\"candidate_id\",\"score\",\"rank\"]"
+  let candidate_rows = if variant == "nearest_empty" {
+    "[]"
+  } else if inferred {
+    "[{\"id\":\"b\",\"embedding\":[1,0]},{\"id\":\"a\"," +
+    "\"embedding\":[1,0]},{\"id\":\"c\",\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":2,\"embedding\":[1,0]},{\"id\":1," +
+    "\"embedding\":[1,0]},{\"id\":3,\"embedding\":[0,1]}]"
+  }
+  let query_rows = if inferred {
+    "[{\"id\":\"t\",\"embedding\":[1,0]},{\"id\":\"q\"," +
+    "\"embedding\":[0,1]}]"
+  } else {
+    "[{\"id\":20,\"embedding\":[1,0]},{\"id\":10," + "\"embedding\":[0,1]}]"
+  }
+  let roles = if inferred {
+    ""
+  } else {
+    "\"candidate_id\":\"id\",\"candidate_vector\":\"embedding\"," +
+    "\"query_id\":\"id\",\"query_vector\":\"embedding\","
+  }
+  let identity_tail = if inferred {
+    ",{\"from\":\"out\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+    "\"as\":\"keyed\"}"
+  } else {
+    ""
+  }
+  let source_result = if inferred { "keyed" } else { "out" }
+  let metric = if variant == "nearest_cosine" {
+    "cosine"
+  } else if variant == "nearest_l2" {
+    "l2"
+  } else {
+    "dot"
+  }
+  let k = if variant == "nearest_k1" { "1" } else { "2" }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
   "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
   "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
@@ -118,23 +163,34 @@ fn local_vector_nearest_program() -> String {
   "\"id\":\"candidates\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   vector_schema +
-  ",\"rows\":[{\"id\":2,\"embedding\":[1,0]},{" +
-  "\"id\":1,\"embedding\":[1,0]},{\"id\":3," +
-  "\"embedding\":[0,1]}]},\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"embedding\"]}}},{" +
+  ",\"rows\":" +
+  candidate_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\",\"embedding\"]}}},{" +
   "\"id\":\"queries\",\"inputs\":{},\"steps\":[{\"values\":{" +
   "\"schema\":" +
   vector_schema +
-  ",\"rows\":[{\"id\":20,\"embedding\":[1,0]},{" +
-  "\"id\":10,\"embedding\":[0,1]}]},\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  ",\"rows\":" +
+  query_rows +
+  "},\"as\":\"out\"}" +
+  identity_tail +
+  "],\"results\":{\"r\":{\"from\":\"" +
+  source_result +
+  "\",\"fields\":[\"id\"," +
   "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
   "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
   "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
   "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
-  "\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"id\"," +
-  "\"candidate_vector\":\"embedding\",\"query_id\":\"id\"," +
-  "\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}," +
+  "\"nearest\":{\"queries\":\"queries\"," +
+  roles +
+  "\"metric\":\"" +
+  metric +
+  "\",\"k\":" +
+  k +
+  "}," +
   "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
   "\"fields\":" +
   ranking_fields +
@@ -379,10 +435,10 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
 }
 
 ///|
-fn run_standard_nearest_provider() -> Unit raise {
+fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
-    local_carrier_vectors_variant="nearest",
+    local_carrier_vectors_variant=variant,
     ledger_limits=Some({
       planning_work: 10000,
       attempts: 10,
@@ -482,10 +538,34 @@ fn run_standard_nearest_provider() -> Unit raise {
     nearest_live,
   )
   let nearest_rows = local_managed_test_rows(nearest_ops)
-  assert_eq(nearest_rows, [
-    "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":10,\"rank\":2,\"score\":0}",
-    "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}", "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":1}",
-  ])
+  let expected = if variant == "nearest_empty" {
+    []
+  } else if variant == "nearest_k1" {
+    [
+      "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}",
+    ]
+  } else if variant == "nearest_inferred" {
+    [
+      "{\"candidate_id\":\"c\",\"query_id\":\"q\"," + "\"rank\":1,\"score\":1}",
+      "{\"candidate_id\":\"a\",\"query_id\":\"q\"," + "\"rank\":2,\"score\":0}",
+      "{\"candidate_id\":\"a\",\"query_id\":\"t\"," + "\"rank\":1,\"score\":1}",
+      "{\"candidate_id\":\"b\",\"query_id\":\"t\"," + "\"rank\":2,\"score\":1}",
+    ]
+  } else if variant == "nearest_l2" {
+    [
+      "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":0}",
+      "{\"candidate_id\":1,\"query_id\":10,\"rank\":2," +
+      "\"score\":-1.4142135623730951}",
+      "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":0}",
+      "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":0}",
+    ]
+  } else {
+    [
+      "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":10,\"rank\":2,\"score\":0}",
+      "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}", "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":1}",
+    ]
+  }
+  assert_eq(nearest_rows, expected)
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
@@ -507,8 +587,8 @@ fn run_standard_nearest_provider() -> Unit raise {
     5,
     second_live,
   )
-  assert_eq(local_managed_test_rows(first_ops).length(), 4)
-  assert_eq(local_managed_test_rows(second_ops).length(), 4)
+  assert_eq(local_managed_test_rows(first_ops).length(), expected.length())
+  assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
 
   first_live.val = false
   @strategy.close_captured_task_output(run, 4)
@@ -576,5 +656,30 @@ test "standard Host encodes composite Relation pool identity" {
 
 ///|
 test "standard Host runs exact nearest with two consumers" {
-  run_standard_nearest_provider()
+  run_standard_nearest_provider("nearest")
+}
+
+///|
+test "standard Host runs exact cosine nearest" {
+  run_standard_nearest_provider("nearest_cosine")
+}
+
+///|
+test "standard Host runs exact negative-L2 nearest" {
+  run_standard_nearest_provider("nearest_l2")
+}
+
+///|
+test "standard Host completes nearest Relation roles" {
+  run_standard_nearest_provider("nearest_inferred")
+}
+
+///|
+test "standard Host enforces nearest k prefix" {
+  run_standard_nearest_provider("nearest_k1")
+}
+
+///|
+test "standard Host validates empty nearest corpus" {
+  run_standard_nearest_provider("nearest_empty")
 }
