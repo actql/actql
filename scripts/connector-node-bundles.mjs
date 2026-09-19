@@ -63,6 +63,7 @@ const dependencies = new Map([
   ['actql/actql/execution_site', 'site'],
   ['actql/actql/remote_site_protocol', 'remote'],
   ['actql/actql/remote_credential', 'credential'],
+  ['actql/actql/remote_bundle', 'bundle'],
   ['actql/actql/physical_manifest', 'manifest'],
 ]);
 const type = value => {

@@ -13,6 +13,7 @@ pub(all) suberror NodeHostFailure {
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
   RemoteCredential(@credential.RemoteCredentialIssue)
+  RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
 }
 
@@ -4360,6 +4361,182 @@ pub fn strategy_remote_credential_use_projection(
 }
 
 ///|
+#export_name("strategyRemoteBundleManifestPrepare")
+pub fn strategy_remote_bundle_manifest_prepare(
+  issuer_authority : String,
+  bundle_name : String,
+  revision : String,
+  target_triple : String,
+  component_cid : String,
+  component_bytes : Int64,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_manifest(
+      issuer_authority, bundle_name, revision, target_triple, component_cid, component_bytes,
+      connector_registration, connector_revision, strategy_revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestIdentity")
+pub fn strategy_remote_bundle_manifest_identity(
+  manifest : @bundle.RemoteBundleManifest,
+) -> String {
+  @bundle.bundle_manifest_identity(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestJson")
+pub fn strategy_remote_bundle_manifest_json(
+  manifest : @bundle.RemoteBundleManifest,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_manifest_json(manifest) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestAdmitJson")
+pub fn strategy_remote_bundle_manifest_admit_json(
+  body : String,
+  claimed_runtime_bundle_cid : String,
+) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
+  match @bundle.admit_bundle_manifest_json(body, claimed_runtime_bundle_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestProjection")
+pub fn strategy_remote_bundle_manifest_projection(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Array[String] {
+  @bundle.bundle_manifest_projection(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleOpen")
+pub fn strategy_remote_bundle_open(
+  manifest : @bundle.RemoteBundleManifest,
+) -> @bundle.RemoteBundleRecord {
+  @bundle.open_bundle_record(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleActivatePrepare")
+pub fn strategy_remote_bundle_activate_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_activate(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleDrainPrepare")
+pub fn strategy_remote_bundle_drain_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_drain(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleRetainPrepare")
+pub fn strategy_remote_bundle_retain_prepare(
+  record : @bundle.RemoteBundleRecord,
+  max_owners : Int,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_retain(record, max_owners) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleReleasePrepare")
+pub fn strategy_remote_bundle_release_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_release(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleReclaimPrepare")
+pub fn strategy_remote_bundle_reclaim_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_reclaim(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionProjection")
+pub fn strategy_remote_bundle_transition_projection(
+  transition : @bundle.RemoteBundleTransition,
+) -> (Array[String], Array[String]) {
+  @bundle.bundle_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionKey")
+pub fn strategy_remote_bundle_transition_key(
+  transition : @bundle.RemoteBundleTransition,
+) -> String {
+  @bundle.bundle_transition_key(transition)
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionCommit")
+pub fn strategy_remote_bundle_transition_commit(
+  transition : @bundle.RemoteBundleTransition,
+  durable : Bool,
+) -> @bundle.RemoteBundleRecord raise NodeHostFailure {
+  match @bundle.commit_bundle_transition(transition, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleRecordProjection")
+pub fn strategy_remote_bundle_record_projection(
+  record : @bundle.RemoteBundleRecord,
+) -> Array[String] {
+  @bundle.bundle_record_projection(record)
+}
+
+///|
+#export_name("strategyRemoteBundleRecordRestore")
+pub fn strategy_remote_bundle_record_restore(
+  manifest : @bundle.RemoteBundleManifest,
+  revision : Int,
+  phase : Int,
+  owners : Int,
+) -> @bundle.RemoteBundleRecord raise NodeHostFailure {
+  match @bundle.restore_bundle_record(manifest, revision, phase, owners) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
 /// Portable physical-manifest admission. The string projection keeps the JS
 /// adapter independent from MoonBit object layout while retaining MoonBit as
 /// the only product authority for canonical identity and aggregate limits.
@@ -4937,7 +5114,7 @@ pub fn strategy_remote_transfer_record_restore(
 pub fn local_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> @connector.CapabilityRegistration {
-  @binding12.local_dispatch_registration(
+  @binding13.local_dispatch_registration(
     @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
   )
 }
@@ -4947,7 +5124,7 @@ pub fn local_registration(
 pub fn local_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   task : @host_driver.PreparedTaskDispatch,
-) -> @binding12.LocalDispatchOperations raise NodeHostFailure {
+) -> @binding13.LocalDispatchOperations raise NodeHostFailure {
   match
     @builtin.dispatch_local(
       @builtin.configured_host_modules(setup),
@@ -4968,7 +5145,7 @@ pub fn local_managed_dispatch(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   completed : Array[@execution.ManagedCompletedOutput[Int]],
   output_file_bytes : Int64,
-) -> @binding12.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
+) -> @binding13.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure {
   let obligations = match
     @strategy.captured_next_managed_obligations(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
@@ -4995,25 +5172,25 @@ pub fn local_managed_dispatch(
 ///|
 #export_name("strategyModule_local_ManagedDuration")
 pub fn local_managed_duration(
-  setup : @binding12.LocalManagedDispatchConfiguration[Int],
+  setup : @binding13.LocalManagedDispatchConfiguration[Int],
 ) -> Int64? {
-  @binding12.local_managed_dispatch_duration(setup)
+  @binding13.local_managed_dispatch_duration(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedCapacity")
 pub fn local_managed_capacity(
-  setup : @binding12.LocalManagedDispatchConfiguration[Int],
+  setup : @binding13.LocalManagedDispatchConfiguration[Int],
 ) -> (Int64, Int64)? {
-  @binding12.local_managed_dispatch_site_capacity(setup)
+  @binding13.local_managed_dispatch_site_capacity(setup)
 }
 
 ///|
 #export_name("strategyModule_local_ManagedStart")
 pub fn local_managed_start(
-  setup : @binding12.LocalManagedDispatchConfiguration[Int],
-) -> @binding12.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
-  match @binding12.start_local_managed_dispatch_node(setup) {
+  setup : @binding13.LocalManagedDispatchConfiguration[Int],
+) -> @binding13.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
+  match @binding13.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }

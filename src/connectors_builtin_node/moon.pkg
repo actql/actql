@@ -15,9 +15,10 @@ import {
   "actql/actql/execution_site" @site,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/remote_credential" @credential,
+  "actql/actql/remote_bundle" @bundle,
   "actql/actql/physical_manifest" @manifest,
-  "actql/actql/connectors/duckdb/driver" @binding12,
-  "actql/actql/connectors/local/driver" @binding13,
-  "actql/actql/connectors/reference_compute/driver" @binding14,
+  "actql/actql/connectors/duckdb/driver" @binding13,
+  "actql/actql/connectors/local/driver" @binding14,
+  "actql/actql/connectors/reference_compute/driver" @binding15,
   "actql/actql/remote_transfer" @transfer,
 }

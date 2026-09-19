@@ -11,6 +11,7 @@ pub(all) suberror NodeHostFailure {
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
   RemoteCredential(@credential.RemoteCredentialIssue)
+  RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
 }
 
@@ -4732,6 +4733,190 @@ pub fn strategy_remote_credential_use_projection(
   credential_use : @credential.RemoteCredentialUse,
 ) -> Array[String] {
   @credential.credential_use_projection(credential_use)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestPrepare")
+pub fn strategy_remote_bundle_manifest_prepare(
+  issuer_authority : String,
+  bundle_name : String,
+  revision : String,
+  target_triple : String,
+  component_cid : String,
+  component_bytes : Int64,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
+  match
+    @bundle.prepare_bundle_manifest(
+      issuer_authority,
+      bundle_name,
+      revision,
+      target_triple,
+      component_cid,
+      component_bytes,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestIdentity")
+pub fn strategy_remote_bundle_manifest_identity(
+  manifest : @bundle.RemoteBundleManifest,
+) -> String {
+  @bundle.bundle_manifest_identity(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleManifestJson")
+pub fn strategy_remote_bundle_manifest_json(
+  manifest : @bundle.RemoteBundleManifest,
+) -> String raise NodeHostFailure {
+  match @bundle.bundle_manifest_json(manifest) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestAdmitJson")
+pub fn strategy_remote_bundle_manifest_admit_json(
+  body : String,
+  claimed_runtime_bundle_cid : String,
+) -> @bundle.RemoteBundleManifest raise NodeHostFailure {
+  match
+    @bundle.admit_bundle_manifest_json(body, claimed_runtime_bundle_cid) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleManifestProjection")
+pub fn strategy_remote_bundle_manifest_projection(
+  manifest : @bundle.RemoteBundleManifest,
+) -> Array[String] {
+  @bundle.bundle_manifest_projection(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleOpen")
+pub fn strategy_remote_bundle_open(
+  manifest : @bundle.RemoteBundleManifest,
+) -> @bundle.RemoteBundleRecord {
+  @bundle.open_bundle_record(manifest)
+}
+
+///|
+#export_name("strategyRemoteBundleActivatePrepare")
+pub fn strategy_remote_bundle_activate_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_activate(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleDrainPrepare")
+pub fn strategy_remote_bundle_drain_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_drain(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleRetainPrepare")
+pub fn strategy_remote_bundle_retain_prepare(
+  record : @bundle.RemoteBundleRecord,
+  max_owners : Int,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_retain(record, max_owners) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleReleasePrepare")
+pub fn strategy_remote_bundle_release_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_release(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleReclaimPrepare")
+pub fn strategy_remote_bundle_reclaim_prepare(
+  record : @bundle.RemoteBundleRecord,
+) -> @bundle.RemoteBundleTransition raise NodeHostFailure {
+  match @bundle.prepare_bundle_reclaim(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionProjection")
+pub fn strategy_remote_bundle_transition_projection(
+  transition : @bundle.RemoteBundleTransition,
+) -> (Array[String], Array[String]) {
+  @bundle.bundle_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionKey")
+pub fn strategy_remote_bundle_transition_key(
+  transition : @bundle.RemoteBundleTransition,
+) -> String {
+  @bundle.bundle_transition_key(transition)
+}
+
+///|
+#export_name("strategyRemoteBundleTransitionCommit")
+pub fn strategy_remote_bundle_transition_commit(
+  transition : @bundle.RemoteBundleTransition,
+  durable : Bool,
+) -> @bundle.RemoteBundleRecord raise NodeHostFailure {
+  match @bundle.commit_bundle_transition(transition, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteBundleRecordProjection")
+pub fn strategy_remote_bundle_record_projection(
+  record : @bundle.RemoteBundleRecord,
+) -> Array[String] {
+  @bundle.bundle_record_projection(record)
+}
+
+///|
+#export_name("strategyRemoteBundleRecordRestore")
+pub fn strategy_remote_bundle_record_restore(
+  manifest : @bundle.RemoteBundleManifest,
+  revision : Int,
+  phase : Int,
+  owners : Int,
+) -> @bundle.RemoteBundleRecord raise NodeHostFailure {
+  match @bundle.restore_bundle_record(manifest, revision, phase, owners) {
+    Ok(value) => value
+    Err(issue) => raise RemoteBundle(issue)
+  }
 }
 
 ///|

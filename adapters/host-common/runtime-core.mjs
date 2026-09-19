@@ -15,6 +15,7 @@ const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
 const remoteCredentialControls = new WeakMap();
+const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
 
 function siteControl(moon) {
@@ -853,6 +854,73 @@ function remoteCredentialControl(moon) {
     useProjection: moon.strategyRemoteCredentialUseProjection,
   });
   remoteCredentialControls.set(moon, control);
+  return control;
+}
+
+function remoteBundleControl(moon) {
+  let control = remoteBundleControls.get(moon);
+  if (control !== undefined) return control;
+  control = Object.freeze({
+    prepare: manifest => checked(moon.strategyRemoteBundleManifestPrepare(
+      manifest.issuerAuthority,
+      manifest.bundleName,
+      manifest.revision,
+      manifest.targetTriple,
+      manifest.componentCid,
+      BigInt(manifest.componentBytes),
+      manifest.connectorRegistration,
+      manifest.connectorRevision,
+      manifest.strategyRevision,
+    )),
+    identity: moon.strategyRemoteBundleManifestIdentity,
+    json: manifest => checked(moon.strategyRemoteBundleManifestJson(manifest)),
+    admitJson: (body, claimedCid) => checked(
+      moon.strategyRemoteBundleManifestAdmitJson(body, claimedCid),
+    ),
+    projection: moon.strategyRemoteBundleManifestProjection,
+    open: moon.strategyRemoteBundleOpen,
+    prepareActivate: record => checked(
+      moon.strategyRemoteBundleActivatePrepare(record),
+    ),
+    prepareDrain: record => checked(
+      moon.strategyRemoteBundleDrainPrepare(record),
+    ),
+    prepareRetain: (record, maxOwners) => checked(
+      moon.strategyRemoteBundleRetainPrepare(record, maxOwners),
+    ),
+    prepareRelease: record => checked(
+      moon.strategyRemoteBundleReleasePrepare(record),
+    ),
+    prepareReclaim: record => checked(
+      moon.strategyRemoteBundleReclaimPrepare(record),
+    ),
+    transitionProjection: transition => tuplePair(
+      moon.strategyRemoteBundleTransitionProjection(transition),
+    ),
+    transitionKey: moon.strategyRemoteBundleTransitionKey,
+    commitTransition: (transition, durable) => checked(
+      moon.strategyRemoteBundleTransitionCommit(transition, durable),
+    ),
+    recordProjection: moon.strategyRemoteBundleRecordProjection,
+    restore: (manifest, state) => {
+      if (!Array.isArray(state) || state.length !== 3 ||
+          state.some(value => typeof value !== 'string') ||
+          state.some(value => !/^(0|[1-9][0-9]*)$/.test(value))) {
+        throw new TypeError('Invalid Remote Bundle state');
+      }
+      const values = state.map(Number);
+      if (values.some(value => !Number.isSafeInteger(value))) {
+        throw new TypeError('Invalid Remote Bundle state');
+      }
+      return checked(moon.strategyRemoteBundleRecordRestore(
+        manifest,
+        values[0],
+        values[1],
+        values[2],
+      ));
+    },
+  });
+  remoteBundleControls.set(moon, control);
   return control;
 }
 
@@ -1945,6 +2013,7 @@ export function runtimeCore(moon) {
     remoteSiteControl: remoteSiteControl(moon),
     remoteTransferControl: remoteTransferControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
+    remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,
