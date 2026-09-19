@@ -7,6 +7,8 @@ priv enum Phase {
   CleanupKernel
   StartProjection
   Projection
+  StartNearest
+  Nearest
   Terminal
 }
 
@@ -36,6 +38,7 @@ priv struct Execution {
   mut transformed : @records.Completed?
   mut pending_transformed : @records.Completed?
   mut projection : @bridge.VectorsToRowsExecution?
+  mut nearest : @veca.NearestExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
   mut terminal : Bool
@@ -62,6 +65,21 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
   let count = @lower.sequence_count(
     @execution.generated_prepared_sequence(sequence),
   )
+  if count == 1 {
+    guard @lower.sequence_step(
+        @execution.generated_prepared_sequence(sequence),
+        0,
+      )
+      is Some(@lower.VectorStep(vector)) &&
+      @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+      return false
+    }
+    return @lower.operation(node) == "VEC.knn_join" &&
+      @lower.vector_nearest_requires_bridge(vector, @evidence.Candidates) ==
+      Some(true) &&
+      @lower.vector_nearest_requires_bridge(vector, @evidence.Queries) ==
+      Some(true)
+  }
   if count < 2 {
     return false
   }
@@ -523,6 +541,74 @@ fn advance_execution(
           }
         }
       }
+      StartNearest => {
+        guard value.inputs.length() == 2 else { return fail_execution(value) }
+        let started = match
+          @veca.start_nearest_relations(
+            value.control,
+            @execution.generated_completion_preparation(value.generated),
+            value.sequence,
+            0,
+            value.inputs[0],
+            value.inputs[1],
+            value.max_rows,
+            {
+              max_nodes: value.limits.max_value_nodes,
+              max_text_bytes: value.max_value_bytes,
+              max_depth: value.limits.max_value_depth,
+              max_work: value.limits.max_work,
+            },
+            value.limits.max_workspace_slots,
+            value.limits.max_workspace_slots,
+            value.max_value_bytes,
+            value.inputs,
+          ) {
+          Ok(execution) => execution
+          Err(_) => return fail_execution(value)
+        }
+        value.nearest = Some(started)
+        value.phase = Nearest
+        reset_stage(value)
+      }
+      Nearest => {
+        guard value.nearest is Some(active) else {
+          return fail_execution(value)
+        }
+        match @veca.advance_nearest(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@veca.NearestContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@veca.NearestComplete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              return fail_execution(value)
+            }
+            value.terminal = true
+            value.phase = Terminal
+            return Ok(
+              @local.managed_provider_complete(
+                output, progress_delta, work_delta,
+              ),
+            )
+          }
+          Ok(@veca.NearestFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@veca.NearestStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
       Terminal => return Err(@connector.InvalidLimits)
     }
   }
@@ -558,6 +644,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.nearest is Some(active) {
+    match @veca.cleanup_nearest(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.transformed) |> ignore
   value.transformed = None
   discard(value.pending_transformed) |> ignore
@@ -576,10 +668,14 @@ fn cleanup_execution(
     Some(active) => @bridge.vectors_to_rows_cleanup_pending(active)
     None => false
   }
+  let nearest_pending = match value.nearest {
+    Some(active) => @veca.nearest_cleanup_pending(active)
+    None => false
+  }
   if failed {
     return Err(issue())
   }
-  if rows_pending || kernel_pending || projection_pending {
+  if rows_pending || kernel_pending || projection_pending || nearest_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -599,7 +695,11 @@ pub fn provider(
         let count = @lower.sequence_count(
           @execution.generated_prepared_sequence(sequence),
         )
-        provider_capacity(capacity, storage_bytes, count - 1)
+        if count == 1 {
+          Some(capacity)
+        } else {
+          provider_capacity(capacity, storage_bytes, count - 1)
+        }
       } else {
         None
       }
@@ -612,6 +712,7 @@ pub fn provider(
         @execution.generated_prepared_sequence(sequence),
       )
       let relation_pool = count == 2
+      let nearest = count == 1
       let state : Execution = {
         generated: sequence,
         sequence: @execution.generated_prepared_sequence(sequence),
@@ -623,7 +724,11 @@ pub fn provider(
         max_value_bytes,
         projection_step: count - 1,
         relation_pool,
-        phase: StartRows,
+        phase: if nearest {
+          StartNearest
+        } else {
+          StartRows
+        },
         rows: None,
         kernel_step: if relation_pool {
           0
@@ -634,6 +739,7 @@ pub fn provider(
         transformed: None,
         pending_transformed: None,
         projection: None,
+        nearest: None,
         stage_progress: 0L,
         stage_work: 0L,
         terminal: false,

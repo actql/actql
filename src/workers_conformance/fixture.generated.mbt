@@ -356,6 +356,9 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 ///|
 /// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  if variant == "nearest" {
+    return local_vector_nearest_program()
+  }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
   let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
@@ -1552,6 +1555,59 @@ fn local_vector_expression_program() -> String {
   "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
   "\"joined\",\"score\",\"id\"]}}}],\"results\":{\"source\":{" +
   "\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+/// Fixture owner: query_integration/local_carrier_vectors_wbtest.mbt
+fn local_vector_nearest_program() -> String {
+  let vector_schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+    "\"nullable\":false}}"
+  let ranking_fields = "[\"query_id\",\"candidate_id\",\"score\",\"rank\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"candidates\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":[{\"id\":2,\"embedding\":[1,0]},{" +
+  "\"id\":1,\"embedding\":[1,0]},{\"id\":3," +
+  "\"embedding\":[0,1]}]},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"embedding\"]}}},{" +
+  "\"id\":\"queries\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":[{\"id\":20,\"embedding\":[1,0]},{" +
+  "\"id\":10,\"embedding\":[0,1]}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
+  "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
+  "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
+  "\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"id\"," +
+  "\"candidate_vector\":\"embedding\",\"query_id\":\"id\"," +
+  "\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  ranking_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
 }
 
 ///|

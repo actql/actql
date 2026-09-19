@@ -13,17 +13,29 @@ import {
 }
 
 // Values
+pub fn advance_nearest(NearestExecution, Int) -> Result[NearestPoll, NearestIssue]
+
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
 pub fn advance_pool(PoolExecution, Int) -> Result[PoolPoll, PoolIssue]
 
 pub fn advance_score(ScoreExecution, Int) -> Result[ScorePoll, ScoreIssue]
 
+pub fn cleanup_nearest(NearestExecution) -> Result[Bool, NearestIssue]
+
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
 pub fn cleanup_pool(PoolExecution) -> Result[Bool, PoolIssue]
 
 pub fn cleanup_score(ScoreExecution) -> Result[Bool, ScoreIssue]
+
+pub fn nearest_cleanup_pending(NearestExecution) -> Bool
+
+pub fn nearest_max_noninterruptible_value_bytes(NearestExecution) -> Int
+
+pub fn nearest_max_noninterruptible_value_nodes(NearestExecution) -> Int
+
+pub fn nearest_stopped(NearestExecution) -> Bool
 
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 
@@ -47,6 +59,8 @@ pub fn score_max_noninterruptible_value_nodes(ScoreExecution) -> Int
 
 pub fn score_stopped(ScoreExecution) -> Bool
 
+pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
+
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_pool(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[PoolExecution, PoolIssue]
@@ -58,6 +72,30 @@ pub fn start_score(@bounded_execution.Control, @lowering_relation.PreparedSequen
 // Errors
 
 // Types and methods
+type NearestExecution
+
+pub(all) enum NearestIssue {
+  InvalidNearestKernel
+  InvalidNearestLimits
+  NearestInputUnavailable
+  InvalidNearestRecord(Bool, Int)
+  DuplicateNearestIdentity(Bool, Int)
+  NearestWorkspaceLimit
+  NearestOutputLimit
+  NearestNumeric(@vector_numeric.Issue)
+  NearestKeyOrder(@value_admission.KeyOrderIssue)
+  NearestOutput(@execution_relation.CaptureIssue)
+  NearestCompletion(@execution_relation.TrustedOutputIssue)
+  NearestExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum NearestPoll {
+  NearestContinue(progress~ : Int64, work~ : Int64)
+  NearestComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  NearestFailed(NearestIssue, progress~ : Int64, work~ : Int64)
+  NearestStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type NormalizeExecution
 
 pub(all) enum NormalizeIssue {

@@ -1,5 +1,8 @@
 ///|
 fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
+  if variant == "nearest" {
+    return local_vector_nearest_program()
+  }
   let relation_pool = variant == "relation_pool" ||
     variant == "relation_pool_composite"
   let pooled = variant == "pool" || variant == "pool_normalize" || relation_pool
@@ -97,6 +100,58 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
   second_fields +
   "}}}],\"results\":{\"source\":{\"from\":{" +
   "\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
+fn local_vector_nearest_program() -> String {
+  let vector_schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+    "\"nullable\":false}}"
+  let ranking_fields = "[\"query_id\",\"candidate_id\",\"score\",\"rank\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"candidates\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":[{\"id\":2,\"embedding\":[1,0]},{" +
+  "\"id\":1,\"embedding\":[1,0]},{\"id\":3," +
+  "\"embedding\":[0,1]}]},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"embedding\"]}}},{" +
+  "\"id\":\"queries\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  vector_schema +
+  ",\"rows\":[{\"id\":20,\"embedding\":[1,0]},{" +
+  "\"id\":10,\"embedding\":[0,1]}]},\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
+  "\"embedding\"]}}},{\"id\":\"nearest\",\"inputs\":{" +
+  "\"candidates\":{\"result\":{\"stage\":\"candidates\"," +
+  "\"result\":\"r\"}},\"queries\":{\"result\":{\"stage\":\"queries\"," +
+  "\"result\":\"r\"}}},\"steps\":[{\"from\":\"candidates\"," +
+  "\"nearest\":{\"queries\":\"queries\",\"candidate_id\":\"id\"," +
+  "\"candidate_vector\":\"embedding\",\"query_id\":\"id\"," +
+  "\"query_vector\":\"embedding\",\"metric\":\"dot\",\"k\":2}," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  ranking_fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  ranking_fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"nearest\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]," +
+  "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":[\"rank\",\"score\",\"candidate_id\",\"query_id\"]}}}]," +
+  "\"results\":{\"source\":{\"from\":{\"stage\":\"a\"," +
+  "\"result\":\"r\"}}}}"
 }
 
 ///|
@@ -324,6 +379,172 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
 }
 
 ///|
+fn run_standard_nearest_provider() -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    local_carrier_vectors_chain=true,
+    local_carrier_vectors_variant="nearest",
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 64000000L,
+      execution_bytes: 134217728L,
+    }),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let sequences = dispatch_test_generated(run)
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      sequences[3],
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let modules = @builtin.configure_compute_modules(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    1,
+    _ => @strategy.RunIssue::ForeignCandidate,
+    with_local=Some(
+      (
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        {
+          sequences,
+          managed_providers: [provider],
+          managed_capacity: limits.capacity,
+          execution: limits.local_execution,
+          measurement: limits.guards,
+          max_work: limits.candidate_work,
+        },
+        _ => @strategy.RunIssue::ForeignCandidate,
+        _ => @strategy.RunIssue::ForeignCandidate,
+      ),
+    ),
+  ).unwrap()
+  let installed = @builtin.configured_local_module(modules).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_columns: 10,
+      },
+      row: {
+        max_bytes: 3000,
+        max_nodes: 300,
+        max_depth: 10,
+        max_text_bytes: 3000,
+      },
+      max_batch_bytes: 3000,
+    },
+    None,
+  ).unwrap()
+
+  let candidates_live = Ref(true)
+  let (candidates_ops, candidates) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    candidates_live,
+  )
+  let candidate_rows = local_managed_test_rows(candidates_ops)
+  let queries_live = Ref(true)
+  let (queries_ops, queries) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [],
+    [],
+    2,
+    queries_live,
+  )
+  let query_rows = local_managed_test_rows(queries_ops)
+  let nearest_live = Ref(true)
+  let (nearest_ops, nearest) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [candidates, queries],
+    [candidate_rows, query_rows],
+    3,
+    nearest_live,
+  )
+  let nearest_rows = local_managed_test_rows(nearest_ops)
+  assert_eq(nearest_rows, [
+    "{\"candidate_id\":3,\"query_id\":10,\"rank\":1,\"score\":1}", "{\"candidate_id\":1,\"query_id\":10,\"rank\":2,\"score\":0}",
+    "{\"candidate_id\":1,\"query_id\":20,\"rank\":1,\"score\":1}", "{\"candidate_id\":2,\"query_id\":20,\"rank\":2,\"score\":1}",
+  ])
+
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [nearest],
+    [nearest_rows],
+    4,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    5,
+    [nearest],
+    [nearest_rows],
+    5,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops).length(), 4)
+  assert_eq(local_managed_test_rows(second_ops).length(), 4)
+
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 4)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(nearest))
+
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 5)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  nearest_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (nearest_ops.close)()
+  (nearest_ops.cleanup_refresh)() |> ignore
+  queries_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (queries_ops.close)()
+  (queries_ops.cleanup_refresh)() |> ignore
+  candidates_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (candidates_ops.close)()
+  (candidates_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "standard Host runs bounded vector normalization provider" {
   run_standard_vectors_provider("normalize")
 }
@@ -351,4 +572,9 @@ test "standard Host pools author-visible Relation input" {
 ///|
 test "standard Host encodes composite Relation pool identity" {
   run_standard_vectors_provider("relation_pool_composite")
+}
+
+///|
+test "standard Host runs exact nearest with two consumers" {
+  run_standard_nearest_provider()
 }
