@@ -311,6 +311,7 @@ pub fn prepare_sequence(
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_vector_node(
             owner,
+            i,
             owner.prepared.nodes[i],
             max_bindings=bindings,
             max_name_bytes=names,

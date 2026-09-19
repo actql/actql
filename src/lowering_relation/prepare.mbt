@@ -17,6 +17,7 @@ struct PreparedNode {
   order_id : String?
   aggregation_id : String?
   nest_expansion : Array[PreparedNestExpansionNode]?
+  vector_expansion : Array[PreparedVectorExpansionNode]?
   payload : Payload
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
@@ -310,12 +311,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
-    Pool(value) =>
-      if @vector.pool_key_declaration(value) is None {
-        Some(PoolValue(value))
-      } else {
-        None
-      }
+    Pool(value) => Some(PoolValue(value))
     GraphConstruction(..) | Nearest(..) | Ranking(_) | TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
@@ -534,6 +530,10 @@ pub fn prepare(
       NestRows(nest) => Some(prepare_source_nest_expansion(checked, i, nest))
       _ => None
     }
+    let vector_expansion = match payload {
+      PoolValue(pool) => Some(prepare_pool_expansion(pool))
+      _ => None
+    }
     if nest_expansion is Some(expansion) {
       let expanded_nodes = expansion.length()
       let expanded_references = nest_expansion_reference_count(expansion)
@@ -550,6 +550,35 @@ pub fn prepare(
           continue
         }
         let generated = nest_generated_role_id(i, expansion_node.role)
+        if used.contains(generated) || generated == id {
+          return Err({ kind: IdentifierCollision, source: step.source, })
+        }
+        if generated.length() > limits.max_identifier_bytes - bytes {
+          return Err({ kind: BudgetExceeded, source: step.source, })
+        }
+        bytes += generated.length()
+        used[generated] = true
+      }
+      expansions += added_nodes
+      references += added_references
+      work += added_nodes + added_references
+    }
+    if vector_expansion is Some(expansion) {
+      let expanded_nodes = expansion.length()
+      let expanded_references = vector_expansion_reference_count(expansion)
+      let added_nodes = expanded_nodes - 1
+      let added_references = expanded_references - arity
+      if added_nodes > limits.max_nodes - count - inputs - expansions ||
+        added_references > limits.max_references - references ||
+        added_nodes > limits.max_work - work ||
+        added_references > limits.max_work - work - added_nodes {
+        return Err({ kind: BudgetExceeded, source: step.source, })
+      }
+      for expansion_node in expansion {
+        if expansion_node.source_node {
+          continue
+        }
+        let generated = vector_generated_role_id(i, expansion_node.role)
         if used.contains(generated) || generated == id {
           return Err({ kind: IdentifierCollision, source: step.source, })
         }
@@ -742,6 +771,7 @@ pub fn prepare(
       order_id,
       aggregation_id,
       nest_expansion,
+      vector_expansion,
       payload,
       inputs: refs,
       input_targets,

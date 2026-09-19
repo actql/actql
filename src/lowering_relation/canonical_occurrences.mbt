@@ -16,6 +16,10 @@ pub fn sequence_canonical_node_count(
   if sequence.steps.get(step) is Some(NestStep(kernel)) {
     return Some(kernel.expansion.length())
   }
+  if sequence.steps.get(step) is Some(VectorStep(kernel)) &&
+    !kernel.expansion.is_empty() {
+    return Some(kernel.expansion.length())
+  }
   sequence.owner.prepared.nodes
   .get(step)
   .map(node => {
@@ -46,6 +50,20 @@ pub fn sequence_canonical_node_at(
           node.id
         } else {
           nest_generated_id(kernel, expanded.role)
+        },
+        operation: expanded.operation,
+      })
+  }
+  if sequence.steps.get(step) is Some(VectorStep(kernel)) &&
+    !kernel.expansion.is_empty() {
+    return kernel.expansion
+      .get(index)
+      .map(expanded => {
+        source_step: step,
+        id: if expanded.source_node {
+          node.id
+        } else {
+          vector_generated_role_id(kernel.step, expanded.role)
         },
         operation: expanded.operation,
       })

@@ -31,6 +31,27 @@ fn vector_carrier() -> @carrier.Carrier {
 }
 
 ///|
+fn vector_text_relation() -> @carrier.Carrier {
+  @carrier.relation(
+    @carrier.rows(
+      [
+        (
+          @schema.Unqualified("product_id"),
+          Some(@contract.primitive(@contract.StringType, nullable=false)),
+        ),
+        (
+          @schema.Unqualified("embedding"),
+          Some(@contract.vector_contract(2.0, nullable=false).unwrap()),
+        ),
+      ],
+      field_set=@carrier.Closed,
+      max_fields=2,
+      max_name_bytes=19,
+    ).unwrap(),
+  )
+}
+
+///|
 fn vector_owner(
   query : String,
   declarations? : @parameter.Declarations? = None,
@@ -96,8 +117,9 @@ test "checked vector pooling lowers canonical parameters" {
       max_depth: 100,
     },
   ).unwrap()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
   let owner = @lowering_relation.bind_parameters(
-    @lowering_relation.prepare(checked, limits()).unwrap(),
+    prepared,
     None,
     max_parameters=0,
     max_name_bytes=100,
@@ -124,6 +146,148 @@ test "checked vector pooling lowers canonical parameters" {
     @encode.finish(writer),
     "[{\"id\":\"pool_vectors_0\",\"in\":[\"input_0\"],\"op\":\"VEC.pool\",\"params\":{\"by\":[\"product_id\"],\"method\":\"mean\",\"output_id\":\"group_id\",\"vector\":\"embedding\"}}]",
   )
+}
+
+///|
+test "relation pooling lowers member identity and vector bridge" {
+  let declaration = @evidence.declare_primary_key(
+    cursor("[\"product_id\"]"),
+    vector_relation(),
+    { max_fields: 1, max_name_bytes: 32, },
+  ).unwrap()
+  let checked = @pipeline.check_with_evidence(
+    cursor(
+      "[{\"pool_vectors\":{\"vector\":\"embedding\",\"by\":[\"product_id\"],\"method\":\"sum\"}}]",
+    ),
+    [("rows", @pipeline.KeyedInput(declaration))],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
+  let usage = @lowering_relation.usage(prepared)
+  assert_eq(usage.nodes, 4)
+  assert_eq(usage.references, 3)
+  assert_true(
+    @lowering_relation.prepare(checked, {
+      max_nodes: usage.nodes,
+      max_references: usage.references,
+      max_work: usage.work,
+      max_identifier_bytes: usage.identifier_bytes,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    @lowering_relation.prepare(checked, {
+      max_nodes: usage.nodes - 1,
+      max_references: usage.references,
+      max_work: usage.work,
+      max_identifier_bytes: usage.identifier_bytes,
+    })
+    is Err({ kind: @lowering_relation.BudgetExceeded, .. }),
+  )
+  assert_true(
+    @lowering_relation.prepare(checked, {
+      max_nodes: usage.nodes,
+      max_references: usage.references - 1,
+      max_work: usage.work,
+      max_identifier_bytes: usage.identifier_bytes,
+    })
+    is Err({ kind: @lowering_relation.BudgetExceeded, .. }),
+  )
+  let owner = @lowering_relation.bind_parameters(
+    prepared,
+    None,
+    max_parameters=0,
+    max_name_bytes=100,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 0),
+    Some(3),
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_at(sequence, 0, 0).map(occurrence => {
+      occurrence.operation
+    }),
+    Some("REL.derive"),
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_at(sequence, 0, 1).map(occurrence => {
+      occurrence.operation
+    }),
+    Some("BRIDGE.rows.to_vectors"),
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_at(sequence, 0, 2).map(occurrence => {
+      occurrence.operation
+    }),
+    Some("VEC.pool"),
+  )
+  let writer = @encode.writer(20000, 2000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  let wire = @encode.finish(writer)
+  assert_true(wire.contains("\"id\":\"vector_member_identity_0\""))
+  assert_true(wire.contains("\"op\":\"REL.derive\""))
+  assert_true(wire.contains("\"id\":\"vector_members_0\""))
+  assert_true(wire.contains("\"op\":\"BRIDGE.rows.to_vectors\""))
+  assert_true(wire.contains("\"id\":\"__actql_vector_record_id\""))
+  assert_true(
+    wire.contains(
+      "\"id\":\"pool_vectors_0\",\"in\":[\"vector_members_0\"],\"op\":\"VEC.pool\"",
+    ),
+  )
+}
+
+///|
+test "relation pooling reuses an admitted singleton string identity" {
+  let relation = vector_text_relation()
+  let declaration = @evidence.declare_primary_key(
+    cursor("[\"product_id\"]"),
+    relation,
+    { max_fields: 1, max_name_bytes: 32, },
+  ).unwrap()
+  let checked = @pipeline.check_with_evidence(
+    cursor(
+      "[{\"pool_vectors\":{\"vector\":\"embedding\",\"by\":[\"product_id\"],\"method\":\"max\"}}]",
+    ),
+    [("rows", @pipeline.KeyedInput(declaration))],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=100,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 0),
+    Some(2),
+  )
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  let wire = @encode.finish(writer)
+  assert_false(wire.contains("__actql_vector_record_id"))
+  assert_false(wire.contains("\"op\":\"REL.derive\""))
+  assert_true(wire.contains("\"id\":\"product_id\""))
+  assert_true(wire.contains("\"method\":\"max\""))
 }
 
 ///|
