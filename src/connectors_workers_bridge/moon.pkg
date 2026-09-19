@@ -13,5 +13,8 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/run_publication" @publication,
   "actql/actql/execution_site" @site,
-  "actql/actql/connectors/local/driver" @binding9,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/connectors/local/driver" @binding11,
+  "actql/actql/remote_transfer" @transfer,
 }
