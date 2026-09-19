@@ -105,6 +105,8 @@ pub fn prepare_coordinator_dispatch_intent(CoordinatorDispatchJournal, DispatchR
 
 pub fn prepare_coordinator_managed_output_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
+pub fn prepare_coordinator_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?) -> Result[CoordinatorDispatchTransition, DispatchIssue]
+
 pub fn prepare_coordinator_outcome_unknown(CoordinatorDispatchIntentRecord) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?) -> Result[CoordinatorDispatchTransition, DispatchIssue]

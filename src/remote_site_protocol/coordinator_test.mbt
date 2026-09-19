@@ -190,6 +190,45 @@ test "Site status alone cannot authorize Coordinator completion" {
 }
 
 ///|
+test "Coordinator owns managed observation completeness" {
+  let request = coordinator_request("dispatch-completeness", 11)
+  let journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
+  let admission = prepare_coordinator_dispatch_intent(journal, request).unwrap()
+  let (_, record) = commit_coordinator_dispatch_intent(admission, true).unwrap()
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
+  assert_true(
+    prepare_coordinator_observation(
+      record,
+      5,
+      3,
+      2,
+      0,
+      true,
+      false,
+      Some(evidence),
+      Some(subject),
+      None,
+    )
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    prepare_coordinator_observation(
+      record,
+      5,
+      3,
+      2,
+      0,
+      true,
+      false,
+      None,
+      None,
+      Some(measurement),
+    )
+    is Err(InvalidDispatch),
+  )
+}
+
+///|
 test "Coordinator rejects stale or altered Site observations" {
   let request = coordinator_request("dispatch-a", 1)
   let journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()

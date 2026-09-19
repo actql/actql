@@ -359,7 +359,7 @@ fn merge_coordinator_evidence_identity(
 }
 
 ///|
-fn prepare_coordinator_observation(
+pub fn prepare_coordinator_observation(
   record : CoordinatorDispatchIntentRecord,
   site_revision : Int,
   site_execution : Int,
@@ -371,6 +371,11 @@ fn prepare_coordinator_observation(
   subject : RemoteManagedOutputSubject?,
   measurement : RemoteManagedOutputMeasurement?,
 ) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
+  match (evidence, subject, measurement) {
+    (None, None, None) | (Some(_), None, None) | (Some(_), Some(_), Some(_)) =>
+      ()
+    _ => return Err(InvalidDispatch)
+  }
   if site_revision < 0 ||
     !valid_site_observation(
       site_execution, site_evidence, site_cleanup, site_material_available, site_quarantined_capacity,

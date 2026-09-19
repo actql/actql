@@ -2632,6 +2632,30 @@ pub fn strategy_remote_coordinator_prepare_unknown(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorPrepareObservation")
+pub fn strategy_remote_coordinator_prepare_observation(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  site_revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  admitted_evidence : @remote.RemoteExecutionEvidence?,
+  admitted_subject : @remote.RemoteManagedOutputSubject?,
+  admitted_measurement : @remote.RemoteManagedOutputMeasurement?,
+) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
+  let result = @remote.prepare_coordinator_observation(
+    record, site_revision, execution, evidence, cleanup, material_available, quarantined_capacity,
+    admitted_evidence, admitted_subject, admitted_measurement,
+  )
+  match result {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteCoordinatorPrepareObservationWithoutEvidence")
 pub fn strategy_remote_coordinator_prepare_observation_without_evidence(
   record : @remote.CoordinatorDispatchIntentRecord,

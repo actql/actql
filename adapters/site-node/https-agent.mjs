@@ -54,6 +54,7 @@ export async function startHttpsRemoteSiteAgent({
       !text(siteKey) || !Number.isSafeInteger(siteGeneration) ||
       siteGeneration < 0 || journal === undefined || store === undefined ||
       control === null || typeof control !== 'object' ||
+      typeof control.runtimeStartable !== 'function' ||
       typeof admitDispatchJson !== 'function' ||
       dispatchRuntime === null || typeof dispatchRuntime !== 'object' ||
       typeof dispatchRuntime.supports !== 'function' ||
@@ -162,9 +163,8 @@ export async function startHttpsRemoteSiteAgent({
         reply(response, 409, {error: 'dispatch_unsupported'});
         return;
       }
-      const isNew = control.admissionIsNew(admission);
       const record = store.accept(admission, dispatch, control);
-      if (isNew || control.status(record)[0] === 0) {
+      if (control.runtimeStartable(record)) {
         dispatchRuntime.start(dispatch, record);
       }
       reply(response, 200, {

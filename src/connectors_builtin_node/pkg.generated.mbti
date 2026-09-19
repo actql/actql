@@ -304,6 +304,8 @@ pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protoc
 
 pub fn strategy_remote_coordinator_prepare_managed_output_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_coordinator_prepare_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_prepare_observation_with_evidence(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, @remote_site_protocol.RemoteExecutionEvidence) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_prepare_observation_without_evidence(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure

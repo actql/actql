@@ -146,44 +146,8 @@ function remoteSiteControl(moon) {
       }
       const [execution, evidence, cleanup, available, quarantined] =
         observation.state;
-      if ((observation.subject !== undefined ||
-          observation.measurement !== undefined) &&
-          (observation.evidence === undefined ||
-          observation.subject === undefined ||
-          observation.measurement === undefined)) {
-        throw new TypeError('Remote managed output requires exact evidence');
-      }
-      if (observation.evidence === undefined) {
-        return checked(
-          moon.strategyRemoteCoordinatorPrepareObservationWithoutEvidence(
-            record,
-            observation.revision,
-            execution,
-            evidence,
-            cleanup,
-            available === 1,
-            quarantined === 1,
-          ),
-        );
-      }
-      if (observation.subject !== undefined) {
-        return checked(
-          moon.strategyRemoteCoordinatorPrepareManagedOutputObservation(
-            record,
-            observation.revision,
-            execution,
-            evidence,
-            cleanup,
-            available === 1,
-            quarantined === 1,
-            observation.evidence,
-            observation.subject,
-            observation.measurement,
-          ),
-        );
-      }
       return checked(
-        moon.strategyRemoteCoordinatorPrepareObservationWithEvidence(
+        moon.strategyRemoteCoordinatorPrepareObservation(
           record,
           observation.revision,
           execution,
@@ -192,6 +156,8 @@ function remoteSiteControl(moon) {
           available === 1,
           quarantined === 1,
           observation.evidence,
+          observation.subject,
+          observation.measurement,
         ),
       );
     },
