@@ -179,3 +179,107 @@ pub fn[T] complete_managed_task_execution(
   run.running = None
   Ok(())
 }
+
+///|
+/// Common success boundary for a managed non-Relation Carrier. The typed
+/// payload remains owned by its Carrier runtime and Host; this function stores
+/// only the exact type-erased completion occurrence and retained allocation.
+pub fn complete_carrier_managed_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  output : @execution.CarrierManagedCompletedOutput,
+  allocation? : TaskRetainedAllocation,
+  managed_inputs? : Array[@execution.CarrierManagedProducerRead],
+) -> Result[Unit, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  guard run.running is Some((task, active)) &&
+    physical_equal(active, execution) &&
+    task_execution_matches(run, execution) else {
+    return Err(ForeignCandidate)
+  }
+  if execution.disposed ||
+    !execution.execution_settled ||
+    execution.resident is Some(_) ||
+    (!execution.numeric.is_empty() && !execution.numeric_sealed) {
+    return Err(Physical(InvalidCharge))
+  }
+  match task_execution_ready(execution) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard captured_task_target(run, task) is Some(target) &&
+    @execution.carrier_managed_completed_output_matches_port(
+      output,
+      run.graph.owners[task],
+      target,
+    ) &&
+    @execution.carrier_managed_completed_output_matches_attempt(
+      output,
+      execution.attempt,
+    ) else {
+    return Err(ForeignCandidate)
+  }
+  let input_matches = match managed_inputs {
+    Some(inputs) =>
+      captured_carrier_managed_inputs_match(run, task, inputs) &&
+      @execution.carrier_managed_completed_output_matches_inputs(output, inputs)
+    None => {
+      // An omitted input proof is valid only when no internal managed
+      // producer edge exists. Acquisition and supplied inputs retain their
+      // separate capture evidence and cannot be fabricated here.
+      let has_internal = run.graph.data.any(edge => {
+        edge.consumer == task && edge.producer > 0
+      })
+      !has_internal &&
+      @execution.carrier_managed_completed_output_matches_inputs(output, [])
+    }
+  }
+  if !input_matches {
+    return Err(ForeignCandidate)
+  }
+  guard @execution.carrier_managed_completed_output_storage_bytes(output)
+    is Some(storage_bytes) else {
+    return Err(MissingOutput)
+  }
+  let holding = if storage_bytes == 0L {
+    if allocation is Some(_) {
+      return Err(Physical(InvalidCharge))
+    }
+    None
+  } else {
+    guard allocation is Some(owned) &&
+      owned.live &&
+      physical_equal(owned.owner, run) &&
+      physical_equal(owned.execution, execution) &&
+      owned.bytes == storage_bytes &&
+      @resources.holding_available(run.ledger, owned.holding) else {
+      return Err(Physical(InvalidCharge))
+    }
+    Some(owned.holding)
+  }
+  if run.stopped ||
+    !@execution.carrier_managed_completed_output_available(output) {
+    return Err(if run.stopped { Stopped } else { MissingOutput })
+  }
+  match
+    commit_task_output(
+      run,
+      task,
+      CarrierManaged(@execution.carrier_managed_completed_reference(output)),
+      holding,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if allocation is Some(owned) {
+    // Ownership moved to the graph's retained task resource. The old Host
+    // token can no longer release it independently.
+    owned.live = false
+  }
+  execution.retained_bytes = None
+  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+  run.running = None
+  Ok(())
+}

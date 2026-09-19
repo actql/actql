@@ -13,6 +13,7 @@ import {
   "actql/actql/parameter_binding" @binding,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/managed_carrier_runtime" @managed_carrier,
   "actql/actql/capacity_program_step" @step_bounds,
   "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,

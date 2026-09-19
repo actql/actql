@@ -216,6 +216,12 @@ test "carrier completion seals exact event attempt and input use site" {
     producer_output,
     @managed_carrier.producer_read_reference(raw_read),
   ).unwrap()
+  assert_true(
+    carrier_managed_producer_read_matches_reference(
+      input,
+      carrier_managed_completed_reference(producer_output),
+    ),
+  )
   let consumer_live = Ref(true)
   let consumer_raw = raw_event_completion(consumer, consumer_live, 32L)
   let consumer_reference = @managed_carrier.completion_reference(consumer_raw)

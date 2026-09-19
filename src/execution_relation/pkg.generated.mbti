@@ -189,6 +189,8 @@ pub fn carrier_managed_producer_read_carrier_reference(CarrierManagedProducerRea
 
 pub fn carrier_managed_producer_read_matches_input(CarrierManagedProducerRead, @lowering_relation.BoundPrepared, Int) -> Bool
 
+pub fn carrier_managed_producer_read_matches_reference(CarrierManagedProducerRead, CarrierManagedCompletionReference) -> Bool
+
 pub fn carrier_managed_producer_read_same(CarrierManagedProducerRead, CarrierManagedProducerRead) -> Bool
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit

@@ -285,6 +285,18 @@ pub fn carrier_managed_producer_read_carrier_reference(
 }
 
 ///|
+/// Match one receiving use site against the exact completed occurrence stored
+/// by the common scheduler. Equal Carrier contents or storage do not make a
+/// different producer occurrence interchangeable.
+pub fn carrier_managed_producer_read_matches_reference(
+  value : CarrierManagedProducerRead,
+  reference : CarrierManagedCompletionReference,
+) -> Bool {
+  carrier_managed_completed_reference_matches(reference, value.output) &&
+  carrier_managed_producer_read_available(value)
+}
+
+///|
 pub fn carrier_managed_completed_output_available(
   value : CarrierManagedCompletedOutput,
 ) -> Bool {

@@ -42,6 +42,7 @@ struct CapturedDAG {
 priv enum CommittedTaskOutput {
   Materialized(@execution.CompletedOutput)
   Managed(@execution.ManagedCompletionReference)
+  CarrierManaged(@execution.CarrierManagedCompletionReference)
 }
 
 ///|
@@ -62,6 +63,17 @@ fn managed_task_output_reference(
 ) -> @execution.ManagedCompletionReference? {
   match run.outputs.get(task).bind(value => value) {
     Some(Managed(reference)) => Some(reference)
+    _ => None
+  }
+}
+
+///|
+fn carrier_managed_task_output_reference(
+  run : CapturedDAG,
+  task : Int,
+) -> @execution.CarrierManagedCompletionReference? {
+  match run.outputs.get(task).bind(value => value) {
+    Some(CarrierManaged(reference)) => Some(reference)
     _ => None
   }
 }
@@ -779,6 +791,61 @@ pub fn[T] captured_managed_task_input(
 }
 
 ///|
+/// Prepare one non-Relation Carrier input at the exact ready graph edge. The
+/// typed Carrier runtime remains responsible for payload access; this common
+/// layer verifies only the checked edge and the type-erased use-site proof.
+pub fn captured_carrier_managed_task_input(
+  run : CapturedDAG,
+  task : Int,
+  output : @execution.CarrierManagedCompletedOutput,
+  carrier_read : @managed_carrier.ProducerReadReference,
+  input_index? : Int = 0,
+) -> Result[@execution.CarrierManagedProducerRead, RunIssue] {
+  if run.stopped {
+    return Err(Stopped)
+  }
+  if next_captured_task(run) != Some(task) ||
+    input_index < 0 ||
+    input_index >= run.inputs[task].length() {
+    return Err(NotReady)
+  }
+  let mut selected : DataEdge? = None
+  for edge in run.graph.data {
+    if edge.consumer == task && edge.input == input_index {
+      selected = Some(edge)
+      break
+    }
+  }
+  guard selected is Some(edge) &&
+    edge.producer > 0 &&
+    captured_carrier_managed_task_output_matches(
+      run,
+      edge.producer,
+      edge.target,
+      output,
+    ) else {
+    let issue = RunIssue::MissingOutput
+    fail_captured_task(run, task, issue)
+    return Err(issue)
+  }
+  match
+    @execution.prepare_carrier_managed_producer_read(
+      run.graph.owners[task],
+      input_index,
+      run.graph.owners[edge.producer],
+      output,
+      carrier_read,
+    ) {
+    Ok(read) => Ok(read)
+    Err(_) => {
+      let failure = RunIssue::ForeignCandidate
+      fail_captured_task(run, task, failure)
+      Err(failure)
+    }
+  }
+}
+
+///|
 /// Exact producers of the next managed task in receiving input-port order.
 /// Missing, external, or incomplete topology returns an empty set; concrete
 /// managed completions are still checked independently during preparation.
@@ -835,7 +902,10 @@ pub fn captured_releasable_managed_producers(run : CapturedDAG) -> Array[Int] {
   for producer in 1..<run.done.length() {
     if !run.done[producer] ||
       !run.lifetimes[producer].live ||
-      managed_task_output_reference(run, producer) is None {
+      (
+        managed_task_output_reference(run, producer) is None &&
+        carrier_managed_task_output_reference(run, producer) is None
+      ) {
       continue
     }
     let mut has_consumer = false
@@ -1014,6 +1084,26 @@ pub fn[T] captured_managed_task_output_matches(
 }
 
 ///|
+/// Match an exact non-Relation Carrier completion owned by a graph task. This
+/// grants neither typed payload access nor authority to retain the output.
+pub fn captured_carrier_managed_task_output_matches(
+  run : CapturedDAG,
+  task : Int,
+  target : @pipeline.Target,
+  output : @execution.CarrierManagedCompletedOutput,
+) -> Bool {
+  if captured_task_target(run, task) != Some(target) ||
+    !run.lifetimes[task].live {
+    return false
+  }
+  carrier_managed_task_output_reference(run, task)
+  .map(reference => {
+    @execution.carrier_managed_completed_reference_matches(reference, output)
+  })
+  .unwrap_or(false)
+}
+
+///|
 /// Stops new work without revoking independent successful calculation results or
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
@@ -1130,6 +1220,48 @@ fn[T] captured_managed_inputs_match(
       edge.producer > 0 &&
       managed_task_output_reference(run, edge.producer) is Some(reference) &&
       @execution.managed_producer_read_matches_reference(input, reference) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Verify every ordered non-Relation Carrier use site against the exact
+/// producer occurrence recorded by this graph. Repeated producers remain
+/// distinct input edges and therefore require distinct read proofs.
+fn captured_carrier_managed_inputs_match(
+  run : CapturedDAG,
+  task : Int,
+  inputs : Array[@execution.CarrierManagedProducerRead],
+) -> Bool {
+  if task <= 0 ||
+    task >= run.inputs.length() ||
+    inputs.length() != run.inputs[task].length() {
+    return false
+  }
+  for port, input in inputs {
+    if !@execution.carrier_managed_producer_read_matches_input(
+        input,
+        run.graph.owners[task],
+        port,
+      ) {
+      return false
+    }
+    let mut selected : DataEdge? = None
+    for edge in run.graph.data {
+      if edge.consumer == task && edge.input == port {
+        selected = Some(edge)
+        break
+      }
+    }
+    guard selected is Some(edge) &&
+      edge.producer > 0 &&
+      carrier_managed_task_output_reference(run, edge.producer)
+      is Some(reference) &&
+      @execution.carrier_managed_producer_read_matches_reference(
+        input, reference,
+      ) else {
       return false
     }
   }

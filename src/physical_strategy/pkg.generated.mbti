@@ -7,6 +7,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/managed_carrier_runtime",
   "actql/actql/numeric_reduction",
   "actql/actql/physical_cost",
   "actql/actql/physical_resources",
@@ -40,6 +41,10 @@ pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (Residen
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn captured_carrier_managed_task_input(CapturedDAG, Int, @execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference, input_index? : Int) -> Result[@execution_relation.CarrierManagedProducerRead, RunIssue]
+
+pub fn captured_carrier_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.CarrierManagedCompletedOutput) -> Bool
 
 pub fn captured_dag_failure(CapturedDAG) -> (Int, RunIssue)?
 
@@ -124,6 +129,8 @@ pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
 pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[ManagedTransferReceipt, RunIssue]
 
 pub fn complete_deferred_materializing_task_execution(CapturedDAG, TaskExecution, () -> Result[@execution_relation.CompletedOutput, RunIssue]) -> Result[Unit, RunIssue]
+
+pub fn complete_carrier_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.CarrierManagedCompletedOutput, allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.CarrierManagedProducerRead]) -> Result[Unit, RunIssue]
 
 pub fn[T] complete_managed_task_execution(CapturedDAG, TaskExecution, @execution_relation.ManagedCompletedOutput[T], allocation? : TaskRetainedAllocation, managed_inputs? : Array[@execution_relation.ManagedProducerRead[T]]) -> Result[Unit, RunIssue]
 
