@@ -226,6 +226,10 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     };
     const first = await coordinator.dispatch(options);
     assert.equal(first.dispatchRequestCid, runtime.remoteSiteControl.identity(request));
+    assert.equal(
+      coordinator.completionEvidenceAvailable(options),
+      false,
+    );
     const completed = await terminalStatus(
       options,
       value => coordinator.query(value),
@@ -240,6 +244,10 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     assert.equal(
       JSON.parse(completed.evidenceWire).dispatch_request_cid,
       first.dispatchRequestCid,
+    );
+    assert.equal(
+      coordinator.completionEvidenceAvailable(options),
+      true,
     );
     const retransmitted = await coordinator.dispatch(options);
     assert.deepEqual(retransmitted.state, completed.state);
@@ -256,6 +264,26 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
         key: material.foreignKey,
       }),
       error => error.code === 'RemoteSiteRejected' && error.status === 404,
+    );
+    coordinatorStore.close();
+    const reopenedStore = openSqliteCoordinatorDispatchJournal(
+      join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'},
+    );
+    t.after(() => reopenedStore.close());
+    const reopened = createRemoteSiteCoordinator({
+      control: runtime.remoteSiteControl,
+      journal: runtime.remoteSiteControl.createCoordinatorJournal(
+        'coordinator-a',
+      ),
+      store: reopenedStore,
+    });
+    assert.equal(reopened.recovered.length, 1);
+    assert.equal(reopened.completionEvidenceAvailable(options), true);
+    assert.equal(
+      reopenedStore.inspectEvidence(request, runtime.remoteSiteControl)
+        .evidenceCid,
+      completed.evidenceCid,
     );
   });
 

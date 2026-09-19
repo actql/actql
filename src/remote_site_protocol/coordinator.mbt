@@ -12,6 +12,40 @@ struct CoordinatorDispatchJournal {
 /// the dispatch.
 struct CoordinatorDispatchIntentRecord {
   request : DispatchRequest
+  mut revision : Int
+  mut progress : CoordinatorDispatchProgress
+  mut site_revision : Int
+  mut site_execution : Int
+  mut site_evidence : Int
+  mut site_cleanup : Int
+  mut site_material_available : Bool
+  mut site_quarantined_capacity : Bool
+  mut accepted_evidence_cid : String
+}
+
+///|
+/// Transport uncertainty and authenticated Site observation are Coordinator
+/// facts. They do not replace the Site-owned physical state.
+pub(all) enum CoordinatorDispatchProgress {
+  CoordinatorIntentDurable
+  CoordinatorOutcomeUnknown
+  CoordinatorSiteObserved
+} derive(Eq, Debug)
+
+///|
+struct CoordinatorDispatchTransition {
+  record : CoordinatorDispatchIntentRecord
+  expected : Array[String]
+  next : Array[String]
+  next_progress : CoordinatorDispatchProgress
+  next_site_revision : Int
+  next_site_execution : Int
+  next_site_evidence : Int
+  next_site_cleanup : Int
+  next_site_material_available : Bool
+  next_site_quarantined_capacity : Bool
+  next_accepted_evidence_cid : String
+  mut consumed : Bool
 }
 
 ///|
@@ -110,7 +144,18 @@ pub fn commit_coordinator_dispatch_intent(
       if journal.attempts.contains(occurrence) {
         return Err(AttemptAlreadyDispatched)
       }
-      let record = { request, }
+      let record = {
+        request,
+        revision: 0,
+        progress: CoordinatorIntentDurable,
+        site_revision: -1,
+        site_execution: -1,
+        site_evidence: -1,
+        site_cleanup: -1,
+        site_material_available: false,
+        site_quarantined_capacity: false,
+        accepted_evidence_cid: "",
+      }
       journal.dispatches[key] = record
       journal.attempts[occurrence] = key
       admission.consumed = true
@@ -142,4 +187,319 @@ pub fn coordinator_dispatch_intent_matches_request(
   request : DispatchRequest,
 ) -> Bool {
   record.request.dispatch_request_cid == request.dispatch_request_cid
+}
+
+///|
+fn coordinator_progress_code(progress : CoordinatorDispatchProgress) -> Int {
+  match progress {
+    CoordinatorIntentDurable => 0
+    CoordinatorOutcomeUnknown => 1
+    CoordinatorSiteObserved => 2
+  }
+}
+
+///|
+fn coordinator_progress_from_code(
+  code : Int,
+) -> Result[CoordinatorDispatchProgress, DispatchIssue] {
+  match code {
+    0 => Ok(CoordinatorIntentDurable)
+    1 => Ok(CoordinatorOutcomeUnknown)
+    2 => Ok(CoordinatorSiteObserved)
+    _ => Err(InvalidJournal)
+  }
+}
+
+///|
+fn coordinator_record_projection(
+  record : CoordinatorDispatchIntentRecord,
+) -> Array[String] {
+  [
+    record.revision.to_string(),
+    coordinator_progress_code(record.progress).to_string(),
+    record.site_revision.to_string(),
+    record.site_execution.to_string(),
+    record.site_evidence.to_string(),
+    record.site_cleanup.to_string(),
+    bool_code(record.site_material_available),
+    bool_code(record.site_quarantined_capacity),
+    record.accepted_evidence_cid,
+  ]
+}
+
+///|
+fn coordinator_prepare_transition(
+  record : CoordinatorDispatchIntentRecord,
+  progress : CoordinatorDispatchProgress,
+  site_revision : Int,
+  site_execution : Int,
+  site_evidence : Int,
+  site_cleanup : Int,
+  site_material_available : Bool,
+  site_quarantined_capacity : Bool,
+  accepted_evidence_cid : String,
+) -> CoordinatorDispatchTransition {
+  let expected = coordinator_record_projection(record)
+  let next = [
+    (record.revision + 1).to_string(),
+    coordinator_progress_code(progress).to_string(),
+    site_revision.to_string(),
+    site_execution.to_string(),
+    site_evidence.to_string(),
+    site_cleanup.to_string(),
+    bool_code(site_material_available),
+    bool_code(site_quarantined_capacity),
+    accepted_evidence_cid,
+  ]
+  {
+    record,
+    expected,
+    next,
+    next_progress: progress,
+    next_site_revision: site_revision,
+    next_site_execution: site_execution,
+    next_site_evidence: site_evidence,
+    next_site_cleanup: site_cleanup,
+    next_site_material_available: site_material_available,
+    next_site_quarantined_capacity: site_quarantined_capacity,
+    next_accepted_evidence_cid: accepted_evidence_cid,
+    consumed: false,
+  }
+}
+
+///|
+pub fn prepare_coordinator_outcome_unknown(
+  record : CoordinatorDispatchIntentRecord,
+) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
+  Ok(
+    coordinator_prepare_transition(
+      record,
+      CoordinatorOutcomeUnknown,
+      record.site_revision,
+      record.site_execution,
+      record.site_evidence,
+      record.site_cleanup,
+      record.site_material_available,
+      record.site_quarantined_capacity,
+      record.accepted_evidence_cid,
+    ),
+  )
+}
+
+///|
+fn valid_site_observation(
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+) -> Bool {
+  if execution < 0 ||
+    execution > 6 ||
+    evidence < 0 ||
+    evidence > 3 ||
+    cleanup < 0 ||
+    cleanup > 5 {
+    return false
+  }
+  if (evidence == 1 || evidence == 2) && execution != 3 {
+    return false
+  }
+  if material_available &&
+    (
+      execution != 3 ||
+      (evidence != 1 && evidence != 2) ||
+      cleanup == 2 ||
+      cleanup == 4 ||
+      cleanup == 5
+    ) {
+    return false
+  }
+  if cleanup == 4 && !quarantined_capacity {
+    return false
+  }
+  if quarantined_capacity && cleanup != 4 {
+    return false
+  }
+  true
+}
+
+///|
+pub fn prepare_coordinator_site_observation(
+  record : CoordinatorDispatchIntentRecord,
+  site_revision : Int,
+  site_execution : Int,
+  site_evidence : Int,
+  site_cleanup : Int,
+  site_material_available : Bool,
+  site_quarantined_capacity : Bool,
+  evidence : RemoteExecutionEvidence?,
+) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
+  if site_revision < 0 ||
+    !valid_site_observation(
+      site_execution, site_evidence, site_cleanup, site_material_available, site_quarantined_capacity,
+    ) {
+    return Err(InvalidDispatch)
+  }
+  if record.site_revision > site_revision {
+    return Err(StateCollision)
+  }
+  if record.site_revision == site_revision &&
+    record.site_revision >= 0 &&
+    (
+      record.site_execution != site_execution ||
+      record.site_evidence != site_evidence ||
+      record.site_cleanup != site_cleanup ||
+      record.site_material_available != site_material_available ||
+      record.site_quarantined_capacity != site_quarantined_capacity
+    ) {
+    return Err(StateCollision)
+  }
+  let accepted_evidence_cid = match evidence {
+    Some(value) => {
+      if site_evidence != 2 ||
+        !remote_execution_evidence_matches_dispatch(value, record.request) {
+        return Err(InvalidDispatch)
+      }
+      remote_execution_evidence_cid(value)
+    }
+    None => if site_evidence == 2 { record.accepted_evidence_cid } else { "" }
+  }
+  Ok(
+    coordinator_prepare_transition(
+      record,
+      CoordinatorSiteObserved,
+      site_revision,
+      site_execution,
+      site_evidence,
+      site_cleanup,
+      site_material_available,
+      site_quarantined_capacity,
+      accepted_evidence_cid,
+    ),
+  )
+}
+
+///|
+pub fn coordinator_dispatch_transition_projection(
+  transition : CoordinatorDispatchTransition,
+) -> Array[String] {
+  transition.expected + transition.next
+}
+
+///|
+pub fn coordinator_dispatch_transition_journal_key(
+  transition : CoordinatorDispatchTransition,
+) -> Array[String] {
+  dispatch_request_journal_key(transition.record.request)
+}
+
+///|
+pub fn commit_coordinator_dispatch_transition(
+  transition : CoordinatorDispatchTransition,
+  durable : Bool,
+) -> Result[Unit, DispatchIssue] {
+  if transition.consumed {
+    return Err(InvalidTransition)
+  }
+  if !durable {
+    return Err(DurabilityUnconfirmed)
+  }
+  if coordinator_record_projection(transition.record) != transition.expected {
+    return Err(StateCollision)
+  }
+  transition.record.revision += 1
+  transition.record.progress = transition.next_progress
+  transition.record.site_revision = transition.next_site_revision
+  transition.record.site_execution = transition.next_site_execution
+  transition.record.site_evidence = transition.next_site_evidence
+  transition.record.site_cleanup = transition.next_site_cleanup
+  transition.record.site_material_available = transition.next_site_material_available
+  transition.record.site_quarantined_capacity = transition.next_site_quarantined_capacity
+  transition.record.accepted_evidence_cid = transition.next_accepted_evidence_cid
+  transition.consumed = true
+  Ok(())
+}
+
+///|
+pub fn coordinator_completion_evidence_available(
+  record : CoordinatorDispatchIntentRecord,
+) -> Bool {
+  record.progress == CoordinatorSiteObserved &&
+  record.site_execution == 3 &&
+  record.site_evidence == 2 &&
+  record.site_material_available &&
+  record.site_cleanup != 2 &&
+  record.site_cleanup != 4 &&
+  record.site_cleanup != 5 &&
+  valid_cid(record.accepted_evidence_cid)
+}
+
+///|
+pub fn coordinator_dispatch_record_state_codes(
+  record : CoordinatorDispatchIntentRecord,
+) -> Array[String] {
+  coordinator_record_projection(record)
+}
+
+///|
+pub fn coordinator_dispatch_record_revision(
+  record : CoordinatorDispatchIntentRecord,
+) -> Int {
+  record.revision
+}
+
+///|
+pub fn restore_coordinator_dispatch_record(
+  record : CoordinatorDispatchIntentRecord,
+  revision : Int,
+  progress_code : Int,
+  site_revision : Int,
+  site_execution : Int,
+  site_evidence : Int,
+  site_cleanup : Int,
+  site_material_available : Bool,
+  site_quarantined_capacity : Bool,
+  accepted_evidence_cid : String,
+) -> Result[Unit, DispatchIssue] {
+  if record.revision != 0 ||
+    record.progress != CoordinatorIntentDurable ||
+    record.site_revision != -1 ||
+    revision < 0 {
+    return Err(InvalidTransition)
+  }
+  let progress = match coordinator_progress_from_code(progress_code) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if site_revision == -1 {
+    if progress == CoordinatorSiteObserved ||
+      site_execution != -1 ||
+      site_evidence != -1 ||
+      site_cleanup != -1 ||
+      site_material_available ||
+      site_quarantined_capacity ||
+      !accepted_evidence_cid.is_empty() {
+      return Err(InvalidJournal)
+    }
+  } else if site_revision < 0 ||
+    !valid_site_observation(
+      site_execution, site_evidence, site_cleanup, site_material_available, site_quarantined_capacity,
+    ) ||
+    (
+      !accepted_evidence_cid.is_empty() &&
+      (site_evidence != 2 || !valid_cid(accepted_evidence_cid))
+    ) {
+    return Err(InvalidJournal)
+  }
+  record.revision = revision
+  record.progress = progress
+  record.site_revision = site_revision
+  record.site_execution = site_execution
+  record.site_evidence = site_evidence
+  record.site_cleanup = site_cleanup
+  record.site_material_available = site_material_available
+  record.site_quarantined_capacity = site_quarantined_capacity
+  record.accepted_evidence_cid = accepted_evidence_cid
+  Ok(())
 }

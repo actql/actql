@@ -113,6 +113,15 @@ retransmission. Durable evidence bodies are stored with their state transition
 and are re-admitted by the Coordinator through MoonBit canonicalization. A
 transport JSON object or a matching string field is not accepted as evidence.
 
+The Coordinator journal records transport uncertainty, the last exact Site
+revision, and admitted evidence separately. A Site status that reports durable
+evidence does not make common completion eligible unless the corresponding
+canonical evidence body has been received, re-admitted, and durably associated
+with that observation. A lost response advances the Coordinator observation to
+unknown without inventing a Site fact. A later authenticated query may reconcile
+the same dispatch. A lower Site revision, or different state at the same Site
+revision, is a collision rather than a last-writer-wins update.
+
 ## Independent state planes
 
 Execution, evidence, and cleanup are independent facts. A native operation may

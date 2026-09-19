@@ -130,6 +130,62 @@ function remoteSiteControl(moon) {
     restoreCoordinatorIntent: (journal, request) => checked(
       moon.strategyRemoteCoordinatorIntentRestore(journal, request),
     ),
+    prepareCoordinatorUnknown: record => checked(
+      moon.strategyRemoteCoordinatorPrepareUnknown(record),
+    ),
+    prepareCoordinatorObservation(record, observation) {
+      if (observation === null || typeof observation !== 'object' ||
+          !Number.isSafeInteger(observation.revision) ||
+          !Array.isArray(observation.state) ||
+          observation.state.length !== 5) {
+        throw new TypeError('Invalid remote Site observation');
+      }
+      const [execution, evidence, cleanup, available, quarantined] =
+        observation.state;
+      if (observation.evidence === undefined) {
+        return checked(
+          moon.strategyRemoteCoordinatorPrepareObservationWithoutEvidence(
+            record,
+            observation.revision,
+            execution,
+            evidence,
+            cleanup,
+            available === 1,
+            quarantined === 1,
+          ),
+        );
+      }
+      return checked(
+        moon.strategyRemoteCoordinatorPrepareObservationWithEvidence(
+          record,
+          observation.revision,
+          execution,
+          evidence,
+          cleanup,
+          available === 1,
+          quarantined === 1,
+          observation.evidence,
+        ),
+      );
+    },
+    coordinatorTransitionProjection:
+      moon.strategyRemoteCoordinatorTransitionProjection,
+    coordinatorTransitionKey: moon.strategyRemoteCoordinatorTransitionKey,
+    commitCoordinatorTransition: (transition, durable) => checked(
+      moon.strategyRemoteCoordinatorTransitionCommit(transition, durable),
+    ),
+    coordinatorRecordStatus: moon.strategyRemoteCoordinatorRecordStatus,
+    coordinatorRecordRevision: moon.strategyRemoteCoordinatorRecordRevision,
+    restoreCoordinatorRecord: (record, state) => {
+      if (!Array.isArray(state) || state.length !== 9) {
+        throw new TypeError('Invalid remote Coordinator state');
+      }
+      return checked(
+        moon.strategyRemoteCoordinatorRecordRestore(record, ...state),
+      );
+    },
+    coordinatorCompletionEvidenceAvailable:
+      moon.strategyRemoteCoordinatorCompletionEvidenceAvailable,
     createJournal: value => checked(moon.strategyRemoteJournalCreate(value)),
     prepareAdmission: (journal, request) => checked(
       moon.strategyRemoteAdmissionPrepare(journal, request),

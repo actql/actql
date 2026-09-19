@@ -49,14 +49,23 @@ test('Coordinator makes exact intent durable before transport starts',
         calls.push('send');
         throw Object.assign(new Error('ResponseLost'), {code: 'ResponseLost'});
       },
-      query: async () => calls.push('query'),
-      cancel: async () => calls.push('cancel'),
+      query: async () => {
+        calls.push('query');
+        return Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]});
+      },
+      cancel: async () => {
+        calls.push('cancel');
+        return Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]});
+      },
     });
     await assert.rejects(
       coordinator.dispatch({dispatch}),
       {code: 'ResponseLost'},
     );
     assert.equal(store.contains(dispatch, control), true);
+    assert.deepEqual(store.inspectState(dispatch, control), [
+      1, 1, -1, -1, -1, -1, false, false, '',
+    ]);
     await assert.rejects(
       coordinator.dispatch({dispatch: request('dispatch-b')}),
       {code: 'MoonBitHostFailure'},
@@ -65,6 +74,34 @@ test('Coordinator makes exact intent durable before transport starts',
     await coordinator.query({dispatch});
     await coordinator.cancel({dispatch});
     assert.deepEqual(calls, ['send', 'query', 'cancel']);
+    assert.deepEqual(store.inspectState(dispatch, control), [
+      3, 2, 0, 0, 0, 0, false, false, '',
+    ]);
+    assert.equal(
+      coordinator.completionEvidenceAvailable({dispatch}),
+      false,
+    );
+    store.close();
+    const reopenedStore = openSqliteCoordinatorDispatchJournal(root, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => reopenedStore.close());
+    const reopened = createRemoteSiteCoordinator({
+      control,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store: reopenedStore,
+      send: async () => {},
+      query: async () => {},
+      cancel: async () => {},
+    });
+    assert.equal(reopened.recovered.length, 1);
+    assert.deepEqual(reopenedStore.inspectState(dispatch, control), [
+      3, 2, 0, 0, 0, 0, false, false, '',
+    ]);
+    assert.equal(
+      reopened.completionEvidenceAvailable({dispatch}),
+      false,
+    );
   });
 
 test('Coordinator never queries an intent absent from its durable journal',
@@ -89,4 +126,44 @@ test('Coordinator never queries an intent absent from its durable journal',
       {code: 'RemoteDispatchIntentMissing'},
     );
     assert.equal(called, false);
+  });
+
+test('Site status cannot replace evidence or rewrite one Site revision',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-status-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const store = openSqliteCoordinatorDispatchJournal(root, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => store.close());
+    const dispatch = request('dispatch-status');
+    const coordinator = createRemoteSiteCoordinator({
+      control,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      send: async () => Object.freeze({
+        revision: 7,
+        state: [3, 2, 0, 1, 0],
+      }),
+      query: async () => Object.freeze({
+        revision: 7,
+        state: [5, 0, 2, 0, 0],
+      }),
+      cancel: async () => {},
+    });
+    await coordinator.dispatch({dispatch});
+    assert.equal(
+      coordinator.completionEvidenceAvailable({dispatch}),
+      false,
+    );
+    assert.deepEqual(store.inspectState(dispatch, control), [
+      1, 2, 7, 3, 2, 0, true, false, '',
+    ]);
+    await assert.rejects(
+      coordinator.query({dispatch}),
+      {code: 'MoonBitHostFailure'},
+    );
+    assert.deepEqual(store.inspectState(dispatch, control), [
+      2, 1, 7, 3, 2, 0, true, false, '',
+    ]);
   });

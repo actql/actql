@@ -2606,6 +2606,148 @@ pub fn strategy_remote_coordinator_intent_restore(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorPrepareUnknown")
+pub fn strategy_remote_coordinator_prepare_unknown(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
+  match @remote.prepare_coordinator_outcome_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorPrepareObservationWithoutEvidence")
+pub fn strategy_remote_coordinator_prepare_observation_without_evidence(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  site_revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
+  let result = @remote.prepare_coordinator_site_observation(
+    record,
+    site_revision,
+    execution,
+    evidence,
+    cleanup,
+    material_available,
+    quarantined_capacity,
+    None,
+  )
+  match result {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorPrepareObservationWithEvidence")
+pub fn strategy_remote_coordinator_prepare_observation_with_evidence(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  site_revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  admitted_evidence : @remote.RemoteExecutionEvidence,
+) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
+  let result = @remote.prepare_coordinator_site_observation(
+    record,
+    site_revision,
+    execution,
+    evidence,
+    cleanup,
+    material_available,
+    quarantined_capacity,
+    Some(admitted_evidence),
+  )
+  match result {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorTransitionProjection")
+pub fn strategy_remote_coordinator_transition_projection(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Array[String] {
+  @remote.coordinator_dispatch_transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorTransitionKey")
+pub fn strategy_remote_coordinator_transition_key(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Array[String] {
+  @remote.coordinator_dispatch_transition_journal_key(transition)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorTransitionCommit")
+pub fn strategy_remote_coordinator_transition_commit(
+  transition : @remote.CoordinatorDispatchTransition,
+  durable : Bool,
+) -> Unit raise NodeHostFailure {
+  match @remote.commit_coordinator_dispatch_transition(transition, durable) {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRecordStatus")
+pub fn strategy_remote_coordinator_record_status(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Array[String] {
+  @remote.coordinator_dispatch_record_state_codes(record)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRecordRevision")
+pub fn strategy_remote_coordinator_record_revision(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Int {
+  @remote.coordinator_dispatch_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRecordRestore")
+pub fn strategy_remote_coordinator_record_restore(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  revision : Int,
+  progress : Int,
+  site_revision : Int,
+  execution : Int,
+  evidence : Int,
+  cleanup : Int,
+  material_available : Bool,
+  quarantined_capacity : Bool,
+  evidence_cid : String,
+) -> Unit raise NodeHostFailure {
+  let result = @remote.restore_coordinator_dispatch_record(
+    record, revision, progress, site_revision, execution, evidence, cleanup, material_available,
+    quarantined_capacity, evidence_cid,
+  )
+  match result {
+    Ok(_) => ()
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorCompletionEvidenceAvailable")
+pub fn strategy_remote_coordinator_completion_evidence_available(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_completion_evidence_available(record)
+}
+
+///|
 #export_name("strategyRemoteJournalCreate")
 pub fn strategy_remote_journal_create(
   site : @site.ExecutionSite,
