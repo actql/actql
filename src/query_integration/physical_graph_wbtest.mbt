@@ -21,6 +21,7 @@ fn physical_graph_owners(
       Some(values),
       max_parameters=100,
       max_name_bytes=10000,
+      expression_profiles=checked_expression_profile_admission(program),
     ).unwrap()
   })
 }
@@ -92,6 +93,7 @@ fn captured_graph_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
@@ -139,6 +141,7 @@ fn captured_graph_fixture(
     local_carrier_events_chain~,
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
+    local_vector_expression_chain~,
     local_values_analytic_chain~,
     local_values_analytic_variant~,
     local_values_append_chain~,

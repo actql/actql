@@ -25,6 +25,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
+  local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
   local_values_analytic_variant? : String = "baseline",
   local_values_append_chain? : Bool = false,
@@ -87,6 +88,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_carrier_vectors_chain {
     local_carrier_vectors_program(variant=local_carrier_vectors_variant)
+  } else {
+    text
+  }
+  let text = if local_vector_expression_chain {
+    local_vector_expression_program()
   } else {
     text
   }
@@ -505,7 +511,10 @@ fn query_checked_program_fixture(
       program,
       @program_check.checking_environment(
         environment,
-        { text_time: false, veca: local_carrier_vectors_chain, },
+        {
+          text_time: false,
+          veca: local_carrier_vectors_chain || local_vector_expression_chain,
+        },
         {
           rela: true,
           sga: false,
@@ -1141,6 +1150,14 @@ fn local_values_append_program(variant : String) -> String {
 }
 
 ///|
+fn checked_expression_profile_admission(
+  checked : @program_check.CheckedProgram,
+) -> @lower.ExpressionProfileAdmission {
+  let profiles = @program_check.selected_expression_profiles(checked)
+  { text_time: profiles.text_time, veca: profiles.veca, }
+}
+
+///|
 test "query Program reaches the public main checked entry" {
   let checked = query_checked_program_fixture()
   assert_eq(@program_check.unit_count(checked), 1)
@@ -1186,6 +1203,7 @@ fn query_checked_sequence(
     Some(values),
     max_parameters=100,
     max_name_bytes=10000,
+    expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
   @query.prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
 }

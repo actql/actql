@@ -395,6 +395,8 @@ pub fn publication_source_policy(PublicationExecution) -> PublicationSourcePolic
 
 pub fn requirements(CheckedProgram) -> @pipeline_check_context.StageRequirementClosure
 
+pub fn selected_expression_profiles(CheckedProgram) -> @pipeline_check_context.ExpressionProfiles
+
 pub fn sequence_limit_claim(SequenceLimit, @capacity_sequence_limit.Scope) -> @capacity_witness.LimitClaim
 
 pub fn sequence_limit_selection(SequenceLimit) -> @pipeline_check_context.SequenceLimitsCheck

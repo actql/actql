@@ -9,6 +9,7 @@ struct CheckedProgram {
   asof_search_limits : Array[Array[AsOfSearchLimit]]
   window_limits : Array[Array[WindowLimit]]
   input_completeness : Array[Array[InputCompletenessRequirement]]
+  expression_profiles : @context.ExpressionProfiles
   identity : @context.ProgramSourceIdentity
   requirements : @context.StageRequirementClosure
   gates : @context.ProgramIncomingGates
@@ -314,6 +315,7 @@ fn check(
     asof_search_limits,
     window_limits,
     input_completeness,
+    expression_profiles,
     identity,
     requirements,
     gates,

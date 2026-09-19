@@ -18,6 +18,10 @@ test "source construction exposes owned admission activation and publication dec
   let closed = requirements(program)
   let gates = incoming_gates(program)
   let contracts = contract_inventory(program)
+  assert_eq(selected_expression_profiles(program), {
+    text_time: false,
+    veca: false,
+  })
   // This consumer receives construction output only. It neither reads source
   // text nor runs a resolver to reconstruct the decisions it consumes.
   let owner = @context.stage_requirement_owner(closed)

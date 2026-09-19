@@ -46,6 +46,48 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
 }
 
 ///|
+fn local_vector_expression_program() -> String {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"left\":{\"type\":\"vector\",\"dimensions\":2," +
+    "\"nullable\":false},\"right\":{\"type\":\"vector\"," +
+    "\"dimensions\":2,\"nullable\":false}}"
+  let fields = "[\"id\",\"score\",\"joined\"]"
+  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
+  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
+  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
+  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
+  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
+  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
+  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
+  "\"id\":\"vectors\",\"inputs\":{},\"steps\":[{\"values\":{" +
+  "\"schema\":" +
+  schema +
+  ",\"rows\":[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{" +
+  "\"id\":2,\"left\":[2,1],\"right\":[4,3]}]},\"as\":\"seed\"},{" +
+  "\"from\":\"seed\",\"derive\":{\"score\":{" +
+  "\"vector_score\":{\"left\":{\"field\":\"left\"}," +
+  "\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}}}," +
+  "\"as\":\"scored\"},{\"from\":\"scored\",\"derive\":{" +
+  "\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{" +
+  "\"field\":\"left\"}]}},\"as\":\"out\"}],\"results\":{" +
+  "\"r\":{\"from\":\"out\",\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":" +
+  fields +
+  ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
+  "\"fields\":" +
+  fields +
+  "}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
+  "\"stage\":\"vectors\",\"result\":\"r\"}}},\"steps\":[{" +
+  "\"select\":[\"joined\",\"score\",\"id\"],\"as\":\"out\"}]," +
+  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
+  "\"joined\",\"score\",\"id\"]}}}],\"results\":{\"source\":{" +
+  "\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+}
+
+///|
 fn carrier_vectors_storage_limits() -> @record_storage.Limits {
   {
     max_input_records: 10,

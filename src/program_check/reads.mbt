@@ -22,6 +22,15 @@ pub fn contract_inventory(
 }
 
 ///|
+/// Exact expression profiles admitted while checking this Program. These are
+/// lowering inputs, not backend capabilities or an execution permit.
+pub fn selected_expression_profiles(
+  program : CheckedProgram,
+) -> @context.ExpressionProfiles {
+  program.expression_profiles
+}
+
+///|
 pub fn unit_contract_count(program : CheckedProgram, unit : Int) -> Int? {
   program.units.get(unit).map(value => value.contracts.length())
 }
