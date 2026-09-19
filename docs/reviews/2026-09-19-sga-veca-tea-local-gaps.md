@@ -157,8 +157,18 @@ The independent fixed-bit corpus exercises every score metric and its specified
 rounding and failure boundaries. Scoring now reaches the standard Host through
 the same registered Vectors provider. Environment cancellation delivery,
 independent Carrier consumer release, and publication remain open, so scoring
-is not complete. The other three VecA operations still lack
-portable Local kernels.
+is not complete. Pooling now lowers both Vectors and Relation source forms.
+The Relation form admits its finite identity-completion expansion before
+emission. The Vectors form executes mean, sum, and max as bounded deterministic
+folds after global semantic-identity validation and orders output groups by
+their typed keys. It admits sort, key, vector, and output workspace before
+construction and reaches the standard Host through the registered Vectors
+provider. Portable tests cover exact input binding, all three reductions,
+renamed output identity, exact/short workspace, cancellation observation, and
+two exact downstream reads on JS, Wasm, and native. The author-visible Relation
+form, an actual same-Carrier consumer, environment cancellation delivery, and
+publication remain open, so pooling is partial. Nearest-neighbor execution and
+ranking merge still lack portable Local kernels.
 `vector_score` now requires explicit selected-profile admission, retains both
 structured operand paths in canonical lowering, and evaluates each operand
 once. Its metric fold advances one component per resumable step and preserves
@@ -286,6 +296,15 @@ and final ledger reclamation. The affected TEA, provider, and query integration
 suites pass 361 tests on each of JS, Wasm, and native. The portable API,
 format, and family coverage gates pass. This does not prove standalone Events
 consumer lifetime, environment cancellation delivery, or publication.
+
+At `cf7b9326`, direct Vectors pooling runs through the registered provider and
+the standard Host, then returns through the Vectors-to-Relation Bridge to two
+downstream computations. The affected Local VecA and query-integration suites
+pass 373 tests on each of JS, Wasm, and native. The same SHA covers mean, sum,
+max, output identity aliases, exact input binding, resource admission, and
+kernel cancellation observation. This is not evidence for author-visible
+Relation pooling, an actual same-Carrier consumer, environment cancellation
+delivery, or publication.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

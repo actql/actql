@@ -477,8 +477,24 @@
       "output": "vectors",
       "canonical": ["VEC.pool"],
       "variants": ["relation/vectors", "mean/sum/max", "single/composite group", "output id"],
-      "status": "missing",
-      "owner": "local-veca"
+      "status": "partial",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/vector_numeric/numeric_wbtest.mbt",
+        "src/local_veca/pool_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
+      ]
     },
     {
       "family": "VecA",
