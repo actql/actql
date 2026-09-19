@@ -10,7 +10,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Area | Baseline state | Required closure |
 |---|---|---|
 | Canonical AoA | Closed: the selected registry contains the complete fixed family set and typed variable-arity contracts | Preserve the selected registry, AoA profile, CIDs, pins, and independent vectors during implementation |
-| Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, event watermarking, and `vector_score` reach typed canonical occurrences; the remaining TEA, VecA, Bridge, and `vector_concat` forms remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
+| Lowering | All seventeen SGA operations, both record-producing Bridges, vector normalization and scoring, event watermarking, and both VecA expressions reach typed canonical occurrences; the remaining TEA operations, VecA operations, and Bridges remain unimplemented | Produce complete checked typed AoA without frontend rediscovery |
 | DAG inputs | Closed: the common captured DAG, managed request, dispatch, cancellation, and cleanup paths retain ordered input positions without a two-input ceiling | Preserve edge position, producer port, binding, ownership, and accounting as family execution is connected |
 | Completion | Common lifecycle and physical task completion retain exact Relation, Graph, Events, and Vectors occurrences; one registered Events pipeline now reaches common managed completion and two Relation consumers | Extend the registered boundary to every Carrier-producing operation and principal variant |
 | Runtime material | Bounded immutable Graph and finite-record storage preserve Carrier laws; the first registered provider connects rows-to-Events, watermarking, and Events-to-rows without an intermediate wire copy | Register the remaining family kernels and direct Carrier outputs without forced copies |
@@ -143,9 +143,13 @@ once. Its metric fold advances one component per resumable step and preserves
 temporary root and workspace custody through success or failure. The lowering,
 canonical reference, exact numeric, eager NULL, and bounded-step regressions
 pass on JS, Wasm, and native. Standard Host propagation of the selected VecA
-expression profile remains open, so this expression is partial. `vector_concat`
-is accepted by expression typing but remains rejected by shared expression
-lowering and has no evaluator implementation.
+expression profile remains open, so this expression is partial.
+`vector_concat` now preserves authored operand and component order, evaluates
+every operand eagerly once, and builds one output component per resumable step.
+It admits work and workspace before builder construction and cancels private
+output before releasing reservations. Two- and three-operand, NULL, missing
+operand, cancellation, and exact/short resource cases pass on JS, Wasm, and
+native. Standard Host profile propagation remains open, so concat is partial.
 Common immutable record storage preserves composite vector identities,
 admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
@@ -205,6 +209,11 @@ each of JS, Wasm, and native. JS checking, formatting, and the tracked portable
 API gate also pass. This is focused evidence for `vector_score`; it does not
 establish its standard Host profile propagation or any remaining completion
 layer.
+
+At `78ec134f`, the same packages pass 871 tests on each target, with focused
+concat cancellation coverage passing on all three. JS checking, formatting,
+and the tracked portable API gate pass. This remains expression-layer evidence,
+not standard Host completion evidence.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

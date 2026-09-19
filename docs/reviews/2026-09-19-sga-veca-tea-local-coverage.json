@@ -616,8 +616,22 @@
       "output": "vector",
       "canonical": ["expression.vector_concat"],
       "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
-      "status": "missing",
-      "owner": "local-veca"
+      "status": "partial",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/expression_test.mbt",
+        "src/lowering_relation/ordered_references_test.mbt",
+        "src/execution_relation/expression_wbtest.mbt"
+      ]
     }
   ],
   "evidence": [],
