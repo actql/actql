@@ -88,7 +88,16 @@ downstream producer reads on JS, Wasm, and native. Environment cancellation
 delivery, independent consumer release, and standard Host selection remain
 open, so normalization is not complete. Checked typed lowering also emits
 `VEC.score_sort`, including bound query values, without reading frontend syntax
-again. The other four VecA operations still lack portable Local kernels.
+again. Scoring now executes the pinned dot, cosine, and negative-L2 folds,
+orders finite results by descending score and typed semantic identity, and
+constructs a distinct managed Vectors generation through bounded work units.
+It admits query, ordering, temporary, and retained-output workspace before
+execution. Portable tests cover empty-input query validation, score ties,
+cancellation observation, two exact downstream reads, and JS, Wasm, and native.
+The independent numerical corpus, standard Host selection, environment
+cancellation delivery, independent consumer release, and publication remain
+open, so scoring is not complete. The other three VecA operations still lack
+portable Local kernels.
 `vector_score` and `vector_concat` are accepted by expression typing but still
 rejected by shared expression lowering and have no evaluator implementation.
 Common immutable record storage preserves composite vector identities,

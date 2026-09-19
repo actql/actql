@@ -384,8 +384,21 @@
       "variants": ["literal/parameter query", "cosine/dot/l2", "score ties"],
       "status": "partial",
       "owner": "local-veca",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/vector_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/vector_numeric/numeric_wbtest.mbt",
+        "src/value_admission/key_order_wbtest.mbt",
+        "src/local_veca/score_wbtest.mbt"
+      ]
     },
     {
       "family": "VecA",
