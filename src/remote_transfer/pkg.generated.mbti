@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_transfer"
+
+import {
+  "actql/actql/physical_manifest",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
+
+pub fn prepare_request(String, String, RemoteTransferRoute, String, Int, String, Int, String, @physical_manifest.PhysicalManifest, Int64, Int64, String, String, String) -> Result[RemoteTransferRequest, RemoteTransferIssue]
+
+pub fn request_cid(RemoteTransferRequest) -> String
+
+pub fn request_json(RemoteTransferRequest) -> Result[String, RemoteTransferIssue]
+
+pub fn request_projection(RemoteTransferRequest) -> Array[String]
+
+pub fn request_route(RemoteTransferRequest) -> RemoteTransferRoute
+
+// Errors
+
+// Types and methods
+pub(all) enum RemoteTransferIssue {
+  InvalidTransfer
+  TransferIdentityMismatch
+  TransferCapacityExceeded
+} derive(Eq, @debug.Debug)
+
+type RemoteTransferRequest
+
+pub(all) enum RemoteTransferRoute {
+  DirectStream
+  TransferStore
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

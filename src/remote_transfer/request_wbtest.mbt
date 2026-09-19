@@ -1,0 +1,119 @@
+///|
+fn transfer_cid(unit : String) -> String {
+  "sha256:" + unit.repeat(64)
+}
+
+///|
+fn transfer_manifest() -> @manifest.PhysicalManifest {
+  @manifest.admit(
+    "actql-managed-physical-manifest/0.1",
+    transfer_cid("1"),
+    transfer_cid("2"),
+    transfer_cid("3"),
+    2,
+    [transfer_cid("a"), transfer_cid("b")],
+    [5L, 7L],
+    [1, 1],
+    2,
+    4096,
+    12L,
+  ).unwrap()
+}
+
+///|
+fn transfer_request(route : RemoteTransferRoute) -> RemoteTransferRequest {
+  prepare_request(
+    "coordinator-a",
+    "transfer-1",
+    route,
+    "source-a",
+    4,
+    "destination-b",
+    9,
+    "material-source-1",
+    transfer_manifest(),
+    16L,
+    2000000000000L,
+    transfer_cid("4"),
+    transfer_cid("5"),
+    transfer_cid("6"),
+  ).unwrap()
+}
+
+///|
+test "direct and Store routes have distinct stable identities" {
+  let direct = transfer_request(DirectStream)
+  let store = transfer_request(TransferStore)
+  assert_eq(
+    request_cid(direct),
+    "sha256:d55289cdc96cffdeb8a98998e935455720799d3fc3b34e4c3267fb6f2e0c1f03",
+  )
+  assert_not_eq(request_cid(direct), request_cid(store))
+  assert_true(request_json(direct).unwrap().contains("\"route\":\"direct\""))
+  assert_true(request_json(store).unwrap().contains("\"route\":\"store\""))
+  assert_eq(request_projection(direct)[8], "16")
+}
+
+///|
+test "remote Transfer rejects insufficient capacity and forged manifests" {
+  let physical = transfer_manifest()
+  assert_true(
+    prepare_request(
+      "coordinator-a",
+      "transfer-1",
+      DirectStream,
+      "source-a",
+      4,
+      "destination-b",
+      9,
+      "material-source-1",
+      physical,
+      11L,
+      2000000000000L,
+      transfer_cid("4"),
+      transfer_cid("5"),
+      transfer_cid("6"),
+    )
+    is Err(TransferCapacityExceeded),
+  )
+  let forged = { ..physical, manifest_cid: transfer_cid("f"), }
+  assert_true(
+    prepare_request(
+      "coordinator-a",
+      "transfer-1",
+      DirectStream,
+      "source-a",
+      4,
+      "destination-b",
+      9,
+      "material-source-1",
+      forged,
+      16L,
+      2000000000000L,
+      transfer_cid("4"),
+      transfer_cid("5"),
+      transfer_cid("6"),
+    )
+    is Err(InvalidTransfer),
+  )
+  assert_true(
+    admit_request(
+      "coordinator-a",
+      "transfer-1",
+      DirectStream,
+      "source-a",
+      4,
+      "destination-b",
+      9,
+      "material-source-1",
+      physical,
+      16L,
+      2000000000000L,
+      transfer_cid("4"),
+      transfer_cid("5"),
+      transfer_cid("6"),
+      transfer_cid("f"),
+    )
+    is Err(TransferIdentityMismatch),
+  )
+}

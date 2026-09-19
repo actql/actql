@@ -1,0 +1,7 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/encode_core" @encode,
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/sha256" @sha,
+}
