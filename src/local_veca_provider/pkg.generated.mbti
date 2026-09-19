@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/local_veca_provider"
+
+import {
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation",
+  "actql/actql/managed_record_storage",
+}
+
+// Values
+pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
