@@ -440,3 +440,153 @@ pub fn commit_transition(
 pub fn record_projection(record : RemoteTransferRecord) -> Array[Int] {
   record_state_projection(record)
 }
+
+///|
+pub fn record_revision(record : RemoteTransferRecord) -> Int {
+  record.revision
+}
+
+///|
+fn restored_state_valid(record : RemoteTransferRecord) -> Bool {
+  if record.revision < 0 {
+    return false
+  }
+  let direct_object = record.request.route == DirectStream &&
+    record.object == NoTransferObject &&
+    record.object_use_released
+  let store_object = record.request.route == TransferStore &&
+    (
+      record.object == TransferObjectReserved ||
+      record.object == TransferObjectUploading ||
+      record.object == TransferObjectSealed
+    )
+  if !direct_object && !store_object {
+    return false
+  }
+  match record.attempt {
+    TransferAdmitted =>
+      record.revision == 0 &&
+      record.integrity == TransferIntegrityPending &&
+      record.cleanup == TransferCleanupActive &&
+      !record.source_access_stopped &&
+      !record.destination_temporary_reclaimed &&
+      !record.destination_material_available &&
+      (
+        record.request.route == DirectStream ||
+        record.object == TransferObjectReserved
+      )
+    TransferCopying =>
+      record.revision > 0 &&
+      record.cleanup == TransferCleanupActive &&
+      !record.destination_temporary_reclaimed &&
+      !record.destination_material_available &&
+      (if record.source_access_stopped {
+        record.revision >= 2 &&
+        record.integrity != TransferIntegrityPending &&
+        (
+          record.request.route == DirectStream ||
+          record.object == TransferObjectSealed
+        )
+      } else {
+        record.integrity == TransferIntegrityPending &&
+        (
+          record.request.route == DirectStream ||
+          record.object == TransferObjectUploading
+        )
+      })
+    TransferDestinationCommitted =>
+      record.revision >= 3 &&
+      record.integrity == TransferIntegrityVerified &&
+      record.source_access_stopped &&
+      record.destination_temporary_reclaimed &&
+      record.destination_material_available &&
+      (
+        record.cleanup == TransferCleanupActive ||
+        record.cleanup == TransferCleanupReleased
+      ) &&
+      (
+        record.request.route == DirectStream ||
+        record.object == TransferObjectSealed
+      )
+    TransferFailed | TransferCancelled =>
+      record.revision > 0 &&
+      !record.destination_material_available &&
+      (
+        record.cleanup == TransferCleanupActive ||
+        record.cleanup == TransferCleanupReleased
+      ) &&
+      (
+        record.cleanup != TransferCleanupReleased ||
+        (
+          record.source_access_stopped &&
+          record.destination_temporary_reclaimed &&
+          record.object_use_released
+        )
+      )
+    TransferUnknown =>
+      record.revision > 0 &&
+      record.cleanup == TransferCleanupUnknown &&
+      !record.destination_material_available
+  }
+}
+
+///|
+/// Restore only a closed durable state. The journal supplies physical
+/// persistence; MoonBit remains the authority for valid state combinations.
+pub fn restore_record(
+  request : RemoteTransferRequest,
+  state : Array[Int],
+) -> Result[RemoteTransferRecord, RemoteTransferIssue] {
+  if !valid_request_fields(request) || state.length() != 9 {
+    return Err(InvalidTransfer)
+  }
+  let record : RemoteTransferRecord = {
+    request,
+    revision: state[0],
+    attempt: match state[1] {
+      0 => TransferAdmitted
+      1 => TransferCopying
+      2 => TransferDestinationCommitted
+      3 => TransferFailed
+      4 => TransferCancelled
+      5 => TransferUnknown
+      _ => return Err(InvalidTransfer)
+    },
+    object: match state[2] {
+      0 => NoTransferObject
+      1 => TransferObjectReserved
+      2 => TransferObjectUploading
+      3 => TransferObjectSealed
+      4 => TransferObjectReclaimed
+      _ => return Err(InvalidTransfer)
+    },
+    integrity: match state[3] {
+      0 => TransferIntegrityPending
+      1 => TransferIntegrityVerified
+      2 => TransferIntegrityRejected
+      _ => return Err(InvalidTransfer)
+    },
+    cleanup: match state[4] {
+      0 => TransferCleanupActive
+      1 => TransferCleanupReleased
+      2 => TransferCleanupUnknown
+      3 => TransferCleanupForceLost
+      4 => TransferCleanupRecoveredAfterLoss
+      _ => return Err(InvalidTransfer)
+    },
+    source_access_stopped: state[5] == 1,
+    destination_temporary_reclaimed: state[6] == 1,
+    object_use_released: state[7] == 1,
+    destination_material_available: state[8] == 1,
+  }
+  for index = 5; index < 9; index = index + 1 {
+    if state[index] != 0 && state[index] != 1 {
+      return Err(InvalidTransfer)
+    }
+  }
+  if restored_state_valid(record) {
+    Ok(record)
+  } else {
+    Err(InvalidTransfer)
+  }
+}

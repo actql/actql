@@ -618,6 +618,7 @@ function remoteTransferControl(moon) {
       ));
     },
     requestProjection: moon.strategyRemoteTransferProjection,
+    journalKey: moon.strategyRemoteTransferJournalKey,
     open: moon.strategyRemoteTransferOpen,
     prepareStart: value => checked(
       moon.strategyRemoteTransferStartPrepare(value),
@@ -660,6 +661,14 @@ function remoteTransferControl(moon) {
       moon.strategyRemoteTransferTransitionCommit(value, durable),
     ),
     recordProjection: moon.strategyRemoteTransferRecordProjection,
+    revision: moon.strategyRemoteTransferRecordRevision,
+    restore: (request, state) => {
+      if (!Array.isArray(state) || state.length !== 9 ||
+          state.some(value => !Number.isSafeInteger(value))) {
+        throw new TypeError('Invalid Remote Transfer state');
+      }
+      return checked(moon.strategyRemoteTransferRecordRestore(request, state));
+    },
   });
   remoteTransferControls.set(moon, control);
   return control;

@@ -540,6 +540,8 @@ pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferR
 
 pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
 
+pub fn strategy_remote_transfer_journal_key(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
 pub fn strategy_remote_transfer_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_transfer_manifest_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
@@ -551,6 +553,10 @@ pub fn strategy_remote_transfer_prepare(String, String, Int, String, Int, String
 pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
 
 pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
+
+pub fn strategy_remote_transfer_record_restore(@remote_transfer.RemoteTransferRequest, Array[Int]) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
 
 pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 

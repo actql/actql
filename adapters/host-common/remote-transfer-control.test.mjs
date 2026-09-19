@@ -75,6 +75,29 @@ test('Remote Transfer canonical wire is admitted by common control', () => {
   ));
 });
 
+test('Remote Transfer durable state is restored by common control', () => {
+  const requestValue = control.prepare(request('direct'));
+  const record = control.open(requestValue);
+  commit(control.prepareStart(record));
+  const restored = control.restore(
+    requestValue,
+    control.recordProjection(record),
+  );
+  assert.deepEqual(
+    control.recordProjection(restored),
+    control.recordProjection(record),
+  );
+  assert.equal(control.revision(restored), 1);
+  assert.deepEqual(
+    control.journalKey(requestValue),
+    ['coordinator-a', 'destination-b', '2', 'transfer-a'],
+  );
+  assert.throws(() => control.restore(
+    requestValue,
+    [1, 2, 0, 1, 0, 1, 1, 1, 1],
+  ));
+});
+
 test('direct Transfer commits only after durable stop and integrity', () => {
   const record = control.open(control.prepare(request('direct')));
   commit(control.prepareStart(record));

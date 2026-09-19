@@ -75,3 +75,22 @@ test "unknown Transfer cannot become released by optimistic observations" {
   assert_true(commit_transition(transition, false) is Err(InvalidTransfer))
   assert_eq(record_projection(record)[0], 2)
 }
+
+///|
+test "durable Transfer state restores only valid route combinations" {
+  let request = state_request(DirectStream)
+  let record = open_record(request)
+  ignore(apply(prepare_start(record).unwrap()))
+  let restored = restore_record(request, record_projection(record)).unwrap()
+  assert_eq(record_projection(restored), record_projection(record))
+  assert_eq(record_revision(restored), 1)
+  assert_eq(request_journal_key(request), [
+    "coordinator-a", "destination-b", "2", "transfer-state-1",
+  ])
+  assert_true(
+    restore_record(request, [1, 2, 0, 1, 0, 1, 1, 1, 1]) is Err(InvalidTransfer),
+  )
+  assert_true(
+    restore_record(request, [1, 1, 0, 0, 0, 2, 0, 1, 0]) is Err(InvalidTransfer),
+  )
+}

@@ -4363,6 +4363,14 @@ pub fn strategy_remote_transfer_projection(
 }
 
 ///|
+#export_name("strategyRemoteTransferJournalKey")
+pub fn strategy_remote_transfer_journal_key(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
+  @transfer.request_journal_key(request)
+}
+
+///|
 #export_name("strategyRemoteTransferOpen")
 pub fn strategy_remote_transfer_open(
   request : @transfer.RemoteTransferRequest,
@@ -4475,6 +4483,26 @@ pub fn strategy_remote_transfer_record_projection(
   record : @transfer.RemoteTransferRecord,
 ) -> Array[Int] {
   @transfer.record_projection(record)
+}
+
+///|
+#export_name("strategyRemoteTransferRecordRevision")
+pub fn strategy_remote_transfer_record_revision(
+  record : @transfer.RemoteTransferRecord,
+) -> Int {
+  @transfer.record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteTransferRecordRestore")
+pub fn strategy_remote_transfer_record_restore(
+  request : @transfer.RemoteTransferRequest,
+  state : Array[Int],
+) -> @transfer.RemoteTransferRecord raise NodeHostFailure {
+  match @transfer.restore_record(request, state) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
 }
 
 ///|

@@ -485,6 +485,18 @@ pub fn request_route(request : RemoteTransferRequest) -> RemoteTransferRoute {
 }
 
 ///|
+/// Durable destination journals key one Transfer occurrence independently
+/// from its content identity. Exact request equality is checked separately.
+pub fn request_journal_key(request : RemoteTransferRequest) -> Array[String] {
+  [
+    request.coordinator_authority,
+    request.destination_site_key,
+    request.destination_site_generation.to_string(),
+    request.transfer_attempt,
+  ]
+}
+
+///|
 pub fn request_projection(request : RemoteTransferRequest) -> Array[String] {
   [
     request.request_cid,
