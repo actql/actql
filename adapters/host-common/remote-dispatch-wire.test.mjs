@@ -6,6 +6,7 @@ import {runtimeCore} from './runtime-core.mjs';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputMeasurementJson,
   admitRemoteManagedOutputSubjectJson,
 } from
   './remote-dispatch-wire.mjs';
@@ -166,6 +167,18 @@ test('evidence decoding recomputes identity and exact dispatch binding', () => {
 
 test('managed output decoding binds canonical physical and logical facts', () => {
   const request = prepared();
+  const measurement = control.prepareManagedOutputMeasurement(Object.freeze({
+    rowCount: 2,
+    admissionNodes: 0,
+    admissionTextBytes: 0,
+    admissionWork: 0,
+    columnRows: Object.freeze([2]),
+    columnBytes: Object.freeze([2]),
+    columnNodes: Object.freeze([2]),
+    columnMaxValueBytes: Object.freeze([1]),
+    columnNullRows: Object.freeze([0]),
+    columnAdmittedDepths: Object.freeze([10]),
+  }));
   const subject = control.prepareManagedOutputSubject(request, Object.freeze({
     materialGeneration: 'material-generation-a',
     holdingEvidenceCid: cid('c'),
@@ -176,7 +189,25 @@ test('managed output decoding binds canonical physical and logical facts', () =>
     physicalManifestCid: cid('8'),
     rowCount: 2,
     retainedBytes: 8n,
-  }));
+  }), measurement);
+  const measurementBody = control.managedOutputMeasurementJson(measurement);
+  const admittedMeasurement = admitRemoteManagedOutputMeasurementJson(
+    control,
+    measurementBody,
+    control.managedOutputMeasurementIdentity(measurement),
+  );
+  assert.equal(
+    control.managedOutputMeasurementIdentity(admittedMeasurement),
+    control.managedOutputMeasurementIdentity(measurement),
+  );
+  assert.throws(
+    () => admitRemoteManagedOutputMeasurementJson(
+      control,
+      measurementBody.replace('"bytes":2', '"bytes":3'),
+      control.managedOutputMeasurementIdentity(measurement),
+    ),
+    {code: 'InvalidRemoteManagedOutputMeasurementWire'},
+  );
   const body = control.managedOutputSubjectJson(subject);
   const admitted = admitRemoteManagedOutputSubjectJson(
     control,
@@ -187,6 +218,27 @@ test('managed output decoding binds canonical physical and logical facts', () =>
   assert.equal(
     control.managedOutputSubjectIdentity(admitted),
     control.managedOutputSubjectIdentity(subject),
+  );
+  const differentMeasurement = control.prepareManagedOutputMeasurement(
+    Object.freeze({
+      rowCount: 2,
+      admissionNodes: 1,
+      admissionTextBytes: 0,
+      admissionWork: 0,
+      columnRows: Object.freeze([2]),
+      columnBytes: Object.freeze([2]),
+      columnNodes: Object.freeze([2]),
+      columnMaxValueBytes: Object.freeze([1]),
+      columnNullRows: Object.freeze([0]),
+      columnAdmittedDepths: Object.freeze([10]),
+    }),
+  );
+  assert.equal(
+    control.managedOutputSubjectMatchesMeasurement(
+      admitted,
+      differentMeasurement,
+    ),
+    false,
   );
   const altered = body.replace('"row_count":2', '"row_count":3');
   assert.throws(

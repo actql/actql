@@ -2824,6 +2824,7 @@ pub fn strategy_remote_coordinator_prepare_managed_output_observation(
   quarantined_capacity : Bool,
   admitted_evidence : @remote.RemoteExecutionEvidence,
   admitted_subject : @remote.RemoteManagedOutputSubject,
+  admitted_measurement : @remote.RemoteManagedOutputMeasurement,
 ) -> @remote.CoordinatorDispatchTransition raise NodeHostFailure {
   let result = @remote.prepare_coordinator_managed_output_observation(
     record,
@@ -2835,6 +2836,7 @@ pub fn strategy_remote_coordinator_prepare_managed_output_observation(
     quarantined_capacity,
     admitted_evidence,
     admitted_subject,
+    admitted_measurement,
   )
   match result {
     Ok(value) => value
@@ -2900,6 +2902,7 @@ pub fn strategy_remote_coordinator_record_restore(
   quarantined_capacity : Bool,
   evidence_cid : String,
   subject_cid : String,
+  measurement_cid : String,
 ) -> Unit raise NodeHostFailure {
   let result = @remote.restore_coordinator_dispatch_record(
     record,
@@ -2913,6 +2916,7 @@ pub fn strategy_remote_coordinator_record_restore(
     quarantined_capacity,
     evidence_cid,
     subject_cid,
+    measurement_cid,
   )
   match result {
     Ok(_) => ()
@@ -3165,6 +3169,7 @@ pub fn strategy_remote_managed_output_subject_prepare(
   logical_view_cid : String,
   representation_codec_cid : String,
   physical_manifest_cid : String,
+  measurement_evidence_cid : String,
   row_count : Int,
   retained_bytes : Int64,
 ) -> @remote.RemoteManagedOutputSubject raise NodeHostFailure {
@@ -3178,6 +3183,7 @@ pub fn strategy_remote_managed_output_subject_prepare(
       logical_view_cid,
       representation_codec_cid,
       physical_manifest_cid,
+      measurement_evidence_cid,
       row_count,
       retained_bytes,
     ) {
@@ -3203,6 +3209,7 @@ pub fn strategy_remote_managed_output_subject_admit(
   logical_view_cid : String,
   representation_codec_cid : String,
   physical_manifest_cid : String,
+  measurement_evidence_cid : String,
   row_count : Int,
   retained_bytes : Int64,
   claimed_subject_cid : String,
@@ -3217,6 +3224,7 @@ pub fn strategy_remote_managed_output_subject_admit(
       logical_view_cid,
       representation_codec_cid,
       physical_manifest_cid,
+      measurement_evidence_cid,
       row_count,
       retained_bytes,
       claimed_subject_cid,
@@ -3251,6 +3259,111 @@ pub fn strategy_remote_managed_output_subject_projection(
   subject : @remote.RemoteManagedOutputSubject,
 ) -> Array[String] {
   @remote.remote_managed_output_subject_projection(subject)
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementPrepare")
+pub fn strategy_remote_managed_output_measurement_prepare(
+  row_count : Int,
+  admission_nodes : Int,
+  admission_text_bytes : Int,
+  admission_work : Int,
+  column_rows : Array[Int],
+  column_bytes : Array[Int],
+  column_nodes : Array[Int],
+  column_max_value_bytes : Array[Int],
+  column_null_rows : Array[Int],
+  column_admitted_depths : Array[Int],
+) -> @remote.RemoteManagedOutputMeasurement raise NodeHostFailure {
+  match
+    @remote.prepare_remote_managed_output_measurement(
+      row_count,
+      admission_nodes,
+      admission_text_bytes,
+      admission_work,
+      column_rows,
+      column_bytes,
+      column_nodes,
+      column_max_value_bytes,
+      column_null_rows,
+      column_admitted_depths,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementAdmit")
+pub fn strategy_remote_managed_output_measurement_admit(
+  row_count : Int,
+  admission_nodes : Int,
+  admission_text_bytes : Int,
+  admission_work : Int,
+  column_rows : Array[Int],
+  column_bytes : Array[Int],
+  column_nodes : Array[Int],
+  column_max_value_bytes : Array[Int],
+  column_null_rows : Array[Int],
+  column_admitted_depths : Array[Int],
+  claimed_measurement_cid : String,
+) -> @remote.RemoteManagedOutputMeasurement raise NodeHostFailure {
+  match
+    @remote.admit_remote_managed_output_measurement(
+      row_count,
+      admission_nodes,
+      admission_text_bytes,
+      admission_work,
+      column_rows,
+      column_bytes,
+      column_nodes,
+      column_max_value_bytes,
+      column_null_rows,
+      column_admitted_depths,
+      claimed_measurement_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementIdentity")
+pub fn strategy_remote_managed_output_measurement_identity(
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> String {
+  @remote.remote_managed_output_measurement_cid(measurement)
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementJson")
+pub fn strategy_remote_managed_output_measurement_json(
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> String raise NodeHostFailure {
+  match @remote.remote_managed_output_measurement_json(measurement) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteManagedOutputMeasurementProjection")
+pub fn strategy_remote_managed_output_measurement_projection(
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> Array[Array[Int]] {
+  @remote.remote_managed_output_measurement_projection(measurement)
+}
+
+///|
+#export_name("strategyRemoteManagedOutputSubjectMatchesMeasurement")
+pub fn strategy_remote_managed_output_subject_matches_measurement(
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+) -> Bool {
+  @remote.remote_managed_output_subject_matches_measurement(
+    subject,
+    measurement,
+  )
 }
 
 ///|

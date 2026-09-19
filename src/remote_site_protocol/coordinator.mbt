@@ -22,6 +22,7 @@ struct CoordinatorDispatchIntentRecord {
   mut site_quarantined_capacity : Bool
   mut accepted_evidence_cid : String
   mut accepted_subject_cid : String
+  mut accepted_measurement_cid : String
 }
 
 ///|
@@ -47,6 +48,7 @@ struct CoordinatorDispatchTransition {
   next_site_quarantined_capacity : Bool
   next_accepted_evidence_cid : String
   next_accepted_subject_cid : String
+  next_accepted_measurement_cid : String
   mut consumed : Bool
 }
 
@@ -158,6 +160,7 @@ pub fn commit_coordinator_dispatch_intent(
         site_quarantined_capacity: false,
         accepted_evidence_cid: "",
         accepted_subject_cid: "",
+        accepted_measurement_cid: "",
       }
       journal.dispatches[key] = record
       journal.attempts[occurrence] = key
@@ -228,6 +231,7 @@ fn coordinator_record_projection(
     bool_code(record.site_quarantined_capacity),
     record.accepted_evidence_cid,
     record.accepted_subject_cid,
+    record.accepted_measurement_cid,
   ]
 }
 
@@ -243,6 +247,7 @@ fn coordinator_prepare_transition(
   site_quarantined_capacity : Bool,
   accepted_evidence_cid : String,
   accepted_subject_cid : String,
+  accepted_measurement_cid : String,
 ) -> CoordinatorDispatchTransition {
   let expected = coordinator_record_projection(record)
   let next = [
@@ -256,6 +261,7 @@ fn coordinator_prepare_transition(
     bool_code(site_quarantined_capacity),
     accepted_evidence_cid,
     accepted_subject_cid,
+    accepted_measurement_cid,
   ]
   {
     record,
@@ -270,6 +276,7 @@ fn coordinator_prepare_transition(
     next_site_quarantined_capacity: site_quarantined_capacity,
     next_accepted_evidence_cid: accepted_evidence_cid,
     next_accepted_subject_cid: accepted_subject_cid,
+    next_accepted_measurement_cid: accepted_measurement_cid,
     consumed: false,
   }
 }
@@ -290,6 +297,7 @@ pub fn prepare_coordinator_outcome_unknown(
       record.site_quarantined_capacity,
       record.accepted_evidence_cid,
       record.accepted_subject_cid,
+      record.accepted_measurement_cid,
     ),
   )
 }
@@ -343,6 +351,7 @@ fn prepare_coordinator_observation(
   site_quarantined_capacity : Bool,
   evidence : RemoteExecutionEvidence?,
   subject : RemoteManagedOutputSubject?,
+  measurement : RemoteManagedOutputMeasurement?,
 ) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
   if site_revision < 0 ||
     !valid_site_observation(
@@ -397,6 +406,27 @@ fn prepare_coordinator_observation(
         ""
       }
   }
+  let accepted_measurement_cid = match measurement {
+    Some(value) => {
+      let admitted_subject = match subject {
+        Some(current) => current
+        None => return Err(InvalidDispatch)
+      }
+      if site_evidence != 2 ||
+        !remote_managed_output_subject_matches_measurement(
+          admitted_subject, value,
+        ) {
+        return Err(InvalidDispatch)
+      }
+      remote_managed_output_measurement_cid(value)
+    }
+    None =>
+      if site_evidence == 2 && evidence is None && subject is None {
+        record.accepted_measurement_cid
+      } else {
+        ""
+      }
+  }
   Ok(
     coordinator_prepare_transition(
       record,
@@ -409,6 +439,7 @@ fn prepare_coordinator_observation(
       site_quarantined_capacity,
       accepted_evidence_cid,
       accepted_subject_cid,
+      accepted_measurement_cid,
     ),
   )
 }
@@ -436,6 +467,7 @@ pub fn prepare_coordinator_site_observation(
     site_quarantined_capacity,
     evidence,
     None,
+    None,
   )
 }
 
@@ -452,6 +484,7 @@ pub fn prepare_coordinator_managed_output_observation(
   site_quarantined_capacity : Bool,
   evidence : RemoteExecutionEvidence,
   subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
 ) -> Result[CoordinatorDispatchTransition, DispatchIssue] {
   prepare_coordinator_observation(
     record,
@@ -463,6 +496,7 @@ pub fn prepare_coordinator_managed_output_observation(
     site_quarantined_capacity,
     Some(evidence),
     Some(subject),
+    Some(measurement),
   )
 }
 
@@ -504,6 +538,7 @@ pub fn commit_coordinator_dispatch_transition(
   transition.record.site_quarantined_capacity = transition.next_site_quarantined_capacity
   transition.record.accepted_evidence_cid = transition.next_accepted_evidence_cid
   transition.record.accepted_subject_cid = transition.next_accepted_subject_cid
+  transition.record.accepted_measurement_cid = transition.next_accepted_measurement_cid
   transition.consumed = true
   Ok(())
 }
@@ -520,7 +555,8 @@ pub fn coordinator_completion_evidence_available(
   record.site_cleanup != 4 &&
   record.site_cleanup != 5 &&
   valid_cid(record.accepted_evidence_cid) &&
-  valid_cid(record.accepted_subject_cid)
+  valid_cid(record.accepted_subject_cid) &&
+  valid_cid(record.accepted_measurement_cid)
 }
 
 ///|
@@ -550,6 +586,7 @@ pub fn restore_coordinator_dispatch_record(
   site_quarantined_capacity : Bool,
   accepted_evidence_cid : String,
   accepted_subject_cid : String,
+  accepted_measurement_cid : String,
 ) -> Result[Unit, DispatchIssue] {
   if record.revision != 0 ||
     record.progress != CoordinatorIntentDurable ||
@@ -572,6 +609,9 @@ pub fn restore_coordinator_dispatch_record(
       !accepted_subject_cid.is_empty() {
       return Err(InvalidJournal)
     }
+    if !accepted_measurement_cid.is_empty() {
+      return Err(InvalidJournal)
+    }
   } else if site_revision < 0 ||
     !valid_site_observation(
       site_execution, site_evidence, site_cleanup, site_material_available, site_quarantined_capacity,
@@ -583,6 +623,10 @@ pub fn restore_coordinator_dispatch_record(
     (
       !accepted_subject_cid.is_empty() &&
       (site_evidence != 2 || !valid_cid(accepted_subject_cid))
+    ) ||
+    (
+      !accepted_measurement_cid.is_empty() &&
+      (site_evidence != 2 || !valid_cid(accepted_measurement_cid))
     ) {
     return Err(InvalidJournal)
   }
@@ -596,5 +640,6 @@ pub fn restore_coordinator_dispatch_record(
   record.site_quarantined_capacity = site_quarantined_capacity
   record.accepted_evidence_cid = accepted_evidence_cid
   record.accepted_subject_cid = accepted_subject_cid
+  record.accepted_measurement_cid = accepted_measurement_cid
   Ok(())
 }

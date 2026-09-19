@@ -80,6 +80,7 @@ function checkedOutput(value) {
     'logicalViewCid',
     'managedProfileCid',
     'materialGeneration',
+    'measurement',
     'physicalManifestCid',
     'representationCodecCid',
     'retainedBytes',
@@ -91,6 +92,7 @@ function checkedOutput(value) {
       !text(value.representationCodecCid) || !text(value.resultSchemaCid) ||
       !Number.isSafeInteger(value.rowCount) || value.rowCount < 0 ||
       typeof value.retainedBytes !== 'bigint' || value.retainedBytes < 0n ||
+      value.measurement === null || typeof value.measurement !== 'object' ||
       typeof value.close !== 'function') {
     fail('InvalidRemoteExecutionOutput');
   }
@@ -117,6 +119,9 @@ export function createRemoteDispatchRuntime({
       typeof control.prepareReconciledCancellation !== 'function' ||
       typeof control.prepareUnknown !== 'function' ||
       typeof control.prepareRetained !== 'function' ||
+      typeof control.prepareManagedOutputMeasurement !== 'function' ||
+      typeof control.managedOutputMeasurementIdentity !== 'function' ||
+      typeof control.managedOutputSubjectMatchesMeasurement !== 'function' ||
       typeof control.prepareManagedOutputSubject !== 'function' ||
       typeof control.issueManagedOutputEvidence !== 'function' ||
       typeof control.prepareEvidence !== 'function' ||
@@ -428,7 +433,20 @@ export function createRemoteDispatchRuntime({
         output.materialGeneration,
         output.holdingEvidenceCid,
       ), record, control);
-      const subject = control.prepareManagedOutputSubject(dispatch, output);
+      const measurement = control.prepareManagedOutputMeasurement(
+        output.measurement,
+      );
+      const subject = control.prepareManagedOutputSubject(
+        dispatch,
+        output,
+        measurement,
+      );
+      if (!control.managedOutputSubjectMatchesMeasurement(
+        subject,
+        measurement,
+      )) {
+        fail('RemoteManagedOutputMeasurementMismatch');
+      }
       const evidence = control.issueManagedOutputEvidence(
         registration.issuer,
         record,
@@ -438,12 +456,14 @@ export function createRemoteDispatchRuntime({
         control.prepareEvidence(record, evidence),
         evidence,
         subject,
+        measurement,
         record,
         control,
       );
       return Object.freeze({
         dispatchRequestCid: identity,
         evidence,
+        measurement,
         subject,
         revision: control.revision(record),
         state: Object.freeze([...control.status(record)]),

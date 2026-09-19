@@ -134,6 +134,7 @@ export function admitRemoteManagedOutputSubjectJson(
     'logical_view_cid',
     'managed_profile_cid',
     'material_generation',
+    'measurement_evidence_cid',
     'physical_manifest_cid',
     'representation_codec_cid',
     'result_schema_cid',
@@ -142,7 +143,7 @@ export function admitRemoteManagedOutputSubjectJson(
     'version',
   ];
   if (!exactKeys(body, keys) ||
-      body.version !== 'actql-remote-managed-output-subject/0.1' ||
+      body.version !== 'actql-remote-managed-output-subject/0.2' ||
       !/^(0|[1-9][0-9]*)$/.test(body.retained_bytes) ||
       !Number.isSafeInteger(body.row_count) || body.row_count < 0) {
     fail('InvalidRemoteManagedOutputSubjectWire');
@@ -164,6 +165,7 @@ export function admitRemoteManagedOutputSubjectJson(
       logicalViewCid: body.logical_view_cid,
       representationCodecCid: body.representation_codec_cid,
       physicalManifestCid: body.physical_manifest_cid,
+      measurementEvidenceCid: body.measurement_evidence_cid,
       rowCount: body.row_count,
       retainedBytes,
       subjectCid: claimedSubjectCid,
@@ -173,10 +175,88 @@ export function admitRemoteManagedOutputSubjectJson(
   }
   const projection = control.managedOutputSubjectProjection(subject);
   if (control.managedOutputSubjectJson(subject) !== bodyText ||
-      !Array.isArray(projection) || projection.length !== 11 ||
+      !Array.isArray(projection) || projection.length !== 12 ||
       projection[0] !== control.identity(dispatch) ||
-      projection[10] !== claimedSubjectCid) {
+      projection[11] !== claimedSubjectCid) {
     fail('InvalidRemoteManagedOutputSubjectWire');
   }
   return subject;
+}
+
+export function admitRemoteManagedOutputMeasurementJson(
+  control,
+  bodyText,
+  claimedMeasurementCid,
+  maxBytes = 262_144,
+) {
+  if (control === null || typeof control !== 'object' ||
+      typeof control.admitManagedOutputMeasurement !== 'function' ||
+      typeof control.managedOutputMeasurementJson !== 'function' ||
+      typeof control.managedOutputMeasurementProjection !== 'function' ||
+      !text(bodyText) || !text(claimedMeasurementCid) ||
+      !Number.isSafeInteger(maxBytes) || maxBytes <= 0 ||
+      new TextEncoder().encode(bodyText).byteLength > maxBytes) {
+    fail('InvalidRemoteManagedOutputMeasurementWire');
+  }
+  let body;
+  try { body = JSON.parse(bodyText); }
+  catch (error) {
+    fail('InvalidRemoteManagedOutputMeasurementWire', error);
+  }
+  if (!exactKeys(body, [
+    'admission_nodes',
+    'admission_text_bytes',
+    'admission_work',
+    'columns',
+    'row_count',
+    'version',
+  ]) || body.version !== 'actql-remote-managed-output-measurement/0.1' ||
+      !Number.isSafeInteger(body.row_count) || body.row_count < 0 ||
+      !Number.isSafeInteger(body.admission_nodes) ||
+      body.admission_nodes < 0 ||
+      !Number.isSafeInteger(body.admission_text_bytes) ||
+      body.admission_text_bytes < 0 ||
+      !Number.isSafeInteger(body.admission_work) || body.admission_work < 0 ||
+      !Array.isArray(body.columns) || body.columns.length > 4096) {
+    fail('InvalidRemoteManagedOutputMeasurementWire');
+  }
+  const columns = body.columns.map(column => {
+    if (!exactKeys(column, [
+      'admitted_depth',
+      'bytes',
+      'max_value_bytes',
+      'nodes',
+      'null_rows',
+      'rows',
+    ]) || Object.values(column).some(value =>
+      !Number.isSafeInteger(value) || value < 0)) {
+      fail('InvalidRemoteManagedOutputMeasurementWire');
+    }
+    return column;
+  });
+  let measurement;
+  try {
+    measurement = control.admitManagedOutputMeasurement(Object.freeze({
+      rowCount: body.row_count,
+      admissionNodes: body.admission_nodes,
+      admissionTextBytes: body.admission_text_bytes,
+      admissionWork: body.admission_work,
+      columnRows: columns.map(column => column.rows),
+      columnBytes: columns.map(column => column.bytes),
+      columnNodes: columns.map(column => column.nodes),
+      columnMaxValueBytes: columns.map(column => column.max_value_bytes),
+      columnNullRows: columns.map(column => column.null_rows),
+      columnAdmittedDepths: columns.map(column => column.admitted_depth),
+      measurementCid: claimedMeasurementCid,
+    }));
+  } catch (error) {
+    fail('InvalidRemoteManagedOutputMeasurementWire', error);
+  }
+  const projection = control.managedOutputMeasurementProjection(measurement);
+  if (control.managedOutputMeasurementJson(measurement) !== bodyText ||
+      !Array.isArray(projection) || projection.length !== 7 ||
+      !Array.isArray(projection[0]) || projection[0].length !== 4) {
+    fail('InvalidRemoteManagedOutputMeasurementWire');
+  }
+  return measurement;
 }

@@ -142,9 +142,12 @@ function remoteSiteControl(moon) {
       }
       const [execution, evidence, cleanup, available, quarantined] =
         observation.state;
-      if (observation.subject !== undefined &&
-          observation.evidence === undefined) {
-        throw new TypeError('Remote output subject requires evidence');
+      if ((observation.subject !== undefined ||
+          observation.measurement !== undefined) &&
+          (observation.evidence === undefined ||
+          observation.subject === undefined ||
+          observation.measurement === undefined)) {
+        throw new TypeError('Remote managed output requires exact evidence');
       }
       if (observation.evidence === undefined) {
         return checked(
@@ -171,6 +174,7 @@ function remoteSiteControl(moon) {
             quarantined === 1,
             observation.evidence,
             observation.subject,
+            observation.measurement,
           ),
         );
       }
@@ -196,7 +200,7 @@ function remoteSiteControl(moon) {
     coordinatorRecordStatus: moon.strategyRemoteCoordinatorRecordStatus,
     coordinatorRecordRevision: moon.strategyRemoteCoordinatorRecordRevision,
     restoreCoordinatorRecord: (record, state) => {
-      if (!Array.isArray(state) || state.length !== 10) {
+      if (!Array.isArray(state) || state.length !== 11) {
         throw new TypeError('Invalid remote Coordinator state');
       }
       return checked(
@@ -269,7 +273,43 @@ function remoteSiteControl(moon) {
         evidenceSubjectCid,
       ),
     ),
-    prepareManagedOutputSubject: (dispatch, output) => checked(
+    prepareManagedOutputMeasurement: measurement => checked(
+      moon.strategyRemoteManagedOutputMeasurementPrepare(
+        measurement.rowCount,
+        measurement.admissionNodes,
+        measurement.admissionTextBytes,
+        measurement.admissionWork,
+        measurement.columnRows,
+        measurement.columnBytes,
+        measurement.columnNodes,
+        measurement.columnMaxValueBytes,
+        measurement.columnNullRows,
+        measurement.columnAdmittedDepths,
+      ),
+    ),
+    managedOutputMeasurementIdentity:
+      moon.strategyRemoteManagedOutputMeasurementIdentity,
+    managedOutputMeasurementJson: value => checked(
+      moon.strategyRemoteManagedOutputMeasurementJson(value),
+    ),
+    managedOutputMeasurementProjection:
+      moon.strategyRemoteManagedOutputMeasurementProjection,
+    admitManagedOutputMeasurement: measurement => checked(
+      moon.strategyRemoteManagedOutputMeasurementAdmit(
+        measurement.rowCount,
+        measurement.admissionNodes,
+        measurement.admissionTextBytes,
+        measurement.admissionWork,
+        measurement.columnRows,
+        measurement.columnBytes,
+        measurement.columnNodes,
+        measurement.columnMaxValueBytes,
+        measurement.columnNullRows,
+        measurement.columnAdmittedDepths,
+        measurement.measurementCid,
+      ),
+    ),
+    prepareManagedOutputSubject: (dispatch, output, measurement) => checked(
       moon.strategyRemoteManagedOutputSubjectPrepare(
         control.identity(dispatch),
         output.materialGeneration,
@@ -279,6 +319,7 @@ function remoteSiteControl(moon) {
         output.logicalViewCid,
         output.representationCodecCid,
         output.physicalManifestCid,
+        control.managedOutputMeasurementIdentity(measurement),
         output.rowCount,
         output.retainedBytes,
       ),
@@ -295,6 +336,7 @@ function remoteSiteControl(moon) {
         subject.logicalViewCid,
         subject.representationCodecCid,
         subject.physicalManifestCid,
+        subject.measurementEvidenceCid,
         subject.rowCount,
         subject.retainedBytes,
         subject.subjectCid,
@@ -307,6 +349,8 @@ function remoteSiteControl(moon) {
     ),
     managedOutputSubjectProjection:
       moon.strategyRemoteManagedOutputSubjectProjection,
+    managedOutputSubjectMatchesMeasurement:
+      moon.strategyRemoteManagedOutputSubjectMatchesMeasurement,
     issueManagedOutputEvidence: (issuer, record, subject) => checked(
       moon.strategyRemoteIssueManagedOutputEvidence(
         issuer,

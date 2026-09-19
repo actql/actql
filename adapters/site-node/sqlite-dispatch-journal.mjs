@@ -11,6 +11,7 @@ import {join} from 'node:path';
 import {
   admitRemoteDispatchJson,
   admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputMeasurementJson,
   admitRemoteManagedOutputSubjectJson,
 } from
   '../host-common/remote-dispatch-wire.mjs';
@@ -99,6 +100,8 @@ export function openSqliteDispatchJournal(root, {
         execution_evidence_json TEXT NOT NULL DEFAULT '',
         managed_output_subject_cid TEXT NOT NULL DEFAULT '',
         managed_output_subject_json TEXT NOT NULL DEFAULT '',
+        managed_output_measurement_cid TEXT NOT NULL DEFAULT '',
+        managed_output_measurement_json TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (
           coordinator_authority,
           site_key,
@@ -121,7 +124,7 @@ export function openSqliteDispatchJournal(root, {
         const insert = database.prepare(
           'INSERT INTO journal_metadata (key, value) VALUES (?, ?)',
         );
-        insert.run('schema_version', 'actql-remote-site-journal/0.5');
+        insert.run('schema_version', 'actql-remote-site-journal/0.6');
         insert.run('site_key', siteKey);
         insert.run('site_generation', String(siteGeneration));
         insert.run('runtime_revision', runtimeRevision);
@@ -152,7 +155,8 @@ export function openSqliteDispatchJournal(root, {
       } else if (version.value !== 'actql-remote-site-journal/0.2' &&
           version.value !== 'actql-remote-site-journal/0.3' &&
           version.value !== 'actql-remote-site-journal/0.4' &&
-          version.value !== 'actql-remote-site-journal/0.5') {
+          version.value !== 'actql-remote-site-journal/0.5' &&
+          version.value !== 'actql-remote-site-journal/0.6') {
         fail('UnsupportedRemoteJournalVersion');
       }
     });
@@ -183,7 +187,8 @@ export function openSqliteDispatchJournal(root, {
         ).run('actql-remote-site-journal/0.3', 'schema_version');
       } else if (version?.value !== 'actql-remote-site-journal/0.3' &&
           version?.value !== 'actql-remote-site-journal/0.4' &&
-          version?.value !== 'actql-remote-site-journal/0.5') {
+          version?.value !== 'actql-remote-site-journal/0.5' &&
+          version?.value !== 'actql-remote-site-journal/0.6') {
         fail('UnsupportedRemoteJournalVersion');
       }
       const current = database.prepare(
@@ -224,7 +229,31 @@ export function openSqliteDispatchJournal(root, {
           'UPDATE journal_metadata SET value = ? WHERE key = ?',
         ).run('actql-remote-site-journal/0.5', 'schema_version');
       } else if (evidenceVersion?.value !==
-          'actql-remote-site-journal/0.5') {
+          'actql-remote-site-journal/0.5' && evidenceVersion?.value !==
+          'actql-remote-site-journal/0.6') {
+        fail('UnsupportedRemoteJournalVersion');
+      }
+      const subjectVersion = database.prepare(
+        'SELECT value FROM journal_metadata WHERE key = ?',
+      ).get('schema_version');
+      if (subjectVersion?.value === 'actql-remote-site-journal/0.5') {
+        const unverifiable = database.prepare(`
+          SELECT COUNT(*) AS count FROM dispatches WHERE evidence_state = 2
+        `).get();
+        if (Number(unverifiable.count) !== 0) {
+          fail('RemoteJournalMeasurementMigrationRequired');
+        }
+        database.exec(`
+          ALTER TABLE dispatches ADD COLUMN managed_output_measurement_cid
+            TEXT NOT NULL DEFAULT '';
+          ALTER TABLE dispatches ADD COLUMN managed_output_measurement_json
+            TEXT NOT NULL DEFAULT ''
+        `);
+        database.prepare(
+          'UPDATE journal_metadata SET value = ? WHERE key = ?',
+        ).run('actql-remote-site-journal/0.6', 'schema_version');
+      } else if (subjectVersion?.value !==
+          'actql-remote-site-journal/0.6') {
         fail('UnsupportedRemoteJournalVersion');
       }
       const metadata = Object.fromEntries(database.prepare(`
@@ -248,7 +277,8 @@ export function openSqliteDispatchJournal(root, {
       evidence_state, cleanup_state, material_available,
       quarantined_capacity, material_generation, holding_evidence_cid,
       execution_evidence_cid, execution_evidence_json,
-      managed_output_subject_cid, managed_output_subject_json
+      managed_output_subject_cid, managed_output_subject_json,
+      managed_output_measurement_cid, managed_output_measurement_json
     FROM dispatches
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
@@ -258,7 +288,8 @@ export function openSqliteDispatchJournal(root, {
       evidence_state, cleanup_state, material_available,
       quarantined_capacity, material_generation, holding_evidence_cid,
       execution_evidence_cid, execution_evidence_json,
-      managed_output_subject_cid, managed_output_subject_json
+      managed_output_subject_cid, managed_output_subject_json,
+      managed_output_measurement_cid, managed_output_measurement_json
     FROM dispatches
     ORDER BY coordinator_authority, site_generation, dispatch_id
   `);
@@ -279,8 +310,9 @@ export function openSqliteDispatchJournal(root, {
       material_available, quarantined_capacity, material_generation,
       holding_evidence_cid, execution_evidence_cid,
       execution_evidence_json, managed_output_subject_cid,
-      managed_output_subject_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, '', '', '', '', '', '')
+      managed_output_subject_json, managed_output_measurement_cid,
+      managed_output_measurement_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, '', '', '', '', '', '', '', '')
   `);
   const updateDispatch = database.prepare(`
     UPDATE dispatches SET
@@ -288,7 +320,8 @@ export function openSqliteDispatchJournal(root, {
       cleanup_state = ?, material_available = ?, quarantined_capacity = ?,
       material_generation = ?, holding_evidence_cid = ?,
       execution_evidence_cid = ?, execution_evidence_json = ?,
-      managed_output_subject_cid = ?, managed_output_subject_json = ?
+      managed_output_subject_cid = ?, managed_output_subject_json = ?,
+      managed_output_measurement_cid = ?, managed_output_measurement_json = ?
     WHERE coordinator_authority = ? AND site_key = ?
       AND site_generation = ? AND dispatch_id = ?
       AND revision = ? AND execution_state = ? AND evidence_state = ?
@@ -297,6 +330,8 @@ export function openSqliteDispatchJournal(root, {
       AND holding_evidence_cid = ? AND execution_evidence_cid = ?
       AND execution_evidence_json = ? AND managed_output_subject_cid = ?
       AND managed_output_subject_json = ?
+      AND managed_output_measurement_cid = ?
+      AND managed_output_measurement_json = ?
   `);
 
   const ensureOpen = () => {
@@ -318,7 +353,9 @@ export function openSqliteDispatchJournal(root, {
         typeof row.execution_evidence_cid !== 'string' ||
         typeof row.execution_evidence_json !== 'string' ||
         typeof row.managed_output_subject_cid !== 'string' ||
-        typeof row.managed_output_subject_json !== 'string') {
+        typeof row.managed_output_subject_json !== 'string' ||
+        typeof row.managed_output_measurement_cid !== 'string' ||
+        typeof row.managed_output_measurement_json !== 'string') {
       fail('InvalidRemoteJournalState');
     }
     return Object.freeze([
@@ -406,6 +443,8 @@ export function openSqliteDispatchJournal(root, {
     executionEvidenceJson,
     managedOutputSubjectCid,
     managedOutputSubjectJson,
+    managedOutputMeasurementCid,
+    managedOutputMeasurementJson,
   ) => {
     const {key, generation, states} = prepared;
     const found = selectDispatch.get(key[0], key[1], generation, key[3]);
@@ -421,6 +460,13 @@ export function openSqliteDispatchJournal(root, {
           found.managed_output_subject_json !== managedOutputSubjectJson)) {
         fail('RemoteDispatchStateCollision');
       }
+      if (managedOutputMeasurementJson !== undefined &&
+          (found.managed_output_measurement_cid !==
+            managedOutputMeasurementCid ||
+          found.managed_output_measurement_json !==
+            managedOutputMeasurementJson)) {
+        fail('RemoteDispatchStateCollision');
+      }
       return states;
     }
     if (!equalState(current, states.expected)) {
@@ -429,30 +475,43 @@ export function openSqliteDispatchJournal(root, {
     let nextEvidenceJson = found.execution_evidence_json;
     let nextSubjectCid = found.managed_output_subject_cid;
     let nextSubjectJson = found.managed_output_subject_json;
+    let nextMeasurementCid = found.managed_output_measurement_cid;
+    let nextMeasurementJson = found.managed_output_measurement_json;
     if (executionEvidenceJson !== undefined) {
       if (!text(executionEvidenceJson) || states.next[2] !== 2 ||
           !text(states.next[8]) || !text(managedOutputSubjectCid) ||
           !text(managedOutputSubjectJson) ||
+          !text(managedOutputMeasurementCid) ||
+          !text(managedOutputMeasurementJson) ||
           Buffer.byteLength(executionEvidenceJson, 'utf8') > maxEvidenceBytes ||
           Buffer.byteLength(managedOutputSubjectJson, 'utf8') >
+            maxEvidenceBytes ||
+          Buffer.byteLength(managedOutputMeasurementJson, 'utf8') >
             maxEvidenceBytes) {
         fail('InvalidRemoteExecutionEvidence');
       }
       nextEvidenceJson = executionEvidenceJson;
       nextSubjectCid = managedOutputSubjectCid;
       nextSubjectJson = managedOutputSubjectJson;
+      nextMeasurementCid = managedOutputMeasurementCid;
+      nextMeasurementJson = managedOutputMeasurementJson;
     } else if (states.next[2] === 2 && states.expected[2] !== 2) {
       fail('RemoteExecutionEvidenceMissing');
     } else if (states.next[2] === 3) {
       nextEvidenceJson = '';
       nextSubjectCid = '';
       nextSubjectJson = '';
+      nextMeasurementCid = '';
+      nextMeasurementJson = '';
     }
     const result = updateDispatch.run(
       ...states.next, nextEvidenceJson, nextSubjectCid, nextSubjectJson,
+      nextMeasurementCid, nextMeasurementJson,
       key[0], key[1], generation, key[3],
       ...states.expected, found.execution_evidence_json,
       found.managed_output_subject_cid, found.managed_output_subject_json,
+      found.managed_output_measurement_cid,
+      found.managed_output_measurement_json,
     );
     if (result.changes !== 1) fail('RemoteDispatchStateCollision');
     return states;
@@ -532,10 +591,12 @@ export function openSqliteDispatchJournal(root, {
           if (!text(row.execution_evidence_cid) ||
               !text(row.execution_evidence_json) ||
               !text(row.managed_output_subject_cid) ||
-              !text(row.managed_output_subject_json)) {
+              !text(row.managed_output_subject_json) ||
+              !text(row.managed_output_measurement_cid) ||
+              !text(row.managed_output_measurement_json)) {
             fail('InvalidRemoteJournalEvidence');
           }
-          let evidence, subject;
+          let evidence, subject, measurement;
           try {
             evidence = admitRemoteExecutionEvidenceJson(
               control,
@@ -551,6 +612,12 @@ export function openSqliteDispatchJournal(root, {
               request,
               maxEvidenceBytes,
             );
+            measurement = admitRemoteManagedOutputMeasurementJson(
+              control,
+              row.managed_output_measurement_json,
+              row.managed_output_measurement_cid,
+              maxEvidenceBytes,
+            );
           } catch (error) {
             fail('InvalidRemoteJournalEvidence', error);
           }
@@ -558,13 +625,18 @@ export function openSqliteDispatchJournal(root, {
             subject,
             evidence,
             request,
+          ) || !control.managedOutputSubjectMatchesMeasurement(
+            subject,
+            measurement,
           )) {
             fail('InvalidRemoteJournalEvidence');
           }
         } else if (row.execution_evidence_cid !== '' ||
             row.execution_evidence_json !== '' ||
             row.managed_output_subject_cid !== '' ||
-            row.managed_output_subject_json !== '') {
+            row.managed_output_subject_json !== '' ||
+            row.managed_output_measurement_cid !== '' ||
+            row.managed_output_measurement_json !== '') {
           fail('InvalidRemoteJournalEvidence');
         }
         recovered.push(Object.freeze({request, record}));
@@ -615,7 +687,14 @@ export function openSqliteDispatchJournal(root, {
       }
       return record;
     },
-    advanceEvidence(transition, evidence, subject, record, control) {
+    advanceEvidence(
+      transition,
+      evidence,
+      subject,
+      measurement,
+      record,
+      control,
+    ) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
           typeof control.transitionKey !== 'function' ||
@@ -626,13 +705,20 @@ export function openSqliteDispatchJournal(root, {
           typeof control.evidenceJson !== 'function' ||
           typeof control.managedOutputSubjectIdentity !== 'function' ||
           typeof control.managedOutputSubjectJson !== 'function' ||
-          typeof control.managedOutputSubjectMatchesEvidence !== 'function') {
+          typeof control.managedOutputSubjectMatchesEvidence !== 'function' ||
+          typeof control.managedOutputMeasurementIdentity !== 'function' ||
+          typeof control.managedOutputMeasurementJson !== 'function' ||
+          typeof control.managedOutputSubjectMatchesMeasurement !== 'function') {
         fail('MissingRemoteSiteControl');
       }
       const evidenceJson = control.evidenceJson(evidence);
       const evidenceCid = control.evidenceIdentity(evidence);
       const subjectCid = control.managedOutputSubjectIdentity(subject);
       const subjectJson = control.managedOutputSubjectJson(subject);
+      const measurementCid = control.managedOutputMeasurementIdentity(
+        measurement,
+      );
+      const measurementJson = control.managedOutputMeasurementJson(measurement);
       const projection = control.transitionProjection(transition);
       const key = control.transitionKey(transition);
       const found = selectDispatch.get(
@@ -645,6 +731,9 @@ export function openSqliteDispatchJournal(root, {
             subject,
             evidence,
             request,
+          ) || !control.managedOutputSubjectMatchesMeasurement(
+            subject,
+            measurement,
           )) {
         fail('RemoteExecutionEvidenceMismatch');
       }
@@ -659,6 +748,8 @@ export function openSqliteDispatchJournal(root, {
           evidenceJson,
           subjectCid,
           subjectJson,
+          measurementCid,
+          measurementJson,
         );
       });
       control.commitTransition(transition, true);
@@ -782,7 +873,9 @@ export function openSqliteDispatchJournal(root, {
           !text(found.execution_evidence_cid) ||
           !text(found.execution_evidence_json) ||
           !text(found.managed_output_subject_cid) ||
-          !text(found.managed_output_subject_json)) {
+          !text(found.managed_output_subject_json) ||
+          !text(found.managed_output_measurement_cid) ||
+          !text(found.managed_output_measurement_json)) {
         return undefined;
       }
       return Object.freeze({
@@ -790,6 +883,8 @@ export function openSqliteDispatchJournal(root, {
         execution_evidence_json: found.execution_evidence_json,
         managed_output_subject_cid: found.managed_output_subject_cid,
         managed_output_subject_json: found.managed_output_subject_json,
+        managed_output_measurement_cid: found.managed_output_measurement_cid,
+        managed_output_measurement_json: found.managed_output_measurement_json,
       });
     },
     close() {

@@ -231,6 +231,18 @@ test('evidence and cleanup planes persist independently', async t => {
     evidenceKind: control.managedOutputEvidenceKind,
     issuerCapabilityCid: cid('b'),
   }));
+  const measurement = control.prepareManagedOutputMeasurement(Object.freeze({
+    rowCount: 2,
+    admissionNodes: 0,
+    admissionTextBytes: 0,
+    admissionWork: 0,
+    columnRows: Object.freeze([2]),
+    columnBytes: Object.freeze([2]),
+    columnNodes: Object.freeze([2]),
+    columnMaxValueBytes: Object.freeze([1]),
+    columnNullRows: Object.freeze([0]),
+    columnAdmittedDepths: Object.freeze([10]),
+  }));
   const subject = control.prepareManagedOutputSubject(prepared, Object.freeze({
     materialGeneration: 'material-generation-a',
     holdingEvidenceCid: cid('c'),
@@ -241,7 +253,7 @@ test('evidence and cleanup planes persist independently', async t => {
     physicalManifestCid: cid('8'),
     rowCount: 2,
     retainedBytes: 8n,
-  }));
+  }), measurement);
   const evidence = control.issueManagedOutputEvidence(
     issuer,
     record,
@@ -251,6 +263,7 @@ test('evidence and cleanup planes persist independently', async t => {
     control.prepareEvidence(record, evidence),
     evidence,
     subject,
+    measurement,
     record,
     control,
   );
@@ -260,6 +273,10 @@ test('evidence and cleanup planes persist independently', async t => {
     managed_output_subject_cid:
       control.managedOutputSubjectIdentity(subject),
     managed_output_subject_json: control.managedOutputSubjectJson(subject),
+    managed_output_measurement_cid:
+      control.managedOutputMeasurementIdentity(measurement),
+    managed_output_measurement_json:
+      control.managedOutputMeasurementJson(measurement),
   });
   store.advance(control.prepareRelease(record), record, control);
   assert.deepEqual(control.status(record), [3, 2, 1, 1, 0]);

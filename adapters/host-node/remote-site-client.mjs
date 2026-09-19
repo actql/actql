@@ -1,6 +1,7 @@
 import {request as httpsRequest} from 'node:https';
 import {
   admitRemoteExecutionEvidenceJson,
+  admitRemoteManagedOutputMeasurementJson,
   admitRemoteManagedOutputSubjectJson,
 } from
   '../host-common/remote-dispatch-wire.mjs';
@@ -92,8 +93,10 @@ async function exchangeRemoteDispatch({
           typeof value === 'object' && typeof value.cid === 'string' &&
           typeof value.wire === 'string';
         const evidenceValid = !query ||
-          (payload?.evidence === null && payload?.subject === null) ||
-          (wireRecord(payload?.evidence) && wireRecord(payload?.subject));
+          (payload?.evidence === null && payload?.subject === null &&
+            payload?.measurement === null) ||
+          (wireRecord(payload?.evidence) && wireRecord(payload?.subject) &&
+            wireRecord(payload?.measurement));
         if (payload?.version !== expectedVersion ||
             payload.dispatch_request_cid !== control.identity(dispatch) ||
             !Number.isSafeInteger(payload.revision) ||
@@ -105,6 +108,7 @@ async function exchangeRemoteDispatch({
           return;
         }
         let evidence;
+        let measurement;
         let subject;
         if (query && payload.evidence !== null) {
           try {
@@ -122,10 +126,19 @@ async function exchangeRemoteDispatch({
               dispatch,
               maxResponseBytes,
             );
+            measurement = admitRemoteManagedOutputMeasurementJson(
+              control,
+              payload.measurement.wire,
+              payload.measurement.cid,
+              maxResponseBytes,
+            );
             if (!control.managedOutputSubjectMatchesEvidence(
               subject,
               evidence,
               dispatch,
+            ) || !control.managedOutputSubjectMatchesMeasurement(
+              subject,
+              measurement,
             )) {
               throw Object.assign(new Error('Remote evidence mismatch'), {
                 code: 'RemoteManagedOutputEvidenceMismatch',
@@ -146,6 +159,9 @@ async function exchangeRemoteDispatch({
             evidence,
             evidenceCid: payload.evidence?.cid,
             evidenceWire: payload.evidence?.wire,
+            measurement,
+            measurementCid: payload.measurement?.cid,
+            measurementWire: payload.measurement?.wire,
             subject,
             subjectCid: payload.subject?.cid,
             subjectWire: payload.subject?.wire,

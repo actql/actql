@@ -75,7 +75,11 @@ test "Coordinator restart restores intent without creating a Site fact" {
 ///|
 fn managed_output_for_coordinator(
   request : DispatchRequest,
-) -> (RemoteExecutionEvidence, RemoteManagedOutputSubject) {
+) -> (
+  RemoteExecutionEvidence,
+  RemoteManagedOutputSubject,
+  RemoteManagedOutputMeasurement,
+) {
   let site = @site.create_site(
     "site-a", 1, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     4, 4, 1048576L, 1048576L,
@@ -114,6 +118,18 @@ fn managed_output_for_coordinator(
     remote_managed_output_evidence_kind(),
     "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   ).unwrap()
+  let measurement = prepare_remote_managed_output_measurement(
+    2,
+    0,
+    0,
+    0,
+    [2],
+    [2],
+    [2],
+    [1],
+    [0],
+    [10],
+  ).unwrap()
   let subject = prepare_remote_managed_output_subject(
     dispatch_request_identity(request),
     "material-generation-a",
@@ -123,12 +139,14 @@ fn managed_output_for_coordinator(
     "sha256:6666666666666666666666666666666666666666666666666666666666666666",
     "sha256:7777777777777777777777777777777777777777777777777777777777777777",
     "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+    remote_managed_output_measurement_cid(measurement),
     2,
     8L,
   ).unwrap()
   (
     issue_remote_managed_output_evidence(issuer, site_record, subject).unwrap(),
     subject,
+    measurement,
   )
 }
 
@@ -150,7 +168,7 @@ test "Site status alone cannot authorize Coordinator completion" {
   ).unwrap()
   commit_coordinator_dispatch_transition(claimed, true).unwrap()
   assert_false(coordinator_completion_evidence_available(record))
-  let (evidence, subject) = managed_output_for_coordinator(request)
+  let (evidence, subject, measurement) = managed_output_for_coordinator(request)
   let evidence_only = prepare_coordinator_site_observation(
     record,
     5,
@@ -164,7 +182,7 @@ test "Site status alone cannot authorize Coordinator completion" {
   commit_coordinator_dispatch_transition(evidence_only, true).unwrap()
   assert_false(coordinator_completion_evidence_available(record))
   let admitted = prepare_coordinator_managed_output_observation(
-    record, 5, 3, 2, 0, true, false, evidence, subject,
+    record, 5, 3, 2, 0, true, false, evidence, subject, measurement,
   ).unwrap()
   commit_coordinator_dispatch_transition(admitted, true).unwrap()
   assert_true(coordinator_completion_evidence_available(record))
@@ -228,7 +246,7 @@ test "Coordinator unknown state restores without inventing a Site fact" {
   let restored_journal = create_coordinator_dispatch_journal("coordinator-a").unwrap()
   let restored = restore_coordinator_dispatch_intent(restored_journal, request).unwrap()
   restore_coordinator_dispatch_record(
-    restored, 1, 1, -1, -1, -1, -1, false, false, "", "",
+    restored, 1, 1, -1, -1, -1, -1, false, false, "", "", "",
   ).unwrap()
   assert_eq(coordinator_dispatch_record_state_codes(restored), state)
   assert_false(coordinator_completion_evidence_available(restored))

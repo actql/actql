@@ -64,7 +64,7 @@ test('Coordinator makes exact intent durable before transport starts',
     );
     assert.equal(store.contains(dispatch, control), true);
     assert.deepEqual(store.inspectState(dispatch, control), [
-      1, 1, -1, -1, -1, -1, false, false, '', '',
+      1, 1, -1, -1, -1, -1, false, false, '', '', '',
     ]);
     await assert.rejects(
       coordinator.dispatch({dispatch: request('dispatch-b')}),
@@ -75,7 +75,7 @@ test('Coordinator makes exact intent durable before transport starts',
     await coordinator.cancel({dispatch});
     assert.deepEqual(calls, ['send', 'query', 'cancel']);
     assert.deepEqual(store.inspectState(dispatch, control), [
-      3, 2, 0, 0, 0, 0, false, false, '', '',
+      3, 2, 0, 0, 0, 0, false, false, '', '', '',
     ]);
     assert.equal(
       coordinator.completionEvidenceAvailable({dispatch}),
@@ -96,7 +96,7 @@ test('Coordinator makes exact intent durable before transport starts',
     });
     assert.equal(reopened.recovered.length, 1);
     assert.deepEqual(reopenedStore.inspectState(dispatch, control), [
-      3, 2, 0, 0, 0, 0, false, false, '', '',
+      3, 2, 0, 0, 0, 0, false, false, '', '', '',
     ]);
     assert.equal(
       reopened.completionEvidenceAvailable({dispatch}),
@@ -157,13 +157,13 @@ test('Site status cannot replace evidence or rewrite one Site revision',
       false,
     );
     assert.deepEqual(store.inspectState(dispatch, control), [
-      1, 2, 7, 3, 2, 0, true, false, '', '',
+      1, 2, 7, 3, 2, 0, true, false, '', '', '',
     ]);
     await assert.rejects(
       coordinator.query({dispatch}),
       {code: 'MoonBitHostFailure'},
     );
     assert.deepEqual(store.inspectState(dispatch, control), [
-      2, 1, 7, 3, 2, 0, true, false, '', '',
+      2, 1, 7, 3, 2, 0, true, false, '', '', '',
     ]);
   });

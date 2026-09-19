@@ -144,6 +144,18 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
         materialGeneration: 'material-generation-a',
         holdingEvidenceCid: cid('c'),
         managedProfileCid: cid('3'),
+        measurement: {
+          rowCount: 2,
+          admissionNodes: 0,
+          admissionTextBytes: 0,
+          admissionWork: 0,
+          columnRows: [2],
+          columnBytes: [2],
+          columnNodes: [2],
+          columnMaxValueBytes: [1],
+          columnNullRows: [0],
+          columnAdmittedDepths: [10],
+        },
         resultSchemaCid: cid('5'),
         logicalViewCid: cid('6'),
         representationCodecCid: cid('7'),
@@ -242,9 +254,16 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     assert.deepEqual(completed.state, [3, 2, 0, 1, 0]);
     assert.equal(completed.revision, 5);
     assert.equal(typeof completed.evidenceWire, 'string');
+    assert.equal(typeof completed.measurementWire, 'string');
     assert.equal(
       runtime.remoteSiteControl.evidenceIdentity(completed.evidence),
       completed.evidenceCid,
+    );
+    assert.equal(
+      runtime.remoteSiteControl.managedOutputMeasurementIdentity(
+        completed.measurement,
+      ),
+      completed.measurementCid,
     );
     assert.equal(
       JSON.parse(completed.evidenceWire).dispatch_request_cid,
@@ -285,10 +304,14 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     });
     assert.equal(reopened.recovered.length, 1);
     assert.equal(reopened.completionEvidenceAvailable(options), true);
+    const reopenedEvidence = reopenedStore.inspectEvidence(
+      request,
+      runtime.remoteSiteControl,
+    );
+    assert.equal(reopenedEvidence.evidenceCid, completed.evidenceCid);
     assert.equal(
-      reopenedStore.inspectEvidence(request, runtime.remoteSiteControl)
-        .evidenceCid,
-      completed.evidenceCid,
+      reopenedEvidence.measurementCid,
+      completed.measurementCid,
     );
   });
 

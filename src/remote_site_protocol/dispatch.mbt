@@ -93,9 +93,29 @@ struct RemoteManagedOutputSubject {
   logical_view_cid : String
   representation_codec_cid : String
   physical_manifest_cid : String
+  measurement_evidence_cid : String
   row_count : Int
   retained_bytes : Int64
   subject_cid : String
+}
+
+///|
+/// Compact validation and measurement facts for one exact managed output.
+/// The record is content-addressed independently from physical integrity and
+/// logical identity. It has authority only when referenced by typed execution
+/// evidence from a Host-registered implementation.
+struct RemoteManagedOutputMeasurement {
+  row_count : Int
+  admission_nodes : Int
+  admission_text_bytes : Int
+  admission_work : Int
+  column_rows : Array[Int]
+  column_bytes : Array[Int]
+  column_nodes : Array[Int]
+  column_max_value_bytes : Array[Int]
+  column_null_rows : Array[Int]
+  column_admitted_depths : Array[Int]
+  measurement_cid : String
 }
 
 ///|
@@ -539,6 +559,217 @@ pub fn remote_managed_output_evidence_kind() -> String {
 }
 
 ///|
+fn emit_remote_managed_output_measurement_body(
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[String, DispatchIssue] {
+  let writer = @encode.writer(262144, 65536, 3) catch {
+    _ => return Err(InvalidDispatch)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "admission_nodes")
+    @encode.number_value(writer, measurement.admission_nodes.to_double())
+    @encode.key(writer, "admission_text_bytes")
+    @encode.number_value(writer, measurement.admission_text_bytes.to_double())
+    @encode.key(writer, "admission_work")
+    @encode.number_value(writer, measurement.admission_work.to_double())
+    @encode.key(writer, "columns")
+    @encode.begin_array(writer)
+    for index in 0..<measurement.column_rows.length() {
+      @encode.begin_object(writer)
+      @encode.key(writer, "admitted_depth")
+      @encode.number_value(
+        writer,
+        measurement.column_admitted_depths[index].to_double(),
+      )
+      @encode.key(writer, "bytes")
+      @encode.number_value(writer, measurement.column_bytes[index].to_double())
+      @encode.key(writer, "max_value_bytes")
+      @encode.number_value(
+        writer,
+        measurement.column_max_value_bytes[index].to_double(),
+      )
+      @encode.key(writer, "nodes")
+      @encode.number_value(writer, measurement.column_nodes[index].to_double())
+      @encode.key(writer, "null_rows")
+      @encode.number_value(
+        writer,
+        measurement.column_null_rows[index].to_double(),
+      )
+      @encode.key(writer, "rows")
+      @encode.number_value(writer, measurement.column_rows[index].to_double())
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "row_count")
+    @encode.number_value(writer, measurement.row_count.to_double())
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-remote-managed-output-measurement/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(InvalidDispatch)
+  }
+  Ok(@encode.finish(writer) catch { _ => return Err(InvalidDispatch) })
+}
+
+///|
+fn valid_remote_managed_output_measurement_fields(
+  measurement : RemoteManagedOutputMeasurement,
+) -> Bool {
+  let width = measurement.column_rows.length()
+  if width > 4096 ||
+    measurement.row_count < 0 ||
+    measurement.admission_nodes < 0 ||
+    measurement.admission_text_bytes < 0 ||
+    measurement.admission_work < 0 ||
+    measurement.column_bytes.length() != width ||
+    measurement.column_nodes.length() != width ||
+    measurement.column_max_value_bytes.length() != width ||
+    measurement.column_null_rows.length() != width ||
+    measurement.column_admitted_depths.length() != width {
+    return false
+  }
+  for index in 0..<width {
+    let rows = measurement.column_rows[index]
+    let bytes = measurement.column_bytes[index]
+    let nodes = measurement.column_nodes[index]
+    let maximum = measurement.column_max_value_bytes[index]
+    let nulls = measurement.column_null_rows[index]
+    let depth = measurement.column_admitted_depths[index]
+    if rows != measurement.row_count ||
+      bytes < 0 ||
+      nodes < 0 ||
+      maximum < 0 ||
+      maximum > bytes ||
+      nulls < 0 ||
+      nulls > rows ||
+      depth < 0 ||
+      (rows == 0 && (bytes != 0 || nodes != 0)) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn remote_managed_output_measurement_identity(
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[String, DispatchIssue] {
+  let body = match emit_remote_managed_output_measurement_body(measurement) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @sha.text_hex(body) {
+    Ok(value) => Ok("sha256:" + value)
+    Err(_) => Err(InvalidDispatch)
+  }
+}
+
+///|
+pub fn prepare_remote_managed_output_measurement(
+  row_count : Int,
+  admission_nodes : Int,
+  admission_text_bytes : Int,
+  admission_work : Int,
+  column_rows : Array[Int],
+  column_bytes : Array[Int],
+  column_nodes : Array[Int],
+  column_max_value_bytes : Array[Int],
+  column_null_rows : Array[Int],
+  column_admitted_depths : Array[Int],
+) -> Result[RemoteManagedOutputMeasurement, DispatchIssue] {
+  let pending : RemoteManagedOutputMeasurement = {
+    row_count,
+    admission_nodes,
+    admission_text_bytes,
+    admission_work,
+    column_rows: column_rows.copy(),
+    column_bytes: column_bytes.copy(),
+    column_nodes: column_nodes.copy(),
+    column_max_value_bytes: column_max_value_bytes.copy(),
+    column_null_rows: column_null_rows.copy(),
+    column_admitted_depths: column_admitted_depths.copy(),
+    measurement_cid: "pending",
+  }
+  if !valid_remote_managed_output_measurement_fields(pending) {
+    return Err(InvalidDispatch)
+  }
+  let identity = match remote_managed_output_measurement_identity(pending) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..pending, measurement_cid: identity, })
+}
+
+///|
+pub fn admit_remote_managed_output_measurement(
+  row_count : Int,
+  admission_nodes : Int,
+  admission_text_bytes : Int,
+  admission_work : Int,
+  column_rows : Array[Int],
+  column_bytes : Array[Int],
+  column_nodes : Array[Int],
+  column_max_value_bytes : Array[Int],
+  column_null_rows : Array[Int],
+  column_admitted_depths : Array[Int],
+  claimed_measurement_cid : String,
+) -> Result[RemoteManagedOutputMeasurement, DispatchIssue] {
+  let measurement = match
+    prepare_remote_managed_output_measurement(
+      row_count, admission_nodes, admission_text_bytes, admission_work, column_rows,
+      column_bytes, column_nodes, column_max_value_bytes, column_null_rows, column_admitted_depths,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if measurement.measurement_cid != claimed_measurement_cid {
+    Err(DispatchIdentityMismatch)
+  } else {
+    Ok(measurement)
+  }
+}
+
+///|
+pub fn remote_managed_output_measurement_cid(
+  measurement : RemoteManagedOutputMeasurement,
+) -> String {
+  measurement.measurement_cid
+}
+
+///|
+pub fn remote_managed_output_measurement_json(
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[String, DispatchIssue] {
+  if !valid_remote_managed_output_measurement_fields(measurement) ||
+    remote_managed_output_measurement_identity(measurement) !=
+    Ok(measurement.measurement_cid) {
+    return Err(InvalidDispatch)
+  }
+  emit_remote_managed_output_measurement_body(measurement)
+}
+
+///|
+pub fn remote_managed_output_measurement_projection(
+  measurement : RemoteManagedOutputMeasurement,
+) -> Array[Array[Int]] {
+  [
+    [
+      measurement.row_count,
+      measurement.admission_nodes,
+      measurement.admission_text_bytes,
+      measurement.admission_work,
+    ],
+    measurement.column_rows.copy(),
+    measurement.column_bytes.copy(),
+    measurement.column_nodes.copy(),
+    measurement.column_max_value_bytes.copy(),
+    measurement.column_null_rows.copy(),
+    measurement.column_admitted_depths.copy(),
+  ]
+}
+
+///|
 fn emit_remote_managed_output_subject_body(
   subject : RemoteManagedOutputSubject,
 ) -> Result[String, DispatchIssue] {
@@ -557,6 +788,8 @@ fn emit_remote_managed_output_subject_body(
     @encode.string_value(writer, subject.managed_profile_cid)
     @encode.key(writer, "material_generation")
     @encode.string_value(writer, subject.material_generation)
+    @encode.key(writer, "measurement_evidence_cid")
+    @encode.string_value(writer, subject.measurement_evidence_cid)
     @encode.key(writer, "physical_manifest_cid")
     @encode.string_value(writer, subject.physical_manifest_cid)
     @encode.key(writer, "representation_codec_cid")
@@ -568,7 +801,7 @@ fn emit_remote_managed_output_subject_body(
     @encode.key(writer, "row_count")
     @encode.number_value(writer, subject.row_count.to_double())
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-remote-managed-output-subject/0.1")
+    @encode.string_value(writer, "actql-remote-managed-output-subject/0.2")
     @encode.end_object(writer)
   } catch {
     _ => return Err(InvalidDispatch)
@@ -602,6 +835,7 @@ fn valid_remote_managed_output_subject_fields(
   valid_cid(subject.logical_view_cid) &&
   valid_cid(subject.representation_codec_cid) &&
   valid_cid(subject.physical_manifest_cid) &&
+  valid_cid(subject.measurement_evidence_cid) &&
   subject.row_count >= 0 &&
   subject.retained_bytes >= 0L
 }
@@ -616,6 +850,7 @@ pub fn prepare_remote_managed_output_subject(
   logical_view_cid : String,
   representation_codec_cid : String,
   physical_manifest_cid : String,
+  measurement_evidence_cid : String,
   row_count : Int,
   retained_bytes : Int64,
 ) -> Result[RemoteManagedOutputSubject, DispatchIssue] {
@@ -628,6 +863,7 @@ pub fn prepare_remote_managed_output_subject(
     logical_view_cid,
     representation_codec_cid,
     physical_manifest_cid,
+    measurement_evidence_cid,
     row_count,
     retained_bytes,
     subject_cid: "pending",
@@ -652,6 +888,7 @@ pub fn admit_remote_managed_output_subject(
   logical_view_cid : String,
   representation_codec_cid : String,
   physical_manifest_cid : String,
+  measurement_evidence_cid : String,
   row_count : Int,
   retained_bytes : Int64,
   claimed_subject_cid : String,
@@ -660,7 +897,7 @@ pub fn admit_remote_managed_output_subject(
     prepare_remote_managed_output_subject(
       dispatch_request_cid, material_generation, holding_evidence_cid, managed_profile_cid,
       result_schema_cid, logical_view_cid, representation_codec_cid, physical_manifest_cid,
-      row_count, retained_bytes,
+      measurement_evidence_cid, row_count, retained_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -703,6 +940,7 @@ pub fn remote_managed_output_subject_projection(
     subject.logical_view_cid,
     subject.representation_codec_cid,
     subject.physical_manifest_cid,
+    subject.measurement_evidence_cid,
     subject.row_count.to_string(),
     subject.retained_bytes.to_string(),
     subject.subject_cid,
@@ -717,6 +955,20 @@ pub fn remote_managed_output_subject_matches_dispatch(
   valid_remote_managed_output_subject_fields(subject) &&
   subject.dispatch_request_cid == request.dispatch_request_cid &&
   remote_managed_output_subject_identity(subject) == Ok(subject.subject_cid)
+}
+
+///|
+pub fn remote_managed_output_subject_matches_measurement(
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Bool {
+  valid_remote_managed_output_subject_fields(subject) &&
+  valid_remote_managed_output_measurement_fields(measurement) &&
+  remote_managed_output_subject_identity(subject) == Ok(subject.subject_cid) &&
+  remote_managed_output_measurement_identity(measurement) ==
+  Ok(measurement.measurement_cid) &&
+  subject.measurement_evidence_cid == measurement.measurement_cid &&
+  subject.row_count == measurement.row_count
 }
 
 ///|

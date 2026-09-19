@@ -61,14 +61,16 @@ export function createRemoteSiteCoordinator({
       record,
       response,
     );
-    if (response.evidence === undefined && response.subject === undefined) {
+    if (response.evidence === undefined && response.subject === undefined &&
+        response.measurement === undefined) {
       store.advance(transition, record, control);
     } else if (response.evidence !== undefined &&
-        response.subject !== undefined) {
+        response.subject !== undefined && response.measurement !== undefined) {
       store.advanceEvidence(
         transition,
         response.evidence,
         response.subject,
+        response.measurement,
         record,
         control,
       );

@@ -89,6 +89,22 @@ fn managed_output_issuer() -> RemoteEvidenceIssuer {
 }
 
 ///|
+fn managed_output_measurement() -> RemoteManagedOutputMeasurement {
+  prepare_remote_managed_output_measurement(
+    2,
+    0,
+    0,
+    0,
+    [2],
+    [2],
+    [2],
+    [1],
+    [0],
+    [10],
+  ).unwrap()
+}
+
+///|
 fn execution_capability() -> RemoteExecutionCapability {
   let site = @site.create_site(
     "site-a",
@@ -107,6 +123,48 @@ fn execution_capability() -> RemoteExecutionCapability {
     "strategy/1",
     cid("4444444444444444444444444444444444444444444444444444444444444444"),
   ).unwrap()
+}
+
+///|
+test "managed output measurement is canonical bounded and independently admitted" {
+  let measurement = managed_output_measurement()
+  let body = remote_managed_output_measurement_json(measurement).unwrap()
+  assert_eq(
+    body, "{\"admission_nodes\":0,\"admission_text_bytes\":0,\"admission_work\":0,\"columns\":[{\"admitted_depth\":10,\"bytes\":2,\"max_value_bytes\":1,\"nodes\":2,\"null_rows\":0,\"rows\":2}],\"row_count\":2,\"version\":\"actql-remote-managed-output-measurement/0.1\"}",
+  )
+  let projection = remote_managed_output_measurement_projection(measurement)
+  assert_eq(projection, [[2, 0, 0, 0], [2], [2], [2], [1], [0], [10]])
+  assert_true(
+    admit_remote_managed_output_measurement(
+      2,
+      0,
+      0,
+      0,
+      [2],
+      [2],
+      [2],
+      [1],
+      [0],
+      [10],
+      remote_managed_output_measurement_cid(measurement),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    prepare_remote_managed_output_measurement(
+      2,
+      0,
+      0,
+      0,
+      [1],
+      [2],
+      [2],
+      [1],
+      [0],
+      [10],
+    )
+    is Err(InvalidDispatch),
+  )
 }
 
 ///|
@@ -395,6 +453,7 @@ test "managed output subject has an independent canonical identity" {
     1,
     cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
   )
+  let measurement = managed_output_measurement()
   let subject = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
     "material-generation-a",
@@ -404,16 +463,17 @@ test "managed output subject has an independent canonical identity" {
     cid("5555555555555555555555555555555555555555555555555555555555555555"),
     cid("6666666666666666666666666666666666666666666666666666666666666666"),
     cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    remote_managed_output_measurement_cid(measurement),
     2,
     8L,
   ).unwrap()
   assert_eq(
     remote_managed_output_subject_json(subject).unwrap(),
-    "{\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.1\"}",
+    "{\"dispatch_request_cid\":\"sha256:062578c246f6324b7750d8784d5f4db17dd25bd659a4374e6732ddfe01c61065\",\"holding_evidence_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"logical_view_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"managed_profile_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"material_generation\":\"material-generation-a\",\"measurement_evidence_cid\":\"sha256:eecf2bab4ef5dc77dc89eee5b6bcc3c5d75d457d9d28d58fac85d5c0a6306a51\",\"physical_manifest_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"representation_codec_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"result_schema_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"retained_bytes\":\"8\",\"row_count\":2,\"version\":\"actql-remote-managed-output-subject/0.2\"}",
   )
   assert_eq(
     remote_managed_output_subject_cid(subject),
-    "sha256:4f051d6c935e9c22f0c9ebf8dcbf9afcc5a018eca01fc9874442f691413a525b",
+    "sha256:93b0a3f2c2a47165de19188bd7da1ce76de3c487093e89b39dc20add985c03a7",
   )
   assert_true(remote_managed_output_subject_matches_dispatch(subject, dispatch))
   assert_true(
@@ -426,6 +486,7 @@ test "managed output subject has an independent canonical identity" {
       cid("5555555555555555555555555555555555555555555555555555555555555555"),
       cid("6666666666666666666666666666666666666666666666666666666666666666"),
       cid("7777777777777777777777777777777777777777777777777777777777777777"),
+      remote_managed_output_measurement_cid(measurement),
       3,
       8L,
       remote_managed_output_subject_cid(subject),
@@ -455,6 +516,7 @@ test "managed output evidence accepts only its typed retained subject" {
     ).unwrap(),
     true,
   ).unwrap()
+  let measurement = managed_output_measurement()
   let subject = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
     "material-generation-a",
@@ -464,6 +526,7 @@ test "managed output evidence accepts only its typed retained subject" {
     cid("5555555555555555555555555555555555555555555555555555555555555555"),
     cid("6666666666666666666666666666666666666666666666666666666666666666"),
     cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    remote_managed_output_measurement_cid(measurement),
     2,
     8L,
   ).unwrap()
@@ -474,10 +537,13 @@ test "managed output evidence accepts only its typed retained subject" {
   ).unwrap()
   assert_eq(
     remote_execution_evidence_cid(evidence),
-    "sha256:43a0fbc47790d6cdf49c299f34ca9402a00d1641c566c736351ae6c471f87985",
+    "sha256:96ba498ecbfe9352e31bf7825af4dfd6fd13b92fd7ee6fe676158ed156eadf7c",
   )
   assert_true(
     remote_managed_output_subject_matches_evidence(subject, evidence, dispatch),
+  )
+  assert_true(
+    remote_managed_output_subject_matches_measurement(subject, measurement),
   )
   let foreign = prepare_remote_managed_output_subject(
     dispatch_request_identity(dispatch),
@@ -488,6 +554,7 @@ test "managed output evidence accepts only its typed retained subject" {
     cid("5555555555555555555555555555555555555555555555555555555555555555"),
     cid("6666666666666666666666666666666666666666666666666666666666666666"),
     cid("7777777777777777777777777777777777777777777777777777777777777777"),
+    remote_managed_output_measurement_cid(measurement),
     2,
     8L,
   ).unwrap()
