@@ -334,7 +334,7 @@ pub fn admit_usage(
     )
   }
   try {
-    let budget = {
+    let budget : Budget = {
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
       max_depth: limits.max_depth,
@@ -394,7 +394,7 @@ pub fn admit_host_usage(
     )
   }
   try {
-    let budget = {
+    let budget : Budget = {
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
       max_depth: limits.max_depth,

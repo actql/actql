@@ -64,6 +64,8 @@ pub fn object_value(Array[(String, Value)]) -> Value?
 
 pub fn prepare_vector_value(Int) -> VectorBuilder?
 
+pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
+
 pub fn reference_available(ReferenceValue) -> Bool
 
 pub fn reference_compatible(ReferenceValue, @value_contract.Contract) -> Bool

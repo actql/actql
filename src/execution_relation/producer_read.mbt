@@ -194,6 +194,31 @@ pub fn producer_read_cell(
 }
 
 ///|
+/// Re-establish a checked immutable cell for a Carrier bridge. The source
+/// completion and receiving schema remain exact; validation is bounded and
+/// performs no coercion or wire round trip.
+pub fn producer_read_checked_cell(
+  value : ProducerRead,
+  row : Int,
+  column : Int,
+  limits : @admitted.Limits,
+) -> @admitted.CheckedValue? {
+  guard @schema.field_at(value.schema, column) is Some(field) &&
+    producer_read_cell(value, row, column) is Some(cell) else {
+    return None
+  }
+  let admitted = match cell {
+    Null => Some(@admitted.null_value())
+    Number(number) => @admitted.number_value(number)
+    Boolean(boolean) => Some(@admitted.boolean_value(boolean))
+    Text(text) => @admitted.text_value(text, limits.max_text_bytes)
+    Captured(captured) => Some(captured)
+  }
+  guard admitted is Some(admitted) else { return None }
+  @admitted.recheck_runtime_value(admitted, field.contract, limits)
+}
+
+///|
 /// Execute an owned completed input through ordinary producer admission. No
 /// source lookup, row materialization or accounting exemption is introduced.
 pub fn execute_fixed_producer_input(
