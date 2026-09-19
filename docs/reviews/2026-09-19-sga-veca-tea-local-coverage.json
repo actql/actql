@@ -319,8 +319,21 @@
       "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
       "status": "partial",
       "owner": "local-tea",
-      "completed_layers": ["contract", "checker", "lowering"],
-      "layer_evidence": ["src/lowering_relation/event_test.mbt"]
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "resources",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/dedupe_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ]
     },
     {
       "family": "TEA",

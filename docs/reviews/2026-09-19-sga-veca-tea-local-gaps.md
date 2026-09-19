@@ -160,7 +160,7 @@ admitted dimensions, exact UTF-8 value usage, work, and workspace bounds.
 
 ### TEA
 
-Seven operations still lack portable Local execution. Checked typed lowering
+Six operations still lack portable Local execution. Checked typed lowering
 emits `TEA.watermark.label`, `TEA.dedupe`, and
 `TEA.window.session_assign`. Dedupe retains repeated partition positions,
 stable order terms, null placement, and the mandatory tie failure. Session
@@ -180,8 +180,18 @@ Host sequence now converts Relation rows to Events, runs watermarking, converts
 back to Relation, feeds two downstream computations, releases them
 independently, and reclaims the final ledger. Standalone Events output lifetime,
 the complete cancellation artifact path, and publication remain open, so
-watermarking is not complete. The other seven TEA operations still lack
-portable Local kernels.
+watermarking is not complete. Dedupe now executes as a bounded stable merge
+over the authored partition and order terms. It preserves repeated partition
+references, emits representatives in canonical partition-key order, and fails
+an unresolved top tie before publication. Scratch dimensions are admitted
+before allocation. Its portable tests cover grouped and global selection,
+empty input, exact and insufficient workspace, cancellation, and tie failure
+on JS, Wasm, and native. The registered Events provider now selects either
+watermark or dedupe from the checked occurrence. Dedupe reaches two downstream
+Relation computations through the standard Host and releases the final ledger.
+Standalone Events output lifetime, environment cancellation delivery, and
+publication remain open, so dedupe is not complete. The other six TEA
+operations still lack portable Local kernels.
 
 ### Bridges
 
@@ -227,6 +237,16 @@ result into two downstream Compute consumers, releases them independently, and
 returns the ledger to zero. The complete program-check and query-integration
 suites pass 677 tests on each target; the portable API and family coverage
 gates pass. This is not cancellation-delivery or publication evidence.
+
+At `842825f8`, bounded event deduplication preserves the checked partition
+and order terms, fails unresolved top ties before output publication, and
+admits its scratch dimensions before allocation. The registered Events
+provider selects the operation from the typed occurrence. Its standard Host
+fixture reaches two downstream Relation computations, independent release,
+and final ledger reclamation. The affected TEA, provider, and query integration
+suites pass 361 tests on each of JS, Wasm, and native. The portable API,
+format, and family coverage gates pass. This does not prove standalone Events
+consumer lifetime, environment cancellation delivery, or publication.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A
