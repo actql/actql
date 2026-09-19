@@ -7,6 +7,7 @@ import {bindExecutionSiteCandidate, classifyManagedExecutionSiteFallback,
   executionSitePlacements, failedExecutionSiteOperationAction,
   installExecutionSites,
   prepareSingleExecutionSitePolicy, releaseExecutionSiteHolding,
+  retainedExecutionSiteHoldingAction,
   retainExecutionSiteOperationHolding, settleExecutionSiteOperation,
   selectExecutionSiteCandidateIndex, startExecutionSiteOperation} from
   './execution-sites.mjs';
@@ -60,6 +61,8 @@ function retainSiteResult(operation, result, retainedBytes) {
   );
   let released = false;
   let closeStarted = false;
+  let closeSucceeded = false;
+  let closeFailed = false;
   let closeResult;
   let closeFailure;
   let cleanupTracked = false;
@@ -68,23 +71,57 @@ function retainSiteResult(operation, result, retainedBytes) {
     releaseExecutionSiteHolding(holding);
     released = true;
   };
+  const progress = (cleanupAuthority = false, cleanupStopped = false) => {
+    const action = retainedExecutionSiteHoldingAction(
+      operation,
+      closeStarted,
+      closeSucceeded,
+      closeFailed,
+      cleanupAuthority,
+      cleanupStopped,
+      released,
+    );
+    if (action === 3) release();
+    if (action === 5) {
+      throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
+    }
+    return action;
+  };
   return Object.freeze({
     status: () => Object.freeze({released}),
     close() {
       if (released || closeStarted) return closeResult;
+      if (progress() !== 0) {
+        throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
+      }
       closeStarted = true;
       try {
         closeResult = typeof result?.close === 'function'
           ? result.close() : undefined;
       }
-      catch (reason) { closeFailure = reason; throw reason; }
+      catch (reason) {
+        closeFailure = reason;
+        closeFailed = true;
+        progress();
+        throw reason;
+      }
       if (closeResult != null && typeof closeResult.then === 'function') {
         closeResult = Promise.resolve(closeResult).then(
-          value => { release(); return value; },
-          reason => { closeFailure = reason; throw reason; },
+          value => {
+            closeSucceeded = true;
+            progress();
+            return value;
+          },
+          reason => {
+            closeFailure = reason;
+            closeFailed = true;
+            progress();
+            throw reason;
+          },
         );
       } else {
-        release();
+        closeSucceeded = true;
+        progress();
       }
       return closeResult;
     },
@@ -99,13 +136,14 @@ function retainSiteResult(operation, result, retainedBytes) {
       const state = () => {
         try {
           const value = upstream.status();
-          if (value?.pending === false) release();
+          progress(true, value?.pending === false);
           return Object.freeze({
             pending: !released,
             errors: Object.freeze(Array.isArray(value?.errors)
               ? [...value.errors] : []),
           });
         } catch (error) {
+          progress(true, false);
           return Object.freeze({pending: true, errors: Object.freeze([error])});
         }
       };
@@ -125,23 +163,56 @@ function retainSiteResult(operation, result, retainedBytes) {
 // Site holdings through the exact common output lifetime and release them only
 // after the Core close succeeds or its explicit cleanup handle confirms it.
 function coreOutputSiteOwner(core, setup) {
-  const retained = new Set();
+  const retained = new Map();
+  let closeStarted = false;
+  let closeSucceeded = false;
+  let closeFailed = false;
   let closeFailure;
   let cleanupTracked = false;
-  const release = () => {
-    for (const holding of retained) releaseExecutionSiteHolding(holding);
-    retained.clear();
+  const progress = (cleanupAuthority = false, cleanupStopped = false) => {
+    for (const [holding, owner] of retained) {
+      const action = retainedExecutionSiteHoldingAction(
+        owner.operation,
+        closeStarted,
+        closeSucceeded,
+        closeFailed,
+        cleanupAuthority,
+        cleanupStopped,
+        owner.released,
+      );
+      if (action === 3) {
+        releaseExecutionSiteHolding(holding);
+        owner.released = true;
+        retained.delete(holding);
+      }
+      if (action === 5) {
+        throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
+      }
+    }
   };
   return Object.freeze({
     retain(operation, value, retainedBytes) {
-      retained.add(retainExecutionSiteOperationHolding(
+      if (closeStarted) {
+        throw new StrategyHostError('InvalidExecutionSiteHoldingProgress');
+      }
+      const holding = retainExecutionSiteOperationHolding(
         operation, value, retainedBytes,
-      ));
+      );
+      retained.set(holding, {operation, released: false});
     },
     close() {
+      if (closeStarted) return;
+      progress();
+      closeStarted = true;
       try { core.closeOutputs(setup); }
-      catch (reason) { closeFailure = reason; throw reason; }
-      release();
+      catch (reason) {
+        closeFailure = reason;
+        closeFailed = true;
+        progress();
+        throw reason;
+      }
+      closeSucceeded = true;
+      progress();
     },
     afterFailure(reason, remember) {
       if (cleanupTracked || retained.size === 0 || reason !== closeFailure) return;
@@ -154,13 +225,14 @@ function coreOutputSiteOwner(core, setup) {
       const state = () => {
         try {
           const value = upstream.status();
-          if (value?.pending === false) release();
+          progress(true, value?.pending === false);
           return Object.freeze({
             pending: retained.size !== 0,
             errors: Object.freeze(Array.isArray(value?.errors)
               ? [...value.errors] : []),
           });
         } catch (error) {
+          progress(true, false);
           return Object.freeze({pending: true, errors: Object.freeze([error])});
         }
       };

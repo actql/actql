@@ -38,6 +38,7 @@ const controlMethods = [
   'retainCleanup', 'releaseCleanup', 'beginTeardown', 'revoke', 'status',
   'selectCandidate', 'planCandidate', 'managedCandidateFallback',
   'failedOperationAction',
+  'retainedHoldingAction',
 ];
 
 function checkedControl(control) {
@@ -517,6 +518,31 @@ export function failedExecutionSiteOperationAction(
   );
   if (!Number.isSafeInteger(action) || action < 0 || action > 2) {
     fail('InvalidExecutionSiteFailureAction');
+  }
+  return action;
+}
+
+export function retainedExecutionSiteHoldingAction(
+  operation,
+  closeStarted,
+  closeSucceeded,
+  closeFailed,
+  cleanupAuthority,
+  cleanupStopped,
+  holdingReleased,
+) {
+  const state = operations.get(operation) ??
+    fail('ForeignExecutionSiteOperation');
+  const action = state.control.retainedHoldingAction(
+    closeStarted,
+    closeSucceeded,
+    closeFailed,
+    cleanupAuthority,
+    cleanupStopped,
+    holdingReleased,
+  );
+  if (!Number.isSafeInteger(action) || action < 0 || action > 5) {
+    fail('InvalidExecutionSiteHoldingAction');
   }
   return action;
 }

@@ -225,5 +225,25 @@ export function createExecutionSiteControlFixture() {
       if (cleanupRequired && !cleanupStopped) return 0;
       return 1;
     },
+    retainedHoldingAction(
+      closeStarted,
+      closeSucceeded,
+      closeFailed,
+      cleanupAuthority,
+      cleanupStopped,
+      holdingReleased,
+    ) {
+      if ((closeSucceeded && closeFailed) ||
+          (cleanupStopped && !cleanupAuthority) ||
+          ((closeSucceeded || closeFailed || cleanupAuthority) &&
+            !closeStarted) ||
+          (holdingReleased && !closeStarted)) return 5;
+      if (holdingReleased) return 4;
+      if (!closeStarted) return 0;
+      if (closeSucceeded ||
+          (closeFailed && cleanupAuthority && cleanupStopped)) return 3;
+      if (closeFailed) return 2;
+      return 1;
+    },
   });
 }

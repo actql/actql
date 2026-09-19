@@ -17,3 +17,35 @@ test "failed Site operation waits only for required physical stop" {
     FailedSiteFinished,
   )
 }
+
+///|
+test "retained Site holding follows physical close and cleanup" {
+  assert_eq(
+    prepare_retained_site_holding_step(false, false, false, false, false, false),
+    RetainedSiteStartClose,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, false, false, false, false, false),
+    RetainedSiteAwaitClose,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, false, true, true, false, false),
+    RetainedSiteAwaitCleanup,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, false, true, true, true, false),
+    RetainedSiteReleaseHolding,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, true, false, false, false, false),
+    RetainedSiteReleaseHolding,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, true, false, false, false, true),
+    RetainedSiteHoldingFinished,
+  )
+  assert_eq(
+    prepare_retained_site_holding_step(true, true, true, false, false, false),
+    RetainedSiteHoldingInvalid,
+  )
+}

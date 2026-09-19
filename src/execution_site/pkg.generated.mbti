@@ -20,6 +20,8 @@ pub fn plan_site_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool]
 
 pub fn prepare_failed_site_operation_step(Bool, Bool, Bool) -> FailedSiteOperationAction
 
+pub fn prepare_retained_site_holding_step(Bool, Bool, Bool, Bool, Bool, Bool) -> RetainedSiteHoldingAction
+
 pub fn release_site_cleanup(SiteCleanup) -> Bool
 
 pub fn release_site_holding(SiteHolding) -> Bool
@@ -31,6 +33,8 @@ pub fn retain_site_holding(ExecutionSite, Int64) -> SiteHolding?
 pub fn retain_site_operation_holding(SiteOperation, Int64) -> SiteHolding?
 
 pub fn retain_site_transfer_holding(SiteTransfer, Int64) -> SiteHolding?
+
+pub fn retained_site_holding_action_code(RetainedSiteHoldingAction) -> Int
 
 pub fn revoke_site(ExecutionSite) -> Unit
 
@@ -85,6 +89,15 @@ pub(all) enum ManagedCandidateFallbackResult {
   ManagedCandidateTransferUnavailable
   ManagedCandidateNoCompatibleStrategy
   ManagedCandidateFallbackInvalid
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RetainedSiteHoldingAction {
+  RetainedSiteStartClose
+  RetainedSiteAwaitClose
+  RetainedSiteAwaitCleanup
+  RetainedSiteReleaseHolding
+  RetainedSiteHoldingFinished
+  RetainedSiteHoldingInvalid
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SiteCandidatePlanResult {

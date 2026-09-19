@@ -2676,6 +2676,28 @@ pub fn strategy_site_failed_operation_action(
 }
 
 ///|
+#export_name("strategySiteRetainedHoldingAction")
+pub fn strategy_site_retained_holding_action(
+  close_started : Bool,
+  close_succeeded : Bool,
+  close_failed : Bool,
+  cleanup_authority : Bool,
+  cleanup_stopped : Bool,
+  holding_released : Bool,
+) -> Int {
+  @site.retained_site_holding_action_code(
+    @site.prepare_retained_site_holding_step(
+      close_started,
+      close_succeeded,
+      close_failed,
+      cleanup_authority,
+      cleanup_stopped,
+      holding_released,
+    ),
+  )
+}
+
+///|
 #export_name("strategyRemoteDispatchPrepare")
 pub fn strategy_remote_dispatch_prepare(
   coordinator_authority : String,

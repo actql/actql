@@ -538,6 +538,8 @@ pub fn strategy_site_retain_operation_holding(@execution_site.SiteOperation, Int
 
 pub fn strategy_site_retain_transfer_holding(@execution_site.SiteTransfer, Int64) -> @execution_site.SiteHolding?
 
+pub fn strategy_site_retained_holding_action(Bool, Bool, Bool, Bool, Bool, Bool) -> Int
+
 pub fn strategy_site_revoke(@execution_site.ExecutionSite) -> Unit
 
 pub fn strategy_site_revoked(@execution_site.ExecutionSite) -> Bool
