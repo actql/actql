@@ -140,6 +140,11 @@ test "checked vector pooling lowers canonical parameters" {
   )
   assert_eq(@lowering_relation.vector_pool_output_id(pool), Some("group_id"))
   assert_eq(@lowering_relation.vector_pool_vector_role(pool), Some("embedding"))
+  assert_eq(@lowering_relation.vector_pool_identity_count(pool), Some(0))
+  assert_eq(
+    @lowering_relation.vector_pool_encodes_member_identity(pool),
+    Some(false),
+  )
   let writer = @encode.writer(10000, 1000, 100)
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
@@ -209,6 +214,20 @@ test "relation pooling lowers member identity and vector bridge" {
     max_name_bytes=100,
   ).unwrap()
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.VectorStep(pool)) else {
+    fail("pool step")
+  }
+  assert_eq(@lowering_relation.vector_pool_identity_count(pool), Some(1))
+  assert_eq(
+    @lowering_relation.vector_pool_identity_at(pool, 0),
+    Some("product_id"),
+  )
+  assert_eq(
+    @lowering_relation.vector_pool_encodes_member_identity(pool),
+    Some(true),
+  )
+  assert_true(@lowering_relation.vector_pool_member_vectors(pool) is Some(_))
   assert_eq(
     @lowering_relation.sequence_canonical_node_count(sequence, 0),
     Some(3),
@@ -277,6 +296,19 @@ test "relation pooling reuses an admitted singleton string identity" {
     max_name_bytes=100,
   ).unwrap()
   let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.VectorStep(pool)) else {
+    fail("pool step")
+  }
+  assert_eq(@lowering_relation.vector_pool_identity_count(pool), Some(1))
+  assert_eq(
+    @lowering_relation.vector_pool_identity_at(pool, 0),
+    Some("product_id"),
+  )
+  assert_eq(
+    @lowering_relation.vector_pool_encodes_member_identity(pool),
+    Some(false),
+  )
   assert_eq(
     @lowering_relation.sequence_canonical_node_count(sequence, 0),
     Some(2),

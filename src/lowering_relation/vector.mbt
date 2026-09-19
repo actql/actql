@@ -182,6 +182,43 @@ pub fn vector_pool_vector_role(value : PreparedVector) -> String? {
 }
 
 ///|
+/// Number of retained member-identity fields in canonical key order.
+pub fn vector_pool_identity_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorPoolParams(_, _, _, _, identities, _) => Some(identities.length())
+    _ => None
+  }
+}
+
+///|
+/// One retained member-identity field without exposing mutable storage.
+pub fn vector_pool_identity_at(value : PreparedVector, index : Int) -> String? {
+  match value.params {
+    VectorPoolParams(_, _, _, _, identities, _) => identities.get(index)
+    _ => None
+  }
+}
+
+///|
+/// Whether Relation input requires the registered composite-key encoding.
+pub fn vector_pool_encodes_member_identity(value : PreparedVector) -> Bool? {
+  match value.params {
+    VectorPoolParams(_, _, _, _, _, encoded) => Some(encoded)
+    _ => None
+  }
+}
+
+///|
+/// Exact intermediate Vectors contract selected by checked Relation pooling.
+/// Direct Vectors pooling returns the operation input contract instead.
+pub fn vector_pool_member_vectors(value : PreparedVector) -> @carrier.Vectors? {
+  match value.node.payload {
+    PoolValue(checked) => Some(@vector.pool_member_vectors(checked))
+    _ => None
+  }
+}
+
+///|
 pub(all) enum VectorIssue {
   InvalidVectorLimits
   InvalidVectorWiring

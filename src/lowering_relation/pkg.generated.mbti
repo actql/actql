@@ -631,9 +631,17 @@ pub fn usage(Prepared) -> Usage
 
 pub fn vector_output_carrier(PreparedVector) -> @carrier_contract.Carrier
 
+pub fn vector_pool_encodes_member_identity(PreparedVector) -> Bool?
+
 pub fn vector_pool_group_at(PreparedVector, Int) -> String?
 
 pub fn vector_pool_group_count(PreparedVector) -> Int?
+
+pub fn vector_pool_identity_at(PreparedVector, Int) -> String?
+
+pub fn vector_pool_identity_count(PreparedVector) -> Int?
+
+pub fn vector_pool_member_vectors(PreparedVector) -> @carrier_contract.Vectors?
 
 pub fn vector_pool_method(PreparedVector) -> PreparedVectorPoolMethod?
 

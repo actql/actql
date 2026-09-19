@@ -32,6 +32,8 @@ pub fn boolean_value(Bool) -> Value
 
 pub fn cancel_vector_value(VectorBuilder) -> Bool
 
+pub fn canonical_scalar_text(CheckedValue, Int) -> String?
+
 pub fn checked_boolean_value(Bool, @value_contract.Contract) -> CheckedValue?
 
 pub fn checked_number_value(Double, @value_contract.Contract) -> CheckedValue?

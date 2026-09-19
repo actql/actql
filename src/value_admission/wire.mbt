@@ -29,6 +29,31 @@ fn decimal_wire_text(value : DecimalValue) -> String {
 }
 
 ///|
+/// Canonical scalar spelling used by the normative `to_string` conversion.
+/// Structured values, references, and null have no scalar string conversion.
+/// The caller supplies the complete output byte ceiling before any result is
+/// exposed.
+pub fn canonical_scalar_text(
+  value : CheckedValue,
+  max_utf8_bytes : Int,
+) -> String? {
+  if max_utf8_bytes < 0 {
+    return None
+  }
+  let text = match value.value {
+    Boolean(v) => if v { "true" } else { "false" }
+    Number(v) => v.to_string()
+    Text(v) | Date(v) | Timestamp(v) => v
+    Decimal(v) => decimal_wire_text(v)
+    Null | Array(_) | Object(_) | Vector(_) | Reference(_) => return None
+  }
+  match @scalar.admit_utf8_length(text, max_utf8_bytes) {
+    Ok(_) => Some(text)
+    Err(_) => None
+  }
+}
+
+///|
 /// Emit an admitted value's canonical typed JSON wire representation into the
 /// caller's bounded sink. This is not the tagged typed-identity projection.
 /// Objects retain admitted UTF-16 order; business keys are never interpreted.
