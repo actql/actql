@@ -17,6 +17,8 @@ pub fn admit_durable_dispatch_record(Bytes) -> Result[DurableDispatchRecord, Dis
 
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
+pub fn admit_remote_dispatch_response_json(String, DispatchRequest, RemoteDispatchResponseKind) -> Result[RemoteDispatchResponse, DispatchIssue]
+
 pub fn admit_remote_execution_evidence(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> Result[RemoteExecutionEvidence, DispatchIssue]
 
 pub fn admit_remote_execution_evidence_json(String, String, DispatchRequest) -> Result[RemoteExecutionEvidence, DispatchIssue]
@@ -169,6 +171,8 @@ pub fn prepare_coordinator_observation(CoordinatorDispatchIntentRecord, Int, Int
 
 pub fn prepare_coordinator_outcome_unknown(CoordinatorDispatchIntentRecord) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
+pub fn prepare_coordinator_response_observation(CoordinatorDispatchIntentRecord, RemoteDispatchResponse) -> Result[CoordinatorDispatchTransition, DispatchIssue]
+
 pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
@@ -216,6 +220,10 @@ pub fn remote_dispatch_budget_capacity(RemoteDispatchBudget) -> (Int64, Int64)
 pub fn remote_dispatch_budget_cid(RemoteDispatchBudget) -> String
 
 pub fn remote_dispatch_budget_json(RemoteDispatchBudget) -> Result[String, DispatchIssue]
+
+pub fn remote_dispatch_response_kind(RemoteDispatchResponse) -> RemoteDispatchResponseKind
+
+pub fn remote_dispatch_response_revision(RemoteDispatchResponse) -> Int
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -344,6 +352,13 @@ pub(all) enum RemoteCleanupState {
 } derive(Eq, @debug.Debug)
 
 type RemoteDispatchBudget
+
+type RemoteDispatchResponse
+
+pub(all) enum RemoteDispatchResponseKind {
+  DispatchReply
+  StatusReply
+} derive(Eq, @debug.Debug)
 
 type RemoteEvidenceIssuer
 
