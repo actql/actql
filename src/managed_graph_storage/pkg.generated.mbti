@@ -1,0 +1,94 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/managed_graph_storage"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn append_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn carrier(Storage) -> @carrier_contract.Carrier
+
+pub fn construction_work(Storage) -> Int
+
+pub fn edge_count(Storage) -> Int
+
+pub fn edge_endpoints(Storage, Int) -> (Int, Int)?
+
+pub fn edge_label(Storage, Int) -> @value_admission.CheckedValue??
+
+pub fn edge_property(Storage, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn finish(Builder) -> Result[Storage, Issue]
+
+pub fn input_row_count(Storage) -> Int
+
+pub fn measured_input_value_bytes(Storage) -> Int
+
+pub fn node_count(Storage) -> Int
+
+pub fn node_identity(Storage, Int) -> @value_admission.CheckedValue?
+
+pub fn node_property(Storage, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
+
+pub fn retained_value_bytes(Storage) -> Int
+
+pub fn retained_workspace_slots(Storage) -> Int
+
+// Errors
+
+// Types and methods
+type Builder
+
+pub(all) enum Issue {
+  InvalidLimits
+  WrongCarrier
+  OpenPropertyContract
+  InvalidIdentity
+  InvalidLabel
+  InvalidProperties
+  WrongMode
+  InputRowLimit
+  NodeLimit
+  EdgeLimit
+  ValueLimit
+  RetainedValueLimit
+  WorkLimit
+  WorkspaceLimit
+  DuplicateNodeConflict
+  DuplicateEdgeConflict
+  MissingEndpoint
+  Closed
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Limits {
+  max_input_rows : Int
+  max_nodes : Int
+  max_edges : Int
+  max_value_bytes : Int
+  max_total_value_bytes : Int
+  max_retained_value_bytes : Int
+  max_value_nodes : Int
+  max_value_depth : Int
+  max_contract_work : Int
+  max_work : Int
+  max_workspace_slots : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Mode {
+  DeclaredNodes
+  DerivedEndpoints
+} derive(Eq, @debug.Debug)
+
+type Storage
+
+// Type aliases
+
+// Traits
