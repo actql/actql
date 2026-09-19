@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn binding_carrier(Binding) -> @carrier_contract.Carrier
+
 pub fn binding_kind(Binding) -> @carrier_contract.Kind
 
 pub fn binding_matches(Binding, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
@@ -31,7 +33,21 @@ pub fn[E, T] completion_reference_matches(CompletionReference, Completed[E, T]) 
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
+pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
+
 pub fn[P, E, T] prepare_retention_port(Binding, (P) -> (Receipt, E, T, Int64, () -> Bool)?) -> RetentionPort[P, E, T]
+
+pub fn[E, T] producer_read_available(ProducerRead[E, T]) -> Bool
+
+pub fn[E, T] producer_read_input_index(ProducerRead[E, T]) -> Int
+
+pub fn[E, T] producer_read_matches_reference(ProducerRead[E, T], CompletionReference) -> Bool
+
+pub fn[E, T] producer_read_payload(ProducerRead[E, T]) -> T?
+
+pub fn[E, T] producer_read_receiver(ProducerRead[E, T]) -> @lowering_relation.BoundPrepared
+
+pub fn[E, T] producer_read_same(ProducerRead[E, T], ProducerRead[E, T]) -> Bool
 
 pub fn receipt_matches(Receipt, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
@@ -76,6 +92,16 @@ pub(all) enum Measure {
   GraphMeasure(nodes~ : Int, edges~ : Int)
   EventsMeasure(records~ : Int)
   VectorsMeasure(records~ : Int, dimensions~ : Int)
+} derive(Eq, @debug.Debug)
+
+type ProducerRead[E, T]
+
+pub(all) enum ProducerReadIssue {
+  InvalidInput
+  ProducerOwnerMismatch
+  ProducerBindingMismatch
+  ProducerTargetMismatch
+  ProducerUnavailable
 } derive(Eq, @debug.Debug)
 
 type Receipt

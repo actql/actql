@@ -75,6 +75,25 @@ struct CompletionReference {
 }
 
 ///|
+/// Exact receiving occurrence for one typed Carrier input. This is a checked
+/// use-site binding, not a pin, payload identity, or serialized authority.
+struct ProducerRead[E, T] {
+  identity : Ref[Unit]
+  receiver : @lower.BoundPrepared
+  input_index : Int
+  output : Completed[E, T]
+}
+
+///|
+pub(all) enum ProducerReadIssue {
+  InvalidInput
+  ProducerOwnerMismatch
+  ProducerBindingMismatch
+  ProducerTargetMismatch
+  ProducerUnavailable
+} derive(Eq, Debug)
+
+///|
 pub fn prepare_binding(
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -89,6 +108,11 @@ pub fn prepare_binding(
 ///|
 pub fn binding_kind(binding : Binding) -> @carrier.Kind {
   @carrier.kind(binding.carrier)
+}
+
+///|
+pub fn binding_carrier(binding : Binding) -> @carrier.Carrier {
+  binding.carrier
 }
 
 ///|
@@ -269,4 +293,84 @@ pub fn[E, T] completion_reference_matches(
   physical_equal(reference.identity, value.identity) &&
   completion_reference_available(reference) &&
   completed_available(value)
+}
+
+///|
+/// Bind a completed Carrier generation to the exact checked producer edge.
+/// Equal payloads, contracts, or CIDs cannot substitute another invocation.
+pub fn[E, T] prepare_producer_read(
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  output : Completed[E, T],
+) -> Result[ProducerRead[E, T], ProducerReadIssue] {
+  if !completed_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  let pipeline = @lower.pipeline(@lower.bound_preparation(receiver))
+  guard @pipeline.input_producer(pipeline, input_index) is Some(producer) else {
+    return Err(InvalidInput)
+  }
+  if !physical_equal(
+      @pipeline.producer_pipeline(producer),
+      @lower.pipeline(@lower.bound_preparation(expected_producer)),
+    ) {
+    return Err(ProducerOwnerMismatch)
+  }
+  let binding = output.retained.receipt.binding
+  if !physical_equal(binding.owner, expected_producer) {
+    return Err(ProducerBindingMismatch)
+  }
+  if binding.target != @pipeline.producer_target(producer) {
+    return Err(ProducerTargetMismatch)
+  }
+  if !completed_available(output) {
+    return Err(ProducerUnavailable)
+  }
+  Ok({ identity: Ref(()), receiver, input_index, output, })
+}
+
+///|
+pub fn[E, T] producer_read_available(value : ProducerRead[E, T]) -> Bool {
+  completed_available(value.output)
+}
+
+///|
+pub fn[E, T] producer_read_receiver(
+  value : ProducerRead[E, T],
+) -> @lower.BoundPrepared {
+  value.receiver
+}
+
+///|
+pub fn[E, T] producer_read_input_index(value : ProducerRead[E, T]) -> Int {
+  value.input_index
+}
+
+///|
+pub fn[E, T] producer_read_same(
+  left : ProducerRead[E, T],
+  right : ProducerRead[E, T],
+) -> Bool {
+  physical_equal(left.identity, right.identity)
+}
+
+///|
+/// Installed Host lookup only. Dispatch still acquires its own use authority,
+/// physical reservation, and retention before dereferencing this payload.
+pub fn[E, T] producer_read_payload(value : ProducerRead[E, T]) -> T? {
+  if producer_read_available(value) {
+    retained_payload(value.output.retained)
+  } else {
+    None
+  }
+}
+
+///|
+pub fn[E, T] producer_read_matches_reference(
+  value : ProducerRead[E, T],
+  reference : CompletionReference,
+) -> Bool {
+  completion_reference_matches(reference, value.output) &&
+  producer_read_available(value)
 }
