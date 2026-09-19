@@ -20,6 +20,17 @@ fn vector_relation() -> @carrier.Carrier {
 }
 
 ///|
+fn vector_carrier() -> @carrier.Carrier {
+  guard vector_relation() is @carrier.Relation(rows) else { abort("relation") }
+  @carrier.vectors(
+    rows,
+    ids=[@schema.Unqualified("product_id")],
+    components=@schema.Unqualified("embedding"),
+    max_identity_fields=1,
+  ).unwrap()
+}
+
+///|
 fn vector_owner(
   query : String,
   declarations? : @parameter.Declarations? = None,
@@ -64,6 +75,54 @@ test "checked vector operations lower without source rediscovery" {
   assert_eq(
     vector_wire(vector_owner("[3,4]")),
     "[{\"id\":\"to_vectors_0\",\"in\":[\"input_0\"],\"op\":\"BRIDGE.rows.to_vectors\",\"params\":{\"id\":\"product_id\",\"vector\":\"embedding\"}},{\"id\":\"normalize_vectors_1\",\"in\":[\"to_vectors_0\"],\"op\":\"VEC.normalize_l2\",\"params\":{}},{\"id\":\"score_vectors_2\",\"in\":[\"normalize_vectors_1\"],\"op\":\"VEC.score_sort\",\"params\":{\"metric\":\"cosine\",\"query\":[3,4]}}]",
+  )
+}
+
+///|
+test "checked vector pooling lowers canonical parameters" {
+  let checked = @pipeline.check_carriers(
+    cursor(
+      "[{\"pool_vectors\":{\"vector\":\"embedding\",\"by\":[\"product_id\"],\"method\":\"mean\",\"output_id\":\"group_id\"}}]",
+    ),
+    [("vectors", vector_carrier())],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(checked, limits()).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=100,
+  ).unwrap()
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.VectorStep(pool)) else {
+    fail("pool step")
+  }
+  assert_eq(@lowering_relation.vector_pool_group_count(pool), Some(1))
+  assert_eq(
+    @lowering_relation.vector_pool_group_at(pool, 0),
+    Some("product_id"),
+  )
+  assert_eq(
+    @lowering_relation.vector_pool_method(pool),
+    Some(@lowering_relation.PoolMean),
+  )
+  assert_eq(@lowering_relation.vector_pool_output_id(pool), Some("group_id"))
+  assert_eq(@lowering_relation.vector_pool_vector_role(pool), Some("embedding"))
+  let writer = @encode.writer(10000, 1000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "[{\"id\":\"pool_vectors_0\",\"in\":[\"input_0\"],\"op\":\"VEC.pool\",\"params\":{\"by\":[\"product_id\"],\"method\":\"mean\",\"output_id\":\"group_id\",\"vector\":\"embedding\"}}]",
   )
 }
 

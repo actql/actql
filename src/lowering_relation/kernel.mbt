@@ -319,6 +319,7 @@ fn prepare_kernel_measured(
     | GraphDiffRows(_)
     | GraphApplyValue(_)
     | VectorValue(_)
+    | PoolValue(_)
     | EventValue(_)
     | CarrierProjection(_) => return Err(MissingKernelNode)
   }

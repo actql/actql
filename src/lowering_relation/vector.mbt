@@ -11,6 +11,7 @@ priv enum PreparedVectorParams {
   VectorBridgeParams(String, String)
   VectorNormalizeParams
   VectorScoreParams(@vector_checking.Metric, Array[Double])
+  VectorPoolParams(Array[String], @vector.PoolMethod, String?, String?)
 }
 
 ///|
@@ -19,6 +20,14 @@ pub(all) enum PreparedVectorMetric {
   CosineScore
   DotScore
   L2Score
+} derive(Eq, Debug)
+
+///|
+/// Resolved pooling reduction retained by checked lowering.
+pub(all) enum PreparedVectorPoolMethod {
+  PoolMean
+  PoolSum
+  PoolMax
 } derive(Eq, Debug)
 
 ///|
@@ -57,6 +66,58 @@ pub fn vector_score_query_count(value : PreparedVector) -> Int? {
 pub fn vector_score_query_at(value : PreparedVector, index : Int) -> Double? {
   match value.params {
     VectorScoreParams(_, query) => query.get(index)
+    _ => None
+  }
+}
+
+///|
+/// Number of checked grouping fields in authored order.
+pub fn vector_pool_group_count(value : PreparedVector) -> Int? {
+  match value.params {
+    VectorPoolParams(groups, _, _, _) => Some(groups.length())
+    _ => None
+  }
+}
+
+///|
+/// One checked grouping field without exposing mutable parameter storage.
+pub fn vector_pool_group_at(value : PreparedVector, index : Int) -> String? {
+  match value.params {
+    VectorPoolParams(groups, _, _, _) => groups.get(index)
+    _ => None
+  }
+}
+
+///|
+/// Checked pooling reduction for a pooling operation.
+pub fn vector_pool_method(value : PreparedVector) -> PreparedVectorPoolMethod? {
+  match value.params {
+    VectorPoolParams(_, reduction, _, _) =>
+      Some(
+        match reduction {
+          @vector.Mean => PoolMean
+          @vector.Sum => PoolSum
+          @vector.Max => PoolMax
+        },
+      )
+    _ => None
+  }
+}
+
+///|
+/// Optional checked output identity alias.
+pub fn vector_pool_output_id(value : PreparedVector) -> String? {
+  match value.params {
+    VectorPoolParams(_, _, output_id, _) => output_id
+    _ => None
+  }
+}
+
+///|
+/// Optional authored vector role. Vectors input may omit this restatement.
+pub fn vector_pool_vector_role(value : PreparedVector) -> String? {
+  match value.params {
+    VectorPoolParams(_, _, _, vector) => vector
     _ => None
   }
 }
@@ -123,44 +184,81 @@ fn prepare_vector_node(
   if max_bindings < 0 || max_name_bytes < 0 || max_work < 0 {
     return Err(InvalidVectorLimits)
   }
-  guard node.payload is VectorValue(checked) else {
-    return Err(InvalidVectorWiring)
-  }
-  let (params, bindings, names, work) = match @vector.operation(checked) {
-    @vector.ToVectors => {
-      guard @vector.output(checked) is @carrier.VectorValue(output) &&
-        @carrier.vector_identity_count(output) == 1 &&
-        @carrier.vector_identity_at(output, 0) is Some(identity) else {
-        return Err(InvalidVectorWiring)
+  let (params, bindings, names, work) = match node.payload {
+    VectorValue(checked) =>
+      match @vector.operation(checked) {
+        @vector.ToVectors => {
+          guard @vector.output(checked) is @carrier.VectorValue(output) &&
+            @carrier.vector_identity_count(output) == 1 &&
+            @carrier.vector_identity_at(output, 0) is Some(identity) else {
+            return Err(InvalidVectorWiring)
+          }
+          let id = @schema.reference_name(identity.name)
+          let components = @schema.reference_name(
+            @carrier.vector_components(output).name,
+          )
+          (
+            VectorBridgeParams(id, components),
+            2,
+            @utf8.encode(id).length() + @utf8.encode(components).length(),
+            2,
+          )
+        }
+        @vector.NormalizeVectors => (VectorNormalizeParams, 0, 0, 0)
+        @vector.ScoreVectors => {
+          guard @vector.metric(checked) is Some(metric) else {
+            return Err(InvalidVectorWiring)
+          }
+          let (values, used_bindings, used_names) = match
+            checked_query_values(owner, checked) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          (
+            VectorScoreParams(metric, values),
+            used_bindings,
+            used_names,
+            values.length() + 2,
+          )
+        }
       }
-      let id = @schema.reference_name(identity.name)
-      let components = @schema.reference_name(
-        @carrier.vector_components(output).name,
-      )
+    PoolValue(checked) => {
+      let options = @vector.pooled_options(checked)
+      let groups : Array[String] = []
+      let mut used_names = 0
+      for index in 0..<@vector.pool_group_count(options) {
+        guard @vector.pool_group_at(options, index) is Some(field) else {
+          return Err(InvalidVectorWiring)
+        }
+        let name = @schema.reference_name(field)
+        groups.push(name)
+        used_names += @utf8.encode(name).length()
+      }
+      let vector = match @vector.pool_vector(options) {
+        Some(field) => {
+          let name = @schema.reference_name(field)
+          used_names += @utf8.encode(name).length()
+          Some(name)
+        }
+        None => None
+      }
+      let output_id = @vector.pool_output_id(options)
+      if output_id is Some(name) {
+        used_names += @utf8.encode(name).length()
+      }
       (
-        VectorBridgeParams(id, components),
-        2,
-        @utf8.encode(id).length() + @utf8.encode(components).length(),
-        2,
-      )
-    }
-    @vector.NormalizeVectors => (VectorNormalizeParams, 0, 0, 0)
-    @vector.ScoreVectors => {
-      guard @vector.metric(checked) is Some(metric) else {
-        return Err(InvalidVectorWiring)
-      }
-      let (values, used_bindings, used_names) = match
-        checked_query_values(owner, checked) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      (
-        VectorScoreParams(metric, values),
-        used_bindings,
+        VectorPoolParams(
+          groups,
+          @vector.pool_method(options),
+          output_id,
+          vector,
+        ),
+        0,
         used_names,
-        values.length() + 2,
+        groups.length() + 2,
       )
     }
+    _ => return Err(InvalidVectorWiring)
   }
   if bindings > max_bindings || names > max_name_bytes || work > max_work {
     return Err(VectorPreparationLimit)
@@ -210,6 +308,31 @@ fn emit_vector_node(
         @encode.number_value(out, value)
       }
       @encode.end_array(out)
+    }
+    VectorPoolParams(groups, reduction, output_id, vector) => {
+      @encode.key(out, "by")
+      @encode.begin_array(out)
+      for group in groups {
+        @encode.string_value(out, group)
+      }
+      @encode.end_array(out)
+      @encode.key(out, "method")
+      @encode.string_value(
+        out,
+        match reduction {
+          @vector.Mean => "mean"
+          @vector.Sum => "sum"
+          @vector.Max => "max"
+        },
+      )
+      if output_id is Some(name) {
+        @encode.key(out, "output_id")
+        @encode.string_value(out, name)
+      }
+      if vector is Some(name) {
+        @encode.key(out, "vector")
+        @encode.string_value(out, name)
+      }
     }
   }
   @encode.end_object(out)

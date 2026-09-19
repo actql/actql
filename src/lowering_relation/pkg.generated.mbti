@@ -631,6 +631,16 @@ pub fn usage(Prepared) -> Usage
 
 pub fn vector_output_carrier(PreparedVector) -> @carrier_contract.Carrier
 
+pub fn vector_pool_group_at(PreparedVector, Int) -> String?
+
+pub fn vector_pool_group_count(PreparedVector) -> Int?
+
+pub fn vector_pool_method(PreparedVector) -> PreparedVectorPoolMethod?
+
+pub fn vector_pool_output_id(PreparedVector) -> String?
+
+pub fn vector_pool_vector_role(PreparedVector) -> String?
+
 pub fn vector_score_metric(PreparedVector) -> PreparedVectorMetric?
 
 pub fn vector_score_query_at(PreparedVector, Int) -> Double?
@@ -1086,6 +1096,7 @@ pub enum Payload {
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
   VectorValue(@vector_typing.CheckedVector)
+  PoolValue(@vector_typing.CheckedPool)
   EventValue(@event_typing.CheckedEvent)
   CarrierProjection(@carrier_projection.CheckedProjection)
 }
@@ -1250,6 +1261,12 @@ pub(all) enum PreparedVectorMetric {
   CosineScore
   DotScore
   L2Score
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PreparedVectorPoolMethod {
+  PoolMean
+  PoolSum
+  PoolMax
 } derive(Eq, @debug.Debug)
 
 pub enum PreparedWatermarkThreshold {

@@ -69,6 +69,7 @@ pub enum Payload {
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
   VectorValue(@vector.CheckedVector)
+  PoolValue(@vector.CheckedPool)
   EventValue(@event.CheckedEvent)
   CarrierProjection(@projection.CheckedProjection)
 }
@@ -233,6 +234,7 @@ pub fn operation(value : PreparedNode) -> String {
         @vector.NormalizeVectors => "VEC.normalize_l2"
         @vector.ScoreVectors => "VEC.score_sort"
       }
+    PoolValue(_) => "VEC.pool"
     EventValue(value) =>
       match @event.options(value) {
         @event.ToEvents => "BRIDGE.rows.to_events"
@@ -308,8 +310,13 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
     GraphMean(value) => Some(GraphMeanValue(value))
-    GraphConstruction(..) | Nearest(..) | Pool(_) | Ranking(_) | TextRank(..) =>
-      None
+    Pool(value) =>
+      if @vector.pool_key_declaration(value) is None {
+        Some(PoolValue(value))
+      } else {
+        None
+      }
+    GraphConstruction(..) | Nearest(..) | Ranking(_) | TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
       match @event.options(value) {
@@ -492,6 +499,7 @@ pub fn prepare(
           },
           1,
         )
+      PoolValue(_) => ("pool_vectors", 1)
       EventValue(value) =>
         (
           match @event.options(value) {
@@ -643,6 +651,7 @@ pub fn prepare(
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
       VectorValue(_) => None
+      PoolValue(_) => None
       EventValue(_) => None
       CarrierProjection(_) => None
     }

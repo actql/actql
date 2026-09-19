@@ -307,7 +307,7 @@ pub fn prepare_sequence(
         }
         GraphRelationStep(prepared)
       }
-      VectorValue(_) => {
+      VectorValue(_) | PoolValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_vector_node(
             owner,
