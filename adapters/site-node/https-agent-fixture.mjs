@@ -38,6 +38,7 @@ const registration = prepareRemoteRuntimeRegistration({
   site,
   ...configuration.runtime,
   execute: async ({signal}) => {
+    process.send?.({type: 'execution-started'});
     if (configuration.runtime.delayMs > 0) {
       await new Promise((resolve, reject) => {
         const abort = () => {
@@ -104,6 +105,13 @@ async function close() {
 }
 
 process.on('message', message => {
+  if (message?.type === 'stop-admission') {
+    process.send?.({
+      type: 'admission-stopped',
+      changed: agent.stopAdmission(),
+    });
+    return;
+  }
   if (message?.type === 'close') void close();
 });
 process.on('SIGTERM', () => void close());

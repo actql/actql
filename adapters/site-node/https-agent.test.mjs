@@ -94,7 +94,11 @@ async function certificates(root) {
   });
 }
 
-const dispatch = (dispatchId = 'dispatch-a', revision = 'local/1') =>
+const dispatch = (
+  dispatchId = 'dispatch-a',
+  revision = 'local/1',
+  overrides = {},
+) =>
   runtime.remoteSiteControl.prepare(Object.freeze({
     coordinatorAuthority: 'coordinator-a',
     runDefinitionCid: cid('0'),
@@ -112,9 +116,14 @@ const dispatch = (dispatchId = 'dispatch-a', revision = 'local/1') =>
     budgetCid: dispatchBudgetCid,
     evidenceIssuerCapabilityCid: cid('b'),
     grantCid: cid('4'),
+    ...overrides,
   }));
 
-async function startFixture(root, material, {delayMs = 0} = {}) {
+async function startFixture(
+  root,
+  material,
+  {delayMs = 0, maxConcurrentOperations = 4} = {},
+) {
   const configurationPath = join(root, 'agent.json');
   await writeFile(configurationPath, JSON.stringify({
     keyPath: join(root, 'site.key'),
@@ -128,7 +137,7 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
       key: 'site-a',
       generation: 1,
       runtimeRevision: cid('a'),
-      maxConcurrentOperations: 4,
+      maxConcurrentOperations,
       maxConcurrentTransfers: 4,
       maxRetainedBytes: '1048576',
       maxExecutionBytes: '1048576',
@@ -174,6 +183,7 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
     {stdio: ['ignore', 'ignore', 'pipe', 'ipc']},
   );
   let errors = '';
+  let executionStarts = 0;
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', value => { errors += value; });
   const ready = await new Promise((resolve, reject) => {
@@ -185,6 +195,7 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
       reject(error);
     });
     child.on('message', message => {
+      if (message?.type === 'execution-started') executionStarts++;
       if (message?.type === 'ready') {
         clearTimeout(timeout);
         resolve(message);
@@ -198,6 +209,22 @@ async function startFixture(root, material, {delayMs = 0} = {}) {
   return Object.freeze({
     origin: `https://127.0.0.1:${ready.port}`,
     child,
+    executionStarts: () => executionStarts,
+    stopAdmission() {
+      return new Promise((resolve, reject) => {
+        const onMessage = message => {
+          if (message?.type !== 'admission-stopped') return;
+          child.off('message', onMessage);
+          resolve(message.changed);
+        };
+        child.on('message', onMessage);
+        child.send({type: 'stop-admission'}, error => {
+          if (error === null || error === undefined) return;
+          child.off('message', onMessage);
+          reject(error);
+        });
+      });
+    },
     async close() {
       if (child.exitCode !== null) return;
       child.send({type: 'close'});
@@ -281,7 +308,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
 
     await assert.rejects(
       sendRemoteDispatch({...options, dispatch: dispatch('dispatch-a', 'local/2')}),
-      error => error.code === 'RemoteSiteRejected' && error.status === 400,
+      error => error.code === 'RemoteSiteRejected' && error.status === 409,
     );
     await assert.rejects(
       sendRemoteDispatch({
@@ -315,6 +342,53 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
       reopenedEvidence.measurementCid,
       completed.measurementCid,
     );
+  });
+
+test('exact retransmission bypasses new-work capacity and admission closure',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-remote-retransmit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const fixture = await startFixture(root, material, {
+      delayMs: 10_000,
+      maxConcurrentOperations: 1,
+    });
+    t.after(() => fixture.close());
+    const request = dispatch('dispatch-retransmit');
+    const options = {
+      origin: fixture.origin,
+      ca: material.ca,
+      cert: material.coordinatorCertificate,
+      key: material.coordinatorKey,
+      control: runtime.remoteSiteControl,
+      dispatch: request,
+    };
+    await sendRemoteDispatch(options);
+    for (let attempt = 0; attempt < 100 && fixture.executionStarts() === 0;
+      attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    assert.equal(fixture.executionStarts(), 1);
+    assert.equal(await fixture.stopAdmission(), true);
+
+    const replayed = await sendRemoteDispatch(options);
+    assert.equal(
+      replayed.dispatchRequestCid,
+      runtime.remoteSiteControl.identity(request),
+    );
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(fixture.executionStarts(), 1);
+    await assert.rejects(
+      sendRemoteDispatch({
+        ...options,
+        dispatch: dispatch('dispatch-new', 'local/1', {taskAttempt: 2}),
+      }),
+      error => error.code === 'RemoteSiteRejected' && error.status === 503,
+    );
+
+    await cancelRemoteDispatch(options);
+    const terminal = await terminalStatus(options);
+    assert.deepEqual(terminal.state, [5, 0, 2, 0, 0]);
   });
 
 test('authenticated cancellation waits for physical handler exit', async t => {

@@ -170,6 +170,16 @@ export async function startHttpsRemoteSiteAgent({
         );
         return;
       }
+      const existing = store.inspect(dispatch, control);
+      if (existing !== undefined) {
+        if (existing.dispatch_request_cid !== control.identity(dispatch)) {
+          fail('RemoteDispatchCollision');
+        }
+        const admission = control.prepareAdmission(journal, dispatch);
+        const record = store.accept(admission, dispatch, control);
+        replyCanonical(response, control.replyJson(record));
+        return;
+      }
       if (admissionClosed) {
         reply(response, 503, {error: 'site_unavailable'});
         return;
@@ -213,6 +223,11 @@ export async function startHttpsRemoteSiteAgent({
   return Object.freeze({
     origin: `https://${host}:${address.port}`,
     port: address.port,
+    stopAdmission() {
+      if (admissionClosed) return false;
+      admissionClosed = true;
+      return true;
+    },
     async close() {
       if (listenerClosed && runtimeClosed) return false;
       admissionClosed = true;
