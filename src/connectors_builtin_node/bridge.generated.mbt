@@ -11,6 +11,8 @@ pub(all) suberror NodeHostFailure {
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
+  RemoteTransfer(@transfer.RemoteTransferIssue)
+  PhysicalManifest(@manifest.PhysicalManifestIssue)
 }
 
 ///|
@@ -4242,6 +4244,205 @@ pub fn physical_representation_contracts(
     Err(CountOverflow) => ["error", "overflow"]
     Err(RowCountMismatch) => ["error", "row-count"]
   }
+}
+
+///|
+/// Admit one route-independent Remote Transfer request. Physical movement is
+/// performed by an environment adapter; this bridge owns only portable
+/// identity and lifecycle decisions.
+#export_name("strategyRemoteTransferPrepare")
+pub fn strategy_remote_transfer_prepare(
+  coordinator_authority : String,
+  transfer_attempt_id : String,
+  route : Int,
+  source_site : String,
+  source_site_generation : Int,
+  destination_site : String,
+  destination_site_generation : Int,
+  source_material_generation : String,
+  manifest_version : String,
+  schema_contract_cid : String,
+  view_contract_cid : String,
+  codec_contract_cid : String,
+  row_count : Int,
+  chunk_cids : Array[String],
+  chunk_byte_lengths : Array[Int64],
+  chunk_row_counts : Array[Int],
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+  capacity_bytes : Int64,
+  expires_at_ms : Int64,
+  source_grant_cid : String,
+  destination_grant_cid : String,
+  route_capability_cid : String,
+) -> @transfer.RemoteTransferRequest raise NodeHostFailure {
+  let selected_route = match route {
+    0 => @transfer.DirectStream
+    1 => @transfer.TransferStore
+    _ => raise InvalidCommand
+  }
+  let physical = match
+    @manifest.admit(
+      manifest_version, schema_contract_cid, view_contract_cid, codec_contract_cid,
+      row_count, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes,
+      max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise PhysicalManifest(issue)
+  }
+  match
+    @transfer.prepare_request(
+      coordinator_authority, transfer_attempt_id, selected_route, source_site, source_site_generation,
+      destination_site, destination_site_generation, source_material_generation,
+      physical, capacity_bytes, expires_at_ms, source_grant_cid, destination_grant_cid,
+      route_capability_cid,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferIdentity")
+pub fn strategy_remote_transfer_identity(
+  request : @transfer.RemoteTransferRequest,
+) -> String {
+  @transfer.request_cid(request)
+}
+
+///|
+#export_name("strategyRemoteTransferJson")
+pub fn strategy_remote_transfer_json(
+  request : @transfer.RemoteTransferRequest,
+) -> String raise NodeHostFailure {
+  match @transfer.request_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferProjection")
+pub fn strategy_remote_transfer_projection(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
+  @transfer.request_projection(request)
+}
+
+///|
+#export_name("strategyRemoteTransferOpen")
+pub fn strategy_remote_transfer_open(
+  request : @transfer.RemoteTransferRequest,
+) -> @transfer.RemoteTransferRecord {
+  @transfer.open_record(request)
+}
+
+///|
+#export_name("strategyRemoteTransferStartPrepare")
+pub fn strategy_remote_transfer_start_prepare(
+  record : @transfer.RemoteTransferRecord,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match @transfer.prepare_start(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferSourceSettledPrepare")
+pub fn strategy_remote_transfer_source_settled_prepare(
+  record : @transfer.RemoteTransferRecord,
+  integrity_verified : Bool,
+  store_object_sealed : Bool,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match
+    @transfer.prepare_source_settled(
+      record, integrity_verified, store_object_sealed,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferDestinationCommitPrepare")
+pub fn strategy_remote_transfer_destination_commit_prepare(
+  record : @transfer.RemoteTransferRecord,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match @transfer.prepare_destination_commit(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferFailurePrepare")
+pub fn strategy_remote_transfer_failure_prepare(
+  record : @transfer.RemoteTransferRecord,
+  cancelled : Bool,
+  source_access_stopped : Bool,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match @transfer.prepare_failure(record, cancelled, source_access_stopped) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferUnknownPrepare")
+pub fn strategy_remote_transfer_unknown_prepare(
+  record : @transfer.RemoteTransferRecord,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match @transfer.prepare_unknown(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferCleanupPrepare")
+pub fn strategy_remote_transfer_cleanup_prepare(
+  record : @transfer.RemoteTransferRecord,
+  source_access_stopped : Bool,
+  destination_temporary_reclaimed : Bool,
+  object_use_released : Bool,
+) -> @transfer.RemoteTransferTransition raise NodeHostFailure {
+  match
+    @transfer.prepare_cleanup(
+      record, source_access_stopped, destination_temporary_reclaimed, object_use_released,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferTransitionProjection")
+pub fn strategy_remote_transfer_transition_projection(
+  transition : @transfer.RemoteTransferTransition,
+) -> (Array[Int], Array[Int]) {
+  @transfer.transition_projection(transition)
+}
+
+///|
+#export_name("strategyRemoteTransferTransitionCommit")
+pub fn strategy_remote_transfer_transition_commit(
+  transition : @transfer.RemoteTransferTransition,
+  durable : Bool,
+) -> @transfer.RemoteTransferRecord raise NodeHostFailure {
+  match @transfer.commit_transition(transition, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransferRecordProjection")
+pub fn strategy_remote_transfer_record_projection(
+  record : @transfer.RemoteTransferRecord,
+) -> Array[Int] {
+  @transfer.record_projection(record)
 }
 
 ///|

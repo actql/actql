@@ -13,6 +13,7 @@ const tuplePair = value => Array.isArray(value)
     : undefined;
 const siteControls = new WeakMap();
 const remoteSiteControls = new WeakMap();
+const remoteTransferControls = new WeakMap();
 const publicationControls = new WeakMap();
 
 function siteControl(moon) {
@@ -521,6 +522,120 @@ function remoteSiteControl(moon) {
     ),
   });
   remoteSiteControls.set(moon, control);
+  return control;
+}
+
+function remoteTransferControl(moon) {
+  let control = remoteTransferControls.get(moon);
+  if (control !== undefined) return control;
+  const int64 = (value, label) => {
+    if (typeof value === 'bigint' && value >= 0n) return value;
+    if (Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+    throw new TypeError(`Invalid Remote Transfer ${label}`);
+  };
+  const requestFields = request => {
+    if (request === null || typeof request !== 'object' ||
+        request.physicalManifest === null ||
+        typeof request.physicalManifest !== 'object' ||
+        !Array.isArray(request.physicalManifest.chunks) ||
+        request.limits === null || typeof request.limits !== 'object' ||
+        !Number.isSafeInteger(request.limits.maxChunks) ||
+        request.limits.maxChunks < 0 ||
+        !Number.isSafeInteger(request.limits.maxManifestBytes) ||
+        request.limits.maxManifestBytes < 0 ||
+        !Number.isSafeInteger(request.sourceSiteGeneration) ||
+        request.sourceSiteGeneration < 0 ||
+        !Number.isSafeInteger(request.destinationSiteGeneration) ||
+        request.destinationSiteGeneration < 0 ||
+        !Number.isSafeInteger(request.physicalManifest.rowCount) ||
+        request.physicalManifest.rowCount < 0 ||
+        request.physicalManifest.chunks.length > request.limits.maxChunks) {
+      throw new TypeError('Invalid Remote Transfer request');
+    }
+    const physical = request.physicalManifest;
+    const chunks = physical.chunks;
+    if (chunks.some(chunk => chunk === null || typeof chunk !== 'object' ||
+      !Number.isSafeInteger(chunk.rowCount) || chunk.rowCount < 0)) {
+      throw new TypeError('Invalid Remote Transfer chunks');
+    }
+    return [
+      request.coordinatorAuthority,
+      request.transferAttemptId,
+      request.route === 'direct' ? 0 : request.route === 'store' ? 1 : -1,
+      request.sourceSite,
+      request.sourceSiteGeneration,
+      request.destinationSite,
+      request.destinationSiteGeneration,
+      request.sourceMaterialGeneration,
+      physical.version,
+      physical.schemaContractCid,
+      physical.viewContractCid,
+      physical.codecContractCid,
+      physical.rowCount,
+      chunks.map(chunk => chunk.cid),
+      chunks.map(chunk => int64(chunk.byteLength, 'chunk length')),
+      chunks.map(chunk => chunk.rowCount),
+      request.limits.maxChunks,
+      request.limits.maxManifestBytes,
+      int64(request.limits.maxReferencedBytes, 'referenced-byte limit'),
+      int64(request.capacityBytes, 'capacity'),
+      int64(request.expiresAtMilliseconds, 'expiry'),
+      request.sourceGrantCid,
+      request.destinationGrantCid,
+      request.routeCapabilityCid,
+    ];
+  };
+  control = Object.freeze({
+    prepare: request => checked(
+      moon.strategyRemoteTransferPrepare(...requestFields(request)),
+    ),
+    identity: moon.strategyRemoteTransferIdentity,
+    requestJson: value => checked(moon.strategyRemoteTransferJson(value)),
+    requestProjection: moon.strategyRemoteTransferProjection,
+    open: moon.strategyRemoteTransferOpen,
+    prepareStart: value => checked(
+      moon.strategyRemoteTransferStartPrepare(value),
+    ),
+    prepareSourceSettled: (value, integrityVerified, objectSealed) => checked(
+      moon.strategyRemoteTransferSourceSettledPrepare(
+        value,
+        integrityVerified,
+        objectSealed,
+      ),
+    ),
+    prepareDestinationCommit: value => checked(
+      moon.strategyRemoteTransferDestinationCommitPrepare(value),
+    ),
+    prepareFailure: (value, cancelled, sourceAccessStopped) => checked(
+      moon.strategyRemoteTransferFailurePrepare(
+        value,
+        cancelled,
+        sourceAccessStopped,
+      ),
+    ),
+    prepareUnknown: value => checked(
+      moon.strategyRemoteTransferUnknownPrepare(value),
+    ),
+    prepareCleanup: (
+      value,
+      sourceAccessStopped,
+      destinationTemporaryReclaimed,
+      objectUseReleased,
+    ) => checked(moon.strategyRemoteTransferCleanupPrepare(
+      value,
+      sourceAccessStopped,
+      destinationTemporaryReclaimed,
+      objectUseReleased,
+    )),
+    transitionProjection: value => tuplePair(
+      moon.strategyRemoteTransferTransitionProjection(value),
+    ),
+    commitTransition: (value, durable) => checked(
+      moon.strategyRemoteTransferTransitionCommit(value, durable),
+    ),
+    recordProjection: moon.strategyRemoteTransferRecordProjection,
+  });
+  remoteTransferControls.set(moon, control);
   return control;
 }
 
@@ -1611,6 +1726,7 @@ export function runtimeCore(moon) {
   return Object.freeze({
     siteControl: siteControl(moon),
     remoteSiteControl: remoteSiteControl(moon),
+    remoteTransferControl: remoteTransferControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,

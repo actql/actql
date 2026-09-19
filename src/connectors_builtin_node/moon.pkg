@@ -18,4 +18,5 @@ import {
   "actql/actql/connectors/duckdb/driver" @binding11,
   "actql/actql/connectors/local/driver" @binding12,
   "actql/actql/connectors/reference_compute/driver" @binding13,
+  "actql/actql/remote_transfer" @transfer,
 }

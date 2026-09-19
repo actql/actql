@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import * as moon from
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeCore} from './runtime-core.mjs';
+
+const cid = digit => `sha256:${digit.repeat(64)}`;
+const control = runtimeCore(moon).remoteTransferControl;
+
+const request = route => Object.freeze({
+  coordinatorAuthority: 'coordinator-a',
+  transferAttemptId: 'transfer-a',
+  route,
+  sourceSite: 'source-a',
+  sourceSiteGeneration: 1,
+  destinationSite: 'destination-b',
+  destinationSiteGeneration: 2,
+  sourceMaterialGeneration: 'material-a',
+  physicalManifest: Object.freeze({
+    version: 'actql-managed-physical-manifest/0.1',
+    schemaContractCid: cid('1'),
+    viewContractCid: cid('2'),
+    codecContractCid: cid('3'),
+    rowCount: 1,
+    chunks: Object.freeze([
+      Object.freeze({cid: cid('a'), byteLength: 5n, rowCount: 1}),
+    ]),
+  }),
+  limits: Object.freeze({
+    maxChunks: 1,
+    maxManifestBytes: 4096,
+    maxReferencedBytes: 5n,
+  }),
+  capacityBytes: 5n,
+  expiresAtMilliseconds: 2_000_000_000_000n,
+  sourceGrantCid: cid('4'),
+  destinationGrantCid: cid('5'),
+  routeCapabilityCid: cid('6'),
+});
+
+const commit = transition => control.commitTransition(transition, true);
+
+test('Remote Transfer control binds route without adapter-owned identity', () => {
+  const direct = control.prepare(request('direct'));
+  const store = control.prepare(request('store'));
+  assert.notEqual(control.identity(direct), control.identity(store));
+  assert.equal(control.requestProjection(direct)[1], 'direct');
+  assert.equal(control.requestProjection(store)[1], 'store');
+  assert.equal(
+    JSON.parse(control.requestJson(direct)).physical_manifest_cid,
+    control.requestProjection(direct)[7],
+  );
+});
+
+test('direct Transfer commits only after durable stop and integrity', () => {
+  const record = control.open(control.prepare(request('direct')));
+  commit(control.prepareStart(record));
+  assert.throws(() => control.prepareDestinationCommit(record));
+  commit(control.prepareSourceSettled(record, true, false));
+  const completion = control.prepareDestinationCommit(record);
+  const [expected, next] = control.transitionProjection(completion);
+  assert.deepEqual(expected, [2, 1, 0, 1, 0, 1, 0, 1, 0]);
+  assert.deepEqual(next, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
+  assert.throws(() => control.commitTransition(completion, false));
+  assert.deepEqual(control.recordProjection(record), expected);
+  commit(completion);
+  commit(control.prepareCleanup(record, false, false, false));
+  assert.deepEqual(
+    control.recordProjection(record),
+    [4, 2, 0, 1, 1, 1, 1, 1, 1],
+  );
+});
+
+test('Store failure separates source stop from destination cleanup', () => {
+  const record = control.open(control.prepare(request('store')));
+  commit(control.prepareStart(record));
+  commit(control.prepareFailure(record, false, true));
+  assert.throws(() => control.prepareCleanup(record, false, true, false));
+  commit(control.prepareCleanup(record, false, true, true));
+  assert.deepEqual(
+    control.recordProjection(record),
+    [3, 3, 2, 0, 1, 1, 1, 1, 0],
+  );
+});
+
+test('Transfer admission rejects unbounded adapter projections', () => {
+  assert.throws(
+    () => control.prepare({
+      ...request('direct'),
+      limits: {...request('direct').limits, maxChunks: 0},
+    }),
+    {name: 'TypeError'},
+  );
+  assert.throws(
+    () => control.prepare({...request('direct'), capacityBytes: 4n}),
+  );
+});

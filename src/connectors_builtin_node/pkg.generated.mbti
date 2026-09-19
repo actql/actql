@@ -8,8 +8,10 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_host",
+  "actql/actql/physical_manifest",
   "actql/actql/physical_strategy",
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "actql/actql/run_publication",
 }
 
@@ -528,6 +530,34 @@ pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeSt
 
 pub fn strategy_remote_runtime_step_transition(@remote_site_protocol.RemoteRuntimeStep) -> @remote_site_protocol.DispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_transfer_cleanup_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_destination_commit_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_failure_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_identity(@remote_transfer.RemoteTransferRequest) -> String
+
+pub fn strategy_remote_transfer_json(@remote_transfer.RemoteTransferRequest) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transfer_open(@remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord
+
+pub fn strategy_remote_transfer_prepare(String, String, Int, String, Int, String, Int, String, String, String, String, String, Int, Array[String], Array[Int64], Array[Int], Int, Int, Int64, Int64, Int64, String, String, String) -> @remote_transfer.RemoteTransferRequest raise NodeHostFailure
+
+pub fn strategy_remote_transfer_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn strategy_remote_transfer_record_projection(@remote_transfer.RemoteTransferRecord) -> Array[Int]
+
+pub fn strategy_remote_transfer_source_settled_prepare(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_start_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
+pub fn strategy_remote_transfer_transition_commit(@remote_transfer.RemoteTransferTransition, Bool) -> @remote_transfer.RemoteTransferRecord raise NodeHostFailure
+
+pub fn strategy_remote_transfer_transition_projection(@remote_transfer.RemoteTransferTransition) -> (Array[Int], Array[Int])
+
+pub fn strategy_remote_transfer_unknown_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
+
 pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
@@ -635,6 +665,8 @@ pub(all) suberror NodeHostFailure {
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
+  RemoteTransfer(@remote_transfer.RemoteTransferIssue)
+  PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
 }
 
 // Types and methods
