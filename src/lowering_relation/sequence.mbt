@@ -9,6 +9,7 @@ struct PreparedSequence {
 ///|
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
+  TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
@@ -46,6 +47,7 @@ pub(all) enum SequenceIssue {
   InvalidSequenceLimits
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
+  TimeSeriesFailure(Int, TimeSeriesIssue)
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
@@ -393,6 +395,31 @@ pub fn prepare_sequence(
         rows -= count
         ValuesStep(prepared)
       }
+      TimeSeriesValue(_) => {
+        let (prepared, used_bindings, used_names, used_work) = match
+          prepare_time_series_node(
+            owner,
+            owner.prepared.nodes[i],
+            max_rows=rows,
+            max_cells=cells,
+            max_bindings=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(TimeSeriesFailure(i, issue))
+        }
+        let count = time_series_row_count(prepared)
+        rows -= count
+        cells -= count
+        bindings -= used_bindings
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        TimeSeriesStep(prepared)
+      }
       RowWindow(_) => {
         let (prepared, used_names, used_bindings, used_work) = match
           prepare_window(
@@ -465,6 +492,7 @@ pub fn emit_sequence_steps(
   for step in value.steps {
     match step {
       ValuesStep(v) => emit_values_node(v, out)
+      TimeSeriesStep(v) => emit_time_series_node(v, out)
       WindowStep(v) => emit_window_node(v, out)
       JoinStep(v) => emit_join_kernel(v, out)
       CrossJoinStep(v) => emit_cross_join_kernel(v, out)

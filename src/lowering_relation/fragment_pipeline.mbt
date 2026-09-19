@@ -20,6 +20,7 @@ pub fn prepare_fragment_pipeline(
   match sequence.steps[step] {
     RowStep(kernel) => Ok({ kernel, roots, })
     ValuesStep(_)
+    | TimeSeriesStep(_)
     | WindowStep(_)
     | JoinStep(_)
     | CrossJoinStep(_)

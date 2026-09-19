@@ -21,6 +21,7 @@ import {
   "actql/actql/relation_typing",
   "actql/actql/relation_values",
   "actql/actql/temporal_window",
+  "actql/actql/time_series",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "actql/actql/vector_typing",
@@ -618,6 +619,14 @@ pub fn set_kernel_step(PreparedSetKernel) -> Int
 
 pub fn source(PreparedNode) -> @decode_core.Cursor
 
+pub fn time_series_end(PreparedTimeSeries) -> String
+
+pub fn time_series_row_count(PreparedTimeSeries) -> Int
+
+pub fn time_series_start(PreparedTimeSeries) -> String
+
+pub fn time_series_step(PreparedTimeSeries) -> Int64
+
 pub fn usage(Prepared) -> Usage
 
 pub fn vector_output_carrier(PreparedVector) -> @carrier_contract.Carrier
@@ -1038,6 +1047,7 @@ type OrderedReferences
 
 pub enum Payload {
   Values(@relation_values.CheckedValues)
+  TimeSeriesValue(@time_series.CheckedSeries)
   RowWindow(@temporal_window.CheckedWindow)
   Derive(@relation_typing.CheckedOperation)
   Where(@relation_typing.CheckedOperation)
@@ -1207,6 +1217,7 @@ type PreparedSetKernel
 
 pub enum PreparedStep {
   ValuesStep(PreparedValues)
+  TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
@@ -1228,6 +1239,8 @@ pub enum PreparedStep {
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
 }
+
+type PreparedTimeSeries
 
 type PreparedValues
 
@@ -1281,6 +1294,7 @@ pub(all) enum SequenceIssue {
   InvalidSequenceLimits
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
+  TimeSeriesFailure(Int, TimeSeriesIssue)
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
@@ -1329,6 +1343,15 @@ pub struct SourceDemandTest {
   pointer : String
   predicate : @expression_typing.DemandTestKind
 }
+
+pub(all) enum TimeSeriesIssue {
+  InvalidTimeSeriesLimits
+  InvalidTimeSeriesWiring
+  TimeSeriesPreparationLimit
+  MissingTimeSeriesParameter(String)
+  InvalidTimeSeriesParameter(String)
+  InvalidTimeSeriesRange
+} derive(Eq, @debug.Debug)
 
 pub(all) enum UnaryOperator {
   Negate

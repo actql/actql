@@ -10,6 +10,8 @@ import {
 // Values
 pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 
+pub fn time_series_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+
 // Errors
 
 // Types and methods

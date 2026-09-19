@@ -30,6 +30,7 @@ struct PreparedNode {
 /// not a second semantic IR, and must not be passed to an execution engine.
 pub enum Payload {
   Values(@values.CheckedValues)
+  TimeSeriesValue(@series.CheckedSeries)
   RowWindow(@window.CheckedWindow)
   Derive(@relation.CheckedOperation)
   Where(@relation.CheckedOperation)
@@ -163,6 +164,7 @@ pub fn input_id(value : Prepared, index : Int) -> String? {
 pub fn operation(value : PreparedNode) -> String {
   match value.payload {
     Values(_) => "REL.values"
+    TimeSeriesValue(_) => "TEA.time_series"
     RowWindow(value) =>
       match @window.kind(@window.options(value)) {
         @window.Fixed => "REL.window.fixed"
@@ -257,6 +259,7 @@ pub fn operation(value : PreparedNode) -> String {
 fn classify(op : @pipeline.CheckedOperation) -> Payload? {
   match op {
     Values(v) => Some(Values(v))
+    TimeSeries(v) => Some(TimeSeriesValue(v))
     Window(value) => Some(RowWindow(value))
     Unary(v) =>
       match @relation.operation(v) {
@@ -285,11 +288,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Set(checked~, ..) => Some(SetRows(checked))
     WindowGroup(v) => Some(WindowGroup(v))
     Nest(checked~, ..) => Some(NestRows(checked))
-    IntervalJoin(..)
-    | AsOfJoin(..)
-    | Sequence(_)
-    | TimeSeries(_)
-    | Calendar(_) => None
+    IntervalJoin(..) | AsOfJoin(..) | Sequence(_) | Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
     Graph(value) =>
       match @graph.operation(value) {
@@ -392,6 +391,7 @@ pub fn prepare(
     }
     let (preferred, arity) = match payload {
       Values(_) => ("values", 0)
+      TimeSeriesValue(_) => ("time_series", 0)
       RowWindow(_) => ("window", 1)
       Derive(_) => ("derive", 1)
       Where(_) => ("where", 1)
@@ -606,6 +606,7 @@ pub fn prepare(
         }
       }
       Values(_)
+      | TimeSeriesValue(_)
       | RowWindow(_)
       | Derive(_)
       | Where(_)

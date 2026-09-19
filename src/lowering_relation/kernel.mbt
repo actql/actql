@@ -299,6 +299,7 @@ fn prepare_kernel_measured(
     | AssertRows(op) => op
     JsonPick(op) => op
     Values(_)
+    | TimeSeriesValue(_)
     | RowWindow(_)
     | InnerJoin(_)
     | CrossJoinRows(_)

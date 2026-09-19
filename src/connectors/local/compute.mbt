@@ -140,6 +140,7 @@ pub fn local_managed_sequence_supported(
   @execution.generated_sequence_all_steps(sequence, fn(step) {
     match step {
       @lower.ValuesStep(_) => true
+      @lower.TimeSeriesStep(_) => false
       @lower.WindowStep(_) => true
       @lower.RowStep(kernel) =>
         match @lower.kernel_body(kernel) {

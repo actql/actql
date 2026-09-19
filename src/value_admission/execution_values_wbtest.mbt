@@ -27,3 +27,27 @@ test "event clocks use the declared numeric or UTC encoding" {
   assert_true(event_time_milliseconds(numeric, true) is None)
   assert_true(event_time_milliseconds(utc, false) is None)
 }
+
+///|
+test "epoch milliseconds round trip the complete timestamp domain" {
+  for
+    text in [
+      "0000-01-01T00:00:00.000Z", "0000-02-29T23:59:59.999Z", "1900-02-28T12:34:56.789Z",
+      "1970-01-01T00:00:00.000Z", "2000-02-29T00:00:00.001Z", "9999-12-31T23:59:59.999Z",
+    ] {
+    let milliseconds = timestamp_epoch_milliseconds(text).unwrap()
+    assert_eq(epoch_milliseconds_timestamp(milliseconds), Some(text))
+  }
+  let first = timestamp_epoch_milliseconds("0000-01-01T00:00:00.000Z").unwrap()
+  let last = timestamp_epoch_milliseconds("9999-12-31T23:59:59.999Z").unwrap()
+  assert_true(epoch_milliseconds_timestamp(first - 1L) is None)
+  assert_true(epoch_milliseconds_timestamp(last + 1L) is None)
+  assert_true(timestamp_epoch_milliseconds("2001-02-29T00:00:00.000Z") is None)
+  let contract = @contract.primitive(@contract.TimestampType, nullable=false)
+  assert_true(
+    checked_timestamp_value("2000-02-29T00:00:00.000Z", contract) is Some(_),
+  )
+  assert_true(
+    checked_timestamp_value("2001-02-29T00:00:00.000Z", contract) is None,
+  )
+}

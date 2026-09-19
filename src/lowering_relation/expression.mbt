@@ -503,6 +503,7 @@ fn lower_expression_measured(
         (@graph.predicate_expression(predicate), references)
       }
       Values(_)
+      | TimeSeriesValue(_)
       | RowWindow(_)
       | Select(_)
       | Limit(_)
